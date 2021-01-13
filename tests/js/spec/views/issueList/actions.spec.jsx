@@ -373,15 +373,6 @@ describe('IssueListActions', function () {
       );
     });
 
-    it('hides actions when no issues are selected', async function () {
-      expect(wrapper.find('[aria-label="Mark Reviewed"]').exists()).toBe(false);
-    });
-
-    it('displays actions on issue selection', async function () {
-      wrapper.find('IssueListActions').setState({anySelected: true});
-      expect(wrapper.find('[aria-label="Mark Reviewed"]').exists()).toBe(true);
-    });
-
     it('acknowledges group', async function () {
       wrapper.find('IssueListActions').setState({anySelected: true});
       SelectedGroupStore.add(['1', '2', '3']);

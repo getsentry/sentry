@@ -29,8 +29,6 @@ type Props = {
   statsPeriod: string;
   query: string;
   queryCount: number;
-  queryMaxCount: number;
-  pageCount: number;
   displayReprocessingActions: boolean;
   hasInbox?: boolean;
 };
@@ -237,8 +235,6 @@ class IssueListActions extends React.Component<Props, State> {
       query,
       realtimeActive,
       statsPeriod,
-      pageCount,
-      queryMaxCount,
       selection,
       organization,
       displayReprocessingActions,
@@ -265,7 +261,7 @@ class IssueListActions extends React.Component<Props, State> {
               disabled={displayReprocessingActions}
             />
           </ActionsCheckbox>
-          {(anySelected || !hasInbox) && !displayReprocessingActions && (
+          {!displayReprocessingActions && (
             <ActionSet
               orgSlug={organization.slug}
               queryCount={queryCount}
@@ -284,18 +280,14 @@ class IssueListActions extends React.Component<Props, State> {
               onUpdate={this.handleUpdate}
             />
           )}
-          {(!anySelected || !hasInbox) && (
-            <Headers
-              onSelectStatsPeriod={this.handleSelectStatsPeriod}
-              selection={selection}
-              statsPeriod={statsPeriod}
-              pageCount={pageCount}
-              queryCount={queryCount}
-              queryMaxCount={queryMaxCount}
-              hasInbox={hasInbox}
-              isReprocessingQuery={displayReprocessingActions}
-            />
-          )}
+
+          <Headers
+            onSelectStatsPeriod={this.handleSelectStatsPeriod}
+            selection={selection}
+            statsPeriod={statsPeriod}
+            hasInbox={hasInbox}
+            isReprocessingQuery={displayReprocessingActions}
+          />
         </StyledFlex>
         {!allResultsVisible && pageSelected && (
           <SelectAllNotice>

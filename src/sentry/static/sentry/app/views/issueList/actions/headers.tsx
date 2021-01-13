@@ -1,9 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import QueryCount from 'app/components/queryCount';
 import ToolbarHeader from 'app/components/toolbarHeader';
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {GlobalSelection} from 'app/types';
@@ -11,9 +10,6 @@ import {GlobalSelection} from 'app/types';
 type Props = {
   selection: GlobalSelection;
   statsPeriod: string;
-  pageCount: number;
-  queryCount: number;
-  queryMaxCount: number;
   onSelectStatsPeriod: (statsPeriod: string) => void;
   isReprocessingQuery: boolean;
   hasInbox?: boolean;
@@ -22,31 +18,12 @@ type Props = {
 function Headers({
   selection,
   statsPeriod,
-  pageCount,
-  queryCount,
-  queryMaxCount,
   onSelectStatsPeriod,
   isReprocessingQuery,
   hasInbox,
 }: Props) {
   return (
     <React.Fragment>
-      {hasInbox && (
-        <ActionSetPlaceholder>
-          {/* total includes its own space */}
-          {tct('Select [count] of [total]', {
-            count: <React.Fragment>{pageCount}</React.Fragment>,
-            total: (
-              <QueryCount
-                hideParens
-                hideIfEmpty={false}
-                count={queryCount || 0}
-                max={queryMaxCount || 1}
-              />
-            ),
-          })}
-        </ActionSetPlaceholder>
-      )}
       {isReprocessingQuery ? (
         <React.Fragment>
           <StartedColumn>{t('Started')}</StartedColumn>
@@ -55,7 +32,9 @@ function Headers({
         </React.Fragment>
       ) : (
         <React.Fragment>
-          <GraphHeaderWrapper className="hidden-xs hidden-sm">
+          <GraphHeaderWrapper
+            className={`hidden-xs hidden-sm ${hasInbox ? 'hidden-md' : ''}`}
+          >
             <GraphHeader>
               <StyledToolbarHeader>{t('Graph:')}</StyledToolbarHeader>
               <GraphToggle
@@ -75,11 +54,11 @@ function Headers({
           <EventsOrUsersLabel>{t('Events')}</EventsOrUsersLabel>
           <EventsOrUsersLabel>{t('Users')}</EventsOrUsersLabel>
           <AssigneesLabel className="hidden-xs hidden-sm">
-            <IssueToolbarHeader>{t('Assignee')}</IssueToolbarHeader>
+            <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
           </AssigneesLabel>
           {hasInbox && (
             <ActionsLabel>
-              <IssueToolbarHeader>{t('Actions')}</IssueToolbarHeader>
+              <ToolbarHeader>{t('Actions')}</ToolbarHeader>
             </ActionsLabel>
           )}
         </React.Fragment>
@@ -89,35 +68,6 @@ function Headers({
 }
 
 export default Headers;
-
-const IssueToolbarHeader = styled(ToolbarHeader)`
-  animation: 0.3s FadeIn linear forwards;
-
-  @keyframes FadeIn {
-    0% {
-      opacity: 0;
-    }
-    100% {
-      opacity: 1;
-    }
-  }
-`;
-
-const ActionSetPlaceholder = styled(IssueToolbarHeader)`
-  @media (min-width: 800px) {
-    width: 66.66666666666666%;
-  }
-  @media (min-width: 992px) {
-    width: 50%;
-  }
-
-  flex: 1;
-  margin-left: ${space(1)};
-  margin-right: ${space(1)};
-  overflow: hidden;
-  min-width: 0;
-  white-space: nowrap;
-`;
 
 const GraphHeaderWrapper = styled('div')`
   width: 160px;
@@ -139,7 +89,7 @@ const GraphHeader = styled('div')`
   display: flex;
 `;
 
-const StyledToolbarHeader = styled(IssueToolbarHeader)`
+const StyledToolbarHeader = styled(ToolbarHeader)`
   flex: 1;
 `;
 
@@ -155,7 +105,7 @@ const GraphToggle = styled('a')<{active: boolean}>`
   }
 `;
 
-const EventsOrUsersLabel = styled(IssueToolbarHeader)`
+const EventsOrUsersLabel = styled(ToolbarHeader)`
   display: inline-grid;
   align-items: center;
   justify-content: flex-end;
@@ -188,7 +138,7 @@ const ActionsLabel = styled('div')`
 `;
 
 // Reprocessing
-const StartedColumn = styled(IssueToolbarHeader)`
+const StartedColumn = styled(ToolbarHeader)`
   margin: 0 ${space(2)};
   ${overflowEllipsis};
   width: 85px;
@@ -198,7 +148,7 @@ const StartedColumn = styled(IssueToolbarHeader)`
   }
 `;
 
-const EventsReprocessedColumn = styled(IssueToolbarHeader)`
+const EventsReprocessedColumn = styled(ToolbarHeader)`
   margin: 0 ${space(2)};
   ${overflowEllipsis};
   width: 75px;
@@ -208,7 +158,7 @@ const EventsReprocessedColumn = styled(IssueToolbarHeader)`
   }
 `;
 
-const ProgressColumn = styled(IssueToolbarHeader)`
+const ProgressColumn = styled(ToolbarHeader)`
   margin: 0 ${space(2)};
 
   display: none;

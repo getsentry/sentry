@@ -963,8 +963,6 @@ class IssueListOverview extends React.Component<Props, State> {
                     selection={selection}
                     query={query}
                     queryCount={queryCount}
-                    queryMaxCount={queryMaxCount}
-                    pageCount={pageCount}
                     onSelectStatsPeriod={this.onSelectStatsPeriod}
                     onRealtimeChange={this.onRealtimeChange}
                     realtimeActive={realtimeActive}

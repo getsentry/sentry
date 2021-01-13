@@ -1,5 +1,4 @@
 import React from 'react';
-import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import ActionLink from 'app/components/actions/actionLink';
@@ -64,7 +63,7 @@ function ActionSet({
   const mergeDisabled = !(multiSelected && selectedProjectSlug);
 
   return (
-    <Wrapper hasInbox={hasInbox}>
+    <Wrapper>
       {hasInbox && (
         <div className="hidden-sm hidden-xs">
           <ReviewAction
@@ -232,7 +231,7 @@ function ActionSet({
 
 export default ActionSet;
 
-const Wrapper = styled('div')<{hasInbox?: boolean}>`
+const Wrapper = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     width: 66.66%;
   }
@@ -246,21 +245,5 @@ const Wrapper = styled('div')<{hasInbox?: boolean}>`
   gap: ${space(0.5)};
   grid-auto-flow: column;
   justify-content: flex-start;
-
-  ${p =>
-    p.hasInbox &&
-    css`
-      animation: 0.15s linear ZoomUp forwards;
-    `};
-
-  @keyframes ZoomUp {
-    0% {
-      opacity: 0;
-      transform: translateY(5px);
-    }
-    100% {
-      opacity: 1;
-      transform: tranlsateY(0);
-    }
-  }
+  white-space: nowrap;
 `;
