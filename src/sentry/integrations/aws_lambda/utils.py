@@ -34,7 +34,7 @@ def parse_arn(arn):
 def check_arn_is_valid_cloudformation_stack(arn):
     try:
         parsed = parse_arn(arn)
-    except:
+    except Exception:
         return False
     return parsed["service"] == "cloudformation"
 
