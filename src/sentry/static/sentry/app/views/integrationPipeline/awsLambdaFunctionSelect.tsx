@@ -32,6 +32,14 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props> {
   }
   handlePreSubmit = () => addLoadingMessage(t('Submitting\u2026'));
   handleSubmitError = () => addErrorMessage(t('Unexpected error ocurred!'));
+  handleSubmitSuccess = () => {
+    this.model.setFormSaving();
+    const {
+      location: {origin},
+    } = window;
+    const newUrl = `${origin}/extensions/aws_lambda/setup/`;
+    window.location.replace(newUrl);
+  };
   render = () => {
     const model = this.model;
     const formFields: JsonFormObject = {

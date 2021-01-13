@@ -20,7 +20,6 @@ describe('AwsLambdaProjectSelect', () => {
     );
     windowReplaceMock = jest.fn();
     window.location.replace = windowReplaceMock;
-    window.localStorage.setItem('AWS_EXTERNAL_ID', 'my_external_id');
   });
   it('submit project', () => {
     selectByValue(wrapper, '53', {name: 'projectId', control: true});
@@ -30,7 +29,7 @@ describe('AwsLambdaProjectSelect', () => {
       location: {origin},
     } = window;
     expect(windowReplaceMock).toHaveBeenCalledWith(
-      `${origin}/extensions/aws_lambda/setup/?project_id=53&aws_external_id=my_external_id`
+      `${origin}/extensions/aws_lambda/setup/?projectId=53`
     );
   });
 });

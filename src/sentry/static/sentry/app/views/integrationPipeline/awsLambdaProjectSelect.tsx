@@ -1,51 +1,52 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {addLoadingMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import {Project} from 'app/types';
-import {uniqueId} from 'app/utils/guid';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import FormModel from 'app/views/settings/components/forms/model';
 import {JsonFormObject} from 'app/views/settings/components/forms/type';
 
-const ID_NAME = 'AWS_EXTERNAL_ID';
-const getAwsExternalId = () => {
-  let awsExternalId = window.localStorage.getItem(ID_NAME);
-  if (!awsExternalId) {
-    awsExternalId = uniqueId();
-    window.localStorage.setItem(ID_NAME, awsExternalId);
-  }
-  return awsExternalId;
-};
+type Props = {projects: Project[]};
 
-export default function AwsLambdaProjectSelect({projects}: {projects: Project[]}) {
-  const formFields: JsonFormObject = {
-    title: t('Select a project to use for your AWS Lambda functions'),
-    fields: [
-      {
-        name: 'projectId',
-        type: 'sentry_project_selector',
-        required: true,
-        label: t('Project'),
-        inline: false,
-        projects,
-      },
-    ],
-  };
-  const handleSubmit = ({projectId}: {projectId: string}) => {
-    // redirect to the same URL but with the project_id set
-    const {
-      location: {origin},
-    } = window;
-    const awsExternalId = getAwsExternalId();
-    const newUrl = `${origin}/extensions/aws_lambda/setup/?project_id=${projectId}&aws_external_id=${awsExternalId}`;
-    window.location.replace(newUrl);
-  };
-  return (
-    <StyledForm onSubmit={handleSubmit}>
-      <JsonForm forms={[formFields]} />
-    </StyledForm>
-  );
+export default class AwsLambdaProjectSelect extends React.Component<Props> {
+  model = new FormModel();
+  render() {
+    const {projects} = this.props;
+    const formFields: JsonFormObject = {
+      title: t('Select a project to use for your AWS Lambda functions'),
+      fields: [
+        {
+          name: 'projectId',
+          type: 'sentry_project_selector',
+          required: true,
+          label: t('Project'),
+          inline: false,
+          projects,
+        },
+      ],
+    };
+    const handleSubmit = ({projectId}: {projectId: string}) => {
+      addLoadingMessage(t('Submitting\u2026'));
+      this.model.setFormSaving();
+      const {
+        location: {origin},
+      } = window;
+      // redirect to the extensions endpoint with the projectId as a query param
+      // this is needed so we don't restart the pipeline loading from the original
+      // OrganizationIntegrationSetupView route
+      const newUrl = `${origin}/extensions/aws_lambda/setup/?projectId=${projectId}`;
+      window.location.replace(newUrl);
+    };
+    // TODO: Add logic if no projects
+    return (
+      <StyledForm model={this.model} onSubmit={handleSubmit}>
+        <JsonForm forms={[formFields]} />
+      </StyledForm>
+    );
+  }
 }
 
 const StyledForm = styled(Form)`

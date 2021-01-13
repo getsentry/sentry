@@ -96,7 +96,6 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
             "arn": arn,
             "aws_external_id": aws_external_id,
             "project_id": self.projectA.id,
-            "ready_for_enabled_lambdas_post": True,
         }
 
         sentry_project_dsn = ProjectKey.get_default(project=self.projectA).get_dsn(public=True)

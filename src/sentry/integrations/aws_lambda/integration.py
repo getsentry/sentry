@@ -2,10 +2,9 @@ from __future__ import absolute_import
 
 import logging
 import six
-import uuid
 
+from botocore.exceptions import ClientError
 from django.utils.translation import ugettext_lazy as _
-from rest_framework.response import Response
 
 from sentry import options
 from sentry.api.serializers import serialize
@@ -17,9 +16,8 @@ from sentry.integrations import (
     FeatureDescription,
 )
 from sentry.integrations.serverless import ServerlessMixin
-from sentry.models import Project, OrganizationIntegration
+from sentry.models import Project, OrganizationIntegration, ProjectStatus
 from sentry.pipeline import PipelineView
-from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.compat import map
 from sentry.utils import json
 
@@ -112,7 +110,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
             "runtime": function["Runtime"],
             "version": current_version,
             "outOfDate": out_of_date,
-            "enabled": current_version > -1,  # TODO: check env variables
+            "enabled": current_version > -1,
         }
 
     # ServerlessMixin interface
@@ -158,8 +156,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
             layers[sentry_layer_index] = layer_arn
 
         self.client.update_function_configuration(
-            FunctionName=target,
-            Layers=layers,
+            FunctionName=target, Layers=layers,
         )
         return self.get_serialized_lambda_function(target)
 
@@ -212,21 +209,20 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
 
 class AwsLambdaProjectSelectPipelineView(PipelineView):
     def dispatch(self, request, pipeline):
-        # if we have the project_id, go to the next step
-        if "project_id" in request.GET:
-            pipeline.bind_state("project_id", request.GET["project_id"])
+        # if we have the projectId, go to the next step
+        if "projectId" in request.GET:
+            pipeline.bind_state("project_id", request.GET["projectId"])
             return pipeline.next_step()
 
         organization = pipeline.organization
-        # TODO: check status of project in query
-        projects = Project.objects.filter(organization=organization).order_by("id")
-
-        # TODO: Check no projects
+        projects = Project.objects.filter(
+            organization=organization, status=ProjectStatus.VISIBLE
+        ).order_by("id")
 
         # if only one project, automatically use that
-        # if len(projects) == 1:
-        #     pipeline.bind_state("project_id", projects[0].id)
-        #     return pipeline.next_step()
+        if len(projects) == 1:
+            pipeline.bind_state("project_id", projects[0].id)
+            return pipeline.next_step()
 
         serialized_projects = map(lambda x: serialize(x, request.user), projects)
         return self.render_react_view(
@@ -236,25 +232,20 @@ class AwsLambdaProjectSelectPipelineView(PipelineView):
 
 class AwsLambdaCloudFormationPipelineView(PipelineView):
     def dispatch(self, request, pipeline):
-        def render_response(aws_external_id):
+        def render_response():
             template_url = options.get("aws-lambda.cloudformation-url")
-            cloudformation_url = (
-                "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?"
-                "stackName=Sentry-Monitoring-Stack-Filter&templateURL=%s&param_ExternalId=%s"
-                % (template_url, aws_external_id)
-            )
             context = {
-                "cloudformationUrl": cloudformation_url,
-                "awsExternalId": aws_external_id,
+                "baseCloudformationUrl": "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review",
+                "templateUrl": template_url,
+                "stackName": "Sentry-Monitoring-Stack-Filter",
                 "arn": pipeline.fetch_state("arn"),
-                "arnError": pipeline.fetch_state("arn_error"),
+                "error": pipeline.fetch_state("error"),
             }
-
             return self.render_react_view(request, "awsLambdaCloudformation", context)
 
-        if request.method == "POST":
-            # accept form data or json data
-            data = request.POST or json.loads(request.body)
+        # form submit adds arn to GET parameters
+        if "arn" in request.GET:
+            data = request.GET
 
             # load parameters post request
             arn = data["arn"]
@@ -264,31 +255,41 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
             pipeline.bind_state("aws_external_id", aws_external_id)
 
             if not check_arn_is_valid_cloudformation_stack(arn):
-                # store the error in state so a page refresh
-                pipeline.bind_state("arn_error", "Invalid ARN")
-                return render_response(aws_external_id)
+                # store the error in state so a page refresh shows error
+                pipeline.bind_state("error", "Invalid ARN")
+                return render_response()
 
+            # now validate the arn works
+            try:
+                gen_aws_client(arn, aws_external_id)
+            except ClientError:
+                pipeline.bind_state(
+                    "error", "Please validate the Cloudformation stack was created successfully.",
+                )
+                return render_response()
+            except Exception as e:
+                logger.error(
+                    "AwsLambdaCloudFormationPipelineView.unexpected_error",
+                    extra={"error": six.text_type(e)},
+                )
+                pipeline.bind_state(
+                    "error", "Unkown errror",
+                )
+                return render_response()
+
+            # if no error, continue
             return pipeline.next_step()
 
-        # let browser set external id from local storage so restarting
-        # the installation maintains the same external id
-        aws_external_id = request.GET.get("aws_external_id", uuid.uuid4())
-
-        return render_response(aws_external_id)
+        return render_response()
 
 
 class AwsLambdaListFunctionsPipelineView(PipelineView):
     def dispatch(self, request, pipeline):
-        # the previous pipeline step will have be POST and will reach this line here
-        # we need to check our state to determine what to do
-        if request.method == "POST" and pipeline.fetch_state("ready_for_enabled_lambdas_post"):
+        if request.method == "POST":
             # accept form data or json data
             data = request.POST or json.loads(request.body)
             pipeline.bind_state("enabled_lambdas", data)
             return pipeline.next_step()
-
-        # bind the state now so we are ready to accept the enabled_lambdas in the post pdy
-        pipeline.bind_state("ready_for_enabled_lambdas_post", True)
 
         arn = pipeline.fetch_state("arn")
         aws_external_id = pipeline.fetch_state("aws_external_id")
@@ -298,7 +299,7 @@ class AwsLambdaListFunctionsPipelineView(PipelineView):
         lambda_functions = get_supported_functions(lambda_client)
 
         return self.render_react_view(
-            request, "awsLambdaFunctionSelect", {"lambdaFunctions": lambda_functions}
+            request, "awsLambdaFunctionSelect", {"lambdaFunctions": lambda_functions},
         )
 
 
