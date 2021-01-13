@@ -2,7 +2,6 @@ import React from 'react';
 import * as Sentry from '@sentry/react';
 
 import {addSuccessMessage} from 'app/actionCreators/indicator';
-import {closeModal, ModalRenderProps} from 'app/actionCreators/modal';
 import AsyncComponent from 'app/components/asyncComponent';
 import AbstractExternalIssueForm, {
   ExternalIssueAction,
@@ -22,7 +21,7 @@ const SUBMIT_LABEL_BY_ACTION = {
   create: t('Create Issue'),
 };
 
-type Props = ModalRenderProps & {
+type Props = {
   group: Group;
   integration: Integration;
   onChange: (onSuccess?: () => void, onError?: () => void) => void;
@@ -70,7 +69,7 @@ export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, 
   };
 
   onSubmitSuccess = (_data: IntegrationExternalIssue): void => {
-    const {onChange} = this.props;
+    const {onChange, closeModal} = this.props;
     const {action} = this.state;
     onChange(() => addSuccessMessage(MESSAGES_BY_ACTION[action]));
     closeModal();

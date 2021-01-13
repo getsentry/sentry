@@ -40,7 +40,13 @@ describe('ExternalIssueForm', () => {
       body: formConfig,
     });
     const component = mountWithTheme(
-      <ExternalIssueForm group={group} integration={integration} onChange={onChange} />,
+      <ExternalIssueForm
+        Body={p => p.children}
+        Header={p => p.children}
+        group={group}
+        integration={integration}
+        onChange={onChange}
+      />,
       TestStubs.routerContext()
     );
     component.instance().handleClick(action);
