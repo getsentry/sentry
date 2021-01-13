@@ -15,6 +15,7 @@ import {
 import {Field} from 'app/views/settings/components/forms/type';
 
 import {Event} from './event';
+import {DynamicSamplingRules} from './filtersAndSampling';
 import {Mechanism, RawStacktrace, StacktraceType} from './stacktrace';
 
 declare global {
@@ -178,6 +179,7 @@ export type LightWeightOrganization = OrganizationSummary & {
   apdexThreshold: number;
   onboardingTasks: OnboardingTaskStatus[];
   trustedRelays: Relay[];
+  dynamicSampling: DynamicSamplingRules;
   role?: string;
 };
 

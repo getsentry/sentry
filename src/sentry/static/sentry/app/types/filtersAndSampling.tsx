@@ -65,3 +65,5 @@ export type Rule = {
    */
   ty: RuleType;
 };
+
+export type DynamicSamplingRules = Array<Rule>;
