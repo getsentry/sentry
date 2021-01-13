@@ -434,7 +434,7 @@ def capture_nodestore_stats(project_id, event_id):
     from sentry.eventstore.models import Event
 
     event = Event(project_id=project_id, event_id=event_id)
-    old_event_size = event.size
+    old_event_size = len(json.dumps(dict(event.data)).encode("utf8"))
 
     if not event.data:
         metrics.incr("eventstore.compressor.error", tags={"reason": "no_data"})
