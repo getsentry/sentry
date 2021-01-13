@@ -80,21 +80,31 @@ export function FrontendCards(props: VitalsCardsProps) {
         const result = tableData?.data?.[0];
         return (
           <VitalsContainer>
-            {vitals.map(vitalName => {
+            {vitals.map(vital => {
               const target = vitalDetailRouteWithQuery({
                 orgSlug: organization.slug,
                 query: eventView.generateQueryStringObject(),
-                vitalName,
+                vitalName: vital,
                 projectID: decodeList(location.query.project),
               });
 
+              const value = isLoading ? '\u2014' : getP75(result, vital);
+              const chart = (
+                <VitalBar isLoading={isLoading} vital={vital} result={result} />
+              );
+
               return (
                 <Link
-                  key={vitalName}
+                  key={vital}
                   to={target}
-                  data-test-id={`vitals-linked-card-${vitalAbbreviations[vitalName]}`}
+                  data-test-id={`vitals-linked-card-${vitalAbbreviations[vital]}`}
                 >
-                  <FrontendCard isLoading={isLoading} result={result} vital={vitalName} />
+                  <VitalCard
+                    title={vitalMap[vital] ?? ''}
+                    tooltip={vitalDescription[vital] ?? ''}
+                    value={isLoading ? '\u2014' : value}
+                    chart={chart}
+                  />
                 </Link>
               );
             })}
@@ -118,28 +128,6 @@ const VitalsContainer = styled('div')`
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   }
 `;
-
-type FrontendCardProps = {
-  isLoading: boolean;
-  result: any;
-  vital: WebVital;
-};
-
-function FrontendCard(props: FrontendCardProps) {
-  const {isLoading, result, vital} = props;
-
-  const value = isLoading ? '\u2014' : getP75(result, vital);
-  const chart = <VitalBar isLoading={isLoading} vital={vital} result={result} />;
-
-  return (
-    <VitalCard
-      title={vitalMap[vital] ?? ''}
-      tooltip={vitalDescription[vital] ?? ''}
-      value={isLoading ? '\u2014' : value}
-      chart={chart}
-    />
-  );
-}
 
 type VitalBarProps = {
   isLoading: boolean;
