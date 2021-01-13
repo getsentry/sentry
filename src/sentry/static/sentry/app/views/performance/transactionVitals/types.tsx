@@ -1,7 +1,7 @@
 import {ColumnType, WebVital} from 'app/utils/discover/fields';
 
 export type HistogramData = {
-  histogram: number;
+  bin: number;
   count: number;
 };
 

@@ -44,7 +44,7 @@ class GroupInbox(Model):
     organization = FlexibleForeignKey("sentry.Organization", null=True, db_constraint=False)
     reason = models.PositiveSmallIntegerField(null=False, default=GroupInboxReason.NEW.value)
     reason_details = JSONField(null=True)
-    date_added = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
         app_label = "sentry"

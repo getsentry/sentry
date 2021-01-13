@@ -140,7 +140,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
     const {organization} = this.state;
     const orgId = organization && organization.slug;
     this.props.router.push(
-      `/settings/${orgId}/integrations/${data.provider.key}/${data.id}`
+      `/settings/${orgId}/integrations/${data.provider.key}/${data.id}/`
     );
   };
 

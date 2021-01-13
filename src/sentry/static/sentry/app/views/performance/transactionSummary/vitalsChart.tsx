@@ -83,12 +83,9 @@ class VitalsChart extends React.Component<Props> {
       queryExtra,
     } = this.props;
 
-    const start = this.props.start
-      ? getUtcToLocalDateObject(this.props.start)
-      : undefined;
-
-    const end = this.props.end ? getUtcToLocalDateObject(this.props.end) : undefined;
-    const utc = decodeScalar(router.location.query.utc);
+    const start = this.props.start ? getUtcToLocalDateObject(this.props.start) : null;
+    const end = this.props.end ? getUtcToLocalDateObject(this.props.end) : null;
+    const utc = decodeScalar(router.location.query.utc) !== 'false';
 
     const legend = {
       right: 10,
@@ -97,7 +94,7 @@ class VitalsChart extends React.Component<Props> {
       itemHeight: 8,
       itemWidth: 8,
       itemGap: 12,
-      align: 'left',
+      align: 'left' as const,
       textStyle: {
         verticalAlign: 'top',
         fontSize: 11,
@@ -117,8 +114,8 @@ class VitalsChart extends React.Component<Props> {
     };
 
     const datetimeSelection = {
-      start: start || null,
-      end: end || null,
+      start,
+      end,
       period: statsPeriod,
     };
 
@@ -133,7 +130,7 @@ class VitalsChart extends React.Component<Props> {
         showSymbol: false,
       },
       tooltip: {
-        trigger: 'axis',
+        trigger: 'axis' as const,
         valueFormatter: tooltipFormatter,
       },
       yAxis: {
@@ -158,19 +155,14 @@ class VitalsChart extends React.Component<Props> {
             )}
           />
         </HeaderTitleLegend>
-        <ChartZoom
-          router={router}
-          period={statsPeriod}
-          projects={project}
-          environments={environment}
-        >
+        <ChartZoom router={router} period={statsPeriod}>
           {zoomRenderProps => (
             <EventsRequest
               api={api}
               organization={organization}
               period={statsPeriod}
-              project={[...project]}
-              environment={[...environment]}
+              project={project}
+              environment={environment}
               start={start}
               end={end}
               interval={getInterval(datetimeSelection, true)}
@@ -197,10 +189,6 @@ class VitalsChart extends React.Component<Props> {
                       color: colors[i],
                     }))
                   : [];
-
-                // Stack the toolbox under the legend.
-                // so all series names are clickable.
-                zoomRenderProps.toolBox.z = -1;
 
                 return (
                   <ReleaseSeries

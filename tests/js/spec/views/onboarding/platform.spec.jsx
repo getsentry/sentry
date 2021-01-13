@@ -22,24 +22,6 @@ describe('OnboardingWelcome', function () {
     expect(onUpdate).toHaveBeenCalled();
   });
 
-  it('calls onReturnToStep when clearing the platform', function () {
-    const onUpdate = jest.fn();
-    const onReturnToStep = jest.fn();
-
-    const wrapper = mountWithTheme(
-      <OnboardingPlatform
-        platform="dotnet"
-        onUpdate={onUpdate}
-        onReturnToStep={onReturnToStep}
-      />,
-      TestStubs.routerContext()
-    );
-
-    wrapper.find('ClearButton').first().simulate('click');
-
-    expect(onReturnToStep).toHaveBeenCalled();
-  });
-
   it('creates a project when no project exists', async function () {
     const onComplete = jest.fn();
 
@@ -49,8 +31,6 @@ describe('OnboardingWelcome', function () {
     );
 
     const getButton = () => wrapper.find('Button[priority="primary"]');
-
-    expect(getButton().props().disabled).toBe(true);
 
     // Select a platform to create
     wrapper.setProps({platform: 'dotnet'});
@@ -94,7 +74,7 @@ describe('OnboardingWelcome', function () {
     const getButton = () => wrapper.find('Button[priority="primary"]');
 
     TeamStore.loadInitialData([{id: '1', slug: 'team-slug'}]);
-    expect(getButton().text()).toEqual('Setup Your Project');
+    expect(getButton().text()).toEqual('Set Up Your Project');
     expect(getButton().props().disabled).toBe(false);
 
     // Create the project

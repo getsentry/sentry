@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountGlobalModal} from 'sentry-test/modal';
 import {selectByValue} from 'sentry-test/select-new';
 
 import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
@@ -75,12 +76,14 @@ describe('ProjectAlerts -> IssueEditor', function () {
   const createWrapper = (props = {}) => {
     const {organization, project, routerContext} = initializeOrg(props);
     const params = {orgId: organization.slug, projectId: project.slug, ruleId: '1'};
+    const onChangeTitleMock = jest.fn();
     const wrapper = mountWithTheme(
       <ProjectAlerts organization={organization} params={params}>
         <IssueEditor
           params={params}
           location={{pathname: ''}}
           routes={projectAlertRuleDetailsRoutes}
+          onChangeTitle={onChangeTitleMock}
           project={project}
         />
       </ProjectAlerts>,
@@ -104,6 +107,20 @@ describe('ProjectAlerts -> IssueEditor', function () {
       });
     });
 
+    it('gets correct rule name', async function () {
+      const rule = TestStubs.ProjectAlertRule();
+      mock = MockApiClient.addMockResponse({
+        url: endpoint,
+        method: 'GET',
+        body: rule,
+      });
+      const {wrapper} = createWrapper();
+      expect(mock).toHaveBeenCalled();
+      expect(wrapper.find('IssueRuleEditor').prop('onChangeTitle')).toHaveBeenCalledWith(
+        rule.name
+      );
+    });
+
     it('deletes rule', async function () {
       const deleteMock = MockApiClient.addMockResponse({
         url: endpoint,
@@ -112,8 +129,10 @@ describe('ProjectAlerts -> IssueEditor', function () {
       });
       const {wrapper} = createWrapper();
       wrapper.find('button[aria-label="Delete Rule"]').simulate('click');
-      await tick();
-      wrapper.find('Modal button[aria-label="Delete Rule"]').simulate('click');
+
+      const modal = await mountGlobalModal();
+      modal.find('button[aria-label="Delete Rule"]').simulate('click');
+
       await tick();
       expect(deleteMock).toHaveBeenCalled();
       expect(browserHistory.replace).toHaveBeenCalledWith(

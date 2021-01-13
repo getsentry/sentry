@@ -12,14 +12,11 @@ export const BULK_LIMIT_STR = BULK_LIMIT.toLocaleString();
 export enum ConfirmAction {
   RESOLVE = 'resolve',
   UNRESOLVE = 'unresolve',
-  ACKNOWLEDGE = 'acknowledge',
   IGNORE = 'ignore',
   BOOKMARK = 'bookmark',
   UNBOOKMARK = 'unbookmark',
-  MARK = 'mark',
   MERGE = 'merge',
   DELETE = 'delete',
-  REMOVE = 'remove',
 }
 
 function getBulkConfirmMessage(action: string, queryCount: number) {
@@ -48,7 +45,7 @@ export function getConfirm(
   query: string,
   queryCount: number
 ) {
-  return function (action: ConfirmAction, canBeUndone: boolean, append = '') {
+  return function (action: ConfirmAction | string, canBeUndone: boolean, append = '') {
     const question = allInQuerySelected
       ? getBulkConfirmMessage(`${action}${append}`, queryCount)
       : tn(

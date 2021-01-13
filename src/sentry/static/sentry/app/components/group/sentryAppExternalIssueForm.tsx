@@ -8,7 +8,8 @@ import {Client} from 'app/api';
 import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import ExternalIssueStore from 'app/stores/externalIssueStore';
-import {Event, Group, PlatformExternalIssue, SentryAppInstallation} from 'app/types';
+import {Group, PlatformExternalIssue, SentryAppInstallation} from 'app/types';
+import {Event} from 'app/types/event';
 import getStacktraceBody from 'app/utils/getStacktraceBody';
 import {addQueryParamsToExistingUrl} from 'app/utils/queryString';
 import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
@@ -270,6 +271,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
         label,
       }));
       const options = this.state.optionsByField.get(field.name) || defaultOptions;
+      const allowClear = !required;
       //filter by what the user is typing
       const filterOption = createFilter({});
       fieldToPass = {
@@ -277,6 +279,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
         options,
         defaultOptions,
         filterOption,
+        allowClear,
       };
       //default message for async select fields
       if (isAsync) {

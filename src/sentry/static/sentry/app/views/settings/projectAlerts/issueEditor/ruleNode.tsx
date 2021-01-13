@@ -9,7 +9,7 @@ import ExternalLink from 'app/components/links/externalLink';
 import {IconDelete, IconSettings} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import {IssueConfigFieldChoices, Organization, Project} from 'app/types';
 import {
   AssigneeTargetType,
   IssueAlertRuleAction,
@@ -33,11 +33,12 @@ export type FormField = {
 type Props = {
   index: number;
   node?: IssueAlertRuleActionTemplate | IssueAlertRuleConditionTemplate | null;
-  data?: IssueAlertRuleAction | IssueAlertRuleCondition;
+  data: IssueAlertRuleAction | IssueAlertRuleCondition;
   project: Project;
   organization: Organization;
   disabled: boolean;
   onDelete: (rowIndex: number) => void;
+  onReset: (rowIndex: number, name: string, value: string) => void;
   onPropertyChange: (rowIndex: number, name: string, value: string) => void;
 };
 
@@ -54,11 +55,11 @@ class RuleNode extends React.Component<Props> {
   };
 
   getChoiceField = (name: string, fieldConfig: FormField) => {
+    const {data, disabled, index, onPropertyChange, onReset} = this.props;
+
     // Select the first item on this list
     // If it's not yet defined, call onPropertyChange to make sure the value is set on state
-    const {data, index, onPropertyChange, disabled} = this.props;
     let initialVal;
-
     if (data) {
       if (data[name] === undefined && !!fieldConfig.choices.length) {
         if (fieldConfig.initial) {
@@ -79,6 +80,14 @@ class RuleNode extends React.Component<Props> {
     // when the integration configuration gets saved, it gets saved and returned as a string
     const choices = fieldConfig.choices.map(([key, value]) => [`${key}`, value]);
 
+    const handleChange = ({value}) => {
+      if (fieldConfig.resetsForm) {
+        onReset(index, name, value);
+      } else {
+        onPropertyChange(index, name, value);
+      }
+    };
+
     return (
       <InlineSelectControl
         isClearable={false}
@@ -93,7 +102,7 @@ class RuleNode extends React.Component<Props> {
         }}
         disabled={disabled}
         choices={choices}
-        onChange={({value}) => onPropertyChange(index, name, value)}
+        onChange={handleChange}
       />
     );
   };
@@ -279,31 +288,37 @@ class RuleNode extends React.Component<Props> {
     }
   }
 
+  /**
+   * Update all the AlertRuleAction's fields from the TicketRuleModal together
+   * only after the user clicks "Apply Changes".
+   * @param formData Form data
+   * @param fetchedFieldOptionsCache Object
+   */
   updateParent = (
-    data: {[key: string]: string},
-    dynamicFieldChoices: {[key: string]: string[]}
+    formData: {[key: string]: string},
+    fetchedFieldOptionsCache: {[key: string]: IssueConfigFieldChoices}
   ): void => {
-    // iterating through these upon save instead of when each
-    // element is changed to match the spec
-    for (const [name, value] of Object.entries(data)) {
-      this.props.onPropertyChange(this.props.index, name, value);
+    const {data, index, onPropertyChange} = this.props;
+    for (const [name, value] of Object.entries(formData)) {
+      onPropertyChange(index, name, value);
+    }
 
-      // We only know the choices after the form loads.
-      if (['assignee', 'reporter'].includes(name) && dynamicFieldChoices[name]) {
-        const dynamicFormFieldsCopy: any = this.props.node?.formFields || {};
+    // We only know the choices after the form loads.
+    for (const [name, choices] of Object.entries(fetchedFieldOptionsCache)) {
+      // If a value was actually selected.
+      if (name in formData) {
+        const dynamicFormFieldsCopy = data.dynamic_form_fields as any;
         // Overwrite the choices because the user's pick is in this list.
-        dynamicFormFieldsCopy[name].choices = dynamicFieldChoices[name];
-        this.props.onPropertyChange(
-          this.props.index,
-          'dynamic_form_fields',
-          dynamicFormFieldsCopy
-        );
+        if (dynamicFormFieldsCopy?.hasOwnProperty(name)) {
+          dynamicFormFieldsCopy[name].choices = choices;
+          onPropertyChange(index, 'dynamic_form_fields', dynamicFormFieldsCopy);
+        }
       }
     }
   };
 
   render() {
-    const {data, disabled, index, node, onPropertyChange} = this.props;
+    const {data, disabled, index, node, organization} = this.props;
     const ticketRule = node?.hasOwnProperty('actionType');
     return (
       <RuleRowContainer>
@@ -326,7 +341,7 @@ class RuleNode extends React.Component<Props> {
                       instance={data}
                       index={index}
                       onSubmitAction={this.updateParent}
-                      onPropertyChange={onPropertyChange}
+                      organization={organization}
                     />
                   ))
                 }

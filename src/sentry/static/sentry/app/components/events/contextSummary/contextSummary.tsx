@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Event} from 'app/types';
+import {Event} from 'app/types/event';
 import {objectIsEmpty} from 'app/utils';
 
 import ContextSummaryDevice from './contextSummaryDevice';

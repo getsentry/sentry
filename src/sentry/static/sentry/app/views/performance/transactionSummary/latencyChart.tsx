@@ -32,7 +32,7 @@ const QUERY_KEYS = [
 type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 
 type ApiResult = {
-  histogram_transaction_duration_15: number;
+  histogram_deprecated_transaction_duration_15: number;
   count: number;
 };
 
@@ -71,8 +71,8 @@ class LatencyChart extends AsyncComponent<Props, State> {
       id: '',
       name: '',
       version: 2,
-      fields: [`histogram(transaction.duration,${NUM_BUCKETS})`, 'count()'],
-      orderby: 'histogram_transaction_duration_15',
+      fields: [`histogram_deprecated(transaction.duration,${NUM_BUCKETS})`, 'count()'],
+      orderby: 'histogram_deprecated_transaction_duration_15',
       projects: project,
       range: statsPeriod,
       query,
@@ -131,8 +131,8 @@ class LatencyChart extends AsyncComponent<Props, State> {
     // the beginning of the bucket.
     const data = this.state.chartData.data;
     return data.length > 2
-      ? data[1].histogram_transaction_duration_15 -
-          data[0].histogram_transaction_duration_15
+      ? data[1].histogram_deprecated_transaction_duration_15 -
+          data[0].histogram_deprecated_transaction_duration_15
       : 0;
   }
 
@@ -247,7 +247,7 @@ class LatencyChart extends AsyncComponent<Props, State> {
 
 function computeBuckets(data: ApiResult[], bucketWidth: number) {
   return data.map(item => {
-    const bucket = item.histogram_transaction_duration_15;
+    const bucket = item.histogram_deprecated_transaction_duration_15;
     return {
       start: bucket,
       end: bucket + bucketWidth,
@@ -272,7 +272,7 @@ function transformData(data: ApiResult[], bucketWidth: number) {
     precision = 0;
   }
   const seriesData = data.map(item => {
-    const bucket = item.histogram_transaction_duration_15;
+    const bucket = item.histogram_deprecated_transaction_duration_15;
     const midPoint = bucketWidth > 1 ? Math.ceil(bucket + bucketWidth / 2) : bucket;
     return {
       value: item.count,

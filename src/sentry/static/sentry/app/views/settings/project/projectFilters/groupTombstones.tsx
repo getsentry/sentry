@@ -6,6 +6,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import Avatar from 'app/components/avatar';
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
 import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
+import Pagination from 'app/components/pagination';
 import {Panel, PanelItem} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
 import {IconDelete} from 'app/icons';
@@ -73,12 +74,15 @@ type Props = AsyncComponent['props'] & {
 
 type State = {
   tombstones: GroupTombstone[];
+  tombstonesPageLinks: null | string;
 } & AsyncComponent['state'];
 
 class GroupTombstones extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {orgId, projectId} = this.props;
-    return [['tombstones', `/projects/${orgId}/${projectId}/tombstones/`]];
+    return [
+      ['tombstones', `/projects/${orgId}/${projectId}/tombstones/`, {}, {paginate: true}],
+    ];
   }
 
   handleUndiscard = (tombstoneId: GroupTombstone['id']) => {
@@ -107,18 +111,21 @@ class GroupTombstones extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {tombstones} = this.state;
+    const {tombstones, tombstonesPageLinks} = this.state;
 
     return tombstones.length ? (
-      <Panel>
-        {tombstones.map(data => (
-          <GroupTombstoneRow
-            key={data.id}
-            data={data}
-            onUndiscard={this.handleUndiscard}
-          />
-        ))}
-      </Panel>
+      <React.Fragment>
+        <Panel>
+          {tombstones.map(data => (
+            <GroupTombstoneRow
+              key={data.id}
+              data={data}
+              onUndiscard={this.handleUndiscard}
+            />
+          ))}
+        </Panel>
+        {tombstonesPageLinks && <Pagination pageLinks={tombstonesPageLinks} />}
+      </React.Fragment>
     ) : (
       this.renderEmpty()
     );

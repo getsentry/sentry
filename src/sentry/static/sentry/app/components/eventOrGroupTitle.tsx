@@ -1,7 +1,8 @@
 import React from 'react';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
-import {Event, Group, GroupTombstone, Organization} from 'app/types';
+import {Group, GroupTombstone, Organization} from 'app/types';
+import {Event} from 'app/types/event';
 import {getTitle} from 'app/utils/events';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -12,15 +13,20 @@ type Props = {
   organization: Organization;
   style?: React.CSSProperties;
   hasGuideAnchor?: boolean;
+  withStackTracePreview?: boolean;
 };
 
 class EventOrGroupTitle extends React.Component<Props> {
   render() {
-    const {hasGuideAnchor, data, organization} = this.props;
+    const {hasGuideAnchor, data, organization, withStackTracePreview} = this.props;
     const {title, subtitle} = getTitle(data as Event, organization);
 
     const titleWithHoverStacktrace = (
-      <StacktracePreview organization={organization} issueId={data.id}>
+      <StacktracePreview
+        organization={organization}
+        issueId={data.id}
+        disablePreview={!withStackTracePreview}
+      >
         {title}
       </StacktracePreview>
     );

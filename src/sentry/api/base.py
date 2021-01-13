@@ -17,7 +17,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from sentry import tsdb
+from sentry import tsdb, analytics
 from sentry.auth import access
 from sentry.models import Environment
 from sentry.utils.cursors import Cursor
@@ -375,23 +375,35 @@ class EnvironmentMixin(object):
 
 class StatsMixin(object):
     def _parse_args(self, request, environment_id=None):
-        resolution = request.GET.get("resolution")
-        if resolution:
-            resolution = self._parse_resolution(resolution)
-            assert resolution in tsdb.get_rollups()
+        try:
+            resolution = request.GET.get("resolution")
+            if resolution:
+                resolution = self._parse_resolution(resolution)
+                if resolution not in tsdb.get_rollups():
+                    raise ValueError
+        except ValueError:
+            raise ParseError(detail="Invalid resolution")
 
-        end = request.GET.get("until")
-        if end:
-            end = to_datetime(float(end))
-        else:
-            end = datetime.utcnow().replace(tzinfo=utc)
+        try:
+            end = request.GET.get("until")
+            if end:
+                end = to_datetime(float(end))
+            else:
+                end = datetime.utcnow().replace(tzinfo=utc)
+        except ValueError:
+            raise ParseError(detail="until must be a numeric timestamp.")
 
-        start = request.GET.get("since")
-        if start:
-            start = to_datetime(float(start))
-            assert start <= end, "start must be before or equal to end"
-        else:
-            start = end - timedelta(days=1, seconds=-1)
+        try:
+            start = request.GET.get("since")
+            if start:
+                start = to_datetime(float(start))
+                assert start <= end
+            else:
+                start = end - timedelta(days=1, seconds=-1)
+        except ValueError:
+            raise ParseError(detail="since must be a numeric timestamp")
+        except AssertionError:
+            raise ParseError(detail="start must be before or equal to end")
 
         if not resolution:
             resolution = tsdb.get_optimal_rollup(start, end)
@@ -414,3 +426,14 @@ class StatsMixin(object):
             return int(value[:-1])
         else:
             raise ValueError(value)
+
+
+class ReleaseAnalyticsMixin(object):
+    def track_set_commits_local(self, request, organization_id=None, project_ids=None):
+        analytics.record(
+            "release.set_commits_local",
+            user_id=request.user.id if request.user and request.user.id else None,
+            organization_id=organization_id,
+            project_ids=project_ids,
+            user_agent=request.META.get("HTTP_USER_AGENT", ""),
+        )

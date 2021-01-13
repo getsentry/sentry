@@ -1,6 +1,8 @@
 from tests.fixtures.integrations.jira.stub_client import StubJiraApiClient
 from tests.fixtures.integrations import MockService
 
+DEFAULT_PROJECT_ID = '10000'
+
 
 class MockJira(StubJiraApiClient, MockService):
     def get_projects_list(self):
@@ -21,7 +23,7 @@ class MockJira(StubJiraApiClient, MockService):
                 "description": project_name
             },
             "simplified": False
-        } for project_name in self._get_project_names()]
+        } for project_name in self._get_project_names() + [DEFAULT_PROJECT_ID]]
 
     def set_createmeta(self, project, createmeta):
         """

@@ -1,26 +1,33 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import {Manager, Popper, Reference} from 'react-popper';
+import {Manager, Popper, PopperArrowProps, PopperProps, Reference} from 'react-popper';
 import styled, {SerializedStyles} from '@emotion/styled';
+import {AnimatePresence, motion, MotionStyle} from 'framer-motion';
 import memoize from 'lodash/memoize';
 import * as PopperJS from 'popper.js';
 import PropTypes from 'prop-types';
 
 import {IS_ACCEPTANCE_TEST} from 'app/constants';
 import {domId} from 'app/utils/domId';
+import testableTransition from 'app/utils/testableTransition';
 
-const IS_HOVERABLE_DELAY = 50; // used if isHoverable is true (for hiding AND showing)
+export const OPEN_DELAY = 50;
+
+/**
+ * How long to wait before closing the tooltip when isHoverable is set
+ */
+const CLOSE_DELAY = 50;
 
 type DefaultProps = {
   /**
    * Position for the tooltip.
    */
-  position: PopperJS.Placement;
+  position?: PopperJS.Placement;
 
   /**
    * Display mode for the container element
    */
-  containerDisplayMode: React.CSSProperties['display'];
+  containerDisplayMode?: React.CSSProperties['display'];
 };
 
 type Props = DefaultProps & {
@@ -72,6 +79,29 @@ type State = {
   isOpen: boolean;
   usesGlobalPortal: boolean;
 };
+
+/**
+ * Used to compute the transform origin to give the scale-down micro-animation
+ * a pleasant feeling. Without this the animation can feel somewhat 'wrong'.
+ */
+function computeOriginFromArrow(
+  placement: PopperProps['placement'],
+  arrowProps: PopperArrowProps
+): MotionStyle {
+  // XXX: Bottom means the arrow will be pointing up
+  switch (placement) {
+    case 'top':
+      return {originX: `${arrowProps.style.left}px`, originY: '100%'};
+    case 'bottom':
+      return {originX: `${arrowProps.style.left}px`, originY: 0};
+    case 'left':
+      return {originX: '100%', originY: `${arrowProps.style.top}px`};
+    case 'right':
+      return {originX: 0, originY: `${arrowProps.style.top}px`};
+    default:
+      return {originX: `50%`, originY: '100%'};
+  }
+}
 
 class Tooltip extends React.Component<Props, State> {
   static propTypes = {
@@ -162,18 +192,19 @@ class Tooltip extends React.Component<Props, State> {
   };
 
   handleOpen = () => {
-    const {delay, isHoverable} = this.props;
+    const {delay} = this.props;
 
     if (this.delayHideTimeout) {
       window.clearTimeout(this.delayHideTimeout);
       this.delayHideTimeout = null;
     }
 
-    if (delay || isHoverable) {
-      this.delayTimeout = window.setTimeout(this.setOpen, delay || IS_HOVERABLE_DELAY);
-    } else {
+    if (delay === 0) {
       this.setOpen();
+      return;
     }
+
+    this.delayTimeout = window.setTimeout(this.setOpen, delay ?? OPEN_DELAY);
   };
 
   handleClose = () => {
@@ -185,7 +216,7 @@ class Tooltip extends React.Component<Props, State> {
     }
 
     if (isHoverable) {
-      this.delayHideTimeout = window.setTimeout(this.setClose, IS_HOVERABLE_DELAY);
+      this.delayHideTimeout = window.setTimeout(this.setClose, CLOSE_DELAY);
     } else {
       this.setClose();
     }
@@ -231,7 +262,6 @@ class Tooltip extends React.Component<Props, State> {
       return children;
     }
 
-    let tip: React.ReactPortal | null = null;
     const modifiers: PopperJS.Modifiers = {
       hide: {enabled: false},
       preventOverflow: {
@@ -239,18 +269,37 @@ class Tooltip extends React.Component<Props, State> {
         enabled: true,
         boundariesElement: 'viewport',
       },
+      applyStyle: {
+        gpuAcceleration: true,
+      },
     };
 
-    if (isOpen) {
-      tip = ReactDOM.createPortal(
-        <Popper placement={position} modifiers={modifiers}>
-          {({ref, style, placement, arrowProps}) => (
+    const tip = isOpen ? (
+      <Popper placement={position} modifiers={modifiers}>
+        {({ref, style, placement, arrowProps}) => (
+          <PositionWrapper style={style}>
             <TooltipContent
               id={this.tooltipId}
+              initial={{opacity: 0}}
+              animate={{
+                opacity: 1,
+                scale: 1,
+                transition: testableTransition({
+                  type: 'linear',
+                  ease: [0.5, 1, 0.89, 1],
+                  duration: 0.2,
+                }),
+              }}
+              exit={{
+                opacity: 0,
+                scale: 0.95,
+                transition: testableTransition({type: 'spring', delay: 0.1}),
+              }}
+              style={computeOriginFromArrow(position, arrowProps)}
+              transition={{duration: 0.2}}
               className="tooltip-content"
               aria-hidden={!isOpen}
               ref={ref}
-              style={style}
               hide={!title}
               data-placement={placement}
               popperStyle={popperStyle}
@@ -265,16 +314,18 @@ class Tooltip extends React.Component<Props, State> {
                 background={(popperStyle as React.CSSProperties)?.background || '#000'}
               />
             </TooltipContent>
-          )}
-        </Popper>,
-        this.getPortal(usesGlobalPortal)
-      );
-    }
+          </PositionWrapper>
+        )}
+      </Popper>
+    ) : null;
 
     return (
       <Manager>
         <Reference>{({ref}) => this.renderTrigger(children, ref)}</Reference>
-        {tip}
+        {ReactDOM.createPortal(
+          <AnimatePresence>{tip}</AnimatePresence>,
+          this.getPortal(usesGlobalPortal)
+        )}
       </Manager>
     );
   }
@@ -289,16 +340,20 @@ const Container = styled('span')<{
   max-width: 100%;
 `;
 
-const TooltipContent = styled('div')<{hide: boolean} & Pick<Props, 'popperStyle'>>`
+const PositionWrapper = styled('div')`
+  z-index: ${p => p.theme.zIndex.tooltip};
+`;
+
+const TooltipContent = styled(motion.div)<{hide: boolean} & Pick<Props, 'popperStyle'>>`
+  will-change: transform, opacity;
+  position: relative;
   color: ${p => p.theme.white};
   background: #000;
   opacity: 0.9;
   padding: 5px 10px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
   border-radius: ${p => p.theme.borderRadius};
   overflow-wrap: break-word;
   max-width: 225px;
-  z-index: ${p => p.theme.zIndex.tooltip};
 
   font-weight: bold;
   font-size: ${p => p.theme.fontSizeSmall};

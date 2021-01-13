@@ -4,7 +4,7 @@ from __future__ import absolute_import
 from rest_framework import status
 from rest_framework.response import Response
 
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectAlertRulePermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import RuleSerializer
 from sentry.integrations.slack import tasks
@@ -15,6 +15,8 @@ from sentry.web.decorators import transaction_start
 
 
 class ProjectRulesEndpoint(ProjectEndpoint):
+    permission_classes = (ProjectAlertRulePermission,)
+
     @transaction_start("ProjectRulesEndpoint")
     def get(self, request, project):
         """

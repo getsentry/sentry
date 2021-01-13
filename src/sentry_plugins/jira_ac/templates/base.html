@@ -1,3 +1,4 @@
+{% load sentry_assets %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -83,10 +84,12 @@
     }
 
   </style>
-  <script src="{{ ac_js_src }}"></script>
-  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
-  <script src="//aui-cdn.atlassian.com/aui-adg/5.10.1/js/aui.min.js"></script>
-  <script type="text/javascript">
+  {% script src=ac_js_src %}{% endscript %}
+  {% asset_url 'sentry' 'vendor/jquery.2.2.4.min.js' as jquery_url %}
+  {% script src=jquery_url %}{% endscript %}
+  {% script src="//aui-cdn.atlassian.com/aui-adg/5.10.1/js/aui.min.js" %}{% endscript %}
+  {% script type="text/javascript" %}
+    <script>
     /*
      * JavaScript Pretty Date
      * Copyright (c) 2011 John Resig (ejohn.org)
@@ -122,6 +125,7 @@
         day_diff < 60 && "a month" || (Math.ceil(day_diff / 30)) + ' months';
     }
   </script>
+  {% endscript %}
 </head>
 <body class="{{ body_class }}">
   <section id="content" role="main">

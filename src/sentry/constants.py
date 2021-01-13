@@ -423,9 +423,11 @@ class SentryAppStatus(object):
     UNPUBLISHED = 0
     PUBLISHED = 1
     INTERNAL = 2
+    PUBLISH_REQUEST_INPROGRESS = 3
     UNPUBLISHED_STR = "unpublished"
     PUBLISHED_STR = "published"
     INTERNAL_STR = "internal"
+    PUBLISH_REQUEST_INPROGRESS_STR = "publish_request_inprogress"
 
     @classmethod
     def as_choices(cls):
@@ -433,6 +435,7 @@ class SentryAppStatus(object):
             (cls.UNPUBLISHED, six.text_type(cls.UNPUBLISHED_STR)),
             (cls.PUBLISHED, six.text_type(cls.PUBLISHED_STR)),
             (cls.INTERNAL, six.text_type(cls.INTERNAL_STR)),
+            (cls.PUBLISH_REQUEST_INPROGRESS, six.text_type(cls.PUBLISH_REQUEST_INPROGRESS_STR)),
         )
 
     @classmethod
@@ -443,6 +446,8 @@ class SentryAppStatus(object):
             return cls.PUBLISHED_STR
         elif status == cls.INTERNAL:
             return cls.INTERNAL_STR
+        elif status == cls.PUBLISH_REQUEST_INPROGRESS:
+            return cls.PUBLISH_REQUEST_INPROGRESS_STR
 
 
 class SentryAppInstallationStatus(object):
@@ -541,6 +546,7 @@ APDEX_THRESHOLD_DEFAULT = 300
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True
+ALERTS_MEMBER_WRITE_DEFAULT = True
 
 # Defined at https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
 DataCategory = sentry_relay.DataCategory

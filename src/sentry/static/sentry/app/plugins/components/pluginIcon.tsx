@@ -1,52 +1,53 @@
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
-
-import amixr from 'app/../images/logos/logo-amixr.svg';
-import asana from 'app/../images/logos/logo-asana.svg';
-import asayer from 'app/../images/logos/logo-asayer.svg';
-import aws from 'app/../images/logos/logo-aws.svg';
-import vsts from 'app/../images/logos/logo-azure.svg';
-import bitbucket from 'app/../images/logos/logo-bitbucket.svg';
-import bitbucketserver from 'app/../images/logos/logo-bitbucket-server.svg';
-import campfire from 'app/../images/logos/logo-campfire.svg';
-import clickup from 'app/../images/logos/logo-clickup.svg';
-import clubhouse from 'app/../images/logos/logo-clubhouse.svg';
-import datadog from 'app/../images/logos/logo-datadog.svg';
-import placeholder from 'app/../images/logos/logo-default.svg';
-import flowdock from 'app/../images/logos/logo-flowdock.svg';
-import fullstory from 'app/../images/logos/logo-fullstory.svg';
-import github from 'app/../images/logos/logo-github.svg';
-import githubActions from 'app/../images/logos/logo-github-actions.svg';
-import githubEnterprise from 'app/../images/logos/logo-github-enterprise.svg';
-import gitlab from 'app/../images/logos/logo-gitlab.svg';
-import heroku from 'app/../images/logos/logo-heroku.svg';
-import jira from 'app/../images/logos/logo-jira.svg';
-import jiraserver from 'app/../images/logos/logo-jira-server.svg';
-import lighthouse from 'app/../images/logos/logo-lighthouse.svg';
-import linear from 'app/../images/logos/logo-linear.svg';
-import msteams from 'app/../images/logos/logo-msteams.svg';
-import netlify from 'app/../images/logos/logo-netlify.svg';
-import opsgenie from 'app/../images/logos/logo-opsgenie.svg';
-import pagerduty from 'app/../images/logos/logo-pagerduty.svg';
-import phabricator from 'app/../images/logos/logo-phabricator.svg';
-import pivotal from 'app/../images/logos/logo-pivotaltracker.svg';
-import pushover from 'app/../images/logos/logo-pushover.svg';
-import redmine from 'app/../images/logos/logo-redmine.svg';
-import rocketchat from 'app/../images/logos/logo-rocketchat.svg';
-import rookout from 'app/../images/logos/logo-rookout.svg';
-import segment from 'app/../images/logos/logo-segment.svg';
-import sentry from 'app/../images/logos/logo-sentry.svg';
-import slack from 'app/../images/logos/logo-slack.svg';
-import split from 'app/../images/logos/logo-split.svg';
-import taiga from 'app/../images/logos/logo-taiga.svg';
-import teamwork from 'app/../images/logos/logo-teamwork.svg';
-import trello from 'app/../images/logos/logo-trello.svg';
-import twilio from 'app/../images/logos/logo-twilio.svg';
-import vercel from 'app/../images/logos/logo-vercel.svg';
-import victorops from 'app/../images/logos/logo-victorops.svg';
-import visualstudio from 'app/../images/logos/logo-visualstudio.svg';
-import youtrack from 'app/../images/logos/logo-youtrack.svg';
-import zulip from 'app/../images/logos/logo-zulip.svg';
+import amixr from 'sentry-images/logos/logo-amixr.svg';
+import asana from 'sentry-images/logos/logo-asana.svg';
+import asayer from 'sentry-images/logos/logo-asayer.svg';
+import aws from 'sentry-images/logos/logo-aws.svg';
+import vsts from 'sentry-images/logos/logo-azure.svg';
+import bitbucket from 'sentry-images/logos/logo-bitbucket.svg';
+import bitbucketserver from 'sentry-images/logos/logo-bitbucket-server.svg';
+import campfire from 'sentry-images/logos/logo-campfire.svg';
+import clickup from 'sentry-images/logos/logo-clickup.svg';
+import clubhouse from 'sentry-images/logos/logo-clubhouse.svg';
+import datadog from 'sentry-images/logos/logo-datadog.svg';
+import placeholder from 'sentry-images/logos/logo-default.svg';
+import flowdock from 'sentry-images/logos/logo-flowdock.svg';
+import fullstory from 'sentry-images/logos/logo-fullstory.svg';
+import github from 'sentry-images/logos/logo-github.svg';
+import githubActions from 'sentry-images/logos/logo-github-actions.svg';
+import githubEnterprise from 'sentry-images/logos/logo-github-enterprise.svg';
+import gitlab from 'sentry-images/logos/logo-gitlab.svg';
+import heroku from 'sentry-images/logos/logo-heroku.svg';
+import jira from 'sentry-images/logos/logo-jira.svg';
+import jiraserver from 'sentry-images/logos/logo-jira-server.svg';
+import lighthouse from 'sentry-images/logos/logo-lighthouse.svg';
+import linear from 'sentry-images/logos/logo-linear.svg';
+import msteams from 'sentry-images/logos/logo-msteams.svg';
+import netlify from 'sentry-images/logos/logo-netlify.svg';
+import opsgenie from 'sentry-images/logos/logo-opsgenie.svg';
+import pagerduty from 'sentry-images/logos/logo-pagerduty.svg';
+import phabricator from 'sentry-images/logos/logo-phabricator.svg';
+import pivotal from 'sentry-images/logos/logo-pivotaltracker.svg';
+import pushover from 'sentry-images/logos/logo-pushover.svg';
+import quill from 'sentry-images/logos/logo-quill.svg';
+import redmine from 'sentry-images/logos/logo-redmine.svg';
+import rocketchat from 'sentry-images/logos/logo-rocketchat.svg';
+import rookout from 'sentry-images/logos/logo-rookout.svg';
+import segment from 'sentry-images/logos/logo-segment.svg';
+import sentry from 'sentry-images/logos/logo-sentry.svg';
+import slack from 'sentry-images/logos/logo-slack.svg';
+import split from 'sentry-images/logos/logo-split.svg';
+import taiga from 'sentry-images/logos/logo-taiga.svg';
+import teamwork from 'sentry-images/logos/logo-teamwork.svg';
+import trello from 'sentry-images/logos/logo-trello.svg';
+import twilio from 'sentry-images/logos/logo-twilio.svg';
+import vercel from 'sentry-images/logos/logo-vercel.svg';
+import victorops from 'sentry-images/logos/logo-victorops.svg';
+import visualstudio from 'sentry-images/logos/logo-visualstudio.svg';
+import youtrack from 'sentry-images/logos/logo-youtrack.svg';
+import zepel from 'sentry-images/logos/logo-zepel.svg';
+import zulip from 'sentry-images/logos/logo-zulip.svg';
 
 // Map of plugin id -> logo filename
 export const DEFAULT_ICON = placeholder;
@@ -92,6 +93,7 @@ export const ICON_PATHS = {
   phabricator,
   pivotal,
   pushover,
+  quill,
   redmine,
   rocketchat,
   rookout,
@@ -107,6 +109,7 @@ export const ICON_PATHS = {
   youtrack,
   vercel,
   victorops,
+  zepel,
   zulip,
 };
 

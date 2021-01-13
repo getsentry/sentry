@@ -41,7 +41,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
   const statsPeriod = eventView.statsPeriod;
   const start = eventView.start ? getUtcToLocalDateObject(eventView.start) : undefined;
   const end = eventView.end ? getUtcToLocalDateObject(eventView.end) : undefined;
-  const utc = decodeScalar(router.location.query.utc);
+  const utc = decodeScalar(router.location.query.utc) !== 'false';
 
   const colors = theme.charts.getColorPalette(3);
   const axisLineConfig = {
@@ -84,7 +84,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
     },
     xAxes: Array.from(new Array(3)).map((_i, index) => ({
       gridIndex: index,
-      type: 'time',
+      type: 'time' as const,
       show: false,
     })),
     yAxes: [
@@ -124,9 +124,9 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
     utc,
     isGroupedByDate: true,
     showTimeInTooltip: true,
-    colors: [colors[0], colors[1], colors[2]],
+    colors: [colors[0], colors[1], colors[2]] as string[],
     tooltip: {
-      trigger: 'axis',
+      trigger: 'axis' as const,
       truncate: 80,
       valueFormatter: tooltipFormatter,
       nameFormatter(value: string) {
@@ -172,20 +172,14 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         />
       </ChartTitle>
 
-      <ChartZoom
-        router={router}
-        period={statsPeriod}
-        projects={project}
-        environments={environment}
-        xAxisIndex={[0, 1, 2]}
-      >
+      <ChartZoom router={router} period={statsPeriod} xAxisIndex={[0, 1, 2]}>
         {zoomRenderProps => (
           <EventsRequest
             api={api}
             organization={organization}
             period={statsPeriod}
-            project={[...project]}
-            environment={[...environment]}
+            project={project}
+            environment={environment}
             start={start}
             end={end}
             interval={getInterval(datetimeSelection)}
