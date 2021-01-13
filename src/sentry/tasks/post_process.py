@@ -16,6 +16,7 @@ from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_project, bind_organization_context
 
 logger = logging.getLogger("sentry")
+nodestore_stats_logger = logging.getLogger("sentry.nodestore.stats")
 
 
 def _get_service_hooks(project_id):
@@ -476,3 +477,8 @@ def capture_nodestore_stats(project_id, event_id):
 
     metrics.timing("events.size.deduplicated.ratio", event_size / old_event_size)
     metrics.timing("events.size.deduplicated.total_written.ratio", total_size / old_event_size)
+
+    if total_size / old_event_size > 4.0:
+        nodestore_stats_logger.info(
+            "events.size.deduplicated.terrible", project_id=project_id, event_id=event_id
+        )
