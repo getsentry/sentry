@@ -281,26 +281,25 @@ def post_process_group(
                     "workflow-owners-ingestion:org-{}-has-group-lock".format(event.group_id),
                     duration=10,
                 )
-                if not lock.locked():
-                    try:
-                        with lock.acquire():
-                            has_commit_key = "workflow-owners-ingestion:org-{}-has-commits".format(
-                                event.project.organization_id
-                            )
+                try:
+                    with lock.acquire():
+                        has_commit_key = "workflow-owners-ingestion:org-{}-has-commits".format(
+                            event.project.organization_id
+                        )
 
-                            org_has_commit = cache.get(has_commit_key)
-                            if org_has_commit is None:
-                                org_has_commit = Commit.objects.filter(
-                                    organization_id=event.project.organization_id
-                                ).exists()
-                                cache.set(has_commit_key, org_has_commit, 3600)
+                        org_has_commit = cache.get(has_commit_key)
+                        if org_has_commit is None:
+                            org_has_commit = Commit.objects.filter(
+                                organization_id=event.project.organization_id
+                            ).exists()
+                            cache.set(has_commit_key, org_has_commit, 3600)
 
-                            if org_has_commit and features.has(
-                                "projects:workflow-owners-ingestion", event.project,
-                            ):
-                                process_suspect_commits(event=event)
-                    except UnableToAcquireLock:
-                        pass
+                        if org_has_commit and features.has(
+                            "projects:workflow-owners-ingestion", event.project,
+                        ):
+                            process_suspect_commits(event=event)
+                except UnableToAcquireLock:
+                    pass
             except Exception:
                 logger.exception("Failed to process suspect commits")
 
