@@ -90,12 +90,12 @@ class IntegrationFeatures(Enum):
     *must* match the suffix of the organization feature flag name.
     """
 
+    ALERT_RULE = "alert-rule"
+    CHAT_UNFURL = "chat-unfurl"
+    COMMITS = "commits"
     INCIDENT_MANAGEMENT = "incident-management"
     ISSUE_BASIC = "issue-basic"
     ISSUE_SYNC = "issue-sync"
-    COMMITS = "commits"
-    CHAT_UNFURL = "chat-unfurl"
-    ALERT_RULE = "alert-rule"
     MOBILE = "mobile"
     SERVERLESS = "serverless"
     # features currently only existing on plugins:
