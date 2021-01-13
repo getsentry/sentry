@@ -61,9 +61,8 @@ class UnstyledSettingsPageHeader extends React.Component<Props> {
           {action && <Action isNarrow={isNarrow}>{action}</Action>}
         </TitleAndActions>
 
-        {body}
-
-        {tabs}
+        {body && <BodyWrapper>{body}</BodyWrapper>}
+        {tabs && <TabsWrapper>{tabs}</TabsWrapper>}
       </div>
     );
   }
@@ -90,7 +89,7 @@ const Subtitle = styled('div')`
   color: ${p => p.theme.gray400};
   font-weight: 400;
   font-size: ${p => p.theme.fontSizeLarge};
-  padding: ${space(1.5)} 0 ${space(3)};
+  padding: ${space(1.5)} 0 0;
 `;
 
 const Icon = styled('div')`
@@ -106,6 +105,15 @@ const SettingsPageHeader = styled(UnstyledSettingsPageHeader)<
 >`
   font-size: 14px;
   margin-top: -${space(4)};
+`;
+
+const BodyWrapper = styled('div')`
+  flex: 1;
+  margin: 0 0 ${space(3)};
+`;
+const TabsWrapper = styled('div')`
+  flex: 1;
+  margin: 0; /* sentry/components/navTabs has added margin */
 `;
 
 export default SettingsPageHeader;
