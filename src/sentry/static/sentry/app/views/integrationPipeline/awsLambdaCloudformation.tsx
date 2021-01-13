@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addLoadingMessage} from 'app/actionCreators/indicator';
-import Link from 'app/components/links/link';
+import ExternalLink from 'app/components/links/externalLink';
 import {t, tct} from 'app/locale';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
@@ -12,13 +12,24 @@ import {JsonFormObject} from 'app/views/settings/components/forms/type';
 type Props = {
   cloudformationUrl: string;
   awsExternalId: string;
+  arn?: string;
+  arnError?: string;
 };
 
 export default class AwsLambdaCloudformation extends React.Component<Props> {
+  componentDidMount() {
+    // show the error if we have it
+    const {arnError} = this.props;
+    if (arnError) {
+      this.model.setError('arn', arnError);
+    }
+  }
   model = new FormModel({apiOptions: {baseUrl: window.location.origin}});
   get initialData() {
+    const {awsExternalId, arn} = this.props;
     return {
-      awsExternalId: this.props.awsExternalId,
+      awsExternalId,
+      arn,
     };
   }
   handlePreSubmit = () => addLoadingMessage(t('Submitting\u2026'));
@@ -37,9 +48,9 @@ export default class AwsLambdaCloudformation extends React.Component<Props> {
       <InstructionWrapper>
         <ol>
           <li>
-            <Link to={cloudformationUrl}>
+            <ExternalLink href={cloudformationUrl}>
               {t("Add Sentry's Cloudfromation stack to your AWS")}
-            </Link>
+            </ExternalLink>
           </li>
           <li>
             {tct('Mark "[acklowedgeResource]"', {

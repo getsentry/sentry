@@ -5,7 +5,7 @@ import six
 import uuid
 
 from django.utils.translation import ugettext_lazy as _
-
+from rest_framework.response import Response
 
 from sentry import options
 from sentry.api.serializers import serialize
@@ -19,6 +19,7 @@ from sentry.integrations import (
 from sentry.integrations.serverless import ServerlessMixin
 from sentry.models import Project, OrganizationIntegration
 from sentry.pipeline import PipelineView
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.compat import map
 from sentry.utils import json
 
@@ -34,6 +35,7 @@ from .utils import (
     enable_single_lambda,
     disable_single_lambda,
     get_dsn_for_project,
+    check_arn_is_valid_cloudformation_stack,
 )
 
 logger = logging.getLogger("sentry.integrations.aws_lambda")
@@ -156,7 +158,8 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
             layers[sentry_layer_index] = layer_arn
 
         self.client.update_function_configuration(
-            FunctionName=target, Layers=layers,
+            FunctionName=target,
+            Layers=layers,
         )
         return self.get_serialized_lambda_function(target)
 
@@ -215,10 +218,17 @@ class AwsLambdaProjectSelectPipelineView(PipelineView):
             return pipeline.next_step()
 
         organization = pipeline.organization
-        # TODO: check status of project
+        # TODO: check status of project in query
         projects = Project.objects.filter(organization=organization).order_by("id")
-        serialized_projects = map(lambda x: serialize(x, request.user), projects)
 
+        # TODO: Check no projects
+
+        # if only one project, automatically use that
+        # if len(projects) == 1:
+        #     pipeline.bind_state("project_id", projects[0].id)
+        #     return pipeline.next_step()
+
+        serialized_projects = map(lambda x: serialize(x, request.user), projects)
         return self.render_react_view(
             request, "awsLambdaProjectSelect", {"projects": serialized_projects}
         )
@@ -226,6 +236,22 @@ class AwsLambdaProjectSelectPipelineView(PipelineView):
 
 class AwsLambdaCloudFormationPipelineView(PipelineView):
     def dispatch(self, request, pipeline):
+        def render_response(aws_external_id):
+            template_url = options.get("aws-lambda.cloudformation-url")
+            cloudformation_url = (
+                "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?"
+                "stackName=Sentry-Monitoring-Stack-Filter&templateURL=%s&param_ExternalId=%s"
+                % (template_url, aws_external_id)
+            )
+            context = {
+                "cloudformationUrl": cloudformation_url,
+                "awsExternalId": aws_external_id,
+                "arn": pipeline.fetch_state("arn"),
+                "arnError": pipeline.fetch_state("arn_error"),
+            }
+
+            return self.render_react_view(request, "awsLambdaCloudformation", context)
+
         if request.method == "POST":
             # accept form data or json data
             data = request.POST or json.loads(request.body)
@@ -234,29 +260,21 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
             arn = data["arn"]
             aws_external_id = data["awsExternalId"]
 
-            # TODO: add arn validation
-
             pipeline.bind_state("arn", arn)
             pipeline.bind_state("aws_external_id", aws_external_id)
-            return pipeline.next_step()
 
-        template_url = options.get("aws-lambda.cloudformation-url")
+            if not check_arn_is_valid_cloudformation_stack(arn):
+                # store the error in state so a page refresh
+                pipeline.bind_state("arn_error", "Invalid ARN")
+                return render_response(aws_external_id)
+
+            return pipeline.next_step()
 
         # let browser set external id from local storage so restarting
         # the installation maintains the same external id
         aws_external_id = request.GET.get("aws_external_id", uuid.uuid4())
 
-        cloudformation_url = (
-            "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?"
-            "stackName=Sentry-Monitoring-Stack-Filter&templateURL=%s&param_ExternalId=%s"
-            % (template_url, aws_external_id)
-        )
-
-        return self.render_react_view(
-            request,
-            "awsLambdaCloudformation",
-            {"cloudformationUrl": cloudformation_url, "awsExternalId": aws_external_id},
-        )
+        return render_response(aws_external_id)
 
 
 class AwsLambdaListFunctionsPipelineView(PipelineView):
