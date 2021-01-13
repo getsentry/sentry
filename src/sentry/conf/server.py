@@ -830,6 +830,8 @@ SENTRY_FEATURES = {
     "organizations:discover": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
+    # Enable Filters & Sampling in the org settings
+    "organizations:filters-and-sampling": False,
     # Allow organizations to configure built-in symbol sources.
     "organizations:symbol-sources": True,
     # Allow organizations to configure custom external symbol sources.

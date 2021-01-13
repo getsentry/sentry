@@ -2,6 +2,7 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountGlobalModal} from 'sentry-test/modal';
 
 import OrganizationSecurityAndPrivacy from 'app/views/settings/organizationSecurityAndPrivacy';
 
@@ -57,11 +58,8 @@ describe('OrganizationSecurityAndPrivacy', function () {
     // hide console.error for this test
     jest.spyOn(console, 'error').mockImplementation(() => {});
     // Confirm but has API failure
-    wrapper
-      .find(
-        'Field[name="require2FA"] ModalDialog .modal-footer Button[priority="primary"]'
-      )
-      .simulate('click');
+    const modal = await mountGlobalModal();
+    modal.find('Button[priority="primary"]').simulate('click');
 
     await tick();
     wrapper.update();
@@ -98,14 +96,14 @@ describe('OrganizationSecurityAndPrivacy', function () {
     wrapper.update();
     expect(wrapper.find('Switch[name="require2FA"]')).toHaveLength(1);
     wrapper.find('Switch[name="require2FA"]').simulate('click');
-    expect(wrapper.find('Field[name="require2FA"] ModalDialog')).toHaveLength(1);
 
     // Cancel
-    wrapper
-      .find('Field[name="require2FA"] ModalDialog .modal-footer Button')
-      .first()
-      .simulate('click');
-    expect(wrapper.find('Field[name="require2FA"] ModalDialog')).toHaveLength(0);
+    const modal = await mountGlobalModal();
+    modal.find('Button').first().simulate('click');
+
+    await tick();
+    wrapper.update();
+
     expect(wrapper.find('Switch[name="require2FA"]').prop('isActive')).toBe(false);
     expect(mock).not.toHaveBeenCalled();
   });
@@ -129,14 +127,14 @@ describe('OrganizationSecurityAndPrivacy', function () {
 
     expect(wrapper.find('Switch[name="require2FA"]')).toHaveLength(1);
     wrapper.find('Switch[name="require2FA"]').simulate('click');
-    expect(wrapper.find('Field[name="require2FA"] ModalDialog')).toHaveLength(1);
+
     // Confirm
-    wrapper
-      .find(
-        'Field[name="require2FA"] ModalDialog .modal-footer Button[priority="primary"]'
-      )
-      .simulate('click');
-    expect(wrapper.find('Field[name="require2FA"] ModalDialog')).toHaveLength(0);
+    const modal = await mountGlobalModal();
+    modal.find('Button[priority="primary"]').simulate('click');
+
+    await tick();
+    wrapper.update();
+
     expect(wrapper.find('Switch[name="require2FA"]').prop('isActive')).toBe(true);
     expect(mock).toHaveBeenCalledWith(
       '/organizations/org-slug/',

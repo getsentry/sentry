@@ -4,7 +4,8 @@
 <html lang="en">
   <head>
     {% script src=ac_js_src %}{% endscript %}
-    {% script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js" %}{% endscript %}
+    {% asset_url 'sentry' 'vendor/jquery.2.2.4.min.js' as jquery_url %}
+    {% script src=jquery_url %}{% endscript %}
     {% script src="//aui-cdn.atlassian.com/aui-adg/6.0.9/js/aui.min.js" %}{% endscript %}
     <link
       rel="stylesheet"
@@ -45,7 +46,7 @@
 
       <div>
         <h2>{{ type }}</h2>
-        <p>{{ title }}</p>
+        <p><a href="{{ title_url }}">{{title}}</a></p>
         <br />
         <div class="aui-group">
           <div class="aui-item">

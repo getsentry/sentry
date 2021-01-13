@@ -22,7 +22,6 @@ import {YAxis} from 'app/views/releases/detail/overview/chart/releaseChartContro
 import {NormalizedTrendsTransaction, TrendChangeType, TrendsStats} from './types';
 import {
   getCurrentTrendFunction,
-  getIntervalRatio,
   getUnselectedSeries,
   transformEventStatsSmoothed,
   trendToColor,
@@ -152,7 +151,7 @@ function getIntervalLine(
   };
 
   const seriesDiff = seriesEnd - seriesStart;
-  const seriesLine = seriesDiff * (intervalRatio || 0.5) + seriesStart;
+  const seriesLine = seriesDiff * intervalRatio + seriesStart;
 
   previousPeriod.markLine.data = [
     [
@@ -256,7 +255,6 @@ class Chart extends React.Component<Props> {
     const end = props.end ? getUtcToLocalDateObject(props.end) : null;
     const utc = decodeScalar(router.location.query.utc) !== 'false';
 
-    const intervalRatio = getIntervalRatio(router.location);
     const seriesSelection = (
       decodeList(location.query[getUnselectedSeries(trendChangeType)]) ?? []
     ).reduce((selection, metric) => {
@@ -326,11 +324,7 @@ class Chart extends React.Component<Props> {
               })
             : [];
 
-          const intervalSeries = getIntervalLine(
-            smoothedResults || [],
-            intervalRatio,
-            transaction
-          );
+          const intervalSeries = getIntervalLine(smoothedResults || [], 0.5, transaction);
 
           return (
             <ReleaseSeries
