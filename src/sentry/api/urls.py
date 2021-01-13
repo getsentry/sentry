@@ -94,10 +94,6 @@ from .endpoints.organization_event_details import OrganizationEventDetailsEndpoi
 from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsV2Endpoint
 from .endpoints.organization_events_histogram import OrganizationEventsHistogramEndpoint
-from .endpoints.organization_events_trends import (
-    OrganizationEventsTrendsEndpoint,
-    OrganizationEventsTrendsStatsEndpoint,
-)
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_meta import (
     OrganizationEventsMetaEndpoint,
