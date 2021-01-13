@@ -34,7 +34,6 @@ const organizationNavigation: NavigationSection[] = [
         show: ({features}) => features!.has('filters-and-sampling'),
         description: t("Manage an organization's inbound data"),
         id: 'filters-and-sampling',
-        badge: () => 'new',
       },
       {
         path: `${pathPrefix}/teams/`,
