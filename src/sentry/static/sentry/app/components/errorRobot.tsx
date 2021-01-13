@@ -1,6 +1,7 @@
 import React from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
+
 import robotBackground from 'sentry-images/spot/sentry-robot.png';
 
 import {Client} from 'app/api';
