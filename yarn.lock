@@ -6735,16 +6735,16 @@ eslint-config-prettier@6.3.0:
   dependencies:
     get-stdin "^6.0.0"
 
-eslint-config-sentry-app@^1.46.0:
-  version "1.46.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry-app/-/eslint-config-sentry-app-1.46.0.tgz#36964cea8c8debde192047c25e29e4adf26f7a59"
-  integrity sha512-OJH8eHKpQiAQKQ1n7irvkQuAM42kbwGGCyArTkl1XmbopVyKN8gzbBX8GFfhjmgqxA6VrKY0gfBmNxqV/FRzBA==
+eslint-config-sentry-app@^1.48.0:
+  version "1.48.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry-app/-/eslint-config-sentry-app-1.48.0.tgz#1d6c3deec7c281829301401aabe730a94824929e"
+  integrity sha512-/iUBwjNdBVNij6dlJzxf8jNOBhVR1mM6wd1tFlg9ac+yH0kseuMUUpGr5W6iwGb4hyxwI+I6P+JBVpwW9zWP/g==
   dependencies:
     "@typescript-eslint/eslint-plugin" "^3.5.0"
     "@typescript-eslint/parser" "^3.5.0"
     eslint-config-prettier "6.3.0"
-    eslint-config-sentry "^1.46.0"
-    eslint-config-sentry-react "^1.46.0"
+    eslint-config-sentry "^1.48.0"
+    eslint-config-sentry-react "^1.48.0"
     eslint-import-resolver-typescript "^2.0.0"
     eslint-import-resolver-webpack "^0.12.2"
     eslint-plugin-emotion "^10.0.27"
@@ -6752,20 +6752,20 @@ eslint-config-sentry-app@^1.46.0:
     eslint-plugin-jest "22.17.0"
     eslint-plugin-prettier "3.1.1"
     eslint-plugin-react "7.15.1"
-    eslint-plugin-sentry "^1.46.0"
+    eslint-plugin-sentry "^1.48.0"
     eslint-plugin-simple-import-sort "^6.0.1"
 
-eslint-config-sentry-react@^1.46.0:
-  version "1.46.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry-react/-/eslint-config-sentry-react-1.46.0.tgz#ee9759f220944f270639dd19034dbd3ee0d7f463"
-  integrity sha512-b21cbA87lB0kR15mInaj8PDpZlBrRDvx+6FDBZiogyJe1dHa87+vgjTbMlFjmNic+kXEseJamwZYtuUgTXmfXg==
+eslint-config-sentry-react@^1.48.0:
+  version "1.48.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry-react/-/eslint-config-sentry-react-1.48.0.tgz#646d4b80ee3854f07f5d5aa18a59b8ce615f75b1"
+  integrity sha512-Gl2KG5maQEvwGiYtN9E1a+Z2XNbwZrANCmfRTZf1NFL/oE465YEzJGbHuo6fyY3gS9AFdwY2XGmivWQ0PwyZfQ==
   dependencies:
-    eslint-config-sentry "^1.46.0"
+    eslint-config-sentry "^1.48.0"
 
-eslint-config-sentry@^1.46.0:
-  version "1.46.0"
-  resolved "https://registry.yarnpkg.com/eslint-config-sentry/-/eslint-config-sentry-1.46.0.tgz#708a3afd10191d810e3f529cddacfa7c6853cff3"
-  integrity sha512-uJF74tTqwkRiohyV5maqz7nv9lKo+gsDhpqYXtDDy5GWvC25svIGFbTo2f8jE3dCXRjcCKY2/3InlRDvqS3EdA==
+eslint-config-sentry@^1.48.0:
+  version "1.48.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-sentry/-/eslint-config-sentry-1.48.0.tgz#9c3b7b719dfab4d34ad075730cfc3cd6b01dc4ef"
+  integrity sha512-Zu51Azc0tRtCX8/nX3ws/AduK8iH6R1MmndOGMXIAB9o/P79/nXqcnEFV1vX85TTVb0nj89uXKmf9Dg2cfPPTg==
 
 eslint-import-resolver-node@^0.3.3:
   version "0.3.4"
@@ -6863,10 +6863,10 @@ eslint-plugin-react@7.15.1:
     prop-types "^15.7.2"
     resolve "^1.12.0"
 
-eslint-plugin-sentry@^1.46.0:
-  version "1.46.0"
-  resolved "https://registry.yarnpkg.com/eslint-plugin-sentry/-/eslint-plugin-sentry-1.46.0.tgz#710f996b849a274cab7cf9f971e651fe5f12bb64"
-  integrity sha512-CwyfoCT4C4fgBoLG8dtSPQvjCaME4I/wazI8Lj/Q1/onbipGSQXQDBtPTpf2EysLG2SqzXoLylz/zQGWwyUz0Q==
+eslint-plugin-sentry@^1.48.0:
+  version "1.48.0"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-sentry/-/eslint-plugin-sentry-1.48.0.tgz#ea4d0b3e3dbb0b800aca3fec82230a99840a8054"
+  integrity sha512-Y1UFX5XqMERLiQqC4FAaQHvF9XxY8R1P8MI2P28cgiGK1x6wS1zoK/zOp+9BW794EdhtYFl9INQs1lUu3HVA7w==
   dependencies:
     requireindex "~1.1.0"
 
