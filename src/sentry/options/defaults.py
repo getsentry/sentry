@@ -279,3 +279,6 @@ register("store.use-relay-dsn-sample-rate", default=1)
 
 # Mock out integrations and services for tests
 register("mocks.jira", default=False)
+
+# Record statistics about event payloads and their compressability
+register("store.nodestore-stats-sample-rate", default=0)
