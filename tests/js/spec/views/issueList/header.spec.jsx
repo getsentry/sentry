@@ -190,8 +190,8 @@ describe('IssueListHeader', () => {
         ]}
       />
     );
-    wrapper.find('StyledDropdownLink').simulate('click');
-    await wrapper.update();
+    wrapper.find('StyledDropdownLink').find('a').simulate('click');
+    await tick();
 
     const item = wrapper.find('MenuItem a').first();
     expect(item.text()).toContain('Unresolved Search');

@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 
 import ProjectKeys from 'app/views/settings/project/projectKeys/list';
 
@@ -68,12 +69,12 @@ describe('ProjectKeys', function () {
     expect(wrapper.find('ClipFade button')).toHaveLength(0);
   });
 
-  it('deletes key', function () {
+  it('deletes key', async function () {
     wrapper.find('PanelHeader Button').last().simulate('click');
 
-    wrapper.find('ModalDialog Button[priority="danger"]').simulate('click');
-
-    wrapper.update();
+    // Confirm modal
+    const modal = await mountGlobalModal();
+    modal.find('Button[priority="danger"]').simulate('click');
 
     expect(deleteMock).toHaveBeenCalled();
   });

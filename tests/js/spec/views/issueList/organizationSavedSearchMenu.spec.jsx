@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 
 import IssueListSavedSearchMenu from 'app/views/issueList/savedSearchMenu';
 
@@ -71,7 +72,8 @@ describe('IssueListSavedSearchMenu', () => {
       button.simulate('click');
       await wrapper.update();
 
-      wrapper.find('Modal Button[priority="primary"] button').simulate('click');
+      const modal = await mountGlobalModal();
+      modal.find('Modal Button[priority="primary"] button').simulate('click');
       expect(onDelete).toHaveBeenCalledWith(savedSearchList[1]);
     });
   });

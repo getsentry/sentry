@@ -64,6 +64,7 @@ ua-parser>=0.10.0,<0.11.0
 unidiff>=0.5.4
 urllib3==1.24.2
 uwsgi>2.0.0,<2.1.0
+zstandard>=0.14.1,<=0.15
 
 # msgpack>=1.0.0 correctly encodes / decodes byte types in python3 as the
 # msgpack bin type. It could NOT do this in python 2. However, 1.0 also drops

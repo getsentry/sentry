@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 
 import {Client} from 'app/api';
 import RepositoryRow from 'app/components/repositoryRow';
@@ -103,10 +104,10 @@ describe('RepositoryRow', function () {
         routerContext
       );
       wrapper.find('Button[label="delete"]').simulate('click');
-      await tick();
 
       // Confirm modal
-      wrapper.find('ModalDialog Button[priority="primary"]').simulate('click');
+      const modal = await mountGlobalModal();
+      modal.find('Button[priority="primary"]').simulate('click');
       await wrapper.update();
 
       expect(deleteRepo).toHaveBeenCalled();
