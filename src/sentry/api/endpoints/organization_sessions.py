@@ -28,4 +28,4 @@ class OrganizationSessionsEndpoint(OrganizationEventsV2EndpointBase):
         with sentry_sdk.start_span(op="sessions.endpoint", description="build_sessions_query"):
             params = self.get_snuba_params(request, organization, check_global_views=False)
 
-            return QueryDefinition(request, params)
+            return QueryDefinition(request.GET, params)

@@ -5,15 +5,14 @@ from django.http import QueryDict
 
 # from sentry.testutils import TestCase
 from sentry.snuba.sessions_v2 import (
+    QueryDefinition,
     massage_sessions_result,
-    _get_query_from_request,
     _get_timestamps,
 )
 
 
-class MockRequest(object):
-    def __init__(self, qs):
-        self.GET = QueryDict(qs)
+def _make_query(qs):
+    return QueryDefinition(QueryDict(qs), {})
 
 
 def result_sorted(result):
@@ -28,33 +27,29 @@ def result_sorted(result):
 
 @freeze_time("2020-12-18T11:14:17.105Z")
 def test_timestamps():
-    query = _get_query_from_request(MockRequest("statsPeriod=1d&interval=12h"))
+    query = _make_query("statsPeriod=1d&interval=12h")
 
-    expected_timestamps = ["2020-12-17T00:00:00Z", "2020-12-17T12:00:00Z", "2020-12-18T00:00:00Z"]
+    expected_timestamps = ["2020-12-17T12:00:00Z", "2020-12-18T00:00:00Z"]
     actual_timestamps = _get_timestamps(query)
 
     assert actual_timestamps == expected_timestamps
 
 
 def test_simple_query():
-    query = _get_query_from_request(MockRequest("statsPeriod=1d&interval=12h&field=sum(session)"))
+    query = _make_query("statsPeriod=1d&interval=12h&field=sum(session)")
 
     assert query.query_columns == ["sessions"]
 
 
 def test_groupby_query():
-    query = _get_query_from_request(
-        MockRequest("statsPeriod=1d&interval=12h&field=sum(session)&groupBy=release")
-    )
+    query = _make_query("statsPeriod=1d&interval=12h&field=sum(session)&groupBy=release")
 
     assert sorted(query.query_columns) == ["release", "sessions"]
     assert query.query_groupby == ["release"]
 
 
 def test_virtual_groupby_query():
-    query = _get_query_from_request(
-        MockRequest("statsPeriod=1d&interval=12h&field=sum(session)&groupBy=session.status")
-    )
+    query = _make_query("statsPeriod=1d&interval=12h&field=sum(session)&groupBy=session.status")
 
     assert sorted(query.query_columns) == [
         "sessions",
@@ -64,8 +59,8 @@ def test_virtual_groupby_query():
     ]
     assert query.query_groupby == []
 
-    query = _get_query_from_request(
-        MockRequest("statsPeriod=1d&interval=12h&field=count_unique(user)&groupBy=session.status")
+    query = _make_query(
+        "statsPeriod=1d&interval=12h&field=count_unique(user)&groupBy=session.status"
     )
 
     assert sorted(query.query_columns) == [
@@ -81,7 +76,7 @@ def test_virtual_groupby_query():
 def test_massage_simple_timeseries():
     """A timeseries is filled up when it only receives partial data"""
 
-    query = _get_query_from_request(MockRequest("statsPeriod=1d&interval=6h&field=sum(session)"))
+    query = _make_query("statsPeriod=1d&interval=6h&field=sum(session)")
     result_totals = [{"sessions": 4}]
     # snuba returns the datetimes as strings for now
     result_timeseries = [
@@ -91,14 +86,13 @@ def test_massage_simple_timeseries():
 
     expected_result = {
         "intervals": [
-            "2020-12-17T06:00:00Z",
             "2020-12-17T12:00:00Z",
             "2020-12-17T18:00:00Z",
             "2020-12-18T00:00:00Z",
             "2020-12-18T06:00:00Z",
         ],
         "groups": [
-            {"by": {}, "series": {"sum(session)": [0, 2, 0, 0, 2]}, "totals": {"sum(session)": 4}}
+            {"by": {}, "series": {"sum(session)": [2, 0, 0, 2]}, "totals": {"sum(session)": 4}}
         ],
     }
 
@@ -109,9 +103,8 @@ def test_massage_simple_timeseries():
 
 @freeze_time("2020-12-18T11:14:17.105Z")
 def test_massage_groupby_timeseries():
-    query = _get_query_from_request(
-        MockRequest("statsPeriod=1d&interval=6h&field=sum(session)&groupBy=release")
-    )
+    query = _make_query("statsPeriod=1d&interval=6h&field=sum(session)&groupBy=release")
+
     result_totals = [
         {"release": "test-example-release", "sessions": 4},
         {"release": "test-example-release-2", "sessions": 1},
@@ -137,7 +130,6 @@ def test_massage_groupby_timeseries():
 
     expected_result = {
         "intervals": [
-            "2020-12-17T06:00:00Z",
             "2020-12-17T12:00:00Z",
             "2020-12-17T18:00:00Z",
             "2020-12-18T00:00:00Z",
@@ -146,12 +138,12 @@ def test_massage_groupby_timeseries():
         "groups": [
             {
                 "by": {"release": "test-example-release"},
-                "series": {"sum(session)": [0, 2, 0, 0, 2]},
+                "series": {"sum(session)": [2, 0, 0, 2]},
                 "totals": {"sum(session)": 4},
             },
             {
                 "by": {"release": "test-example-release-2"},
-                "series": {"sum(session)": [0, 0, 0, 0, 1]},
+                "series": {"sum(session)": [0, 0, 0, 1]},
                 "totals": {"sum(session)": 1},
             },
         ],
@@ -164,10 +156,8 @@ def test_massage_groupby_timeseries():
 
 @freeze_time("2020-12-18T13:25:15.769Z")
 def test_massage_virtual_groupby_timeseries():
-    query = _get_query_from_request(
-        MockRequest(
-            "statsPeriod=1d&interval=6h&field=sum(session)&field=count_unique(user)&groupBy=session.status"
-        )
+    query = _make_query(
+        "statsPeriod=1d&interval=6h&field=sum(session)&field=count_unique(user)&groupBy=session.status"
     )
     result_totals = [
         {
@@ -209,7 +199,6 @@ def test_massage_virtual_groupby_timeseries():
 
     expected_result = {
         "intervals": [
-            "2020-12-17T12:00:00Z",
             "2020-12-17T18:00:00Z",
             "2020-12-18T00:00:00Z",
             "2020-12-18T06:00:00Z",
@@ -218,22 +207,22 @@ def test_massage_virtual_groupby_timeseries():
         "groups": [
             {
                 "by": {"session.status": "abnormal"},
-                "series": {"count_unique(user)": [0, 0, 0, 0, 0], "sum(session)": [0, 0, 0, 0, 0]},
+                "series": {"count_unique(user)": [0, 0, 0, 0], "sum(session)": [0, 0, 0, 0]},
                 "totals": {"count_unique(user)": 0, "sum(session)": 0},
             },
             {
                 "by": {"session.status": "crashed"},
-                "series": {"count_unique(user)": [0, 0, 0, 0, 1], "sum(session)": [0, 0, 0, 0, 1]},
+                "series": {"count_unique(user)": [0, 0, 0, 1], "sum(session)": [0, 0, 0, 1]},
                 "totals": {"count_unique(user)": 1, "sum(session)": 1},
             },
             {
                 "by": {"session.status": "errored"},
-                "series": {"count_unique(user)": [0, 0, 0, 0, 1], "sum(session)": [0, 0, 0, 0, 1]},
+                "series": {"count_unique(user)": [0, 0, 0, 1], "sum(session)": [0, 0, 0, 1]},
                 "totals": {"count_unique(user)": 1, "sum(session)": 1},
             },
             {
                 "by": {"session.status": "healthy"},
-                "series": {"count_unique(user)": [0, 0, 0, 1, 0], "sum(session)": [0, 0, 0, 3, 2]},
+                "series": {"count_unique(user)": [0, 0, 1, 0], "sum(session)": [0, 0, 3, 2]},
                 # while in one of the time slots, we have a healthy user, it is
                 # the *same* user as the one experiencing a crash later on,
                 # so in the *whole* time window, that one user is not counted as healthy,

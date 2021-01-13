@@ -98,6 +98,8 @@ def get_date_range_rollup_from_params(
     an `interval`, as `get_rollup_from_request` would do.
 
     This also optionally rounds the returned range to the given `interval`.
+    The rounding uses integer arithmetic on unix timestamps, so might yield
+    unexpected results when the interval is > 1d.
     """
     minimum_interval = parse_stats_period(minimum_interval).total_seconds()
     interval = parse_stats_period(params.get("interval", default_interval))

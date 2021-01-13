@@ -5,10 +5,10 @@ from datetime import datetime
 import six
 import itertools
 
-from sentry.api.event_search import get_filter, InvalidSearchQuery
-from sentry.api.utils import get_date_range_from_params
-from sentry.utils.dates import get_rollup_from_request
-from sentry.utils.snuba import Dataset, raw_query, to_naive_timestamp, naiveify_datetime
+from sentry.api.event_search import get_filter
+from sentry.api.utils import get_date_range_rollup_from_params
+from sentry.utils.dates import to_timestamp
+from sentry.utils.snuba import Dataset, raw_query
 
 """
 The new Sessions API defines a "metrics"-like interface which is can be used in
@@ -209,29 +209,22 @@ class QueryDefinition(object):
     `fields` and `groupby` definitions as [`ColumnDefinition`] objects.
     """
 
-    def __init__(self, request, params):
+    def __init__(self, query, params):
         # self.request = request
         # self.params = params
 
-        self.query = request.GET.get("query")
-        raw_fields = request.GET.getlist("field", [])
-        raw_groupby = request.GET.getlist("groupBy", [])
+        self.query = query.get("query")
+        raw_fields = query.getlist("field", [])
+        raw_groupby = query.getlist("groupBy", [])
 
         # TODO: maybe show a proper error message for unknown fields/groupby
         self.fields = {field: COLUMN_MAP.get(field) for field in raw_fields}
         self.groupby = [GROUPBY_MAP.get(field) for field in raw_groupby]
 
-        rollup = get_rollup_from_request(
-            request,
-            params,
-            "1h",
-            InvalidSearchQuery(
-                "Your interval and date range would create too many results. "
-                "Use a larger interval, or a smaller date range."
-            ),
-        )
-        # The minimum interval is one hour on the server
-        self.rollup = max(rollup, 3600)
+        start, end, rollup = get_date_range_rollup_from_params(query, "1h", round_range=True)
+        self.rollup = rollup
+        self.start = start
+        self.end = end
 
         query_columns = set()
         for field in self.fields.values():
@@ -245,35 +238,14 @@ class QueryDefinition(object):
             query_groupby.update(groupby.get_snuba_groupby())
         self.query_groupby = list(query_groupby)
 
-        snuba_filter = get_timeseries_snuba_filter(
-            self.query_columns, self.query, params, self.rollup
-        )
+        params["start"] = start
+        params["end"] = end
+        snuba_filter = get_filter(self.query, params)
 
-        self.start = snuba_filter.start
-        self.end = snuba_filter.end
         self.aggregations = snuba_filter.aggregations
         self.conditions = snuba_filter.conditions
 
         self.filter_keys = snuba_filter.filter_keys
-
-
-def get_timeseries_snuba_filter(selected_columns, query, params, rollup, default_count=True):
-    snuba_filter = get_filter(query, params)
-    if not snuba_filter.start and not snuba_filter.end:
-        raise InvalidSearchQuery("Cannot get timeseries result without a start and end.")
-
-    return snuba_filter
-
-
-def _get_query_from_request(request):
-    """
-    This creates our [`QueryDefinition`] from the given `request`, which itself
-    is a bit unfortunate that this depends on HTTP types.
-    """
-    start, end = get_date_range_from_params(request.GET)
-    params = {"start": start, "end": end}
-    # TODO: refactor all of this so it does not depend on a `request`.
-    return QueryDefinition(request, params)
 
 
 TS_COL = "bucketed_started"
@@ -407,8 +379,8 @@ def _get_timestamps(query):
     The timestamps are returned as ISO strings for now.
     """
     rollup = query.rollup
-    start = int(to_naive_timestamp(naiveify_datetime(query.start)) / rollup) * rollup
-    end = (int(to_naive_timestamp(naiveify_datetime(query.end)) / rollup) * rollup) + rollup
+    start = int(to_timestamp(query.start))
+    end = int(to_timestamp(query.end))
     return [
         datetime.utcfromtimestamp(ts).isoformat() + "Z"
         for ts in six.moves.xrange(start, end, rollup)
