@@ -8,13 +8,13 @@
   </ul>
 {% endblock %}
 {% block javascript %}
-  <script type="text/x-template" title="reporter-template">
+  {% script type="text/x-template" title="reporter-template" %}
     <div class="reporter">
       <img src="{avatarURL}"/>
       <span><strong>{email}</strong> experienced {count}</span>
     </div>
-  </script>
-  <script type="text/x-template" title="issue-template">
+  {% endscript %}
+  {% script type="text/x-template" title="issue-template" %}
     <li class="aui-group">
       <div class="aui-item error-level">
         <span class="sentry-{level}"></span>
@@ -24,7 +24,7 @@
         <div class="last-seen">{lastSeen} - {firstSeen}</div>
       </div>
     </li>
-  </script>
+  {% endscript %}
   {% script type="text/javascript" %}
   <script>
     (function() {
