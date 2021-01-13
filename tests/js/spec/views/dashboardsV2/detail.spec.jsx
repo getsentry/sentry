@@ -37,7 +37,7 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/dashboards/',
         body: [
           TestStubs.Dashboard([], {id: 'default-overview', title: 'Default'}),
-          TestStubs.Dashboard([], {id: 1, title: 'Custom Errors'}),
+          TestStubs.Dashboard([], {id: '1', title: 'Custom Errors'}),
         ],
       });
       MockApiClient.addMockResponse({
@@ -79,7 +79,7 @@ describe('Dashboards > Detail', function () {
       const updateMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/default-overview/',
         method: 'PUT',
-        body: TestStubs.Dashboard([], {id: 8, title: 'Updated prebuilt'}),
+        body: TestStubs.Dashboard([], {id: '8', title: 'Updated prebuilt'}),
       });
       wrapper = mountWithTheme(
         <DashboardDetail
