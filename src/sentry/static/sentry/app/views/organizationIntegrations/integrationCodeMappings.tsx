@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
+import * as qs from 'query-string';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {openModal} from 'app/actionCreators/modal';
@@ -24,7 +25,7 @@ import {
   Repository,
   RepositoryProjectPathConfig,
 } from 'app/types';
-import {getIntegrationIcon} from 'app/utils/integrationUtil';
+import {getIntegrationIcon, trackIntegrationEvent} from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
@@ -85,6 +86,23 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     return this.projects.find(project => project.id === pathConfig.projectId);
   }
 
+  componentDidMount() {
+    const {referrer} = qs.parse(window.location.search) || {};
+    // We don't start new session if the user was coming from choosing
+    // the manual setup option flow from the issue details page
+    const startSession = referrer === 'stacktrace-issue-details' ? false : true;
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.code_mappings_viewed',
+        eventName: 'Integrations: Code Mappings Viewed',
+        integration: this.props.integration.provider.key,
+        integration_type: 'first_party',
+      },
+      this.props.organization,
+      {startSession}
+    );
+  }
+
   handleDelete = async (pathConfig: RepositoryProjectPathConfig) => {
     const {organization, integration} = this.props;
     const endpoint = `/organizations/${organization.slug}/integrations/${integration.id}/repo-project-path-configs/${pathConfig.id}/`;
@@ -104,6 +122,16 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
   };
 
   handleSubmitSuccess = (pathConfig: RepositoryProjectPathConfig) => {
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.stacktrace_complete_setup',
+        eventName: 'Integrations: Stacktrace Complete Setup',
+        setup_type: 'manual',
+        view: 'integration_configuration_detail',
+        provider: this.props.integration.provider.key,
+      },
+      this.props.organization
+    );
     let {pathConfigs} = this.state;
     pathConfigs = pathConfigs.filter(config => config.id !== pathConfig.id);
     // our getter handles the order of the configs
@@ -114,6 +142,16 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
 
   openModal = (pathConfig?: RepositoryProjectPathConfig) => {
     const {organization, integration} = this.props;
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.stacktrace_start_setup',
+        eventName: 'Integrations: Stacktrace Start Setup',
+        setup_type: 'manual',
+        view: 'integration_configuration_detail',
+        provider: this.props.integration.provider.key,
+      },
+      this.props.organization
+    );
 
     openModal(({Body, Header, closeModal}) => (
       <React.Fragment>
@@ -173,6 +211,17 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
                   <Button
                     href={`https://docs.sentry.io/product/integrations/${integration.provider.key}/#stack-trace-linking`}
                     size="small"
+                    onClick={() => {
+                      trackIntegrationEvent(
+                        {
+                          eventKey: 'integrations.stacktrace_docs_clicked',
+                          eventName: 'Integrations: Stacktrace Docs Clicked',
+                          view: 'integration_configuration_detail',
+                          provider: this.props.integration.provider.key,
+                        },
+                        this.props.organization
+                      );
+                    }}
                   >
                     View Documentation
                   </Button>

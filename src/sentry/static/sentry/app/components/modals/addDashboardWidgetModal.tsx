@@ -12,6 +12,7 @@ import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import WidgetQueryForm from 'app/components/dashboards/widgetQueryForm';
 import SelectControl from 'app/components/forms/selectControl';
+import {PanelAlert} from 'app/components/panels';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, TagCollection} from 'app/types';
@@ -246,7 +247,9 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                 name="displayType"
                 label={t('Chart Style')}
                 value={state.displayType}
-                onChange={this.handleFieldChange('displayType')}
+                onChange={(option: {label: string; value: Widget['displayType']}) => {
+                  this.handleFieldChange('displayType')(option.value);
+                }}
               />
             </Field>
           </DoubleFieldWrapper>
@@ -276,6 +279,13 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
             isEditing={false}
             onDelete={() => undefined}
             onEdit={() => undefined}
+            renderErrorMessage={errorMessage =>
+              typeof errorMessage === 'string' && (
+                <PanelAlert type="error">{errorMessage}</PanelAlert>
+              )
+            }
+            isDragging={false}
+            startWidgetDrag={() => undefined}
           />
         </Body>
         <Footer>

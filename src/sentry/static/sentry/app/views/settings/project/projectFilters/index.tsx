@@ -19,7 +19,7 @@ type Props = {
 
 class ProjectFilters extends React.Component<Props> {
   render() {
-    const {project, params} = this.props;
+    const {project, params, location} = this.props;
     const {orgId, projectId, filterType} = params;
     if (!project) {
       return null;
@@ -60,7 +60,7 @@ class ProjectFilters extends React.Component<Props> {
           )}
 
           {filterType === 'discarded-groups' ? (
-            <GroupTombstones orgId={orgId} projectId={project.slug} />
+            <GroupTombstones orgId={orgId} projectId={project.slug} location={location} />
           ) : (
             <ProjectFiltersSettings
               project={project}

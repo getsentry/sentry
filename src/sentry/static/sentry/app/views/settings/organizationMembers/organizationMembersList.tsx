@@ -191,7 +191,6 @@ class OrganizationMembersList extends AsyncView<Props, State> {
               children: renderSearch,
               className: css`
                 font-size: ${theme.fontSizeMedium};
-                padding: ${space(0.75)};
               `,
             })
           }

@@ -12,8 +12,8 @@ describe('Utils', function () {
 
     it('returns null for x axis that is too big', function () {
       const data = [
-        {histogram: 10, count: 0},
-        {histogram: 20, count: 0},
+        {bin: 10, count: 0},
+        {bin: 20, count: 0},
       ];
 
       expect(findNearestBucketIndex(data, 10, 30)).toBeNull();
@@ -22,8 +22,8 @@ describe('Utils', function () {
 
     it('returns -1 for x axis that is too small', function () {
       const data = [
-        {histogram: 10, count: 0},
-        {histogram: 20, count: 0},
+        {bin: 10, count: 0},
+        {bin: 20, count: 0},
       ];
 
       expect(findNearestBucketIndex(data, 10, 5)).toEqual(-1);
@@ -32,10 +32,10 @@ describe('Utils', function () {
 
     it('returns the correct bin for the x axis', function () {
       const data = [
-        {histogram: 10, count: 0},
-        {histogram: 20, count: 0},
-        {histogram: 30, count: 0},
-        {histogram: 40, count: 0},
+        {bin: 10, count: 0},
+        {bin: 20, count: 0},
+        {bin: 30, count: 0},
+        {bin: 40, count: 0},
       ];
 
       expect(findNearestBucketIndex(data, 10, 10)).toEqual(0);
@@ -59,32 +59,32 @@ describe('Utils', function () {
   describe('getRefRect()', function () {
     it('returns null for insufficient data', function () {
       expect(getRefRect([])).toBeNull();
-      expect(getRefRect([{histogram: 10, count: 0}])).toBeNull();
+      expect(getRefRect([{bin: 10, count: 0}])).toBeNull();
     });
 
     it('returns default rect if insufficient variation in data', function () {
       const defaultRect = {point1: {x: 0, y: 0}, point2: {x: 1, y: 1}};
       expect(
         getRefRect([
-          {histogram: 0, count: 0},
-          {histogram: 10, count: 0},
+          {bin: 0, count: 0},
+          {bin: 10, count: 0},
         ])
       ).toEqual(defaultRect);
       expect(
         getRefRect([
-          {histogram: 0, count: 1},
-          {histogram: 10, count: 1},
+          {bin: 0, count: 1},
+          {bin: 10, count: 1},
         ])
       ).toEqual(defaultRect);
     });
 
     it('returns two unique points in the data', function () {
       const data = [
-        {histogram: 10, count: 9},
-        {histogram: 20, count: 9},
-        {histogram: 30, count: 9},
-        {histogram: 40, count: 9},
-        {histogram: 50, count: 3},
+        {bin: 10, count: 9},
+        {bin: 20, count: 9},
+        {bin: 30, count: 9},
+        {bin: 40, count: 9},
+        {bin: 50, count: 3},
       ];
       expect(getRefRect(data)).toEqual({
         point1: {x: 0, y: 3},

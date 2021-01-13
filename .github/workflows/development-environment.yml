@@ -1,0 +1,81 @@
+name: development environment
+on:
+  pull_request:
+    paths:
+    - 'Brewfile'
+    - 'Makefile'
+    - '.github/workflows/development-environment.yml'
+    - 'scripts/*'
+    - 'src/sentry/runner/commands/devserver.py'
+    - 'src/sentry/runner/commands/devservices.py'
+
+jobs:
+  dev-environment:
+    name: python set up
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        os: [ macos-11.0 ]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install prerequisites
+        if: ${{ runner.os == 'macOS' }}
+        # Depending on the host watchman will not install (read: intermittent issue),
+        # thus, we mark this as continue-on-error
+        continue-on-error: true
+        # Xcode CLI & brew are already installed, thus, no need to call xcode-select install
+        # XXX: Can the Brew set up be cached?
+        run: |
+          brew bundle
+
+      - name: Set environment variables
+        shell: bash
+        run: |
+          echo "PYENV_ROOT=$HOME/.pyenv" >> $GITHUB_ENV
+          echo "VOLTA_HOME=$HOME/.volta" >> $GITHUB_ENV
+          echo "PATH=$HOME/.pyenv/shims:$HOME/.volta/bin:$PATH" >> $GITHUB_ENV
+
+      - name: Install Python (via Pyenv)
+        id: python-version
+        shell: bash
+        # XXX: Locally, pyenv makes 3.6.10 be the selected version in use,
+        # however, in here it selects /usr/local/bin/python. I'm using `pyenv global` to work around it
+        # XXX: Can we cache the installed Python environments?
+        run: |
+          make setup-pyenv
+          pyenv global 3.6.10
+          echo "::set-output name=python-version::$(python -V  | sed s/Python\ //g)"
+
+      - name: Setup pip
+        uses: ./.github/actions/setup-pip
+        id: pip
+
+      - name: Cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ${{ steps.pip.outputs.pip-cache-dir }}
+            ~/.pyenv
+          key: ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ hashFiles('**/requirements-*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}
+
+      - name: Set up development environment (as per docs)
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          make install-py-dev
+          make setup-git
+          curl https://get.volta.sh | bash
+
+      - name: Set up Sentry and others
+        # We cannot call make bootstrap directly since run-dependent-services requires some Docker magic.
+        # We have the magic in the getsentry/bootstrap-develop. We will handle this situation in the next pass of this.
+        # make init-config will *not* prompt about overwriting ~/.sentry/config.yml' since we're on a pristine state
+        # We cannot test the git hooks until the `sentry.lint.engine` gets installed
+        run: |
+          source .venv/bin/activate
+          make develop init-config

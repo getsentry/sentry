@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 
+{% load sentry_assets %}
+
 {% block content %}
   <div id="reporter"></div>
   <ul id="sentry-issues">
@@ -23,7 +25,8 @@
       </div>
     </li>
   </script>
-  <script type="text/javascript">
+  {% script type="text/javascript" %}
+  <script>
     (function() {
       var issueKey = '{{ issue_key }}',
           MAX_ISSUES = 5;
@@ -68,4 +71,5 @@
       });
     })();
   </script>
+  {% endscript %}
 {% endblock %}

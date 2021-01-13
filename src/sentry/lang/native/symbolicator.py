@@ -24,6 +24,7 @@ from sentry.models import Organization
 
 MAX_ATTEMPTS = 3
 REQUEST_CACHE_TIMEOUT = 3600
+INTERNAL_SOURCE_NAME = "sentry:project"
 
 logger = logging.getLogger(__name__)
 
@@ -125,7 +126,7 @@ class Symbolicator(object):
 
         self.task_id_cache_key = _task_id_cache_key_for_event(project.id, event_id)
 
-    def _process(self, create_task):
+    def _process(self, create_task, task_name):
         task_id = default_cache.get(self.task_id_cache_key)
         json_response = None
 
@@ -154,7 +155,7 @@ class Symbolicator(object):
 
             metrics.incr(
                 "events.symbolicator.response",
-                tags={"response": json_response.get("status") or "null"},
+                tags={"response": json_response.get("status") or "null", "task_name": task_name},
             )
 
             # Symbolication is still in progress. Bail out and try again
@@ -175,16 +176,19 @@ class Symbolicator(object):
                 return json_response
 
     def process_minidump(self, minidump):
-        return self._process(lambda: self.sess.upload_minidump(minidump))
+        return self._process(lambda: self.sess.upload_minidump(minidump), "process_minidump")
 
     def process_applecrashreport(self, report):
-        return self._process(lambda: self.sess.upload_applecrashreport(report))
+        return self._process(
+            lambda: self.sess.upload_applecrashreport(report), "process_applecrashreport",
+        )
 
     def process_payload(self, stacktraces, modules, signal=None):
         return self._process(
             lambda: self.sess.symbolicate_stacktraces(
                 stacktraces=stacktraces, modules=modules, signal=signal
-            )
+            ),
+            "symbolicate_stacktraces",
         )
 
 
@@ -223,7 +227,7 @@ def get_internal_source(project):
 
     return {
         "type": "sentry",
-        "id": "sentry:project",
+        "id": INTERNAL_SOURCE_NAME,
         "url": sentry_source_url,
         "token": get_system_token(),
     }
@@ -360,6 +364,17 @@ class SymbolicatorSession(object):
         if not self.session:
             raise RuntimeError("Session not opened")
 
+    def _process_response(self, json):
+        source_names = {source["id"]: source.get("name") for source in self.sources}
+        source_names[INTERNAL_SOURCE_NAME] = "Sentry"
+
+        for module in json.get("modules") or ():
+            for candidate in module.get("candidates") or ():
+                if candidate.get("source"):
+                    candidate["source_name"] = source_names.get(candidate["source"])
+
+        return json
+
     def _request(self, method, path, **kwargs):
         self._ensure_open()
 
@@ -405,7 +420,7 @@ class SymbolicatorSession(object):
                 else:
                     json = {"status": "failed", "message": "internal server error"}
 
-                return json
+                return self._process_response(json)
             except (IOError, RequestException) as e:
                 metrics.incr(
                     "events.symbolicator.request_error",

@@ -17,7 +17,7 @@ import {Theme} from 'app/utils/theme';
 type ButtonElement = HTMLButtonElement & HTMLAnchorElement & any;
 
 type Props = {
-  priority?: 'default' | 'primary' | 'danger' | 'link' | 'success';
+  priority?: 'default' | 'primary' | 'danger' | 'link' | 'success' | 'form';
   size?: 'zero' | 'xsmall' | 'small';
   align?: 'center' | 'left' | 'right';
   disabled?: boolean;
@@ -42,9 +42,16 @@ type ButtonProps = Omit<React.HTMLProps<ButtonElement>, keyof Props> & Props;
 
 type Url = ButtonProps['to'] | ButtonProps['href'];
 
-class Button extends React.Component<ButtonProps, {}> {
+class BaseButton extends React.Component<ButtonProps, {}> {
   static propTypes: any = {
-    priority: PropTypes.oneOf(['default', 'primary', 'danger', 'link', 'success']),
+    priority: PropTypes.oneOf([
+      'default',
+      'primary',
+      'danger',
+      'link',
+      'success',
+      'form',
+    ]),
     size: PropTypes.oneOf(['zero', 'xsmall', 'small']),
     disabled: PropTypes.bool,
     busy: PropTypes.bool,
@@ -187,15 +194,15 @@ class Button extends React.Component<ButtonProps, {}> {
   }
 }
 
-const ButtonForwardRef = React.forwardRef<ButtonElement, ButtonProps>((props, ref) => (
-  <Button forwardRef={ref} {...props} />
+const Button = React.forwardRef<ButtonElement, ButtonProps>((props, ref) => (
+  <BaseButton forwardRef={ref} {...props} />
 ));
 
 // Some components use Button's propTypes
-ButtonForwardRef.propTypes = Button.propTypes;
-ButtonForwardRef.displayName = 'forwardRef<Button>';
+Button.propTypes = Button.propTypes;
+Button.displayName = 'Button';
 
-export default ButtonForwardRef;
+export default Button;
 
 type StyledButtonProps = ButtonProps & {theme: Theme};
 
@@ -255,7 +262,7 @@ const getColors = ({priority, disabled, borderless, theme}: StyledButtonProps) =
     &:active {
       color: ${colorActive || color};
       background: ${backgroundActive};
-      border-color: ${!borderless && (borderActive || border)
+      border-color: ${priority !== 'link' && !borderless && (borderActive || border)
         ? borderActive || border
         : 'transparent'};
     }
@@ -369,3 +376,8 @@ const Icon = styled('span')<IconProps & Omit<StyledButtonProps, 'theme'>>`
   margin-right: ${getIconMargin};
   height: ${getFontSize};
 `;
+
+/**
+ * Also export these styled components so we can use them as selectors
+ */
+export {StyledButton, ButtonLabel, Icon};

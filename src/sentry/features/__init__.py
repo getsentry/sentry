@@ -68,6 +68,7 @@ default_manager.add("organizations:enterprise-perf", OrganizationFeature)  # NOQ
 default_manager.add("organizations:event-attachments", OrganizationFeature)  # NOQA
 default_manager.add("organizations:event-attachments-viewer", OrganizationFeature)  # NOQA
 default_manager.add("organizations:events", OrganizationFeature)  # NOQA
+default_manager.add("organizations:filters-and-sampling", OrganizationFeature)  # NOQA
 default_manager.add("organizations:global-views", OrganizationFeature)  # NOQA
 default_manager.add("organizations:incidents", OrganizationFeature)  # NOQA
 default_manager.add("organizations:metric-alert-builder-aggregate", OrganizationFeature)  # NOQA
@@ -93,7 +94,6 @@ default_manager.add("organizations:org-subdomains", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-view", OrganizationFeature)  # NOQA
 default_manager.add("organizations:project-detail", OrganizationFeature)  # NOQA
 default_manager.add("organizations:relay", OrganizationFeature)  # NOQA
-default_manager.add("organizations:release-performance-views", OrganizationFeature)  # NOQA
 default_manager.add("organizations:reprocessing-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:rule-page", OrganizationFeature)  # NOQA
 default_manager.add("organizations:set-grouping-config", OrganizationFeature)  # NOQA
@@ -109,6 +109,8 @@ default_manager.add("organizations:transaction-comparison", OrganizationFeature)
 default_manager.add("organizations:usage-stats-graph", OrganizationFeature)  # NOQA
 default_manager.add("organizations:inbox", OrganizationFeature)  # NOQA
 default_manager.add("organizations:inbox-tab-default", OrganizationFeature)  # NOQA
+default_manager.add("organizations:inbox-owners-query", OrganizationFeature)  # NOQA
+default_manager.add("organizations:alert-details-redesign", OrganizationFeature)  # NOQA
 default_manager.add("organizations:unhandled-issue-flag", OrganizationFeature)  # NOQA
 default_manager.add("organizations:invite-members-rate-limits", OrganizationFeature)  # NOQA
 default_manager.add("organizations:dashboards-v2", OrganizationFeature)  # NOQA

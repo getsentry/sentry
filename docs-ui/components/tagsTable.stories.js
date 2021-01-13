@@ -17,10 +17,6 @@ const event = {
     {value: 'internal_error', key: 'status', _meta: null},
     {value: 'sentry.tasks.store.save_event', key: 'task_name', _meta: null},
     {value: '3c75bc89a4d4442b81af4cb41b6a1571', key: 'trace', _meta: null},
-    {
-      value: '3c75bc89a4d4442b81af4cb41b6a1571-8662ecdaef1bbbaf',
-      key: 'trace.ctx',
-    },
     {value: '8662ecdaef1bbbaf', key: 'trace.span', _meta: null},
     {value: 'sentry.tasks.store.save_event', key: 'transaction', _meta: null},
   ],

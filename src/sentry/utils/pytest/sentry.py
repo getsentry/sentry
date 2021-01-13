@@ -131,6 +131,11 @@ def pytest_configure(config):
             "vercel.client-secret": "vercel-client-secret",
             "msteams.client-id": "msteams-client-id",
             "msteams.client-secret": "msteams-client-secret",
+            "aws-lambda.access-key-id": "aws-key-id",
+            "aws-lambda.secret-access-key": "aws-secret-access-key",
+            "aws-lambda.node-layer-name": "my-layer",
+            "aws-lambda.node-layer-version": "3",
+            "aws-lambda.host-account-id": "1234",
         }
     )
 
@@ -190,12 +195,14 @@ def register_extensions():
         ExampleRepositoryProvider,
         ServerExampleProvider,
         FeatureFlagIntegration,
+        AlertRuleIntegrationProvider,
     )
 
     integrations.register(ExampleIntegrationProvider)
     integrations.register(AliasedIntegrationProvider)
     integrations.register(ServerExampleProvider)
     integrations.register(FeatureFlagIntegration)
+    integrations.register(AlertRuleIntegrationProvider)
 
     from sentry.plugins.base import bindings
     from sentry.plugins.providers.dummy import DummyRepositoryProvider

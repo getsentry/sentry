@@ -8,7 +8,7 @@ import SavedQueryButtonGroup from 'app/views/eventsV2/savedQuery';
 import * as utils from 'app/views/eventsV2/savedQuery/utils';
 import {isBannerHidden, setBannerHidden} from 'app/views/eventsV2/utils';
 
-const SELECTOR_BUTTON_SAVE_AS = 'ButtonSaveAs';
+const SELECTOR_BUTTON_SAVE_AS = 'button[aria-label="Save as"]';
 const SELECTOR_BUTTON_SAVED = '[data-test-id="discover2-savedquery-button-saved"]';
 const SELECTOR_BUTTON_UPDATE = '[data-test-id="discover2-savedquery-button-update"]';
 const SELECTOR_BUTTON_DELETE = '[data-test-id="discover2-savedquery-button-delete"]';
@@ -73,7 +73,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       );
 
       const buttonSaveAs = wrapper.find(SELECTOR_BUTTON_SAVE_AS);
-      expect(buttonSaveAs.props().disabled).toBe(true);
+      expect(buttonSaveAs.props()['aria-disabled']).toBe(true);
     });
 
     it('renders the correct set of buttons', () => {

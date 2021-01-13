@@ -11,7 +11,14 @@ import SearchBar from 'app/components/searchBar';
 import {IconWarning} from 'app/icons/iconWarning';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Event} from 'app/types';
+import {Organization} from 'app/types';
+import {
+  Breadcrumb,
+  BreadcrumbLevelType,
+  BreadcrumbsWithDetails,
+  BreadcrumbType,
+} from 'app/types/breadcrumbs';
+import {EntryType, Event} from 'app/types/event';
 import {defined} from 'app/utils';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
@@ -21,19 +28,13 @@ import Level from './level';
 import List from './list';
 import {aroundContentStyle} from './styles';
 import transformCrumbs from './transformCrumbs';
-import {
-  Breadcrumb,
-  BreadcrumbLevelType,
-  BreadcrumbsWithDetails,
-  BreadcrumbType,
-} from './types';
 
 type FilterProps = React.ComponentProps<typeof Filter>;
 type FilterOptions = FilterProps['options'];
 
 type Props = {
   event: Event;
-  orgId: string | null;
+  organization: Organization;
   type: string;
   data: {
     values: Array<Breadcrumb>;
@@ -157,9 +158,7 @@ class Breadcrumbs extends React.Component<Props, State> {
   getVirtualCrumb(): Breadcrumb | undefined {
     const {event} = this.props;
 
-    const exception = event.entries.find(
-      entry => entry.type === BreadcrumbType.EXCEPTION
-    );
+    const exception = event.entries.find(entry => entry.type === EntryType.EXCEPTION);
 
     if (!exception && !event.message) {
       return undefined;
@@ -335,7 +334,7 @@ class Breadcrumbs extends React.Component<Props, State> {
   };
 
   render() {
-    const {type, event, orgId} = this.props;
+    const {type, event, organization} = this.props;
     const {
       filterOptions,
       searchTerm,
@@ -369,7 +368,7 @@ class Breadcrumbs extends React.Component<Props, State> {
             <List
               breadcrumbs={filteredBySearch}
               event={event}
-              orgId={orgId}
+              orgId={organization.slug}
               onSwitchTimeFormat={this.handleSwitchTimeFormat}
               displayRelativeTime={displayRelativeTime}
               searchTerm={searchTerm}

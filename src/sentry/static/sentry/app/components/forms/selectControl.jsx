@@ -3,11 +3,11 @@ import ReactSelect, {components as selectComponents} from 'react-select';
 import Async from 'react-select/async';
 import AsyncCreatable from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
+import {withTheme} from 'emotion-theming';
 
 import {IconChevron, IconClose} from 'app/icons';
 import space from 'app/styles/space';
 import convertFromSelect2Choices from 'app/utils/convertFromSelect2Choices';
-import theme from 'app/utils/theme';
 
 import SelectControlLegacy from './selectControlLegacy';
 
@@ -28,149 +28,6 @@ const MultiValueRemove = props => (
     <IconClose size="8px" />
   </selectComponents.MultiValueRemove>
 );
-
-// TODO(epurkhiser): The loading indicator should probably also be our loading
-// indicator.
-
-// Unfortunately we cannot use emotions `css` helper here, since react-select
-// *requires* object styles, which the css helper cannot produce.
-
-const indicatorStyles = ({padding: _padding, ...provided}) => ({
-  ...provided,
-  padding: '4px',
-  alignItems: 'center',
-  cursor: 'pointer',
-});
-
-const defaultStyles = {
-  control: (_, state) => ({
-    height: '100%',
-    fontSize: '15px',
-    color: theme.formText,
-    display: 'flex',
-    background: theme.background,
-    border: `1px solid ${theme.border}`,
-    borderRadius: theme.borderRadius,
-    boxShadow: `inset ${theme.dropShadowLight}`,
-    transition: 'border 0.1s linear',
-    alignItems: 'center',
-    minHeight: '40px',
-    '&:hover': {
-      borderColor: theme.border,
-    },
-    ...(state.isFocused && {
-      border: `1px solid ${theme.border}`,
-      boxShadow: 'rgba(209, 202, 216, 0.5) 0 0 0 3px',
-    }),
-    ...(state.menuIsOpen && {
-      borderBottomLeftRadius: '0',
-      borderBottomRightRadius: '0',
-      boxShadow: 'none',
-    }),
-    ...(state.isDisabled && {
-      borderColor: theme.border,
-      background: theme.backgroundSecondary,
-      color: theme.disabled,
-      cursor: 'not-allowed',
-    }),
-    ...(!state.isSearchable && {
-      cursor: 'pointer',
-    }),
-  }),
-
-  menu: provided => ({
-    ...provided,
-    zIndex: theme.zIndex.dropdown,
-    marginTop: '-1px',
-    background: theme.background,
-    border: `1px solid ${theme.border}`,
-    borderRadius: `0 0 ${theme.borderRadius} ${theme.borderRadius}`,
-    borderTop: `1px solid ${theme.border}`,
-    boxShadow: theme.dropShadowLight,
-  }),
-  option: (provided, state) => ({
-    ...provided,
-    lineHeight: '1.5',
-    fontSize: theme.fontSizeMedium,
-    cursor: 'pointer',
-    color: state.isFocused
-      ? theme.textColor
-      : state.isSelected
-      ? theme.background
-      : theme.textColor,
-    backgroundColor: state.isFocused
-      ? theme.backgroundSecondary
-      : state.isSelected
-      ? theme.purple300
-      : 'transparent',
-    '&:active': {
-      backgroundColor: theme.backgroundSecondary,
-    },
-  }),
-  valueContainer: provided => ({
-    ...provided,
-    alignItems: 'center',
-  }),
-  multiValue: () => ({
-    color: '#007eff',
-    backgroundColor: '#ebf5ff',
-    borderRadius: '2px',
-    border: '1px solid #c2e0ff',
-    display: 'flex',
-    marginRight: '4px',
-  }),
-  multiValueLabel: provided => ({
-    ...provided,
-    color: '#007eff',
-    padding: '0',
-    paddingLeft: '6px',
-    lineHeight: '1.8',
-  }),
-  multiValueRemove: () => ({
-    cursor: 'pointer',
-    alignItems: 'center',
-    borderLeft: '1px solid #c2e0ff',
-    borderRadius: '0 2px 2px 0',
-    display: 'flex',
-    padding: '0 4px',
-    marginLeft: '4px',
-
-    '&:hover': {
-      color: '#6284b9',
-      background: '#cce5ff',
-    },
-  }),
-  indicatorsContainer: () => ({
-    display: 'grid',
-    gridAutoFlow: 'column',
-    gridGap: '2px',
-    marginRight: '6px',
-  }),
-  clearIndicator: indicatorStyles,
-  dropdownIndicator: indicatorStyles,
-  loadingIndicator: indicatorStyles,
-  groupHeading: provided => ({
-    ...provided,
-    lineHeight: '1.5',
-    fontWeight: '600',
-    backgroundColor: theme.backgroundSecondary,
-    color: theme.textColor,
-    marginBottom: 0,
-    padding: `${space(1)} ${space(1.5)}`,
-  }),
-  group: provided => ({
-    ...provided,
-    padding: 0,
-  }),
-};
-
-const getFieldLabelStyle = label => ({
-  ':before': {
-    content: `"${label}"`,
-    color: theme.gray300,
-    fontWeight: 600,
-  },
-});
 
 /**
  * Applies one set of styles onto the other while maintaining the same function
@@ -199,6 +56,159 @@ const SelectControl = props => {
     const {deprecatedSelectControl: _, ...legacyProps} = props;
     return <SelectControlLegacy {...legacyProps} />;
   }
+
+  const {theme} = props;
+
+  // TODO(epurkhiser): The loading indicator should probably also be our loading
+  // indicator.
+
+  // Unfortunately we cannot use emotions `css` helper here, since react-select
+  // *requires* object styles, which the css helper cannot produce.
+
+  const indicatorStyles = ({padding: _padding, ...provided}) => ({
+    ...provided,
+    padding: '4px',
+    alignItems: 'center',
+    cursor: 'pointer',
+  });
+
+  const defaultStyles = {
+    control: (_, state) => ({
+      height: '100%',
+      fontSize: '15px',
+      color: theme.formText,
+      display: 'flex',
+      background: theme.background,
+      border: `1px solid ${theme.border}`,
+      borderRadius: theme.borderRadius,
+      boxShadow: `inset ${theme.dropShadowLight}`,
+      transition: 'border 0.1s linear',
+      alignItems: 'center',
+      minHeight: '40px',
+      '&:hover': {
+        borderColor: theme.border,
+      },
+      ...(state.isFocused && {
+        border: `1px solid ${theme.border}`,
+        boxShadow: 'rgba(209, 202, 216, 0.5) 0 0 0 3px',
+      }),
+      ...(state.menuIsOpen && {
+        borderBottomLeftRadius: '0',
+        borderBottomRightRadius: '0',
+        boxShadow: 'none',
+      }),
+      ...(state.isDisabled && {
+        borderColor: theme.border,
+        background: theme.backgroundSecondary,
+        color: theme.disabled,
+        cursor: 'not-allowed',
+      }),
+      ...(!state.isSearchable && {
+        cursor: 'pointer',
+      }),
+    }),
+
+    menu: provided => ({
+      ...provided,
+      zIndex: theme.zIndex.dropdown,
+      marginTop: '-1px',
+      background: theme.background,
+      border: `1px solid ${theme.border}`,
+      borderRadius: `0 0 ${theme.borderRadius} ${theme.borderRadius}`,
+      borderTop: `1px solid ${theme.border}`,
+      boxShadow: theme.dropShadowLight,
+    }),
+    option: (provided, state) => ({
+      ...provided,
+      lineHeight: '1.5',
+      fontSize: theme.fontSizeMedium,
+      cursor: 'pointer',
+      color: state.isFocused
+        ? theme.textColor
+        : state.isSelected
+        ? theme.background
+        : theme.textColor,
+      backgroundColor: state.isFocused
+        ? theme.focus
+        : state.isSelected
+        ? theme.active
+        : 'transparent',
+      '&:active': {
+        backgroundColor: theme.active,
+      },
+    }),
+    valueContainer: provided => ({
+      ...provided,
+      alignItems: 'center',
+    }),
+    singleValue: provided => ({
+      ...provided,
+      color: theme.formText,
+    }),
+    placeholder: provided => ({
+      ...provided,
+      color: theme.formPlaceholder,
+    }),
+    multiValue: () => ({
+      color: '#007eff',
+      backgroundColor: '#ebf5ff',
+      borderRadius: '2px',
+      border: '1px solid #c2e0ff',
+      display: 'flex',
+      marginRight: '4px',
+    }),
+    multiValueLabel: provided => ({
+      ...provided,
+      color: '#007eff',
+      padding: '0',
+      paddingLeft: '6px',
+      lineHeight: '1.8',
+    }),
+    multiValueRemove: () => ({
+      cursor: 'pointer',
+      alignItems: 'center',
+      borderLeft: '1px solid #c2e0ff',
+      borderRadius: '0 2px 2px 0',
+      display: 'flex',
+      padding: '0 4px',
+      marginLeft: '4px',
+
+      '&:hover': {
+        color: '#6284b9',
+        background: '#cce5ff',
+      },
+    }),
+    indicatorsContainer: () => ({
+      display: 'grid',
+      gridAutoFlow: 'column',
+      gridGap: '2px',
+      marginRight: '6px',
+    }),
+    clearIndicator: indicatorStyles,
+    dropdownIndicator: indicatorStyles,
+    loadingIndicator: indicatorStyles,
+    groupHeading: provided => ({
+      ...provided,
+      lineHeight: '1.5',
+      fontWeight: '600',
+      backgroundColor: theme.backgroundSecondary,
+      color: theme.textColor,
+      marginBottom: 0,
+      padding: `${space(1)} ${space(1.5)}`,
+    }),
+    group: provided => ({
+      ...provided,
+      padding: 0,
+    }),
+  };
+
+  const getFieldLabelStyle = label => ({
+    ':before': {
+      content: `"${label}"`,
+      color: theme.gray300,
+      fontWeight: 600,
+    },
+  });
 
   const {
     async,
@@ -267,7 +277,7 @@ const SelectControl = props => {
       components={{...replacedComponents, ...components}}
       async={async}
       creatable={creatable}
-      clearable={clearable}
+      isClearable={clearable}
       backspaceRemovesValue={clearable}
       value={mappedValue}
       isMulti={props.multiple || props.multi}
@@ -278,8 +288,9 @@ const SelectControl = props => {
     />
   );
 };
-
 SelectControl.propTypes = SelectControlLegacy.propTypes;
+
+const SelectControlWithTheme = withTheme(SelectControl);
 
 const SelectPicker = ({async, creatable, forwardedRef, ...props}) => {
   // Pick the right component to use
@@ -299,7 +310,9 @@ const SelectPicker = ({async, creatable, forwardedRef, ...props}) => {
 
 SelectPicker.propTypes = SelectControl.propTypes;
 
-const forwardRef = (props, ref) => <SelectControl forwardedRef={ref} {...props} />;
+const forwardRef = (props, ref) => (
+  <SelectControlWithTheme forwardedRef={ref} {...props} />
+);
 forwardRef.displayName = 'RefForwardedSelectControl';
 
 const RefForwardedSelectControl = React.forwardRef(forwardRef);

@@ -307,6 +307,7 @@ class VitalCard extends React.Component<Props, State> {
                   hideBar
                   hideVitalPercentNames
                   hideDurationDetail
+                  hideEmptyState
                 />
               </PercentContainer>
             </Feature>
@@ -331,7 +332,7 @@ class VitalCard extends React.Component<Props, State> {
     // We can assume that all buckets are of equal width, use the first two
     // buckets to get the width. The value of each histogram function indicates
     // the beginning of the bucket.
-    return chartData.length >= 2 ? chartData[1].histogram - chartData[0].histogram : 0;
+    return chartData.length >= 2 ? chartData[1].bin - chartData[0].bin : 0;
   }
 
   computeBuckets() {
@@ -339,7 +340,7 @@ class VitalCard extends React.Component<Props, State> {
     const bucketWidth = this.bucketWidth();
 
     return chartData.map(item => {
-      const bucket = item.histogram;
+      const bucket = item.bin;
       return {
         start: bucket,
         end: bucket + bucketWidth,
@@ -352,7 +353,7 @@ class VitalCard extends React.Component<Props, State> {
     const bucketWidth = this.bucketWidth();
 
     const seriesData = chartData.map(item => {
-      const bucket = item.histogram;
+      const bucket = item.bin;
       const midPoint = bucketWidth > 1 ? Math.ceil(bucket + bucketWidth / 2) : bucket;
       const name =
         vitalDetails.type === 'duration'

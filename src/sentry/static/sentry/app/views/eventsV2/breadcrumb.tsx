@@ -3,7 +3,8 @@ import {Location} from 'history';
 
 import Breadcrumbs, {Crumb} from 'app/components/breadcrumbs';
 import {t} from 'app/locale';
-import {Event, Organization} from 'app/types';
+import {Organization} from 'app/types';
+import {Event} from 'app/types/event';
 import EventView from 'app/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
 

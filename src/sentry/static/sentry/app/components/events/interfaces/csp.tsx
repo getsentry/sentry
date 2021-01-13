@@ -7,7 +7,7 @@ import EventDataSection from 'app/components/events/eventDataSection';
 import CSPContent from 'app/components/events/interfaces/cspContent';
 import CSPHelp from 'app/components/events/interfaces/cspHelp';
 import {t} from 'app/locale';
-import {Event} from 'app/types';
+import {Event} from 'app/types/event';
 
 function getView(view, data) {
   switch (view) {

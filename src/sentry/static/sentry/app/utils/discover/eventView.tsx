@@ -20,6 +20,7 @@ import {statsPeriodToDays} from '../dates';
 
 import {getSortField} from './fieldRenderers';
 import {
+  aggregateOutputType,
   Column,
   ColumnType,
   Field,
@@ -998,10 +999,11 @@ class EventView {
     // Make option set and add the default options in.
     return uniqBy(
       this.getAggregateFields()
-        // Exclude last_seen and latest_event as they don't produce useful graphs.
-        .filter(
-          (field: Field) =>
-            ['last_seen()', 'latest_event()'].includes(field.field) === false
+        // Only include aggregates that make sense to be graphable (eg. not string or date)
+        .filter((field: Field) =>
+          ['number', 'integer', 'duration', 'percentage'].includes(
+            aggregateOutputType(field.field)
+          )
         )
         .map((field: Field) => ({label: field.field, value: field.field}))
         .concat(CHART_AXIS_OPTIONS),

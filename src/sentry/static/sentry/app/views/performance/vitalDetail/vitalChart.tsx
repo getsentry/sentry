@@ -93,7 +93,7 @@ class VitalChart extends React.Component<Props> {
       itemHeight: 8,
       itemWidth: 8,
       itemGap: 12,
-      align: 'left',
+      align: 'left' as const,
       textStyle: {
         verticalAlign: 'top',
         fontSize: 11,
@@ -119,13 +119,13 @@ class VitalChart extends React.Component<Props> {
         markLine: MarkLine({
           silent: true,
           lineStyle: {
-            color: theme.textColor,
+            color: theme.red300,
             type: 'dashed',
-            width: 1,
+            width: 1.5,
           },
           label: {
             show: true,
-            position: 'insideEndBottom',
+            position: 'insideEndTop',
             formatter: t('Poor'),
           },
           data: [
@@ -142,13 +142,13 @@ class VitalChart extends React.Component<Props> {
         markLine: MarkLine({
           silent: true,
           lineStyle: {
-            color: theme.textColor,
+            color: theme.yellow300,
             type: 'dashed',
-            width: 1,
+            width: 1.5,
           },
           label: {
             show: true,
-            position: 'insideEndBottom',
+            position: 'insideEndTop',
             formatter: t('Meh'),
           },
           data: [
@@ -162,17 +162,17 @@ class VitalChart extends React.Component<Props> {
 
     const chartOptions = {
       grid: {
-        left: '10px',
+        left: '5px',
         right: '10px',
-        top: '20px',
+        top: '35px',
         bottom: '0px',
       },
       seriesOptions: {
         showSymbol: false,
       },
       tooltip: {
-        trigger: 'axis',
-        valueFormatter: (value: number, seriesName: string) =>
+        trigger: 'axis' as const,
+        valueFormatter: (value: number, seriesName?: string) =>
           tooltipFormatter(value, vitalName === WebVital.CLS ? seriesName : 'p75()'),
       },
       yAxis: {
@@ -197,12 +197,7 @@ class VitalChart extends React.Component<Props> {
               title={t(`The durations shown should fall under the vital threshold.`)}
             />
           </HeaderTitleLegend>
-          <ChartZoom
-            router={router}
-            period={statsPeriod}
-            projects={project}
-            environments={environment}
-          >
+          <ChartZoom router={router} period={statsPeriod}>
             {zoomRenderProps => (
               <EventsRequest
                 api={api}
@@ -249,10 +244,6 @@ class VitalChart extends React.Component<Props> {
                   const seriesMax = getMaxOfSeries(smoothedSeries);
                   const yAxisMax = Math.max(seriesMax, vitalPoor);
                   chartOptions.yAxis.max = yAxisMax * 1.1;
-
-                  // Stack the toolbox under the legend.
-                  // so all series names are clickable.
-                  zoomRenderProps.toolBox.z = -1;
 
                   return (
                     <ReleaseSeries
