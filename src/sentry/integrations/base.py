@@ -98,11 +98,12 @@ class IntegrationFeatures(Enum):
     ISSUE_SYNC = "issue-sync"
     MOBILE = "mobile"
     SERVERLESS = "serverless"
+    TICKET_RULES = "ticket-rules"
+
     # features currently only existing on plugins:
     DATA_FORWARDING = "data-forwarding"
     SESSION_REPLAY = "session-replay"
     DEPLOYMENT = "deployment"
-    TICKET_RULES = "ticket-rules"
 
 
 class IntegrationProvider(PipelineProvider):

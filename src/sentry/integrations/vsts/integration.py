@@ -322,6 +322,7 @@ class VstsIntegrationProvider(IntegrationProvider):
         IntegrationFeatures.COMMITS,
         IntegrationFeatures.ISSUE_BASIC,
         IntegrationFeatures.ISSUE_SYNC,
+        IntegrationFeatures.TICKET_RULES,
     ])
 
     setup_dialog_config = {"width": 600, "height": 800}

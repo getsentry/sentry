@@ -951,6 +951,7 @@ class JiraIntegrationProvider(IntegrationProvider):
     features = frozenset([
         IntegrationFeatures.ISSUE_BASIC,
         IntegrationFeatures.ISSUE_SYNC,
+        IntegrationFeatures.TICKET_RULES,
     ])
 
     can_add = False
