@@ -35,4 +35,5 @@ def send_payload():
     consumer = QuerySubscriptionConsumer("hi", topic=topic)
     consumer.run()
 
-send_payload();
+
+send_payload()
