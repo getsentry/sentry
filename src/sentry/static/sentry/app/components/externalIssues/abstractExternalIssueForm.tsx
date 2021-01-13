@@ -1,4 +1,5 @@
 import React from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {Modal} from 'react-bootstrap';
 import debounce from 'lodash/debounce';
 import * as queryString from 'query-string';
