@@ -49,7 +49,7 @@ f736793749a7e0a120a3d5f8630959864e553adb
 
 # chore(eslint): Use shortform boolean jsx attributes (#14950)
 # https://github.com/getsentry/sentry/pull/14950
-6ffce5ab2755cda5721df8e8eeac8314b47fab2e
+3b94d4d576cd74c43f80d113ac6e6ed09644efe4
 
 # chore(prettier): Apply prettier 2.1 (#21605)
 032754739fd210e1d12c076bad4ce8093cbae574
