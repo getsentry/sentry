@@ -14,7 +14,7 @@ type Props = {
   location: Location;
   vital: WebVital | WebVital[];
   hideBar?: boolean;
-  hideEmptyState?: boolean;
+  hideStates?: boolean;
   hideVitalPercentNames?: boolean;
   hideDurationDetail?: boolean;
 };
@@ -26,7 +26,7 @@ export default function vitalInfo(props: Props) {
     organization,
     location,
     hideBar,
-    hideEmptyState,
+    hideStates,
     hideVitalPercentNames,
     hideDurationDetail,
   } = props;
@@ -38,17 +38,15 @@ export default function vitalInfo(props: Props) {
       vitals={Array.isArray(vital) ? vital : [vital]}
     >
       {({isLoading, tableData}) => (
-        <React.Fragment>
-          <VitalBar
-            isLoading={isLoading}
-            showBar={!hideBar}
-            showEmptyState={!hideEmptyState}
-            showVitalPercentNames={!hideVitalPercentNames}
-            showDurationDetail={!hideDurationDetail}
-            result={tableData?.data?.[0]}
-            vital={vital}
-          />
-        </React.Fragment>
+        <VitalBar
+          isLoading={isLoading}
+          result={tableData?.data?.[0]}
+          vital={vital}
+          showBar={!hideBar}
+          showStates={!hideStates}
+          showVitalPercentNames={!hideVitalPercentNames}
+          showDurationDetail={!hideDurationDetail}
+        />
       )}
     </VitalsCardDiscoverQuery>
   );

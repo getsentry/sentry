@@ -3,7 +3,9 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Card from 'app/components/card';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Link from 'app/components/links/link';
+import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -145,7 +147,7 @@ type VitalBarProps = {
   vital: WebVital | WebVital[];
   value?: string;
   showBar?: boolean;
-  showEmptyState?: boolean;
+  showStates?: boolean;
   showDurationDetail?: boolean;
   showVitalPercentNames?: boolean;
 };
@@ -157,17 +159,21 @@ export function VitalBar(props: VitalBarProps) {
     vital,
     value,
     showBar = true,
-    showEmptyState = true,
+    showStates = false,
     showDurationDetail = false,
     showVitalPercentNames = false,
   } = props;
 
-  if (isLoading || !result) {
-    if (showEmptyState) {
-      // TODO(tonyx): loading state?
-      return null;
-    }
-    return null;
+  if (isLoading) {
+    return showStates ? <Placeholder height="48px" /> : null;
+  }
+
+  const emptyState = showStates ? (
+    <EmptyStateWarning small>{t('No data available')}</EmptyStateWarning>
+  ) : null;
+
+  if (!result) {
+    return emptyState;
   }
 
   const counts: Counts = {
@@ -183,7 +189,7 @@ export function VitalBar(props: VitalBarProps) {
   });
 
   if (!counts.baseCount) {
-    return null;
+    return emptyState;
   }
 
   const p75: React.ReactNode = Array.isArray(vital)
