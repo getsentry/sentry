@@ -2,7 +2,7 @@ from sentry.incidents.models import AlertRule, AlertRuleActivity, AlertRuleActiv
 from sentry.models import User
 
 
-AlertRuleActivity.objects.all().delete();
+AlertRuleActivity.objects.all().delete()
 
 user = User.objects.all().first()
 r = AlertRule.objects.all().first()
