@@ -1,4 +1,5 @@
 import React from 'react';
+import fetchMock from 'jest-fetch-mock';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -16,6 +17,11 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
     Body: p => p.children,
     Footer: p => p.children,
   };
+
+  beforeEach(function () {
+    fetchMock.enableMocks();
+    fetch.resetMocks();
+  });
 
   afterEach(function () {
     closeModal.mockReset();
@@ -40,7 +46,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
     expect(closeModal).toHaveBeenCalledTimes(0);
   };
 
-  const addMockConfigsAPICall = (bonus = {}) => {
+  const addMockConfigsAPICall = (otherFields = {}) => {
     return MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/1/',
       method: 'GET',
@@ -70,23 +76,27 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
             updatesForm: true,
             required: true,
           },
-          bonus,
+          otherFields,
         ],
       },
     });
   };
 
+  /**
+   * We need to use this alternate mocking scheme because `fetch` isn't available.
+   * @param names String[]
+   */
   const addMockUsersAPICall = (names = []) => {
-    return MockApiClient.addMockResponse({
-      url: 'X',
-      method: 'GET',
-      body: names.map(name => {
-        return {
-          label: name,
-          value: name,
-        };
-      }),
-    });
+    fetch.mockResponseOnce(
+      JSON.stringify(
+        names.map(name => {
+          return {
+            label: name,
+            value: name,
+          };
+        })
+      )
+    );
   };
 
   const createWrapper = (props = {}) => {
@@ -166,17 +176,16 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       addMockConfigsAPICall({
         label: 'Assignee',
         required: true,
-        url: 'X',
+        url: 'http://example.com',
         type: 'select',
         name: 'assignee',
       });
       selectByValue(wrapper, '10000', {name: 'issuetype'});
 
       addMockUsersAPICall(['Marcos']);
-      selectByQuery(wrapper, 'Marcos', {name: 'assignee'});
+      await selectByQuery(wrapper, 'Marcos', {name: 'assignee'});
 
-      // TODO MARCOS FIRST
-      // submitSuccess(wrapper);
+      submitSuccess(wrapper);
     });
   });
 });
