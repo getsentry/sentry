@@ -255,21 +255,21 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
             pipeline.bind_state("aws_external_id", aws_external_id)
 
             if not check_arn_is_valid_cloudformation_stack(arn):
-                return render_response("Invalid ARN")
+                return render_response(_("Invalid ARN"))
 
             # now validate the arn works
             try:
                 gen_aws_client(arn, aws_external_id)
             except ClientError:
                 return render_response(
-                    "Please validate the Cloudformation stack was created successfully"
+                    _("Please validate the Cloudformation stack was created successfully")
                 )
             except Exception as e:
                 logger.error(
                     "AwsLambdaCloudFormationPipelineView.unexpected_error",
                     extra={"error": six.text_type(e)},
                 )
-                return render_response("Unkown errror")
+                return render_response(_("Unkown errror"))
 
             # if no error, continue
             return pipeline.next_step()

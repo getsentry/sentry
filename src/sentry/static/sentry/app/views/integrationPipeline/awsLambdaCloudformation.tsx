@@ -70,7 +70,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props> {
     // this is needed so we don't restart the pipeline loading from the original
     // OrganizationIntegrationSetupView route
     const newUrl = `${origin}/extensions/aws_lambda/setup/?${qs.stringify(data)}`;
-    window.location.replace(newUrl);
+    window.location.assign(newUrl);
   };
   renderFormHeader = () => {
     const cloudformationUrl = this.cloudformationUrl;
