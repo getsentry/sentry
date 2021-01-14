@@ -28,20 +28,10 @@ export function getCurrentLandingDisplay(location: Location): LandingDisplay {
 
 export function getChartWidth(
   chartData: HistogramData[],
-  refPixelRect: Rectangle | null,
-  containerRef: React.RefObject<HTMLElement>
+  refPixelRect: Rectangle | null
 ) {
   const distance = refPixelRect ? refPixelRect.point2.x - refPixelRect.point1.x : 0;
   const chartWidth = chartData.length * distance;
-
-  const containerWidth = containerRef?.current?.offsetWidth;
-  if (containerWidth && chartWidth) {
-    const chartOffset = containerWidth - chartWidth;
-    return {
-      chartWidth,
-      chartOffset,
-    };
-  }
 
   return {
     chartWidth,

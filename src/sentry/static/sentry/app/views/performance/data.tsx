@@ -26,7 +26,7 @@ export const COLUMN_TITLES = [
   'user misery',
 ];
 
-type TooltipOption = SelectValue<string> & {
+export type TooltipOption = SelectValue<string> & {
   tooltip: string;
 };
 
@@ -65,6 +65,23 @@ export function getAxisOptions(organization: LightWeightOrganization): TooltipOp
   ];
 }
 
+export function getFrontendAxisOptions(
+  organization: LightWeightOrganization
+): TooltipOption[] {
+  return [
+    {
+      tooltip: getTermHelp(organization, 'lcp'),
+      value: `p75(lcp)`,
+      label: t('LCP p75'),
+    },
+    {
+      tooltip: getTermHelp(organization, 'lcp'),
+      value: 'lcp_distribution',
+      label: t('LCP Distribution'),
+    },
+  ];
+}
+
 type TermFormatter = (organization: LightWeightOrganization) => string;
 
 const PERFORMANCE_TERMS: Record<string, TermFormatter> = {
@@ -80,6 +97,8 @@ const PERFORMANCE_TERMS: Record<string, TermFormatter> = {
   p50: () => t('p50 indicates the duration that 50% of transactions are faster than.'),
   p95: () => t('p95 indicates the duration that 95% of transactions are faster than.'),
   p99: () => t('p99 indicates the duration that 99% of transactions are faster than.'),
+  lcp: () =>
+    t('Largest contentful paint (LCP) is a web vital meant to represent user load times'),
   userMisery: organization =>
     t(
       "User misery is the percentage of users who are experiencing load times 4x your organization's apdex threshold of %sms.",
