@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+
 import tourAlert from 'sentry-images/spot/discover-tour-alert.svg';
 import tourExplore from 'sentry-images/spot/discover-tour-explore.svg';
 import tourFilter from 'sentry-images/spot/discover-tour-filter.svg';

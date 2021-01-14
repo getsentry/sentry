@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
+
 import codesworth from 'sentry-images/spot/codesworth.png';
 
 import {promptsUpdate} from 'app/actionCreators/prompts';

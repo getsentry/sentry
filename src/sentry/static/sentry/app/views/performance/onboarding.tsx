@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+
 import emptyStateImg from 'sentry-images/spot/performance-empty-state.svg';
 import tourAlert from 'sentry-images/spot/performance-tour-alert.svg';
 import tourCorrelate from 'sentry-images/spot/performance-tour-correlate.svg';
