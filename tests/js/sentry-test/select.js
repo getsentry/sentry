@@ -52,13 +52,12 @@ export function selectByValue(wrapper, value, options = {}) {
     .simulate('mouseDown');
 }
 
-export function selectByQuery(wrapper, query, options = {}) {
+export async function selectByQuery(wrapper, query, options = {}) {
   openMenu(wrapper, options);
-  const selector = getSelector({...options, control: true});
 
-  wrapper
-    .find(`${selector} input`)
-    .simulate('change', {target: {value: query}})
-    .getDOMNode()
-    .setSelectionRange(query.length, query.length);
+  const selector = getSelector({...options, control: true});
+  wrapper.find(`${selector} input`).simulate('change', {target: {value: query}});
+  await tick(); // Hit the mock URL.
+
+  selectByValue(wrapper, query, options);
 }
