@@ -280,9 +280,7 @@ def post_process_group(
                 lock = locks.get("w-o:{}-d-l".format(event.group_id), duration=10,)
                 try:
                     with lock.acquire():
-                        has_commit_key = "workflow-owners-ingestion:org-{}-has-commits".format(
-                            event.project.organization_id
-                        )
+                        has_commit_key = "w-o:{}-h-c".format(event.project.organization_id)
 
                         org_has_commit = cache.get(has_commit_key)
                         if org_has_commit is None:
