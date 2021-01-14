@@ -51,13 +51,3 @@ export function selectByValue(wrapper, value, options = {}) {
     .at(options.at || 0)
     .simulate('mouseDown');
 }
-
-export async function selectByQuery(wrapper, query, options = {}) {
-  openMenu(wrapper, options);
-
-  const selector = getSelector({...options, control: true});
-  wrapper.find(`${selector} input`).simulate('change', {target: {value: query}});
-  await tick(); // Hit the mock URL.
-
-  selectByValue(wrapper, query, options);
-}

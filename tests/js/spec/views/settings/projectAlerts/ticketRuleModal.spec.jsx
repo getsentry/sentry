@@ -3,7 +3,7 @@ import fetchMock from 'jest-fetch-mock';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {selectByQuery, selectByValue} from 'sentry-test/select';
+import {selectByQuery, selectByValue} from 'sentry-test/select-new';
 
 import TicketRuleModal from 'app/views/settings/projectAlerts/issueRuleEditor/ticketRuleModal';
 

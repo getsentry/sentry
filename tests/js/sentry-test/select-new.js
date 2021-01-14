@@ -51,3 +51,15 @@ export function changeInputValue(element, value) {
   element.instance().value = value;
   element.simulate('change', {target: {value}});
 }
+
+export async function selectByQuery(wrapper, query, options = {}) {
+  openMenu(wrapper, options);
+
+  const selector = getSelector({...options, control: true});
+  const input = wrapper.find(`${selector} input[type="text"]`);
+  changeInputValue(input, query);
+
+  await tick(); // Hit the mock URL.
+
+  selectByValue(wrapper, query, options);
+}
