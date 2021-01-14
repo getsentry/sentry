@@ -29,7 +29,6 @@ from sentry.models import (
     Group,
     GroupAssignee,
     GroupHash,
-    GroupInbox,
     GroupInboxReason,
     GroupLink,
     GroupStatus,
@@ -679,7 +678,7 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
 
                 group.status = GroupStatus.RESOLVED
                 group.resolved_at = now
-                remove_group_from_inbox(group)
+                remove_group_from_inbox(group, action="resolved", user=acting_user)
                 if has_inbox:
                     result["inbox"] = None
 
@@ -726,7 +725,7 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
             if new_status == GroupStatus.IGNORED:
                 metrics.incr("group.ignored", skip_internal=True)
                 for group in group_ids:
-                    remove_group_from_inbox(group)
+                    remove_group_from_inbox(group, action="ignored", user=acting_user)
                 if has_inbox:
                     result["inbox"] = None
 
@@ -991,8 +990,8 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
             for group in group_list:
                 add_group_to_inbox(group, GroupInboxReason.MANUAL)
         elif not inbox:
-            GroupInbox.objects.filter(group__in=group_ids).delete()
             for group in group_list:
+                remove_group_from_inbox(group, action="mark_reviewed", user=acting_user)
                 issue_mark_reviewed.send_robust(
                     project=project, user=acting_user, group=group, sender=update_groups,
                 )

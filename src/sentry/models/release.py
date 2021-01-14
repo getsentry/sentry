@@ -677,7 +677,7 @@ class Release(Model):
                 )
                 group = Group.objects.get(id=group_id)
                 group.update(status=GroupStatus.RESOLVED)
-                remove_group_from_inbox(group)
+                remove_group_from_inbox(group, action="resolved", user=actor)
                 metrics.incr("group.resolved", instance="in_commit", skip_internal=True)
 
             issue_resolved.send_robust(
