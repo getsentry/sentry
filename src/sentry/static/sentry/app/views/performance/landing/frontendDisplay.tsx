@@ -31,7 +31,7 @@ function FrontendDisplay(props: Props) {
     const conditions = tokenizeSearch('');
     conditions.setTagValues(tagName, [
       `>=${Math.round(minValue)}`,
-      `<=${Math.round(maxValue)}`,
+      `<${Math.round(maxValue)}`,
     ]);
     const query = stringifyQueryObject(conditions);
     props.onFrontendDisplayFilter(query);
