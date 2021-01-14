@@ -89,7 +89,7 @@ describe('CreateProject', function () {
 
     node = wrapper.find('PlatformCard').last();
     node.simulate('click');
-    expect(wrapper.find('ProjectNameInput input').props().value).toBe('React Native');
+    expect(wrapper.find('ProjectNameInput input').props().value).toBe('Rails');
 
     //but not replace it when project name is something else:
     wrapper.setState({projectName: 'another'});
