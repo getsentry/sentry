@@ -260,7 +260,7 @@ class PostProcessGroupTest(TestCase):
         )
 
     def test_owner_assignment_path_precedence(self):
-        with self.feature("projects:workflow-owners-ingestion"):
+        with self.feature("organizations:workflow-owners"):
             self.make_ownership()
             event = self.store_event(
                 data={
@@ -289,7 +289,7 @@ class PostProcessGroupTest(TestCase):
             }
 
     def test_owner_assignment_extra_groups(self):
-        with self.feature("projects:workflow-owners-ingestion"):
+        with self.feature("organizations:workflow-owners"):
             extra_user = self.create_user()
             self.create_team_membership(self.team, user=extra_user)
             self.make_ownership(
@@ -324,7 +324,7 @@ class PostProcessGroupTest(TestCase):
             }
 
     def test_owner_assignment_existing_owners(self):
-        with self.feature("projects:workflow-owners-ingestion"):
+        with self.feature("organizations:workflow-owners"):
             extra_user = self.create_user()
             self.create_team_membership(self.team, user=extra_user)
             self.make_ownership(
