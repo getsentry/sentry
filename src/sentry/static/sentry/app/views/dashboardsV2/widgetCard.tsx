@@ -188,7 +188,7 @@ class WidgetCard extends React.Component<Props> {
         <IconContainer data-component="icon-container">
           <StyledIconGrabbable
             color="gray500"
-            size="lg"
+            size="md"
             onMouseDown={event => startWidgetDrag(event)}
             onTouchStart={event => startWidgetDrag(event)}
           />
@@ -198,7 +198,7 @@ class WidgetCard extends React.Component<Props> {
               onEdit();
             }}
           >
-            <IconEdit color="gray500" size="lg" />
+            <IconEdit color="gray500" size="md" />
           </IconClick>
           <IconClick
             data-test-id="widget-delete"
@@ -206,7 +206,7 @@ class WidgetCard extends React.Component<Props> {
               onDelete();
             }}
           >
-            <IconDelete color="gray500" size="lg" />
+            <IconDelete color="gray500" size="md" />
           </IconClick>
         </IconContainer>
       </ToolbarPanel>
