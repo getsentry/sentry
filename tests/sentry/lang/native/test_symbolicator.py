@@ -131,7 +131,11 @@ class TestRedactInternalSources:
         response = {"modules": [{"debug_id": debug_id, "candidates": candidates.copy()}]}
         redacted = redact_internal_sources(response)
         expected = [
-            {"source": "sentry:microsoft", "location": debug_id, "download": {"status": "ok"}},
+            {
+                "source": "sentry:microsoft",
+                "location": f"debugid://{debug_id}",
+                "download": {"status": "ok"},
+            },
         ]
         assert redacted["modules"][0]["candidates"] == expected
 
@@ -154,7 +158,7 @@ class TestRedactInternalSources:
         expected = [
             {
                 "source": "sentry:microsoft",
-                "location": debug_id,
+                "location": f"debugid://{debug_id}",
                 "download": {"status": "notfound"},
             },
         ]
@@ -177,6 +181,10 @@ class TestRedactInternalSources:
         response = {"modules": [{"debug_id": debug_id, "candidates": candidates.copy()}]}
         redacted = redact_internal_sources(response)
         expected = [
-            {"source": "sentry:microsoft", "location": debug_id, "download": {"status": "ok"}},
+            {
+                "source": "sentry:microsoft",
+                "location": f"debugid://{debug_id}",
+                "download": {"status": "ok"},
+            },
         ]
         assert redacted["modules"][0]["candidates"] == expected

@@ -225,7 +225,7 @@ def redact_internal_sources_from_module(module):
     for candidate in module.get("candidates", []):
         source_id = candidate["source"]
         if is_internal_source_id(source_id):
-            candidate["location"] = debug_id
+            candidate["location"] = f"debugid://{debug_id}"
             try:
                 status = candidate.get("download", {})["status"]
             except KeyError:
