@@ -47,7 +47,7 @@ export type DynamicSamplingCondition = {
 export type DynamicSamplingRule = {
   /**
    * It is a possibly empty list of project ids to which the rule applies.
-   * If the list is empty the rules applies for all projects in the organisation
+   * If the list is empty the rules applies for all projects in the organization
    */
   projectIds: Array<number>;
   /**
