@@ -662,3 +662,60 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         ]
 
         assert response.data == self.as_response_data(expected)
+
+    def test_histogram_missing_measurement_data(self):
+        # make sure there is at least one transaction
+        specs = [
+            (0, 1, [("measurements.foo", 1)]),
+        ]
+        self.populate_measurements(specs)
+
+        query = {
+            "project": [self.project.id],
+            # make sure to query a measurement that does not exist
+            "field": ["measurements.bar"],
+            "numBuckets": 5,
+            "dataFilter": "exclude_outliers",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+
+        expected = [
+            (0, 1, [("measurements.bar", 0)]),
+            (1, 1, [("measurements.bar", 0)]),
+            (2, 2, [("measurements.bar", 0)]),
+            (3, 3, [("measurements.bar", 0)]),
+            (4, 4, [("measurements.bar", 0)]),
+        ]
+
+        assert response.data == self.as_response_data(expected)
+
+    def test_histogram_missing_measurement_data_with_explicit_bounds(self):
+        # make sure there is at least one transaction
+        specs = [
+            (0, 1, [("measurements.foo", 1)]),
+        ]
+        self.populate_measurements(specs)
+
+        query = {
+            "project": [self.project.id],
+            # make sure to query a measurement that does not exist
+            "field": ["measurements.bar"],
+            "numBuckets": 5,
+            "dataFilter": "exclude_outliers",
+            "min": 10,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+
+        expected = [
+            (10, 11, [("measurements.bar", 0)]),
+            (11, 11, [("measurements.bar", 0)]),
+            (12, 12, [("measurements.bar", 0)]),
+            (13, 13, [("measurements.bar", 0)]),
+            (14, 14, [("measurements.bar", 0)]),
+        ]
+
+        assert response.data == self.as_response_data(expected)
