@@ -210,9 +210,6 @@ class QueryDefinition(object):
     """
 
     def __init__(self, query, project_ids=None):
-        # self.request = request
-        # self.params = params
-
         self.query = query.get("query", "")
         raw_fields = query.getlist("field", [])
         raw_groupby = query.getlist("groupBy", [])
