@@ -133,7 +133,7 @@ class TestRedactInternalSources:
         expected = [
             {
                 "source": "sentry:microsoft",
-                "location": f"debugid://{debug_id}",
+                "location": "debugid://{}".format(debug_id),
                 "download": {"status": "ok"},
             },
         ]
@@ -158,7 +158,7 @@ class TestRedactInternalSources:
         expected = [
             {
                 "source": "sentry:microsoft",
-                "location": f"debugid://{debug_id}",
+                "location": "debugid://{}".format(debug_id),
                 "download": {"status": "notfound"},
             },
         ]
@@ -183,7 +183,7 @@ class TestRedactInternalSources:
         expected = [
             {
                 "source": "sentry:microsoft",
-                "location": f"debugid://{debug_id}",
+                "location": "debugid://{}".format(debug_id),
                 "download": {"status": "ok"},
             },
         ]
