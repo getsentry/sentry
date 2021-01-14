@@ -977,7 +977,9 @@ def histogram_query(
     histogram_column = get_histogram_column(fields, key_column, histogram_params)
     histogram_alias = get_function_alias(histogram_column)
 
-    # make sure to bound the bins as to not get too many results
+    if min_value is None or max_value is None:
+        return normalize_histogram_results(fields, key_column, histogram_params, {"data": []})
+    # make sure to bound the bins to get the desired range of results
     if min_value is not None:
         min_bin = histogram_params.start_offset
         conditions.append([histogram_alias, ">=", min_bin])
@@ -1032,15 +1034,15 @@ def find_histogram_params(num_buckets, min_value, max_value, multiplier):
     :param int multipler: The multiplier we should use to preserve the desired precision.
     """
 
-    # finding the bounds might result in None if there isn't sufficient data
-    if min_value is None or max_value is None:
-        return HistogramParams(num_buckets, 1, 0, multiplier)
-
-    scaled_min = multiplier * min_value
-    scaled_max = multiplier * max_value
+    scaled_min = 0 if min_value is None else multiplier * min_value
+    scaled_max = 0 if max_value is None else multiplier * max_value
 
     # align the first bin with the minimum value
     start_offset = int(floor(scaled_min))
+
+    # finding the bounds might result in None if there isn't sufficient data
+    if min_value is None or max_value is None:
+        return HistogramParams(num_buckets, 1, start_offset, multiplier)
 
     bucket_size = int(ceil((scaled_max - scaled_min) / float(num_buckets)))
 
