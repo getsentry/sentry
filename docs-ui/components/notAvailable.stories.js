@@ -5,11 +5,11 @@ import NotAvailable from 'app/components/notAvailable';
 import PanelTable from 'app/components/panels/panelTable';
 
 export default {
-  title: 'Core/Tables/NotAvailable',
+  title: 'Core/NotAvailable',
 };
 
 export const Default = withInfo(
-  "When you don't have data to display in a table's column, but don't want to display an empty space."
+  "When you don't have data to display, but don't want to display an empty space. It's commonly used in a table."
 )(() => (
   <div>
     <div className="section">
