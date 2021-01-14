@@ -1,4 +1,5 @@
 import React from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -12,7 +13,9 @@ import {Organization} from 'app/types';
 import {Series} from 'app/types/echarts';
 import EventView from 'app/utils/discover/eventView';
 import {getDuration} from 'app/utils/formatters';
+import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
+import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 
 import {DoubleHeaderContainer, HeaderTitleLegend} from '../styles';
 import HistogramQuery from '../transactionVitals/histogramQuery';
@@ -91,6 +94,21 @@ export function HistogramChart(props: Props) {
     },
   };
 
+  const handleZoomChange = (start: number, end: number) => {
+    const queryString = decodeScalar(location.query.query);
+    const conditions = tokenizeSearch(queryString || '');
+    conditions.setTagValues(field, [`>=${start}`, `<=${end}`]);
+    const query = stringifyQueryObject(conditions);
+
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        query: String(query).trim(),
+      },
+    });
+  };
+
   return (
     <HistogramContainer>
       <HistogramQuery
@@ -145,10 +163,11 @@ export function HistogramChart(props: Props) {
               <BarChartZoom
                 minZoomWidth={10 ** -PRECISION * NUM_BUCKETS}
                 location={location}
-                paramStart={`${field}Start`}
-                paramEnd={`${field}End`}
+                paramStart={`${field}:>=`}
+                paramEnd={`${field}:<=`}
                 xAxisIndex={[0]}
                 buckets={computeBuckets(chartData)}
+                onHistoryPush={handleZoomChange}
               >
                 {zoomRenderProps => (
                   <BarChartContainer>
