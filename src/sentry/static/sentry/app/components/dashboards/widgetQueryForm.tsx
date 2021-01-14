@@ -141,38 +141,37 @@ class WidgetQueryForm extends React.Component<Props, State> {
 
     return (
       <QueryWrapper>
-        {canRemove && (
-          <RemoveButtonWrapper>
+        <QueryFieldWrapper>
+          <Field
+            data-test-id="source"
+            label="Source"
+            inline={false}
+            flexibleControlStateSize
+            stacked
+            required
+          >
+            <RadioGroup
+              orientInline
+              value={this.state.source}
+              label=""
+              onChange={this.handleSourceChange}
+              choices={[
+                ['new', t('New Query')],
+                ['existing', t('Existing Discover Query')],
+              ]}
+            />
+          </Field>
+          {canRemove && (
             <Button
               data-test-id="remove-query"
-              priority="default"
               size="zero"
               borderless
               onClick={this.props.onRemove}
               icon={<IconDelete />}
               title={t('Remove this query')}
             />
-          </RemoveButtonWrapper>
-        )}
-        <Field
-          data-test-id="source"
-          label="Source"
-          inline={false}
-          flexibleControlStateSize
-          stacked
-          required
-        >
-          <RadioGroup
-            orientInline
-            value={this.state.source}
-            label=""
-            onChange={this.handleSourceChange}
-            choices={[
-              ['new', t('New Query')],
-              ['existing', t('Existing Discover Query')],
-            ]}
-          />
-        </Field>
+          )}
+        </QueryFieldWrapper>
         {source === 'new' && (
           <Field
             data-test-id="new-query"
@@ -297,12 +296,6 @@ const QueryFieldWrapper = styled('div')`
   > * + * {
     margin-left: ${space(1)};
   }
-`;
-
-const RemoveButtonWrapper = styled('div')`
-  position: absolute;
-  top: ${space(2)};
-  right: ${space(2)};
 `;
 
 export default WidgetQueryForm;
