@@ -488,7 +488,13 @@ def capture_nodestore_stats(project_id, event_id):
     metrics.timing("events.size.deduplicated.ratio", event_size / old_event_size)
     metrics.timing("events.size.deduplicated.total_written.ratio", total_size / old_event_size)
 
-    if total_size / old_event_size > 4.0:
+    if total_size > old_event_size:
         nodestore_stats_logger.info(
-            "events.size.deduplicated.terrible", project_id=project_id, event_id=event_id
+            "events.size.deduplicated.details",
+            extra={
+                "project_id": project_id,
+                "event_id": event_id,
+                "total_size": total_size,
+                "old_event_size": old_event_size,
+            },
         )
