@@ -281,7 +281,6 @@ def post_process_group(
                 try:
                     with lock.acquire():
                         has_commit_key = "w-o:{}-h-c".format(event.project.organization_id)
-
                         org_has_commit = cache.get(has_commit_key)
                         if org_has_commit is None:
                             org_has_commit = Commit.objects.filter(
