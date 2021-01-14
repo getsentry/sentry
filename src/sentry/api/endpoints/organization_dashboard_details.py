@@ -7,9 +7,12 @@ from sentry.api.bases.dashboard import OrganizationDashboardEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import DashboardDetailsSerializer
 from sentry.models.dashboard import DashboardTombstone
+from sentry.api.endpoints.organization_dashboards import OrganizationDashboardsPermission
 
 
 class OrganizationDashboardDetailsEndpoint(OrganizationDashboardEndpoint):
+    permission_classes = (OrganizationDashboardsPermission,)
+
     def get(self, request, organization, dashboard):
         """
         Retrieve an Organization's Dashboard

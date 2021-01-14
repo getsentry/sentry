@@ -117,6 +117,10 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         assert not DashboardWidgetQuery.objects.filter(widget_id=self.widget_1.id).exists()
         assert not DashboardWidgetQuery.objects.filter(widget_id=self.widget_2.id).exists()
 
+    def test_delete_permission(self):
+        self.create_user_member_role()
+        self.test_delete()
+
     def test_dashboard_does_not_exist(self):
         response = self.client.delete(self.url(1234567890))
         assert response.status_code == 404
@@ -132,6 +136,7 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
 class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
     def setUp(self):
         super(OrganizationDashboardDetailsPutTest, self).setUp()
+        self.create_user_member_role()
         self.widget_3 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
             order=2,

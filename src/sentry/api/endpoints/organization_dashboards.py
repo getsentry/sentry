@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.db import IntegrityError, transaction
 
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.dashboard import DashboardListSerializer
@@ -11,7 +11,18 @@ from sentry.models import Dashboard
 from rest_framework.response import Response
 
 
+class OrganizationDashboardsPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin"],
+        "POST": ["org:read", "org:write", "org:admin"],
+        "PUT": ["org:read", "org:write", "org:admin"],
+        "DELETE": ["org:read", "org:write", "org:admin"],
+    }
+
+
 class OrganizationDashboardsEndpoint(OrganizationEndpoint):
+    permission_classes = (OrganizationDashboardsPermission,)
+
     def get(self, request, organization):
         """
         Retrieve an Organization's Dashboards
