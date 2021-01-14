@@ -58,6 +58,10 @@ type Props = DefaultProps & {
    * Offset for the arrow
    */
   offset?: string;
+  /**
+   * Popper Modifiers
+   */
+  modifiers?: PopperProps['modifiers'];
 };
 
 type State = {
@@ -94,15 +98,27 @@ class Hovercard extends React.Component<Props, State> {
     }
     this.portalEl = portal;
     this.tooltipId = domId('hovercard-');
+    this.scheduleUpdate = null;
   }
 
   state = {
     visible: false,
   };
 
+  componentDidUpdate(prevProps: Props) {
+    const {body, header} = this.props;
+
+    if (body !== prevProps.body || header !== prevProps.header) {
+      // We had a problem with popper not recalculating position when body/header changed while hovercard still opened.
+      // This can happen for example when showing a loading spinner in a hovercard and then changing it to the actual content once fetch finishes.
+      this.scheduleUpdate?.();
+    }
+  }
+
   portalEl: HTMLElement;
   tooltipId: string;
   hoverWait: number | null = null;
+  scheduleUpdate: (() => void) | null;
 
   handleToggleOn = () => this.toggleHovercard(true);
   handleToggleOff = () => this.toggleHovercard(false);
@@ -128,11 +144,12 @@ class Hovercard extends React.Component<Props, State> {
       show,
       tipColor,
       offset,
+      modifiers,
     } = this.props;
 
     // Maintain the hovercard class name for BC with less styles
     const cx = classNames('hovercard', className);
-    const modifiers: PopperProps['modifiers'] = {
+    const popperModifiers: PopperProps['modifiers'] = {
       hide: {
         enabled: false,
       },
@@ -141,6 +158,7 @@ class Hovercard extends React.Component<Props, State> {
         enabled: true,
         boundariesElement: 'viewport',
       },
+      ...(modifiers || {}),
     };
 
     const visible = show !== undefined ? show : this.state.visible;
@@ -166,28 +184,31 @@ class Hovercard extends React.Component<Props, State> {
         {visible &&
           (header || body) &&
           ReactDOM.createPortal(
-            <Popper placement={position} modifiers={modifiers}>
-              {({ref, style, placement, arrowProps}) => (
-                <StyledHovercard
-                  id={this.tooltipId}
-                  visible={visible}
-                  ref={ref}
-                  style={style}
-                  placement={placement as Direction}
-                  offset={offset}
-                  className={cx}
-                  {...hoverProps}
-                >
-                  {header && <Header>{header}</Header>}
-                  {body && <Body className={bodyClassName}>{body}</Body>}
-                  <HovercardArrow
-                    ref={arrowProps.ref}
-                    style={arrowProps.style}
+            <Popper placement={position} modifiers={popperModifiers}>
+              {({ref, style, placement, arrowProps, scheduleUpdate}) => {
+                this.scheduleUpdate = scheduleUpdate;
+                return (
+                  <StyledHovercard
+                    id={this.tooltipId}
+                    visible={visible}
+                    ref={ref}
+                    style={style}
                     placement={placement as Direction}
-                    tipColor={tipColor}
-                  />
-                </StyledHovercard>
-              )}
+                    offset={offset}
+                    className={cx}
+                    {...hoverProps}
+                  >
+                    {header && <Header>{header}</Header>}
+                    {body && <Body className={bodyClassName}>{body}</Body>}
+                    <HovercardArrow
+                      ref={arrowProps.ref}
+                      style={arrowProps.style}
+                      placement={placement as Direction}
+                      tipColor={tipColor}
+                    />
+                  </StyledHovercard>
+                );
+              }}
             </Popper>,
             this.portalEl
           )}

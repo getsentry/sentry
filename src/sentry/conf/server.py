@@ -971,8 +971,6 @@ SENTRY_FEATURES = {
     "projects:servicehooks": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     "projects:kafka-ingest": False,
-    # Enable "owner"/"suggested assignee" features in ingestion (suspect commit calculation).
-    "projects:workflow-owners-ingestion": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }
@@ -1023,7 +1021,10 @@ SENTRY_FRONTEND_WHITELIST_URLS = None
 # ----
 
 # sample rate for transactions initiated from the frontend
-SENTRY_APM_SAMPLING = 0
+SENTRY_FRONTEND_APM_SAMPLING = 0
+
+# sample rate for transactions in the backend
+SENTRY_BACKEND_APM_SAMPLING = 0
 
 # Sample rate for symbolicate_event task transactions
 SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING = 0
