@@ -3,10 +3,12 @@ import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import {Panel, PanelFooter, PanelTable} from 'app/components/panels';
+import {Panel, PanelFooter} from 'app/components/panels';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {DynamicSamplingRule} from 'app/types/dynamicSampling';
+
+import Rules from './rules';
 
 type Props = {
   rules: Array<DynamicSamplingRule>;
@@ -17,15 +19,10 @@ type Props = {
 function RulesPanel({rules, docsUrl, onAddRule}: Props) {
   return (
     <Panel>
-      <StyledPanelTable
-        headers={[t('Type'), t('Projects'), t('Condition'), t('Sampling Rate')]}
-        isEmpty={!rules.length}
-      >
-        {null}
-      </StyledPanelTable>
+      <Rules rules={rules} />
       <StyledPanelFooter>
         <ButtonBar gap={1}>
-          <Button href={docsUrl} external>
+          <Button href={docsUrl} target="_blank">
             {t('Read the docs')}
           </Button>
           <Button priority="primary" onClick={onAddRule}>
@@ -38,14 +35,6 @@ function RulesPanel({rules, docsUrl, onAddRule}: Props) {
 }
 
 export default RulesPanel;
-
-// TODO(Priscila): Add PanelTable footer prop
-const StyledPanelTable = styled(PanelTable)`
-  margin-bottom: 0;
-  border: none;
-  border-bottom-right-radius: 0;
-  border-bottom-left-radius: 0;
-`;
 
 const StyledPanelFooter = styled(PanelFooter)`
   padding: ${space(1)} ${space(2)};
