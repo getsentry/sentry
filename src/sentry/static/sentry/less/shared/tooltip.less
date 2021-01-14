@@ -11,11 +11,10 @@
   // So reset our font and text properties to avoid inheriting weird values.
   .reset-text();
   font-size: @font-size-small;
-
-  .opacity(0);
+  opacity: 0;
 
   &.in {
-    .opacity(@tooltip-opacity);
+    opacity: @tooltip-opacity;
   }
   &.top {
     padding: @tooltip-arrow-width 0;
