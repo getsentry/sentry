@@ -76,7 +76,7 @@ class Controls extends React.Component<Props> {
             }}
             priority="primary"
           >
-            {t('Finish Editing')}
+            {t('Save and Finish')}
           </Button>
         </ButtonBar>
       );
@@ -93,9 +93,8 @@ class Controls extends React.Component<Props> {
               onCommit();
             }}
             priority="primary"
-            icon={<IconAdd size="xs" isCircled />}
           >
-            {t('Create Dashboard')}
+            {t('Save and Finish')}
           </Button>
         </ButtonBar>
       );
@@ -138,25 +137,25 @@ class Controls extends React.Component<Props> {
           />
         </DashboardSelect>
         <Button
-          data-test-id="dashboard-edit"
-          onClick={e => {
-            e.preventDefault();
-            onEdit();
-          }}
-          icon={<IconEdit size="xs" />}
-        >
-          {t('Edit')}
-        </Button>
-        <Button
           data-test-id="dashboard-create"
           onClick={e => {
             e.preventDefault();
             onCreate();
           }}
-          priority="primary"
           icon={<IconAdd size="xs" isCircled />}
         >
           {t('Create Dashboard')}
+        </Button>
+        <Button
+          data-test-id="dashboard-edit"
+          onClick={e => {
+            e.preventDefault();
+            onEdit();
+          }}
+          priority="primary"
+          icon={<IconEdit size="xs" />}
+        >
+          {t('Edit Dashboard')}
         </Button>
       </StyledButtonBar>
     );
