@@ -44,7 +44,7 @@ import {
   TagCollection,
 } from 'app/types';
 import {defined} from 'app/utils';
-import {analytics, metric} from 'app/utils/analytics';
+import {analytics, metric, trackAnalyticsEvent} from 'app/utils/analytics';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import CursorPoller from 'app/utils/cursorPoller';
 import {getUtcDateString} from 'app/utils/dates';
@@ -62,7 +62,7 @@ import IssueListFilters from './filters';
 import IssueListHeader from './header';
 import NoGroupsHandler from './noGroupsHandler';
 import IssueListSidebar from './sidebar';
-import {getTabsWithCounts, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
+import {getTabs, getTabsWithCounts, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
 
 const MAX_ITEMS = 25;
 const DEFAULT_SORT = 'date';
@@ -448,6 +448,19 @@ class IssueListOverview extends React.Component<Props, State> {
         count: currentQueryCount,
         hasMore: false,
       };
+
+      const tab = getTabs(organization).find(
+        ([tabQuery]) => currentTabQuery === tabQuery
+      )?.[1];
+      if (tab && !endpointParams.cursor) {
+        trackAnalyticsEvent({
+          eventKey: 'issues_tab.viewed',
+          eventName: 'Viewed Issues Tab',
+          organization_id: organization.id,
+          tab: tab.analyticsName,
+          num_issues: queryCounts[currentTabQuery].count,
+        });
+      }
     }
 
     this.setState({queryCounts});
@@ -841,10 +854,6 @@ class IssueListOverview extends React.Component<Props, State> {
     });
   };
 
-  handleTabClick = (query: string) => {
-    this.transitionTo({query}, null);
-  };
-
   tagValueLoader = (key: string, search: string) => {
     const {orgId} = this.props.params;
     const projectIds = this.getGlobalSearchProjectIds().map(id => id.toString());
@@ -918,10 +927,12 @@ class IssueListOverview extends React.Component<Props, State> {
                 queryCounts={queryCounts}
                 realtimeActive={realtimeActive}
                 onRealtimeChange={this.onRealtimeChange}
-                onTabChange={this.handleTabClick}
                 projectIds={projectIds}
                 orgSlug={orgSlug}
                 router={router}
+                savedSearchList={savedSearches}
+                onSavedSearchSelect={this.onSavedSearchSelect}
+                onSavedSearchDelete={this.onSavedSearchDelete}
                 displayReprocessingTab={showReprocessingTab}
               />
             )}
@@ -943,6 +954,7 @@ class IssueListOverview extends React.Component<Props, State> {
                   savedSearchList={savedSearches}
                   tagValueLoader={this.tagValueLoader}
                   tags={tags}
+                  isInbox={hasFeature}
                 />
 
                 <Panel>

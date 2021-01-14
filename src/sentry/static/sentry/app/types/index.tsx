@@ -14,6 +14,7 @@ import {
 } from 'app/views/organizationIntegrations/constants';
 import {Field} from 'app/views/settings/components/forms/type';
 
+import {DynamicSamplingRules} from './dynamicSampling';
 import {Event} from './event';
 import {Mechanism, RawStacktrace, StacktraceType} from './stacktrace';
 
@@ -178,6 +179,7 @@ export type LightWeightOrganization = OrganizationSummary & {
   apdexThreshold: number;
   onboardingTasks: OnboardingTaskStatus[];
   trustedRelays: Relay[];
+  dynamicSampling: DynamicSamplingRules;
   role?: string;
 };
 
@@ -218,6 +220,7 @@ export type Project = {
   organization: Organization;
 
   isBookmarked: boolean;
+  isInternal: boolean;
   hasUserReports?: boolean;
   hasAccess: boolean;
   firstEvent: 'string' | null;
@@ -1934,3 +1937,8 @@ export type ServerlessFunction = {
   outOfDate: boolean;
   enabled: boolean;
 };
+
+/**
+ * File storage service options for debug files
+ */
+export type DebugFileSource = 'http' | 's3' | 'gcs';

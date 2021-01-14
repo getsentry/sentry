@@ -1,12 +1,12 @@
-import {ImageProcessingInfo} from 'app/types/debugImage';
+import {ImageStatus} from 'app/types/debugImage';
 
-export function getStatusWeight(status?: ImageProcessingInfo | null) {
+export function getStatusWeight(status?: ImageStatus | null) {
   switch (status) {
     case null:
     case undefined:
-    case ImageProcessingInfo.UNUSED:
+    case ImageStatus.UNUSED:
       return 0;
-    case ImageProcessingInfo.FOUND:
+    case ImageStatus.FOUND:
       return 1;
     default:
       return 2;
@@ -14,14 +14,14 @@ export function getStatusWeight(status?: ImageProcessingInfo | null) {
 }
 
 export function combineStatus(
-  debugStatus?: ImageProcessingInfo | null,
-  unwindStatus?: ImageProcessingInfo | null
-): ImageProcessingInfo {
+  debugStatus?: ImageStatus | null,
+  unwindStatus?: ImageStatus | null
+): ImageStatus {
   const debugWeight = getStatusWeight(debugStatus);
   const unwindWeight = getStatusWeight(unwindStatus);
 
   const combined = debugWeight >= unwindWeight ? debugStatus : unwindStatus;
-  return combined || ImageProcessingInfo.UNUSED;
+  return combined || ImageStatus.UNUSED;
 }
 
 export function getFileName(path: string) {

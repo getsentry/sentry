@@ -1,10 +1,11 @@
 import React from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {Modal as BoostrapModal} from 'react-bootstrap';
 import {css} from '@emotion/core';
 
 import ModalActions from 'app/actions/modalActions';
 import type {DashboardWidgetModalOptions} from 'app/components/modals/addDashboardWidgetModal';
-import {Group, Organization, Project, SentryApp, Team} from 'app/types';
+import {DebugFileSource, Group, Organization, Project, SentryApp, Team} from 'app/types';
 import {Event} from 'app/types/event';
 
 export type ModalRenderProps = {
@@ -187,7 +188,12 @@ export type SentryAppDetailsModalOptions = {
   onCloseModal?: () => void; //used for analytics
 };
 
-export async function openDebugFileSourceModal(options: ModalOptions = {}) {
+type DebugFileSourceModalOptions = {
+  sourceType: DebugFileSource;
+  onSave: (data: Record<string, string>) => void;
+};
+
+export async function openDebugFileSourceModal(options: DebugFileSourceModalOptions) {
   const mod = await import(
     /* webpackChunkName: "DebugFileSourceModal" */ 'app/components/modals/debugFileSourceModal'
   );

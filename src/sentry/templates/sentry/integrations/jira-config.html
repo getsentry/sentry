@@ -3,9 +3,12 @@
 <html lang="en">
 <head>
   {% script src=ac_js_src %}{% endscript %}
-  {% script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js" %}{% endscript %}
-  {% script src="//aui-cdn.atlassian.com/aui-adg/6.0.9/js/aui.min.js" %}{% endscript %}
-  <link rel="stylesheet" href="//aui-cdn.atlassian.com/aui-adg/6.0.9/css/aui.min.css" media="all">
+  {% asset_url 'sentry' 'vendor/jquery.2.2.4.min.js' as jquery_url %}
+  {% script src=jquery_url %}{% endscript %}
+
+  {% asset_url 'sentry' 'vendor/aui-prototyping.9.1.5.js' as aui_js_url %}
+  {% script src=aui_js_url %}{% endscript %}
+  <link rel="stylesheet" href="{% asset_url 'sentry' 'vendor/aui-prototyping.9.1.5.css' %}" media="all">
   <style>
     :root {
       --gray500: #C6BECF;

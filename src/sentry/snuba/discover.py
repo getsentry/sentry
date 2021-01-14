@@ -28,6 +28,7 @@ from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.compat import filter
 from sentry.utils.snuba import (
     Dataset,
+    get_measurement_name,
     naiveify_datetime,
     raw_query,
     resolve_snuba_aliases,
@@ -47,7 +48,7 @@ __all__ = (
     "get_facets",
     "transform_data",
     "zerofill",
-    "measurements_histogram_query",
+    "histogram_query",
 )
 
 
@@ -83,7 +84,7 @@ def find_histogram_buckets(field, params, conditions):
 
     if len(columns) != 2:
         raise InvalidSearchQuery(
-            u"histogram(...) expects 2 column arguments, received {:g} arguments".format(
+            u"histogram_deprecated(...) expects 2 column arguments, received {:g} arguments".format(
                 len(columns)
             )
         )
@@ -92,7 +93,7 @@ def find_histogram_buckets(field, params, conditions):
     # TODO evanh: This can be expanded to more fields at a later date, for now keep this limited.
     if column != "transaction.duration":
         raise InvalidSearchQuery(
-            "histogram(...) can only be used with the transaction.duration column"
+            "histogram_deprecated(...) can only be used with the transaction.duration column"
         )
 
     try:
@@ -101,7 +102,9 @@ def find_histogram_buckets(field, params, conditions):
             raise Exception()
     except Exception:
         raise InvalidSearchQuery(
-            u"histogram(...) requires a bucket value between 1 and 500, not {}".format(columns[1])
+            u"histogram_deprecated(...) requires a bucket value between 1 and 500, not {}".format(
+                columns[1]
+            )
         )
 
     max_alias = u"max_{}".format(column)
@@ -128,7 +131,7 @@ def find_histogram_buckets(field, params, conditions):
     )
     if len(results["data"]) != 1:
         # If there are no transactions, so no max duration, return one empty bucket
-        return "histogram({}, 1, 1, 0)".format(column)
+        return "histogram_deprecated({}, 1, 1, 0)".format(column)
 
     bucket_min = results["data"][0][min_alias]
     bucket_max = results["data"][0][max_alias]
@@ -142,7 +145,9 @@ def find_histogram_buckets(field, params, conditions):
     # zerofill correctly.
     offset = int(floor(bucket_min / bucket_size) * bucket_size)
 
-    return "histogram({}, {:g}, {:.0f}, {:.0f})".format(column, num_buckets, bucket_size, offset)
+    return "histogram_deprecated({}, {:g}, {:.0f}, {:.0f})".format(
+        column, num_buckets, bucket_size, offset
+    )
 
 
 def zerofill_histogram(results, column_meta, orderby, sentry_function_alias, snuba_function_alias):
@@ -295,7 +300,7 @@ def transform_data(result, translated_columns, snuba_filter, selected_columns=No
             )
 
     for col in result["meta"]:
-        if col["name"].startswith("histogram"):
+        if col["name"].startswith("histogram_deprecated"):
             # The column name here has been translated, we need the original name
             for snuba_name, sentry_name in six.iteritems(translated_columns):
                 if sentry_name == col["name"]:
@@ -377,7 +382,7 @@ def query(
     idx = 0
     function_translations = {}
     for col in selected_columns:
-        if col.startswith("histogram("):
+        if col.startswith("histogram_deprecated("):
             with sentry_sdk.start_span(
                 op="discover.discover", description="query.histogram_calculation"
             ) as span:
@@ -910,11 +915,13 @@ def get_facets(query, params, limit=10, referrer=None):
     return results
 
 
-HistogramParams = namedtuple("HistogramParams", ["bucket_size", "start_offset", "multiplier"])
+HistogramParams = namedtuple(
+    "HistogramParams", ["num_buckets", "bucket_size", "start_offset", "multiplier"]
+)
 
 
-def measurements_histogram_query(
-    measurements,
+def histogram_query(
+    fields,
     user_query,
     params,
     num_buckets,
@@ -925,13 +932,12 @@ def measurements_histogram_query(
     referrer=None,
 ):
     """
-    API for generating histograms specifically for measurements.
+    API for generating histograms for numeric columns.
 
-    This function allows you to generate histograms for multiple measurements
-    at once. The resulting histograms will have their bins aligned.
+    A multihistogram is possible only if the columns are all measurements.
+    The resulting histograms will have their bins aligned.
 
-    :param [str] measurements: The list of measurements for which you want to
-        generate histograms for.
+    :param [str] fields: The list of fields for which you want to generate histograms for.
     :param str user_query: Filter query string to create conditions from.
     :param {str: str} params: Filtering parameters with start, end, project_id, environment
     :param int num_buckets: The number of buckets the histogram should contain.
@@ -942,55 +948,82 @@ def measurements_histogram_query(
         If left unspecified, it is queried using `user_query` and `params`.
     :param str data_filter: Indicate the filter strategy to be applied to the data.
     """
+
     multiplier = int(10 ** precision)
     if max_value is not None:
         # We want the specified max_value to be exclusive, and the queried max_value
         # to be inclusive. So we adjust the specified max_value using the multiplier.
         max_value -= 0.1 / multiplier
-    min_value, max_value = find_measurements_min_max(
-        measurements, min_value, max_value, user_query, params, data_filter
+    min_value, max_value = find_histogram_min_max(
+        fields, min_value, max_value, user_query, params, data_filter
     )
 
-    key_col = "array_join(measurements_key)"
-    histogram_params = find_measurements_histogram_params(
-        num_buckets, min_value, max_value, multiplier
-    )
-    histogram_col = get_measurements_histogram_col(histogram_params)
+    key_column = None
+    conditions = []
+    if len(fields) > 1:
+        key_column = "array_join(measurements_key)"
+        key_alias = get_function_alias(key_column)
+        measurements = []
+        for f in fields:
+            measurement = get_measurement_name(f)
+            if measurement is None:
+                raise InvalidSearchQuery(
+                    u"multihistogram expected all measurements, received: {}".format(f)
+                )
+            measurements.append(measurement)
+        conditions.append([key_alias, "IN", measurements])
 
-    conditions = [[get_function_alias(key_col), "IN", measurements]]
+    histogram_params = find_histogram_params(num_buckets, min_value, max_value, multiplier)
+    histogram_column = get_histogram_column(fields, key_column, histogram_params)
+    histogram_alias = get_function_alias(histogram_column)
 
-    # make sure to bound the bins as to not get too many results
+    if min_value is None or max_value is None:
+        return normalize_histogram_results(fields, key_column, histogram_params, {"data": []})
+    # make sure to bound the bins to get the desired range of results
     if min_value is not None:
         min_bin = histogram_params.start_offset
-        conditions.append([get_function_alias(histogram_col), ">=", min_bin])
+        conditions.append([histogram_alias, ">=", min_bin])
     if max_value is not None:
         max_bin = histogram_params.start_offset + histogram_params.bucket_size * num_buckets
-        conditions.append([get_function_alias(histogram_col), "<=", max_bin])
+        conditions.append([histogram_alias, "<=", max_bin])
 
+    columns = [] if key_column is None else [key_column]
     results = query(
-        selected_columns=[key_col, histogram_col, "count()"],
+        selected_columns=columns + [histogram_column, "count()"],
         conditions=conditions,
         query=user_query,
         params=params,
-        # the zerofill step assumes it is ordered by the bin then name
-        orderby=[get_function_alias(histogram_col), get_function_alias(key_col)],
-        limit=len(measurements) * num_buckets,
+        orderby=[histogram_alias],
+        limit=len(fields) * num_buckets,
         referrer=referrer,
         auto_fields=True,
         use_aggregate_conditions=True,
-        functions_acl=["array_join", "measurements_histogram"],
+        functions_acl=["array_join", "histogram"],
     )
 
-    return normalize_measurements_histogram(
-        measurements, num_buckets, key_col, histogram_params, results
+    return normalize_histogram_results(fields, key_column, histogram_params, results)
+
+
+def get_histogram_column(fields, key_column, histogram_params):
+    """
+    Generate the histogram column string.
+
+    :param [str] fields: The list of fields for which you want to generate the histograms for.
+    :param str key_column: The column for the key name. This is only set when generating a
+        multihistogram of measurement values. Otherwise, it should be `None`.
+    :param HistogramParms histogram_params: The histogram parameters used.
+    """
+
+    field = fields[0] if key_column is None else "measurements_value"
+    return u"histogram({}, {:d}, {:d}, {:d})".format(
+        field,
+        histogram_params.bucket_size,
+        histogram_params.start_offset,
+        histogram_params.multiplier,
     )
 
 
-def get_measurements_histogram_col(params):
-    return u"measurements_histogram({:d}, {:d}, {:d})".format(*params)
-
-
-def find_measurements_histogram_params(num_buckets, min_value, max_value, multiplier):
+def find_histogram_params(num_buckets, min_value, max_value, multiplier):
     """
     Compute the parameters to use for measurements histogram. Using the provided
     arguments, ensure that the generated histogram encapsolates the desired range.
@@ -1001,15 +1034,15 @@ def find_measurements_histogram_params(num_buckets, min_value, max_value, multip
     :param int multipler: The multiplier we should use to preserve the desired precision.
     """
 
-    # finding the bounds might result in None if there isn't sufficient data
-    if min_value is None or max_value is None:
-        return HistogramParams(1, 0, multiplier)
-
-    scaled_min = multiplier * min_value
-    scaled_max = multiplier * max_value
+    scaled_min = 0 if min_value is None else multiplier * min_value
+    scaled_max = 0 if max_value is None else multiplier * max_value
 
     # align the first bin with the minimum value
     start_offset = int(floor(scaled_min))
+
+    # finding the bounds might result in None if there isn't sufficient data
+    if min_value is None or max_value is None:
+        return HistogramParams(num_buckets, 1, start_offset, multiplier)
 
     bucket_size = int(ceil((scaled_max - scaled_min) / float(num_buckets)))
 
@@ -1022,18 +1055,15 @@ def find_measurements_histogram_params(num_buckets, min_value, max_value, multip
     if start_offset + num_buckets * bucket_size <= scaled_max:
         bucket_size += 1
 
-    return HistogramParams(bucket_size, start_offset, multiplier)
+    return HistogramParams(num_buckets, bucket_size, start_offset, multiplier)
 
 
-def find_measurements_min_max(
-    measurements, min_value, max_value, user_query, params, data_filter=None
-):
+def find_histogram_min_max(fields, min_value, max_value, user_query, params, data_filter=None):
     """
     Find the min/max value of the specified measurements. If either min/max is already
     specified, it will be used and not queried for.
 
-    :param [str] measurements: The list of measurements for which you want to
-        generate the histograms for.
+    :param [str] fields: The list of fields for which you want to generate the histograms for.
     :param float min_value: The minimum value allowed to be in the histogram.
         If left unspecified, it is queried using `user_query` and `params`.
     :param float max_value: The maximum value allowed to be in the histogram.
@@ -1046,22 +1076,24 @@ def find_measurements_min_max(
     if min_value is not None and max_value is not None:
         return min_value, max_value
 
-    min_columns, max_columns = [], []
-    for measurement in measurements:
+    min_columns = []
+    max_columns = []
+    quartiles = []
+    for field in fields:
         if min_value is None:
-            min_columns.append("min(measurements.{})".format(measurement))
+            min_columns.append("min({})".format(field))
         if max_value is None:
-            max_columns.append("max(measurements.{})".format(measurement))
+            max_columns.append("max({})".format(field))
         if data_filter == "exclude_outliers":
-            max_columns.append("percentile(measurements.{}, 0.25)".format(measurement))
-            max_columns.append("percentile(measurements.{}, 0.75)".format(measurement))
+            quartiles.append("percentile({}, 0.25)".format(field))
+            quartiles.append("percentile({}, 0.75)".format(field))
 
     results = query(
-        selected_columns=min_columns + max_columns,
+        selected_columns=min_columns + max_columns + quartiles,
         query=user_query,
         params=params,
         limit=1,
-        referrer="api.organization-events-measurements-min-max",
+        referrer="api.organization-events-histogram-min-max",
         auto_fields=True,
         auto_aggregations=True,
         use_aggregate_conditions=True,
@@ -1082,31 +1114,21 @@ def find_measurements_min_max(
         min_value = min(min_values) if min_values else None
 
     if max_value is None:
-        max_values = [
-            row[get_function_alias("max(measurements.{})".format(measurement))]
-            for measurement in measurements
-        ]
+        max_values = [row[get_function_alias(column)] for column in max_columns]
         max_values = list(filter(lambda v: v is not None, max_values))
         max_value = max(max_values) if max_values else None
 
         fences = []
         if data_filter == "exclude_outliers":
-            for measurement in measurements:
-                # also known as the first quartile
-                p25_column = get_function_alias(
-                    "percentile(measurements.{}, 0.25)".format(measurement)
-                )
-                # also known as the third quartile
-                p75_column = get_function_alias(
-                    "percentile(measurements.{}, 0.75)".format(measurement)
-                )
+            for field in fields:
+                q1_alias = get_function_alias("percentile({}, 0.25)".format(field))
+                q3_alias = get_function_alias("percentile({}, 0.75)".format(field))
 
-                first_quartile = row[p25_column]
-                third_quartile = row[p75_column]
+                first_quartile = row[q1_alias]
+                third_quartile = row[q3_alias]
 
                 if first_quartile is not None and third_quartile is not None:
                     interquartile_range = abs(third_quartile - first_quartile)
-
                     upper_outer_fence = third_quartile + 3 * interquartile_range
                     fences.append(upper_outer_fence)
 
@@ -1119,63 +1141,49 @@ def find_measurements_min_max(
     return min_value, max_value
 
 
-def normalize_measurements_histogram(measurements, num_buckets, key_col, histogram_params, results):
+def normalize_histogram_results(fields, key_column, histogram_params, results):
     """
     Normalizes the histogram results by renaming the columns to key and bin
     and make sure to zerofill any missing values.
 
-    :param [str] measurements: The list of measurements for which you want to
-        generate the histograms for.
-    :param int num_buckets: The number of buckets the histogram should contain.
-    :param str key_col: The column of the key name.
+    :param [str] fields: The list of fields for which you want to generate the
+        histograms for.
+    :param str key_column: The column of the key name.
     :param HistogramParms histogram_params: The histogram parameters used.
     :param any results: The results from the histogram query that may be missing
         bins and needs to be normalized.
     """
 
-    measurements = sorted(measurements)
-    key_name = get_function_alias(key_col)
-    bin_name = get_function_alias(get_measurements_histogram_col(histogram_params))
-
-    # adjust the meta for the renamed columns
-    meta = results["meta"]
-    new_meta = {}
-
-    meta_map = {key_name: "key", bin_name: "bin"}
-    for snuba_alias, col_type in meta.items():
-        new_alias = meta_map.get(snuba_alias, snuba_alias)
-        new_meta[new_alias] = col_type
-
-    results["meta"] = new_meta
+    # `key_name` is only used when generating a multi histogram of measurement values.
+    # It contains the name of the corresponding measurement for that row.
+    key_name = None if key_column is None else get_function_alias(key_column)
+    histogram_column = get_histogram_column(fields, key_column, histogram_params)
+    bin_name = get_function_alias(histogram_column)
 
     # zerofill and rename the columns while making sure to adjust for precision
-    data = results["data"]
-    new_data = []
-
-    bucket_maps = {m: {} for m in measurements}
-    for row in data:
-        measurement = row[key_name]
+    bucket_maps = {field: {} for field in fields}
+    for row in results["data"]:
+        # Fall back to the first field name if there is no `key_name`,
+        # otherwise, this is a measurement name and format it as such.
+        key = fields[0] if key_name is None else "measurements.{}".format(row[key_name])
         # we expect the bin the be an integer, this is because all floating
         # point values are rounded during the calculation
         bucket = int(row[bin_name])
-        # ignore unexpected measurements
-        if measurement in bucket_maps:
-            bucket_maps[measurement][bucket] = row["count"]
+        # ignore unexpected keys
+        if key in bucket_maps:
+            bucket_maps[key][bucket] = row["count"]
 
-    for i in range(num_buckets):
+    new_data = {field: [] for field in fields}
+    for i in range(histogram_params.num_buckets):
         bucket = histogram_params.start_offset + histogram_params.bucket_size * i
-        for measurement in measurements:
-            # we want to rename the columns here
+        for field in fields:
             row = {
-                "key": measurement,
                 "bin": bucket,
-                "count": bucket_maps[measurement].get(bucket, 0),
+                "count": bucket_maps[field].get(bucket, 0),
             }
             # make sure to adjust for the precision if necessary
             if histogram_params.multiplier > 1:
                 row["bin"] /= float(histogram_params.multiplier)
-            new_data.append(row)
+            new_data[field].append(row)
 
-    results["data"] = new_data
-
-    return results
+    return new_data
