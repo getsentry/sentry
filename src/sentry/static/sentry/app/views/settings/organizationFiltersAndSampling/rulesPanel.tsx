@@ -25,7 +25,7 @@ function RulesPanel({rules, docsUrl, onAddRule}: Props) {
       </StyledPanelTable>
       <StyledPanelFooter>
         <ButtonBar gap={1}>
-          <Button href={docsUrl} target="_blank">
+          <Button href={docsUrl} external>
             {t('Read the docs')}
           </Button>
           <Button priority="primary" onClick={onAddRule}>
