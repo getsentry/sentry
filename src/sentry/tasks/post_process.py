@@ -491,8 +491,10 @@ def capture_nodestore_stats(project_id, event_id):
     if total_size > old_event_size:
         nodestore_stats_logger.info(
             "events.size.deduplicated.details",
-            project_id=project_id,
-            event_id=event_id,
-            total_size=total_size,
-            old_event_size=old_event_size,
+            extra={
+                "project_id": project_id,
+                "event_id": event_id,
+                "total_size": total_size,
+                "old_event_size": old_event_size,
+            },
         )
