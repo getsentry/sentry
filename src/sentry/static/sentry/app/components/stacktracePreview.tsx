@@ -118,7 +118,7 @@ class StacktracePreview extends React.Component<Props, State> {
         .find(e => e.type === 'exception')
         ?.data?.values.filter(({stacktrace}) => defined(stacktrace)) ?? [];
 
-    const stacktrace = !isStacktraceNewestFirst()
+    const stacktrace = isStacktraceNewestFirst()
       ? exceptionsWithStacktrace[exceptionsWithStacktrace.length - 1]?.stacktrace
       : exceptionsWithStacktrace[0]?.stacktrace;
 
