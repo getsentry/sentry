@@ -2,6 +2,7 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 
 import GroupSimilarIssues from 'app/views/organizationGroupDetails/groupSimilarIssues';
 
@@ -97,8 +98,11 @@ describe('Issues Similar View', function () {
 
     await tick();
     wrapper.update();
+
     wrapper.find('[data-test-id="merge"] button').simulate('click');
-    wrapper.find('Button[data-test-id="confirm-button"]').simulate('click');
+
+    const modal = await mountGlobalModal();
+    modal.find('Button[data-test-id="confirm-button"]').simulate('click');
 
     await tick();
     wrapper.update();

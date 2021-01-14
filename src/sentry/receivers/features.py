@@ -18,6 +18,7 @@ from sentry.signals import (
     event_processed,
     first_event_received,
     inbound_filter_toggled,
+    inbox_in,
     integration_added,
     integration_issue_created,
     integration_issue_linked,
@@ -451,6 +452,24 @@ def record_issue_reviewed(project, user, group, **kwargs):
         default_user_id=default_user_id,
         organization_id=project.organization_id,
         group_id=group.id,
+    )
+
+
+@inbox_in.connect(weak=False)
+def record_inbox_in(project, user, group, reason, **kwargs):
+    if user and user.is_authenticated():
+        user_id = default_user_id = user.id
+    else:
+        user_id = None
+        default_user_id = project.organization.get_default_owner().id
+
+    analytics.record(
+        "inbox.issue_in",
+        user_id=user_id,
+        default_user_id=default_user_id,
+        organization_id=project.organization_id,
+        group_id=group.id,
+        reason=reason,
     )
 
 
