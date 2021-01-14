@@ -9,6 +9,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model, JSONField
+from sentry.signals import inbox_in
 
 INBOX_REASON_DETAILS = {
     "type": ["object", "null"],
@@ -70,6 +71,14 @@ def add_group_to_inbox(group, reason, reason_details=None):
             "reason": reason.value,
             "reason_details": reason_details,
         },
+    )
+
+    inbox_in.send_robust(
+        project=group.project,
+        user=None,
+        group=group,
+        sender="add_group_to_inbox",
+        reason=reason.name.lower(),
     )
     return group_inbox
 
