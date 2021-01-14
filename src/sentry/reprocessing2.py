@@ -291,7 +291,9 @@ def mark_event_reprocessed(data):
         finish_reprocessing.delay(project_id=data["project"], group_id=group_id)
 
 
-def start_group_reprocessing(project_id, group_id, max_events=None, acting_user_id=None):
+def start_group_reprocessing(
+    project_id, group_id, remaining_events_action, max_events=None, acting_user_id=None
+):
     from django.db import transaction
 
     with transaction.atomic():
@@ -319,8 +321,15 @@ def start_group_reprocessing(project_id, group_id, max_events=None, acting_user_
         del group
         new_group.status = original_status
         new_group.short_id = original_short_id
-        # this will be incremented by the events that are reprocessed
-        new_group.times_seen = 0
+
+        if remaining_events_action == "keep":
+            # this will be incremented by the events that are reprocessed
+            new_group.times_seen -= max_events
+        elif remaining_events_action == "delete":
+            new_group.times_seen = 0
+        else:
+            raise ValueError(remaining_events_action)
+
         new_group.save()
 
         # This migrates all models that are associated with a group but not

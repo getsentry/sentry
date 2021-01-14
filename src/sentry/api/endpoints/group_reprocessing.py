@@ -36,10 +36,17 @@ class GroupReprocessingEndpoint(GroupEndpoint):
         else:
             max_events = None
 
+        remaining_events_action = request.data.get("remainingEventsAction") or "keep"
+        if remaining_events_action not in ("delete", "keep"):
+            return self.respond(
+                {"error": "remainingEventsAction must be either delete or keep"}, status=400
+            )
+
         reprocess_group.delay(
             project_id=group.project_id,
             group_id=group.id,
             max_events=max_events,
             acting_user_id=getattr(request.user, "id", None),
+            remaining_events_action=remaining_events_action,
         )
         return self.respond(status=200)

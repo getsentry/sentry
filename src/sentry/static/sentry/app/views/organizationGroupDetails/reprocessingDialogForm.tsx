@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
+import {SelectField} from 'app/components/forms';
 import ApiForm from 'app/components/forms/apiForm';
 import NumberField from 'app/components/forms/numberField';
 import List from 'app/components/list';
@@ -82,12 +83,30 @@ function ReprocessingDialogForm({group, organization, Header, Body, closeModal}:
           <NumberField
             name="maxEvents"
             label={t('Enter the number of events to be reprocessed')}
-            help={tct(
-              'You can limit the number of events reprocessed in this Issue. If you set a limit, we will reprocess your most recent events, [strong:and the rest will be deleted.]',
-              {strong: <strong />}
+            help={t(
+              'You can limit the number of events reprocessed in this Issue. If you set a limit, we will reprocess your most recent events.'
             )}
             placeholder={t('Reprocess all events')}
             min={1}
+          />
+
+          {
+            // XXX(markus): The following field is required but cannot be
+            // effectively populated with a default value. Unless the user
+            // explicitly selects a value, nothing is sent to the server for
+            // whatever reason. Worked around on the server side.
+          }
+
+          <SelectField
+            name="remainingEventsAction"
+            choices={[
+              ['keep', t('Keep remaining events')],
+              ['delete', t('Delete remaining events')],
+            ]}
+            value="keep"
+            defaultValue="keep"
+            clearable={false}
+            required
           />
         </ApiForm>
       </Body>
