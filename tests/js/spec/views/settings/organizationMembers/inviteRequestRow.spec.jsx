@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 import {selectByValue} from 'sentry-test/select';
 
 import InviteRequestRow from 'app/views/settings/organizationMembers/inviteRequestRow';
@@ -75,7 +76,7 @@ describe('InviteRequestRow', function () {
     expect(wrapper.find('JoinRequestIndicator').exists()).toBe(true);
   });
 
-  it('can approve invite request', function () {
+  it('can approve invite request', async function () {
     const mockApprove = jest.fn();
     const mockDeny = jest.fn();
 
@@ -92,7 +93,10 @@ describe('InviteRequestRow', function () {
     );
 
     wrapper.find('button[aria-label="Approve"]').simulate('click');
-    wrapper.find('button[aria-label="Confirm"]').simulate('click');
+
+    const modal = await mountGlobalModal();
+    modal.find('button[aria-label="Confirm"]').simulate('click');
+
     expect(mockApprove).toHaveBeenCalledWith(inviteRequest);
     expect(mockDeny).not.toHaveBeenCalled();
   });

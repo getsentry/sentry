@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+
 import breadcrumbsImg from 'sentry-images/spot/breadcrumbs-generic.svg';
 import docsImg from 'sentry-images/spot/code-arguments-tags-mirrored.svg';
 import releasesImg from 'sentry-images/spot/releases.svg';

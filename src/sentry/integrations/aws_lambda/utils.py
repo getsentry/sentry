@@ -31,6 +31,14 @@ def parse_arn(arn):
     return result
 
 
+def check_arn_is_valid_cloudformation_stack(arn):
+    try:
+        parsed = parse_arn(arn)
+    except Exception:
+        return False
+    return parsed["service"] == "cloudformation"
+
+
 def _get_aws_node_arn(region):
     return u"arn:aws:lambda:{}:{}:layer:{}:{}".format(
         region,
