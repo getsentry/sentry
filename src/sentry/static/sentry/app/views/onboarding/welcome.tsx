@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import {motion, MotionProps} from 'framer-motion';
+import {preloadIcons} from 'platformicons';
 
 import Button from 'app/components/button';
 import {t, tct} from 'app/locale';
@@ -39,51 +40,61 @@ const fadeAway: MotionProps = {
   transition: {duration: 0.8},
 };
 
-const OnboardingWelcome = ({organization, onComplete, active}: Props) => {
-  const skipOnboarding = () => recordAnalyticsOnboardingSkipped({organization});
+class OnboardingWelcome extends React.Component<Props> {
+  componentDidMount() {
+    // Next step will render the platform picker (using both large and small
+    // icons). Keep things smooth by prefetching them. Preload a bit late to
+    // avoid jank on welcome animations.
+    setTimeout(preloadIcons, 1500);
+  }
 
-  return (
-    <FallingError
-      onFall={fallCount => fallCount >= easterEggText.length && onComplete({})}
-    >
-      {({fallingError, fallCount, triggerFall}) => (
-        <Wrapper>
-          <WelcomeBackground />
-          <motion.h1 {...fadeAway}>{t('Welcome to Sentry')}</motion.h1>
-          <motion.p {...fadeAway}>
-            {t(
-              'Find the errors and performance slowdowns that keep you up at night. In two steps.'
-            )}
-          </motion.p>
-          <CTAContainer {...fadeAway}>
-            <Button
-              data-test-id="welcome-next"
-              disabled={!active}
-              priority="primary"
-              onClick={() => {
-                triggerFall();
-                onComplete({});
-              }}
-            >
-              {t("I'm Ready")}
-            </Button>
-            <PositionedFallingError>{fallingError}</PositionedFallingError>
-          </CTAContainer>
-          <SecondaryAction {...fadeAway}>
-            {tct('[flavorText][br][exitLink:Skip onboarding].', {
-              br: <br />,
-              exitLink: <Button priority="link" onClick={skipOnboarding} href="/" />,
-              flavorText:
-                fallCount > 0
-                  ? easterEggText[fallCount - 1]
-                  : t("Geez Mom, I've used Sentry before."),
-            })}
-          </SecondaryAction>
-        </Wrapper>
-      )}
-    </FallingError>
-  );
-};
+  render() {
+    const {organization, onComplete, active} = this.props;
+    const skipOnboarding = () => recordAnalyticsOnboardingSkipped({organization});
+
+    return (
+      <FallingError
+        onFall={fallCount => fallCount >= easterEggText.length && onComplete({})}
+      >
+        {({fallingError, fallCount, triggerFall}) => (
+          <Wrapper>
+            <WelcomeBackground />
+            <motion.h1 {...fadeAway}>{t('Welcome to Sentry')}</motion.h1>
+            <motion.p {...fadeAway}>
+              {t(
+                'Find the errors and performance slowdowns that keep you up at night. In two steps.'
+              )}
+            </motion.p>
+            <CTAContainer {...fadeAway}>
+              <Button
+                data-test-id="welcome-next"
+                disabled={!active}
+                priority="primary"
+                onClick={() => {
+                  triggerFall();
+                  onComplete({});
+                }}
+              >
+                {t("I'm Ready")}
+              </Button>
+              <PositionedFallingError>{fallingError}</PositionedFallingError>
+            </CTAContainer>
+            <SecondaryAction {...fadeAway}>
+              {tct('[flavorText][br][exitLink:Skip onboarding].', {
+                br: <br />,
+                exitLink: <Button priority="link" onClick={skipOnboarding} href="/" />,
+                flavorText:
+                  fallCount > 0
+                    ? easterEggText[fallCount - 1]
+                    : t("Really, this again? I've used Sentry before."),
+              })}
+            </SecondaryAction>
+          </Wrapper>
+        )}
+      </FallingError>
+    );
+  }
+}
 
 const CTAContainer = styled(motion.div)`
   margin-bottom: ${space(2)};
