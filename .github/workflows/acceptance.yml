@@ -72,7 +72,7 @@ jobs:
 
   acceptance:
     # TODO(joshuarli): Convert to py3 with snapshots. See other TODO as well.
-    name: python2.7 acceptance
+    name: python acceptance
     runs-on: ubuntu-16.04
     timeout-minutes: 20
     strategy:
