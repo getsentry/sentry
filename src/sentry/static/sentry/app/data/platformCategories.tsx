@@ -41,6 +41,7 @@ const mobile = [
   'react-native',
   'flutter',
   'dart-flutter',
+  'unity',
 ] as const;
 
 const backend = [
@@ -103,6 +104,7 @@ const desktop = [
   'native-breakpad',
   'native-minidump',
   'minidump',
+  'unity',
 ] as const;
 
 const categoryList = [
