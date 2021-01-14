@@ -7,7 +7,7 @@ import six
 from django.core.cache import cache
 from django.http import Http404
 
-from sentry import tagstore
+from sentry import tagstore, features
 from sentry.api.fields.actor import Actor
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
@@ -26,7 +26,11 @@ from sentry.models import (
     Team,
     ReleaseProject,
 )
-from sentry.shared_integrations.exceptions import ApiError, DuplicateDisplayNameError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    DuplicateDisplayNameError,
+    DeprecatedIntegrationError,
+)
 from sentry.integrations.metric_alerts import incident_attachment_info
 
 from .client import SlackClient
@@ -419,7 +423,20 @@ def get_channel_id_with_timeout(integration, name, timeout):
 
     # workspace tokens are the only tokens that don't works with the conversations.list endpoint,
     # once eveyone is migrated we can remove this check and usages of channels.list
-    if get_integration_type(integration) == "workspace_app":
+
+    # XXX(meredith): Prevent anyone from creating new rules or editing existing rules that
+    # have workspace app integrations. Force them to either remove slack action or re-install
+    # their integration.
+    integration_type = get_integration_type(integration)
+    if integration_type == "workspace_app" and not any(
+        [
+            features.has("organizations:slack-allow-workspace", org)
+            for org in integration.organizations.all()
+        ]
+    ):
+        raise DeprecatedIntegrationError
+
+    if integration_type == "workspace_app":
         list_types = LEGACY_LIST_TYPES
     else:
         list_types = LIST_TYPES
@@ -482,6 +499,11 @@ def send_incident_alert_notification(action, incident, metric_value):
         "channel": channel,
         "attachments": json.dumps([attachment]),
     }
+
+    if get_integration_type(integration) == "workspace_app" and not features.has(
+        "organizations:slack-allow-workspace", incident.organization
+    ):
+        return
 
     client = SlackClient()
     try:

@@ -13,11 +13,11 @@ from .exceptions import FeatureNotRegistered
 
 class RegisteredFeatureManager(object):
     """
-        Feature functions that are built around the need to register feature
-        handlers
+    Feature functions that are built around the need to register feature
+    handlers
 
-        TODO: Once features have been audited and migrated to the entity
-        handler, remove this class entirely
+    TODO: Once features have been audited and migrated to the entity
+    handler, remove this class entirely
     """
 
     def __init__(self):

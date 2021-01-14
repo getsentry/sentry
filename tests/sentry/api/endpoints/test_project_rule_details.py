@@ -335,6 +335,82 @@ class UpdateProjectRuleTest(APITestCase):
             provider="slack",
             name="Awesome Team",
             external_id="TXXXXXXX1",
+            metadata={
+                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
+        )
+        integration.add_organization(project.organization, self.user)
+
+        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
+
+        actions = [
+            {
+                "channel_id": "old_channel_id",
+                "workspace": integration.id,
+                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                "channel": "#old_channel_name",
+            }
+        ]
+
+        rule = Rule.objects.create(
+            project=project, data={"conditions": [conditions], "actions": [actions]},
+        )
+
+        actions[0]["channel"] = "#new_channel_name"
+
+        url = reverse(
+            "sentry-api-0-project-rule-details",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+                "rule_id": rule.id,
+            },
+        )
+
+        channels = {
+            "ok": "true",
+            "channels": [
+                {"name": "old_channel_name", "id": "old_channel_id"},
+                {"name": "new_channel_name", "id": "new_channel_id"},
+            ],
+        }
+
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.list",
+            status=200,
+            content_type="application/json",
+            body=json.dumps(channels),
+        )
+
+        response = self.client.put(
+            url,
+            data={
+                "name": "#new_channel_name",
+                "actionMatch": "any",
+                "filterMatch": "any",
+                "actions": actions,
+                "conditions": conditions,
+                "frequency": 30,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200, response.content
+        rule = Rule.objects.get(id=response.data["id"])
+        assert rule.label == "#new_channel_name"
+        assert rule.data["actions"][0]["channel_id"] == "new_channel_id"
+
+    @responses.activate
+    def test_update_channel_slack_workspace_fail(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        integration = Integration.objects.create(
+            provider="slack",
+            name="Awesome Team",
+            external_id="TXXXXXXX1",
             metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
         )
         integration.add_organization(project.organization, self.user)
@@ -394,10 +470,7 @@ class UpdateProjectRuleTest(APITestCase):
             format="json",
         )
 
-        assert response.status_code == 200, response.content
-        rule = Rule.objects.get(id=response.data["id"])
-        assert rule.label == "#new_channel_name"
-        assert rule.data["actions"][0]["channel_id"] == "new_channel_id"
+        assert response.status_code == 400, response.content
 
     def test_slack_channel_id_saved(self):
         self.login_as(user=self.user)

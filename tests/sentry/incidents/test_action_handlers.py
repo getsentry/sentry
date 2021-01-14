@@ -29,6 +29,7 @@ from sentry.incidents.models import (
 )
 from sentry.models import Integration, PagerDutyService, UserOption
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
@@ -194,7 +195,63 @@ class SlackActionHandlerTest(FireTest, TestCase):
 
         token = "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         integration = Integration.objects.create(
-            external_id="1", provider="slack", metadata={"access_token": token}
+            external_id="1",
+            provider="slack",
+            metadata={"access_token": token, "installation_type": "born_as_bot"},
+        )
+        integration.add_organization(self.organization, self.user)
+        channel_id = "some_id"
+        channel_name = "#hello"
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.list",
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {"ok": "true", "channels": [{"name": channel_name[1:], "id": channel_id}]}
+            ),
+        )
+
+        action = self.create_alert_rule_trigger_action(
+            target_identifier=channel_name,
+            type=AlertRuleTriggerAction.Type.SLACK,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
+            integration=integration,
+        )
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.postMessage",
+            status=200,
+            content_type="application/json",
+            body='{"ok": true}',
+        )
+        handler = SlackActionHandler(action, incident, self.project)
+        metric_value = 1000
+        with self.tasks():
+            getattr(handler, method)(metric_value)
+        data = parse_qs(responses.calls[1].request.body)
+        assert data["channel"] == [channel_id]
+        assert data["token"] == [token]
+        assert json.loads(data["attachments"][0])[0] == build_incident_attachment(
+            incident, metric_value
+        )
+
+    def test_fire_metric_alert(self):
+        self.run_fire_test()
+
+    def test_resolve_metric_alert(self):
+        self.run_fire_test("resolve")
+
+
+@freeze_time()
+class SlackWorkspaceActionHandlerTest(FireTest, TestCase):
+    @responses.activate
+    def run_test(self, incident, method):
+        from sentry.integrations.slack.utils import build_incident_attachment
+
+        token = "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        integration = Integration.objects.create(
+            external_id="1", provider="slack", metadata={"access_token": token},
         )
         integration.add_organization(self.organization, self.user)
         channel_id = "some_id"
@@ -233,9 +290,11 @@ class SlackActionHandlerTest(FireTest, TestCase):
             incident, metric_value
         )
 
+    @with_feature("organizations:slack-allow-workspace")
     def test_fire_metric_alert(self):
         self.run_fire_test()
 
+    @with_feature("organizations:slack-allow-workspace")
     def test_resolve_metric_alert(self):
         self.run_fire_test("resolve")
 

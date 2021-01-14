@@ -89,6 +89,10 @@ class DuplicateDisplayNameError(IntegrationError):
     pass
 
 
+class DeprecatedIntegrationError(IntegrationError):
+    pass
+
+
 class IntegrationFormError(IntegrationError):
     def __init__(self, field_errors):
         super(IntegrationFormError, self).__init__("Invalid integration action")

@@ -28,7 +28,10 @@ class SlackTasksTest(TestCase):
             provider="slack",
             name="Team A",
             external_id="TXXXXXXX1",
-            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+            metadata={
+                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
         )
         self.uuid = uuid4().hex
         self.integration.add_organization(self.org, self.user)
@@ -37,7 +40,7 @@ class SlackTasksTest(TestCase):
 
         responses.add(
             method=responses.GET,
-            url="https://slack.com/api/channels.list",
+            url="https://slack.com/api/conversations.list",
             status=200,
             content_type="application/json",
             body=json.dumps(channels),

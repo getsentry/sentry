@@ -60,7 +60,7 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
             provider="slack",
             external_id="some_slack",
             name="Test Slack",
-            metadata={"domain_name": "slack-test.slack.com"},
+            metadata={"domain_name": "slack-test.slack.com", "installation_type": "born_as_bot"},
         )
 
         model.add_organization(self.organization, self.user)
