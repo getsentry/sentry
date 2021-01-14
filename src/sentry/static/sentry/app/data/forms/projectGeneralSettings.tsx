@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PlatformIcon from 'platformicons';
+import {PlatformIcon} from 'platformicons';
 
 import platforms from 'app/data/platforms';
 import {t, tct, tn} from 'app/locale';

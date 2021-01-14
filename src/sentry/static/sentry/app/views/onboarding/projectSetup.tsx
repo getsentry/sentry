@@ -4,7 +4,7 @@ import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
-import PlatformIcon from 'platformicons';
+import {PlatformIcon} from 'platformicons';
 
 import {openInviteMembersModal} from 'app/actionCreators/modal';
 import {loadDocs} from 'app/actionCreators/projects';

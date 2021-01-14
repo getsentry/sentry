@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PlatformIcon from 'platformicons';
+import {PlatformIcon} from 'platformicons';
 
 import Line from 'app/components/events/interfaces/frame/line';
 import {getImageRange, parseAddress} from 'app/components/events/interfaces/utils';

@@ -2,7 +2,7 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import PlatformIcon from 'platformicons';
+import {PlatformIcon} from 'platformicons';
 import PropTypes from 'prop-types';
 
 import {openCreateTeamModal} from 'app/actionCreators/modal';
