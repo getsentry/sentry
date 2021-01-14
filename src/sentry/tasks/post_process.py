@@ -277,10 +277,7 @@ def post_process_group(
                     safe_execute(callback, event, futures)
 
             try:
-                lock = locks.get(
-                    "workflow-owners-ingestion:org-{}-has-group-lock".format(event.group_id),
-                    duration=10,
-                )
+                lock = locks.get("w-o:{}-d-l".format(event.group_id), duration=10,)
                 try:
                     with lock.acquire():
                         has_commit_key = "workflow-owners-ingestion:org-{}-has-commits".format(
