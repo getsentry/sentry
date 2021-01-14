@@ -25,18 +25,6 @@ const textStyles = () => css`
       margin-bottom: 0;
     }
   }
-
-  p,
-  ul,
-  ol,
-  blockquote {
-    line-height: 1.5;
-  }
-
-  pre {
-    word-break: break-all;
-    white-space: pre-wrap;
-  }
   /* stylelint-enable */
 `;
 
