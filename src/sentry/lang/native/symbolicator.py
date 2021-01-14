@@ -173,7 +173,7 @@ class Symbolicator(object):
                 metrics.timing(
                     "events.symbolicator.response.completed.size", len(json.dumps(json_response))
                 )
-                return json_response
+                return redact_internal_sources(json_response)
 
     def process_minidump(self, minidump):
         return self._process(lambda: self.sess.upload_minidump(minidump), "process_minidump")
@@ -190,6 +190,68 @@ class Symbolicator(object):
             ),
             "symbolicate_stacktraces",
         )
+
+
+def redact_internal_sources(response):
+    """Redacts information about internal sources from a response.
+
+    Symbolicator responses can contain a section about DIF object file candidates where were
+    attempted to be downloaded from the sources.  This includes a full URI of where the
+    download was attempted from.  For internal sources we want to redact this in order to
+    not leak any internal details.
+
+    Note that this modifies the argument passed in, thus redacting in-place.  It still
+    returns the modified response.
+    """
+    for module in response.get("modules", []):
+        redact_internal_sources_from_module(module)
+    return response
+
+
+def redact_internal_sources_from_module(module):
+    """Redacts information about internal sources from a single module.
+
+    This in-place redacts candidates from only a single module of the symbolicator response.
+
+    The strategy here is for each internal source to replace the location with the DebugID.
+    Furthermore if there are any "notfound" entries collapse them into a single entry and
+    only show this entry if there are no entries with another status.
+    """
+    sources_notfound = set()
+    sources_other = set()
+    new_candidates = []
+
+    debug_id = module.get("debug_id", "<missing-debug-id>")
+    for candidate in module.get("candidates", []):
+        source_id = candidate["source"]
+        if is_internal_source_id(source_id):
+            candidate["location"] = debug_id
+            try:
+                status = candidate.get("download", {})["status"]
+            except KeyError:
+                new_candidates.append(candidate)
+            else:
+                if status == "notfound":
+                    if source_id in sources_notfound:
+                        continue
+                    else:
+                        sources_notfound.add(source_id)
+                else:
+                    sources_other.add(source_id)
+                new_candidates.append(candidate)
+        else:
+            new_candidates.append(candidate)
+
+    for i, candidate in enumerate(new_candidates.copy()):
+        source_id = candidate["source"]
+        try:
+            status = candidate.get("download", {})["status"]
+        except KeyError:
+            continue
+        if status == "notfound" and source_id in sources_other:
+            del new_candidates[i]
+
+    module["candidates"] = new_candidates
 
 
 class TaskIdNotFound(Exception):
@@ -233,6 +295,14 @@ def get_internal_source(project):
     }
 
 
+def is_internal_source_id(source_id):
+    """Determines if a DIF object source identifier is reserved for internal sentry use.
+
+    This is trivial, but multiple functions in this file need to use the same definition.
+    """
+    return source_id.startswith("sentry")
+
+
 def parse_sources(config):
     """
     Parses the given sources in the config string (from JSON).
@@ -253,7 +323,7 @@ def parse_sources(config):
 
     ids = set()
     for source in sources:
-        if source["id"].startswith("sentry"):
+        if is_internal_source_id(source["id"]):
             raise InvalidSourcesError('Source ids must not start with "sentry:"')
         if source["id"] in ids:
             raise InvalidSourcesError("Duplicate source id: %s" % (source["id"],))
