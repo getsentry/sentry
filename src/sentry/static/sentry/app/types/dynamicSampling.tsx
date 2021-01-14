@@ -57,7 +57,7 @@ export type DynamicSamplingRule = {
    */
   conditions: Array<DynamicSamplingCondition>;
   /**
-   * it is the sampling rate that will be applied if the rule is selected
+   * It is the sampling rate that will be applied if the rule is selected
    */
   sampleRate: number;
   /**
