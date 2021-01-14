@@ -316,13 +316,16 @@
 // Menu position and menu carets
 .navbar-nav > li > .dropdown-menu {
   margin-top: 0;
-  .border-top-radius(0);
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 }
 // Menu position and menu caret support
 .navbar-fixed-bottom .navbar-nav > li > .dropdown-menu {
   margin-bottom: 0;
-  .border-top-radius(@navbar-border-radius);
-  .border-bottom-radius(0);
+  border-top-left-radius: @navbar-border-radius;
+  border-top-right-radius: @navbar-border-radius;
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
 }
 
 // Buttons in navbars
