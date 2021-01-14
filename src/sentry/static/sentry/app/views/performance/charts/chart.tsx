@@ -15,6 +15,9 @@ type Props = {
   router: ReactRouter.InjectedRouter;
   statsPeriod: string | undefined;
   utc: boolean;
+  height?: number;
+  grid?: AreaChart['props']['grid'];
+  disableMultiAxis?: boolean;
   loading: boolean;
 };
 
@@ -48,7 +51,16 @@ function computeAxisMax(data) {
 
 class Chart extends React.Component<Props> {
   render() {
-    const {data, router, statsPeriod, utc, loading} = this.props;
+    const {
+      data,
+      router,
+      statsPeriod,
+      utc,
+      loading,
+      height,
+      grid,
+      disableMultiAxis,
+    } = this.props;
 
     if (!data || data.length <= 0) {
       return null;
@@ -60,62 +72,76 @@ class Chart extends React.Component<Props> {
     );
     const dataMax = durationOnly ? computeAxisMax(data) : undefined;
 
+    const xAxes = disableMultiAxis
+      ? undefined
+      : [
+          {
+            gridIndex: 0,
+            type: 'time' as const,
+          },
+          {
+            gridIndex: 1,
+            type: 'time' as const,
+          },
+        ];
+
+    const yAxes = disableMultiAxis
+      ? undefined
+      : [
+          {
+            gridIndex: 0,
+            scale: true,
+            max: dataMax,
+            axisLabel: {
+              color: theme.chartLabel,
+              formatter(value: number) {
+                return axisLabelFormatter(value, data[0].seriesName);
+              },
+            },
+          },
+          {
+            gridIndex: 1,
+            scale: true,
+            max: dataMax,
+            axisLabel: {
+              color: theme.chartLabel,
+              formatter(value: number) {
+                return axisLabelFormatter(value, data[1].seriesName);
+              },
+            },
+          },
+        ];
+
+    const axisPointer = disableMultiAxis
+      ? undefined
+      : {
+          // Link the two series x-axis together.
+          link: [{xAxisIndex: [0, 1]}],
+        };
+
     const areaChartProps = {
       seriesOptions: {
         showSymbol: false,
       },
-      grid: [
-        {
-          top: '8px',
-          left: '24px',
-          right: '52%',
-          bottom: '16px',
-        },
-        {
-          top: '8px',
-          left: '52%',
-          right: '24px',
-          bottom: '16px',
-        },
-      ],
-      axisPointer: {
-        // Link the two series x-axis together.
-        link: [{xAxisIndex: [0, 1]}],
-      },
-      xAxes: [
-        {
-          gridIndex: 0,
-          type: 'time' as const,
-        },
-        {
-          gridIndex: 1,
-          type: 'time' as const,
-        },
-      ],
-      yAxes: [
-        {
-          gridIndex: 0,
-          scale: true,
-          max: dataMax,
-          axisLabel: {
-            color: theme.chartLabel,
-            formatter(value: number) {
-              return axisLabelFormatter(value, data[0].seriesName);
+      grid: disableMultiAxis
+        ? grid
+        : [
+            {
+              top: '8px',
+              left: '24px',
+              right: '52%',
+              bottom: '16px',
             },
-          },
-        },
-        {
-          gridIndex: 1,
-          scale: true,
-          max: dataMax,
-          axisLabel: {
-            color: theme.chartLabel,
-            formatter(value: number) {
-              return axisLabelFormatter(value, data[1].seriesName);
+            {
+              top: '8px',
+              left: '52%',
+              right: '24px',
+              bottom: '16px',
             },
-          },
-        },
-      ],
+          ],
+      axisPointer,
+      xAxes,
+      yAxes,
       utc,
       isGroupedByDate: true,
       showTimeInTooltip: true,
@@ -140,9 +166,19 @@ class Chart extends React.Component<Props> {
     }));
 
     return (
-      <ChartZoom router={router} period={statsPeriod} utc={utc} xAxisIndex={[0, 1]}>
+      <ChartZoom
+        router={router}
+        period={statsPeriod}
+        utc={utc}
+        xAxisIndex={disableMultiAxis ? undefined : [0, 1]}
+      >
         {zoomRenderProps => (
-          <AreaChart {...zoomRenderProps} series={series} {...areaChartProps} />
+          <AreaChart
+            height={height}
+            {...zoomRenderProps}
+            series={series}
+            {...areaChartProps}
+          />
         )}
       </ChartZoom>
     );

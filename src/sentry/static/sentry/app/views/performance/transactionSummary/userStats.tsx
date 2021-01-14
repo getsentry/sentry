@@ -23,7 +23,7 @@ import {
 } from 'app/views/performance/transactionVitals/constants';
 import {vitalsRouteWithQuery} from 'app/views/performance/transactionVitals/utils';
 
-import VitalsCards from '../vitalsCards';
+import VitalsCards from '../landing/vitalsCards';
 
 type Props = {
   eventView: EventView;

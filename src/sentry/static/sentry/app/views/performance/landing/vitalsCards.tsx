@@ -15,7 +15,8 @@ import {decodeList} from 'app/utils/queryString';
 import withProjects from 'app/utils/withProjects';
 import VitalsCardsDiscoverQuery from 'app/views/performance/vitalDetail/vitalsCardsDiscoverQuery';
 
-import ColorBar from './vitalDetail/colorBar';
+import {HeaderTitle} from '../styles';
+import ColorBar from '../vitalDetail/colorBar';
 import {
   vitalAbbreviations,
   vitalDescription,
@@ -27,9 +28,8 @@ import {
   vitalsPoorFields,
   VitalState,
   vitalStateColors,
-} from './vitalDetail/utils';
-import VitalPercents from './vitalDetail/vitalPercents';
-import {HeaderTitle} from './styles';
+} from '../vitalDetail/utils';
+import VitalPercents from '../vitalDetail/vitalPercents';
 
 type Props = {
   eventView: EventView;
@@ -39,6 +39,7 @@ type Props = {
   showDurationDetail?: boolean;
   hasCondensedVitals?: boolean;
   projects: Project[];
+  isAlwaysShown?: boolean; // Temporary while platform list still exists.
 };
 
 // Temporary list of platforms to only show web vitals for.
@@ -63,7 +64,7 @@ function VitalsCards(props: Props) {
     )
   );
 
-  if (!showVitalsCard) {
+  if (!showVitalsCard && !props.isAlwaysShown) {
     return null;
   }
 
