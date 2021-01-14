@@ -23,7 +23,6 @@ jobs:
 
       - name: Set python version output
         id: python-version
-        if: steps.changes.outputs.backend == 'true'
         run: |
           echo "::set-output name=python-version::$(grep "3.6" .python-version)"
 
