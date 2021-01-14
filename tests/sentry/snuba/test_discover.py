@@ -2063,7 +2063,7 @@ class QueryTransformTest(TestCase):
         # min is None
         assert discover.find_histogram_params(1, None, 1, 10) == (1, 1, 0, 10)
         # max is None
-        assert discover.find_histogram_params(1, 1, None, 100) == (1, 1, 0, 100)
+        assert discover.find_histogram_params(1, 1, None, 100) == (1, 1, 100, 100)
 
         assert discover.find_histogram_params(10, 0, 9, 1) == (10, 1, 0, 1)
         assert discover.find_histogram_params(10, 0, 10, 1) == (10, 2, 0, 1)
