@@ -256,6 +256,9 @@ register("eventstore.use-nodestore", default=False, flags=FLAG_PRIORITIZE_DISK)
 # Alerts / Workflow incremental rollout rate. Tied to feature handlers in getsentry
 register("workflow.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
 
+# Incremental rollout rate for Workflow Owners related features.
+register("workflow-owners.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
+
 # Performance metric alerts incremental rollout rate. Tied to feature handlers
 # in getsentry
 register("incidents-performance.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
