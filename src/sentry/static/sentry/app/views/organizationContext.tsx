@@ -51,9 +51,107 @@ type State = {
   errorType?: string | null;
   error?: RequestError | null;
   hooks?: React.ReactNode[];
+  prevProps: {
+    orgId: string;
+    organizationsLoading: boolean;
+    location: RouteComponentProps<{orgId: string}, {}>['location'];
+  };
 };
 
 class OrganizationContext extends React.Component<Props, State> {
+  static getDerivedStateFromProps(props: Props, prevState: State): State {
+    const {prevProps} = prevState;
+
+    if (OrganizationContext.shouldRemount(prevProps, props)) {
+      return OrganizationContext.getDefaultState(props);
+    }
+
+    return {
+      ...prevState,
+      prevProps: {
+        orgId: props.params.orgId,
+        organizationsLoading: props.organizationsLoading,
+        location: props.location,
+      },
+    };
+  }
+
+  static shouldRemount(prevProps: State['prevProps'], props): boolean {
+    const hasOrgIdAndChanged =
+      prevProps.orgId && props.params.orgId && prevProps.orgId !== props.params.orgId;
+
+    const hasOrgId =
+      props.params.orgId ||
+      (props.useLastOrganization && ConfigStore.get('lastOrganization'));
+
+    // protect against the case where we finish fetching org details
+    // and then `OrganizationsStore` finishes loading:
+    // only fetch in the case where we don't have an orgId
+    //
+    // Compare `getOrganizationSlug`  because we may have a last used org from server
+    // if there is no orgId in the URL
+    const organizationLoadingChanged =
+      prevProps.organizationsLoading !== props.organizationsLoading &&
+      props.organizationsLoading === false;
+
+    return (
+      hasOrgIdAndChanged ||
+      (!hasOrgId && organizationLoadingChanged) ||
+      (props.location.state === 'refresh' && prevProps.location.state !== 'refresh')
+    );
+  }
+
+  static getDefaultState(props: Props): State {
+    const prevProps = {
+      orgId: props.params.orgId,
+      organizationsLoading: props.organizationsLoading,
+      location: props.location,
+    };
+
+    if (OrganizationContext.isOrgStorePopulatedCorrectly(props)) {
+      // retrieve initial state from store
+      return {
+        ...OrganizationStore.get(),
+        prevProps,
+      };
+    }
+    return {
+      loading: true,
+      error: null,
+      errorType: null,
+      organization: null,
+      prevProps,
+    };
+  }
+
+  static getOrganizationSlug(props: Props) {
+    return (
+      props.params.orgId ||
+      ((props.useLastOrganization &&
+        (ConfigStore.get('lastOrganization') ||
+          props.organizations?.[0]?.slug)) as string)
+    );
+  }
+
+  static isOrgChanging(props: Props) {
+    const {organization} = OrganizationStore.get();
+    return (
+      organization && organization.slug !== OrganizationContext.getOrganizationSlug(props)
+    );
+  }
+
+  static isOrgStorePopulatedCorrectly(props: Props) {
+    const {detailed} = props;
+    const {organization, dirty} = OrganizationStore.get();
+
+    return (
+      !dirty &&
+      organization &&
+      !OrganizationContext.isOrgChanging(props) &&
+      (!detailed || (detailed && organization.projects && organization.teams))
+    );
+  }
+
   static propTypes = {
     api: PropTypes.object,
     routes: PropTypes.arrayOf(PropTypes.object),
@@ -70,7 +168,10 @@ class OrganizationContext extends React.Component<Props, State> {
 
   static defaultProps = defaultProps;
 
-  state = this.getDefaultState();
+  constructor(props: Props) {
+    super(props);
+    this.state = OrganizationContext.getDefaultState(props);
+  }
 
   getChildContext() {
     return {
@@ -83,29 +184,13 @@ class OrganizationContext extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const hasOrgIdAndChanged =
-      prevProps.params.orgId &&
-      this.props.params.orgId &&
-      prevProps.params.orgId !== this.props.params.orgId;
-    const hasOrgId =
-      this.props.params.orgId ||
-      (this.props.useLastOrganization && ConfigStore.get('lastOrganization'));
+    const remountPrevProps: State['prevProps'] = {
+      orgId: prevProps.params.orgId,
+      organizationsLoading: prevProps.organizationsLoading,
+      location: prevProps.location,
+    };
 
-    // protect against the case where we finish fetching org details
-    // and then `OrganizationsStore` finishes loading:
-    // only fetch in the case where we don't have an orgId
-    //
-    // Compare `getOrganizationSlug`  because we may have a last used org from server
-    // if there is no orgId in the URL
-    const organizationLoadingChanged =
-      prevProps.organizationsLoading !== this.props.organizationsLoading &&
-      this.props.organizationsLoading === false;
-
-    if (
-      hasOrgIdAndChanged ||
-      (!hasOrgId && organizationLoadingChanged) ||
-      (this.props.location.state === 'refresh' && prevProps.location.state !== 'refresh')
-    ) {
+    if (OrganizationContext.shouldRemount(remountPrevProps, this.props)) {
       this.remountComponent();
     }
   }
@@ -119,60 +204,26 @@ class OrganizationContext extends React.Component<Props, State> {
     OrganizationStore.listen(data => this.loadOrganization(data), undefined),
   ];
 
-  getDefaultState(): State {
-    if (this.isOrgStorePopulatedCorrectly()) {
-      // retrieve initial state from store
-      return OrganizationStore.get();
-    }
-    return {
-      loading: true,
-      error: null,
-      errorType: null,
-      organization: null,
-    };
-  }
-
   remountComponent = () => {
-    this.setState(this.getDefaultState(), this.fetchData);
+    this.setState(OrganizationContext.getDefaultState(this.props), this.fetchData);
   };
 
   onProjectCreation() {
     // If a new project was created, we need to re-fetch the
     // org details endpoint, which will propagate re-rendering
     // for the entire component tree
-    fetchOrganizationDetails(this.props.api, this.getOrganizationSlug(), true, true);
-  }
-
-  getOrganizationSlug() {
-    return (
-      this.props.params.orgId ||
-      ((this.props.useLastOrganization &&
-        (ConfigStore.get('lastOrganization') ||
-          this.props.organizations?.[0]?.slug)) as string)
-    );
-  }
-
-  isOrgChanging() {
-    const {organization} = OrganizationStore.get();
-    return organization && organization.slug !== this.getOrganizationSlug();
-  }
-
-  isOrgStorePopulatedCorrectly() {
-    const {detailed} = this.props;
-    const {organization, dirty} = OrganizationStore.get();
-
-    return (
-      !dirty &&
-      organization &&
-      !this.isOrgChanging() &&
-      (!detailed || (detailed && organization.projects && organization.teams))
+    fetchOrganizationDetails(
+      this.props.api,
+      OrganizationContext.getOrganizationSlug(this.props),
+      true,
+      true
     );
   }
 
   isLoading() {
     // In the absence of an organization slug, the loading state should be
     // derived from this.props.organizationsLoading from OrganizationsStore
-    if (!this.getOrganizationSlug()) {
+    if (!OrganizationContext.getOrganizationSlug(this.props)) {
       return this.props.organizationsLoading;
     }
     // The following loading logic exists because we could either be waiting for
@@ -188,20 +239,20 @@ class OrganizationContext extends React.Component<Props, State> {
   }
 
   fetchData() {
-    if (!this.getOrganizationSlug()) {
+    if (!OrganizationContext.getOrganizationSlug(this.props)) {
       return;
     }
     // fetch from the store, then fetch from the API if necessary
-    if (this.isOrgStorePopulatedCorrectly()) {
+    if (OrganizationContext.isOrgStorePopulatedCorrectly(this.props)) {
       return;
     }
 
     metric.mark({name: 'organization-details-fetch-start'});
     fetchOrganizationDetails(
       this.props.api,
-      this.getOrganizationSlug(),
+      OrganizationContext.getOrganizationSlug(this.props),
       this.props.detailed,
-      !this.isOrgChanging() // if true, will preserve a lightweight org that was fetched
+      !OrganizationContext.isOrgChanging(this.props) // if true, will preserve a lightweight org that was fetched
     );
   }
 
@@ -253,7 +304,7 @@ class OrganizationContext extends React.Component<Props, State> {
   }
 
   getOrganizationDetailsEndpoint() {
-    return `/organizations/${this.getOrganizationSlug()}/`;
+    return `/organizations/${OrganizationContext.getOrganizationSlug(this.props)}/`;
   }
 
   getTitle() {
