@@ -95,6 +95,8 @@ type State = {
   queryCount: number;
   queryCounts: QueryCounts;
   queryMaxCount: number;
+  /** Used to figure out if items have been removed when changing pages */
+  originalCount: number;
   error: string | null;
   isSidebarVisible: boolean;
   renderSidebar: boolean;
@@ -139,6 +141,7 @@ class IssueListOverview extends React.Component<Props, State> {
       realtimeActive,
       pageLinks: '',
       queryCount: 0,
+      originalCount: 0,
       queryCounts: {},
       queryMaxCount: 0,
       error: null,
@@ -469,11 +472,12 @@ class IssueListOverview extends React.Component<Props, State> {
   fetchData = (selectionChanged?: boolean) => {
     GroupStore.loadInitialData([]);
 
-    this.setState({
+    this.setState(state => ({
       issuesLoading: true,
       queryCount: 0,
       error: null,
-    });
+      originalCount: selectionChanged ? 0 : state.originalCount,
+    }));
 
     const requestParams: any = {
       ...this.getEndpointParams(),
@@ -555,13 +559,14 @@ class IssueListOverview extends React.Component<Props, State> {
           this.fetchCounts(queryCount, fetchAllCounts);
         }
 
-        this.setState({
+        this.setState(state => ({
           error: null,
           issuesLoading: false,
           queryCount,
           queryMaxCount,
+          originalCount: Math.max(queryCount, state.originalCount),
           pageLinks: pageLinks !== null ? pageLinks : '',
-        });
+        }));
       },
       error: err => {
         this.setState({
@@ -884,6 +889,7 @@ class IssueListOverview extends React.Component<Props, State> {
       realtimeActive,
       groupIds,
       queryMaxCount,
+      originalCount,
     } = this.state;
     const {
       organization,
@@ -894,10 +900,24 @@ class IssueListOverview extends React.Component<Props, State> {
       location,
       router,
     } = this.props;
+    const links = parseLinkHeader(pageLinks);
     const query = this.getQuery();
     const queryPageInt = parseInt(location.query.page, 10);
     const page = isNaN(queryPageInt) ? 0 : queryPageInt;
-    const pageCount = page * MAX_ITEMS + groupIds.length;
+    const itemsRemoved = originalCount - queryCount;
+    /**
+     * As items are removed from the current query, the total count might change.
+     * When you remove items from page 1 and get to the last page the totals will no longer
+     * match
+     */
+    const possibleCount = Math.max(
+      page * MAX_ITEMS + groupIds.length - itemsRemoved,
+      groupIds.length
+    );
+    const pageCount =
+      possibleCount > queryCount || (!links?.next?.results && links?.previous?.results)
+        ? queryCount
+        : possibleCount;
 
     // TODO(workflow): When organization:inbox flag is removed add 'inbox' to tagStore
     if (
