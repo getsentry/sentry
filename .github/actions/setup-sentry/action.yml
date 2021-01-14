@@ -1,10 +1,6 @@
 name: 'Sentry Setup'
 description: 'Sets up a Sentry test environment'
 inputs:
-  python:
-    description: 'python version'
-    required: false
-    default: '3'
   snuba:
     description: 'Is snuba required?'
     required: false
@@ -34,7 +30,6 @@ runs:
     - name: Setup default environment variables
       shell: bash
       env:
-        PYTHON_VERSION: ${{ inputs.python }}
         NEED_KAFKA: ${{ inputs.kafka }}
         MATRIX_INSTANCE: ${{ matrix.instance }}
         MATRIX_INSTANCE_TOTAL: ${{ strategy.job-total }}
