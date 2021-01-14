@@ -8,7 +8,7 @@ import AwsLambdaProjectSelect from 'app/views/integrationPipeline/awsLambdaProje
 describe('AwsLambdaProjectSelect', () => {
   let projects;
   let wrapper;
-  let windowReplaceMock;
+  let windowAssignMock;
   beforeEach(() => {
     projects = [
       TestStubs.Project(),
@@ -18,9 +18,8 @@ describe('AwsLambdaProjectSelect', () => {
       <AwsLambdaProjectSelect projects={projects} />,
       TestStubs.routerContext()
     );
-    windowReplaceMock = jest.fn();
-    window.location.replace = windowReplaceMock;
-    window.localStorage.setItem('AWS_EXTERNAL_ID', 'my_external_id');
+    windowAssignMock = jest.fn();
+    window.location.assign = windowAssignMock;
   });
   it('submit project', () => {
     selectByValue(wrapper, '53', {name: 'projectId', control: true});
@@ -29,8 +28,8 @@ describe('AwsLambdaProjectSelect', () => {
     const {
       location: {origin},
     } = window;
-    expect(windowReplaceMock).toHaveBeenCalledWith(
-      `${origin}/extensions/aws_lambda/setup/?project_id=53&aws_external_id=my_external_id`
+    expect(windowAssignMock).toHaveBeenCalledWith(
+      `${origin}/extensions/aws_lambda/setup/?projectId=53`
     );
   });
 });

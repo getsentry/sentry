@@ -1,5 +1,3 @@
-/* global fail */
-
 // eslint-disable-next-line no-console
 const originalConsoleError = console.error;
 
@@ -37,8 +35,6 @@ jest.spyOn(console, 'error').mockImplementation((message, ...args) => {
     const startIndex = lines?.findIndex(line => line.includes('tests/js/spec'));
     err.stack = ['\n', lines?.[0], ...lines?.slice(startIndex)].join('\n');
 
-    // `fail` is a global from jest/jasmine
-    // eslint-disable-next-line jest/no-jasmine-globals
-    fail(err);
+    throw err;
   }
 });
