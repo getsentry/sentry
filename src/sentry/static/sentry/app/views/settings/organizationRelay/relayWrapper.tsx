@@ -191,6 +191,7 @@ class RelayWrapper extends AsyncView<Props, State> {
     );
   }
 }
+
 export default RelayWrapper;
 
 const StyledTextBlock = styled(TextBlock)`

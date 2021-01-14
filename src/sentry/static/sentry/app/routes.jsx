@@ -751,6 +751,17 @@ function routes() {
         component={errorHandler(LazyLoad)}
       />
 
+      <Route
+        name={t('Filters & Sampling')}
+        path="filters-and-sampling/"
+        componentPromise={() =>
+          import(
+            /* webpackChunkName: "OrganizationFiltersAndSampling" */ 'app/views/settings/organizationFiltersAndSampling'
+          )
+        }
+        component={errorHandler(LazyLoad)}
+      />
+
       <Route name="Teams" path="teams/">
         <IndexRoute
           componentPromise={() =>
