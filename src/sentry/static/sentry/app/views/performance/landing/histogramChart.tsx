@@ -1,5 +1,4 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -13,9 +12,7 @@ import {Organization} from 'app/types';
 import {Series} from 'app/types/echarts';
 import EventView from 'app/utils/discover/eventView';
 import {getDuration} from 'app/utils/formatters';
-import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 
 import {DoubleHeaderContainer, HeaderTitleLegend} from '../styles';
 import HistogramQuery from '../transactionVitals/histogramQuery';
@@ -30,7 +27,7 @@ type Props = {
   field: string;
   title: string;
   titleTooltip: string;
-  onFilterChange: (minValue: number, maxValue: number, measurement: string) => void;
+  onFilterChange: (minValue: number, maxValue: number) => void;
 };
 
 function getBucketWidth(chartData) {
@@ -83,7 +80,15 @@ function getSeries(chartData) {
 }
 
 export function HistogramChart(props: Props) {
-  const {location, organization, eventView, field, title, titleTooltip} = props;
+  const {
+    location,
+    onFilterChange,
+    organization,
+    eventView,
+    field,
+    title,
+    titleTooltip,
+  } = props;
 
   const xAxis = {
     type: 'category' as const,
@@ -92,21 +97,6 @@ export function HistogramChart(props: Props) {
     axisTick: {
       alignWithLabel: true,
     },
-  };
-
-  const handleZoomChange = (start: number, end: number) => {
-    const queryString = decodeScalar(location.query.query);
-    const conditions = tokenizeSearch(queryString || '');
-    conditions.setTagValues(field, [`>=${start}`, `<=${end}`]);
-    const query = stringifyQueryObject(conditions);
-
-    browserHistory.push({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        query: String(query).trim(),
-      },
-    });
   };
 
   return (
@@ -167,7 +157,7 @@ export function HistogramChart(props: Props) {
                 paramEnd={`${field}:<=`}
                 xAxisIndex={[0]}
                 buckets={computeBuckets(chartData)}
-                onHistoryPush={handleZoomChange}
+                onHistoryPush={onFilterChange}
               >
                 {zoomRenderProps => (
                   <BarChartContainer>

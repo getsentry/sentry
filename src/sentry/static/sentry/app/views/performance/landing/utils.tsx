@@ -37,7 +37,3 @@ export function getChartWidth(
     chartWidth,
   };
 }
-
-export function getAdditionalTableQuery(location: Location): string {
-  return decodeScalar(location.query?.tableFilterQuery) || '';
-}
