@@ -24,9 +24,8 @@ class OrganizationFiltersAndSampling extends AsyncView<Props, State> {
   }
 
   getDefaultState() {
-    const state = super.getDefaultState();
     return {
-      ...state,
+      ...super.getDefaultState(),
       transactionRules: [],
     };
   }
