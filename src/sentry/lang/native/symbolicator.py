@@ -251,7 +251,8 @@ def redact_internal_sources_from_module(module):
         if status == "notfound" and source_id in sources_other:
             del new_candidates[i]
 
-    module["candidates"] = new_candidates
+    if "candidates" in module:
+        module["candidates"] = new_candidates
 
 
 class TaskIdNotFound(Exception):
