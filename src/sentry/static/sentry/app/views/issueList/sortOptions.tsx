@@ -24,7 +24,7 @@ const IssueListSortOptions = ({onSelect, sort}: Props) => {
       case 'user':
         return t('Users');
       case 'trend':
-        return t('Trends');
+        return t('Relative Change');
       case 'date':
       default:
         return t('Last Seen');
