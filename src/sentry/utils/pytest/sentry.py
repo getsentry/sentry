@@ -136,7 +136,7 @@ def pytest_configure(config):
             "aws-lambda.cloudformation-url": "https://example.com/file.json",
             "aws-lambda.account-number": "1234",
             "aws-lambda.node.layer-name": "my-layer",
-            "aws-lambda.node.version": "3",
+            "aws-lambda.node.layer-version": "3",
         }
     )
 
