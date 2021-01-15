@@ -12,7 +12,7 @@ const popular = [
   'java',
   'java-spring-boot',
   'dotnet',
-  'dotnet.aspnetcore',
+  'dotnet-aspnetcore',
   'csharp',
   'go',
   'php',
