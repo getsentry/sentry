@@ -22,7 +22,7 @@ GROUP_REPROCESSING_CHUNK_SIZE = 100
 def reprocess_group(
     project_id,
     group_id,
-    remaining_events_action="delete",
+    remaining_events="delete",
     new_group_id=None,
     query_state=None,
     start_time=None,
@@ -39,7 +39,7 @@ def reprocess_group(
             group_id,
             max_events=max_events,
             acting_user_id=acting_user_id,
-            remaining_events_action=remaining_events_action,
+            remaining_events=remaining_events,
         )
 
     assert new_group_id is not None
@@ -72,7 +72,7 @@ def reprocess_group(
             project_id=project_id,
             new_group_id=new_group_id,
             event_ids=remaining_event_ids,
-            remaining_events_action=remaining_events_action,
+            remaining_events=remaining_events,
         )
 
     reprocess_group.delay(
@@ -82,7 +82,7 @@ def reprocess_group(
         query_state=query_state,
         start_time=start_time,
         max_events=max_events,
-        remaining_events_action=remaining_events_action,
+        remaining_events=remaining_events,
     )
 
 
@@ -93,7 +93,7 @@ def reprocess_group(
     max_retries=5,
 )
 @retry
-def handle_remaining_events(project_id, new_group_id, event_ids, remaining_events_action):
+def handle_remaining_events(project_id, new_group_id, event_ids, remaining_events):
     """
     Delete or merge/move associated per-event data: nodestore, event
     attachments, user reports. Mark the event as "tombstoned" in Snuba.
@@ -108,9 +108,9 @@ def handle_remaining_events(project_id, new_group_id, event_ids, remaining_event
 
     from sentry.reprocessing2 import delete_unprocessed_events
 
-    assert remaining_events_action in ("delete", "keep")
+    assert remaining_events in ("delete", "keep")
 
-    if remaining_events_action == "delete":
+    if remaining_events == "delete":
         models.EventAttachment.objects.filter(
             project_id=project_id, event_id__in=event_ids
         ).delete()
@@ -124,12 +124,10 @@ def handle_remaining_events(project_id, new_group_id, event_ids, remaining_event
 
         # Tell Snuba to delete the event data.
         eventstream.tombstone_events_unsafe(project_id, event_ids)
-    elif remaining_events_action == "keep":
+    elif remaining_events == "keep":
         eventstream.merge_events_unsafe(project_id, event_ids, new_group_id=new_group_id)
     else:
-        raise ValueError(
-            "Invalid value for remaining_events_action: {}".format(remaining_events_action)
-        )
+        raise ValueError("Invalid value for remaining_events: {}".format(remaining_events))
 
 
 @instrumented_task(

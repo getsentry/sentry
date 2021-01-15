@@ -2,15 +2,16 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
-import {SelectField} from 'app/components/forms';
-import ApiForm from 'app/components/forms/apiForm';
-import NumberField from 'app/components/forms/numberField';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Group, Organization, Project} from 'app/types';
+import Form from 'app/views/settings/components/forms/form';
+import NumberField from 'app/views/settings/components/forms/numberField';
+import RadioField from 'app/views/settings/components/forms/radioField';
 
 const impacts = [
   tct(
@@ -37,12 +38,16 @@ type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'closeModal'> & {
   organization: Organization;
 };
 
-function ReprocessingDialogForm({group, organization, Header, Body, closeModal}: Props) {
-  const orgSlug = organization.slug;
-  const endpoint = `/organizations/${orgSlug}/issues/${group.id}/reprocessing/`;
-  const title = t('Reprocess Events');
+type State = {
+  maxEvents: string;
+};
 
-  function handleSuccess() {
+class ReprocessingDialogForm extends React.Component<Props, State> {
+  state: State = {maxEvents: ''};
+
+  handleSuccess = () => {
+    const {group, organization, closeModal} = this.props;
+    const orgSlug = organization.slug;
     const hasReprocessingV2Feature = !!organization.features?.includes('reprocessing-v2');
 
     if (hasReprocessingV2Feature) {
@@ -54,64 +59,69 @@ function ReprocessingDialogForm({group, organization, Header, Body, closeModal}:
     browserHistory.push(
       `/organizations/${orgSlug}/issues/?query=reprocessing.original_issue_id:${group.id}/`
     );
-  }
+  };
 
-  return (
-    <React.Fragment>
-      <Header closeButton>{title}</Header>
-      <Body>
-        <Introduction>
-          {t(
-            'Reprocessing applies any new debug files or grouping configuration to an Issue. Before you give it a try, you should probably consider these impacts:'
-          )}
-        </Introduction>
-        <StyledList symbol="bullet">
-          {impacts.map((impact, index) => (
-            <ListItem key={index}>{impact}</ListItem>
-          ))}
-        </StyledList>
-        <ApiForm
-          apiEndpoint={endpoint}
-          apiMethod="POST"
-          footerClass="modal-footer"
-          onSubmitSuccess={handleSuccess}
-          submitLabel={title}
-          submitLoadingMessage={t('Reprocessing\u2026')}
-          submitErrorMessage={t('Failed to reprocess. Please check your input.')}
-          onCancel={closeModal}
-        >
-          <NumberField
-            name="maxEvents"
-            label={t('Enter the number of events to be reprocessed')}
-            help={t(
-              'You can limit the number of events reprocessed in this Issue. If you set a limit, we will reprocess your most recent events.'
+  handleError = () => {
+    addErrorMessage(t('Failed to reprocess. Please check your input.'));
+  };
+
+  render() {
+    const {group, organization, Header, Body, closeModal} = this.props;
+    const {maxEvents} = this.state;
+    const orgSlug = organization.slug;
+    const endpoint = `/organizations/${orgSlug}/issues/${group.id}/reprocessing/`;
+    const title = t('Reprocess Events');
+
+    return (
+      <React.Fragment>
+        <Header closeButton>{title}</Header>
+        <Body>
+          <Introduction>
+            {t(
+              'Reprocessing applies any new debug files or grouping configuration to an Issue. Before you give it a try, you should probably consider these impacts:'
             )}
-            placeholder={t('Reprocess all events')}
-            min={1}
-          />
+          </Introduction>
+          <StyledList symbol="bullet">
+            {impacts.map((impact, index) => (
+              <ListItem key={index}>{impact}</ListItem>
+            ))}
+          </StyledList>
+          <Form
+            submitLabel={title}
+            apiEndpoint={endpoint}
+            apiMethod="POST"
+            initialData={{maxEvents: '', remainingEvents: 'keep'}}
+            onSubmitSuccess={this.handleSuccess}
+            onSubmitError={this.handleError}
+            onCancel={closeModal}
+            footerClass="modal-footer"
+          >
+            <NumberField
+              name="maxEvents"
+              label={t('Number of events to be reprocessed')}
+              help={t('If you set a limit, we will reprocess your most recent events.')}
+              placeholder={t('Reprocess all events')}
+              value={maxEvents}
+              onChange={v => this.setState({maxEvents: v.toString()})}
+              min={1}
+            />
 
-          {
-            // XXX(markus): The following field is required but cannot be
-            // effectively populated with a default value. Unless the user
-            // explicitly selects a value, nothing is sent to the server for
-            // whatever reason. Worked around on the server side.
-          }
-
-          <SelectField
-            name="remainingEventsAction"
-            choices={[
-              ['keep', t('Keep remaining events')],
-              ['delete', t('Delete remaining events')],
-            ]}
-            value="keep"
-            defaultValue="keep"
-            clearable={false}
-            required
-          />
-        </ApiForm>
-      </Body>
-    </React.Fragment>
-  );
+            <RadioField
+              orientInline
+              label={t('Remaining events')}
+              help={t('What to do with the events that are not reprocessed.')}
+              name="remainingEvents"
+              choices={[
+                ['keep', t('Keep')],
+                ['delete', t('Delete')],
+              ]}
+              disabled={maxEvents === ''}
+            />
+          </Form>
+        </Body>
+      </React.Fragment>
+    );
+  }
 }
 
 export default ReprocessingDialogForm;

@@ -205,7 +205,7 @@ def test_concurrent_events_go_into_new_group(
 
 @pytest.mark.django_db
 @pytest.mark.snuba
-@pytest.mark.parametrize("remaining_events_action", ["delete", "keep"])
+@pytest.mark.parametrize("remaining_events", ["delete", "keep"])
 def test_max_events(
     default_project,
     reset_snuba,
@@ -213,7 +213,7 @@ def test_max_events(
     process_and_save,
     burst_task_runner,
     monkeypatch,
-    remaining_events_action,
+    remaining_events,
 ):
     @register_event_preprocessor
     def event_preprocessor(data):
@@ -237,7 +237,7 @@ def test_max_events(
             default_project.id,
             group_id,
             max_events=len(event_ids) // 2,
-            remaining_events_action=remaining_events_action,
+            remaining_events=remaining_events,
         )
 
     burst(max_jobs=100)
@@ -245,24 +245,24 @@ def test_max_events(
     for i, event_id in enumerate(event_ids):
         event = eventstore.get_event_by_id(default_project.id, event_id)
         if i < len(event_ids) / 2:
-            if remaining_events_action == "delete":
+            if remaining_events == "delete":
                 assert event is None
-            elif remaining_events_action == "keep":
+            elif remaining_events == "keep":
                 assert event.group_id != group_id
                 assert dict(event.data) == dict(old_events[event_id].data)
             else:
-                raise ValueError(remaining_events_action)
+                raise ValueError(remaining_events)
         else:
             assert event.group_id != group_id
             assert int(event.data["contexts"]["reprocessing"]["original_issue_id"]) == group_id
             assert dict(event.data) != dict(old_events[event_id].data)
 
-    if remaining_events_action == "delete":
+    if remaining_events == "delete":
         assert event.group.times_seen == len(event_ids) // 2
-    elif remaining_events_action == "keep":
+    elif remaining_events == "keep":
         assert event.group.times_seen == len(event_ids)
     else:
-        raise ValueError(remaining_events_action)
+        raise ValueError(remaining_events)
 
     assert is_group_finished(group_id)
 
