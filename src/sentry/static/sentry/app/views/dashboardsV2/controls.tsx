@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import Confirm from 'app/components/confirm';
 import SelectControl from 'app/components/forms/selectControl';
 import {IconAdd, IconEdit} from 'app/icons';
 import {t} from 'app/locale';
@@ -58,16 +59,15 @@ class Controls extends React.Component<Props> {
       return (
         <ButtonBar gap={1} key="edit-controls">
           {cancelButton}
-          <Button
-            data-test-id="dashboard-delete"
-            onClick={e => {
-              e.preventDefault();
-              onDelete();
-            }}
+          <Confirm
             priority="danger"
+            message={t('Are you sure you want to delete this dashboard?')}
+            onConfirm={onDelete}
           >
-            {t('Delete')}
-          </Button>
+            <Button data-test-id="dashboard-delete" priority="danger">
+              {t('Delete')}
+            </Button>
+          </Confirm>
           <Button
             data-test-id="dashboard-commit"
             onClick={e => {
