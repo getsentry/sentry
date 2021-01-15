@@ -184,7 +184,7 @@ class VitalDetailContent extends React.Component<Props, State> {
                 eventView={eventView}
                 organization={organization}
                 location={location}
-                vitalName={vital}
+                vital={vital}
               />
             </StyledVitalInfo>
             <Table
