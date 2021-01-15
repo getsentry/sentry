@@ -51,11 +51,12 @@ class InputInline extends React.Component<Props, State> {
   static setValueOnEvent(
     event: React.FormEvent<HTMLDivElement>
   ): React.FormEvent<HTMLInputElement> {
-    const text =
-      (event.target as any).innerText || (event.currentTarget as any).innerText;
+    const text: string =
+      (event.target as HTMLDivElement).innerText ||
+      (event.currentTarget as HTMLDivElement).innerText;
 
-    (event.target as any).value = text;
-    (event.currentTarget as any).value = text;
+    (event.target as HTMLInputElement).value = text;
+    (event.currentTarget as HTMLInputElement).value = text;
     return event as React.FormEvent<HTMLInputElement>;
   }
 
@@ -80,6 +81,7 @@ class InputInline extends React.Component<Props, State> {
   focus = () => {
     if (this.refInput.current) {
       this.refInput.current.focus();
+      document.execCommand('selectAll', false, undefined);
     }
   };
 
@@ -91,7 +93,9 @@ class InputInline extends React.Component<Props, State> {
 
     callIfFunction(this.props.onBlur, InputInline.setValueOnEvent(event));
   };
+
   onFocus = (event: React.FocusEvent<HTMLDivElement>) => {
+    document.execCommand('selectAll', false, undefined);
     this.setState({isFocused: true});
     callIfFunction(this.props.onFocus, InputInline.setValueOnEvent(event));
   };
@@ -142,6 +146,7 @@ class InputInline extends React.Component<Props, State> {
 
     if (this.refInput.current) {
       this.refInput.current.focus();
+      document.execCommand('selectAll', false, undefined);
     }
 
     callIfFunction(this.props.onClick, InputInline.setValueOnEvent(event));
@@ -205,6 +210,7 @@ const Input = styled('div')<{
   line-height: inherit;
   border-radius: ${space(0.5)};
   background: transparent;
+  padding: 1px;
 
   &:focus,
   &:active {
