@@ -128,7 +128,7 @@ export function getSeriesSelection(
   location: Location,
   parameter = 'unselectedSeries'
 ): EChartOption.Legend['selected'] {
-  const unselectedSeries = decodeList(location.query[parameter]) ?? [];
+  const unselectedSeries = decodeList(location?.query[parameter]) ?? [];
   return unselectedSeries.reduce((selection, series) => {
     selection[series] = false;
     return selection;
