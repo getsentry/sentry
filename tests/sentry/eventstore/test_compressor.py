@@ -23,6 +23,8 @@ def _assert_roundtrip(data, assert_extra_keys=None):
 
 
 def test_basic():
+    assert deduplicate({}) == ({}, {})
+
     _assert_roundtrip({})
     _assert_roundtrip({"debug_meta": {}})
     _assert_roundtrip({"debug_meta": None})
