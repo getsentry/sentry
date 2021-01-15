@@ -27,7 +27,7 @@ def result_sorted(result):
 
 @freeze_time("2020-12-18T11:14:17.105Z")
 def test_timestamps():
-    query = _make_query("statsPeriod=1d&interval=12h")
+    query = _make_query("statsPeriod=1d&interval=12h&field=sum(session)")
 
     expected_timestamps = ["2020-12-17T12:00:00Z", "2020-12-18T00:00:00Z"]
     actual_timestamps = _get_timestamps(query)
