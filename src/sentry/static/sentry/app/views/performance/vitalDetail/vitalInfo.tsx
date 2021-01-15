@@ -6,25 +6,27 @@ import EventView from 'app/utils/discover/eventView';
 import {WebVital} from 'app/utils/discover/fields';
 import VitalsCardDiscoverQuery from 'app/views/performance/vitalDetail/vitalsCardsDiscoverQuery';
 
-import {VitalsCard} from '../landing/vitalsCards';
+import {VitalBar} from '../landing/vitalsCards';
 
 type Props = {
   eventView: EventView;
   organization: Organization;
   location: Location;
-  vitalName: WebVital;
+  vital: WebVital | WebVital[];
   hideBar?: boolean;
-  hideEmptyState?: boolean;
+  hideStates?: boolean;
   hideVitalPercentNames?: boolean;
   hideDurationDetail?: boolean;
 };
 
 export default function vitalInfo(props: Props) {
   const {
-    vitalName,
+    vital,
     eventView,
     organization,
     location,
+    hideBar,
+    hideStates,
     hideVitalPercentNames,
     hideDurationDetail,
   } = props;
@@ -33,19 +35,18 @@ export default function vitalInfo(props: Props) {
       eventView={eventView}
       orgSlug={organization.slug}
       location={location}
-      onlyVital={vitalName}
+      vitals={Array.isArray(vital) ? vital : [vital]}
     >
       {({isLoading, tableData}) => (
-        <React.Fragment>
-          <VitalsCard
-            tableData={tableData}
-            isLoading={isLoading}
-            {...props}
-            noBorder
-            showVitalPercentNames={!hideVitalPercentNames}
-            showDurationDetail={!hideDurationDetail}
-          />
-        </React.Fragment>
+        <VitalBar
+          isLoading={isLoading}
+          result={tableData?.data?.[0]}
+          vital={vital}
+          showBar={!hideBar}
+          showStates={!hideStates}
+          showVitalPercentNames={!hideVitalPercentNames}
+          showDurationDetail={!hideDurationDetail}
+        />
       )}
     </VitalsCardDiscoverQuery>
   );

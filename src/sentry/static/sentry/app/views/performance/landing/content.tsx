@@ -26,7 +26,7 @@ import {
   LANDING_DISPLAYS,
   LandingDisplayField,
 } from './utils';
-import VitalsCards from './vitalsCards';
+import {FrontendCards} from './vitalsCards';
 
 type Props = {
   organization: Organization;
@@ -133,11 +133,11 @@ class LandingContent extends React.Component<Props, State> {
                       </DropdownControl>
                     </ProjectTypeDropdown>
                   </SearchContainer>
-                  <VitalsCards
+                  <FrontendCards
                     eventView={frontendEventView}
                     organization={organization}
                     location={location}
-                    isAlwaysShown
+                    projects={projects}
                   />
                   {currentLandingDisplay.field === LandingDisplayField.FRONTEND && (
                     <FrontendDisplay
@@ -173,10 +173,12 @@ class LandingContent extends React.Component<Props, State> {
                   onSearch={handleSearch}
                 />
                 <Feature features={['performance-vitals-overview']}>
-                  <VitalsCards
+                  <FrontendCards
                     eventView={eventView}
                     organization={organization}
                     location={location}
+                    projects={projects}
+                    frontendOnly
                   />
                 </Feature>
                 <Charts
