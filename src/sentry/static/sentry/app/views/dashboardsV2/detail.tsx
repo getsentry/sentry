@@ -21,7 +21,7 @@ import withOrganization from 'app/utils/withOrganization';
 
 import Controls from './controls';
 import Dashboard from './dashboard';
-import {EMPTY_DASHBOARD} from './data';
+import {EMPTY_DASHBOARD, DEFAULT_STATS_PERIOD} from './data';
 import OrgDashboards from './orgDashboards';
 import DashboardTitle from './title';
 import {DashboardDetails, DashboardState, Widget} from './types';
@@ -247,6 +247,14 @@ class DashboardDetail extends React.Component<Props, State> {
     return (
       <GlobalSelectionHeader
         skipLoadLastUsed={organization.features.includes('global-views')}
+        defaultSelection={{
+          datetime: {
+            start: null,
+            end: null,
+            utc: false,
+            period: DEFAULT_STATS_PERIOD,
+          },
+        }}
       >
         <OrgDashboards
           api={api}
