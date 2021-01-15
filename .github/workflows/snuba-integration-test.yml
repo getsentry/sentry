@@ -1,4 +1,4 @@
-name: snuba integration [py3.6]
+name: snuba integration
 on:
   push:
     branches:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    name: snuba test py3.6
+    name: snuba test
     runs-on: ubuntu-16.04
     timeout-minutes: 30
     strategy:
@@ -41,7 +41,7 @@ jobs:
         id: python-version
         if: steps.changes.outputs.backend == 'true'
         run: |
-          echo "::set-output name=python-version::$(grep "3.6" .python-version)"
+          echo "::set-output name=python-version::$(cat .python-version)"
 
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
@@ -71,7 +71,7 @@ jobs:
           snuba: true
           kafka: true
 
-      - name: Run snuba test [py3.6] (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
+      - name: Run snuba test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         if: steps.changes.outputs.backend == 'true'
         run: |
           make test-snuba
