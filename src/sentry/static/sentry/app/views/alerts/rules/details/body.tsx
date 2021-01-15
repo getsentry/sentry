@@ -1,12 +1,15 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
+import EventsRequest from 'app/components/charts/eventsRequest';
 import {SectionHeading} from 'app/components/charts/styles';
+import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import Duration from 'app/components/duration';
 import * as Layout from 'app/components/layouts/thirds';
 import Link from 'app/components/links/link';
@@ -17,15 +20,14 @@ import SeenByList from 'app/components/seenByList';
 import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import {Organization, Project, SelectValue} from 'app/types';
 import {defined} from 'app/utils';
 import Projects from 'app/utils/projects';
 import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/settings/incidentRules/constants';
 import {makeDefaultCta} from 'app/views/settings/incidentRules/presets';
-import {AlertRuleThresholdType} from 'app/views/settings/incidentRules/types';
+import {AlertRuleThresholdType, TimePeriod} from 'app/views/settings/incidentRules/types';
 
 import Activity from '../../details/activity';
-import Chart from '../../details/chart';
 import {
   AlertRuleStatus,
   Incident,
@@ -35,12 +37,22 @@ import {
 } from '../../types';
 import {DATA_SOURCE_LABELS, getIncidentMetricPreset} from '../../utils';
 
+import MetricChart from './metricChart';
+
 type Props = {
+  api: Client;
   incident?: Incident;
   stats?: IncidentStats;
   organization: Organization;
   location: Location;
 } & RouteComponentProps<{orgId: string}, {}>;
+
+const TIME_OPTIONS: SelectValue<string>[] = [
+  {label: t('6 hours'), value: TimePeriod.SIX_HOURS},
+  {label: t('24 hours'), value: TimePeriod.ONE_DAY},
+  {label: t('3 days'), value: TimePeriod.THREE_DAYS},
+  {label: t('7 days'), value: TimePeriod.SEVEN_DAYS},
+];
 
 export default class DetailsBody extends React.Component<Props> {
   get metricPreset() {
@@ -65,6 +77,24 @@ export default class DetailsBody extends React.Component<Props> {
 
     return `${direction} ${value}`;
   }
+
+  getTimePeriod() {
+    const {location} = this.props;
+
+    const timePeriod = location.query.period ?? TimePeriod.ONE_DAY;
+    return TIME_OPTIONS.find(item => item.value === timePeriod) ?? TIME_OPTIONS[1];
+  }
+
+  handleTimePeriodChange = (value: string) => {
+    const {location} = this.props;
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        period: value,
+      },
+    });
+  };
 
   renderRuleDetails() {
     const {incident} = this.props;
@@ -210,7 +240,10 @@ export default class DetailsBody extends React.Component<Props> {
   }
 
   render() {
-    const {params, incident, stats} = this.props;
+    const {api, params, incident, organization} = this.props;
+    const {query, environment, aggregate, projects: projectSlugs} =
+      incident?.alertRule ?? {};
+    const timePeriod = this.getTimePeriod();
 
     return (
       <Layout.Body>
@@ -226,21 +259,52 @@ export default class DetailsBody extends React.Component<Props> {
                 </Alert>
               </AlertWrapper>
             )}
+          <StyledDropdownControl
+            buttonProps={{prefix: t('Display')}}
+            label={timePeriod.label}
+          >
+            {TIME_OPTIONS.map(({label, value}) => (
+              <DropdownItem
+                key={value}
+                eventKey={value}
+                onSelect={this.handleTimePeriodChange}
+              >
+                {label}
+              </DropdownItem>
+            ))}
+          </StyledDropdownControl>
           <ChartPanel>
             <PanelBody withPadding>
               {this.renderChartHeader()}
-              {incident && stats ? (
-                <Chart
-                  triggers={incident.alertRule.triggers}
-                  resolveThreshold={incident.alertRule.resolveThreshold}
-                  aggregate={incident.alertRule.aggregate}
-                  data={stats.eventStats.data}
-                  started={incident.dateStarted}
-                  closed={incident.dateClosed || undefined}
-                />
-              ) : (
-                <Placeholder height="200px" />
-              )}
+              <Projects orgId={organization.id} slugs={projectSlugs}>
+                {({initiallyLoaded, projects}) => {
+                  return initiallyLoaded && incident && incident.alertRule ? (
+                    <EventsRequest
+                      api={api}
+                      organization={organization}
+                      query={query}
+                      environment={environment ? [environment] : undefined}
+                      project={(projects as Project[]).map(project => Number(project.id))}
+                      // TODO(davidenwang): allow interval to be changed for larger time periods
+                      interval="5m"
+                      period={timePeriod.value}
+                      yAxis={aggregate}
+                      includePrevious={false}
+                      currentSeriesName={aggregate}
+                    >
+                      {({loading, timeseriesData}) =>
+                        !loading && timeseriesData ? (
+                          <MetricChart data={timeseriesData} />
+                        ) : (
+                          <Placeholder height="200px" />
+                        )
+                      }
+                    </EventsRequest>
+                  ) : (
+                    <Placeholder height="200px" />
+                  );
+                }}
+              </Projects>
             </PanelBody>
             {this.renderChartActions()}
           </ChartPanel>
@@ -319,6 +383,11 @@ const SideHeaderLink = styled(Link)`
 `;
 
 const ChartPanel = styled(Panel)``;
+
+const StyledDropdownControl = styled(DropdownControl)`
+  margin-bottom: ${space(2)};
+  margin-right: ${space(1)};
+`;
 
 const ChartHeader = styled('header')`
   margin-bottom: ${space(1)};
