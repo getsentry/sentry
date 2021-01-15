@@ -39,6 +39,11 @@ FUZZY_NUMERIC_KEYS = frozenset(
 )
 FUZZY_NUMERIC_DISTANCE = 50
 
+# Since all event types are currently stored together, we need to manually exclude transactions
+# when querying the events dataset. This condition can be dropped once we cut over to the errors
+# storage in Snuba.
+DEFAULT_TYPE_CONDITION = ["type", "!=", "transaction"]
+
 tag_value_data_transformers = {"first_seen": parse_datetime, "last_seen": parse_datetime}
 
 
@@ -61,7 +66,7 @@ class SnubaTagStorage(TagStorage):
             filters["environment"] = [environment_id]
         if group_id is not None:
             filters["group_id"] = [group_id]
-        conditions = [[tag, "!=", ""]]
+        conditions = [[tag, "!=", ""], DEFAULT_TYPE_CONDITION]
         aggregations = [["uniq", tag, "values_seen"], ["count()", "", "count"]]
 
         result = snuba.query(
@@ -93,6 +98,7 @@ class SnubaTagStorage(TagStorage):
         aggregations = kwargs.get("aggregations", [])
 
         conditions.append([tag, "!=", ""])
+        conditions.append(DEFAULT_TYPE_CONDITION)
         aggregations += [
             ["uniq", tag, "values_seen"],
             ["count()", "", "count"],
@@ -206,6 +212,7 @@ class SnubaTagStorage(TagStorage):
 
         if include_values_seen:
             aggregations.append(["uniq", "tags_value", "values_seen"])
+        conditions = [DEFAULT_TYPE_CONDITION]
         conditions = []
 
         should_cache = use_cache and group_id is None
@@ -377,7 +384,7 @@ class SnubaTagStorage(TagStorage):
         filters = {"project_id": project_ids, "group_id": group_id_list}
         if environment_ids:
             filters["environment"] = environment_ids
-        conditions = [[tag, "=", value]]
+        conditions = [[tag, "=", value], DEFAULT_TYPE_CONDITION]
         aggregations = [
             ["count()", "", "times_seen"],
             ["min", SEEN_COLUMN, "first_seen"],
@@ -415,7 +422,7 @@ class SnubaTagStorage(TagStorage):
             start=start,
             end=end,
             groupby=["group_id"],
-            conditions=None,
+            conditions=[DEFAULT_TYPE_CONDITION],
             filter_keys=filters,
             aggregations=aggregations,
             referrer="tagstore.get_group_seen_values_for_environments",
@@ -471,6 +478,7 @@ class SnubaTagStorage(TagStorage):
         if group_id is not None:
             filters["group_id"] = [group_id]
         conditions = kwargs.get("conditions", [])
+        conditions.append(DEFAULT_TYPE_CONDITION)
         aggregations = kwargs.get("aggregations", [])
         aggregations += [
             ["count()", "", "count"],
@@ -514,7 +522,7 @@ class SnubaTagStorage(TagStorage):
 
     def __get_release(self, project_id, group_id, first=True):
         filters = {"project_id": get_project_list(project_id)}
-        conditions = [["tags[sentry:release]", "IS NOT NULL", None]]
+        conditions = [["tags[sentry:release]", "IS NOT NULL", None], DEFAULT_TYPE_CONDITION]
         if group_id is not None:
             filters["group_id"] = [group_id]
         aggregations = [["min" if first else "max", SEEN_COLUMN, "seen"]]
@@ -549,7 +557,7 @@ class SnubaTagStorage(TagStorage):
         # release ids which would need to be translated by the snuba util.
         tag = "sentry:release"
         col = u"tags[{}]".format(tag)
-        conditions = [[col, "IN", versions]]
+        conditions = [[col, "IN", versions], DEFAULT_TYPE_CONDITION]
         aggregations = [
             ["count()", "", "times_seen"],
             ["min", SEEN_COLUMN, "first_seen"],
@@ -721,7 +729,7 @@ class SnubaTagStorage(TagStorage):
                 ]
             )
 
-        conditions = []
+        conditions = [DEFAULT_TYPE_CONDITION]
         # transaction status needs a special case so that the user interacts with the names and not codes
         transaction_status = snuba_key == "transaction_status"
         if include_transactions and transaction_status:
