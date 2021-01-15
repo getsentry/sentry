@@ -421,6 +421,7 @@ def build_group_actions(group, event, rules, integration):
             "card": {
                 "type": "AdaptiveCard",
                 "body": [
+                    {"type": "TextBlock", "text": "Resolve", "weight": "Bolder"},
                     {
                         "type": "Input.ChoiceSet",
                         "id": "resolveInput",
@@ -432,7 +433,7 @@ def build_group_actions(group, event, rules, integration):
                             },
                             {"title": "In the next release", "value": "resolved:inNextRelease"},
                         ],
-                    }
+                    },
                 ],
                 "actions": [
                     {
@@ -461,6 +462,11 @@ def build_group_actions(group, event, rules, integration):
                 "type": "AdaptiveCard",
                 "body": [
                     {
+                        "type": "TextBlock",
+                        "text": "Ignore until this happens again...",
+                        "weight": "Bolder",
+                    },
+                    {
                         "type": "Input.ChoiceSet",
                         "id": "ignoreInput",
                         "choices": [
@@ -471,7 +477,7 @@ def build_group_actions(group, event, rules, integration):
                             {"title": "1,000 times", "value": 1000},
                             {"title": "10,000 times", "value": 10000},
                         ],
-                    }
+                    },
                 ],
                 "actions": [
                     {
@@ -519,64 +525,48 @@ def build_group_actions(group, event, rules, integration):
         }
 
     return {
-        "type": "ColumnSet",
-        "columns": [
-            {
-                "type": "Column",
-                "items": [{"type": "ActionSet", "actions": [resolve_action]}],
-                "width": "stretch",
-            },
-            {
-                "type": "Column",
-                "items": [{"type": "ActionSet", "actions": [ignore_action]}],
-                "width": "stretch",
-            },
-            {
-                "type": "Column",
-                "items": [{"type": "ActionSet", "actions": [assign_action]}],
-                "width": "stretch",
-            },
-        ],
+        "type": "Container",
+        "items": [{"type": "ActionSet", "actions": [resolve_action, ignore_action, assign_action]}],
     }
 
 
 def build_group_resolve_card(group, event, rules, integration):
-    title_card = {
-        "type": "TextBlock",
-        "size": "Large",
-        "text": "Resolve",
-        "weight": "Bolder",
-        "id": "resolveTitle",
-        "isVisible": False,
-    }
-
-    return [title_card]
+    return [
+        {
+            "type": "TextBlock",
+            "size": "Large",
+            "text": "Resolve",
+            "weight": "Bolder",
+            "id": "resolveTitle",
+            "isVisible": False,
+        }
+    ]
 
 
 def build_group_ignore_card(group, event, rules, integration):
-    title_card = {
-        "type": "TextBlock",
-        "size": "Large",
-        "text": "Ignore until this happens again...",
-        "weight": "Bolder",
-        "id": "ignoreTitle",
-        "isVisible": False,
-    }
-
-    return [title_card]
+    return [
+        {
+            "type": "TextBlock",
+            "size": "Large",
+            "text": "Ignore until this happens again...",
+            "weight": "Bolder",
+            "id": "ignoreTitle",
+            "isVisible": False,
+        }
+    ]
 
 
 def build_group_assign_card(group, event, rules, integration):
-    title_card = {
-        "type": "TextBlock",
-        "size": "Large",
-        "text": "Assign to...",
-        "weight": "Bolder",
-        "id": "assignTitle",
-        "isVisible": False,
-    }
-
-    return [title_card]
+    return [
+        {
+            "type": "TextBlock",
+            "size": "Large",
+            "text": "Assign to...",
+            "weight": "Bolder",
+            "id": "assignTitle",
+            "isVisible": False,
+        }
+    ]
 
 
 def build_group_action_cards(group, event, rules, integration):
@@ -617,9 +607,6 @@ def build_group_card(group, event, rules, integration):
 
     actions = build_group_actions(group, event, rules, integration)
     body.append(actions)
-
-    # action_cards = build_group_action_cards(group, event, rules, integration)
-    # body.append(action_cards)
 
     return {
         "type": "AdaptiveCard",
