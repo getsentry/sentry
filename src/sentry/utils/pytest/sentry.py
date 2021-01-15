@@ -134,9 +134,9 @@ def pytest_configure(config):
             "aws-lambda.access-key-id": "aws-key-id",
             "aws-lambda.secret-access-key": "aws-secret-access-key",
             "aws-lambda.cloudformation-url": "https://example.com/file.json",
-            "aws-lambda.node-layer-name": "my-layer",
-            "aws-lambda.node-layer-version": "3",
-            "aws-lambda.host-account-id": "1234",
+            "aws-lambda.account-number": "1234",
+            "aws-lambda.node.layer-name": "my-layer",
+            "aws-lambda.node.layer-version": "3",
         }
     )
 
