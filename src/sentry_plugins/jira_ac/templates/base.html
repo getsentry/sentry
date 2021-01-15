@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="stylesheet" href="//aui-cdn.atlassian.com/aui-adg/5.10.1/css/aui.min.css" media="all">
+  <link rel="stylesheet" href="{% asset_url 'sentry' 'vendor/aui-prototyping.9.1.5.css' %}" media="all">
   <style type="text/css">
     ul {
       padding-left: 0px;
@@ -12,25 +12,6 @@
       list-style-type: none;
       margin: 0px;
       padding: 10px 0px;
-    }
-
-    .reporter {
-      position: relative;
-    }
-
-    .reporter img {
-      border-radius: 3px;
-      position: absolute;
-      left: 0;
-      top: 4px;
-      width: 32px;
-      height: 32px;
-    }
-
-    .reporter span {
-      display: block;
-      padding-left: 42px;
-      min-height: 32px;
     }
 
     .aui-item.error-level {
@@ -49,24 +30,8 @@
       padding-left: 10px;
     }
 
-    .aui-item.error-level .sentry-error {
-      background-color: #d04437;
-    }
-
-    .aui-item.error-level .sentry-info {
-      background-color: #205081;
-    }
-
-    .aui-item.error-level .sentry-warning {
-      background-color: #f6c342;
-    }
-
     #content {
       background-color: #ffffff;
-    }
-
-    .last-seen {
-      color: #999ca0;
     }
 
     #login .aui-page-panel {
@@ -80,6 +45,7 @@
     }
 
     body.aui-page-focused.aui-page-size-medium #page {
+      padding-top: 25px;
       padding-bottom: 25px;
     }
 
@@ -87,7 +53,10 @@
   {% script src=ac_js_src %}{% endscript %}
   {% asset_url 'sentry' 'vendor/jquery.2.2.4.min.js' as jquery_url %}
   {% script src=jquery_url %}{% endscript %}
-  {% script src="//aui-cdn.atlassian.com/aui-adg/5.10.1/js/aui.min.js" %}{% endscript %}
+
+  {% asset_url 'sentry' 'vendor/aui-prototyping.9.1.5.js' as aui_js_url %}
+  {% script src=aui_js_url %}{% endscript %}
+
   {% script type="text/javascript" %}
     <script>
     /*

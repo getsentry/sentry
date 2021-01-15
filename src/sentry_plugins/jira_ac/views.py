@@ -74,15 +74,9 @@ class JiraUIWidgetView(BaseJiraWidgetView):
                 )
                 scope.set_tag("result", "error.no_org")
                 return self.get_response("error.html", context)
+
             bind_organization_context(org)
-            context.update(
-                {
-                    "sentry_api_url": absolute_uri(
-                        "/api/0/organizations/%s/users/issues/" % (org.slug,)
-                    ),
-                    "issue_key": self.request.GET.get("issueKey"),
-                }
-            )
+            context.update({"organization_slug": org.slug})
 
             scope.set_tag("result", "success")
             return self.get_response("widget.html", context)
