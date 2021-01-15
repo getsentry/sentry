@@ -42,9 +42,9 @@ def check_arn_is_valid_cloudformation_stack(arn):
 def _get_aws_node_arn(region):
     return u"arn:aws:lambda:{}:{}:layer:{}:{}".format(
         region,
-        options.get("aws-lambda.host-account-id"),
-        options.get("aws-lambda.node-layer-name"),
-        options.get("aws-lambda.node-layer-version"),
+        options.get("aws-lambda.account-number"),
+        options.get("aws-lambda.node.layer-name"),
+        options.get("aws-lambda.node.layer-version"),
     )
 
 
@@ -79,7 +79,7 @@ def get_latest_layer_for_function(function):
 
 def get_latest_layer_version(runtime):
     if runtime.startswith("nodejs"):
-        return int(options.get("aws-lambda.node-layer-version"))
+        return int(options.get("aws-lambda.node.layer-version"))
     # update when we can handle other runtimes like Python
     raise Exception("Unsupported runtime")
 
