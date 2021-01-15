@@ -1,5 +1,5 @@
 ---
-created: '2021-01-07T02:27:06.404922Z'
+created: '2021-01-15T02:30:09.074735Z'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -19,7 +19,8 @@ config:
     - - module
       - '*EnhancerByGuice*'
   version: 1
-fingerprint: null
+fingerprint:
+- '{{ default }}'
 title: <unlabeled event>
 variants:
   app:

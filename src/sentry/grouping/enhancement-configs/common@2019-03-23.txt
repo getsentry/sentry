@@ -63,4 +63,5 @@ family:native function:"?[[]RNSentry *"                             -app -group
 family:native function:"?[[]SentrySDK *"                             -app -group
 
 # Java
-family:other module:*EnhancerByGuice*                          -app -group
+# Match $$EnhancerByGuice$$ and $$FastClassByGuice$$ with a single rule:
+family:java module:*ByGuice$$*                          -app -group

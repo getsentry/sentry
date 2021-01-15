@@ -16,6 +16,8 @@ from sentry.stacktraces.platform import get_behavior_family_for_platform
         ("javascript", "javascript"),
         ("node", "javascript"),
         ("elixir", "other"),
+        ("java", "java"),
+        ("groovy", "java"),
         ("whatever", "other"),
     ],
 )
