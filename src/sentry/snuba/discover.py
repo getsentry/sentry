@@ -996,8 +996,6 @@ def histogram_query(
         orderby=[histogram_alias],
         limit=len(fields) * num_buckets,
         referrer=referrer,
-        auto_fields=True,
-        use_aggregate_conditions=True,
         functions_acl=["array_join", "histogram"],
     )
 
@@ -1094,9 +1092,6 @@ def find_histogram_min_max(fields, min_value, max_value, user_query, params, dat
         params=params,
         limit=1,
         referrer="api.organization-events-histogram-min-max",
-        auto_fields=True,
-        auto_aggregations=True,
-        use_aggregate_conditions=True,
     )
 
     data = results.get("data")
