@@ -60,6 +60,5 @@ const Value = styled('div')`
 `;
 
 const Separator = styled(Value)`
-  color: ${p => p.theme.gray200};
   padding-right: ${space(0.5)};
 `;

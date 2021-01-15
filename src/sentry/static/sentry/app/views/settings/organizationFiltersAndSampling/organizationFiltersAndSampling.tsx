@@ -1,4 +1,5 @@
 import React from 'react';
+import isEqual from 'lodash/isEqual';
 
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
@@ -32,6 +33,18 @@ class OrganizationFiltersAndSampling extends AsyncView<Props, State> {
 
   componentDidMount() {
     this.getTransactionsRules();
+  }
+
+  componentDidUpdate(prevProps: Props, prevState: State) {
+    if (
+      !isEqual(
+        this.props.organization.dynamicSampling,
+        prevProps.organization.dynamicSampling
+      )
+    ) {
+      this.getTransactionsRules();
+    }
+    super.componentDidUpdate(prevProps, prevState);
   }
 
   getTransactionsRules() {

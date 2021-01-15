@@ -30,9 +30,9 @@ function Type({type}: Props) {
 export default Type;
 
 const ErrorLabel = styled('div')`
-  color: ${p => p.theme.pink300};
+  color: ${p => p.theme.active};
 `;
 
 const TransactionLabel = styled('div')`
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.linkColor};
 `;
