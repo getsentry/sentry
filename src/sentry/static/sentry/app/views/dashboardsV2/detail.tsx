@@ -21,7 +21,7 @@ import withOrganization from 'app/utils/withOrganization';
 
 import Controls from './controls';
 import Dashboard from './dashboard';
-import {EMPTY_DASHBOARD, DEFAULT_STATS_PERIOD} from './data';
+import {DEFAULT_STATS_PERIOD, EMPTY_DASHBOARD} from './data';
 import OrgDashboards from './orgDashboards';
 import DashboardTitle from './title';
 import {DashboardDetails, DashboardState, Widget} from './types';
