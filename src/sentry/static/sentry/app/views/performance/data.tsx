@@ -26,7 +26,7 @@ export const COLUMN_TITLES = [
   'user misery',
 ];
 
-type TooltipOption = SelectValue<string> & {
+export type TooltipOption = SelectValue<string> & {
   tooltip: string;
 };
 
@@ -65,6 +65,23 @@ export function getAxisOptions(organization: LightWeightOrganization): TooltipOp
   ];
 }
 
+export function getFrontendAxisOptions(
+  organization: LightWeightOrganization
+): TooltipOption[] {
+  return [
+    {
+      tooltip: getTermHelp(organization, 'lcp'),
+      value: `p75(lcp)`,
+      label: t('LCP p75'),
+    },
+    {
+      tooltip: getTermHelp(organization, 'lcp'),
+      value: 'lcp_distribution',
+      label: t('LCP Distribution'),
+    },
+  ];
+}
+
 type TermFormatter = (organization: LightWeightOrganization) => string;
 
 const PERFORMANCE_TERMS: Record<string, TermFormatter> = {
@@ -80,6 +97,8 @@ const PERFORMANCE_TERMS: Record<string, TermFormatter> = {
   p50: () => t('p50 indicates the duration that 50% of transactions are faster than.'),
   p95: () => t('p95 indicates the duration that 95% of transactions are faster than.'),
   p99: () => t('p99 indicates the duration that 99% of transactions are faster than.'),
+  lcp: () =>
+    t('Largest contentful paint (LCP) is a web vital meant to represent user load times'),
   userMisery: organization =>
     t(
       "User misery is the percentage of users who are experiencing load times 4x your organization's apdex threshold of %sms.",
@@ -122,6 +141,54 @@ export function generatePerformanceEventView(
       'p95()',
       'failure_rate()',
       `apdex(${organization.apdexThreshold})`,
+      'count_unique(user)',
+      `user_misery(${organization.apdexThreshold})`,
+    ],
+    version: 2,
+  };
+
+  if (!query.statsPeriod && !hasStartAndEnd) {
+    savedQuery.range = DEFAULT_STATS_PERIOD;
+  }
+  savedQuery.orderby = decodeScalar(query.sort) || '-tpm';
+
+  const searchQuery = decodeScalar(query.query) || '';
+  const conditions = tokenizeSearch(searchQuery);
+  conditions.setTagValues('event.type', ['transaction']);
+  conditions.setTagValues('transaction.duration', ['<15m']);
+
+  // If there is a bare text search, we want to treat it as a search
+  // on the transaction name.
+  if (conditions.query.length > 0) {
+    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`]);
+    conditions.query = [];
+  }
+  savedQuery.query = stringifyQueryObject(conditions);
+
+  return EventView.fromNewQueryWithLocation(savedQuery, location);
+}
+
+export function generateFrontendPerformanceEventView(
+  organization: LightWeightOrganization,
+  location: Location
+): EventView {
+  const {query} = location;
+
+  const hasStartAndEnd = query.start && query.end;
+  const savedQuery: NewQuery = {
+    id: undefined,
+    name: t('Performance'),
+    query: 'event.type:transaction',
+    projects: [],
+    fields: [
+      'key_transaction',
+      'transaction',
+      'project',
+      'tpm()',
+      'p75(measurements.fcp)',
+      'p75(measurements.lcp)',
+      'p75(measurements.fid)',
+      'p75(measurements.cls)',
       'count_unique(user)',
       `user_misery(${organization.apdexThreshold})`,
     ],

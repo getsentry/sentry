@@ -6,10 +6,11 @@
     {% script src=ac_js_src %}{% endscript %}
     {% asset_url 'sentry' 'vendor/jquery.2.2.4.min.js' as jquery_url %}
     {% script src=jquery_url %}{% endscript %}
-    {% script src="//aui-cdn.atlassian.com/aui-adg/6.0.9/js/aui.min.js" %}{% endscript %}
+    {% asset_url 'sentry' 'vendor/aui-prototyping.9.1.5.js' as aui_js_url %}
+    {% script src=aui_js_url %}{% endscript %}
     <link
       rel="stylesheet"
-      href="//aui-cdn.atlassian.com/aui-adg/6.0.9/css/aui.min.css"
+      href="{% asset_url 'sentry' 'vendor/aui-prototyping.9.1.5.css' %}"
       media="all"
     />
     <style>

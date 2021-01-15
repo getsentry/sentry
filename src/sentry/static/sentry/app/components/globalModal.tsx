@@ -1,4 +1,5 @@
 import React from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {Modal} from 'react-bootstrap';
 import {browserHistory} from 'react-router';
 import {ClassNames} from '@emotion/core';

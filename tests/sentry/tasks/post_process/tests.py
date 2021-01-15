@@ -260,7 +260,7 @@ class PostProcessGroupTest(TestCase):
         )
 
     def test_owner_assignment_path_precedence(self):
-        with self.feature("projects:workflow-owners-ingestion"):
+        with self.feature("organizations:workflow-owners"):
             self.make_ownership()
             event = self.store_event(
                 data={
@@ -289,7 +289,7 @@ class PostProcessGroupTest(TestCase):
             }
 
     def test_owner_assignment_extra_groups(self):
-        with self.feature("projects:workflow-owners-ingestion"):
+        with self.feature("organizations:workflow-owners"):
             extra_user = self.create_user()
             self.create_team_membership(self.team, user=extra_user)
             self.make_ownership(
@@ -324,7 +324,7 @@ class PostProcessGroupTest(TestCase):
             }
 
     def test_owner_assignment_existing_owners(self):
-        with self.feature("projects:workflow-owners-ingestion"):
+        with self.feature("organizations:workflow-owners"):
             extra_user = self.create_user()
             self.create_team_membership(self.team, user=extra_user)
             self.make_ownership(
@@ -714,3 +714,16 @@ class PostProcessGroupTest(TestCase):
         # assert GroupInbox.objects.filter(
         #     group=group, reason=GroupInboxReason.REGRESSION.value
         # ).exists()
+
+    def test_nodestore_stats(self):
+        event = self.store_event(data={"message": "testing"}, project_id=self.project.id)
+        cache_key = write_event_to_cache(event)
+
+        with self.options({"store.nodestore-stats-sample-rate": 1.0}), self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=True,
+                is_new_group_environment=False,
+                cache_key=cache_key,
+                group_id=event.group_id,
+            )

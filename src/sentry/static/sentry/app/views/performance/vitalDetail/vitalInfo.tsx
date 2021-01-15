@@ -6,7 +6,7 @@ import EventView from 'app/utils/discover/eventView';
 import {WebVital} from 'app/utils/discover/fields';
 import VitalsCardDiscoverQuery from 'app/views/performance/vitalDetail/vitalsCardsDiscoverQuery';
 
-import {VitalsCard} from '../vitalsCards';
+import {VitalsCard} from '../landing/vitalsCards';
 
 type Props = {
   eventView: EventView;

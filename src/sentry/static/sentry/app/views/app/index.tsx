@@ -198,14 +198,14 @@ class App extends React.Component<Props, State> {
     }
   }
 
-  @keydown('meta+shift+p', 'meta+k')
+  @keydown('meta+shift+p', 'meta+k', 'ctrl+shift+p', 'ctrl+k')
   openCommandPalette(e) {
     openCommandPalette();
     e.preventDefault();
     e.stopPropagation();
   }
 
-  @keydown('meta+shift+l')
+  @keydown('meta+shift+l', 'ctrl+shift+l')
   toggleDarkMode() {
     ConfigStore.set('theme', ConfigStore.get('theme') === 'light' ? 'dark' : 'light');
   }
