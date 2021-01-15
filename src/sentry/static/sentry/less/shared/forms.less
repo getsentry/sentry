@@ -609,11 +609,6 @@ output {
     min-height: (@line-height-computed + (@padding-base-vertical + 1));
   }
 
-  // Make form groups behave like rows
-  .form-group {
-    .make-row();
-  }
-
   // Reset spacing and right align labels, but scope to media queries so that
   // labels on narrow viewports stack the same as a default form example.
   @media (min-width: @screen-sm-min) {
