@@ -1376,10 +1376,47 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group1"],
+                "event_id": "3" * 32,
+                "message": "something",
+                "timestamp": iso_format(self.base_datetime),
+            },
+            project_id=self.project.id,
+        )
+
+        fewer_events_group = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group4"],
+                "event_id": "4" * 32,
+                "message": "something",
+                "timestamp": iso_format(middle - timedelta(days=1)),
+            },
+            project_id=self.project.id,
+        ).group
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group4"],
+                "event_id": "5" * 32,
+                "message": "something",
+                "timestamp": iso_format(middle - timedelta(days=1)),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group4"],
+                "event_id": "6" * 32,
+                "message": "something",
+                "timestamp": iso_format(self.base_datetime),
+            },
+            project_id=self.project.id,
+        )
 
         no_before_group = self.store_event(
             data={
-                "fingerprint": ["put-me-in-group4"],
+                "fingerprint": ["put-me-in-group5"],
                 "event_id": "3" * 32,
                 "message": "something",
                 "timestamp": iso_format(self.base_datetime),
@@ -1388,7 +1425,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         ).group
         no_after_group = self.store_event(
             data={
-                "fingerprint": ["put-me-in-group5"],
+                "fingerprint": ["put-me-in-group6"],
                 "event_id": "4" * 32,
                 "message": "something",
                 "timestamp": iso_format(middle - timedelta(days=1)),
@@ -1398,9 +1435,9 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
 
         self.set_up_multi_project()
         results = self.make_query([self.project], sort_by="trend", date_from=start, date_to=end)
-        assert results[0] == self.group1
+        assert results[:2] == [self.group1, fewer_events_group]
         # These will be arbitrarily ordered since their trend values are all 0
-        assert set(results[1:]) == set([self.group2, no_before_group, no_after_group])
+        assert set(results[2:]) == set([self.group2, no_before_group, no_after_group])
 
     def test_first_release_any_or_no_environments(self):
         # test scenarios for tickets:

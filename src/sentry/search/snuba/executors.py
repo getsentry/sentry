@@ -226,8 +226,8 @@ def trend_aggregation(start, end):
     middle = start + timedelta(seconds=(end - start).total_seconds() * 0.5)
     middle = datetime.strftime(middle, DateArg.date_format)
 
-    agg_range_1 = "countIf(lessOrEquals(toDateTime('{}'), timestamp))".format(middle)
-    agg_range_2 = "countIf(greater(toDateTime('{}'), timestamp))".format(middle)
+    agg_range_1 = "countIf(greater(toDateTime('{}'), timestamp))".format(middle)
+    agg_range_2 = "countIf(lessOrEquals(toDateTime('{}'), timestamp))".format(middle)
     return [
         "if(greater({}, 0), divide({}, {}), 0)".format(agg_range_1, agg_range_2, agg_range_1),
         "",
