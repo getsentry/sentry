@@ -214,7 +214,11 @@ def configure_sdk():
                     metrics.incr("internal.captured.events.relay")
                     getattr(relay_transport, method_name)(*args, **kwargs)
                 else:
-                    metrics.incr("internal.uncaptured.events.relay", skip_internal=False)
+                    metrics.incr(
+                        "internal.uncaptured.events.relay",
+                        skip_internal=False,
+                        tags={"reason": "unsafe"},
+                    )
 
     sentry_sdk.init(
         transport=MultiplexingTransport(),
