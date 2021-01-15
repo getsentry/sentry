@@ -173,7 +173,8 @@ class Symbolicator(object):
                 metrics.timing(
                     "events.symbolicator.response.completed.size", len(json.dumps(json_response))
                 )
-                return redact_internal_sources(json_response)
+                # return redact_internal_sources(json_response)
+                return json_response
 
     def process_minidump(self, minidump):
         return self._process(lambda: self.sess.upload_minidump(minidump), "process_minidump")
