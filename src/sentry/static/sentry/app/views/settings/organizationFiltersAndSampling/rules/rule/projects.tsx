@@ -1,26 +1,32 @@
 import React from 'react';
 
 import PlatformList from 'app/components/platformList';
-import {PlatformKey} from 'app/data/platformCategories';
 import {t} from 'app/locale';
-import {Project} from 'app/types';
-import withProjects from 'app/utils/withProjects';
+import {Organization, Project} from 'app/types';
+import Projects from 'app/utils/projects';
+import withOrganization from 'app/utils/withOrganization';
 
 type Props = {
   projectIds: Array<number>;
-  projects: Array<Project>;
+  organization: Organization;
 };
 
-function Projects({projectIds, projects}: Props) {
+function ProjectList({projectIds, organization}: Props) {
   if (!projectIds.length) {
     return <React.Fragment>{t('All')}</React.Fragment>;
   }
 
-  const projectPlatforms = projects
-    .filter(project => projectIds.includes(Number(project.id)))
-    .map(({platform}) => platform ?? 'other') as Array<PlatformKey>;
-
-  return <PlatformList platforms={projectPlatforms} />;
+  return (
+    <Projects orgId={organization.slug} allProjects>
+      {({projects}) => {
+        const projectPlatforms = projectIds.map(projectId => {
+          const project = (projects as Project[]).find(p => p.id === String(projectId));
+          return project?.platform ?? 'other';
+        });
+        return <PlatformList platforms={projectPlatforms} />;
+      }}
+    </Projects>
+  );
 }
 
-export default withProjects(Projects);
+export default withOrganization(ProjectList);
