@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import copy
 import sys
 import jsonschema
 import logging
@@ -242,7 +243,7 @@ def redact_internal_sources_from_module(module):
         else:
             new_candidates.append(candidate)
 
-    for i, candidate in enumerate(new_candidates.copy()):
+    for i, candidate in enumerate(copy.copy(new_candidates)):
         source_id = candidate["source"]
         try:
             status = candidate.get("download", {})["status"]
