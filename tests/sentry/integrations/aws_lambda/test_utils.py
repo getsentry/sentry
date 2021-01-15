@@ -173,7 +173,6 @@ class GetOptionValueTest(TestCase):
         mock_get.return_value = {}
         with override_settings(SENTRY_RELEASE_REGISTRY_BASEURL="http://localhost:5000"):
             with self.assertRaisesRegex(
-                IntegrationError,
-                "Could not find cache value with key aws-layer:node",
+                IntegrationError, "Could not find cache value with key aws-layer:node",
             ):
                 get_option_value(self.node_fn, OPTION_VERSION)
