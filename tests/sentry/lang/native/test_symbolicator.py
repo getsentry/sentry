@@ -107,126 +107,129 @@ def test_sources_custom_disabled(default_project):
     assert source_ids == ["sentry:project"]
 
 
-class TestRedactInternalSources:
-    def test_custom_untouched(self):
-        debug_id = "451a38b5-0679-79d2-0738-22a5ceb24c4b"
-        candidates = [
-            {
-                "source": "custom",
-                "location": "http://example.net/prefix/path",
-                "download": {"status": "ok"},
-            },
-        ]
-        response = {"modules": [{"debug_id": debug_id, "candidates": copy.copy(candidates)}]}
-        redacted = redact_internal_sources(response)
-        assert redacted["modules"][0]["candidates"] == candidates
+def test_redaction_custom_untouched():
+    debug_id = "451a38b5-0679-79d2-0738-22a5ceb24c4b"
+    candidates = [
+        {
+            "source": "custom",
+            "location": "http://example.net/prefix/path",
+            "download": {"status": "ok"},
+        },
+    ]
+    response = {"modules": [{"debug_id": debug_id, "candidates": copy.copy(candidates)}]}
+    redacted = redact_internal_sources(response)
+    assert redacted["modules"][0]["candidates"] == candidates
 
-    def test_location_debug_id(self):
-        debug_id = "451a38b5-0679-79d2-0738-22a5ceb24c4b"
-        candidates = [
-            {
-                "source": "sentry:microsoft",
-                "location": "http://microsoft.com/prefix/path0",
-                "download": {"status": "ok"},
-            },
-        ]
-        response = {"modules": [{"debug_id": debug_id, "candidates": copy.copy(candidates)}]}
-        redacted = redact_internal_sources(response)
-        expected = [
-            {
-                "source": "sentry:microsoft",
-                "location": "debugid://{}".format(debug_id),
-                "download": {"status": "ok"},
-            },
-        ]
-        assert redacted["modules"][0]["candidates"] == expected
 
-    def test_notfound_deduplicated(self):
-        debug_id = "451a38b5-0679-79d2-0738-22a5ceb24c4b"
-        candidates = [
-            {
-                "source": "sentry:microsoft",
-                "location": "http://microsoft.com/prefix/path0",
-                "download": {"status": "notfound"},
-            },
-            {
-                "source": "sentry:microsoft",
-                "location": "http://microsoft.com/prefix/path1",
-                "download": {"status": "notfound"},
-            },
-        ]
-        response = {"modules": [{"debug_id": debug_id, "candidates": copy.copy(candidates)}]}
-        redacted = redact_internal_sources(response)
-        expected = [
-            {
-                "source": "sentry:microsoft",
-                "location": "debugid://{}".format(debug_id),
-                "download": {"status": "notfound"},
-            },
-        ]
-        assert redacted["modules"][0]["candidates"] == expected
+def test_redaction_location_debug_id():
+    debug_id = "451a38b5-0679-79d2-0738-22a5ceb24c4b"
+    candidates = [
+        {
+            "source": "sentry:microsoft",
+            "location": "http://microsoft.com/prefix/path0",
+            "download": {"status": "ok"},
+        },
+    ]
+    response = {"modules": [{"debug_id": debug_id, "candidates": copy.copy(candidates)}]}
+    redacted = redact_internal_sources(response)
+    expected = [
+        {
+            "source": "sentry:microsoft",
+            "location": "debugid://{}".format(debug_id),
+            "download": {"status": "ok"},
+        },
+    ]
+    assert redacted["modules"][0]["candidates"] == expected
 
-    def test_notfound_omitted(self):
-        debug_id = "451a38b5-0679-79d2-0738-22a5ceb24c4b"
-        candidates = [
-            {
-                "source": "sentry:microsoft",
-                "location": "http://microsoft.com/prefix/path0",
-                "download": {"status": "notfound"},
-            },
-            {
-                "source": "sentry:microsoft",
-                "location": "http://microsoft.com/prefix/path1",
-                "download": {"status": "ok"},
-            },
-        ]
-        response = {"modules": [{"debug_id": debug_id, "candidates": copy.copy(candidates)}]}
-        redacted = redact_internal_sources(response)
-        expected = [
-            {
-                "source": "sentry:microsoft",
-                "location": "debugid://{}".format(debug_id),
-                "download": {"status": "ok"},
-            },
-        ]
-        assert redacted["modules"][0]["candidates"] == expected
 
-    def test_multiple_notfoudn_filtered(self):
-        debug_id = "451a38b5-0679-79d2-0738-22a5ceb24c4b"
-        candidates = [
-            {
-                "source": "sentry:microsoft",
-                "location": "http://microsoft.com/prefix/path0",
-                "download": {"status": "notfound"},
-            },
-            {
-                "source": "sentry:microsoft",
-                "location": "http://microsoft.com/prefix/path1",
-                "download": {"status": "ok"},
-            },
-            {
-                "source": "sentry:apple",
-                "location": "http://microsoft.com/prefix/path0",
-                "download": {"status": "notfound"},
-            },
-            {
-                "source": "sentry:apple",
-                "location": "http://microsoft.com/prefix/path1",
-                "download": {"status": "ok"},
-            },
-        ]
-        response = {"modules": [{"debug_id": debug_id, "candidates": copy.copy(candidates)}]}
-        redacted = redact_internal_sources(response)
-        expected = [
-            {
-                "source": "sentry:microsoft",
-                "location": "debugid://{}".format(debug_id),
-                "download": {"status": "ok"},
-            },
-            {
-                "source": "sentry:apple",
-                "location": "debugid://{}".format(debug_id),
-                "download": {"status": "ok"},
-            },
-        ]
-        assert redacted["modules"][0]["candidates"] == expected
+def test_redaction_notfound_deduplicated():
+    debug_id = "451a38b5-0679-79d2-0738-22a5ceb24c4b"
+    candidates = [
+        {
+            "source": "sentry:microsoft",
+            "location": "http://microsoft.com/prefix/path0",
+            "download": {"status": "notfound"},
+        },
+        {
+            "source": "sentry:microsoft",
+            "location": "http://microsoft.com/prefix/path1",
+            "download": {"status": "notfound"},
+        },
+    ]
+    response = {"modules": [{"debug_id": debug_id, "candidates": copy.copy(candidates)}]}
+    redacted = redact_internal_sources(response)
+    expected = [
+        {
+            "source": "sentry:microsoft",
+            "location": "debugid://{}".format(debug_id),
+            "download": {"status": "notfound"},
+        },
+    ]
+    assert redacted["modules"][0]["candidates"] == expected
+
+
+def test_redaction_notfound_omitted():
+    debug_id = "451a38b5-0679-79d2-0738-22a5ceb24c4b"
+    candidates = [
+        {
+            "source": "sentry:microsoft",
+            "location": "http://microsoft.com/prefix/path0",
+            "download": {"status": "notfound"},
+        },
+        {
+            "source": "sentry:microsoft",
+            "location": "http://microsoft.com/prefix/path1",
+            "download": {"status": "ok"},
+        },
+    ]
+    response = {"modules": [{"debug_id": debug_id, "candidates": copy.copy(candidates)}]}
+    redacted = redact_internal_sources(response)
+    expected = [
+        {
+            "source": "sentry:microsoft",
+            "location": "debugid://{}".format(debug_id),
+            "download": {"status": "ok"},
+        },
+    ]
+    assert redacted["modules"][0]["candidates"] == expected
+
+
+def test_redaction_multiple_notfoudn_filtered():
+    debug_id = "451a38b5-0679-79d2-0738-22a5ceb24c4b"
+    candidates = [
+        {
+            "source": "sentry:microsoft",
+            "location": "http://microsoft.com/prefix/path0",
+            "download": {"status": "notfound"},
+        },
+        {
+            "source": "sentry:microsoft",
+            "location": "http://microsoft.com/prefix/path1",
+            "download": {"status": "ok"},
+        },
+        {
+            "source": "sentry:apple",
+            "location": "http://microsoft.com/prefix/path0",
+            "download": {"status": "notfound"},
+        },
+        {
+            "source": "sentry:apple",
+            "location": "http://microsoft.com/prefix/path1",
+            "download": {"status": "ok"},
+        },
+    ]
+    response = {"modules": [{"debug_id": debug_id, "candidates": copy.copy(candidates)}]}
+    redacted = redact_internal_sources(response)
+    expected = [
+        {
+            "source": "sentry:microsoft",
+            "location": "debugid://{}".format(debug_id),
+            "download": {"status": "ok"},
+        },
+        {
+            "source": "sentry:apple",
+            "location": "debugid://{}".format(debug_id),
+            "download": {"status": "ok"},
+        },
+    ]
+    assert redacted["modules"][0]["candidates"] == expected
