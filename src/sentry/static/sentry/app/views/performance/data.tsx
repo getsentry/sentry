@@ -6,6 +6,7 @@ import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 
+import {getCurrentLandingDisplay, LandingDisplayField} from './landing/utils';
 import {
   getVitalDetailTableMehStatusFunction,
   getVitalDetailTablePoorStatusFunction,
@@ -120,7 +121,7 @@ export function getTermHelp(
   return PERFORMANCE_TERMS[term](organization);
 }
 
-export function generatePerformanceEventView(
+function generateGenericPerformanceEventView(
   organization: LightWeightOrganization,
   location: Location
 ): EventView {
@@ -168,7 +169,7 @@ export function generatePerformanceEventView(
   return EventView.fromNewQueryWithLocation(savedQuery, location);
 }
 
-export function generateFrontendPerformanceEventView(
+function generateFrontendPerformanceEventView(
   organization: LightWeightOrganization,
   location: Location
 ): EventView {
@@ -203,7 +204,6 @@ export function generateFrontendPerformanceEventView(
   const searchQuery = decodeScalar(query.query) || '';
   const conditions = tokenizeSearch(searchQuery);
   conditions.setTagValues('event.type', ['transaction']);
-  conditions.setTagValues('transaction.duration', ['<15m']);
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
@@ -214,6 +214,18 @@ export function generateFrontendPerformanceEventView(
   savedQuery.query = stringifyQueryObject(conditions);
 
   return EventView.fromNewQueryWithLocation(savedQuery, location);
+}
+
+export function generatePerformanceEventView(organization, location) {
+  const display = organization.features.includes('performance-landing-v2')
+    ? getCurrentLandingDisplay(location)
+    : undefined;
+  switch (display?.field) {
+    case LandingDisplayField.FRONTEND:
+      return generateFrontendPerformanceEventView(organization, location);
+    default:
+      return generateGenericPerformanceEventView(organization, location);
+  }
 }
 
 export function generatePerformanceVitalDetailView(
