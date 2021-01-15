@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import copy
+
 import pytest
 
 from sentry.lang.native.symbolicator import get_sources_for_project, redact_internal_sources
@@ -115,7 +117,7 @@ class TestRedactInternalSources:
                 "download": {"status": "ok"},
             },
         ]
-        response = {"modules": [{"debug_id": debug_id, "candidates": candidates.copy()}]}
+        response = {"modules": [{"debug_id": debug_id, "candidates": copy.copy(candidates)}]}
         redacted = redact_internal_sources(response)
         assert redacted["modules"][0]["candidates"] == candidates
 
@@ -128,7 +130,7 @@ class TestRedactInternalSources:
                 "download": {"status": "ok"},
             },
         ]
-        response = {"modules": [{"debug_id": debug_id, "candidates": candidates.copy()}]}
+        response = {"modules": [{"debug_id": debug_id, "candidates": copy.copy(candidates)}]}
         redacted = redact_internal_sources(response)
         expected = [
             {
@@ -153,7 +155,7 @@ class TestRedactInternalSources:
                 "download": {"status": "notfound"},
             },
         ]
-        response = {"modules": [{"debug_id": debug_id, "candidates": candidates.copy()}]}
+        response = {"modules": [{"debug_id": debug_id, "candidates": copy.copy(candidates)}]}
         redacted = redact_internal_sources(response)
         expected = [
             {
@@ -178,7 +180,7 @@ class TestRedactInternalSources:
                 "download": {"status": "ok"},
             },
         ]
-        response = {"modules": [{"debug_id": debug_id, "candidates": candidates.copy()}]}
+        response = {"modules": [{"debug_id": debug_id, "candidates": copy.copy(candidates)}]}
         redacted = redact_internal_sources(response)
         expected = [
             {
