@@ -138,7 +138,7 @@ class OrganizationContext extends React.Component<Props, State> {
   static isOrgChanging(props: Props) {
     const {organization} = OrganizationStore.get();
     return (
-      organization && organization.slug !== OrganizationContext.getOrganizationSlug(props)
+      organization?.slug !== OrganizationContext.getOrganizationSlug(props)
     );
   }
 
