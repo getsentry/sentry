@@ -223,6 +223,7 @@ export function generatePerformanceEventView(organization, location) {
   switch (display?.field) {
     case LandingDisplayField.FRONTEND:
       return generateFrontendPerformanceEventView(organization, location);
+    case LandingDisplayField.BACKEND:
     default:
       return generateGenericPerformanceEventView(organization, location);
   }
