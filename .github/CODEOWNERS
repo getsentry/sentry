@@ -54,6 +54,10 @@ package.json        @getsentry/owners-js-build
 babel.config.*      @getsentry/owners-js-build
 build-utils/        @getsentry/owners-js-build
 
+# Releases UI
+/src/sentry/static/sentry/app/views/releases/                   @getsentry/owners-releases-ui
+/tests/js/spec/views/releases/                                  @getsentry/owners-releases-ui
+
 # Owners by product feature
 
 ### Issue/Metric Alerts ###
@@ -127,13 +131,6 @@ build-utils/        @getsentry/owners-js-build
 /tests/js/spec/utils/discover/                                  @getsentry/visibility
 /src/sentry/static/sentry/app/components/events/interfaces/spans/               @getsentry/visibility
 ### Endof Perfomance/Discover ###
-
-### Stability ###
-/src/sentry/static/sentry/app/views/releases/                   @getsentry/stability
-/tests/js/spec/views/releases/                                  @getsentry/stability
-/src/sentry/static/sentry/app/views/projectDetail/              @getsentry/stability
-/tests/js/spec/views/projectDetail/                             @getsentry/stability
-### Stability ###
 
 
 ### Ecosystem ###
