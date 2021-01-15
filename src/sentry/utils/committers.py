@@ -40,7 +40,6 @@ def score_path_match_length(path_a, path_b):
 
 
 def _get_frame_paths(data):
-    # TODO: Consider calling this in post_process and passing event frames instead of event.data?
     frames = get_path(data, "stacktrace", "frames", filter=True)
     if frames:
         return frames
