@@ -87,7 +87,7 @@ def handle_owner_assignment(project, group, event):
     from sentry.models import GroupAssignee, ProjectOwnership
 
     with metrics.timer("post_process.handle_owner_assignment"):
-        owners_ingestion = features.has("projects:workflow-owners-ingestion", event.project)
+        owners_ingestion = features.has("organizations:workflow-owners", event.project.organization)
 
         # Is the issue already assigned to a team or user?
         key = "assignee_exists:1:%s" % group.id
@@ -279,16 +279,10 @@ def post_process_group(
                     safe_execute(callback, event, futures)
 
             try:
-                lock = locks.get(
-                    "workflow-owners-ingestion:org-{}-has-group-lock".format(event.group_id),
-                    duration=10,
-                )
+                lock = locks.get("w-o:{}-d-l".format(event.group_id), duration=10,)
                 try:
                     with lock.acquire():
-                        has_commit_key = "workflow-owners-ingestion:org-{}-has-commits".format(
-                            event.project.organization_id
-                        )
-
+                        has_commit_key = "w-o:{}-h-c".format(event.project.organization_id)
                         org_has_commit = cache.get(has_commit_key)
                         if org_has_commit is None:
                             org_has_commit = Commit.objects.filter(
@@ -297,7 +291,7 @@ def post_process_group(
                             cache.set(has_commit_key, org_has_commit, 3600)
 
                         if org_has_commit and features.has(
-                            "projects:workflow-owners-ingestion", event.project,
+                            "organizations:workflow-owners", event.project.organization,
                         ):
                             process_suspect_commits(event=event)
                 except UnableToAcquireLock:
