@@ -95,9 +95,10 @@ class InputInline extends React.Component<Props, State> {
   };
 
   onFocus = (event: React.FocusEvent<HTMLDivElement>) => {
-    document.execCommand('selectAll', false, undefined);
     this.setState({isFocused: true});
     callIfFunction(this.props.onFocus, InputInline.setValueOnEvent(event));
+    // Wait for the next event loop so that the content region has focus.
+    window.setTimeout(() => document.execCommand('selectAll', false, undefined), 1);
   };
 
   /**
