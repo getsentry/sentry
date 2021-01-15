@@ -202,6 +202,10 @@ GROUPBY_MAP = {
 }
 
 
+class InvalidField(Exception):
+    pass
+
+
 class QueryDefinition(object):
     """
     This is the definition of the query the user wants to execute.
@@ -214,9 +218,20 @@ class QueryDefinition(object):
         raw_fields = query.getlist("field", [])
         raw_groupby = query.getlist("groupBy", [])
 
-        # TODO: maybe show a proper error message for unknown fields/groupby
-        self.fields = {field: COLUMN_MAP.get(field) for field in raw_fields}
-        self.groupby = [GROUPBY_MAP.get(field) for field in raw_groupby]
+        if len(raw_fields) == 0:
+            raise InvalidField(u'Request is missing a "field"')
+
+        self.fields = {}
+        for key in raw_fields:
+            if key not in COLUMN_MAP:
+                raise InvalidField(u'Invalid field: "{}"'.format(key))
+            self.fields[key] = COLUMN_MAP[key]
+
+        self.groupby = []
+        for key in raw_groupby:
+            if key not in GROUPBY_MAP:
+                raise InvalidField(u'Invalid groupBy: "{}"'.format(key))
+            self.groupby.append(GROUPBY_MAP[key])
 
         start, end, rollup = get_date_range_rollup_from_params(query, "1h", round_range=True)
         self.rollup = rollup

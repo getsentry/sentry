@@ -93,9 +93,8 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
     def test_empty_request(self):
         response = self.do_request({})
 
-        # TODO: making an empty request throws currently
-        assert response.status_code == 500, response.content
-        assert response.data["detail"] == "Internal Error"
+        assert response.status_code == 400, response.content
+        assert response.data == {"detail": 'Request is missing a "field"'}
 
     def test_inaccessible_project(self):
         response = self.do_request({"project": [self.project4.id]})
@@ -106,16 +105,14 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
     def test_unknown_field(self):
         response = self.do_request({"field": ["summ(sessin)"]})
 
-        # TODO: throws currently
-        assert response.status_code == 500, response.content
-        assert response.data == {"detail": "Internal Error", "errorId": None}
+        assert response.status_code == 400, response.content
+        assert response.data == {"detail": 'Invalid field: "summ(sessin)"'}
 
     def test_unknown_groupby(self):
         response = self.do_request({"field": ["sum(session)"], "groupBy": ["envriomnent"]})
 
-        # TODO: throws currently
-        assert response.status_code == 500, response.content
-        assert response.data == {"detail": "Internal Error", "errorId": None}
+        assert response.status_code == 400, response.content
+        assert response.data == {"detail": 'Invalid groupBy: "envriomnent"'}
 
     def test_too_many_points(self):
         # TODO: looks like this is well within the range of valid points
@@ -123,7 +120,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         # default statsPeriod is 90d
         response = self.do_request({"field": ["sum(session)"], "interval": "1h"})
 
-        assert response.status_code == 500, response.content
+        assert response.status_code == 400, response.content
         assert response.data == {}
 
     @freeze_time("2021-01-14T12:27:28.303Z")
