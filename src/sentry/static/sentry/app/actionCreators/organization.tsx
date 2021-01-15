@@ -27,7 +27,6 @@ async function fetchOrg(
   OrganizationActions.update(org, {replace: true});
   setActiveOrganization(org);
 
-  // eslint-disable-next-line consistent-return
   return org;
 }
 
