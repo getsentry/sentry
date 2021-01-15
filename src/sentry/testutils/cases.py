@@ -1023,3 +1023,10 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             assert data["displayType"] == DashboardWidgetDisplayTypes.get_type_name(
                 expected_widget.display_type
             )
+
+    def create_user_member_role(self):
+        self.user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=self.user, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.login_as(self.user)

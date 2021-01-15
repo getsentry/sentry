@@ -3,13 +3,9 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {mountGlobalModal} from 'sentry-test/modal';
 
-import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
 import DashboardDetail from 'app/views/dashboardsV2/detail';
-
-jest.mock('app/actionCreators/modal', () => ({
-  openAddDashboardWidgetModal: jest.fn(),
-}));
 
 describe('Dashboards > Detail', function () {
   const organization = TestStubs.Organization({
@@ -37,7 +33,7 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/dashboards/',
         body: [
           TestStubs.Dashboard([], {id: 'default-overview', title: 'Default'}),
-          TestStubs.Dashboard([], {id: 1, title: 'Custom Errors'}),
+          TestStubs.Dashboard([], {id: '1', title: 'Custom Errors'}),
         ],
       });
       MockApiClient.addMockResponse({
@@ -70,8 +66,17 @@ describe('Dashboards > Detail', function () {
       // Enter edit mode.
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
 
-      // Click delete, request should be made.
+      const modal = await mountGlobalModal();
+
+      // Click delete, confirm will show
       wrapper.find('Controls Button[data-test-id="dashboard-delete"]').simulate('click');
+      await tick();
+
+      await modal.update();
+
+      // Click confirm
+      modal.find('button[aria-label="Confirm"]').simulate('click');
+
       expect(deleteMock).toHaveBeenCalled();
     });
 
@@ -79,7 +84,7 @@ describe('Dashboards > Detail', function () {
       const updateMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/default-overview/',
         method: 'PUT',
-        body: TestStubs.Dashboard([], {id: 8, title: 'Updated prebuilt'}),
+        body: TestStubs.Dashboard([], {id: '8', title: 'Updated prebuilt'}),
       });
       wrapper = mountWithTheme(
         <DashboardDetail
@@ -128,14 +133,20 @@ describe('Dashboards > Detail', function () {
     beforeEach(function () {
       initialData = initializeOrg({organization});
       widgets = [
-        TestStubs.Widget([{conditions: 'event.type:error', fields: ['count()']}], {
-          title: 'Errors',
-          interval: '1d',
-        }),
-        TestStubs.Widget([{conditions: 'event.type:transaction', fields: ['count()']}], {
-          title: 'Transactions',
-          interval: '1d',
-        }),
+        TestStubs.Widget(
+          [{name: '', conditions: 'event.type:error', fields: ['count()']}],
+          {
+            title: 'Errors',
+            interval: '1d',
+          }
+        ),
+        TestStubs.Widget(
+          [{name: '', conditions: 'event.type:transaction', fields: ['count()']}],
+          {
+            title: 'Transactions',
+            interval: '1d',
+          }
+        ),
       ];
 
       MockApiClient.addMockResponse({
@@ -241,14 +252,10 @@ describe('Dashboards > Detail', function () {
         .simulate('click');
 
       await tick();
-      wrapper.update();
+      await wrapper.update();
+      const modal = await mountGlobalModal();
 
-      expect(openAddDashboardWidgetModal).toHaveBeenCalled();
-      expect(openAddDashboardWidgetModal).toHaveBeenCalledWith(
-        expect.objectContaining({
-          widget: widgets[0],
-        })
-      );
+      expect(modal.find('AddDashboardWidgetModal').props().widget).toEqual(widgets[0]);
     });
   });
 });

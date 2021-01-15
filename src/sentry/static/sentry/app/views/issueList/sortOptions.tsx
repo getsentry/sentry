@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+import Feature from 'app/components/acl/feature';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import {t} from 'app/locale';
 
@@ -22,6 +23,8 @@ const IssueListSortOptions = ({onSelect, sort}: Props) => {
         return t('Events');
       case 'user':
         return t('Users');
+      case 'trend':
+        return t('Relative Change');
       case 'date':
       default:
         return t('Last Seen');
@@ -41,6 +44,7 @@ const IssueListSortOptions = ({onSelect, sort}: Props) => {
       {getMenuItem('new')}
       {getMenuItem('freq')}
       {getMenuItem('user')}
+      <Feature features={['issue-list-trend-sort']}>{getMenuItem('trend')}</Feature>
     </DropdownControl>
   );
 };

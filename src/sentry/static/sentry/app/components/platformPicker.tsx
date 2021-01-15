@@ -2,7 +2,7 @@ import React from 'react';
 import keydown from 'react-keydown';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
-import PlatformIcon from 'platformicons';
+import {PlatformIcon} from 'platformicons';
 
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
