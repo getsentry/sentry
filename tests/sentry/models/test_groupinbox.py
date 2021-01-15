@@ -18,7 +18,8 @@ class GroupInboxTestCase(TestCase):
             group=self.group, reason=GroupInboxReason.NEW.value
         ).exists()
 
-    def test_remove_from_inbox(self):
+    @patch("sentry.signals.inbox_out.send_robust")
+    def test_remove_from_inbox(self, inbox_out):
         add_group_to_inbox(self.group, GroupInboxReason.NEW)
         assert GroupInbox.objects.filter(
             group=self.group, reason=GroupInboxReason.NEW.value
@@ -27,6 +28,7 @@ class GroupInboxTestCase(TestCase):
         assert not GroupInbox.objects.filter(
             group=self.group, reason=GroupInboxReason.NEW.value
         ).exists()
+        assert inbox_out.called
 
     def test_invalid_reason_details(self):
         reason_details = {"meow": 123}
