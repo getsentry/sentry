@@ -66,8 +66,8 @@ class OrganizationContext extends React.Component<Props, State> {
       return OrganizationContext.getDefaultState(props);
     }
 
-   const {organizationsLoading, location, params} = props;
-   const {orgId} = params;
+    const {organizationsLoading, location, params} = props;
+    const {orgId} = params;
     return {
       ...prevState,
       prevProps: {
@@ -78,7 +78,7 @@ class OrganizationContext extends React.Component<Props, State> {
     };
   }
 
-  static shouldRemount(prevProps: State['prevProps'], props: Props): boolean {
+  static shouldRemount(prevProps: State['prevProps'], props): boolean {
     const hasOrgIdAndChanged =
       prevProps.orgId && props.params.orgId && prevProps.orgId !== props.params.orgId;
 
@@ -138,7 +138,7 @@ class OrganizationContext extends React.Component<Props, State> {
   static isOrgChanging(props: Props) {
     const {organization} = OrganizationStore.get();
     return (
-      organization?.slug !== OrganizationContext.getOrganizationSlug(props)
+      organization && organization.slug !== OrganizationContext.getOrganizationSlug(props)
     );
   }
 
