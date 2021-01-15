@@ -9,6 +9,7 @@ from django.utils import timezone
 
 from sentry.models import Commit, Project, Release
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.committers import get_event_file_committers
 
@@ -20,6 +21,12 @@ MIN_COMMIT_SCORE = 2
 logger = logging.getLogger("tasks.groupowner")
 
 
+@instrumented_task(
+    name="sentry.tasks.process_suspect_commits",
+    queue="group_owners.process_suspect_commits",
+    default_retry_delay=5,
+    max_retries=5,
+)
 def process_suspect_commits(event_id, event_platform, event_data, group_id, project_id, **kwargs):
     metrics.incr("sentry.tasks.process_suspect_commits.start")
     with metrics.timer("sentry.tasks.process_suspect_commits"):
