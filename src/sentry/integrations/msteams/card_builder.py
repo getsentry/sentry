@@ -330,7 +330,13 @@ def build_group_title(group):
     link = group.get_absolute_url()
 
     title_text = u"[{}]({})".format(text, link)
-    return {"type": "TextBlock", "size": "Large", "weight": "Bolder", "text": title_text}
+    return {
+        "type": "TextBlock",
+        "size": "Large",
+        "weight": "Bolder",
+        "text": title_text,
+        "wrap": True,
+    }
 
 
 def build_group_descr(group):
@@ -339,7 +345,13 @@ def build_group_descr(group):
     if ev_type == "error":
         ev_metadata = group.get_event_metadata()
         text = ev_metadata.get("value") or ev_metadata.get("function")
-        return {"type": "TextBlock", "size": "Medium", "weight": "Bolder", "text": text}
+        return {
+            "type": "TextBlock",
+            "size": "Medium",
+            "weight": "Bolder",
+            "text": text,
+            "wrap": True,
+        }
     else:
         return None
 
