@@ -20,12 +20,12 @@ MIN_COMMIT_SCORE = 2
 logger = logging.getLogger("tasks.groupowner")
 
 
-def process_suspect_commits(event, **kwargs):
+def process_suspect_commits(event_id, event_platform, event_data, group_id, project_id, **kwargs):
     metrics.incr("sentry.tasks.process_suspect_commits.start")
     with metrics.timer("sentry.tasks.process_suspect_commits"):
         can_process = True
         # Abbreviation for "workflow-owners-ingestion:group-{}"
-        cache_key = "w-o-i:g-{}".format(event.group_id)
+        cache_key = "w-o-i:g-{}".format(group_id)
 
         if cache.get(cache_key):
             # Only process once per OWNER_CACHE_LIFE seconds.
@@ -34,9 +34,9 @@ def process_suspect_commits(event, **kwargs):
             )
             can_process = False
         else:
-            project = Project.objects.get_from_cache(id=event.project_id)
+            project = Project.objects.get_from_cache(id=project_id)
             owners = GroupOwner.objects.filter(
-                group_id=event.group_id,
+                group_id=group_id,
                 project=project,
                 organization_id=project.organization_id,
                 type=GroupOwnerType.SUSPECT_COMMIT.value,
@@ -62,7 +62,9 @@ def process_suspect_commits(event, **kwargs):
                     with metrics.timer(
                         "sentry.tasks.process_suspect_commits.get_serialized_event_file_committers"
                     ):
-                        committers = get_event_file_committers(project, event)
+                        committers = get_event_file_committers(
+                            project, group_id, event_data, event_platform
+                        )
                     owner_scores = {}
                     for committer in committers:
                         if "id" in committer["author"]:
@@ -78,7 +80,7 @@ def process_suspect_commits(event, **kwargs):
                             :PREFERRED_GROUP_OWNERS
                         ]:
                             go, created = GroupOwner.objects.update_or_create(
-                                group_id=event.group_id,
+                                group_id=group_id,
                                 type=GroupOwnerType.SUSPECT_COMMIT.value,
                                 user_id=owner_id,
                                 project=project,
@@ -94,10 +96,10 @@ def process_suspect_commits(event, **kwargs):
                 except Commit.DoesNotExist:
                     logger.info(
                         "process_suspect_commits.skipped",
-                        extra={"event": event.event_id, "reason": "no_commit"},
+                        extra={"event": event_id, "reason": "no_commit"},
                     )
                 except Release.DoesNotExist:
                     logger.info(
                         "process_suspect_commits.skipped",
-                        extra={"event": event.event_id, "reason": "no_release"},
+                        extra={"event": event_id, "reason": "no_release"},
                     )

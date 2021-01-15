@@ -136,7 +136,7 @@ def get_path(data, *path, **kwargs):
     default = kwargs.pop("default", None)
     f = kwargs.pop("filter", None)
     for k in kwargs:
-        raise TypeError("set_path() got an undefined keyword argument '%s'" % k)
+        raise TypeError("get_path() got an undefined keyword argument '%s'" % k)
 
     for p in path:
         if isinstance(data, collections.Mapping) and p in data:

@@ -293,7 +293,13 @@ def post_process_group(
                         if org_has_commit and features.has(
                             "organizations:workflow-owners", event.project.organization,
                         ):
-                            process_suspect_commits(event=event)
+                            process_suspect_commits.delay(
+                                event_id=event.event_id,
+                                event_platform=event.platform,
+                                event_data=event.data,
+                                group_id=event.group_id,
+                                project_id=event.project_id,
+                            )
                 except UnableToAcquireLock:
                     pass
             except Exception:

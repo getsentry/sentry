@@ -70,7 +70,13 @@ class TestGroupOwners(TestCase):
     def test_simple(self):
         self.set_release_commits(self.user.email)
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
-        process_suspect_commits(self.event)
+        process_suspect_commits(
+            event_id=self.event.event_id,
+            event_platform=self.event.platform,
+            event_data=self.event.data,
+            group_id=self.event.group_id,
+            project_id=self.event.project_id,
+        )
         assert GroupOwner.objects.get(
             group=self.event.group,
             project=self.event.project,
@@ -88,16 +94,40 @@ class TestGroupOwners(TestCase):
         assert len(result[0]["commits"]) == 1
         assert result[0]["commits"][0]["id"] == "a" * 40
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
-        process_suspect_commits(self.event)
+        process_suspect_commits(
+            event_id=self.event.event_id,
+            event_platform=self.event.platform,
+            event_data=self.event.data,
+            group_id=self.event.group_id,
+            project_id=self.event.project_id,
+        )
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
 
     @patch("sentry.tasks.groupowner.OWNER_CACHE_LIFE", 0)
     def test_delete_old_entries(self):
         # As new events come in associated with new owners, we should delete old ones.
         self.set_release_commits(self.user.email)
-        process_suspect_commits(self.event)
-        process_suspect_commits(self.event)
-        process_suspect_commits(self.event)
+        process_suspect_commits(
+            event_id=self.event.event_id,
+            event_platform=self.event.platform,
+            event_data=self.event.data,
+            group_id=self.event.group_id,
+            project_id=self.event.project_id,
+        )
+        process_suspect_commits(
+            event_id=self.event.event_id,
+            event_platform=self.event.platform,
+            event_data=self.event.data,
+            group_id=self.event.group_id,
+            project_id=self.event.project_id,
+        )
+        process_suspect_commits(
+            event_id=self.event.event_id,
+            event_platform=self.event.platform,
+            event_data=self.event.data,
+            group_id=self.event.group_id,
+            project_id=self.event.project_id,
+        )
 
         assert GroupOwner.objects.filter(group=self.event.group).count() == 1
         assert GroupOwner.objects.filter(group=self.event.group, user=self.user).exists()
@@ -167,13 +197,17 @@ class TestGroupOwners(TestCase):
         assert event_3.group == self.event.group
 
         self.set_release_commits(self.user_2.email)
-        process_suspect_commits(event_2)
+        process_suspect_commits(
+            event_2.event_id, event_2.platform, event_2.data, event_2.group_id, event_2.project_id
+        )
         assert GroupOwner.objects.filter(group=self.event.group).count() == 2
         assert GroupOwner.objects.filter(group=self.event.group, user=self.user).exists()
         assert GroupOwner.objects.filter(group=event_2.group, user=self.user_2).exists()
 
         self.set_release_commits(self.user_3.email)
-        process_suspect_commits(event_3)
+        process_suspect_commits(
+            event_3.event_id, event_3.platform, event_3.data, event_3.group_id, event_3.project_id
+        )
         assert GroupOwner.objects.filter(group=self.event.group).count() == 2
         assert GroupOwner.objects.filter(group=self.event.group, user=self.user).exists()
         assert GroupOwner.objects.filter(group=event_2.group, user=self.user_2).exists()
@@ -184,7 +218,9 @@ class TestGroupOwners(TestCase):
         go.save()
 
         self.set_release_commits(self.user_3.email)
-        process_suspect_commits(event_3)
+        process_suspect_commits(
+            event_3.event_id, event_3.platform, event_3.data, event_3.group_id, event_3.project_id
+        )
         # Won't be processed because the cache is present and this group has owners
         assert GroupOwner.objects.filter(group=self.event.group).count() == 2
         assert GroupOwner.objects.filter(group=self.event.group, user=self.user).exists()
@@ -195,7 +231,13 @@ class TestGroupOwners(TestCase):
     def test_update_existing_entries(self):
         # As new events come in associated with existing owners, we should update the date_added of that owner.
         self.set_release_commits(self.user.email)
-        process_suspect_commits(self.event)
+        process_suspect_commits(
+            event_id=self.event.event_id,
+            event_platform=self.event.platform,
+            event_data=self.event.data,
+            group_id=self.event.group_id,
+            project_id=self.event.project_id,
+        )
         go = GroupOwner.objects.get(
             group=self.event.group,
             project=self.event.project,
@@ -204,7 +246,13 @@ class TestGroupOwners(TestCase):
         )
 
         date_added_before_update = go.date_added
-        process_suspect_commits(self.event)
+        process_suspect_commits(
+            event_id=self.event.event_id,
+            event_platform=self.event.platform,
+            event_data=self.event.data,
+            group_id=self.event.group_id,
+            project_id=self.event.project_id,
+        )
         go.refresh_from_db()
         assert go.date_added > date_added_before_update
         assert GroupOwner.objects.filter(group=self.event.group).count() == 1
@@ -237,7 +285,13 @@ class TestGroupOwners(TestCase):
             },
             project_id=self.project.id,
         )
-        process_suspect_commits(event_with_no_release)
+        process_suspect_commits(
+            event_with_no_release.event_id,
+            event_with_no_release.platform,
+            event_with_no_release.data,
+            event_with_no_release.group_id,
+            event_with_no_release.project_id,
+        )
         assert GroupOwner.objects.filter(group=event_with_no_release.group).count() == 0
 
     @patch("sentry.tasks.groupowner.OWNER_CACHE_LIFE", 0)
@@ -319,7 +373,13 @@ class TestGroupOwners(TestCase):
                 },
             },
         ]
-        process_suspect_commits(self.event)
+        process_suspect_commits(
+            event_id=self.event.event_id,
+            event_platform=self.event.platform,
+            event_data=self.event.data,
+            group_id=self.event.group_id,
+            project_id=self.event.project_id,
+        )
         # Doesn't use self.user2 due to low score.
         assert GroupOwner.objects.get(user=self.user.id)
         assert GroupOwner.objects.get(user=self.user3.id)

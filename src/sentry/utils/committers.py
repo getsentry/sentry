@@ -39,8 +39,8 @@ def score_path_match_length(path_a, path_b):
     return score
 
 
-def _get_frame_paths(event):
-    data = event.data
+def _get_frame_paths(data):
+    # TODO: Consider calling this in post_process and passing event frames instead of event.data?
     frames = get_path(data, "stacktrace", "frames", filter=True)
     if frames:
         return frames
@@ -181,8 +181,8 @@ def get_previous_releases(project, start_version, limit=5):
     return rv
 
 
-def get_event_file_committers(project, event, frame_limit=25):
-    group = Group.objects.get_from_cache(id=event.group_id)
+def get_event_file_committers(project, group_id, event_data, event_platform, frame_limit=25):
+    group = Group.objects.get_from_cache(id=group_id)
 
     first_release_version = group.get_first_release()
 
@@ -198,7 +198,7 @@ def get_event_file_committers(project, event, frame_limit=25):
     if not commits:
         raise Commit.DoesNotExist
 
-    frames = _get_frame_paths(event) or ()
+    frames = _get_frame_paths(event_data) or ()
     app_frames = [frame for frame in frames if frame["in_app"]][-frame_limit:]
     if not app_frames:
         app_frames = [frame for frame in frames][-frame_limit:]
@@ -208,7 +208,7 @@ def get_event_file_committers(project, event, frame_limit=25):
     # the Java SDK might generate better file paths, but for now we use the module
     # path to approximate the file path so that we can intersect it with commit
     # file paths.
-    if event.platform == "java":
+    if event_platform == "java":
         for frame in frames:
             if frame.get("filename") is None:
                 continue
@@ -249,7 +249,9 @@ def get_event_file_committers(project, event, frame_limit=25):
 
 
 def get_serialized_event_file_committers(project, event, frame_limit=25):
-    committers = get_event_file_committers(project, event, frame_limit=frame_limit)
+    committers = get_event_file_committers(
+        project, event.group_id, event.data, event.platform, frame_limit=frame_limit
+    )
     commits = [commit for committer in committers for commit in committer["commits"]]
     serialized_commits = serialize(
         [c for (c, score) in commits], serializer=CommitSerializer(exclude=["author"])
