@@ -17,9 +17,11 @@ type Props = {
   onSelectStatsPeriod: (statsPeriod: string) => void;
   isReprocessingQuery: boolean;
   hasInbox?: boolean;
+  anySelected?: boolean;
 };
 
 function Headers({
+  anySelected,
   selection,
   statsPeriod,
   pageCount,
@@ -31,7 +33,7 @@ function Headers({
 }: Props) {
   return (
     <React.Fragment>
-      {hasInbox && (
+      {hasInbox && !anySelected && (
         <ActionSetPlaceholder>
           {/* total includes its own space */}
           {tct('Select [count] of [total]', {
@@ -55,7 +57,9 @@ function Headers({
         </React.Fragment>
       ) : (
         <React.Fragment>
-          <GraphHeaderWrapper className="hidden-xs hidden-sm">
+          <GraphHeaderWrapper
+            className={`hidden-xs hidden-sm ${hasInbox ? 'hidden-md' : ''}`}
+          >
             <GraphHeader>
               <StyledToolbarHeader>{t('Graph:')}</StyledToolbarHeader>
               <GraphToggle
