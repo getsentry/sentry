@@ -114,6 +114,7 @@ default_manager.add("organizations:inbox-owners-query", OrganizationFeature)  # 
 default_manager.add("organizations:alert-details-redesign", OrganizationFeature)  # NOQA
 default_manager.add("organizations:unhandled-issue-flag", OrganizationFeature)  # NOQA
 default_manager.add("organizations:invite-members-rate-limits", OrganizationFeature)  # NOQA
+default_manager.add("organizations:issue-list-trend-sort", OrganizationFeature)  # NOQA
 default_manager.add("organizations:dashboards-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-landing-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-vitals-overview", OrganizationFeature)  # NOQA

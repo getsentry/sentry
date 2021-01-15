@@ -6,13 +6,13 @@ import logging
 import time
 import six
 import sentry_sdk
-from datetime import timedelta
+from datetime import datetime, timedelta
 from hashlib import md5
 
 from django.utils import timezone
 
 from sentry import options
-from sentry.api.event_search import convert_search_filter_to_snuba_query
+from sentry.api.event_search import convert_search_filter_to_snuba_query, DateArg
 from sentry.api.paginator import DateTimePaginator, SequencePaginator, Paginator
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.models import Group
@@ -154,7 +154,12 @@ class AbstractQueryExecutor:
 
         aggregations = []
         for alias in required_aggregations:
-            aggregations.append(self.aggregation_defs[alias] + [alias])
+            aggregation = self.aggregation_defs[alias]
+            if callable(aggregation):
+                # TODO: If we want to expand this pattern we should probably figure out
+                # more generic things to pass here.
+                aggregation = aggregation(start, end)
+            aggregations.append(aggregation + [alias])
 
         if cursor is not None:
             having.append((sort_field, ">=" if cursor.is_prev else "<=", cursor.value))
@@ -217,6 +222,18 @@ class AbstractQueryExecutor:
         return sort_by in self.sort_strategies.keys()
 
 
+def trend_aggregation(start, end):
+    middle = start + timedelta(seconds=(end - start).total_seconds() * 0.5)
+    middle = datetime.strftime(middle, DateArg.date_format)
+
+    agg_range_1 = "countIf(greater(toDateTime('{}'), timestamp))".format(middle)
+    agg_range_2 = "countIf(lessOrEquals(toDateTime('{}'), timestamp))".format(middle)
+    return [
+        "if(greater({}, 0), divide({}, {}), 0)".format(agg_range_1, agg_range_2, agg_range_1),
+        "",
+    ]
+
+
 class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
     ISSUE_FIELD_NAME = "group_id"
 
@@ -244,6 +261,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "new": "first_seen",
         "priority": "priority",
         "user": "user_count",
+        "trend": "trend",
     }
 
     aggregation_defs = {
@@ -255,6 +273,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # Only makes sense with WITH TOTALS, returns 1 for an individual group.
         "total": ["uniq", ISSUE_FIELD_NAME],
         "user_count": ["uniq", "tags[sentry:user]"],
+        "trend": trend_aggregation,
     }
 
     @property

@@ -80,6 +80,18 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == six.text_type(group.id)
 
+    def test_sort_by_trend(self):
+        event = self.store_event(
+            data={"event_id": "a" * 32, "timestamp": iso_format(before_now(seconds=1))},
+            project_id=self.project.id,
+        )
+        group = event.group
+        self.login_as(user=self.user)
+
+        response = self.get_valid_response(sort_by="trend", query="is:unresolved")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == six.text_type(group.id)
+
     def test_trace_search(self):
         event = self.store_event(
             data={
