@@ -21,7 +21,7 @@ from sentry.models import (
 )
 from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
 from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
-from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.snuba import Dataset, SENTRY_SNUBA_MAP, SnubaError
 
 
@@ -1362,6 +1362,45 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
 
         results = self.make_query([self.project, self.project2], sort_by="user")
         assert list(results) == [self.group1, self.group2, self.group_p2]
+
+    def test_sort_trend(self):
+        start = self.group1.first_seen - timedelta(days=1)
+        end = before_now(days=1).replace(tzinfo=pytz.utc)
+        middle = start + ((end - start) / 2)
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group1"],
+                "event_id": "2" * 32,
+                "message": "something",
+                "timestamp": iso_format(self.base_datetime),
+            },
+            project_id=self.project.id,
+        )
+
+        no_before_group = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group4"],
+                "event_id": "3" * 32,
+                "message": "something",
+                "timestamp": iso_format(self.base_datetime),
+            },
+            project_id=self.project.id,
+        ).group
+        no_after_group = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group5"],
+                "event_id": "4" * 32,
+                "message": "something",
+                "timestamp": iso_format(middle - timedelta(days=1)),
+            },
+            project_id=self.project.id,
+        ).group
+
+        self.set_up_multi_project()
+        results = self.make_query([self.project], sort_by="trend", date_from=start, date_to=end)
+        assert results[0] == self.group1
+        # These will be arbitrarily ordered since their trend values are all 0
+        assert set(results[1:]) == set([self.group2, no_before_group, no_after_group])
 
     def test_first_release_any_or_no_environments(self):
         # test scenarios for tickets:
