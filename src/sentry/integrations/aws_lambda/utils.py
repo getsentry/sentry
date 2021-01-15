@@ -65,7 +65,7 @@ def get_option_value(function, option):
     cache_value = cache_options.get(key)
 
     if cache_value is None:
-        raise IntegrationError(u"Could not find cache value wiith key {}".format(key))
+        raise IntegrationError(u"Could not find cache value with key {}".format(key))
 
     # special lookup for the version since it depends on the region
     if option == OPTION_VERSION:
@@ -83,6 +83,14 @@ def get_option_value(function, option):
 
     # return the value out of the cache
     return cache_value.get(registry_field)
+
+
+def check_arn_is_valid_cloudformation_stack(arn):
+    try:
+        parsed = parse_arn(arn)
+    except Exception:
+        return False
+    return parsed["service"] == "cloudformation"
 
 
 def _get_arn_without_version(arn):
@@ -115,8 +123,16 @@ def get_latest_layer_for_function(function):
     )
 
 
+<<<<<<< HEAD
 def get_latest_layer_version(function):
     return int(get_option_value(function, OPTION_VERSION))
+=======
+def get_latest_layer_version(runtime):
+    if runtime.startswith("nodejs"):
+        return int(options.get("aws-lambda.node.layer-version"))
+    # update when we can handle other runtimes like Python
+    raise Exception("Unsupported runtime")
+>>>>>>> 2c7cd83bab4211be6ad6495f7dc825ecf4912f55
 
 
 def get_index_of_sentry_layer(layers, arn_to_match):

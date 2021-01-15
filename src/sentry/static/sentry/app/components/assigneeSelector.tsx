@@ -400,7 +400,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
               <DropdownButton {...getActorProps({})}>
                 {assignedTo ? (
                   <ActorAvatar actor={assignedTo} className="avatar" size={24} />
-                ) : suggestedActors ? (
+                ) : suggestedActors && suggestedActors.length > 0 ? (
                   <SuggestedAvatarStack size={24} owners={suggestedActors} />
                 ) : (
                   <StyledIconUser size="20px" color="gray400" />

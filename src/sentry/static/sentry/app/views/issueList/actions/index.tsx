@@ -284,18 +284,17 @@ class IssueListActions extends React.Component<Props, State> {
               onUpdate={this.handleUpdate}
             />
           )}
-          {(!anySelected || !hasInbox) && (
-            <Headers
-              onSelectStatsPeriod={this.handleSelectStatsPeriod}
-              selection={selection}
-              statsPeriod={statsPeriod}
-              pageCount={pageCount}
-              queryCount={queryCount}
-              queryMaxCount={queryMaxCount}
-              hasInbox={hasInbox}
-              isReprocessingQuery={displayReprocessingActions}
-            />
-          )}
+          <Headers
+            onSelectStatsPeriod={this.handleSelectStatsPeriod}
+            anySelected={anySelected}
+            selection={selection}
+            statsPeriod={statsPeriod}
+            pageCount={pageCount}
+            queryCount={queryCount}
+            queryMaxCount={queryMaxCount}
+            hasInbox={hasInbox}
+            isReprocessingQuery={displayReprocessingActions}
+          />
         </StyledFlex>
         {!allResultsVisible && pageSelected && (
           <SelectAllNotice>

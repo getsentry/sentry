@@ -830,6 +830,8 @@ SENTRY_FEATURES = {
     "organizations:discover": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
+    # Enable Filters & Sampling in the org settings
+    "organizations:filters-and-sampling": False,
     # Enable inline preview of attachments.
     "organizations:event-attachments-viewer": False,
     # Allow organizations to configure built-in symbol sources.
@@ -849,7 +851,7 @@ SENTRY_FEATURES = {
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
     # Lets organizations set a custom title through fingerprinting
-    "organizations:custom-event-title": False,
+    "organizations:custom-event-title": True,
     # Enable rule page.
     "organizations:rule-page": False,
     # Enable incidents feature
@@ -881,6 +883,9 @@ SENTRY_FEATURES = {
     "organizations:integrations-stacktrace-link": False,
     # Enables aws lambda integration
     "organizations:integrations-aws_lambda": False,
+    # Temporary safety measure, turned on for specific orgs only if
+    # absolutely necessary, to be removed shortly
+    "organizations:slack-allow-workspace": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable custom dashboards (dashboards 2)
@@ -969,8 +974,6 @@ SENTRY_FEATURES = {
     "projects:servicehooks": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     "projects:kafka-ingest": False,
-    # Enable "owner"/"suggested assignee" features in ingestion (suspect commit calculation).
-    "projects:workflow-owners-ingestion": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }
@@ -1021,7 +1024,10 @@ SENTRY_FRONTEND_WHITELIST_URLS = None
 # ----
 
 # sample rate for transactions initiated from the frontend
-SENTRY_APM_SAMPLING = 0
+SENTRY_FRONTEND_APM_SAMPLING = 0
+
+# sample rate for transactions in the backend
+SENTRY_BACKEND_APM_SAMPLING = 0
 
 # Sample rate for symbolicate_event task transactions
 SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING = 0

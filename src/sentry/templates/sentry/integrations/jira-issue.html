@@ -6,10 +6,11 @@
     {% script src=ac_js_src %}{% endscript %}
     {% asset_url 'sentry' 'vendor/jquery.2.2.4.min.js' as jquery_url %}
     {% script src=jquery_url %}{% endscript %}
-    {% script src="//aui-cdn.atlassian.com/aui-adg/6.0.9/js/aui.min.js" %}{% endscript %}
+    {% asset_url 'sentry' 'vendor/aui-prototyping.9.1.5.js' as aui_js_url %}
+    {% script src=aui_js_url %}{% endscript %}
     <link
       rel="stylesheet"
-      href="//aui-cdn.atlassian.com/aui-adg/6.0.9/css/aui.min.css"
+      href="{% asset_url 'sentry' 'vendor/aui-prototyping.9.1.5.css' %}"
       media="all"
     />
     <style>
@@ -46,7 +47,7 @@
 
       <div>
         <h2>{{ type }}</h2>
-        <p><a href="{{ title_url }}">{{title}}</a></p>
+        <p><a href="{{ title_url }}" target="_blank">{{title}}</a></p>
         <br />
         <div class="aui-group">
           <div class="aui-item">
@@ -85,7 +86,7 @@
         </div>
         <div class="aui-item">
           <span class="right-grid"
-            ><a href="{{ first_release_url}}">{{first_release}}</a></span
+            ><a href="{{ first_release_url}}" target="_blank">{{first_release}}</a></span
           >
         </div>
       </div>
@@ -114,7 +115,7 @@
         </div>
         <div class="aui-item">
           <span class="right-grid"
-            ><a href="{{ last_release_url}}">{{last_release}}</a></span
+            ><a href="{{ last_release_url}}" target="_blank">{{last_release}}</a></span
           >
         </div>
       </div>

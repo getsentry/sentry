@@ -20,6 +20,7 @@ import {
 } from '../utils';
 
 import DetailsBody from './body';
+import DetailsBodyRedesign from './bodyRedesign';
 import DetailsHeader from './header';
 
 type Props = {
@@ -140,7 +141,7 @@ class IncidentDetails extends React.Component<Props, State> {
 
   render() {
     const {incident, stats, hasError} = this.state;
-    const {params} = this.props;
+    const {params, organization} = this.props;
 
     return (
       <React.Fragment>
@@ -152,8 +153,11 @@ class IncidentDetails extends React.Component<Props, State> {
           onSubscriptionChange={this.handleSubscriptionChange}
           onStatusChange={this.handleStatusChange}
         />
-
-        <DetailsBody {...this.props} incident={incident} stats={stats} />
+        {organization.features.includes('alert-details-redesign') ? (
+          <DetailsBodyRedesign {...this.props} incident={incident} stats={stats} />
+        ) : (
+          <DetailsBody {...this.props} incident={incident} stats={stats} />
+        )}
       </React.Fragment>
     );
   }
