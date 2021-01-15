@@ -66,12 +66,14 @@ class OrganizationContext extends React.Component<Props, State> {
       return OrganizationContext.getDefaultState(props);
     }
 
+   const {organizationsLoading, location, params} = props;
+   const {orgId} = params;
     return {
       ...prevState,
       prevProps: {
-        orgId: props.params.orgId,
-        organizationsLoading: props.organizationsLoading,
-        location: props.location,
+        orgId,
+        organizationsLoading,
+        location,
       },
     };
   }
