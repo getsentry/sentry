@@ -78,7 +78,7 @@ class OrganizationContext extends React.Component<Props, State> {
     };
   }
 
-  static shouldRemount(prevProps: State['prevProps'], props): boolean {
+  static shouldRemount(prevProps: State['prevProps'], props: Props): boolean {
     const hasOrgIdAndChanged =
       prevProps.orgId && props.params.orgId && prevProps.orgId !== props.params.orgId;
 
