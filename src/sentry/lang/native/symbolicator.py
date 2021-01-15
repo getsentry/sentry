@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import copy
 import sys
 import jsonschema
 import logging
@@ -243,17 +242,14 @@ def redact_internal_sources_from_module(module):
         else:
             new_candidates.append(candidate)
 
-    for i, candidate in enumerate(copy.copy(new_candidates)):
+    def should_keep(candidate):
+        """Returns `False`"""
         source_id = candidate["source"]
-        try:
-            status = candidate.get("download", {})["status"]
-        except KeyError:
-            continue
-        if status == "notfound" and source_id in sources_other:
-            del new_candidates[i]
+        status = candidate.get("download", {}).get("status")
+        return status != "notfound" or source_id not in sources_other
 
     if "candidates" in module:
-        module["candidates"] = new_candidates
+        module["candidates"] = [c for c in new_candidates if should_keep(c)]
 
 
 class TaskIdNotFound(Exception):
