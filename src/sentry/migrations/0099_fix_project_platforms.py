@@ -52,5 +52,5 @@ class Migration(migrations.Migration):
     dependencies = [("sentry", "0098_add-performance-onboarding")]
 
     operations = [
-    migrations.RunPython(code=fix_project_platform, reverse_code=migrations.RunPython.noop)
-]
+        migrations.RunPython(code=fix_project_platform, reverse_code=migrations.RunPython.noop)
+    ]
