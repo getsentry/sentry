@@ -49,5 +49,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-    migrations.RunPython(code=backfill_existing_orgs, reverse_code=migrations.RunPython.noop)
-]
+        migrations.RunPython(code=backfill_existing_orgs, reverse_code=migrations.RunPython.noop)
+    ]
