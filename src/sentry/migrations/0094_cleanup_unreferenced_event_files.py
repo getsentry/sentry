@@ -65,7 +65,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-    migrations.RunPython(
-        code=cleanup_event_attachment_files, reverse_code=migrations.RunPython.noop
-    )
-]
+        migrations.RunPython(
+            code=cleanup_event_attachment_files, reverse_code=migrations.RunPython.noop
+        )
+    ]
