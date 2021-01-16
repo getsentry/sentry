@@ -751,17 +751,6 @@ function routes() {
         component={errorHandler(LazyLoad)}
       />
 
-      <Route
-        name={t('Filters & Sampling')}
-        path="filters-and-sampling/"
-        componentPromise={() =>
-          import(
-            /* webpackChunkName: "OrganizationFiltersAndSampling" */ 'app/views/settings/organizationFiltersAndSampling'
-          )
-        }
-        component={errorHandler(LazyLoad)}
-      />
-
       <Route name="Teams" path="teams/">
         <IndexRoute
           componentPromise={() =>
@@ -1513,6 +1502,18 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
             />
+
+            <Route path="details/" name="Alert Details">
+              <Route
+                path=":alertId/"
+                componentPromise={() =>
+                  import(
+                    /* webpackChunkName: "AlertsDetailsDetails" */ 'app/views/alerts/details/details'
+                  )
+                }
+                component={errorHandler(LazyLoad)}
+              />
+            </Route>
 
             <Route
               path=":projectId/"

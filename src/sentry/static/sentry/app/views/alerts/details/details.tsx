@@ -5,6 +5,7 @@ import {markIncidentAsSeen} from 'app/actionCreators/incident';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -19,7 +20,7 @@ import {
   updateSubscription,
 } from '../utils';
 
-import DetailsBody from './body';
+import DetailsBodyRedesign from './bodyRedesign';
 import DetailsHeader from './header';
 
 type Props = {
@@ -34,7 +35,7 @@ type State = {
   stats?: IncidentStats;
 };
 
-class IncidentDetails extends React.Component<Props, State> {
+class IncidentDetailsDetails extends React.Component<Props, State> {
   state: State = {isLoading: false, hasError: false};
 
   componentDidMount() {
@@ -140,22 +141,24 @@ class IncidentDetails extends React.Component<Props, State> {
 
   render() {
     const {incident, stats, hasError} = this.state;
-    const {params} = this.props;
+    const {params, organization} = this.props;
 
     return (
       <React.Fragment>
-        <DetailsHeader
-          hasIncidentDetailsError={hasError}
-          params={params}
-          incident={incident}
-          stats={stats}
-          onSubscriptionChange={this.handleSubscriptionChange}
-          onStatusChange={this.handleStatusChange}
-        />
-        <DetailsBody {...this.props} incident={incident} stats={stats} />
+        <Feature organization={organization} features={['alert-details-redesign']}>
+          <DetailsHeader
+            hasIncidentDetailsError={hasError}
+            params={params}
+            incident={incident}
+            stats={stats}
+            onSubscriptionChange={this.handleSubscriptionChange}
+            onStatusChange={this.handleStatusChange}
+          />
+          <DetailsBodyRedesign {...this.props} incident={incident} stats={stats} />
+        </Feature>
       </React.Fragment>
     );
   }
 }
 
-export default withApi(IncidentDetails);
+export default withApi(IncidentDetailsDetails);
