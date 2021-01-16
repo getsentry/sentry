@@ -48,4 +48,6 @@ class Migration(migrations.Migration):
         ('sentry', '0145_rename_alert_rule_feature'),
     ]
 
-    operations = [migrations.RunPython(code=backfill_existing_orgs)]
+    operations = [
+    migrations.RunPython(code=backfill_existing_orgs, reverse_code=migrations.RunPython.noop)
+]

@@ -46,4 +46,6 @@ class Migration(migrations.Migration):
 
     dependencies = [("sentry", "0089_rule_level_fields_backfill")]
 
-    operations = [migrations.RunPython(code=cleanup_audit_log_data)]
+    operations = [
+    migrations.RunPython(code=cleanup_audit_log_data, reverse_code=migrations.RunPython.noop)
+]
