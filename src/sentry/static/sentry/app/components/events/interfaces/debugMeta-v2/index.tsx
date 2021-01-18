@@ -60,7 +60,7 @@ type State = {
   filteredImagesBySearch: Images;
   filteredImagesByFilter: Images;
   filterOptions: FilterOptions;
-  listWidth: number;
+  scrollbarWidth: number;
   panelTableHeight?: number;
 };
 
@@ -76,7 +76,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
 
   state: State = {
     searchTerm: '',
-    listWidth: 0,
+    scrollbarWidth: 0,
     filterOptions: [],
     filteredImages: [],
     filteredImagesByFilter: [],
@@ -115,7 +115,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
     }
   };
 
-  getListWidth() {
+  getScrollbarWidth() {
     const panelTableWidth = this.panelTableRef?.current?.clientWidth ?? 0;
 
     const gridInnerWidth =
@@ -123,10 +123,10 @@ class DebugMeta extends React.PureComponent<Props, State> {
         '.ReactVirtualized__Grid__innerScrollContainer'
       )?.clientWidth ?? 0;
 
-    const listWidth = panelTableWidth - gridInnerWidth;
+    const scrollbarWidth = panelTableWidth - gridInnerWidth;
 
-    if (listWidth !== this.state.listWidth) {
-      this.setState({listWidth});
+    if (scrollbarWidth !== this.state.scrollbarWidth) {
+      this.setState({scrollbarWidth});
     }
   }
 
@@ -134,7 +134,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
     if (this.listRef) {
       cache.clearAll();
       this.listRef.forceUpdateGrid();
-      this.getListWidth();
+      this.getScrollbarWidth();
     }
   };
 
@@ -464,7 +464,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
       searchTerm,
       filterOptions,
       filteredImagesByFilter: images,
-      listWidth,
+      scrollbarWidth,
     } = this.state;
 
     return (
@@ -498,7 +498,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
         isCentered
       >
         <StyledPanelTable
-          listWidth={listWidth}
+          scrollbarWidth={scrollbarWidth}
           headers={[t('Status'), t('Image'), t('Processing'), t('Details'), '']}
           isEmpty={!images.length}
           emptyMessage={t('There are no images to display')}
@@ -521,13 +521,13 @@ const StyledEventDataSection = styled(EventDataSection)`
   }
 `;
 
-const StyledPanelTable = styled(PanelTable)<{listWidth?: number}>`
+const StyledPanelTable = styled(PanelTable)<{scrollbarWidth?: number}>`
   > * {
     :nth-child(-n + 5) {
       ${overflowEllipsis};
       border-bottom: 1px solid ${p => p.theme.border};
       :nth-child(5n) {
-        ${p => !p.listWidth && `display: none`}
+        ${p => !p.scrollbarWidth && `display: none`}
       }
     }
 
@@ -540,7 +540,7 @@ const StyledPanelTable = styled(PanelTable)<{listWidth?: number}>`
   }`}
   }
 
-  ${p => layout(p.theme, p.listWidth)}
+  ${p => layout(p.theme, p.scrollbarWidth)}
 `;
 
 // Section Title
