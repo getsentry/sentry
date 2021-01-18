@@ -1,4 +1,6 @@
 import React from 'react';
+import {withRouter} from 'react-router';
+import {WithRouterProps} from 'react-router/lib/withRouter';
 import {
   AutoSizer,
   CellMeasurer,
@@ -45,11 +47,12 @@ type DefaultProps = {
 type FilterOptions = React.ComponentProps<typeof Filter>['options'];
 type Images = Array<React.ComponentProps<typeof DebugImage>['image']>;
 
-type Props = DefaultProps & {
-  event: Event;
-  organization: Organization;
-  projectId: Project['id'];
-};
+type Props = DefaultProps &
+  WithRouterProps & {
+    event: Event;
+    organization: Organization;
+    projectId: Project['id'];
+  };
 
 type State = {
   searchTerm: string;
@@ -85,6 +88,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
     this.unsubscribeFromStore = DebugMetaStore.listen(this.onStoreChange, undefined);
     cache.clearAll();
     this.getRelevantImages();
+    this.openImageDetailsModal();
   }
 
   componentDidUpdate(_prevProps: Props, prevState: State) {
@@ -95,6 +99,8 @@ class DebugMeta extends React.PureComponent<Props, State> {
     if (this.state.isLoading) {
       this.getInnerListWidth();
     }
+
+    this.openImageDetailsModal();
   }
 
   componentWillUnmount() {
@@ -197,6 +203,38 @@ class DebugMeta extends React.PureComponent<Props, State> {
         filteredImagesByFilter,
       },
       this.updateGrid
+    );
+  }
+
+  openImageDetailsModal() {
+    const {location, organization, projectId, data} = this.props;
+    const {query} = location;
+    const {imageId} = query;
+
+    if (!imageId) {
+      return;
+    }
+
+    const {images} = data;
+    const image = images.find(({code_id}) => code_id === imageId);
+
+    if (!image) {
+      return;
+    }
+
+    openModal(
+      modalProps => (
+        <DebugImageDetails
+          {...modalProps}
+          image={image}
+          organization={organization}
+          projectId={projectId}
+        />
+      ),
+      {
+        modalCss,
+        onClose: this.handleCloseImageDetailsModal,
+      }
     );
   }
 
@@ -338,27 +376,22 @@ class DebugMeta extends React.PureComponent<Props, State> {
     }));
   };
 
-  handleOpenImageDetailsModal = (
-    image: Image,
-    imageAddress: React.ReactElement | null,
-    fileName?: string
-  ) => {
-    const {organization, projectId} = this.props;
-    return openModal(
-      modalProps => (
-        <DebugImageDetails
-          {...modalProps}
-          image={image}
-          title={fileName}
-          organization={organization}
-          projectId={projectId}
-          imageAddress={imageAddress}
-        />
-      ),
-      {
-        modalCss,
-      }
-    );
+  handleOpenImageDetailsModal = (code_id: Image['code_id']) => {
+    const {location, router} = this.props;
+
+    router.push({
+      ...location,
+      query: {...location.query, imageId: code_id},
+    });
+  };
+
+  handleCloseImageDetailsModal = () => {
+    const {location, router} = this.props;
+
+    router.push({
+      ...location,
+      query: {...location.query, imageId: undefined},
+    });
   };
 
   renderRow = ({index, key, parent, style}: ListRowProps) => {
@@ -498,7 +531,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
   }
 }
 
-export default DebugMeta;
+export default withRouter(DebugMeta);
 
 const StyledEventDataSection = styled(EventDataSection)`
   padding-bottom: ${space(4)};
