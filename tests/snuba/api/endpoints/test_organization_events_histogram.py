@@ -741,3 +741,23 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(query)
         assert response.status_code == 200
         assert response.data == self.as_response_data(specs)
+
+    def test_histogram_outlier_filtering_with_no_rows(self):
+        specs = [
+            (0, 1, [("transaction.duration", 0)]),
+            (1, 2, [("transaction.duration", 0)]),
+            (2, 3, [("transaction.duration", 0)]),
+            (3, 4, [("transaction.duration", 0)]),
+            (4, 5, [("transaction.duration", 0)]),
+        ]
+
+        query = {
+            "project": [self.project.id],
+            "field": ["transaction.duration"],
+            "numBuckets": 5,
+            "dataFilter": "exclude_outliers",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert response.data == self.as_response_data(specs)
