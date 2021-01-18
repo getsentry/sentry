@@ -10,6 +10,8 @@ import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
+import Sparklines from 'app/components/sparklines';
+import SparklinesLine from 'app/components/sparklines/line';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -40,13 +42,6 @@ import {
 import VitalPercents from '../vitalDetail/vitalPercents';
 
 import {backendCardDetails, getBackendFunction} from './utils';
-
-const Sparklines = React.lazy(
-  () => import(/* webpackChunkName: "Sparklines" */ 'app/components/sparklines')
-);
-const SparklinesLine = React.lazy(
-  () => import(/* webpackChunkName: "SparklinesLine" */ 'app/components/sparklines/line')
-);
 
 // Temporary list of platforms to only show web vitals for.
 const VITALS_PLATFORMS = [
@@ -181,14 +176,11 @@ function _BackendCards(props: BackendCardsProps) {
           environment={globalSelection.environments}
           start={start}
           end={end}
-          interval={getInterval(
-            {
-              start: start || null,
-              end: end || null,
-              period: globalSelection.datetime.period,
-            },
-            true
-          )}
+          interval={getInterval({
+            start: start || null,
+            end: end || null,
+            period: globalSelection.datetime.period,
+          })}
           query={eventView.getEventsAPIPayload(location).query}
           includePrevious={false}
           yAxis={eventView.getFields()}
@@ -243,13 +235,11 @@ type SparklineChartProps = {
 export function SparklineChart(props: SparklineChartProps) {
   const {data} = props;
   return (
-    <React.Suspense fallback={null}>
-      <SparklineContainer data-test-id="sparkline">
-        <Sparklines data={data} width={240} height={24}>
-          <SparklinesLine style={{stroke: theme.gray300, fill: 'none', strokeWidth: 4}} />
-        </Sparklines>
-      </SparklineContainer>
-    </React.Suspense>
+    <SparklineContainer data-test-id="sparkline">
+      <Sparklines data={data} width={240} height={24}>
+        <SparklinesLine style={{stroke: theme.gray300, fill: 'none', strokeWidth: 4}} />
+      </Sparklines>
+    </SparklineContainer>
   );
 }
 

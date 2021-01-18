@@ -156,7 +156,9 @@ function generateGenericPerformanceEventView(
   const searchQuery = decodeScalar(query.query) || '';
   const conditions = tokenizeSearch(searchQuery);
   conditions.setTagValues('event.type', ['transaction']);
-  conditions.setTagValues('transaction.duration', ['<15m']);
+  if (!conditions.hasTag('transaction.duration')) {
+    conditions.setTagValues('transaction.duration', ['<15m']);
+  }
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
