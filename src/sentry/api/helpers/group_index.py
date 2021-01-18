@@ -440,10 +440,21 @@ def track_update_groups(function):
         try:
             response = function(request, projects, *args, **kwargs)
         except snuba.RateLimitExceeded:
-            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 429})
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={
+                    "status": 429,
+                    "detail": "group_index:track_update_groups:snuba.RateLimitExceeded",
+                },
+            )
             raise
         except Exception:
-            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": 500, "detail": "group_index:track_update_groups:Exception"},
+            )
             # Continue raising the error now that we've incr the metric
             raise
 
@@ -455,7 +466,7 @@ def track_update_groups(function):
         results = dict(serializer.validated_data) if serializer.is_valid() else {}
         tags = {key: True for key in results.keys()}
         tags["status"] = response.status_code
-
+        tags["detail"] = "group_index:track_update_groups:response"
         metrics.incr("group.update.http_response", sample_rate=1.0, tags=tags)
         return response
 

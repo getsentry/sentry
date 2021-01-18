@@ -253,13 +253,25 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 }
             )
 
-            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 200})
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": 200, "detail": "group_details:get:response"},
+            )
             return Response(data)
         except snuba.RateLimitExceeded:
-            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 429})
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": 429, "detail": "group_details:get:snuba.RateLimitExceeded"},
+            )
             raise
         except Exception:
-            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": 500, "detail": "group_details:get:Exception"},
+            )
             raise
 
     @rate_limit_endpoint(limit=10, window=1)
@@ -328,19 +340,31 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 ),
             )
             metrics.incr(
-                "group.update.http_response", sample_rate=1.0, tags={"status": response.status_code}
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": response.status_code, "detail": "group_details:put:response"},
             )
             return Response(serialized, status=response.status_code)
         except client.ApiError as e:
             metrics.incr(
-                "group.update.http_response", sample_rate=1.0, tags={"status": e.status_code}
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": e.status_code, "detail": "group_details:put:client.ApiError"},
             )
             return Response(e.body, status=e.status_code)
         except snuba.RateLimitExceeded:
-            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 429})
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": 429, "detail": "group_details:put:snuba.RateLimitExceeded"},
+            )
             raise
         except Exception:
-            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": 500, "detail": "group_details:put:Exception"},
+            )
             raise
 
     @rate_limit_endpoint(limit=10, window=1)
@@ -382,11 +406,23 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     group=group, user=request.user, delete_type="delete", sender=self.__class__
                 )
 
-            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 200})
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": 200, "detail": "group_details:delete:Reponse"},
+            )
             return Response(status=202)
         except snuba.RateLimitExceeded:
-            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 429})
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": 429, "detail": "group_details:delete:snuba.RateLimitExceeded"},
+            )
             raise
         except Exception:
-            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": 500, "detail": "group_details:delete:Exception"},
+            )
             raise
