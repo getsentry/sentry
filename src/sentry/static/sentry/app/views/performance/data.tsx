@@ -93,7 +93,7 @@ export function getBackendAxisOptions(
       label: t('Duration p75'),
     },
     {
-      tooltip: getTermHelp(organization, ''),
+      tooltip: getTermHelp(organization, 'durationDistribution'),
       value: 'duration_distribution',
       label: t('Duration Distribution'),
     },
@@ -126,6 +126,10 @@ const PERFORMANCE_TERMS: Record<string, TermFormatter> = {
   statusBreakdown: () =>
     t(
       'The breakdown of transaction statuses. This may indicate what type of failure it is.'
+    ),
+  durationDistribution: () =>
+    t(
+      'Distribution buckets counts of transactions at specifics times for your current date range'
     ),
 };
 
