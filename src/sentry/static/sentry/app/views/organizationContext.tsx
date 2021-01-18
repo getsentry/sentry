@@ -117,7 +117,7 @@ class OrganizationContext extends React.Component<Props, State> {
         prevProps,
       };
     }
-    
+
     return {
       loading: true,
       error: null,
