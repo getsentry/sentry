@@ -52,7 +52,7 @@ export function getSourceTooltipDescription(
 ) {
   if (source === INTERNAL_SOURCE) {
     return t(
-      "This debug information file is from Sentry's internal symbol server for this project"
+      "This debug information file is from Sentry's internal symbol server for this project."
     );
   }
 
