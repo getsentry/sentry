@@ -2,18 +2,27 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {Client} from 'app/api';
 import Card from 'app/components/card';
+import EventsRequest from 'app/components/charts/eventsRequest';
+import {getInterval} from 'app/components/charts/utils';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
+import Sparklines from 'app/components/sparklines';
+import SparklinesLine from 'app/components/sparklines/line';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {getUtcToLocalDateObject} from 'app/utils/dates';
+import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {decodeList} from 'app/utils/queryString';
+import theme from 'app/utils/theme';
+import withApi from 'app/utils/withApi';
 import VitalsCardsDiscoverQuery from 'app/views/performance/vitalDetail/vitalsCardsDiscoverQuery';
 
 import {HeaderTitle} from '../styles';
@@ -32,6 +41,8 @@ import {
 } from '../vitalDetail/utils';
 import VitalPercents from '../vitalDetail/vitalPercents';
 
+import {backendCardDetails, getBackendFunction} from './utils';
+
 // Temporary list of platforms to only show web vitals for.
 const VITALS_PLATFORMS = [
   'javascript',
@@ -44,7 +55,7 @@ const VITALS_PLATFORMS = [
   'javascript-vue',
 ];
 
-type VitalsCardsProps = {
+type FrontendCardsProps = {
   eventView: EventView;
   location: Location;
   organization: Organization;
@@ -52,7 +63,7 @@ type VitalsCardsProps = {
   frontendOnly?: boolean;
 };
 
-export function FrontendCards(props: VitalsCardsProps) {
+export function FrontendCards(props: FrontendCardsProps) {
   const {eventView, location, organization, projects, frontendOnly = false} = props;
 
   if (frontendOnly) {
@@ -90,7 +101,9 @@ export function FrontendCards(props: VitalsCardsProps) {
 
               const value = isLoading ? '\u2014' : getP75(result, vital);
               const chart = (
-                <VitalBar isLoading={isLoading} vital={vital} result={result} />
+                <VitalBarContainer>
+                  <VitalBar isLoading={isLoading} vital={vital} result={result} />
+                </VitalBarContainer>
               );
 
               return (
@@ -104,6 +117,7 @@ export function FrontendCards(props: VitalsCardsProps) {
                     tooltip={vitalDescription[vital] ?? ''}
                     value={isLoading ? '\u2014' : value}
                     chart={chart}
+                    minHeight={150}
                   />
                 </Link>
               );
@@ -114,6 +128,127 @@ export function FrontendCards(props: VitalsCardsProps) {
     </VitalsCardsDiscoverQuery>
   );
 }
+
+const VitalBarContainer = styled('div')`
+  margin-top: ${space(1.5)};
+`;
+
+type BackendCardsProps = {
+  api: Client;
+  eventView: EventView;
+  location: Location;
+  organization: Organization;
+};
+
+function _BackendCards(props: BackendCardsProps) {
+  const {api, eventView: baseEventView, location, organization} = props;
+  const functionNames = [
+    'p75' as const,
+    'tpm' as const,
+    'failure_rate' as const,
+    'apdex' as const,
+  ];
+  const functions = functionNames.map(fn => getBackendFunction(fn, organization));
+  const eventView = baseEventView.withColumns(functions);
+
+  // construct request parameters for fetching chart data
+  const globalSelection = eventView.getGlobalSelection();
+  const start = globalSelection.datetime.start
+    ? getUtcToLocalDateObject(globalSelection.datetime.start)
+    : undefined;
+  const end = globalSelection.datetime.end
+    ? getUtcToLocalDateObject(globalSelection.datetime.end)
+    : undefined;
+
+  return (
+    <DiscoverQuery
+      location={location}
+      eventView={eventView}
+      orgSlug={organization.slug}
+      limit={1}
+    >
+      {({isLoading: isSummaryLoading, tableData}) => (
+        <EventsRequest
+          api={api}
+          organization={organization}
+          period={globalSelection.datetime.period}
+          project={globalSelection.projects}
+          environment={globalSelection.environments}
+          start={start}
+          end={end}
+          interval={getInterval({
+            start: start || null,
+            end: end || null,
+            period: globalSelection.datetime.period,
+          })}
+          query={eventView.getEventsAPIPayload(location).query}
+          includePrevious={false}
+          yAxis={eventView.getFields()}
+        >
+          {({results}) => {
+            const series = results?.reduce((allSeries, oneSeries) => {
+              allSeries[oneSeries.seriesName] = oneSeries.data.map(item => item.value);
+              return allSeries;
+            }, {});
+            const fields = eventView
+              .getFields()
+              .map((fn, i) => [functionNames[i], fn, series?.[fn]]);
+
+            return (
+              <VitalsContainer>
+                {fields.map(([name, fn, data]) => {
+                  const {title, tooltip, formatter} = backendCardDetails[name];
+                  const alias = getAggregateAlias(fn);
+                  const rawValue = tableData?.data?.[0]?.[alias];
+                  const value =
+                    isSummaryLoading || rawValue === undefined
+                      ? '\u2014'
+                      : formatter(rawValue);
+                  const chart = <SparklineChart data={data} />;
+                  return (
+                    <VitalCard
+                      key={name}
+                      title={title}
+                      tooltip={tooltip}
+                      value={value}
+                      chart={chart}
+                      horizontal
+                      minHeight={102}
+                    />
+                  );
+                })}
+              </VitalsContainer>
+            );
+          }}
+        </EventsRequest>
+      )}
+    </DiscoverQuery>
+  );
+}
+
+export const BackendCards = withApi(_BackendCards);
+
+type SparklineChartProps = {
+  data: number[];
+};
+
+function SparklineChart(props: SparklineChartProps) {
+  const {data} = props;
+  return (
+    <SparklineContainer data-test-id="sparkline">
+      <Sparklines data={data} width={240} height={24}>
+        <SparklinesLine style={{stroke: theme.gray300, fill: 'none', strokeWidth: 4}} />
+      </Sparklines>
+    </SparklineContainer>
+  );
+}
+
+const SparklineContainer = styled('div')`
+  flex-grow: 4;
+  max-height: 24px;
+  max-width: 240px;
+  margin: ${space(1)} ${space(0)} ${space(1.5)} ${space(3)};
+`;
 
 const VitalsContainer = styled('div')`
   display: grid;
@@ -210,28 +345,39 @@ type VitalCardProps = {
   tooltip: string;
   value: string;
   chart: React.ReactNode;
+  minHeight?: number;
+  horizontal?: boolean;
 };
 
 function VitalCard(props: VitalCardProps) {
-  const {chart, title, tooltip, value} = props;
+  const {chart, minHeight, horizontal, title, tooltip, value} = props;
   return (
-    <StyledCard interactive>
+    <StyledCard interactive minHeight={minHeight}>
       <HeaderTitle>
         <OverflowEllipsis>{t(title)}</OverflowEllipsis>
         <QuestionTooltip size="sm" position="top" title={tooltip} />
       </HeaderTitle>
-      <CardValue>{value}</CardValue>
-      {chart}
+      <CardContent horizontal={horizontal}>
+        <CardValue>{value}</CardValue>
+        {chart}
+      </CardContent>
     </StyledCard>
   );
 }
 
-const StyledCard = styled(Card)`
+const CardContent = styled('div')<{horizontal?: boolean}>`
+  width: 100%;
+  display: flex;
+  flex-direction: ${p => (p.horizontal ? 'row' : 'column')};
+  justify-content: space-between;
+`;
+
+const StyledCard = styled(Card)<{minHeight?: number}>`
   color: ${p => p.theme.textColor};
   padding: ${space(2)} ${space(3)};
   align-items: flex-start;
-  min-height: 150px;
   margin-bottom: ${space(2)};
+  ${p => p.minHeight && `min-height: ${p.minHeight}px`};
 `;
 
 function getP75(result: any, vitalName: WebVital): string {
@@ -316,7 +462,6 @@ const BarDetail = styled('div')`
 const CardValue = styled('div')`
   font-size: 32px;
   margin-top: ${space(1)};
-  margin-bottom: ${space(1.5)};
 `;
 
 const OverflowEllipsis = styled('div')`

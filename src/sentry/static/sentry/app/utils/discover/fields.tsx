@@ -298,7 +298,7 @@ export const ALIASES = {
 
 assert(AGGREGATIONS as Readonly<{[key in keyof typeof AGGREGATIONS]: Aggregation}>);
 
-export type AggregationKey = keyof typeof AGGREGATIONS | '';
+export type AggregationKey = keyof typeof AGGREGATIONS | keyof typeof ALIASES | '';
 
 export type AggregationOutputType = Extract<
   ColumnType,
