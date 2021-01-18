@@ -28,8 +28,8 @@ import withOrganization from 'app/utils/withOrganization';
 type HeaderProps = {
   organization: LightWeightOrganization;
   projectId: string;
-  eventId: string;
   data: Group;
+  eventId?: string;
 };
 
 class CompactIssueHeader extends React.Component<HeaderProps> {
@@ -81,10 +81,10 @@ class CompactIssueHeader extends React.Component<HeaderProps> {
 type Props = {
   api: Client;
   id: string;
-  eventId: string;
   organization: LightWeightOrganization;
   statsPeriod?: string;
   showActions?: boolean;
+  eventId?: string;
   data?: Group;
 };
 
