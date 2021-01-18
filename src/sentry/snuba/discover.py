@@ -1122,10 +1122,17 @@ def find_histogram_min_max(fields, min_value, max_value, user_query, params, dat
                 first_quartile = row[q1_alias]
                 third_quartile = row[q3_alias]
 
-                if first_quartile is not None and third_quartile is not None:
-                    interquartile_range = abs(third_quartile - first_quartile)
-                    upper_outer_fence = third_quartile + 3 * interquartile_range
-                    fences.append(upper_outer_fence)
+                if (
+                    first_quartile is None
+                    or third_quartile is None
+                    or math.isnan(first_quartile)
+                    or math.isnan(third_quartile)
+                ):
+                    continue
+
+                interquartile_range = abs(third_quartile - first_quartile)
+                upper_outer_fence = third_quartile + 3 * interquartile_range
+                fences.append(upper_outer_fence)
 
         max_fence_value = max(fences) if fences else None
 
