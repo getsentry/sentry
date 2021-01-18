@@ -130,7 +130,7 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
     );
   };
 
-  fetchData = () => {
+  fetchData = async () => {
     const {
       api,
       beforeFetch,
@@ -168,43 +168,35 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
 
     beforeFetch?.(api);
 
-    api
-      .requestPromise(url, {
-        method: 'GET',
-        includeAllArgs: true,
-        query: {
-          // marking apiPayload as any so as to not cause typescript errors
-          ...(apiPayload as any),
-        },
-      })
-      .then(([data, _, jqXHR]) => {
-        if (this.state.tableFetchID !== tableFetchID) {
-          // invariant: a different request was initiated after this request
-          return;
-        }
+    try {
+      // @ts-ignore Skip over the unused value.
+      const [data, _, jqXHR] = await doDiscoverQuery<T>(api, url, apiPayload);
+      if (this.state.tableFetchID !== tableFetchID) {
+        // invariant: a different request was initiated after this request
+        return;
+      }
 
-        const tableData = afterFetch ? afterFetch(data, this.props) : data;
+      const tableData = afterFetch ? afterFetch(data, this.props) : data;
 
-        this.setState(prevState => ({
-          isLoading: false,
-          tableFetchID: undefined,
-          error: null,
-          pageLinks: jqXHR?.getResponseHeader('Link') ?? prevState.pageLinks,
-          tableData,
-        }));
-      })
-      .catch(err => {
-        const error = err?.responseJSON?.detail ?? null;
-        this.setState({
-          isLoading: false,
-          tableFetchID: undefined,
-          error,
-          tableData: null,
-        });
-        if (setError) {
-          setError(error);
-        }
+      this.setState(prevState => ({
+        isLoading: false,
+        tableFetchID: undefined,
+        error: null,
+        pageLinks: jqXHR?.getResponseHeader('Link') ?? prevState.pageLinks,
+        tableData,
+      }));
+    } catch (err) {
+      const error = err?.responseJSON?.detail ?? null;
+      this.setState({
+        isLoading: false,
+        tableFetchID: undefined,
+        error,
+        tableData: null,
       });
+      if (setError) {
+        setError(error);
+      }
+    }
   };
 
   render() {
@@ -219,6 +211,23 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
     const children: ReactProps<T>['children'] = this.props.children; // Explicitly setting type due to issues with generics and React's children
     return children?.(childrenProps);
   }
+}
+
+type RequestParameters = Partial<EventQuery & LocationQuery>;
+
+export async function doDiscoverQuery<T>(
+  api: Client,
+  url: string,
+  params: RequestParameters
+): Promise<[T, string | undefined, JQueryXHR | undefined]> {
+  return api.requestPromise(url, {
+    method: 'GET',
+    includeAllArgs: true,
+    query: {
+      // marking params as any so as to not cause typescript errors
+      ...(params as any),
+    },
+  });
 }
 
 export default GenericDiscoverQuery;

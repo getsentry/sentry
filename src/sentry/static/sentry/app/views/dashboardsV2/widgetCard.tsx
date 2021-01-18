@@ -1,6 +1,7 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {Client} from 'app/api';
@@ -8,6 +9,7 @@ import BarChart from 'app/components/charts/barChart';
 import ChartZoom from 'app/components/charts/chartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import LineChart from 'app/components/charts/lineChart';
+import SimpleTableChart from 'app/components/charts/simpleTableChart';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {getSeriesSelection} from 'app/components/charts/utils';
@@ -34,6 +36,7 @@ import WidgetQueries from './widgetQueries';
 type Props = ReactRouter.WithRouterProps & {
   api: Client;
   organization: Organization;
+  location: Location;
   isEditing: boolean;
   widget: Widget;
   selection: GlobalSelection;
@@ -46,6 +49,11 @@ type Props = ReactRouter.WithRouterProps & {
     event: React.MouseEvent<SVGElement> | React.TouchEvent<SVGElement>
   ) => void;
 };
+
+type TableResultProps = Pick<
+  WidgetQueries['state'],
+  'errorMessage' | 'loading' | 'tableResults'
+>;
 
 class WidgetCard extends React.Component<Props> {
   shouldComponentUpdate(nextProps: Props): boolean {
@@ -61,6 +69,42 @@ class WidgetCard extends React.Component<Props> {
     return false;
   }
 
+  tableResultComponent({
+    loading,
+    errorMessage,
+    tableResults,
+  }: TableResultProps): React.ReactNode {
+    const {location, widget} = this.props;
+    if (errorMessage) {
+      return (
+        <ErrorPanel>
+          <IconWarning color="gray500" size="lg" />
+        </ErrorPanel>
+      );
+    }
+    if (typeof tableResults === 'undefined') {
+      throw new Error('Attempting to render a table chart without table data');
+    }
+
+    switch (widget.displayType) {
+      case 'table':
+        return tableResults.map(result => {
+          return (
+            <SimpleTableChart
+              key={result.title}
+              location={location}
+              title={tableResults.length > 1 ? result.title : ''}
+              loading={loading}
+              metadata={result.meta}
+              data={result.data}
+            />
+          );
+        });
+      default:
+        throw new Error(`Unknown chart type ${widget.displayType} used`);
+    }
+  }
+
   chartComponent(chartProps): React.ReactNode {
     const {widget} = this.props;
 
@@ -74,12 +118,24 @@ class WidgetCard extends React.Component<Props> {
   }
 
   renderVisual({
-    results,
+    tableResults,
+    timeseriesResults,
     errorMessage,
     loading,
-  }: Pick<WidgetQueries['state'], 'results' | 'errorMessage' | 'loading'>) {
-    const {location, router, selection, widget} = this.props;
+  }: Pick<
+    WidgetQueries['state'],
+    'timeseriesResults' | 'tableResults' | 'errorMessage' | 'loading'
+  >): React.ReactNode {
+    if (typeof tableResults !== 'undefined') {
+      return (
+        <TransitionChart loading={loading} reloading={loading}>
+          <TransparentLoadingMask visible={loading} />
+          {this.tableResultComponent({tableResults, loading, errorMessage})}
+        </TransitionChart>
+      );
+    }
 
+    const {location, router, selection, widget} = this.props;
     const {start, end, period} = selection.datetime;
 
     const legend = {
@@ -143,11 +199,13 @@ class WidgetCard extends React.Component<Props> {
             );
           }
 
-          const colors = results ? theme.charts.getColorPalette(results.length - 2) : [];
+          const colors = timeseriesResults
+            ? theme.charts.getColorPalette(timeseriesResults.length - 2)
+            : [];
 
           // Create a list of series based on the order of the fields,
-          const series = results
-            ? results.map((values, i: number) => ({
+          const series = timeseriesResults
+            ? timeseriesResults.map((values, i: number) => ({
                 ...values,
                 color: colors[i],
               }))
@@ -233,7 +291,7 @@ class WidgetCard extends React.Component<Props> {
             widget={widget}
             selection={selection}
           >
-            {({results, errorMessage, loading}) => {
+            {({tableResults, timeseriesResults, errorMessage, loading}) => {
               return (
                 <React.Fragment>
                   {typeof renderErrorMessage === 'function'
@@ -241,7 +299,12 @@ class WidgetCard extends React.Component<Props> {
                     : null}
                   <ChartContainer>
                     <HeaderTitleLegend>{widget.title}</HeaderTitleLegend>
-                    {this.renderVisual({results, errorMessage, loading})}
+                    {this.renderVisual({
+                      timeseriesResults,
+                      tableResults,
+                      errorMessage,
+                      loading,
+                    })}
                     {this.renderToolbar()}
                   </ChartContainer>
                 </React.Fragment>
