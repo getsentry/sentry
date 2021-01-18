@@ -232,7 +232,7 @@ type SparklineChartProps = {
   data: number[];
 };
 
-export function SparklineChart(props: SparklineChartProps) {
+function SparklineChart(props: SparklineChartProps) {
   const {data} = props;
   return (
     <SparklineContainer data-test-id="sparkline">
