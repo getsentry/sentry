@@ -17,6 +17,7 @@ from sentry.nodestore.base import NodeStorage
 # Cache an instance of the encoder we want to use
 json_dumps = json.JSONEncoder(
     separators=(",", ":"),
+    sort_keys=True,
     skipkeys=False,
     ensure_ascii=True,
     check_circular=True,
