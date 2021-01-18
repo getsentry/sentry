@@ -3,9 +3,9 @@ import * as OrganizationsActionCreator from 'app/actionCreators/organizations';
 import OrganizationActions from 'app/actions/organizationActions';
 import ProjectActions from 'app/actions/projectActions';
 import TeamActions from 'app/actions/teamActions';
+import OrganizationStore from 'app/stores/organizationStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
-import OrganizationStore from 'app/stores/organizationStore';
 
 describe('OrganizationActionCreator', function () {
   const detailedOrg = TestStubs.Organization({
