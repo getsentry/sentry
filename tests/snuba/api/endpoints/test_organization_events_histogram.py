@@ -719,3 +719,25 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         ]
 
         assert response.data == self.as_response_data(expected)
+
+    def test_histogram_ignores_aggregate_conditions(self):
+        # range is [0, 5), so it is divided into 5 buckets of width 1
+        specs = [
+            (0, 1, [("measurements.foo", 1)]),
+            (1, 2, [("measurements.foo", 1)]),
+            (2, 3, [("measurements.foo", 1)]),
+            (3, 4, [("measurements.foo", 0)]),
+            (4, 5, [("measurements.foo", 1)]),
+        ]
+        self.populate_measurements(specs)
+
+        query = {
+            "project": [self.project.id],
+            "field": ["measurements.foo"],
+            "numBuckets": 5,
+            "query": "tpm():>0.001",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert response.data == self.as_response_data(specs)
