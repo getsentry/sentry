@@ -10,7 +10,7 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 
 from requests.exceptions import RequestException
-from six.moves.urllib.parse import urljoin
+from six.moves.urllib.parse import urljoin, urlparse, parse_qs
 
 import sentry_sdk
 
@@ -208,6 +208,20 @@ def redact_internal_sources(response):
     return response
 
 
+def sentry_dsyms_id(url):
+    """Extracts the ID of the debug symbol for this project from the location URI.
+
+    The get_internal_source() function returns URLs to the local sentry server, symbolicator
+    then adds a query string and the location returned in a object dif candidate is
+    something like
+    ``http::servername/api/<project_id>/projects/<org_slug>/<project_slug>/files/dsyms/?id=<id>``.
+    This parses out the ``<id>`` from this.
+    """
+    parsed = urlparse(url)
+    qs = parse_qs(parsed.query)
+    return qs["id"][0]
+
+
 def redact_internal_sources_from_module(module):
     """Redacts information about internal sources from a single module.
 
@@ -221,15 +235,29 @@ def redact_internal_sources_from_module(module):
     sources_other = set()
     new_candidates = []
 
-    debug_id = module.get("debug_id", "<missing-debug-id>")
     for candidate in module.get("candidates", []):
         source_id = candidate["source"]
         if is_internal_source_id(source_id):
-            candidate["location"] = "debugid://{}".format(debug_id)
+
+            # Fixup the location.
+            if source_id == "sentry:project":
+                try:
+                    location = "sentry://project_debug_file/{}".format(
+                        sentry_dsyms_id(candidate["location"])
+                    )
+                except Exception:
+                    del candidate["location"]
+                else:
+                    candidate["location"] = location
+            else:
+                del candidate["location"]
+
+            # Collapse nofound statuses, collect info on sources which both have a notfound
+            # as well as other statusses.  This allows us to later filter the notfound ones.
             try:
                 status = candidate.get("download", {})["status"]
             except KeyError:
-                new_candidates.append(candidate)
+                pass
             else:
                 if status == "notfound":
                     if source_id in sources_notfound:
@@ -238,12 +266,14 @@ def redact_internal_sources_from_module(module):
                         sources_notfound.add(source_id)
                 else:
                     sources_other.add(source_id)
-                new_candidates.append(candidate)
-        else:
-            new_candidates.append(candidate)
+        new_candidates.append(candidate)
 
     def should_keep(candidate):
-        """Returns `False`"""
+        """Returns `False` if the candidate should be kept in the list of candidates.
+
+        This removes the candidates with a status of ``notfound`` *if* they also have
+        another status.
+        """
         source_id = candidate["source"]
         status = candidate.get("download", {}).get("status")
         return status != "notfound" or source_id not in sources_other
