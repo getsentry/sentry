@@ -1,4 +1,5 @@
 import React from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -12,6 +13,7 @@ import withApi from 'app/utils/withApi';
 
 import _Footer from '../charts/footer';
 import {getFrontendAxisOptions} from '../data';
+import {getTransactionSearchQuery} from '../utils';
 
 import DurationChart from './durationChart';
 import HistogramChart from './histogramChart';
@@ -20,21 +22,28 @@ type Props = {
   location: Location;
   organization: Organization;
   eventView: EventView;
-
-  onFrontendDisplayFilter: (queryUpdate: string) => void;
 };
 
 function FrontendDisplay(props: Props) {
   const {eventView, location, organization} = props;
+  const field = 'measurements.lcp';
 
-  const onFilterChange = (minValue, maxValue, tagName) => {
-    const conditions = tokenizeSearch('');
-    conditions.setTagValues(tagName, [
+  const onFilterChange = (minValue, maxValue) => {
+    const filterString = getTransactionSearchQuery(location);
+    const conditions = tokenizeSearch(filterString);
+    conditions.setTagValues(field, [
       `>=${Math.round(minValue)}`,
       `<${Math.round(maxValue)}`,
     ]);
     const query = stringifyQueryObject(conditions);
-    props.onFrontendDisplayFilter(query);
+
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        query: String(query).trim(),
+      },
+    });
   };
 
   const axisOptions = getFrontendAxisOptions(organization);

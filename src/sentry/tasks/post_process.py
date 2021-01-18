@@ -432,7 +432,7 @@ def _spawn_capture_nodestore_stats(event):
 
 
 def _json_size(data):
-    bytestring = json.dumps(data).encode("utf8")
+    bytestring = json.dumps(data, sort_keys=True).encode("utf8")
     cctx = zstandard.ZstdCompressor()
     return len(cctx.compress(bytestring))
 
@@ -445,23 +445,15 @@ def capture_nodestore_stats(project_id, event_id):
     from sentry.eventstore.compressor import deduplicate
     from sentry.eventstore.models import Event
 
-    event = Event(project_id=project_id, event_id=event_id)
-    old_event_size = _json_size(dict(event.data))
+    node_id = Event.generate_node_id(project_id, event_id)
+    data = nodestore.get(node_id)
 
-    if not event.data:
+    if not data:
         metrics.incr("eventstore.compressor.error", tags={"reason": "no_data"})
         return
 
-    platform = event.platform
-
-    for key, value in six.iteritems(event.interfaces):
-        len_value = _json_size(value.to_json())
-        metrics.timing(
-            "events.size.interface", len_value, tags={"interface": key, "platform": platform}
-        )
-
-    new_data, extra_keys = deduplicate(dict(event.data))
-
+    old_event_size = _json_size(data)
+    new_data, extra_keys = deduplicate(dict(data))
     total_size = event_size = _json_size(new_data)
 
     for key, value in six.iteritems(extra_keys):
