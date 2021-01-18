@@ -94,6 +94,8 @@ class DebugMeta extends React.PureComponent<Props, State> {
     if (prevState.filteredImages.length === 0 && this.state.filteredImages.length > 0) {
       this.getPanelBodyHeight();
     }
+
+    this.openImageDetailsModal();
   }
 
   componentWillUnmount() {
@@ -522,6 +524,7 @@ const StyledEventDataSection = styled(EventDataSection)`
 `;
 
 const StyledPanelTable = styled(PanelTable)<{scrollbarWidth?: number}>`
+  overflow: hidden;
   > * {
     :nth-child(-n + 5) {
       ${overflowEllipsis};
