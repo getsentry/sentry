@@ -74,7 +74,7 @@ class WidgetCard extends React.Component<Props> {
     errorMessage,
     tableResults,
   }: TableResultProps): React.ReactNode {
-    const {location, widget} = this.props;
+    const {location} = this.props;
     if (errorMessage) {
       return (
         <ErrorPanel>
@@ -82,27 +82,24 @@ class WidgetCard extends React.Component<Props> {
         </ErrorPanel>
       );
     }
-    if (typeof tableResults === 'undefined') {
-      throw new Error('Attempting to render a table chart without table data');
+
+    if (typeof tableResults === 'undefined' || loading) {
+      // Align height to other charts.
+      return <Placeholder height="200px" />;
     }
 
-    switch (widget.displayType) {
-      case 'table':
-        return tableResults.map(result => {
-          return (
-            <SimpleTableChart
-              key={result.title}
-              location={location}
-              title={tableResults.length > 1 ? result.title : ''}
-              loading={loading}
-              metadata={result.meta}
-              data={result.data}
-            />
-          );
-        });
-      default:
-        throw new Error(`Unknown chart type ${widget.displayType} used`);
-    }
+    return tableResults.map(result => {
+      return (
+        <SimpleTableChart
+          key={result.title}
+          location={location}
+          title={tableResults.length > 1 ? result.title : ''}
+          loading={loading}
+          metadata={result.meta}
+          data={result.data}
+        />
+      );
+    });
   }
 
   chartComponent(chartProps): React.ReactNode {
@@ -126,7 +123,8 @@ class WidgetCard extends React.Component<Props> {
     WidgetQueries['state'],
     'timeseriesResults' | 'tableResults' | 'errorMessage' | 'loading'
   >): React.ReactNode {
-    if (typeof tableResults !== 'undefined') {
+    const {widget} = this.props;
+    if (widget.displayType === 'table') {
       return (
         <TransitionChart loading={loading} reloading={loading}>
           <TransparentLoadingMask visible={loading} />
@@ -135,7 +133,7 @@ class WidgetCard extends React.Component<Props> {
       );
     }
 
-    const {location, router, selection, widget} = this.props;
+    const {location, router, selection} = this.props;
     const {start, end, period} = selection.datetime;
 
     const legend = {
