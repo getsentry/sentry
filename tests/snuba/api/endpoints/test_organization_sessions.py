@@ -34,10 +34,17 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         self.organization1 = self.organization
         self.organization2 = self.create_organization()
+        self.organization3 = self.create_organization()
         self.project1 = self.project
         self.project2 = self.create_project()
         self.project3 = self.create_project()
         self.project4 = self.create_project(organization=self.organization2)
+
+        self.user2 = self.create_user(is_superuser=False)
+        self.create_member(
+            user=self.user2, organization=self.organization1, role="member", teams=[]
+        )
+        self.create_member(user=self.user, organization=self.organization3, role="admin", teams=[])
 
         template = {
             "distinct_id": "00000000-0000-0000-0000-000000000000",
@@ -82,11 +89,11 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         )
         self.store_session(make_session(self.project4))
 
-    def do_request(self, query):
-        self.login_as(user=self.user)
+    def do_request(self, query, user=None, org=None):
+        self.login_as(user=user or self.user)
         url = reverse(
             "sentry-api-0-organization-sessions",
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_slug": (org or self.organization).slug},
         )
         return self.client.get(url, query, format="json")
 
@@ -153,6 +160,28 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                 {"by": {}, "series": {"sum(session)": [0, 1, 2, 6]}, "totals": {"sum(session)": 9}}
             ],
         }
+
+    @freeze_time("2021-01-14T12:27:28.303Z")
+    def test_user_all_accessible(self):
+        response = self.do_request(
+            {"statsPeriod": "1d", "interval": "1d", "field": ["sum(session)"]}, user=self.user2
+        )
+
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data) == {
+            "query": "",
+            "intervals": ["2021-01-14T00:00:00Z"],
+            "groups": [{"by": {}, "series": {"sum(session)": [9]}, "totals": {"sum(session)": 9}}],
+        }
+
+    def test_no_projects(self):
+        response = self.do_request(
+            {"statsPeriod": "1d", "interval": "1d", "field": ["sum(session)"]},
+            org=self.organization3,
+        )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {"detail": "No projects available"}
 
     @freeze_time("2021-01-14T12:27:28.303Z")
     def test_minimum_interval(self):

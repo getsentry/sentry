@@ -365,13 +365,14 @@ def massage_sessions_result(query, result_totals, result_timeseries):
         }
 
     groups = []
-    for key, totals in total_groups.items():
+    keys = set(total_groups.keys()) | set(timeseries_groups.keys())
+    for key in keys:
         by = dict(key)
 
         group = {
             "by": by,
-            "totals": make_totals(totals, by),
-            "series": make_timeseries(timeseries_groups[key], by),
+            "totals": make_totals(total_groups.get(key, [None]), by),
+            "series": make_timeseries(timeseries_groups.get(key, []), by),
         }
 
         groups.append(group)
