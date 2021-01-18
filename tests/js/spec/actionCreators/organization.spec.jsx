@@ -1,8 +1,11 @@
 import {fetchOrganizationDetails} from 'app/actionCreators/organization';
 import * as OrganizationsActionCreator from 'app/actionCreators/organizations';
 import OrganizationActions from 'app/actions/organizationActions';
+import ProjectActions from 'app/actions/projectActions';
+import TeamActions from 'app/actions/teamActions';
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
+import OrganizationStore from 'app/stores/organizationStore';
 
 describe('OrganizationActionCreator', function () {
   const detailedOrg = TestStubs.Organization({
@@ -19,7 +22,9 @@ describe('OrganizationActionCreator', function () {
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     jest.spyOn(TeamStore, 'loadInitialData');
+    jest.spyOn(TeamActions, 'loadTeams');
     jest.spyOn(ProjectsStore, 'loadInitialData');
+    jest.spyOn(ProjectActions, 'loadProjects');
     jest.spyOn(OrganizationActions, 'fetchOrg');
     jest.spyOn(OrganizationActions, 'update');
     jest.spyOn(OrganizationActions, 'fetchOrgError');
@@ -59,14 +64,15 @@ describe('OrganizationActionCreator', function () {
     });
     const getProjectsMock = MockApiClient.addMockResponse({
       url: `/organizations/${lightOrg.slug}/projects/`,
-      body: [],
+      body: detailedOrg.projects,
     });
     const getTeamsMock = MockApiClient.addMockResponse({
       url: `/organizations/${lightOrg.slug}/teams/`,
-      body: [],
+      body: detailedOrg.teams,
     });
 
     fetchOrganizationDetails(api, lightOrg.slug, false);
+    await tick();
     await tick();
     expect(OrganizationActions.fetchOrg).toHaveBeenCalled();
 
@@ -87,6 +93,15 @@ describe('OrganizationActionCreator', function () {
 
     expect(TeamStore.loadInitialData).not.toHaveBeenCalled();
     expect(ProjectsStore.loadInitialData).not.toHaveBeenCalled();
+
+    expect(TeamActions.loadTeams).toHaveBeenCalledWith(detailedOrg.teams);
+    expect(ProjectActions.loadProjects).toHaveBeenCalledWith(detailedOrg.projects);
+
+    expect(OrganizationStore.organization).toEqual({
+      ...lightOrg,
+      teams: detailedOrg.teams,
+      projects: detailedOrg.projects,
+    });
   });
 
   it('silently fetches organization details', async function () {
