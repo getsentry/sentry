@@ -83,6 +83,23 @@ export function getFrontendAxisOptions(
   ];
 }
 
+export function getBackendAxisOptions(
+  organization: LightWeightOrganization
+): TooltipOption[] {
+  return [
+    {
+      tooltip: getTermHelp(organization, 'p75'),
+      value: `p75()`,
+      label: t('Duration p75'),
+    },
+    {
+      tooltip: getTermHelp(organization, ''),
+      value: 'duration_distribution',
+      label: t('Duration Distribution'),
+    },
+  ];
+}
+
 type TermFormatter = (organization: LightWeightOrganization) => string;
 
 const PERFORMANCE_TERMS: Record<string, TermFormatter> = {
@@ -96,6 +113,7 @@ const PERFORMANCE_TERMS: Record<string, TermFormatter> = {
       'Failure rate is the percentage of recorded transactions that had a known and unsuccessful status.'
     ),
   p50: () => t('p50 indicates the duration that 50% of transactions are faster than.'),
+  p75: () => t('p75 indicates the duration that 75% of transactions are faster than.'),
   p95: () => t('p95 indicates the duration that 95% of transactions are faster than.'),
   p99: () => t('p99 indicates the duration that 99% of transactions are faster than.'),
   lcp: () =>

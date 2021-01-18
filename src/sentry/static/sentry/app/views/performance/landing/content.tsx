@@ -17,6 +17,7 @@ import Charts from '../charts/index';
 import Table from '../table';
 import {getTransactionSearchQuery} from '../utils';
 
+import BackendDisplay from './backendDisplay';
 import {FRONTEND_COLUMN_TITLES} from './data';
 import FrontendDisplay from './frontendDisplay';
 import {getCurrentLandingDisplay, LANDING_DISPLAYS, LandingDisplayField} from './utils';
@@ -143,6 +144,11 @@ class LandingContent extends React.Component<Props, State> {
     return (
       <React.Fragment>
         <BackendCards
+          eventView={eventView}
+          organization={organization}
+          location={location}
+        />
+        <BackendDisplay
           eventView={eventView}
           organization={organization}
           location={location}
