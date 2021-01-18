@@ -100,7 +100,7 @@ const ImageColumn = styled(Column)`
 
 const ImageAddress = styled('div')`
   white-space: pre-wrap;
-  word-break: break-all;
+  word-break: break-word;
 `;
 
 // Debug Files Column

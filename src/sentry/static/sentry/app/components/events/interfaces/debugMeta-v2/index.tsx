@@ -499,7 +499,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
       >
         <StyledPanelTable
           listWidth={listWidth}
-          headers={[t('Status'), t('Image'), t('Processing'), t('Details')]}
+          headers={[t('Status'), t('Image'), t('Processing'), t('Details'), '']}
           isEmpty={!images.length}
           emptyMessage={t('There are no images to display')}
         >
@@ -523,24 +523,24 @@ const StyledEventDataSection = styled(EventDataSection)`
 
 const StyledPanelTable = styled(PanelTable)<{listWidth?: number}>`
   > * {
-    :nth-child(-n + 4) {
+    :nth-child(-n + 5) {
       ${overflowEllipsis};
       border-bottom: 1px solid ${p => p.theme.border};
-      :nth-child(4n) {
-        padding-right: calc(${p => p.listWidth}px + ${space(2)});
+      :nth-child(5n) {
+        ${p => !p.listWidth && `display: none`}
       }
     }
 
     ${p =>
       !p.isEmpty &&
-      `:nth-child(n + 5) {
-      display: grid;
-      grid-column: 1/-1;
-      padding: 0;
-    }`}
+      `:nth-child(n + 6) {
+    display: grid;
+    grid-column: 1/-1;
+    padding: 0;
+  }`}
   }
 
-  ${p => layout(p.theme)}
+  ${p => layout(p.theme, p.listWidth)}
 `;
 
 // Section Title

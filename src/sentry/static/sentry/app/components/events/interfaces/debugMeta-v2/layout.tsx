@@ -1,6 +1,6 @@
 import {Theme} from 'app/utils/theme';
 
-const layout = (theme: Theme) => `
+const layout = (theme: Theme, scrollBarWidth?: number) => `
 display: grid;
 
 > * {
@@ -12,22 +12,29 @@ display: grid;
   }
 }
 
-grid-template-columns: 1fr 1.5fr 0.5fr;
+grid-template-columns: 0.5fr 1fr 0.5fr ${scrollBarWidth ? `${scrollBarWidth}px` : `0fr`};
 
 @media (min-width: ${theme.breakpoints[0]}) {
   > *:nth-child(4n-1) {
     display: flex;
   }
-  grid-template-columns: 0.5fr 1.5fr 1fr 0.5fr
-}
-
-@media (min-width: ${theme.breakpoints[2]}) {
-  grid-template-columns: 0.5fr 0.9fr 1.4fr 0.5fr;
+  grid-template-columns: 1fr 2fr 1.5fr 0.6fr ${
+    scrollBarWidth ? `${scrollBarWidth}px` : `0fr`
+  };
 }
 
 @media (min-width: ${theme.breakpoints[3]}) {
-  grid-template-columns: 0.5fr 2fr 1fr 0.5fr
+  grid-template-columns: 1fr 1.5fr 1.5fr 0.6fr ${
+    scrollBarWidth ? `${scrollBarWidth}px` : `0fr`
+  };
 }
+
+@media (min-width: ${theme.breakpoints[4]}) {
+  grid-template-columns: 0.5fr 1.5fr 1fr 0.5fr ${
+    scrollBarWidth ? `${scrollBarWidth}px` : `0fr`
+  };
+}
+
 `;
 
 export default layout;

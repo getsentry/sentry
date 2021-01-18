@@ -23,6 +23,6 @@ export default List;
 const Wrapper = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  grid-column-gap: ${space(2)};
+  grid-gap: ${space(2)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
