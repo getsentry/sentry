@@ -13,7 +13,9 @@ import {BuiltinSymbolSource, DebugFile} from 'app/types/debugFiles';
 import {CandidateDownloadStatus, Image} from 'app/types/debugImage';
 import theme from 'app/utils/theme';
 
+import Address from '../address';
 import NotAvailable from '../notAvailable';
+import {getFileName} from '../utils';
 
 import Candidates from './candidates';
 import {INTERNAL_SOURCE} from './utils';
@@ -25,8 +27,6 @@ type Props = AsyncComponent['props'] &
     projectId: Project['id'];
     organization: Organization;
     image: Image;
-    imageAddress: React.ReactElement | null;
-    title?: string;
   };
 
 type State = AsyncComponent['state'] & {
@@ -145,22 +145,16 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {
-      Header,
-      Body,
-      Footer,
-      image,
-      title,
-      imageAddress,
-      organization,
-      projectId,
-    } = this.props;
+    const {Header, Body, Footer, image, organization, projectId} = this.props;
     const {loading, builtinSymbolSources} = this.state;
 
     const {debug_id, debug_file, code_file, code_id, arch: architecture} = image;
 
     const candidates = this.getCandidates();
     const baseUrl = this.api.baseUrl;
+
+    const title = getFileName(code_file);
+    const imageAddress = <Address image={image} />;
 
     return (
       <React.Fragment>
