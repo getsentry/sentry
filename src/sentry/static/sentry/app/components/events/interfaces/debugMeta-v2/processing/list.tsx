@@ -7,14 +7,15 @@ import NotAvailable from '../notAvailable';
 
 type Props = {
   items: Array<React.ReactElement>;
+  className?: string;
 };
 
-function List({items}: Props) {
+function List({items, className}: Props) {
   if (!items.length) {
     return <NotAvailable />;
   }
 
-  return <Wrapper>{items}</Wrapper>;
+  return <Wrapper className={className}>{items}</Wrapper>;
 }
 
 export default List;

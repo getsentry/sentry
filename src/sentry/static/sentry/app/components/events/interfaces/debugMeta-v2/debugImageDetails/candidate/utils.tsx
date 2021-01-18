@@ -51,7 +51,9 @@ export function getSourceTooltipDescription(
   builtinSymbolSources: Array<BuiltinSymbolSource> | null
 ) {
   if (source === INTERNAL_SOURCE) {
-    return t('This debug information file was uploaded via Sentry CLI.');
+    return t(
+      "This debug information file is from Sentry's internal symbol server for this project"
+    );
   }
 
   if (

@@ -35,9 +35,9 @@ function DebugImage({image, onOpenImageDetailsModal, style}: Props) {
         <FileName>{fileName}</FileName>
         <ImageAddress>{imageAddress}</ImageAddress>
       </ImageColumn>
-      <ProcessingColumn>
+      <Column>
         <Processings unwind_status={unwind_status} debug_status={debug_status} />
-      </ProcessingColumn>
+      </Column>
       <DebugFilesColumn>
         <Button
           size="xsmall"
@@ -102,9 +102,6 @@ const ImageAddress = styled('div')`
   white-space: pre-wrap;
   word-break: break-all;
 `;
-
-// Processing Column
-const ProcessingColumn = styled(Column)``;
 
 // Debug Files Column
 const DebugFilesColumn = styled(Column)`
