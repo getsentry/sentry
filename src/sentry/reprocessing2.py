@@ -90,6 +90,7 @@ from sentry import nodestore, features, eventstore, options
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry import models
 from sentry.utils import snuba
+from sentry.utils.cache import cache_key_for_event
 from sentry.utils.safe import set_path, get_path
 from sentry.utils.redis import redis_clusters
 from sentry.eventstore.processing import event_processing_store
@@ -111,7 +112,7 @@ def _generate_unprocessed_event_node_id(project_id, event_id):
     ).hexdigest()
 
 
-def save_unprocessed_event(project, event_id, cache_key):
+def save_unprocessed_event(project, event_id):
     """
     Move event from event_processing_store into nodestore. Only call if event
     has outcome=accepted.
@@ -122,7 +123,9 @@ def save_unprocessed_event(project, event_id, cache_key):
     with sentry_sdk.start_span(
         op="sentry.reprocessing2.save_unprocessed_event.get_unprocessed_event"
     ):
-        data = event_processing_store.get(cache_key, unprocessed=True)
+        data = event_processing_store.get(
+            cache_key_for_event({"project": project.id, "event_id": event_id}), unprocessed=True
+        )
         if data is None:
             return
 
