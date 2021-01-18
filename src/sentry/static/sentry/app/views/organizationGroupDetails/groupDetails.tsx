@@ -279,6 +279,7 @@ class GroupDetails extends React.Component<Props, State> {
 
       GroupStore.loadInitialData([data]);
     } catch (err) {
+      Sentry.captureException(err);
       let errorType: Error = null;
       switch (err?.status) {
         case 404:
