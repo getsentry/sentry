@@ -15,6 +15,7 @@ from sentry.utils.sdk import set_current_project
 from sentry.eventstore.processing import event_processing_store
 from sentry.tasks.base import instrumented_task, retry
 from sentry.eventstore.processing.base import _get_unprocessed_key
+from sentry.lang.native.utils import is_minidump_event
 
 GROUP_REPROCESSING_CHUNK_SIZE = 100
 
@@ -199,24 +200,32 @@ def capture_nodestore_stats(cache_key, project_id, event_id):
     unprocessed_data = event_processing_store.get(_get_unprocessed_key(cache_key))
     event_processing_store.delete_by_key(_get_unprocessed_key(cache_key))
 
+    tags = {
+        "with_reprocessing": bool(unprocessed_data),
+        "platform": data.get("platform") or "none",
+        "is_minidump": is_minidump_event(data),
+    }
+
     if unprocessed_data:
         metrics.incr("nodestore_stats.with_reprocessing")
 
         concatenated_size = _json_size(data, unprocessed_data)
-        metrics.timing("events.size.concatenated", concatenated_size)
-        metrics.timing("events.size.concatenated.ratio", concatenated_size / old_event_size)
+        metrics.timing("events.size.concatenated", concatenated_size, tags=tags)
+        metrics.timing(
+            "events.size.concatenated.ratio", concatenated_size / old_event_size, tags=tags
+        )
 
         _data = dict(data)
         _data["__nodestore_reprocessing"] = unprocessed_data
         simple_concatenated_size = _json_size(_data)
-        metrics.timing("events.size.simple_concatenated", simple_concatenated_size)
+        metrics.timing("events.size.simple_concatenated", simple_concatenated_size, tags=tags)
         metrics.timing(
-            "events.size.simple_concatenated.ratio", simple_concatenated_size / old_event_size
+            "events.size.simple_concatenated.ratio",
+            simple_concatenated_size / old_event_size,
+            tags=tags,
         )
     else:
         metrics.incr("nodestore_stats.without_reprocessing")
-
-    tags = {"with_reprocessing": bool(unprocessed_data)}
 
     new_data, extra_keys = deduplicate(dict(data))
     total_size = event_size = _json_size(new_data)
