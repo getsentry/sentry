@@ -169,8 +169,7 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
     beforeFetch?.(api);
 
     try {
-      // @ts-ignore Skip over the unused value.
-      const [data, _, jqXHR] = await doDiscoverQuery<T>(api, url, apiPayload);
+      const [data, , jqXHR] = await doDiscoverQuery<T>(api, url, apiPayload);
       if (this.state.tableFetchID !== tableFetchID) {
         // invariant: a different request was initiated after this request
         return;

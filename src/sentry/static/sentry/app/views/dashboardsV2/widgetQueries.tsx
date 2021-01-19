@@ -127,7 +127,7 @@ class WidgetQueries extends React.Component<Props, State> {
   async fetchData() {
     const {selection, api, organization, widget} = this.props;
 
-    this.setState({loading: true});
+    this.setState({loading: true, errorMessage: undefined});
 
     const {start, end} = selection.datetime;
     const {projects, environments} = selection;
@@ -157,9 +157,9 @@ class WidgetQueries extends React.Component<Props, State> {
       let completed = 0;
       promises.forEach(async (promise, i) => {
         try {
-          const result = await promise;
-          // Cast so we can add a title.
-          const tableData = result[0] as TableDataWithTitle;
+          const [data] = await promise;
+          // Cast so we can add the title.
+          const tableData = data as TableDataWithTitle;
           tableData.title = widget.queries[i]?.name ?? '';
 
           completed++;
@@ -168,7 +168,6 @@ class WidgetQueries extends React.Component<Props, State> {
             return {
               ...prevState,
               tableResults,
-              errorMessage: undefined,
               loading: completed === promises.length ? false : true,
             };
           });
@@ -215,7 +214,6 @@ class WidgetQueries extends React.Component<Props, State> {
             return {
               ...prevState,
               timeseriesResults,
-              errorMessage: undefined,
               loading: completed === promises.length ? false : true,
             };
           });
