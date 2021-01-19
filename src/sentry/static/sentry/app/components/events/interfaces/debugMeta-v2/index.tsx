@@ -16,7 +16,7 @@ import Button from 'app/components/button';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EventDataSection from 'app/components/events/eventDataSection';
 import {getImageRange, parseAddress} from 'app/components/events/interfaces/utils';
-import {Panel, PanelHeader} from 'app/components/panels';
+import {PanelTable} from 'app/components/panels';
 import QuestionTooltip from 'app/components/questionTooltip';
 import SearchBar from 'app/components/searchBar';
 import {IconSearch} from 'app/icons/iconSearch';
@@ -36,7 +36,7 @@ import Filter from './filter';
 import layout from './layout';
 import {combineStatus, getFileName, normalizeId} from './utils';
 
-const PANEL_MAX_HEIGHT = 400;
+export const PANEL_MAX_HEIGHT = 400;
 
 type DefaultProps = {
   data: {
@@ -60,9 +60,8 @@ type State = {
   filteredImagesBySearch: Images;
   filteredImagesByFilter: Images;
   filterOptions: FilterOptions;
-  isLoading: boolean;
+  scrollbarWidth: number;
   panelTableHeight?: number;
-  innerListWidth?: number;
 };
 
 const cache = new CellMeasurerCache({
@@ -77,7 +76,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
 
   state: State = {
     searchTerm: '',
-    isLoading: false,
+    scrollbarWidth: 0,
     filterOptions: [],
     filteredImages: [],
     filteredImagesByFilter: [],
@@ -94,10 +93,6 @@ class DebugMeta extends React.PureComponent<Props, State> {
   componentDidUpdate(_prevProps: Props, prevState: State) {
     if (prevState.filteredImages.length === 0 && this.state.filteredImages.length > 0) {
       this.getPanelBodyHeight();
-    }
-
-    if (this.state.isLoading) {
-      this.getInnerListWidth();
     }
 
     this.openImageDetailsModal();
@@ -122,27 +117,26 @@ class DebugMeta extends React.PureComponent<Props, State> {
     }
   };
 
-  getInnerListWidth() {
-    const innerListWidth = this.panelTableRef?.current?.querySelector(
-      '.ReactVirtualized__Grid__innerScrollContainer'
-    )?.clientWidth;
+  getScrollbarWidth() {
+    const panelTableWidth = this.panelTableRef?.current?.clientWidth ?? 0;
 
-    if (innerListWidth !== this.state.innerListWidth) {
-      this.setState({innerListWidth, isLoading: false});
-      return;
+    const gridInnerWidth =
+      this.panelTableRef?.current?.querySelector(
+        '.ReactVirtualized__Grid__innerScrollContainer'
+      )?.clientWidth ?? 0;
+
+    const scrollbarWidth = panelTableWidth - gridInnerWidth;
+
+    if (scrollbarWidth !== this.state.scrollbarWidth) {
+      this.setState({scrollbarWidth});
     }
-
-    this.setState({isLoading: false});
   }
-
-  onListResize = () => {
-    this.setState({isLoading: true}, this.updateGrid);
-  };
 
   updateGrid = () => {
     if (this.listRef) {
       cache.clearAll();
       this.listRef.forceUpdateGrid();
+      this.getScrollbarWidth();
     }
   };
 
@@ -248,6 +242,16 @@ class DebugMeta extends React.PureComponent<Props, State> {
     this.setState({panelTableHeight});
   }
 
+  getListHeight() {
+    const {panelTableHeight} = this.state;
+
+    if (!panelTableHeight || panelTableHeight > PANEL_MAX_HEIGHT) {
+      return PANEL_MAX_HEIGHT;
+    }
+
+    return panelTableHeight;
+  }
+
   getRelevantImages() {
     const {data} = this.props;
     const {images} = data;
@@ -298,33 +302,6 @@ class DebugMeta extends React.PureComponent<Props, State> {
       symbol: <Status status={status} />,
       isChecked: false,
     }));
-  }
-
-  getDebugImages() {
-    const {data} = this.props;
-    const {images} = data;
-
-    // There are a bunch of images in debug_meta that are not relevant to this
-    // component. Filter those out to reduce the noise. Most importantly, this
-    // includes proguard images, which are rendered separately.
-    const filtered = images.filter(image => this.isValidImage(image));
-
-    // Sort images by their start address. We assume that images have
-    // non-overlapping ranges. Each address is given as hex string (e.g.
-    // "0xbeef").
-    filtered.sort((a, b) => parseAddress(a.image_addr) - parseAddress(b.image_addr));
-
-    return filtered;
-  }
-
-  getListHeight() {
-    const {panelTableHeight} = this.state;
-
-    if (!panelTableHeight || panelTableHeight > PANEL_MAX_HEIGHT) {
-      return PANEL_MAX_HEIGHT;
-    }
-
-    return panelTableHeight;
   }
 
   getFilteredImagesByFilter(filteredImages: Images, filterOptions: FilterOptions) {
@@ -428,7 +405,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
     }
 
     return (
-      <AutoSizer disableHeight onResize={this.onListResize}>
+      <AutoSizer disableHeight onResize={this.updateGrid}>
         {({width}) => (
           <StyledList
             ref={(el: List | null) => {
@@ -485,7 +462,12 @@ class DebugMeta extends React.PureComponent<Props, State> {
   }
 
   render() {
-    const {searchTerm, filterOptions, innerListWidth} = this.state;
+    const {
+      searchTerm,
+      filterOptions,
+      filteredImagesByFilter: images,
+      scrollbarWidth,
+    } = this.state;
 
     return (
       <StyledEventDataSection
@@ -517,15 +499,14 @@ class DebugMeta extends React.PureComponent<Props, State> {
         wrapTitle={false}
         isCentered
       >
-        <StyledPanel innerListWidth={innerListWidth}>
-          <StyledPanelHeader>
-            <div>{t('Status')}</div>
-            <div>{t('Image')}</div>
-            <div>{t('Processing')}</div>
-            <div>{t('Details')}</div>
-          </StyledPanelHeader>
+        <StyledPanelTable
+          scrollbarWidth={scrollbarWidth}
+          headers={[t('Status'), t('Image'), t('Processing'), t('Details'), '']}
+          isEmpty={!images.length}
+          emptyMessage={t('There are no images to display')}
+        >
           {this.renderContent()}
-        </StyledPanel>
+        </StyledPanelTable>
       </StyledEventDataSection>
     );
   }
@@ -542,25 +523,27 @@ const StyledEventDataSection = styled(EventDataSection)`
   }
 `;
 
-const StyledPanelHeader = styled(PanelHeader)`
-  padding: 0;
+const StyledPanelTable = styled(PanelTable)<{scrollbarWidth?: number}>`
+  overflow: hidden;
   > * {
-    padding: ${space(2)};
-    ${overflowEllipsis};
-  }
-  ${p => layout(p.theme)};
-`;
+    :nth-child(-n + 5) {
+      ${overflowEllipsis};
+      border-bottom: 1px solid ${p => p.theme.border};
+      :nth-child(5n) {
+        ${p => !p.scrollbarWidth && `display: none`}
+      }
+    }
 
-const StyledPanel = styled(Panel, {
-  shouldForwardProp: prop => prop !== 'innerListWidth',
-})<{innerListWidth?: number}>`
-  ${p =>
-    p.innerListWidth &&
-    `
-        ${StyledPanelHeader} {
-          padding-right: calc(100% - ${p.innerListWidth}px);
-        }
-    `};
+    ${p =>
+      !p.isEmpty &&
+      `:nth-child(n + 6) {
+    display: grid;
+    grid-column: 1/-1;
+    padding: 0;
+  }`}
+  }
+
+  ${p => layout(p.theme, p.scrollbarWidth)}
 `;
 
 // Section Title

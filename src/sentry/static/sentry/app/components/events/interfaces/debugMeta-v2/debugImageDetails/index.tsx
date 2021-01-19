@@ -69,7 +69,10 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
       ]);
     }
 
-    if (!builtinSymbolSources && organization.features.includes('symbol-sources')) {
+    if (
+      !builtinSymbolSources?.length &&
+      organization.features.includes('symbol-sources')
+    ) {
       endpoints.push(['builtinSymbolSources', '/builtin-symbol-sources/', {}]);
     }
 
@@ -87,7 +90,7 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
 
     // Check for unapplied debug files
     const candidateLocations = new Set(
-      candidates.map(candidate => candidate.location).filter(candidate => !!candidate)
+      candidates.map(candidate => candidate.location).filter(location => !!location)
     );
 
     const unAppliedDebugFiles = debugFiles
@@ -108,7 +111,8 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
       if (
         candidate.source === INTERNAL_SOURCE &&
         candidate.location &&
-        !debugFileIds.has(candidate.location)
+        !debugFileIds.has(candidate.location) &&
+        candidate.download.status === CandidateDownloadStatus.OK
       ) {
         return {
           ...candidate,
@@ -239,8 +243,15 @@ export const modalCss = css`
 
   @media (min-width: ${theme.breakpoints[0]}) {
     .modal-dialog {
-      width: 40%;
-      margin-left: -20%;
+      width: 55%;
+      margin-left: -27.5%;
+    }
+  }
+
+  @media (min-width: ${theme.breakpoints[3]}) {
+    .modal-dialog {
+      width: 70%;
+      margin-left: -35%;
     }
   }
 `;

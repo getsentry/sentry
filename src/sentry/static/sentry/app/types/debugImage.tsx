@@ -42,8 +42,6 @@ type CandidateDownloadOkStatus = {
   status: CandidateDownloadStatus.OK;
   features: CandidateFeatures;
   details?: string;
-  unwind?: CandidateProcessingInfo;
-  debug?: CandidateProcessingInfo;
 };
 
 type CandidateDownloadNotFoundStatus = {
@@ -74,12 +72,30 @@ export type CandidateDownload =
   | CandidateDownloadUnAppliedStatus
   | CandidateDownloadOtherStatus;
 
-export type ImageCandidate = {
-  download: CandidateDownload;
+type ImageCandidateBase = {
   source: string;
   source_name?: string;
   location?: string;
 };
+
+export type ImageCandidateOk = ImageCandidateBase & {
+  download: CandidateDownloadOkStatus;
+  unwind?: CandidateProcessingInfo;
+  debug?: CandidateProcessingInfo;
+};
+
+type ImageCandidateOthers = ImageCandidateBase & {
+  download:
+    | CandidateDownloadNotFoundStatus
+    | CandidateDownloadDeletedStatus
+    | CandidateDownloadUnAppliedStatus
+    | CandidateDownloadOtherStatus;
+  source: string;
+  source_name?: string;
+  location?: string;
+};
+
+export type ImageCandidate = ImageCandidateOk | ImageCandidateOthers;
 
 // Debug Status
 export enum ImageStatus {

@@ -59,6 +59,7 @@ function Candidates({
         ]}
         isEmpty={!candidates.length}
         isLoading={isLoading}
+        emptyMessage={t('There are no debug files to display')}
       >
         {candidates.map((candidate, index) => (
           <Candidate
@@ -84,7 +85,7 @@ const Wrapper = styled('div')`
 `;
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: max-content minmax(200px, 1fr) max-content max-content;
+  grid-template-columns: 0.5fr minmax(300px, 2fr) 1fr 1fr;
 
   > *:nth-child(5n) {
     padding: 0;
@@ -99,7 +100,6 @@ const StyledPanelTable = styled(PanelTable)`
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
     overflow: visible;
-
     > *:nth-child(5n-1) {
       text-align: left;
       justify-content: flex-start;
@@ -110,7 +110,7 @@ const StyledPanelTable = styled(PanelTable)`
       display: flex;
     }
 
-    grid-template-columns: max-content minmax(150px, 1fr) max-content max-content max-content;
+    grid-template-columns: 1fr minmax(300px, 2.5fr) 1.5fr 1.5fr 0.5fr;
   }
 `;
 
