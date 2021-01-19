@@ -2068,12 +2068,12 @@ class QueryTransformTest(TestCase):
         assert discover.find_histogram_params(10, 0, 9, 1) == (10, 1, 0, 1)
         assert discover.find_histogram_params(10, 0, 10, 1) == (10, 2, 0, 1)
         assert discover.find_histogram_params(10, 0, 99, 1) == (10, 10, 0, 1)
-        assert discover.find_histogram_params(10, 0, 100, 1) == (10, 11, 0, 1)
-        assert discover.find_histogram_params(5, 10, 19, 10) == (5, 19, 100, 10)
+        assert discover.find_histogram_params(10, 0, 100, 1) == (10, 20, 0, 1)
+        assert discover.find_histogram_params(5, 10, 19, 10) == (5, 20, 100, 10)
         assert discover.find_histogram_params(5, 10, 19.9, 10) == (5, 20, 100, 10)
         assert discover.find_histogram_params(10, 10, 20, 1) == (10, 2, 10, 1)
-        assert discover.find_histogram_params(10, 10, 20, 10) == (10, 11, 100, 10)
-        assert discover.find_histogram_params(10, 10, 20, 100) == (10, 101, 1000, 100)
+        assert discover.find_histogram_params(10, 10, 20, 10) == (10, 20, 100, 10)
+        assert discover.find_histogram_params(10, 10, 20, 100) == (10, 120, 1000, 100)
 
     def test_normalize_histogram_results_empty(self):
         results = {

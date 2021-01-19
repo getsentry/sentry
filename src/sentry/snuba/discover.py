@@ -26,6 +26,7 @@ from sentry import eventstore
 from sentry.models import Group
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.compat import filter
+from sentry.utils.math import nice_int
 from sentry.utils.snuba import (
     Dataset,
     get_measurement_name,
@@ -1036,22 +1037,25 @@ def find_histogram_params(num_buckets, min_value, max_value, multiplier):
     scaled_max = 0 if max_value is None else multiplier * max_value
 
     # align the first bin with the minimum value
-    start_offset = int(floor(scaled_min))
+    start_offset = int(scaled_min)
 
     # finding the bounds might result in None if there isn't sufficient data
     if min_value is None or max_value is None:
         return HistogramParams(num_buckets, 1, start_offset, multiplier)
 
-    bucket_size = int(ceil((scaled_max - scaled_min) / float(num_buckets)))
+    bucket_size = nice_int((scaled_max - scaled_min) / float(num_buckets))
 
     if bucket_size == 0:
         bucket_size = 1
+
+    # adjust the first bin to a nice value
+    start_offset = int(scaled_min / bucket_size) * bucket_size
 
     # Sometimes the max value lies on the bucket boundary, and since the end
     # of the bucket is exclusive, it gets excluded. To account for that, we
     # increase the width of the buckets to cover the max value.
     if start_offset + num_buckets * bucket_size <= scaled_max:
-        bucket_size += 1
+        bucket_size = nice_int(bucket_size + 1)
 
     return HistogramParams(num_buckets, bucket_size, start_offset, multiplier)
 
