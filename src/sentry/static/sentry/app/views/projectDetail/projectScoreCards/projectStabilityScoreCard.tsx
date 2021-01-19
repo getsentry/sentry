@@ -187,9 +187,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
 
     const crashedSessionsPercent = percent(crashedSessions, totalSessions);
 
-    const crashFreePercent = getCrashFreePercent(100 - crashedSessionsPercent);
-
-    return crashFreePercent;
+    return  getCrashFreePercent(100 - crashedSessionsPercent);
   }
 
   renderLoading() {
