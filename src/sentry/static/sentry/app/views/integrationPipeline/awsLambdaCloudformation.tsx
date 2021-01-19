@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {addErrorMessage, addLoadingMessage} from 'app/actionCreators/indicator';
+import Button from 'app/components/actions/button';
 import Alert from 'app/components/alert';
-import ExternalLink from 'app/components/links/externalLink';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {uniqueId} from 'app/utils/guid';
@@ -116,7 +116,9 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
           {t("Add Sentry's CloudFormation to your AWS")}
         </StyledStepHeading>
         <GoToAWSWrapper>
-          <ExternalLink href={this.cloudformationUrl}>{t('Go to AWS')}</ExternalLink>
+          <Button priority="primary" external href={this.cloudformationUrl}>
+            {t('Go to AWS')}
+          </Button>
         </GoToAWSWrapper>
         <StyledStepHeading step={2}>
           {t('Enter the ARN Value from AWS')}
