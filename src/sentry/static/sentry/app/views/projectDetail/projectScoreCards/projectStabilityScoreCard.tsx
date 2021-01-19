@@ -51,7 +51,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
     const {projects, environments: environment, datetime} = selection;
     const {period, start, end} = datetime;
     const commonQuery = {
-      environment: environments,
+      environment,
       project: projects[0],
       field: 'sum(session)',
       groupBy: 'session.status',
