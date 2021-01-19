@@ -24,3 +24,5 @@ export const INTERVAL_CHOICES = [
   {label: t('1 Hour'), value: '1h'},
   {label: t('1 Day'), value: '1d'},
 ];
+
+export const DEFAULT_STATS_PERIOD = '24h';
