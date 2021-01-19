@@ -210,6 +210,18 @@ describe('Performance > Landing', function () {
         events: {meta: {}, data: []},
       },
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-vitals/',
+      body: {
+        'measurements.lcp': {
+          poor: 1,
+          meh: 2,
+          good: 3,
+          total: 6,
+          p75: 4500,
+        },
+      },
+    });
   });
 
   afterEach(function () {

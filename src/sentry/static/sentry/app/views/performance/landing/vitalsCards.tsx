@@ -23,7 +23,10 @@ import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {decodeList} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
-import VitalsCardsDiscoverQuery from 'app/views/performance/vitalDetail/vitalsCardsDiscoverQuery';
+import VitalsCardsDiscoverQuery, {
+  VitalData,
+  VitalsData,
+} from 'app/views/performance/vitalDetail/vitalsCardsDiscoverQuery';
 
 import {HeaderTitle} from '../styles';
 import ColorBar from '../vitalDetail/colorBar';
@@ -32,10 +35,6 @@ import {
   vitalDescription,
   vitalDetailRouteWithQuery,
   vitalMap,
-  vitalsBaseFields,
-  vitalsMehFields,
-  vitalsP75Fields,
-  vitalsPoorFields,
   VitalState,
   vitalStateColors,
 } from '../vitalDetail/utils';
@@ -87,8 +86,7 @@ export function FrontendCards(props: FrontendCardsProps) {
       orgSlug={organization.slug}
       vitals={vitals}
     >
-      {({isLoading, tableData}) => {
-        const result = tableData?.data?.[0];
+      {({isLoading, vitalsData}) => {
         return (
           <VitalsContainer>
             {vitals.map(vital => {
@@ -99,10 +97,12 @@ export function FrontendCards(props: FrontendCardsProps) {
                 projectID: decodeList(location.query.project),
               });
 
-              const value = isLoading ? '\u2014' : getP75(result, vital);
+              const value = isLoading
+                ? '\u2014'
+                : getP75(vitalsData?.[vital] ?? null, vital);
               const chart = (
                 <VitalBarContainer>
-                  <VitalBar isLoading={isLoading} vital={vital} result={result} />
+                  <VitalBar isLoading={isLoading} vital={vital} data={vitalsData} />
                 </VitalBarContainer>
               );
 
@@ -266,7 +266,7 @@ const VitalsContainer = styled('div')`
 
 type VitalBarProps = {
   isLoading: boolean;
-  result: any;
+  data: VitalsData | null;
   vital: WebVital | WebVital[];
   value?: string;
   showBar?: boolean;
@@ -278,7 +278,7 @@ type VitalBarProps = {
 export function VitalBar(props: VitalBarProps) {
   const {
     isLoading,
-    result,
+    data,
     vital,
     value,
     showBar = true,
@@ -295,29 +295,29 @@ export function VitalBar(props: VitalBarProps) {
     <EmptyStateWarning small>{t('No data available')}</EmptyStateWarning>
   ) : null;
 
-  if (!result) {
+  if (!data) {
     return emptyState;
   }
 
-  const counts: Counts = {
-    poorCount: 0,
-    mehCount: 0,
-    goodCount: 0,
-    baseCount: 0,
+  const counts: Pick<VitalData, 'poor' | 'meh' | 'good' | 'total'> = {
+    poor: 0,
+    meh: 0,
+    good: 0,
+    total: 0,
   };
   const vitals = Array.isArray(vital) ? vital : [vital];
   vitals.forEach(vitalName => {
-    const c = getCounts(result, vitalName);
+    const c = data?.[vitalName] ?? {};
     Object.keys(counts).forEach(countKey => (counts[countKey] += c[countKey]));
   });
 
-  if (!counts.baseCount) {
+  if (!counts.total) {
     return emptyState;
   }
 
   const p75: React.ReactNode = Array.isArray(vital)
     ? null
-    : value ?? getP75(result, vital);
+    : value ?? getP75(data?.[vital] ?? null, vital);
   const percents = getPercentsFromCounts(counts);
   const colorStops = getColorStopsFromPercents(percents);
 
@@ -380,8 +380,8 @@ const StyledCard = styled(Card)<{minHeight?: number}>`
   ${p => p.minHeight && `min-height: ${p.minHeight}px`};
 `;
 
-function getP75(result: any, vitalName: WebVital): string {
-  const p75 = result?.[getAggregateAlias(vitalsP75Fields[vitalName])] ?? null;
+function getP75(data: VitalData | null, vitalName: WebVital): string {
+  const p75 = data?.p75 ?? null;
   if (p75 === null) {
     return '\u2014';
   } else {
@@ -389,41 +389,15 @@ function getP75(result: any, vitalName: WebVital): string {
   }
 }
 
-type Counts = {
-  poorCount: number;
-  mehCount: number;
-  goodCount: number;
-  baseCount: number;
-};
-
-function getCounts(result: any, vitalName: WebVital): Counts {
-  const base = result[getAggregateAlias(vitalsBaseFields[vitalName])];
-  const poorCount: number =
-    parseFloat(result[getAggregateAlias(vitalsPoorFields[vitalName])]) || 0;
-  const mehTotal: number =
-    parseFloat(result[getAggregateAlias(vitalsMehFields[vitalName])]) || 0;
-  const mehCount = mehTotal - poorCount;
-  const baseCount: number = parseFloat(base) || 0;
-
-  const goodCount: number = baseCount - mehCount - poorCount;
-
-  return {
-    poorCount,
-    mehCount,
-    goodCount,
-    baseCount,
-  };
-}
-
 type Percent = {
   vitalState: VitalState;
   percent: number;
 };
 
-function getPercentsFromCounts({poorCount, mehCount, goodCount, baseCount}) {
-  const poorPercent = poorCount / baseCount;
-  const mehPercent = mehCount / baseCount;
-  const goodPercent = goodCount / baseCount;
+function getPercentsFromCounts({poor, meh, good, total}) {
+  const poorPercent = poor / total;
+  const mehPercent = meh / total;
+  const goodPercent = good / total;
 
   const percents: Percent[] = [
     {
