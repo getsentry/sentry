@@ -7,7 +7,6 @@ import {SectionHeading} from 'app/components/charts/styles';
 import {IconAdd, IconDelete, IconGrabbable} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {LightWeightOrganization, SelectValue} from 'app/types';
 import {Column} from 'app/utils/discover/fields';
 import theme from 'app/utils/theme';
 import {getPointerPosition} from 'app/utils/touch';
@@ -16,14 +15,11 @@ import {setBodyUserSelect, UserSelectValues} from 'app/utils/userselect';
 import {generateFieldOptions} from '../utils';
 
 import {QueryField} from './queryField';
-import {FieldValue} from './types';
 
 type Props = {
   // Input columns
   columns: Column[];
-  organization: LightWeightOrganization;
-  tagKeys: null | string[];
-  measurementKeys: null | string[];
+  fieldOptions: ReturnType<typeof generateFieldOptions>;
   // Fired when columns are added/removed/modified
   onChange: (columns: Column[]) => void;
 };
@@ -35,8 +31,6 @@ type State = {
   draggingGrabbedOffset: undefined | {x: number; y: number};
   left: undefined | number;
   top: undefined | number;
-  // Stored as a object so we can find elements later.
-  fieldOptions: Record<string, SelectValue<FieldValue>>;
 };
 
 const DRAG_CLASS = 'draggable-item';
@@ -56,7 +50,6 @@ class ColumnEditCollection extends React.Component<Props, State> {
     draggingGrabbedOffset: void 0,
     left: void 0,
     top: void 0,
-    fieldOptions: this.fieldOptions,
   };
 
   componentDidMount() {
@@ -74,15 +67,6 @@ class ColumnEditCollection extends React.Component<Props, State> {
     }
   }
 
-  componentDidUpdate(prevProps: Props) {
-    if (
-      this.props.tagKeys !== prevProps.tagKeys ||
-      this.props.measurementKeys !== prevProps.measurementKeys
-    ) {
-      this.syncFields();
-    }
-  }
-
   componentWillUnmount() {
     if (this.portal) {
       document.body.removeChild(this.portal);
@@ -93,18 +77,6 @@ class ColumnEditCollection extends React.Component<Props, State> {
   previousUserSelect: UserSelectValues | null = null;
   portal: HTMLElement | null = null;
   dragGhostRef = React.createRef<HTMLDivElement>();
-
-  get fieldOptions() {
-    return generateFieldOptions({
-      organization: this.props.organization,
-      tagKeys: this.props.tagKeys,
-      measurementKeys: this.props.measurementKeys,
-    });
-  }
-
-  syncFields() {
-    this.setState({fieldOptions: this.fieldOptions});
-  }
 
   keyForColumn(column: Column, isGhost: boolean): string {
     if (column.kind === 'function') {
@@ -301,7 +273,8 @@ class ColumnEditCollection extends React.Component<Props, State> {
       gridColumns = 2,
     }: {canDelete?: boolean; isGhost?: boolean; gridColumns: number}
   ) {
-    const {isDragging, draggingTargetIndex, draggingIndex, fieldOptions} = this.state;
+    const {fieldOptions} = this.props;
+    const {isDragging, draggingTargetIndex, draggingIndex} = this.state;
 
     let placeholder: React.ReactNode = null;
     // Add a placeholder above the target row.

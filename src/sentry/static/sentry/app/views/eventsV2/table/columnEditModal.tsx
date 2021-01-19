@@ -13,6 +13,7 @@ import {LightWeightOrganization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Column} from 'app/utils/discover/fields';
 import theme from 'app/utils/theme';
+import {generateFieldOptions} from 'app/views/eventsV2/utils';
 
 import ColumnEditCollection from './columnEditCollection';
 
@@ -55,6 +56,11 @@ class ColumnEditModal extends React.Component<Props, State> {
 
   render() {
     const {Header, Body, Footer, tagKeys, measurementKeys, organization} = this.props;
+    const fieldOptions = generateFieldOptions({
+      organization: this.props.organization,
+      tagKeys,
+      measurementKeys,
+    });
     return (
       <React.Fragment>
         <Header>
@@ -75,10 +81,8 @@ class ColumnEditModal extends React.Component<Props, State> {
             )}
           </Instruction>
           <ColumnEditCollection
-            organization={organization}
             columns={this.state.columns}
-            tagKeys={tagKeys}
-            measurementKeys={measurementKeys}
+            fieldOptions={fieldOptions}
             onChange={this.handleChange}
           />
         </Body>
