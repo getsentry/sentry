@@ -1,7 +1,6 @@
 import React from 'react';
 
 import AsyncComponent from 'app/components/asyncComponent';
-import {canIncludePreviousPeriod} from 'app/components/charts/utils';
 import Count from 'app/components/count';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {parseStatsPeriod} from 'app/components/organizations/timeRangeSelector/utils';
@@ -16,6 +15,7 @@ import {getPeriod} from 'app/utils/getPeriod';
 import {getTermHelp} from 'app/views/performance/data';
 
 import MissingPerformanceButtons from '../missingFeatureButtons/missingPerformanceButtons';
+import {shouldFetchPreviousPeriod} from '../utils';
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
@@ -46,7 +46,7 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
     }
 
     const {projects, environments, datetime} = selection;
-    const {period, start, end} = datetime;
+    const {period} = datetime;
     const commonQuery = {
       environment: environments,
       project: projects.map(proj => String(proj)),
@@ -61,7 +61,7 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
       ],
     ];
 
-    if (!start && !end && canIncludePreviousPeriod(true, period)) {
+    if (shouldFetchPreviousPeriod(datetime)) {
       const {start: previousStart} = parseStatsPeriod(
         getPeriod({period, start: undefined, end: undefined}, {shouldDoublePeriod: true})
           .statsPeriod!

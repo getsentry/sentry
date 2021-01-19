@@ -2,7 +2,6 @@ import React from 'react';
 
 import {fetchAnyReleaseExistence} from 'app/actionCreators/projects';
 import AsyncComponent from 'app/components/asyncComponent';
-import {canIncludePreviousPeriod} from 'app/components/charts/utils';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {parseStatsPeriod} from 'app/components/organizations/timeRangeSelector/utils';
 import ScoreCard from 'app/components/scoreCard';
@@ -12,6 +11,7 @@ import {defined} from 'app/utils';
 import {getPeriod} from 'app/utils/getPeriod';
 
 import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButtons';
+import {shouldFetchPreviousPeriod} from '../utils';
 
 const API_LIMIT = 1000;
 
@@ -42,7 +42,7 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
     const {organization, selection} = this.props;
 
     const {projects, environments, datetime} = selection;
-    const {period, start, end} = datetime;
+    const {period} = datetime;
     const commonQuery = {
       environment: environments,
       project: projects[0],
@@ -62,7 +62,7 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
       ],
     ];
 
-    if (!start && !end && canIncludePreviousPeriod(true, period)) {
+    if (shouldFetchPreviousPeriod(datetime)) {
       const {start: previousStart} = parseStatsPeriod(
         getPeriod({period, start: undefined, end: undefined}, {shouldDoublePeriod: true})
           .statsPeriod!

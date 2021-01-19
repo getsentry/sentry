@@ -1,7 +1,7 @@
 import React from 'react';
 
 import AsyncComponent from 'app/components/asyncComponent';
-import {canIncludePreviousPeriod, getDiffInMinutes} from 'app/components/charts/utils';
+import {getDiffInMinutes} from 'app/components/charts/utils';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import ScoreCard from 'app/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
@@ -13,6 +13,7 @@ import {getPeriod} from 'app/utils/getPeriod';
 import {displayCrashFreePercent, getCrashFreePercent} from 'app/views/releases/utils';
 
 import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButtons';
+import {shouldFetchPreviousPeriod} from '../utils';
 
 type SessionApiResponse = {
   query: string;
@@ -49,7 +50,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
     const {organization, selection} = this.props;
 
     const {projects, environments: environment, datetime} = selection;
-    const {period, start, end} = datetime;
+    const {period} = datetime;
     const commonQuery = {
       environment,
       project: projects[0],
@@ -74,11 +75,11 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
       ],
     ];
 
-    if (!start && !end && canIncludePreviousPeriod(true, period)) {
+    if (shouldFetchPreviousPeriod(datetime)) {
       const doubledPeriod = getPeriod(
         {period, start: undefined, end: undefined},
         {shouldDoublePeriod: true}
-      ).statsPeriod!;
+      ).statsPeriod;
 
       endpoints.push([
         'previousSessions',
