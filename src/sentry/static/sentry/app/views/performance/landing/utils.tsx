@@ -76,7 +76,7 @@ export const backendCardDetails = {
   p75: {
     title: 'Duration (p75)',
     tooltip: 'Duration (p75)',
-    formatter: value => getDuration(value / 1000, 3, true),
+    formatter: value => getDuration(value / 1000, value >= 1000 ? 3 : 0, true),
   },
   tpm: {
     title: 'Throughput',
