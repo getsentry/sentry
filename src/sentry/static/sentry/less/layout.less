@@ -29,6 +29,9 @@ body {
 
 #blk_router {
   min-height: 100vh;
+
+  // Avoid child-margin collapses
+  overflow: auto;
 }
 
 #login_as {
@@ -380,6 +383,11 @@ body.auth {
       padding-left: 0;
       padding-top: @sidebar-mobile-height;
 
+      #blk_router,
+      .main-container {
+        min-height: calc(100vh - @sidebar-mobile-height);
+      }
+
       &.collapsed {
         padding-left: 0;
       }
@@ -406,6 +414,14 @@ body.auth {
 
     // Account for there being no footer on mobile
     padding-bottom: 20px;
+
+    // Adjust min height of the containers
+    &.body-sidebar {
+      #blk_router,
+      .main-container {
+        min-height: calc(100vh - @sidebar-mobile-height - 20px);
+      }
+    }
   }
 
   .app {
