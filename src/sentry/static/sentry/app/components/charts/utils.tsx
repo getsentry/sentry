@@ -47,7 +47,7 @@ export function getInterval(datetimeObj: DateTimeObject, highFidelity = false) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
 
   if (diffInMinutes >= SIXTY_DAYS) {
-    // Greater than or equal to 30 days
+    // Greater than or equal to 60 days
     if (highFidelity) {
       return '4h';
     } else {
