@@ -685,11 +685,9 @@ class SnubaTagStorage(TagStorage):
             raise ValueError("Unsupported order_by: %s" % order_by)
 
         dataset = Dataset.Events
-        snuba_key = snuba.get_snuba_column_name(key)
-        if include_transactions and snuba_key.startswith("tags["):
-            snuba_key = snuba.get_snuba_column_name(key, dataset=Dataset.Discover)
-            if not snuba_key.startswith("tags["):
-                dataset = Dataset.Discover
+        if include_transactions:
+            dataset = Dataset.Discover
+        snuba_key = snuba.get_snuba_column_name(key, dataset=dataset)
 
         # We cannot search the values of these columns like we do other columns because they are
         # a different type, and as such, LIKE and != do not work on them. Furthermore, because the
@@ -729,7 +727,7 @@ class SnubaTagStorage(TagStorage):
                 ]
             )
 
-        conditions = [DEFAULT_TYPE_CONDITION]
+        conditions = []
         # transaction status needs a special case so that the user interacts with the names and not codes
         transaction_status = snuba_key == "transaction_status"
         if include_transactions and transaction_status:
@@ -763,7 +761,6 @@ class SnubaTagStorage(TagStorage):
             project_slugs = {project["id"]: project["slug"] for project in project_queryset}
             projects = [project["id"] for project in project_queryset]
             snuba_key = "project_id"
-            dataset = Dataset.Discover
         else:
             snuba_name = snuba_key
 
@@ -772,7 +769,7 @@ class SnubaTagStorage(TagStorage):
                 # user.alias is a pseudo column in discover. It is computed by coalescing
                 # together multiple user attributes. Here we get the coalese function used,
                 # and resolve it to the corresponding snuba query
-                dataset = Dataset.Discover
+                # dataset = Dataset.Discover
                 resolver = snuba.resolve_column(dataset)
                 snuba_name = FIELD_ALIASES[USER_DISPLAY_ALIAS].get_field()
                 snuba.resolve_complex_column(snuba_name, resolver)
@@ -787,6 +784,9 @@ class SnubaTagStorage(TagStorage):
         filters = {"project_id": projects}
         if environments:
             filters["environment"] = environments
+
+        if dataset == Dataset.Events:
+            conditions.append(DEFAULT_TYPE_CONDITION)
 
         results = snuba.query(
             dataset=dataset,
