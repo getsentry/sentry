@@ -116,6 +116,7 @@ class WidgetQueries extends React.Component<Props, State> {
   componentDidUpdate(prevProps: Props) {
     const {selection, widget} = this.props;
     if (
+      !isEqual(widget.displayType, prevProps.widget.displayType) ||
       !isEqual(widget.interval, prevProps.widget.interval) ||
       !isEqual(widget.queries, prevProps.widget.queries) ||
       !isEqual(selection, prevProps.selection)
@@ -133,6 +134,7 @@ class WidgetQueries extends React.Component<Props, State> {
     const {projects, environments} = selection;
 
     if (widget.displayType === 'table') {
+      const tableResults: TableDataWithTitle[] = [];
       // Table and stat widgets use table results and need
       // to do a discover 'table' query instead of a 'timeseries' query.
       this.setState({tableResults: []});
@@ -164,7 +166,7 @@ class WidgetQueries extends React.Component<Props, State> {
 
           completed++;
           this.setState(prevState => {
-            const tableResults = [...prevState.tableResults, tableData];
+            tableResults.push(tableData);
             return {
               ...prevState,
               tableResults,

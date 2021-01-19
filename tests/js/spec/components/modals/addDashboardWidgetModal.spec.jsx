@@ -251,4 +251,64 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(onAdd).not.toHaveBeenCalled();
     expect(widget.title).toEqual('New title');
   });
+
+  it('renders column inputs for table widgets', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      method: 'GET',
+      statusCode: 200,
+      body: {
+        meta: {},
+        data: [],
+      },
+    });
+
+    let widget = {
+      id: '9',
+      title: 'sdk usage',
+      interval: '5m',
+      displayType: 'table',
+      queries: [
+        {
+          id: '9',
+          name: 'errors',
+          conditions: 'event.type:error',
+          fields: ['sdk.name', 'count()'],
+        },
+      ],
+    };
+    const wrapper = mountModal({
+      initialData,
+      widget,
+      onAddWidget: jest.fn(),
+      onUpdateWidget: data => {
+        widget = data;
+      },
+    });
+
+    // Should be in edit 'mode'
+    const heading = wrapper.find('h4').first();
+    expect(heading.text()).toContain('Edit');
+
+    // Should set widget data up.
+    const title = wrapper.find('Input[name="title"]');
+    expect(title.props().value).toEqual(widget.title);
+    expect(wrapper.find('input[name="displayType"]').props().value).toEqual(
+      widget.displayType
+    );
+    expect(wrapper.find('WidgetQueryForm')).toHaveLength(1);
+
+    // Add a column, and choose a value,
+    wrapper.find('button[aria-label="Add a Column"]').simulate('click');
+    await wrapper.update();
+
+    selectByLabel(wrapper, 'trace', {name: 'field', at: 2, control: true});
+    await wrapper.update();
+
+    await clickSubmit(wrapper);
+
+    // A new field should be added.
+    expect(widget.queries[0].fields).toHaveLength(3);
+    expect(widget.queries[0].fields[2]).toEqual('trace');
+  });
 });

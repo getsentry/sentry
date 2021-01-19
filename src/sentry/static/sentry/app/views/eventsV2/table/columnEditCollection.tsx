@@ -22,6 +22,7 @@ type Props = {
   fieldOptions: ReturnType<typeof generateFieldOptions>;
   // Fired when columns are added/removed/modified
   onChange: (columns: Column[]) => void;
+  className?: string;
 };
 
 type State = {
@@ -338,7 +339,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
   }
 
   render() {
-    const {columns} = this.props;
+    const {className, columns} = this.props;
     const canDelete = columns.length > 1;
     const canAdd = columns.length < MAX_COL_COUNT;
     const title = canAdd
@@ -354,7 +355,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
     );
 
     return (
-      <div>
+      <div className={className}>
         {this.renderGhost(gridColumns)}
         <RowContainer>
           <Heading gridColumns={gridColumns}>

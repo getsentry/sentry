@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import PanelTable from 'app/components/panels/panelTable';
-import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
@@ -15,6 +14,7 @@ type Props = {
   organization: Organization;
   location: Location;
   loading: boolean;
+  fields: string[];
   title: string;
   metadata: TableData['meta'];
   data: TableData['data'];
@@ -37,13 +37,13 @@ class SimpleTableChart extends React.Component<Props> {
   }
 
   render() {
-    const {loading, metadata, data, title} = this.props;
+    const {loading, fields, metadata, data, title} = this.props;
     const meta = metadata ?? {};
-    const columns = decodeColumnOrder(Object.keys(meta).map(col => ({field: col})));
+    const columns = decodeColumnOrder(fields.map(field => ({field})));
     return (
       <TableWrapper>
         {title && <h4>{title}</h4>}
-        <StyledPanelTable
+        <PanelTable
           isLoading={loading}
           headers={columns.map((column, index) => {
             return (
@@ -54,7 +54,7 @@ class SimpleTableChart extends React.Component<Props> {
           })}
         >
           {data.map((row, index) => this.renderRow(index, row, meta, columns))}
-        </StyledPanelTable>
+        </PanelTable>
       </TableWrapper>
     );
   }
@@ -66,15 +66,6 @@ const TableWrapper = styled('div')`
 
   /* Space away from where the widget title is */
   margin-top: 40px;
-`;
-
-// Tighten the padding up on the table to make results denser.
-const StyledPanelTable = styled(PanelTable)`
-  > * {
-    font-size: ${p => p.theme.fontSizeSmall};
-    line-height: 1.1;
-    padding: ${space(1)};
-  }
 `;
 
 type HeadCellProps = {

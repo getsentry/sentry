@@ -57,7 +57,7 @@ class ColumnEditModal extends React.Component<Props, State> {
   render() {
     const {Header, Body, Footer, tagKeys, measurementKeys, organization} = this.props;
     const fieldOptions = generateFieldOptions({
-      organization: this.props.organization,
+      organization,
       tagKeys,
       measurementKeys,
     });
