@@ -114,7 +114,6 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
       {
         query: {
           project: selection.projects[0],
-          environment: selection.environments,
           field: 'sum(session)',
           statsPeriod: '90d',
           interval: '90d',

@@ -25,9 +25,19 @@ type Props = AsyncComponent['props'] & {
 type State = AsyncComponent['state'] & {
   currentApdex: TableData | null;
   previousApdex: TableData | null;
+  noApdexEver: boolean;
 };
 
 class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+      currentApdex: null,
+      previousApdex: null,
+      noApdexEver: false,
+    };
+  }
+
   getEndpoints() {
     const {organization, selection} = this.props;
 
@@ -70,6 +80,38 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
     }
 
     return endpoints;
+  }
+
+  /**
+   * If there's no apdex in the time frame, check if there is one in the last 90 days (empty message differs then)
+   */
+  async onLoadAllEndpointsSuccess() {
+    const {organization, selection} = this.props;
+    const {projects} = selection;
+
+    if (defined(this.currentApdex) || defined(this.previousApdex)) {
+      this.setState({noApdexEver: false});
+      return;
+    }
+
+    this.setState({loading: true});
+
+    const response = await this.api.requestPromise(
+      `/organizations/${organization.slug}/eventsv2/`,
+      {
+        query: {
+          project: projects.map(proj => String(proj)),
+          field: [`apdex(${organization.apdexThreshold})`],
+          query: 'event.type:transaction count():>0',
+          statsPeriod: '90d',
+        },
+      }
+    );
+
+    const apdex =
+      response?.data[0]?.[getAggregateAlias(`apdex(${organization.apdexThreshold})`)];
+
+    this.setState({noApdexEver: !defined(apdex), loading: false});
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -158,7 +200,7 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    if (!this.hasFeature()) {
+    if (!this.hasFeature() || this.state.noApdexEver) {
       return this.renderMissingFeatureCard();
     }
 
