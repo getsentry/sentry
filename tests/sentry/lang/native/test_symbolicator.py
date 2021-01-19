@@ -1,14 +1,12 @@
 from __future__ import absolute_import
 
 import copy
-import types
 
 import pytest
 
 from sentry.lang.native.symbolicator import (
     get_sources_for_project,
     redact_internal_sources,
-    get_internal_source,
 )
 from sentry.testutils.helpers import Feature
 from sentry.utils.compat import map
@@ -210,19 +208,12 @@ class TestInternalSourcesRedaction:
         ]
         assert redacted["modules"][0]["candidates"] == expected
 
-    @pytest.mark.django_db
     def test_sentry_project(self):
-        project = types.SimpleNamespace()
-        project.slug = "mystery"
-        project.organization = types.SimpleNamespace()
-        project.organization.slug = "underground"
-        project_source = get_internal_source(project)
-
         debug_id = "451a38b5-0679-79d2-0738-22a5ceb24c4b"
         candidates = [
             {
                 "source": "sentry:project",
-                "location": project_source["url"] + "?id=123",
+                "location": "sentry://project_debug_file/123",
                 "download": {"status": "ok"},
             },
         ]
@@ -235,4 +226,19 @@ class TestInternalSourcesRedaction:
                 "download": {"status": "ok"},
             },
         ]
+        assert redacted["modules"][0]["candidates"] == expected
+
+    def test_sentry_project_notfound_no_location(self):
+        # For sentry:project status=notfound the location needs to be removed
+        debug_id = "451a38b5-0679-79d2-0738-22a5ceb24c4b"
+        candidates = [
+            {
+                "source": "sentry:project",
+                "location": "Not the locacation you are looking for",
+                "download": {"status": "notfound"},
+            },
+        ]
+        response = {"modules": [{"debug_id": debug_id, "candidates": copy.copy(candidates)}]}
+        redacted = redact_internal_sources(response)
+        expected = [{"source": "sentry:project", "download": {"status": "notfound"}}]
         assert redacted["modules"][0]["candidates"] == expected

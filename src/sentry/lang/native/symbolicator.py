@@ -10,7 +10,7 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 
 from requests.exceptions import RequestException
-from six.moves.urllib.parse import urljoin, urlparse, parse_qs
+from six.moves.urllib.parse import urljoin
 
 import sentry_sdk
 
@@ -208,20 +208,6 @@ def redact_internal_sources(response):
     return response
 
 
-def sentry_dsyms_id(url):
-    """Extracts the ID of the debug symbol for this project from the location URI.
-
-    The get_internal_source() function returns URLs to the local sentry server, symbolicator
-    then adds a query string and the location returned in a object dif candidate is
-    something like
-    ``http::servername/api/<project_id>/projects/<org_slug>/<project_slug>/files/dsyms/?id=<id>``.
-    This parses out the ``<id>`` from this.
-    """
-    parsed = urlparse(url)
-    qs = parse_qs(parsed.query)
-    return qs["id"][0]
-
-
 def redact_internal_sources_from_module(module):
     """Redacts information about internal sources from a single module.
 
@@ -239,18 +225,9 @@ def redact_internal_sources_from_module(module):
         source_id = candidate["source"]
         if is_internal_source_id(source_id):
 
-            # Fixup the location.
-            if source_id == "sentry:project":
-                try:
-                    location = "sentry://project_debug_file/{}".format(
-                        sentry_dsyms_id(candidate["location"])
-                    )
-                except Exception:
-                    del candidate["location"]
-                else:
-                    candidate["location"] = location
-            else:
-                del candidate["location"]
+            # Only keep location for sentry:project.
+            if source_id != "sentry:project":
+                candidate.pop("location", None)
 
             # Collapse nofound statuses, collect info on sources which both have a notfound
             # as well as other statusses.  This allows us to later filter the notfound ones.
@@ -260,6 +237,7 @@ def redact_internal_sources_from_module(module):
                 pass
             else:
                 if status == "notfound":
+                    candidate.pop("location", None)  # This location is bogus, remove it.
                     if source_id in sources_notfound:
                         continue
                     else:
