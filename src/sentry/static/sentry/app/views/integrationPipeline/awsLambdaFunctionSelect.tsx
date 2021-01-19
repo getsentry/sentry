@@ -52,7 +52,7 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props> {
       <Observer>
         {() => (
           <FooterWithButtons
-            buttonText={t('Next')}
+            buttonText={t('Finish Setup')}
             onClick={this.handleSubmit}
             disabled={this.model.isError || this.model.isSaving}
           />

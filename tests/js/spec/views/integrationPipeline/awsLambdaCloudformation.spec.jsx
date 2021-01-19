@@ -23,11 +23,10 @@ describe('AwsLambdaCloudformation', () => {
         templateUrl="https://example.com/file.json"
         stackName="Sentry-Monitoring-Stack-Filter"
         arn=""
-      />,
-      TestStubs.routerContext()
+      />
     );
   });
-  it('submit project', () => {
+  it('submit arn', () => {
     const input = wrapper.find('input[name="arn"]');
     input.simulate('change', {target: {value: validArn}});
 

@@ -16,15 +16,12 @@ describe('AwsLambdaProjectSelect', () => {
       TestStubs.Project(),
       TestStubs.Project({id: '53', name: 'My Proj', slug: 'my-proj'}),
     ];
-    wrapper = mountWithTheme(
-      <AwsLambdaProjectSelect projects={projects} />,
-      TestStubs.routerContext()
-    );
+    wrapper = mountWithTheme(<AwsLambdaProjectSelect projects={projects} />);
   });
   it('submit project', () => {
     selectByValue(wrapper, '53', {name: 'projectId', control: true});
-
     wrapper.find('StyledButton[aria-label="Next"]').simulate('click');
+
     const {
       location: {origin},
     } = window;
