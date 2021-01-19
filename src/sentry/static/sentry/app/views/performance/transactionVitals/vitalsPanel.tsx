@@ -11,14 +11,14 @@ import {decodeScalar} from 'app/utils/queryString';
 
 import {NUM_BUCKETS, PERCENTILE, VITAL_GROUPS, WEB_VITAL_DETAILS} from './constants';
 import HistogramQuery from './histogramQuery';
-import {HistogramData, VitalGroup} from './types';
+import {DataFilter, HistogramData, VitalGroup} from './types';
 import VitalCard from './vitalCard';
 
 type Props = {
   organization: Organization;
   location: Location;
   eventView: EventView;
-  dataFilter?: string;
+  dataFilter?: DataFilter;
 };
 
 class VitalsPanel extends React.Component<Props> {
