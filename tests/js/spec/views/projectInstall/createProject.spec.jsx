@@ -85,7 +85,7 @@ describe('CreateProject', function () {
 
     let node = wrapper.find('PlatformCard').first();
     node.simulate('click');
-    expect(wrapper.find('ProjectNameInput input').props().value).toBe('.NET');
+    expect(wrapper.find('ProjectNameInput input').props().value).toBe('iOS');
 
     node = wrapper.find('PlatformCard').last();
     node.simulate('click');

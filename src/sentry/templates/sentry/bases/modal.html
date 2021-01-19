@@ -1,5 +1,6 @@
 {% extends "sentry/layout.html" %}
 
+{% load sentry_assets %}
 {% load i18n %}
 
 {% block wrapperclass %}{{ block.super }} narrow{% endblock %}
@@ -13,7 +14,7 @@
         {% block modal_header_signout %}
           {% if request.user.is_authenticated %}
             <div class="pull-right">
-              <a href="#" onclick="document.modalLogoutForm.submit()">{% trans "Sign out" %}</a>
+              <a href="#" id="sign-out">{% trans "Sign out" %}</a>
               <form style="display:none;" name="modalLogoutForm" action="{% url 'sentry-logout' %}?next={{ request.get_full_path|urlencode }}" method="POST">
                 {% csrf_token %}
               </form>
@@ -35,4 +36,17 @@
     </div>
   </div>
 </section>
+{% endblock %}
+
+{% block scripts_bottom %}
+  {{ block.super }}
+  {% script %}
+  <script>
+    $(function() {
+      $('#sign-out').on('click', function() {
+        document.modalLogoutForm.submit();
+      });
+    });
+  </script>
+  {% endscript %}
 {% endblock %}

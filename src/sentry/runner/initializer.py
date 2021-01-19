@@ -273,7 +273,31 @@ def configure_structlog():
     logging.config.dictConfig(settings.LOGGING)
 
 
+def show_big_error(message):
+    if isinstance(message, six.string_types):
+        lines = message.strip().splitlines()
+    else:
+        lines = message
+    maxline = max(map(len, lines))
+    click.echo("", err=True)
+    click.secho("!!!%s!!!" % ("!" * min(maxline, 80),), err=True, fg="red")
+    click.secho("!! %s !!" % "".center(maxline), err=True, fg="red")
+    for line in lines:
+        click.secho("!! %s !!" % line.center(maxline), err=True, fg="red")
+    click.secho("!! %s !!" % "".center(maxline), err=True, fg="red")
+    click.secho("!!!%s!!!" % ("!" * min(maxline, 80),), err=True, fg="red")
+    click.echo("", err=True)
+
+
 def initialize_app(config, skip_service_validation=False):
+    if six.PY2:
+        warning_text = (
+            "You are using Python 2 which is deprecated. "
+            "Sentry 21.1 will be the last version to support Python 2."
+        )
+        warnings.warn(warning_text)
+        show_big_error(warning_text)
+
     settings = config["settings"]
 
     if settings.DEBUG:
@@ -473,22 +497,6 @@ def bind_cache_to_option_store():
     from sentry.options import default_store
 
     default_store.cache = default_cache
-
-
-def show_big_error(message):
-    if isinstance(message, six.string_types):
-        lines = message.strip().splitlines()
-    else:
-        lines = message
-    maxline = max(map(len, lines))
-    click.echo("", err=True)
-    click.secho("!!!%s!!!" % ("!" * min(maxline, 80),), err=True, fg="red")
-    click.secho("!! %s !!" % "".center(maxline), err=True, fg="red")
-    for line in lines:
-        click.secho("!! %s !!" % line.center(maxline), err=True, fg="red")
-    click.secho("!! %s !!" % "".center(maxline), err=True, fg="red")
-    click.secho("!!!%s!!!" % ("!" * min(maxline, 80),), err=True, fg="red")
-    click.echo("", err=True)
 
 
 def apply_legacy_settings(settings):

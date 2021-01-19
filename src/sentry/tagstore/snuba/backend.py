@@ -561,6 +561,7 @@ class SnubaTagStorage(TagStorage):
             conditions=conditions,
             filter_keys=filters,
             aggregations=aggregations,
+            orderby="-times_seen",
             referrer="tagstore.get_release_tags",
         )
 
@@ -633,6 +634,7 @@ class SnubaTagStorage(TagStorage):
             conditions=None,
             filter_keys=filters,
             aggregations=aggregations,
+            orderby="-count",
             referrer="tagstore.get_groups_user_counts",
         )
 
