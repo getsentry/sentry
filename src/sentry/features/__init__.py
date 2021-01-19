@@ -83,6 +83,7 @@ default_manager.add("organizations:integrations-ticket-rules", OrganizationFeatu
 default_manager.add("organizations:integrations-vsts-limited-scopes", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-stacktrace-link", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-aws_lambda", OrganizationFeature)  # NOQA
+default_manager.add("organizations:slack-allow-workspace", OrganizationFeature)  # NOQA
 default_manager.add("organizations:internal-catchall", OrganizationFeature)  # NOQA
 default_manager.add("organizations:invite-members", OrganizationFeature)  # NOQA
 default_manager.add("organizations:images-loaded-v2", OrganizationFeature)  # NOQA
@@ -113,6 +114,7 @@ default_manager.add("organizations:inbox-owners-query", OrganizationFeature)  # 
 default_manager.add("organizations:alert-details-redesign", OrganizationFeature)  # NOQA
 default_manager.add("organizations:unhandled-issue-flag", OrganizationFeature)  # NOQA
 default_manager.add("organizations:invite-members-rate-limits", OrganizationFeature)  # NOQA
+default_manager.add("organizations:issue-list-trend-sort", OrganizationFeature)  # NOQA
 default_manager.add("organizations:dashboards-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-landing-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-vitals-overview", OrganizationFeature)  # NOQA

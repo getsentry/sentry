@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {MetaType} from 'app/utils/discover/eventView';
+import {WebVital} from 'app/utils/discover/fields';
 import GenericDiscoverQuery, {
   DiscoverQueryProps,
 } from 'app/utils/discover/genericDiscoverQuery';
@@ -23,25 +24,22 @@ export type TableData = {
 };
 
 type Props = DiscoverQueryProps & {
-  onlyVital?: string;
+  vitals: WebVital[];
 };
 
 function getRequestPayload(props: Props) {
-  const {eventView, onlyVital} = props;
+  const {eventView, vitals} = props;
   const apiPayload = eventView?.getEventsAPIPayload(props.location);
-  const vitalFields = onlyVital
-    ? [
-        vitalsPoorFields[onlyVital],
-        vitalsBaseFields[onlyVital],
-        vitalsMehFields[onlyVital],
-        vitalsP75Fields[onlyVital],
-      ]
-    : [
-        ...Object.values(vitalsPoorFields),
-        ...Object.values(vitalsMehFields),
-        ...Object.values(vitalsBaseFields),
-        ...Object.values(vitalsP75Fields),
-      ];
+  const vitalFields: string[] = vitals
+    .map(vital =>
+      [
+        vitalsPoorFields[vital],
+        vitalsBaseFields[vital],
+        vitalsMehFields[vital],
+        vitalsP75Fields[vital],
+      ].filter(Boolean)
+    )
+    .reduce((fields, fs) => fields.concat(fs), []);
   apiPayload.field = [...vitalFields];
   delete apiPayload.sort;
   return apiPayload;
@@ -49,7 +47,7 @@ function getRequestPayload(props: Props) {
 
 function VitalsCardDiscoverQuery(props: Props) {
   return (
-    <GenericDiscoverQuery<TableData, {}>
+    <GenericDiscoverQuery<TableData, Props>
       getRequestPayload={getRequestPayload}
       route="eventsv2"
       noPagination

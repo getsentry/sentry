@@ -9,6 +9,53 @@ import TeamActions from 'app/actions/teamActions';
 import {Client} from 'app/api';
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
+import {Organization} from 'app/types';
+
+async function fetchOrg(
+  api: Client,
+  slug: string,
+  detailed: boolean
+): Promise<Organization> {
+  const org = await api.requestPromise(`/organizations/${slug}/`, {
+    query: {detailed: detailed ? 1 : 0},
+  });
+
+  if (!org) {
+    throw new Error('retrieved organization is falsey');
+  }
+
+  OrganizationActions.update(org, {replace: true});
+  setActiveOrganization(org);
+
+  return org;
+}
+
+async function fetchProjectsAndTeams(slug: string) {
+  // Create a new client so the request is not cancelled
+  const uncancelableApi = new Client();
+  try {
+    const [projects, teams] = await Promise.all([
+      uncancelableApi.requestPromise(`/organizations/${slug}/projects/`, {
+        query: {
+          all_projects: 1,
+          collapse: 'latestDeploys',
+        },
+      }),
+      uncancelableApi.requestPromise(`/organizations/${slug}/teams/`),
+    ]);
+    ProjectActions.loadProjects(projects);
+    TeamActions.loadTeams(teams);
+  } catch (err) {
+    // It's possible these requests fail with a 403 if the user has a role with insufficient access
+    // to projects and teams, but *can* access org details (e.g. billing).
+    // An example of this is in org settings.
+    //
+    // Ignore 403s and bubble up other API errors
+    if (err.status !== 403) {
+      throw err;
+    }
+  }
+}
 
 /**
  * Fetches an organization's details with an option for the detailed representation
@@ -33,49 +80,19 @@ export async function fetchOrganizationDetails(
   }
 
   try {
-    const org = await api.requestPromise(`/organizations/${slug}/`, {
-      query: {detailed: detailed ? 1 : 0},
-    });
-
-    if (!org) {
-      OrganizationActions.fetchOrgError(new Error('retrieved organization is falsey'));
-      return;
+    const promises: Array<Promise<any>> = [fetchOrg(api, slug, detailed)];
+    if (!detailed) {
+      promises.push(fetchProjectsAndTeams(slug));
     }
 
-    OrganizationActions.update(org, {replace: true});
-    setActiveOrganization(org);
+    const [org] = await Promise.all(promises);
 
-    if (detailed) {
+    if (org && detailed) {
       // TODO(davidenwang): Change these to actions after organization.projects
       // and organization.teams no longer exists. Currently if they were changed
       // to actions it would cause OrganizationContext to rerender many times
       TeamStore.loadInitialData(org.teams);
       ProjectsStore.loadInitialData(org.projects);
-    } else {
-      // create a new client so the request is not cancelled
-      const uncancelableApi = new Client();
-      try {
-        const [projects, teams] = await Promise.all([
-          uncancelableApi.requestPromise(`/organizations/${slug}/projects/`, {
-            query: {
-              all_projects: 1,
-              collapse: 'latestDeploys',
-            },
-          }),
-          uncancelableApi.requestPromise(`/organizations/${slug}/teams/`),
-        ]);
-        ProjectActions.loadProjects(projects);
-        TeamActions.loadTeams(teams);
-      } catch (err) {
-        // It's possible these requests fail with a 403 if the user has a role with insufficient access
-        // to projects and teams, but *can* access org details (e.g. billing).
-        // An example of this is in org settings.
-        //
-        // Ignore 403s and bubble up other API errors
-        if (err.status !== 403) {
-          throw err;
-        }
-      }
     }
   } catch (err) {
     if (!err) {

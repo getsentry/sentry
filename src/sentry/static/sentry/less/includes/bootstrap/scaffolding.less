@@ -8,21 +8,6 @@
   border-radius: @border-radius-large;
 }
 
-// Image thumbnails
-//
-// Heads up! This is mixin-ed into thumbnails.less for `.thumbnail`.
-.img-thumbnail {
-  padding: @thumbnail-padding;
-  line-height: @line-height-base;
-  background-color: @thumbnail-bg;
-  border: 1px solid @thumbnail-border;
-  border-radius: @thumbnail-border-radius;
-  .transition(all 0.2s ease-in-out);
-
-  // Keep them at most 100% wide
-  .img-responsive(inline-block);
-}
-
 // Perfect circle
 .img-circle {
   border-radius: 50%; // set radius in percents
