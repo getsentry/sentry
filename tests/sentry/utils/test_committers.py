@@ -113,19 +113,19 @@ class GetFramePathsTestCase(unittest.TestCase):
 
     def test_data_in_stacktrace_frames(self):
         self.event.data = {"stacktrace": {"frames": ["data"]}}
-        assert ["data"] == _get_frame_paths(self.event)
+        assert ["data"] == _get_frame_paths(self.event.data)
 
     def test_data_in_exception_values(self):
         self.event.data = {"exception": {"values": [{"stacktrace": {"frames": ["data"]}}]}}
-        assert ["data"] == _get_frame_paths(self.event)
+        assert ["data"] == _get_frame_paths(self.event.data)
 
     def test_data_does_not_match(self):
         self.event.data = {"this does not": "match"}
-        assert [] == _get_frame_paths(self.event)
+        assert [] == _get_frame_paths(self.event.data)
 
     def test_no_stacktrace_in_exception_values(self):
         self.event.data = {"exception": {"values": [{"this does not": "match"}]}}
-        assert [] == _get_frame_paths(self.event)
+        assert [] == _get_frame_paths(self.event.data)
 
 
 class GetCommitFileChangesTestCase(CommitTestCase):
