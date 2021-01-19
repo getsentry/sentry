@@ -42,7 +42,7 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
     const {organization, selection} = this.props;
 
     const {projects, environments, datetime} = selection;
-    const {period} = datetime;
+    const {period, start, end} = datetime;
     const commonQuery = {
       environment: environments,
       project: projects[0],
@@ -62,7 +62,7 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
       ],
     ];
 
-    if (period && canIncludePreviousPeriod(true, period)) {
+    if (!start && !end && canIncludePreviousPeriod(true, period)) {
       const {start: previousStart} = parseStatsPeriod(
         getPeriod({period, start: undefined, end: undefined}, {shouldDoublePeriod: true})
           .statsPeriod!

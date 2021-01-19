@@ -4,6 +4,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import {canIncludePreviousPeriod, getDiffInMinutes} from 'app/components/charts/utils';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import ScoreCard from 'app/components/scoreCard';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization} from 'app/types';
 import {defined, percent} from 'app/utils';
@@ -48,7 +49,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
     const {organization, selection} = this.props;
 
     const {projects, environments, datetime} = selection;
-    const {period} = datetime;
+    const {period, start, end} = datetime;
     const commonQuery = {
       environment: environments,
       project: projects[0],
@@ -73,7 +74,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
       ],
     ];
 
-    if (period && canIncludePreviousPeriod(true, period)) {
+    if (!start && !end && canIncludePreviousPeriod(true, period)) {
       const doubledPeriod = getPeriod(
         {period, start: undefined, end: undefined},
         {shouldDoublePeriod: true}
@@ -86,7 +87,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
           query: {
             ...commonQuery,
             statsPeriodStart: doubledPeriod,
-            statsPeriodEnd: period,
+            statsPeriodEnd: period ?? DEFAULT_STATS_PERIOD,
           },
         },
       ]);
@@ -194,11 +195,6 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
   renderLoading() {
     return this.renderBody();
   }
-
-  // renderError() {
-  //   // XXX: we can remove this once session API is stabilized, right now it sometimes returns 500
-  //   return this.renderBody();
-  // }
 
   renderMissingFeatureCard() {
     const {organization} = this.props;
