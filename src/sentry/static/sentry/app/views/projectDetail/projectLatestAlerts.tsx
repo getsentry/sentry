@@ -2,7 +2,6 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
-import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
 import AsyncComponent from 'app/components/asyncComponent';
@@ -37,12 +36,10 @@ type State = {
 
 class ProjectLatestAlerts extends AsyncComponent<Props, State> {
   shouldComponentUpdate(nextProps: Props, nextState: State) {
+    // TODO(project-detail): we temporarily removed refetching based on timeselector
     if (
       this.state !== nextState ||
-      !isEqual(
-        pick(this.props.location.query, Object.values(URL_PARAM)),
-        pick(nextProps.location.query, Object.values(URL_PARAM))
-      )
+      this.props.location.query.environment !== nextProps.location.query.environment
     ) {
       return true;
     }
@@ -143,7 +140,7 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
     const showLoadingIndicator = loading || checkingForAlertRules;
 
     if (showLoadingIndicator) {
-      return <Placeholder height="160px" />;
+      return <Placeholder height="172px" />;
     }
 
     if (!hasAlertRule) {

@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
 import {fetchAnyReleaseExistence} from 'app/actionCreators/projects';
@@ -35,12 +34,10 @@ type State = {
 
 class ProjectLatestReleases extends AsyncComponent<Props, State> {
   shouldComponentUpdate(nextProps: Props, nextState: State) {
+    // TODO(project-detail): we temporarily removed refetching based on timeselector
     if (
       this.state !== nextState ||
-      !isEqual(
-        pick(this.props.location.query, Object.values(URL_PARAM)),
-        pick(nextProps.location.query, Object.values(URL_PARAM))
-      )
+      this.props.location.query.environment !== nextProps.location.query.environment
     ) {
       return true;
     }
