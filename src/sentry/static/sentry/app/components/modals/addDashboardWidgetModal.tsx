@@ -268,6 +268,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                         organization={organization}
                         selection={selection}
                         fieldOptions={amendedFieldOptions}
+                        displayType={state.displayType}
                         widgetQuery={query}
                         canRemove={state.queries.length > 1}
                         onRemove={() => this.handleQueryRemove(i)}

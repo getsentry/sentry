@@ -17,7 +17,7 @@ import {
   generateFieldAsString,
   QueryFieldValue,
 } from 'app/utils/discover/fields';
-import {WidgetQuery} from 'app/views/dashboardsV2/types';
+import {Widget, WidgetQuery} from 'app/views/dashboardsV2/types';
 import SearchBar from 'app/views/events/searchBar';
 import {QueryField} from 'app/views/eventsV2/table/queryField';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
@@ -30,6 +30,7 @@ type Props = {
   widgetQuery: WidgetQuery;
   organization: Organization;
   selection: GlobalSelection;
+  displayType: Widget['displayType'];
   fieldOptions: ReturnType<typeof generateFieldOptions>;
   onChange: (widgetQuery: WidgetQuery) => void;
   canRemove: boolean;
@@ -131,6 +132,7 @@ class WidgetQueryForm extends React.Component<Props, State> {
   render() {
     const {
       canRemove,
+      displayType,
       errors,
       fieldOptions,
       organization,
@@ -242,7 +244,7 @@ class WidgetQueryForm extends React.Component<Props, State> {
         )}
         <Field
           data-test-id="y-axis"
-          label="Y-Axis"
+          label={displayType === 'table' ? t('Fields') : t('Y-Axis')}
           inline={false}
           flexibleControlStateSize
           stacked
@@ -274,7 +276,7 @@ class WidgetQueryForm extends React.Component<Props, State> {
               onClick={this.handleAddField}
               icon={<IconAdd isCircled />}
             >
-              {t('Add an overlay')}
+              {displayType === 'table' ? t('Add column') : t('Add an overlay')}
             </Button>
           </div>
         </Field>
