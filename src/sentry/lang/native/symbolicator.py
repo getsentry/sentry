@@ -173,7 +173,7 @@ class Symbolicator(object):
                 metrics.timing(
                     "events.symbolicator.response.completed.size", len(json.dumps(json_response))
                 )
-                return json_response
+                return redact_internal_sources(json_response)
 
     def process_minidump(self, minidump):
         return self._process(lambda: self.sess.upload_minidump(minidump), "process_minidump")
@@ -190,6 +190,74 @@ class Symbolicator(object):
             ),
             "symbolicate_stacktraces",
         )
+
+
+def redact_internal_sources(response):
+    """Redacts information about internal sources from a response.
+
+    Symbolicator responses can contain a section about DIF object file candidates where were
+    attempted to be downloaded from the sources.  This includes a full URI of where the
+    download was attempted from.  For internal sources we want to redact this in order to
+    not leak any internal details.
+
+    Note that this modifies the argument passed in, thus redacting in-place.  It still
+    returns the modified response.
+    """
+    for module in response.get("modules", []):
+        redact_internal_sources_from_module(module)
+    return response
+
+
+def redact_internal_sources_from_module(module):
+    """Redacts information about internal sources from a single module.
+
+    This in-place redacts candidates from only a single module of the symbolicator response.
+
+    The strategy here is for each internal source to replace the location with the DebugID.
+    Furthermore if there are any "notfound" entries collapse them into a single entry and
+    only show this entry if there are no entries with another status.
+    """
+    sources_notfound = set()
+    sources_other = set()
+    new_candidates = []
+
+    for candidate in module.get("candidates", []):
+        source_id = candidate["source"]
+        if is_internal_source_id(source_id):
+
+            # Only keep location for sentry:project.
+            if source_id != "sentry:project":
+                candidate.pop("location", None)
+
+            # Collapse nofound statuses, collect info on sources which both have a notfound
+            # as well as other statusses.  This allows us to later filter the notfound ones.
+            try:
+                status = candidate.get("download", {})["status"]
+            except KeyError:
+                pass
+            else:
+                if status == "notfound":
+                    candidate.pop("location", None)  # This location is bogus, remove it.
+                    if source_id in sources_notfound:
+                        continue
+                    else:
+                        sources_notfound.add(source_id)
+                else:
+                    sources_other.add(source_id)
+        new_candidates.append(candidate)
+
+    def should_keep(candidate):
+        """Returns `False` if the candidate should be kept in the list of candidates.
+
+        This removes the candidates with a status of ``notfound`` *if* they also have
+        another status.
+        """
+        source_id = candidate["source"]
+        status = candidate.get("download", {}).get("status")
+        return status != "notfound" or source_id not in sources_other
+
+    if "candidates" in module:
+        module["candidates"] = [c for c in new_candidates if should_keep(c)]
 
 
 class TaskIdNotFound(Exception):
@@ -233,6 +301,14 @@ def get_internal_source(project):
     }
 
 
+def is_internal_source_id(source_id):
+    """Determines if a DIF object source identifier is reserved for internal sentry use.
+
+    This is trivial, but multiple functions in this file need to use the same definition.
+    """
+    return source_id.startswith("sentry")
+
+
 def parse_sources(config):
     """
     Parses the given sources in the config string (from JSON).
@@ -253,7 +329,7 @@ def parse_sources(config):
 
     ids = set()
     for source in sources:
-        if source["id"].startswith("sentry"):
+        if is_internal_source_id(source["id"]):
             raise InvalidSourcesError('Source ids must not start with "sentry:"')
         if source["id"] in ids:
             raise InvalidSourcesError("Duplicate source id: %s" % (source["id"],))
