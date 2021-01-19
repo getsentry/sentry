@@ -105,7 +105,7 @@ class IntegrationServerlessRow extends React.Component<Props> {
 export default withApi(IntegrationServerlessRow);
 
 const Item = styled('div')`
-  padding: ${space(1)};
+  padding: ${space(2)};
 
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.innerBorder};
@@ -114,11 +114,16 @@ const Item = styled('div')`
   display: grid;
   grid-column-gap: ${space(1)};
   align-items: center;
-  grid-template-columns: 2fr 1fr 0.5fr 0.25fr 0.5fr;
+  grid-template-columns: 2fr 1fr 0.5fr 0.5fr 0.5fr;
   grid-template-areas: 'function-name runtime version enable-switch update-button';
 `;
 
-const ItemWrapper = styled('span')``;
+const ItemWrapper = styled('span')`
+  height: 32px;
+  vertical-align: middle;
+  display: flex;
+  align-items: center;
+`;
 
 const NameWrapper = styled(ItemWrapper)`
   grid-area: function-name;

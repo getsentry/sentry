@@ -94,7 +94,6 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
   validateArn = (value: string) => {
     // validate the ARN matches a cloudformation stack
     const syncError = testArn(value) ? undefined : t('Invalid ARN');
-
     this.setState({syncError});
   };
   handleChangeArn = (arn: string) => {

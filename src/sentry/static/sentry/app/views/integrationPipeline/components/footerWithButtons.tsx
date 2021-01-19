@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import Button from 'app/components/actions/button';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 
 type Props = {buttonText: string} & Pick<
   React.ComponentProps<typeof Button>,
@@ -27,7 +28,6 @@ const Footer = styled('form')`
   position: fixed;
   bottom: 0;
   width: 100%;
-  height: 60px;
   z-index: 100;
   background-color: ${p => p.theme.bodyBackground};
   border-top: 1px solid ${p => p.theme.gray100};
@@ -35,10 +35,10 @@ const Footer = styled('form')`
 
 const StyledButton = styled(Button)`
   padding: 0;
-  margin-right: 20px;
+  margin-right: ${space(2)};
 `;
 
 const ButtonWrapper = styled('div')`
-  padding: 20px 0;
+  padding: ${space(2)} 0;
   float: right;
 `;

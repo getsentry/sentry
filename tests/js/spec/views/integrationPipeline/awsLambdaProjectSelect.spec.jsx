@@ -10,6 +10,8 @@ describe('AwsLambdaProjectSelect', () => {
   let wrapper;
   let windowAssignMock;
   beforeEach(() => {
+    windowAssignMock = jest.fn();
+    window.location.assign = windowAssignMock;
     projects = [
       TestStubs.Project(),
       TestStubs.Project({id: '53', name: 'My Proj', slug: 'my-proj'}),
@@ -18,13 +20,11 @@ describe('AwsLambdaProjectSelect', () => {
       <AwsLambdaProjectSelect projects={projects} />,
       TestStubs.routerContext()
     );
-    windowAssignMock = jest.fn();
-    window.location.assign = windowAssignMock;
   });
   it('submit project', () => {
     selectByValue(wrapper, '53', {name: 'projectId', control: true});
 
-    wrapper.find('form').simulate('submit');
+    wrapper.find('StyledButton[aria-label="Next"]').simulate('click');
     const {
       location: {origin},
     } = window;
