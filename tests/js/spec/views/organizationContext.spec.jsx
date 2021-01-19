@@ -96,19 +96,43 @@ describe('OrganizationContext', function () {
   });
 
   it('fetches new org when router params change', async function () {
+    const newOrg = TestStubs.Organization({
+      teams: [TestStubs.Team()],
+      projects: [TestStubs.Project()],
+      slug: 'new-slug',
+    });
+
     wrapper = createWrapper();
+    const instance = wrapper.instance();
+    jest.spyOn(instance, 'render');
+
+    // initial render
     await tick();
     await tick();
+    expect(instance.state.organization).toEqual(org);
+    expect(instance.render).toHaveBeenCalledTimes(1);
+
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/new-slug/',
-      body: org,
+      body: newOrg,
     });
-    wrapper.setProps({params: {orgId: 'new-slug'}});
+
+    wrapper.setProps({params: {orgId: newOrg.slug}}, () => {
+      // state should be reset based on props
+      expect(instance.state.organization).toEqual(null);
+      expect(instance.render).toHaveBeenCalledTimes(2);
+    });
+
     // await fetching new org
+    await tick();
     await tick();
     wrapper.update();
 
     expect(mock).toHaveBeenLastCalledWith('/organizations/new-slug/', expect.anything());
+
+    expect(wrapper.state('loading')).toBe(false);
+    expect(wrapper.state('error')).toBe(null);
+    expect(wrapper.state('organization')).toEqual(newOrg);
   });
 
   it('shows loading error for non-superusers on 403s', async function () {
