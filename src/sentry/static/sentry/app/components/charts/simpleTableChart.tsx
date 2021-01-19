@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import PanelTable from 'app/components/panels/panelTable';
+import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
@@ -42,7 +43,7 @@ class SimpleTableChart extends React.Component<Props> {
     return (
       <TableWrapper>
         {title && <h4>{title}</h4>}
-        <PanelTable
+        <StyledPanelTable
           isLoading={loading}
           headers={columns.map((column, index) => {
             return (
@@ -53,18 +54,27 @@ class SimpleTableChart extends React.Component<Props> {
           })}
         >
           {data.map((row, index) => this.renderRow(index, row, meta, columns))}
-        </PanelTable>
+        </StyledPanelTable>
       </TableWrapper>
     );
   }
 }
 const TableWrapper = styled('div')`
   /* align height with charts */
-  height: 170px;
+  height: 160px;
   overflow-y: scroll;
 
   /* Space away from where the widget title is */
-  margin-top: 30px;
+  margin-top: 40px;
+`;
+
+// Tighten the padding up on the table to make results denser.
+const StyledPanelTable = styled(PanelTable)`
+  > * {
+    font-size: ${p => p.theme.fontSizeSmall};
+    line-height: 1.1;
+    padding: ${space(1)};
+  }
 `;
 
 type HeadCellProps = {
