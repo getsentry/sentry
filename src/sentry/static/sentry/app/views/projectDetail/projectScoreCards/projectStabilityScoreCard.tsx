@@ -48,7 +48,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
   getEndpoints() {
     const {organization, selection} = this.props;
 
-    const {projects, environments, datetime} = selection;
+    const {projects, environments: environment, datetime} = selection;
     const {period, start, end} = datetime;
     const commonQuery = {
       environment: environments,
