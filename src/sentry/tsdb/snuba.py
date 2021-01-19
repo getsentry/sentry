@@ -284,7 +284,7 @@ class SnubaTSDB(BaseTSDB):
                 aggregations=aggregations,
                 rollup=rollup,
                 limit=limit,
-                referrer="tsdb",
+                referrer="tsdb-modelid:{}".format(model.value),
                 is_grouprelease=(model == TSDBModel.frequent_releases_by_group),
             )
         else:
