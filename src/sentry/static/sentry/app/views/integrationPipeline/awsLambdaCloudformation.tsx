@@ -6,9 +6,11 @@ import {addErrorMessage, addLoadingMessage} from 'app/actionCreators/indicator';
 import Alert from 'app/components/alert';
 import ExternalLink from 'app/components/links/externalLink';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {uniqueId} from 'app/utils/guid';
 import StepHeading from 'app/views/onboarding/components/stepHeading';
-import TextField from 'app/views/settings/components/forms/textField';
+import FieldErrorReason from 'app/views/settings/components/forms/field/fieldErrorReason';
+import TextareaField from 'app/views/settings/components/forms/textareaField';
 
 import FooterWithButtons from './components/footerWithButtons';
 import IconGroup from './components/iconGroup';
@@ -93,7 +95,12 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
   };
   validateArn = (value: string) => {
     // validate the ARN matches a cloudformation stack
-    const syncError = testArn(value) ? undefined : t('Invalid ARN');
+    let syncError: string | undefined;
+    if (!value) {
+      syncError = t('ARN required');
+    } else if (testArn(value)) {
+      syncError = t('Invalid ARN');
+    }
     this.setState({syncError});
   };
   handleChangeArn = (arn: string) => {
@@ -121,20 +128,21 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
     const {arn, syncError, submitting} = this.state;
     return (
       <div>
-        <Alert type="info">
+        <StyledAlert type="info">
           {t('It might take a minute for the CloudFormation stack to be created')}
-        </Alert>
+        </StyledAlert>
         <IconGroup pluginId="aws_lambda" />
         <InstallSentry>{t('Install Sentry on your AWS Account')}</InstallSentry>
         {this.renderInstructions()}
-        <StyledTextField
+        <StyledTextareaField
           name="arn"
-          placeholder="arn:aws:iam::XXXXXXXXXXXX:stack/SentryMonitoringStack-XXXXXXXXXXXXX"
+          placeholder="arn:aws:cloudformation:us-east-2:599817902985:stack/Sentry-Monitoring-Stack-Filter/a3644150-5560-11eb-b6e6-0abd43d40ad8"
           value={arn}
           onChange={this.handleChangeArn}
           onBlur={this.validateArn}
           error={syncError}
           inline={false}
+          autosize
         />
         <FooterWithButtons
           buttonText={t('Next')}
@@ -156,7 +164,12 @@ const StyledStepHeading = styled(StepHeading)`
   margin: 10px 0 0 0;
 `;
 
-const StyledTextField = styled(TextField)``;
+const StyledTextareaField = styled(TextareaField)`
+  padding: ${space(1)} 65px;
+  ${FieldErrorReason} {
+    right: 67px;
+  }
+`;
 
 const InstallSentry = styled('div')`
   font-size: ${p => p.theme.headerFontSize};
@@ -166,4 +179,8 @@ const InstallSentry = styled('div')`
 
 const GoToAWSWrapper = styled('div')`
   margin-left: 46px;
+`;
+
+const StyledAlert = styled(Alert)`
+  border-radius: 0;
 `;

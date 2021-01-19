@@ -27,8 +27,7 @@ describe('AwsLambdaCloudformation', () => {
     );
   });
   it('submit arn', () => {
-    const input = wrapper.find('input[name="arn"]');
-    input.simulate('change', {target: {value: validArn}});
+    wrapper.find('textarea[name="arn"]').simulate('change', {target: {value: validArn}});
 
     wrapper.find('StyledButton[aria-label="Next"]').simulate('click');
 
