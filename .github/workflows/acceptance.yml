@@ -80,7 +80,6 @@ jobs:
 
     env:
       VISUAL_SNAPSHOT_ENABLE: 1
-      MIGRATIONS_TEST_MIGRATE: 1 # Not sure if this is needed...
       TEST_GROUP_STRATEGY: roundrobin
 
     steps:
