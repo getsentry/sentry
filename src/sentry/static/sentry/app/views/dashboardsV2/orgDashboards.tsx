@@ -69,7 +69,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
   }
 
   onRequestSuccess({stateKey, data}) {
-    const {params, organization} = this.props;
+    const {params, organization, location} = this.props;
     if (params.dashboardId || stateKey === 'selectedDashboard') {
       return;
     }
@@ -78,7 +78,12 @@ class OrgDashboards extends AsyncComponent<Props, State> {
     // we can redirect to the first dashboard in the list.
     const dashboardId = data.length ? data[0].id : 'default-overview';
     const url = `/organizations/${organization.slug}/dashboards/${dashboardId}/`;
-    browserHistory.replace({pathname: url});
+    browserHistory.replace({
+      pathname: url,
+      query: {
+        ...location.query,
+      },
+    });
   }
 
   renderBody() {

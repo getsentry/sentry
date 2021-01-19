@@ -494,7 +494,12 @@ class Sidebar extends React.Component<Props, State> {
         <SidebarItem
           {...sidebarItemProps}
           index
-          onClick={this.hidePanel}
+          onClick={(_id, evt) =>
+            this.navigateWithGlobalSelection(
+              `/organizations/${organization.slug}/dashboards/`,
+              evt
+            )
+          }
           icon={<IconGraph size="md" />}
           label={t('Dashboards')}
           to={`/organizations/${organization.slug}/dashboards/`}
