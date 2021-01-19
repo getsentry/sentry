@@ -16,7 +16,10 @@ import {
   Organization,
 } from 'app/types';
 import {Series} from 'app/types/echarts';
-import {parsePeriodToHours} from 'app/utils/dates';
+import {getUtcDateString, parsePeriodToHours} from 'app/utils/dates';
+import {TableData} from 'app/utils/discover/discoverQuery';
+import EventView from 'app/utils/discover/eventView';
+import {doDiscoverQuery} from 'app/utils/discover/genericDiscoverQuery';
 
 import {Widget, WidgetQuery} from './types';
 
@@ -85,21 +88,25 @@ type Props = {
   widget: Widget;
   selection: GlobalSelection;
   children: (
-    props: Pick<State, 'loading' | 'results' | 'errorMessage'>
+    props: Pick<State, 'loading' | 'timeseriesResults' | 'tableResults' | 'errorMessage'>
   ) => React.ReactNode;
 };
+
+type TableDataWithTitle = TableData & {title: string};
 
 type State = {
   errorMessage: undefined | string;
   loading: boolean;
-  results: Series[];
+  timeseriesResults: undefined | Series[];
+  tableResults: undefined | TableDataWithTitle[];
 };
 
 class WidgetQueries extends React.Component<Props, State> {
   state: State = {
     loading: true,
     errorMessage: undefined,
-    results: [],
+    timeseriesResults: undefined,
+    tableResults: undefined,
   };
 
   componentDidMount() {
@@ -120,21 +127,66 @@ class WidgetQueries extends React.Component<Props, State> {
   async fetchData() {
     const {selection, api, organization, widget} = this.props;
 
-    this.setState({loading: true, results: []});
+    this.setState({loading: true, errorMessage: undefined});
 
-    const statsPeriod = selection.datetime.period;
     const {start, end} = selection.datetime;
     const {projects, environments} = selection;
-    const interval = getWidgetInterval(widget.interval, {
-      start,
-      end,
-      period: statsPeriod,
-    });
 
-    const promises: Promise<EventsStats | MultiSeriesEventsStats>[] = widget.queries.map(
-      query => {
-        // TODO(mark) adapt this based on the type of widget being built.
-        // Table and stats results will need to do a different request.
+    if (widget.displayType === 'table') {
+      // Table and stat widgets use table results and need
+      // to do a discover 'table' query instead of a 'timeseries' query.
+      this.setState({tableResults: []});
+      const promises = widget.queries.map(query => {
+        const eventView = EventView.fromSavedQuery({
+          id: undefined,
+          name: query.name,
+          version: 2,
+          fields: query.fields,
+          query: query.conditions,
+          projects,
+          start: start ? getUtcDateString(start) : undefined,
+          end: end ? getUtcDateString(end) : undefined,
+        });
+        const url = `/organizations/${organization.slug}/eventsv2/`;
+        return doDiscoverQuery<TableData>(api, url, {
+          ...eventView.generateQueryStringObject(),
+          per_page: 5,
+        });
+      });
+
+      let completed = 0;
+      promises.forEach(async (promise, i) => {
+        try {
+          const [data] = await promise;
+          // Cast so we can add the title.
+          const tableData = data as TableDataWithTitle;
+          tableData.title = widget.queries[i]?.name ?? '';
+
+          completed++;
+          this.setState(prevState => {
+            const tableResults = [...prevState.tableResults, tableData];
+            return {
+              ...prevState,
+              tableResults,
+              loading: completed === promises.length ? false : true,
+            };
+          });
+        } catch (err) {
+          const errorMessage =
+            err?.responseJSON?.detail || t('An unknown error occurred.');
+          this.setState({errorMessage});
+        }
+      });
+    } else {
+      this.setState({timeseriesResults: []});
+
+      const statsPeriod = selection.datetime.period;
+      const interval = getWidgetInterval(widget.interval, {
+        start,
+        end,
+        period: statsPeriod,
+      });
+      const promises = widget.queries.map(query => {
         const requestData = {
           organization,
           interval,
@@ -148,37 +200,37 @@ class WidgetQueries extends React.Component<Props, State> {
           includePrevious: false,
         };
         return doEventsRequest(api, requestData);
-      }
-    );
+      });
 
-    let completed = 0;
-    promises.forEach(async (promise, i) => {
-      try {
-        const rawResults = await promise;
-        completed++;
-        this.setState(prevState => {
-          const results = prevState.results.concat(
-            transformResult(widget.queries[i], rawResults)
-          );
-          return {
-            ...prevState,
-            results,
-            errorMessage: undefined,
-            loading: completed === promises.length ? false : true,
-          };
-        });
-      } catch (err) {
-        const errorMessage = err?.responseJSON?.detail || t('An unknown error occurred.');
-        this.setState({errorMessage});
-      }
-    });
+      let completed = 0;
+      promises.forEach(async (promise, i) => {
+        try {
+          const rawResults = await promise;
+          completed++;
+          this.setState(prevState => {
+            const timeseriesResults = prevState.timeseriesResults?.concat(
+              transformResult(widget.queries[i], rawResults)
+            );
+            return {
+              ...prevState,
+              timeseriesResults,
+              loading: completed === promises.length ? false : true,
+            };
+          });
+        } catch (err) {
+          const errorMessage =
+            err?.responseJSON?.detail || t('An unknown error occurred.');
+          this.setState({errorMessage});
+        }
+      });
+    }
   }
 
   render() {
     const {children} = this.props;
-    const {loading, results, errorMessage} = this.state;
+    const {loading, timeseriesResults, tableResults, errorMessage} = this.state;
 
-    return children({loading, results, errorMessage});
+    return children({loading, timeseriesResults, tableResults, errorMessage});
   }
 }
 
