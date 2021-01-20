@@ -69,6 +69,18 @@ describe('Performance > VitalDetail', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-vitals/',
+      body: {
+        'measurements.lcp': {
+          poor: 1,
+          meh: 2,
+          good: 3,
+          total: 6,
+          p75: 4500,
+        },
+      },
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       body: {
         meta: {

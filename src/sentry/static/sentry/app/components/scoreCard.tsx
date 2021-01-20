@@ -50,6 +50,7 @@ function getTrendColor(p: TrendProps & {theme: Theme}) {
 
 const StyledPanel = styled(Panel)`
   margin-bottom: 0;
+  min-height: 105px;
 `;
 
 const TitleWrapper = styled('div')`

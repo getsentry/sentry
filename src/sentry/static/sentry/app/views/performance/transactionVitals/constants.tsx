@@ -3,7 +3,7 @@ import {SelectValue} from 'app/types';
 import {measurementType, WebVital} from 'app/utils/discover/fields';
 import theme from 'app/utils/theme';
 
-import {Vital, VitalGroup} from './types';
+import {DataFilter, Vital, VitalGroup} from './types';
 
 export const NUM_BUCKETS = 100;
 
@@ -95,7 +95,7 @@ export const WEB_VITAL_ACRONYMS = Object.fromEntries(
   })
 );
 
-export const FILTER_OPTIONS: SelectValue<string>[] = [
+export const FILTER_OPTIONS: SelectValue<DataFilter>[] = [
   {label: t('Exclude Outliers'), value: 'exclude_outliers'},
   {label: t('View All'), value: 'all'},
 ];
