@@ -48,7 +48,6 @@ class Container extends React.Component<Props> {
     const start = globalSelection.datetime.start
       ? getUtcToLocalDateObject(globalSelection.datetime.start)
       : undefined;
-
     const end = globalSelection.datetime.end
       ? getUtcToLocalDateObject(globalSelection.datetime.end)
       : undefined;

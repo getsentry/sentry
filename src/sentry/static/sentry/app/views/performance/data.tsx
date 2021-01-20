@@ -83,6 +83,23 @@ export function getFrontendAxisOptions(
   ];
 }
 
+export function getBackendAxisOptions(
+  organization: LightWeightOrganization
+): TooltipOption[] {
+  return [
+    {
+      tooltip: getTermHelp(organization, 'p75'),
+      value: `p75()`,
+      label: t('Duration p75'),
+    },
+    {
+      tooltip: getTermHelp(organization, 'durationDistribution'),
+      value: 'duration_distribution',
+      label: t('Duration Distribution'),
+    },
+  ];
+}
+
 type TermFormatter = (organization: LightWeightOrganization) => string;
 
 const PERFORMANCE_TERMS: Record<string, TermFormatter> = {
@@ -96,6 +113,7 @@ const PERFORMANCE_TERMS: Record<string, TermFormatter> = {
       'Failure rate is the percentage of recorded transactions that had a known and unsuccessful status.'
     ),
   p50: () => t('p50 indicates the duration that 50% of transactions are faster than.'),
+  p75: () => t('p75 indicates the duration that 75% of transactions are faster than.'),
   p95: () => t('p95 indicates the duration that 95% of transactions are faster than.'),
   p99: () => t('p99 indicates the duration that 99% of transactions are faster than.'),
   lcp: () =>
@@ -108,6 +126,10 @@ const PERFORMANCE_TERMS: Record<string, TermFormatter> = {
   statusBreakdown: () =>
     t(
       'The breakdown of transaction statuses. This may indicate what type of failure it is.'
+    ),
+  durationDistribution: () =>
+    t(
+      'Distribution buckets counts of transactions at specifics times for your current date range'
     ),
 };
 
@@ -156,7 +178,9 @@ function generateGenericPerformanceEventView(
   const searchQuery = decodeScalar(query.query) || '';
   const conditions = tokenizeSearch(searchQuery);
   conditions.setTagValues('event.type', ['transaction']);
-  conditions.setTagValues('transaction.duration', ['<15m']);
+  if (!conditions.hasTag('transaction.duration')) {
+    conditions.setTagValues('transaction.duration', ['<15m']);
+  }
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
@@ -223,6 +247,7 @@ export function generatePerformanceEventView(organization, location) {
   switch (display?.field) {
     case LandingDisplayField.FRONTEND:
       return generateFrontendPerformanceEventView(organization, location);
+    case LandingDisplayField.BACKEND:
     default:
       return generateGenericPerformanceEventView(organization, location);
   }

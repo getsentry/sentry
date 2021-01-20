@@ -54,6 +54,10 @@ package.json        @getsentry/owners-js-build
 babel.config.*      @getsentry/owners-js-build
 build-utils/        @getsentry/owners-js-build
 
+# Releases UI
+/src/sentry/static/sentry/app/views/releases/                   @getsentry/owners-releases-ui
+/tests/js/spec/views/releases/                                  @getsentry/owners-releases-ui
+
 # Owners by product feature
 
 ### Issue/Metric Alerts ###

@@ -2,19 +2,31 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {Client} from 'app/api';
 import Card from 'app/components/card';
+import EventsRequest from 'app/components/charts/eventsRequest';
+import {getInterval} from 'app/components/charts/utils';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
+import Sparklines from 'app/components/sparklines';
+import SparklinesLine from 'app/components/sparklines/line';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {getUtcToLocalDateObject} from 'app/utils/dates';
+import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {decodeList} from 'app/utils/queryString';
-import VitalsCardsDiscoverQuery from 'app/views/performance/vitalDetail/vitalsCardsDiscoverQuery';
+import theme from 'app/utils/theme';
+import withApi from 'app/utils/withApi';
+import VitalsCardsDiscoverQuery, {
+  VitalData,
+  VitalsData,
+} from 'app/views/performance/vitalDetail/vitalsCardsDiscoverQuery';
 
 import {HeaderTitle} from '../styles';
 import ColorBar from '../vitalDetail/colorBar';
@@ -23,14 +35,12 @@ import {
   vitalDescription,
   vitalDetailRouteWithQuery,
   vitalMap,
-  vitalsBaseFields,
-  vitalsMehFields,
-  vitalsP75Fields,
-  vitalsPoorFields,
   VitalState,
   vitalStateColors,
 } from '../vitalDetail/utils';
 import VitalPercents from '../vitalDetail/vitalPercents';
+
+import {backendCardDetails, getBackendFunction} from './utils';
 
 // Temporary list of platforms to only show web vitals for.
 const VITALS_PLATFORMS = [
@@ -44,7 +54,7 @@ const VITALS_PLATFORMS = [
   'javascript-vue',
 ];
 
-type VitalsCardsProps = {
+type FrontendCardsProps = {
   eventView: EventView;
   location: Location;
   organization: Organization;
@@ -52,7 +62,7 @@ type VitalsCardsProps = {
   frontendOnly?: boolean;
 };
 
-export function FrontendCards(props: VitalsCardsProps) {
+export function FrontendCards(props: FrontendCardsProps) {
   const {eventView, location, organization, projects, frontendOnly = false} = props;
 
   if (frontendOnly) {
@@ -76,8 +86,7 @@ export function FrontendCards(props: VitalsCardsProps) {
       orgSlug={organization.slug}
       vitals={vitals}
     >
-      {({isLoading, tableData}) => {
-        const result = tableData?.data?.[0];
+      {({isLoading, vitalsData}) => {
         return (
           <VitalsContainer>
             {vitals.map(vital => {
@@ -88,9 +97,13 @@ export function FrontendCards(props: VitalsCardsProps) {
                 projectID: decodeList(location.query.project),
               });
 
-              const value = isLoading ? '\u2014' : getP75(result, vital);
+              const value = isLoading
+                ? '\u2014'
+                : getP75(vitalsData?.[vital] ?? null, vital);
               const chart = (
-                <VitalBar isLoading={isLoading} vital={vital} result={result} />
+                <VitalBarContainer>
+                  <VitalBar isLoading={isLoading} vital={vital} data={vitalsData} />
+                </VitalBarContainer>
               );
 
               return (
@@ -104,6 +117,7 @@ export function FrontendCards(props: VitalsCardsProps) {
                     tooltip={vitalDescription[vital] ?? ''}
                     value={isLoading ? '\u2014' : value}
                     chart={chart}
+                    minHeight={150}
                   />
                 </Link>
               );
@@ -114,6 +128,127 @@ export function FrontendCards(props: VitalsCardsProps) {
     </VitalsCardsDiscoverQuery>
   );
 }
+
+const VitalBarContainer = styled('div')`
+  margin-top: ${space(1.5)};
+`;
+
+type BackendCardsProps = {
+  api: Client;
+  eventView: EventView;
+  location: Location;
+  organization: Organization;
+};
+
+function _BackendCards(props: BackendCardsProps) {
+  const {api, eventView: baseEventView, location, organization} = props;
+  const functionNames = [
+    'p75' as const,
+    'tpm' as const,
+    'failure_rate' as const,
+    'apdex' as const,
+  ];
+  const functions = functionNames.map(fn => getBackendFunction(fn, organization));
+  const eventView = baseEventView.withColumns(functions);
+
+  // construct request parameters for fetching chart data
+  const globalSelection = eventView.getGlobalSelection();
+  const start = globalSelection.datetime.start
+    ? getUtcToLocalDateObject(globalSelection.datetime.start)
+    : undefined;
+  const end = globalSelection.datetime.end
+    ? getUtcToLocalDateObject(globalSelection.datetime.end)
+    : undefined;
+
+  return (
+    <DiscoverQuery
+      location={location}
+      eventView={eventView}
+      orgSlug={organization.slug}
+      limit={1}
+    >
+      {({isLoading: isSummaryLoading, tableData}) => (
+        <EventsRequest
+          api={api}
+          organization={organization}
+          period={globalSelection.datetime.period}
+          project={globalSelection.projects}
+          environment={globalSelection.environments}
+          start={start}
+          end={end}
+          interval={getInterval({
+            start: start || null,
+            end: end || null,
+            period: globalSelection.datetime.period,
+          })}
+          query={eventView.getEventsAPIPayload(location).query}
+          includePrevious={false}
+          yAxis={eventView.getFields()}
+        >
+          {({results}) => {
+            const series = results?.reduce((allSeries, oneSeries) => {
+              allSeries[oneSeries.seriesName] = oneSeries.data.map(item => item.value);
+              return allSeries;
+            }, {});
+            const fields = eventView
+              .getFields()
+              .map((fn, i) => [functionNames[i], fn, series?.[fn]]);
+
+            return (
+              <VitalsContainer>
+                {fields.map(([name, fn, data]) => {
+                  const {title, tooltip, formatter} = backendCardDetails[name];
+                  const alias = getAggregateAlias(fn);
+                  const rawValue = tableData?.data?.[0]?.[alias];
+                  const value =
+                    isSummaryLoading || rawValue === undefined
+                      ? '\u2014'
+                      : formatter(rawValue);
+                  const chart = <SparklineChart data={data} />;
+                  return (
+                    <VitalCard
+                      key={name}
+                      title={title}
+                      tooltip={tooltip}
+                      value={value}
+                      chart={chart}
+                      horizontal
+                      minHeight={102}
+                    />
+                  );
+                })}
+              </VitalsContainer>
+            );
+          }}
+        </EventsRequest>
+      )}
+    </DiscoverQuery>
+  );
+}
+
+export const BackendCards = withApi(_BackendCards);
+
+type SparklineChartProps = {
+  data: number[];
+};
+
+function SparklineChart(props: SparklineChartProps) {
+  const {data} = props;
+  return (
+    <SparklineContainer data-test-id="sparkline">
+      <Sparklines data={data} width={240} height={24}>
+        <SparklinesLine style={{stroke: theme.gray300, fill: 'none', strokeWidth: 4}} />
+      </Sparklines>
+    </SparklineContainer>
+  );
+}
+
+const SparklineContainer = styled('div')`
+  flex-grow: 4;
+  max-height: 24px;
+  max-width: 240px;
+  margin: ${space(1)} ${space(0)} ${space(1.5)} ${space(3)};
+`;
 
 const VitalsContainer = styled('div')`
   display: grid;
@@ -131,7 +266,7 @@ const VitalsContainer = styled('div')`
 
 type VitalBarProps = {
   isLoading: boolean;
-  result: any;
+  data: VitalsData | null;
   vital: WebVital | WebVital[];
   value?: string;
   showBar?: boolean;
@@ -143,7 +278,7 @@ type VitalBarProps = {
 export function VitalBar(props: VitalBarProps) {
   const {
     isLoading,
-    result,
+    data,
     vital,
     value,
     showBar = true,
@@ -160,29 +295,29 @@ export function VitalBar(props: VitalBarProps) {
     <EmptyStateWarning small>{t('No data available')}</EmptyStateWarning>
   ) : null;
 
-  if (!result) {
+  if (!data) {
     return emptyState;
   }
 
-  const counts: Counts = {
-    poorCount: 0,
-    mehCount: 0,
-    goodCount: 0,
-    baseCount: 0,
+  const counts: Pick<VitalData, 'poor' | 'meh' | 'good' | 'total'> = {
+    poor: 0,
+    meh: 0,
+    good: 0,
+    total: 0,
   };
   const vitals = Array.isArray(vital) ? vital : [vital];
   vitals.forEach(vitalName => {
-    const c = getCounts(result, vitalName);
+    const c = data?.[vitalName] ?? {};
     Object.keys(counts).forEach(countKey => (counts[countKey] += c[countKey]));
   });
 
-  if (!counts.baseCount) {
+  if (!counts.total) {
     return emptyState;
   }
 
   const p75: React.ReactNode = Array.isArray(vital)
     ? null
-    : value ?? getP75(result, vital);
+    : value ?? getP75(data?.[vital] ?? null, vital);
   const percents = getPercentsFromCounts(counts);
   const colorStops = getColorStopsFromPercents(percents);
 
@@ -210,32 +345,43 @@ type VitalCardProps = {
   tooltip: string;
   value: string;
   chart: React.ReactNode;
+  minHeight?: number;
+  horizontal?: boolean;
 };
 
 function VitalCard(props: VitalCardProps) {
-  const {chart, title, tooltip, value} = props;
+  const {chart, minHeight, horizontal, title, tooltip, value} = props;
   return (
-    <StyledCard interactive>
+    <StyledCard interactive minHeight={minHeight}>
       <HeaderTitle>
         <OverflowEllipsis>{t(title)}</OverflowEllipsis>
         <QuestionTooltip size="sm" position="top" title={tooltip} />
       </HeaderTitle>
-      <CardValue>{value}</CardValue>
-      {chart}
+      <CardContent horizontal={horizontal}>
+        <CardValue>{value}</CardValue>
+        {chart}
+      </CardContent>
     </StyledCard>
   );
 }
 
-const StyledCard = styled(Card)`
+const CardContent = styled('div')<{horizontal?: boolean}>`
+  width: 100%;
+  display: flex;
+  flex-direction: ${p => (p.horizontal ? 'row' : 'column')};
+  justify-content: space-between;
+`;
+
+const StyledCard = styled(Card)<{minHeight?: number}>`
   color: ${p => p.theme.textColor};
   padding: ${space(2)} ${space(3)};
   align-items: flex-start;
-  min-height: 150px;
   margin-bottom: ${space(2)};
+  ${p => p.minHeight && `min-height: ${p.minHeight}px`};
 `;
 
-function getP75(result: any, vitalName: WebVital): string {
-  const p75 = result?.[getAggregateAlias(vitalsP75Fields[vitalName])] ?? null;
+function getP75(data: VitalData | null, vitalName: WebVital): string {
+  const p75 = data?.p75 ?? null;
   if (p75 === null) {
     return '\u2014';
   } else {
@@ -243,41 +389,15 @@ function getP75(result: any, vitalName: WebVital): string {
   }
 }
 
-type Counts = {
-  poorCount: number;
-  mehCount: number;
-  goodCount: number;
-  baseCount: number;
-};
-
-function getCounts(result: any, vitalName: WebVital): Counts {
-  const base = result[getAggregateAlias(vitalsBaseFields[vitalName])];
-  const poorCount: number =
-    parseFloat(result[getAggregateAlias(vitalsPoorFields[vitalName])]) || 0;
-  const mehTotal: number =
-    parseFloat(result[getAggregateAlias(vitalsMehFields[vitalName])]) || 0;
-  const mehCount = mehTotal - poorCount;
-  const baseCount: number = parseFloat(base) || 0;
-
-  const goodCount: number = baseCount - mehCount - poorCount;
-
-  return {
-    poorCount,
-    mehCount,
-    goodCount,
-    baseCount,
-  };
-}
-
 type Percent = {
   vitalState: VitalState;
   percent: number;
 };
 
-function getPercentsFromCounts({poorCount, mehCount, goodCount, baseCount}) {
-  const poorPercent = poorCount / baseCount;
-  const mehPercent = mehCount / baseCount;
-  const goodPercent = goodCount / baseCount;
+function getPercentsFromCounts({poor, meh, good, total}) {
+  const poorPercent = poor / total;
+  const mehPercent = meh / total;
+  const goodPercent = good / total;
 
   const percents: Percent[] = [
     {
@@ -316,7 +436,6 @@ const BarDetail = styled('div')`
 const CardValue = styled('div')`
   font-size: 32px;
   margin-top: ${space(1)};
-  margin-bottom: ${space(1.5)};
 `;
 
 const OverflowEllipsis = styled('div')`

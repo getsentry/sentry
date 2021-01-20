@@ -16,10 +16,15 @@ jobs:
         with:
           ref: master
 
+      - name: Set python version output
+        id: python-version
+        run: |
+          echo "::set-output name=python-version::$(cat .python-version)"
+
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
         with:
-          python-version: 2.7.17
+          python-version: ${{ steps.python-version.outputs.python-version }}
 
       - name: Setup pip
         uses: ./.github/actions/setup-pip
@@ -36,8 +41,6 @@ jobs:
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
-        with:
-          python: 2
 
       - name: Apply migrations
         run: |
