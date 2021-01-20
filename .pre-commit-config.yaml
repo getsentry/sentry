@@ -14,12 +14,12 @@ exclude: >
 repos:
 -   repo: local
     hooks:
+    # Configuration for black exists in pyproject.toml.
     - id: black
       name: black
       entry: black
       language: python
       types: [python]
-      exclude: (migrations/)
     - id: flake8
       name: flake8
       entry: flake8
