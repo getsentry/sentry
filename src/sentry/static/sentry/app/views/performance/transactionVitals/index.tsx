@@ -137,7 +137,7 @@ function generateRumEventView(
   if (transactionName === undefined) {
     return undefined;
   }
-  const query = decodeScalar(location.query.query) || '';
+  const query = decodeScalar(location.query.query);
   const conditions = tokenizeSearch(query);
   conditions
     .setTagValues('event.type', ['transaction'])

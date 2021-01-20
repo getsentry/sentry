@@ -169,7 +169,7 @@ class PerformanceLanding extends React.Component<Props, State> {
       ...location.query,
     };
 
-    const query = decodeScalar(location.query.query) || '';
+    const query = decodeScalar(location.query.query);
     const statsPeriod = decodeScalar(location.query.statsPeriod);
     const conditions = tokenizeSearch(query);
 

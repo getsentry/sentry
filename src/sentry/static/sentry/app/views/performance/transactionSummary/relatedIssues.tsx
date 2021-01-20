@@ -38,7 +38,7 @@ class RelatedIssues extends React.Component<Props> {
       sort: 'new',
       ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
     };
-    const currentFilter = tokenizeSearch(decodeScalar(location.query.query) || '');
+    const currentFilter = tokenizeSearch(decodeScalar(location.query.query, ''));
     currentFilter.getTagKeys().forEach(tagKey => {
       // Remove aggregates and transaction event fields
       if (

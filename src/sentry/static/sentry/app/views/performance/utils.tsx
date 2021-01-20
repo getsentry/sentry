@@ -10,7 +10,7 @@ export function getPerformanceLandingUrl(organization: OrganizationSummary): str
 }
 
 export function getTransactionSearchQuery(location: Location, query: string = '') {
-  return String(decodeScalar(location.query.query) || query).trim();
+  return decodeScalar(location.query.query, query).trim();
 }
 
 export function getTransactionDetailsUrl(

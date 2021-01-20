@@ -81,7 +81,7 @@ class Monitors extends AsyncView<Props, State> {
             </NewMonitorButton>
           </HeaderTitle>
           <StyledSearchBar
-            query={decodeScalar(qs.parse(location.search)?.query) ?? ''}
+            query={decodeScalar(qs.parse(location.search)?.query)}
             placeholder={t('Search for monitors.')}
             onSearch={this.handleSearch}
           />

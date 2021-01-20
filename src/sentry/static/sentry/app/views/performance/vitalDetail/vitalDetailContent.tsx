@@ -129,7 +129,7 @@ class VitalDetailContent extends React.Component<Props, State> {
   render() {
     const {location, eventView, organization, vitalName, projects} = this.props;
     const {incompatibleAlertNotice} = this.state;
-    const query = decodeScalar(location.query.query) || '';
+    const query = decodeScalar(location.query.query);
 
     const vital = vitalName || WebVital.LCP;
 

@@ -197,7 +197,7 @@ class LatencyChart extends React.Component<Props, State> {
       location
     );
 
-    const min = parseInt(decodeScalar(location.query.startDuration) ?? '0', 10);
+    const min = parseInt(decodeScalar(location.query.startDuration, '0'), 10);
 
     return (
       <React.Fragment>

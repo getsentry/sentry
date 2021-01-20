@@ -119,7 +119,7 @@ class VitalsContent extends React.Component<Props, State> {
   render() {
     const {transactionName, location, eventView, projects, organization} = this.props;
     const {incompatibleAlertNotice} = this.state;
-    const query = decodeScalar(location.query.query) || '';
+    const query = decodeScalar(location.query.query);
     const activeFilter = this.getActiveFilter();
 
     const isZoomed = ZOOM_KEYS.map(key => location.query[key]).some(

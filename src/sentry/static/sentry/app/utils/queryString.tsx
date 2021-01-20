@@ -52,25 +52,24 @@ export function appendTagCondition(
 }
 
 export function decodeScalar(
-  value: string[] | string | undefined | null
-): string | undefined {
+  value: string[] | string | undefined | null,
+  fallback = ''
+): string {
   if (!value) {
-    return undefined;
+    return fallback;
   }
   const unwrapped =
     Array.isArray(value) && value.length > 0
       ? value[0]
       : isString(value)
       ? value
-      : undefined;
-  return isString(unwrapped) ? unwrapped : undefined;
+      : fallback;
+  return isString(unwrapped) ? unwrapped : fallback;
 }
 
-export function decodeList(
-  value: string[] | string | undefined | null
-): string[] | undefined {
+export function decodeList(value: string[] | string | undefined | null): string[] {
   if (!value) {
-    return undefined;
+    return [];
   }
   return Array.isArray(value) ? value : isString(value) ? [value] : [];
 }

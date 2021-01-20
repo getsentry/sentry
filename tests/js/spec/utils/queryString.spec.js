@@ -86,9 +86,9 @@ describe('decodeScalar()', function () {
   });
 
   it('handles falsey values', function () {
-    expect(utils.decodeScalar(undefined)).toBeUndefined();
-    expect(utils.decodeScalar(false)).toBeUndefined();
-    expect(utils.decodeScalar('')).toBeUndefined();
+    expect(utils.decodeScalar(undefined)).toStrictEqual('');
+    expect(utils.decodeScalar(false)).toStrictEqual('');
+    expect(utils.decodeScalar('')).toStrictEqual('');
   });
 });
 
@@ -102,8 +102,8 @@ describe('decodeList()', function () {
   });
 
   it('handles falsey values', function () {
-    expect(utils.decodeList(undefined)).toBeUndefined();
-    expect(utils.decodeList(false)).toBeUndefined();
-    expect(utils.decodeList('')).toBeUndefined();
+    expect(utils.decodeList(undefined)).toEqual([]);
+    expect(utils.decodeList(false)).toEqual([]);
+    expect(utils.decodeList('')).toEqual([]);
   });
 });

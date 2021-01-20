@@ -209,7 +209,7 @@ class Results extends React.Component<Props, State> {
       nextEventView.project = selection.projects;
     }
     if (location.query?.query) {
-      nextEventView.query = decodeScalar(location.query.query) || '';
+      nextEventView.query = decodeScalar(location.query.query);
     }
 
     ReactRouter.browserHistory.replace(
@@ -383,7 +383,7 @@ class Results extends React.Component<Props, State> {
     const fields = eventView.hasAggregateField()
       ? generateAggregateFields(organization, eventView.fields)
       : eventView.fields;
-    const query = decodeScalar(location.query.query) || '';
+    const query = decodeScalar(location.query.query);
     const title = this.getDocumentTitle();
 
     return (

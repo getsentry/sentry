@@ -34,7 +34,7 @@ function ProjectIssues({organization, location}: Props) {
     const selectedTimePeriod = location.query.start
       ? null
       : DEFAULT_RELATIVE_PERIODS[
-          decodeScalar(location.query.statsPeriod) ?? DEFAULT_STATS_PERIOD
+          decodeScalar(location.query.statsPeriod, DEFAULT_STATS_PERIOD)
         ];
     const displayedPeriod = selectedTimePeriod
       ? selectedTimePeriod.toLowerCase()

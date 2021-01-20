@@ -82,7 +82,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     if (!event) {
       return '';
     }
-    const query = decodeScalar(location.query.query) || '';
+    const query = decodeScalar(location.query.query);
     const newQuery = {
       ...location.query,
       query: appendTagCondition(query, tag.key, tag.value),
@@ -118,7 +118,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
 
     const {isSidebarVisible} = this.state;
     const transactionName = event.title;
-    const query = decodeScalar(location.query.query) || '';
+    const query = decodeScalar(location.query.query);
 
     return (
       <React.Fragment>

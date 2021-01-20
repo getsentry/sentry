@@ -173,9 +173,9 @@ function generateGenericPerformanceEventView(
   if (!query.statsPeriod && !hasStartAndEnd) {
     savedQuery.range = DEFAULT_STATS_PERIOD;
   }
-  savedQuery.orderby = decodeScalar(query.sort) || '-tpm';
+  savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
-  const searchQuery = decodeScalar(query.query) || '';
+  const searchQuery = decodeScalar(query.query);
   const conditions = tokenizeSearch(searchQuery);
   conditions.setTagValues('event.type', ['transaction']);
   if (!conditions.hasTag('transaction.duration')) {
@@ -223,9 +223,9 @@ function generateFrontendPerformanceEventView(
   if (!query.statsPeriod && !hasStartAndEnd) {
     savedQuery.range = DEFAULT_STATS_PERIOD;
   }
-  savedQuery.orderby = decodeScalar(query.sort) || '-tpm';
+  savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
-  const searchQuery = decodeScalar(query.query) || '';
+  const searchQuery = decodeScalar(query.query);
   const conditions = tokenizeSearch(searchQuery);
   conditions.setTagValues('event.type', ['transaction']);
 
@@ -285,9 +285,9 @@ export function generatePerformanceVitalDetailView(
   if (!query.statsPeriod && !hasStartAndEnd) {
     savedQuery.range = DEFAULT_STATS_PERIOD;
   }
-  savedQuery.orderby = decodeScalar(query.sort) || `-count`;
+  savedQuery.orderby = decodeScalar(query.sort, '-count');
 
-  const searchQuery = decodeScalar(query.query) || '';
+  const searchQuery = decodeScalar(query.query);
   const conditions = tokenizeSearch(searchQuery);
 
   conditions.setTagValues('has', [vitalName]);

@@ -235,7 +235,7 @@ function generateSummaryEventView(
   }
   // Use the user supplied query but overwrite any transaction or event type
   // conditions they applied.
-  const query = decodeScalar(location.query.query) || '';
+  const query = decodeScalar(location.query.query);
   const conditions = tokenizeSearch(query);
   conditions
     .setTagValues('event.type', ['transaction'])

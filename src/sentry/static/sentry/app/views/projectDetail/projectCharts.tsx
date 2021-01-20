@@ -59,8 +59,8 @@ class ProjectCharts extends React.Component<Props, State> {
     const {location, index} = this.props;
 
     return DISPLAY_URL_KEY.filter((_, idx) => idx !== index).map(urlKey => {
-      return (
-        decodeScalar(location.query[urlKey]) ??
+      return decodeScalar(
+        location.query[urlKey],
         DEFAULT_DISPLAY_MODES[DISPLAY_URL_KEY.findIndex(value => value === urlKey)]
       );
     });

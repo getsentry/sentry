@@ -108,8 +108,8 @@ const decodeFields = (location: Location): Array<Field> => {
     return [];
   }
 
-  const fields = decodeList(query.field) || [];
-  const widths = decodeList(query.widths) || [];
+  const fields = decodeList(query.field);
+  const widths = decodeList(query.widths);
 
   const parsed: Field[] = [];
   fields.forEach((field, i) => {
@@ -185,7 +185,7 @@ const encodeSorts = (sorts: Readonly<Array<Sort>>): Array<string> =>
 
 const collectQueryStringByKey = (query: Query, key: string): Array<string> => {
   const needle = query[key];
-  const collection = decodeList(needle) || [];
+  const collection = decodeList(needle);
   return collection.reduce((acc: Array<string>, item: string) => {
     item = item.trim();
 
@@ -197,15 +197,14 @@ const collectQueryStringByKey = (query: Query, key: string): Array<string> => {
   }, []);
 };
 
-const decodeQuery = (location: Location): string | undefined => {
+const decodeQuery = (location: Location): string => {
   if (!location.query || !location.query.query) {
-    return undefined;
+    return '';
   }
 
   const queryParameter = location.query.query;
 
-  const query = decodeScalar(queryParameter);
-  return isString(query) ? query.trim() : undefined;
+  return decodeScalar(queryParameter).trim();
 };
 
 const decodeProjects = (location: Location): number[] => {
@@ -299,7 +298,7 @@ class EventView {
       name: decodeScalar(location.query.name),
       fields: decodeFields(location),
       sorts: decodeSorts(location),
-      query: decodeQuery(location) || '',
+      query: decodeQuery(location),
       project: decodeProjects(location),
       start: decodeScalar(start),
       end: decodeScalar(end),
