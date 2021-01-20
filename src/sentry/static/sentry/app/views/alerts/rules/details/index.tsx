@@ -11,14 +11,14 @@ import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 
-import {Incident, IncidentStats, IncidentStatus} from '../types';
+import {Incident, IncidentStats, IncidentStatus} from '../../types';
 import {
   fetchIncident,
   fetchIncidentStats,
   isOpen,
   updateStatus,
   updateSubscription,
-} from '../utils';
+} from '../../utils';
 
 import DetailsBody from './body';
 import DetailsHeader from './header';

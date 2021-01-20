@@ -24,16 +24,16 @@ import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/settings/incidentRules/const
 import {makeDefaultCta} from 'app/views/settings/incidentRules/presets';
 import {AlertRuleThresholdType} from 'app/views/settings/incidentRules/types';
 
-import Activity from '../details/activity';
-import Chart from '../details/chart';
+import Activity from '../../details/activity';
+import Chart from '../../details/chart';
 import {
   AlertRuleStatus,
   Incident,
   IncidentStats,
   IncidentStatus,
   IncidentStatusMethod,
-} from '../types';
-import {DATA_SOURCE_LABELS, getIncidentMetricPreset} from '../utils';
+} from '../../types';
+import {DATA_SOURCE_LABELS, getIncidentMetricPreset} from '../../utils';
 
 type Props = {
   incident?: Incident;

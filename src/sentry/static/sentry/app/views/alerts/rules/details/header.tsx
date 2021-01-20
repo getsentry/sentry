@@ -23,9 +23,9 @@ import getDynamicText from 'app/utils/getDynamicText';
 import Projects from 'app/utils/projects';
 import {Dataset} from 'app/views/settings/incidentRules/types';
 
-import Status from '../status';
-import {Incident, IncidentStats} from '../types';
-import {isOpen} from '../utils';
+import Status from '../../status';
+import {Incident, IncidentStats} from '../../types';
+import {isOpen} from '../../utils';
 
 type Props = {
   className?: string;
