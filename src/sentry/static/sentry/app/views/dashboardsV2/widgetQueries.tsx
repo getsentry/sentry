@@ -134,7 +134,7 @@ class WidgetQueries extends React.Component<Props, State> {
     const {projects, environments} = selection;
 
     if (widget.displayType === 'table') {
-      const tableResults: TableDataWithTitle[] = [];
+      let tableResults: TableDataWithTitle[] = [];
       // Table and stat widgets use table results and need
       // to do a discover 'table' query instead of a 'timeseries' query.
       this.setState({tableResults: []});
@@ -164,11 +164,14 @@ class WidgetQueries extends React.Component<Props, State> {
           const tableData = data as TableDataWithTitle;
           tableData.title = widget.queries[i]?.name ?? '';
 
+          // Overwrite the local var to work around state being stale in tests.
+          tableResults = [...tableResults, tableData];
+
           completed++;
           this.setState(prevState => {
             return {
               ...prevState,
-              tableResults: [...tableResults, tableData],
+              tableResults,
               loading: completed === promises.length ? false : true,
             };
           });
