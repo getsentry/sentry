@@ -289,6 +289,16 @@ class StatusActionTest(BaseEventTest):
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
+    def test_no_resolve_input(self, verify):
+        resp = self.post_webhook(action_type=ACTION_TYPE.RESOLVE, resolve_input="")
+        self.group1 = Group.objects.get(id=self.group1.id)
+
+        assert resp.status_code == 200, resp.content
+        assert self.group1.get_status() == GroupStatus.UNRESOLVED
+        assert b"Resolve" in responses.calls[0].request.body
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     def test_unassign_issue(self, verify):
         GroupAssignee.objects.create(group=self.group1, project=self.project1, user=self.user)
         resp = self.post_webhook(action_type=ACTION_TYPE.UNASSIGN, resolve_input="resolved")
