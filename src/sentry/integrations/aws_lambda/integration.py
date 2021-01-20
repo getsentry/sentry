@@ -39,7 +39,7 @@ from .utils import (
 logger = logging.getLogger("sentry.integrations.aws_lambda")
 
 DESCRIPTION = """
-The AWS Lambda integration will automatically instrument your Lambda functions without any code changes. All you need to do is run a CloudFormation stack that we provide to get started.
+The AWS Lambda integration will automatically instrument your Lambda functions without any code changes. All you need to do is run a CloudFormation stack that we provide to get started. Note, currently only Node runtimes are supported.
 """
 
 

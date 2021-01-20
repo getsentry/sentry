@@ -7,8 +7,8 @@ import PluginIcon from 'app/plugins/components/pluginIcon';
 export default function IconGroup({pluginId}: {pluginId: string}) {
   return (
     <IconWrapper>
-      <StyledPluginIcon size={50} pluginId={pluginId} />
-      <StyledIconSentry />
+      <StyledPluginIcon size={32} pluginId={pluginId} />
+      <StyledIconSentry size="xl" />
     </IconWrapper>
   );
 }
@@ -18,11 +18,9 @@ const IconWrapper = styled('div')`
 `;
 
 const StyledIconSentry = styled(IconSentry)`
-  width: 50px;
-  height: 50px;
-  margin-left: 40px;
+  margin-left: 15px;
 `;
 
 const StyledPluginIcon = styled(PluginIcon)`
-  top: 4px;
+  top: 2px;
 `;
