@@ -32,6 +32,11 @@ const impacts = [
   ),
 ];
 
+const remainingEventsChoices: [string, string][] = [
+  ['keep', t('Keep')],
+  ['delete', t('Delete')],
+];
+
 type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'closeModal'> & {
   group: Group;
   project: Project;
@@ -116,10 +121,7 @@ class ReprocessingDialogForm extends React.Component<Props, State> {
               label={t('Remaining events')}
               help={t('What to do with the events that are not reprocessed.')}
               name="remainingEvents"
-              choices={[
-                ['keep', t('Keep')],
-                ['delete', t('Delete')],
-              ]}
+              choices={remainingEventsChoices}
               disabled={maxEvents === undefined}
             />
           </Form>
