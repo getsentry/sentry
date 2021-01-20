@@ -25,6 +25,7 @@ class OrganizationEventsTrendsBase(APITestCase, SnubaTestCase):
         data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
         data["user"] = {"email": "foo@example.com"}
         data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=2))
+        data["measurements"] = {"measurement.lcp": {"value": 2000}}
         self.store_event(data, project_id=self.project.id)
 
         second = [0, 2, 10]
@@ -34,6 +35,7 @@ class OrganizationEventsTrendsBase(APITestCase, SnubaTestCase):
             data["timestamp"] = iso_format(
                 self.day_ago + timedelta(hours=1, minutes=30 + i, seconds=second[i])
             )
+            data["measurements"] = {"measurement.lcp": {"value": second[i] * 1000}}
             data["user"] = {"email": "foo{}@example.com".format(i)}
             self.store_event(data, project_id=self.project.id)
 
@@ -775,10 +777,10 @@ class OrganizationEventsTrendsPagingTest(APITestCase, SnubaTestCase):
 class OrganizationEventsTrendsAliasTest(TestCase):
     def setUp(self):
         self.improved_aliases = OrganizationEventsTrendsEndpointBase.get_function_aliases(
-            "improved"
+            "improved", "transaction.duration"
         )
         self.regression_aliases = OrganizationEventsTrendsEndpointBase.get_function_aliases(
-            "regression"
+            "regression", "transaction.duration"
         )
 
     def test_simple(self):
