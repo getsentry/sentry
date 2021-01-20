@@ -153,7 +153,13 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     const filename = this.props.frame.filename;
     const platform = this.props.event.platform;
 
-    if (this.project && this.integrations.length > 0 && filename) {
+    // filter out self hosted GitLab integrations from getting
+    // the CTA for now
+    const integrations = this.integrations.filter(
+      i => !(!i.domainName.startsWith('gitlab.com') && i.provider.key === 'gitlab')
+    );
+
+    if (this.project && integrations.length > 0 && filename) {
       return (
         <CodeMappingButtonContainer columnQuantity={2}>
           {t('Enable source code stack trace linking by setting up a code mapping.')}

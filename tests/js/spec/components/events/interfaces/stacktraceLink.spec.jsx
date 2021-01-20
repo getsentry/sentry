@@ -25,7 +25,7 @@ describe('StacktraceLink', function () {
       query: {file: frame.filename, commitId: 'master', platform},
       body: {config: null, sourceUrl: null, integrations: [integration]},
     });
-    mountWithTheme(
+    const wrapper = mountWithTheme(
       <StacktraceLink
         frame={frame}
         event={event}
@@ -35,6 +35,29 @@ describe('StacktraceLink', function () {
       />,
       TestStubs.routerContext()
     );
+    expect(wrapper.find('CodeMappingButtonContainer').text()).toContain(
+      'Enable source code stack trace linking by setting up a code mapping.'
+    );
+  });
+
+  it('does not render setup CTA with on prem gitlab integration but no configs', async function () {
+    const GitLabIntegration = TestStubs.GitLabIntegration({domainName: 'custom.io'});
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      query: {file: frame.filename, commitId: 'master', platform},
+      body: {config: null, sourceUrl: null, integrations: [GitLabIntegration]},
+    });
+    const wrapper = mountWithTheme(
+      <StacktraceLink
+        frame={frame}
+        event={event}
+        projects={[project]}
+        organization={org}
+        lineNo={frame.lineNo}
+      />,
+      TestStubs.routerContext()
+    );
+    expect(wrapper.find('CodeMappingButtonContainer').exists()).toBe(false);
   });
 
   it('renders source url link', async function () {
