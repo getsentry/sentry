@@ -24,6 +24,8 @@ import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/settings/incidentRules/const
 import {makeDefaultCta} from 'app/views/settings/incidentRules/presets';
 import {AlertRuleThresholdType} from 'app/views/settings/incidentRules/types';
 
+import Activity from '../details/activity';
+import Chart from '../details/chart';
 import {
   AlertRuleStatus,
   Incident,
@@ -33,15 +35,12 @@ import {
 } from '../types';
 import {DATA_SOURCE_LABELS, getIncidentMetricPreset} from '../utils';
 
-import Activity from './activity';
-import Chart from './chart';
-
 type Props = {
   incident?: Incident;
   stats?: IncidentStats;
   organization: Organization;
   location: Location;
-} & RouteComponentProps<{alertId: string; orgId: string}, {}>;
+} & RouteComponentProps<{orgId: string}, {}>;
 
 export default class DetailsBody extends React.Component<Props> {
   get metricPreset() {

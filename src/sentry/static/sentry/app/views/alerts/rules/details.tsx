@@ -20,7 +20,7 @@ import {
   updateSubscription,
 } from '../utils';
 
-import DetailsBodyRedesign from './bodyRedesign';
+import DetailsBody from './body';
 import DetailsHeader from './header';
 
 type Props = {
@@ -35,7 +35,7 @@ type State = {
   stats?: IncidentStats;
 };
 
-class IncidentDetailsDetails extends React.Component<Props, State> {
+class AlertRuleDetails extends React.Component<Props, State> {
   state: State = {isLoading: false, hasError: false};
 
   componentDidMount() {
@@ -154,11 +154,11 @@ class IncidentDetailsDetails extends React.Component<Props, State> {
             onSubscriptionChange={this.handleSubscriptionChange}
             onStatusChange={this.handleStatusChange}
           />
-          <DetailsBodyRedesign {...this.props} incident={incident} stats={stats} />
+          <DetailsBody {...this.props} incident={incident} stats={stats} />
         </Feature>
       </React.Fragment>
     );
   }
 }
 
-export default withApi(IncidentDetailsDetails);
+export default withApi(AlertRuleDetails);
