@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 try:
     from html import escape  # NOQA
 except ImportError:

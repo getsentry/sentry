@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.testutils import TestCase
 from sentry.api.fields.actor import Actor
 from sentry.models import ProjectOwnership, User, Team

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry import http
 from sentry.utils import json
 

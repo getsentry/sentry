@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 from sentry.testutils import AcceptanceTestCase
 from sentry.models import SentryAppInstallation
 from tests.acceptance.page_objects.organization_integration_settings import (

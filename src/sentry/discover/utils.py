@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 
 from sentry.utils.snuba import Dataset, aliased_query, get_snuba_column_name, get_function_index

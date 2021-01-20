@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import strategy
 

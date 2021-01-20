@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry import tsdb
 from sentry.models import ServiceHook
 from sentry.testutils import APITestCase

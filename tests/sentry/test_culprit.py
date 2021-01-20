@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.event_manager import EventManager, get_culprit as get_culprit_impl
 
 

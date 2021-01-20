@@ -2,7 +2,6 @@
 Note: Also see letterAvatar.jsx. Anything changed in this file (how colors are
       selected, the svg, etc) will also need to be changed there.
 """
-from __future__ import absolute_import
 
 import six
 

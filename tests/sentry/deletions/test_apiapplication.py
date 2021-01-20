@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.models import ApiApplication, ApiGrant, ApiToken, ScheduledDeletion
 from sentry.tasks.deletion import run_deletion
 from sentry.testutils import TestCase

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.models import GroupSubscriptionReason, EventError
 from sentry.utils.http import absolute_uri
 

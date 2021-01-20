@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.http import HttpResponseRedirect, Http404
 from django.core.urlresolvers import reverse
 

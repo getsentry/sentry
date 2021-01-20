@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 import zipfile
 from sentry.utils.compat.mock import patch

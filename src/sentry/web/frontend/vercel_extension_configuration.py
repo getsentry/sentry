@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 from .integration_extension_configuration import IntegrationExtensionConfigurationView
 
 

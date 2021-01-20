@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytz
 
 from django.db.models.signals import post_save, pre_save

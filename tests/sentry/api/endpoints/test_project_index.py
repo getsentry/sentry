@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 
 from sentry.models import Project, ProjectStatus, SentryAppInstallationToken

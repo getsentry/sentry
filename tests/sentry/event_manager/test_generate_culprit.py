@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
 
 from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.event_manager import generate_culprit

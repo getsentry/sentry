@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from selenium.common.exceptions import TimeoutException
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.utils.retries import TimedRetryPolicy

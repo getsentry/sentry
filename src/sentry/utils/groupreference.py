@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import re
 
 _fixes_re = re.compile(

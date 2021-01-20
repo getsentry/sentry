@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 DEFAULT_PROMPTS = {
     "releases": {"required_fields": ["organization_id", "project_id"]},
     "suspect_commits": {"required_fields": ["organization_id", "project_id"]},

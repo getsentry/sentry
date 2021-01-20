@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.utils import timezone
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase

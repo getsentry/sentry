@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 from sentry import features
 from sentry.api.bases import GroupEndpoint
 from sentry.tasks.reprocessing2 import reprocess_group

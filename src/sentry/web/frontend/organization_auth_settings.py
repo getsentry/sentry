@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django import forms
 from django.contrib import messages
 from django.core.urlresolvers import reverse

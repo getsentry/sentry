@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 """
 Eventstore compressor is responsible for pulling out repeating data across
 events such that they can be stored only once. For example SDK modules list, or

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import functools
 import six
 from collections import defaultdict

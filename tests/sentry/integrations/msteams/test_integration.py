@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 import responses
 
 from six.moves.urllib.parse import urlencode

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytz
 import six
 from datetime import datetime, timedelta

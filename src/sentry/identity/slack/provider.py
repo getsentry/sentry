@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry import options
 from sentry.identity.oauth2 import OAuth2Provider, OAuth2LoginView, OAuth2CallbackView
 

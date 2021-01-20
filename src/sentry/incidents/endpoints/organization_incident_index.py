@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry import features
 from sentry.api.bases.incident import IncidentPermission
 from sentry.api.bases.organization import OrganizationEndpoint

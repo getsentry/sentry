@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.core.cache import cache
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission

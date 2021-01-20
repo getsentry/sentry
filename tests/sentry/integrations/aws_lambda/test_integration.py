@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 from botocore.exceptions import ClientError
 from django.http import HttpResponse
 from six.moves.urllib.parse import urlencode

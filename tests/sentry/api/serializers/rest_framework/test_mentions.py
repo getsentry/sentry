@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.api.fields.actor import Actor
 from sentry.api.serializers.rest_framework.mentions import extract_user_ids_from_mentions
 from sentry.models import Team, User

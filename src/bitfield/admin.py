@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 from django.contrib.admin import FieldListFilter
 from django.contrib.admin.options import IncorrectLookupParameters

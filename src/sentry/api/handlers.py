@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from rest_framework.views import exception_handler
 from rest_framework.exceptions import Throttled
 

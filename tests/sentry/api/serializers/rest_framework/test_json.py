@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from sentry.api.serializers.rest_framework import JSONField
 
 from rest_framework import serializers

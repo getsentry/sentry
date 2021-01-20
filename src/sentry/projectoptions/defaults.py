@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from sentry.projectoptions import register
 
 # latest epoch

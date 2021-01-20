@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
 from sentry.utils.http import absolute_uri
 

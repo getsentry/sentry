@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from six.moves.urllib.parse import urlencode, parse_qsl
 from django.utils.crypto import constant_time_compare
 from django.core.urlresolvers import reverse

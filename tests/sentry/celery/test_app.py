@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 from celery.beat import ScheduleEntry
 from sentry.celery import app

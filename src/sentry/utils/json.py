@@ -1,5 +1,4 @@
 # Avoid shadowing the standard library json module
-from __future__ import absolute_import
 
 # XXX(epurkhiser): We import JSONDecodeError just to have it be exported as
 # part of this module. We don't use it directly within the module, but modules

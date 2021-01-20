@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from six.moves.urllib.parse import quote
 from sentry_plugins.client import ApiClient
 

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.db import IntegrityError
 from sentry.data_export.base import ExportQueryType
 from sentry.data_export.models import ExportedData

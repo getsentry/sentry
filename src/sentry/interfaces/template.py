@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 __all__ = ("Template",)
 
 from sentry.interfaces.base import Interface

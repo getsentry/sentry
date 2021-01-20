@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.utils import json
 from sentry.utils.redis import get_cluster_from_options, redis_clusters
 

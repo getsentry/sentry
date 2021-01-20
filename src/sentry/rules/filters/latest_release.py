@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.db.models.signals import post_save, post_delete, pre_delete
 
 from sentry import tagstore

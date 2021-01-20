@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 from hashlib import sha1
 from sentry.utils.compat.mock import patch

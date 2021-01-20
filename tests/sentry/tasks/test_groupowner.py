@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.utils import timezone
 
 from sentry.tasks.groupowner import process_suspect_commits, PREFERRED_GROUP_OWNER_AGE

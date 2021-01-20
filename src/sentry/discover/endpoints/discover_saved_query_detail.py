@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from rest_framework.response import Response
 from sentry.api.serializers import serialize
 from sentry.api.exceptions import ResourceDoesNotExist

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 from django.conf import settings
 from django.test.utils import override_settings

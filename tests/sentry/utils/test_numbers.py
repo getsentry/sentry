@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.utils.numbers import (
     base36_encode,
     base36_decode,

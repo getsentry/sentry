@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.models import Integration, ProjectKey
 from sentry.integrations.aws_lambda.integration import AwsLambdaIntegration
 from sentry.testutils import APITestCase

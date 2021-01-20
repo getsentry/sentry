@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.utils import json
 from sentry.utils.signing import unsign
 

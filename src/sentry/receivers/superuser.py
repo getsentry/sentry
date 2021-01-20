@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.contrib.auth.signals import user_logged_in, user_logged_out
 
 

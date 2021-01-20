@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.utils.signing import unsign
 
 from .integration_extension_configuration import IntegrationExtensionConfigurationView

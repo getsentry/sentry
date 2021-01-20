@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 from sentry.shared_integrations.client import BaseApiClient, BaseInternalApiClient
 from sentry.shared_integrations.exceptions import ApiUnauthorized
 

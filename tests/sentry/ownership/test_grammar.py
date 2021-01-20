@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 
 from sentry.ownership.grammar import Rule, Matcher, Owner, parse_rules, dump_schema, load_schema

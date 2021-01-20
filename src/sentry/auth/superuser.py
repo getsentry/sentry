@@ -9,7 +9,6 @@ In Sentry a user must achieve the following to be treated as a superuser:
   standard auth. This session has a shorter lifespan.
 """
 
-from __future__ import absolute_import
 
 import ipaddress
 import logging

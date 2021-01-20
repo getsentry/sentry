@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.core import mail
 from django.core.urlresolvers import reverse
 from exam import fixture

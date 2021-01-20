@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import resource
 
 from celery.task import current

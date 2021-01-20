@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 class PluginService(object):
     def __init__(self, obj):
         self.service = obj

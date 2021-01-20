@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from six import string_types, binary_type
 import psycopg2 as Database
 

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from rest_framework.exceptions import PermissionDenied, ParseError
 from django.core.cache import cache
 

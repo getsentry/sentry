@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 from django.core.signing import SignatureExpired
 from django.core.urlresolvers import reverse
 from django.utils.http import urlencode

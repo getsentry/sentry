@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.models import User
 from sentry.testutils import TestCase
 from sentry.utils.query import RangeQuerySetWrapper

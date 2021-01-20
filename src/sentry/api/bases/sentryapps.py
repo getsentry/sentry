@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.http import Http404
 from functools import wraps
 from rest_framework.exceptions import PermissionDenied

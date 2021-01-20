@@ -76,7 +76,6 @@ instead of group deletion is:
 * Mark the group as deleted in Redis.
 * All reprocessed events are "just" inserted over the old ones.
 """
-from __future__ import absolute_import
 
 import hashlib
 import logging

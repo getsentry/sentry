@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 import re
 from hashlib import md5 as _md5

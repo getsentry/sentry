@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import itertools
 from uuid import uuid4
 

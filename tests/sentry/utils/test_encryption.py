@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from cryptography.fernet import Fernet
 
 from unittest import TestCase

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 from django import forms
 from django.utils.translation import ugettext_lazy as _

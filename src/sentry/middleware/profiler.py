@@ -1,7 +1,6 @@
 # Orignal version taken from http://www.djangosnippets.org/snippets/186/
 # Original author: udfalkso
 # Modified by: Shwagroo Team and Gun.io
-from __future__ import absolute_import
 
 import cProfile
 import re

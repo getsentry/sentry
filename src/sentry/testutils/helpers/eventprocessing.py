@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.eventstore.processing import event_processing_store
 
 

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
 
 from django.test import override_settings
 from django.test.client import RequestFactory

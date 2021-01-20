@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from sentry.utils.compat.mock import Mock, patch
 import responses
 from django.http import HttpRequest

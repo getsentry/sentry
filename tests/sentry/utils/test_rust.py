@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 from sentry.utils.rust import merge_rust_info_frames, starts_with, strip_symbol
 
 STACKTRACE = """

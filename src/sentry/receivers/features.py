@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import time
 
 from django.db.models.signals import post_save

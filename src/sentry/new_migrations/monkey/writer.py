@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 # This should be exactly the same as MIGRATION_TEMPLATE in `django.db.migrations.writer.py`,
 # except that we add `is_dangerous = False` to the class definition.
 # Compare this template after each Django version bump to make

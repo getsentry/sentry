@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.utils.encoding import force_str
 
 from six.moves.urllib.parse import urlparse, urlencode, urlunparse

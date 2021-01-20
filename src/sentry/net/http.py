@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import socket
 from socket import error as SocketError, timeout as SocketTimeout
 

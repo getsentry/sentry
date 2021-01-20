@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.plugins.bases.issue2 import IssuePlugin2
 from sentry.utils.http import absolute_uri
 

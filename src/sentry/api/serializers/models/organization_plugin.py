@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.api.serializers.models.plugin import PluginSerializer
 
 

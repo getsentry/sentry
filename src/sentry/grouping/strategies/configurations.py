@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.grouping.strategies.base import (
     create_strategy_configuration,
     RISK_LEVEL_MEDIUM,

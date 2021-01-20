@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.testutils import TestCase
 from sentry.models import add_group_to_inbox, GroupInbox, GroupInboxReason, remove_group_from_inbox
 from sentry.utils.compat.mock import patch

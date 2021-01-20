@@ -10,7 +10,6 @@ setting, it must be a list of values to request.
 By default account id and token expiration time are stored in extra_data
 field, check OAuthBackend class for details on how to extend it.
 """
-from __future__ import absolute_import
 
 from django.conf import settings
 from six.moves.urllib.error import HTTPError

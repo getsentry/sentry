@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import sentry_sdk
 
 from rest_framework.response import Response

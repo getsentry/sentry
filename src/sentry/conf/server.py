@@ -1,7 +1,6 @@
 """
 These settings act as the default (base) settings for the Sentry-provided web-server
 """
-from __future__ import absolute_import
 
 from django.conf.global_settings import *  # NOQA
 

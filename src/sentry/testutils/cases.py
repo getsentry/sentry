@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from sentry.utils.compat import zip
 
 __all__ = (

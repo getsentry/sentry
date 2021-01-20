@@ -1,7 +1,6 @@
 """
 Used for notifying *all* enabled plugins
 """
-from __future__ import absolute_import
 
 from sentry.plugins.base import plugins
 from sentry.rules.actions.base import EventAction

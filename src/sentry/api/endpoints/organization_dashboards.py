@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.db import IntegrityError, transaction
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission

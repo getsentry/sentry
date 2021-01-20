@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.core.signing import SignatureExpired
 
 from sentry.models import OrganizationMember

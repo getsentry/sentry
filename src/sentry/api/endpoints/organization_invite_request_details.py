@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.db.models import Q
 from django.conf import settings
 from rest_framework import serializers, status

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import operator
 from datetime import timedelta
 from django import forms

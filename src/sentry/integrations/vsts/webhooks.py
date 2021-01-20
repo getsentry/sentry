@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from .client import VstsApiClient
 
 import logging

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.models import GroupRelease, ReleaseEnvironment
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import MockClock

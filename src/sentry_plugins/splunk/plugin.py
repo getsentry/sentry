@@ -13,7 +13,6 @@ Note: Managed Splunk Cloud customers can create a HEC token by filing a request 
 For more details on the payload: http://dev.splunk.com/view/event-collector/SP-CAAAE6M
 """
 
-from __future__ import absolute_import
 
 import logging
 

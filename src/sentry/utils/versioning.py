@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.utils.encoding import force_text, python_2_unicode_compatible
 
 from sentry.exceptions import InvalidConfiguration

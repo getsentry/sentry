@@ -27,7 +27,6 @@ by the rule's logic. Each rule condition may be associated with a form.
 - [ACTION:I want to get notified when] [RULE:an event is first seen]
 - [ACTION:I want to group events when] [RULE:an event matches [FORM]]
 """
-from __future__ import absolute_import
 
 import logging
 import six

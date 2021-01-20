@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 from datetime import timedelta
 from dateutil.parser import parse as parse_datetime

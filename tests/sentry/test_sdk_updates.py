@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 
 from sentry.sdk_updates import SdkSetupState, SdkIndexState, get_suggested_updates

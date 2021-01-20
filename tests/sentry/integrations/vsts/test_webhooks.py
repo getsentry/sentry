@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import responses
 from sentry.utils.compat.mock import patch
 from time import time

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.core.urlresolvers import reverse
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.integrations.issues import IssueBasicMixin

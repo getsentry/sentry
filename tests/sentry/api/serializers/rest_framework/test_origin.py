@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from sentry.api.serializers.rest_framework import OriginField
 
 from rest_framework import serializers

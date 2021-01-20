@@ -1,6 +1,5 @@
 # coding: utf-8
 
-from __future__ import absolute_import
 
 import os.path
 from base64 import b64encode

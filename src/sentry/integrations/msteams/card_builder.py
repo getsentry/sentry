@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.models import (
     Project,

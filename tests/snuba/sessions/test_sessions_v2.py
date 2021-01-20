@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from freezegun import freeze_time
 from django.http import QueryDict
 

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.api.bases.avatar import AvatarMixin
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models import OrganizationAvatar

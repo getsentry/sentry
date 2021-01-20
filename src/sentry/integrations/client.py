@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from time import time
 
 from sentry.shared_integrations.client import BaseApiClient

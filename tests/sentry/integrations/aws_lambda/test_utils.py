@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.integrations.aws_lambda.utils import (
     parse_arn,
     get_supported_functions,

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 from django.core.exceptions import ValidationError
 from rest_framework import serializers

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from exam import fixture
 
 from sentry.incidents.logic import subscribe_to_incident

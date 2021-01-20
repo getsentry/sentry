@@ -1,6 +1,5 @@
 # NOTE: This is run external to sentry as well as part of the setup
 # process.  Thus we do not want to import non stdlib things here.
-from __future__ import absolute_import
 
 # Import the stdlib json instead of sentry.utils.json, since this command is
 # run in setup.py

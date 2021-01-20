@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.testutils import APITestCase
 from sentry.integrations.bitbucket.descriptor import BitbucketDescriptorEndpoint
 from sentry.integrations.bitbucket.client import BITBUCKET_KEY

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.integrations.client import ApiClient
 from sentry.eventstore.models import Event
 from sentry.api.serializers import serialize, ExternalEventSerializer

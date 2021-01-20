@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import sentry
 
 from django.conf import settings

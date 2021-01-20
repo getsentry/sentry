@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.http import HttpResponse
 from rest_framework import serializers, status
 from rest_framework.fields import SkipField

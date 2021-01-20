@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from botocore.client import ClientError
 from exam import fixture
 from sentry.utils.compat.mock import patch

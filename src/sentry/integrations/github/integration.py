@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import re
 from django.utils.text import slugify
 from django.utils.translation import ugettext_lazy as _

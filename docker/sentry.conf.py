@@ -1,5 +1,4 @@
 # flake8: noqa
-from __future__ import absolute_import
 
 # This file is just Python, with a touch of Django which means
 # you can inherit and tweak settings to your hearts content.

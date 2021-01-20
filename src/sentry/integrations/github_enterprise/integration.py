@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from six.moves.urllib.parse import urlparse
 from django.utils.translation import ugettext_lazy as _
 from django import forms

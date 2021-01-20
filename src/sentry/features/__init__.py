@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from .base import *  # NOQA
 from .handler import *  # NOQA
 from .manager import *  # NOQA

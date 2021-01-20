@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from .base import BasePage
 from .global_selection import GlobalSelectionPage
 from .issue_details import IssueDetailsPage

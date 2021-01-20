@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry import features
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry import tagstore
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.group import GroupEndpoint

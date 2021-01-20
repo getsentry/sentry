@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import zipfile
 from uuid import uuid4
 from six import BytesIO, text_type

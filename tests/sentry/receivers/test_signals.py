@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.utils import timezone
 
 from sentry.models.groupinbox import add_group_to_inbox, GroupInboxReason

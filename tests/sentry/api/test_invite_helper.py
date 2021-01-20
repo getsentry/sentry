@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.http import HttpRequest
 
 from sentry.api.invite_helper import ApiInviteHelper

@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 from jwt import ExpiredSignatureError
 
 from sentry.integrations.atlassian_connect import (

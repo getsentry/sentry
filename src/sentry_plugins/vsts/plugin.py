@@ -1,7 +1,6 @@
 """ A plugin to incorporate work-item creation in VSTS
 easily out of issues detected from Sentry.io """
 
-from __future__ import absolute_import
 
 from mistune import markdown
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2

@@ -1,7 +1,6 @@
 """
 Used for notifying a *specific* plugin
 """
-from __future__ import absolute_import
 
 import logging
 from django import forms

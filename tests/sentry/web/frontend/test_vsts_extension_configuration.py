@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from six.moves.urllib.parse import parse_qsl, urlparse
 from django.core.urlresolvers import reverse
 

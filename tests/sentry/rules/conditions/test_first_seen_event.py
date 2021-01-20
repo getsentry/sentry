@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.models import Rule
 from sentry.testutils.cases import RuleTestCase
 from sentry.rules.conditions.first_seen_event import FirstSeenEventCondition

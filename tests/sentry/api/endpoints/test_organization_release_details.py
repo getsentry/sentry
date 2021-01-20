@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import unittest
 from sentry.utils.compat.mock import patch
 from datetime import datetime

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 
 from sentry.utils.urls import non_standard_url_join

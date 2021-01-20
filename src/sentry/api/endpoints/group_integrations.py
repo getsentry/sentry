@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry import integrations, features
 from sentry.api.bases import GroupEndpoint
 from sentry.api.paginator import OffsetPaginator

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from .util import invalid_schema_with_error_message
 from sentry.testutils import TestCase
 from sentry.api.validators.sentry_apps.schema import validate_ui_element_schema

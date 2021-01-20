@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 __all__ = ("ApiClient",)
 
 from django.core.urlresolvers import resolve

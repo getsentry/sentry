@@ -7,7 +7,6 @@ Our linter engine needs to run in 3 different scenarios:
 For the js only path, we should not depend on any packages outside the
 python stdlib to prevent the need to install the world just to run eslint.
 """
-from __future__ import absolute_import
 
 import os
 import sys

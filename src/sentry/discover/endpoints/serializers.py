@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 import re
 from rest_framework import serializers

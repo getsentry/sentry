@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.models import EventUser, Group, Project
 from sentry.data_export.base import ExportError
 from sentry.data_export.processors.issues_by_tag import IssuesByTagProcessor

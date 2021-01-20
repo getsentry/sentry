@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.db.models import F
 
 from sentry.testutils import AcceptanceTestCase

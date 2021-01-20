@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.incidents.endpoints.organization_alert_rule_available_action_index import (
     build_action_response,
 )

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.testutils import APITestCase
 from time import time
 from sentry.models import Identity, IdentityProvider, Integration, Repository
