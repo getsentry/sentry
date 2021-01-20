@@ -39,11 +39,11 @@ type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'closeModal'> & {
 };
 
 type State = {
-  maxEvents: string;
+  maxEvents?: number;
 };
 
 class ReprocessingDialogForm extends React.Component<Props, State> {
-  state: State = {maxEvents: ''};
+  state: State = {maxEvents: undefined};
 
   handleSuccess = () => {
     const {group, organization, closeModal} = this.props;
@@ -61,8 +61,14 @@ class ReprocessingDialogForm extends React.Component<Props, State> {
     );
   };
 
-  handleError = () => {
+  handleError() {
     addErrorMessage(t('Failed to reprocess. Please check your input.'));
+  }
+
+  // typing of args is based on
+  // https://github.com/getsentry/sentry/blob/5a865648d9ced8c773539b718aefa2eb155995ab/src/sentry/static/sentry/app/components/forms/numberField.tsx#L17-L28
+  handleMaxEventsChange = (maxEvents: number | '') => {
+    this.setState({maxEvents: maxEvents || undefined});
   };
 
   render() {
@@ -101,8 +107,7 @@ class ReprocessingDialogForm extends React.Component<Props, State> {
               label={t('Number of events to be reprocessed')}
               help={t('If you set a limit, we will reprocess your most recent events.')}
               placeholder={t('Reprocess all events')}
-              value={maxEvents}
-              onChange={v => this.setState({maxEvents: v.toString()})}
+              onChange={this.handleMaxEventsChange}
               min={1}
             />
 
@@ -115,7 +120,7 @@ class ReprocessingDialogForm extends React.Component<Props, State> {
                 ['keep', t('Keep')],
                 ['delete', t('Delete')],
               ]}
-              disabled={maxEvents === ''}
+              disabled={maxEvents === undefined}
             />
           </Form>
         </Body>

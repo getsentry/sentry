@@ -241,7 +241,7 @@ class SnubaProtocolEventStream(EventStream):
         }
         self._send(project_id, "tombstone_events", extra_data=(state,), asynchronous=False)
 
-    def merge_events_unsafe(self, project_id, event_ids, new_group_id):
+    def replace_group_unsafe(self, project_id, event_ids, new_group_id):
         """
         Tell Snuba to move events into a new group ID
 
