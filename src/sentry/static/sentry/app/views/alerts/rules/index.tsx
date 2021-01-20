@@ -104,9 +104,12 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
   }
 
   renderList() {
+    const {
+      params: {orgId},
+      location: {query},
+      organization,
+    } = this.props;
     const {loading, ruleList = [], ruleListPageLinks} = this.state;
-    const {orgId} = this.props.params;
-    const {query} = this.props.location;
 
     const allProjectsFromIncidents = new Set(
       flatten(ruleList?.map(({projects}) => projects))
@@ -161,6 +164,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                     rule={rule}
                     orgId={orgId}
                     onDelete={this.handleDeleteRule}
+                    organization={organization}
                   />
                 ))
               }

@@ -15,7 +15,7 @@ import {IconDelete, IconSettings} from 'app/icons';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Project} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {IssueAlertRule} from 'app/types/alerts';
 
 import {isIssueAlert} from '../utils';
@@ -25,6 +25,7 @@ type Props = {
   projects: Project[];
   projectsLoaded: boolean;
   orgId: string;
+  organization: Organization;
   onDelete: (projectId: string, rule: IssueAlertRule) => void;
 };
 
@@ -39,18 +40,21 @@ class RuleListRow extends React.Component<Props, State> {
   );
 
   render() {
-    const {rule, projectsLoaded, projects, orgId, onDelete} = this.props;
+    const {rule, projectsLoaded, projects, organization, orgId, onDelete} = this.props;
     const dateCreated = moment(rule.dateCreated).format('ll');
     const slug = rule.projects[0];
-    const link = `/organizations/${orgId}/alerts/${
+    const editLink = `/organizations/${orgId}/alerts/${
       isIssueAlert(rule) ? 'rules' : 'metric-rules'
     }/${slug}/${rule.id}/`;
+
+    const hasRedesign = organization.features.includes('alert-details-redesign');
+    const detailsLink = `/organizations/${orgId}/alerts/rules/details/${rule.id}/`;
 
     return (
       <ErrorBoundary>
         <RuleType>{isIssueAlert(rule) ? t('Issue') : t('Metric')}</RuleType>
         <Title>
-          <Link to={link}>{rule.name}</Link>
+          <Link to={hasRedesign ? detailsLink : editLink}>{rule.name}</Link>
         </Title>
         <ProjectBadge
           avatarSize={18}
@@ -86,7 +90,7 @@ class RuleListRow extends React.Component<Props, State> {
                   size="small"
                   icon={<IconSettings />}
                   title={t('Edit')}
-                  to={link}
+                  to={editLink}
                 />
               </ButtonBar>
             )}
