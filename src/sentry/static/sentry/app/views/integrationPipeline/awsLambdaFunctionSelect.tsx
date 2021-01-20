@@ -76,7 +76,9 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props> {
     };
     return (
       <Wrapper>
-        <Alert type="info">{t('Currently only supports Node runtimes')}</Alert>
+        <StyledAlert type="info">
+          {t('Currently only supports Node runtimes')}
+        </StyledAlert>
         <Header>
           <IconGroup pluginId="aws_lambda" />
           {this.renderWhatWeFound()}
@@ -110,4 +112,8 @@ const WhatWeFound = styled('div')`
 
 const Header = styled('div')`
   text-align: center;
+`;
+
+const StyledAlert = styled(Alert)`
+  border-radius: 0;
 `;
