@@ -15,7 +15,7 @@ grep -E --quiet 'yarn\.lock' "$files_changed_upstream"                   && js="
 grep -E --quiet 'migrations' "$files_changed_upstream"                   && migrations="apply-migrations "
 
 [[ "$pc" || "$py" || "$js" || "$migrations" ]] && needs_update=1
-update_command="make ${py}${js}${migrations}"
+update_command="make ${pc}${py}${js}${migrations}"
 
 [[ "$needs_update" ]] && cat <<EOF
 
