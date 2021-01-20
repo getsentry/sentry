@@ -70,10 +70,8 @@ class ReprocessingDialogForm extends React.Component<Props, State> {
     addErrorMessage(t('Failed to reprocess. Please check your input.'));
   }
 
-  // typing of args is based on
-  // https://github.com/getsentry/sentry/blob/5a865648d9ced8c773539b718aefa2eb155995ab/src/sentry/static/sentry/app/components/forms/numberField.tsx#L17-L28
-  handleMaxEventsChange = (maxEvents: number | '') => {
-    this.setState({maxEvents: maxEvents || undefined});
+  handleMaxEventsChange = (maxEvents: string) => {
+    this.setState({maxEvents: Number(maxEvents) || undefined});
   };
 
   render() {
@@ -101,7 +99,7 @@ class ReprocessingDialogForm extends React.Component<Props, State> {
             submitLabel={title}
             apiEndpoint={endpoint}
             apiMethod="POST"
-            initialData={{maxEvents: '', remainingEvents: 'keep'}}
+            initialData={{maxEvents: undefined, remainingEvents: 'keep'}}
             onSubmitSuccess={this.handleSuccess}
             onSubmitError={this.handleError}
             onCancel={closeModal}
