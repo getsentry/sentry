@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-# isort:skip_file
+from __future__ import absolute_import
+
 from sentry.runner import configure
 
 configure()
@@ -28,7 +29,7 @@ def main(project, sample_type):
     if not project.first_event:
         project.update(first_event=timezone.now())
 
-    print("> Created event {}".format(event.event_id))
+    sys.stdout.write("> Created event {}\n".format(event.event_id))
 
 
 if __name__ == "__main__":
