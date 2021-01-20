@@ -83,10 +83,6 @@ class EventDataDeletionTask(BaseDeletionTask):
         node_ids = [Event.generate_node_id(self.project_id, event.event_id) for event in events]
         nodestore.delete_multi(node_ids)
 
-        from sentry.reprocessing2 import delete_unprocessed_events
-
-        delete_unprocessed_events(self.project_id, [event.event_id for event in events])
-
         # Remove EventAttachment and UserReport *again* as those may not have a
         # group ID, therefore there may be dangling ones after "regular" model
         # deletion.

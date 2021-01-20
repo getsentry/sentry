@@ -22,6 +22,7 @@ from sentry.constants import (
     LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH,
 )
+from sentry.eventstore.processing import event_processing_store
 from sentry.grouping.api import (
     get_grouping_config_dict_for_project,
     get_grouping_config_dict_for_event_data,
@@ -60,10 +61,11 @@ from sentry.models import (
 from sentry.plugins.base import plugins
 from sentry import quotas
 from sentry.signals import first_event_received, issue_unresolved
+from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import json, metrics
+from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
-from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.utils.dates import to_timestamp, to_datetime
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
@@ -753,7 +755,18 @@ def _tsdb_record_all_metrics(jobs):
 def _nodestore_save_many(jobs):
     for job in jobs:
         # Write the event to Nodestore
-        job["event"].data.save()
+        subkeys = {}
+
+        if job["group"]:
+            event = job["event"]
+            data = event_processing_store.get(
+                cache_key_for_event({"project": event.project_id, "event_id": event.event_id}),
+                unprocessed=True,
+            )
+            if data is not None:
+                subkeys["unprocessed"] = data
+
+        job["event"].data.save(subkeys=subkeys)
 
 
 @metrics.wraps("save_event.eventstream_insert_many")

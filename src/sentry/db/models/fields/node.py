@@ -132,7 +132,7 @@ class NodeData(collections.MutableMapping):
             self.data["_ref"] = ref
             self.data["_ref_version"] = self.ref_version
 
-    def save(self):
+    def save(self, subkeys=None):
         """
         Write current data back to nodestore.
         """
@@ -148,7 +148,10 @@ class NodeData(collections.MutableMapping):
         if isinstance(to_write, CANONICAL_TYPES):
             to_write = dict(to_write.items())
 
-        nodestore.set(self.id, to_write)
+        subkeys = subkeys or {}
+        subkeys[None] = to_write
+
+        nodestore.set_subkeys(self.id, subkeys)
 
 
 class NodeField(GzippedDictField):

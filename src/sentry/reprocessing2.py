@@ -86,9 +86,9 @@ import six
 
 from django.conf import settings
 
-from sentry import nodestore, features, eventstore, options
+from sentry import nodestore, features, eventstore, options, models
+from sentry.eventstore.models import Event
 from sentry.attachments import CachedAttachment, attachment_cache
-from sentry import models
 from sentry.utils import snuba
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.safe import set_path, get_path
@@ -170,12 +170,7 @@ def backup_unprocessed_event(project, data):
     if features.has(
         "organizations:reprocessing-v2", project.organization, actor=None
     ) or _should_capture_nodestore_stats(data.get("event_id")):
-        event_processing_store.store(data, unprocessed=True)
-
-
-def delete_unprocessed_events(project_id, event_ids):
-    node_ids = [_generate_unprocessed_event_node_id(project_id, event_id) for event_id in event_ids]
-    nodestore.delete_multi(node_ids)
+        event_processing_store.store(dict(data), unprocessed=True)
 
 
 def reprocess_event(project_id, event_id, start_time):
@@ -183,14 +178,12 @@ def reprocess_event(project_id, event_id, start_time):
     from sentry.tasks.store import preprocess_event_from_reprocessing
     from sentry.ingest.ingest_consumer import CACHE_TIMEOUT
 
-    # Take unprocessed data from old event and save it as unprocessed data
-    # under a new event ID. The second step happens in pre-process. We could
-    # save the "original event ID" instead and get away with writing less to
-    # nodestore, but doing it this way makes the logic slightly simpler.
-    node_id = _generate_unprocessed_event_node_id(project_id=project_id, event_id=event_id)
-
     with sentry_sdk.start_span(op="reprocess_events.nodestore.get"):
-        data = nodestore.get(node_id)
+        node_id = Event.generate_node_id(project_id, event_id)
+        data = nodestore.get(node_id, subkey="unprocessed")
+        if data is None:
+            node_id = _generate_unprocessed_event_node_id(project_id=project_id, event_id=event_id)
+            data = nodestore.get(node_id)
 
     with sentry_sdk.start_span(op="reprocess_events.eventstore.get"):
         event = eventstore.get_event_by_id(project_id, event_id)

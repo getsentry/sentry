@@ -20,23 +20,24 @@ class DjangoNodeStorage(NodeStorage):
         Node.objects.filter(id=id).delete()
         self._delete_cache_item(id)
 
-    def _decode(self, value):
+    def _decode(self, value, subkey):
         if value is None:
             return None
 
         try:
             if value.startswith(b"{"):
-                return NodeStorage._decode(self, value)
+                return NodeStorage._decode(self, value, subkey=subkey)
 
-            return pickle.loads(value)
+            if subkey is None:
+                return pickle.loads(value)
+
+            return None
         except Exception as e:
+            raise
             logger.exception(e)
             return {}
 
     def _get_bytes(self, id):
-        item_from_cache = self._get_cache_item(id)
-        if item_from_cache:
-            return item_from_cache
         try:
             data = Node.objects.get(id=id).data
             return decompress(data)

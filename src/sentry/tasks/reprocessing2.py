@@ -106,16 +106,12 @@ def tombstone_events(project_id, group_id, event_ids):
     See doccomment in sentry.reprocessing2.
     """
 
-    from sentry.reprocessing2 import delete_unprocessed_events
-
     models.EventAttachment.objects.filter(project_id=project_id, event_id__in=event_ids).delete()
     models.UserReport.objects.filter(project_id=project_id, event_id__in=event_ids).delete()
 
     # Remove from nodestore
     node_ids = [Event.generate_node_id(project_id, event_id) for event_id in event_ids]
     nodestore.delete_multi(node_ids)
-
-    delete_unprocessed_events(project_id, event_ids)
 
     # Tell Snuba to delete the event data.
     eventstream.tombstone_events(project_id, event_ids)
