@@ -30,8 +30,8 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
 
     def setUp(self):
         super(AwsLambdaIntegrationTest, self).setUp()
-        self.projectA = self.create_project(organization=self.organization)
-        self.projectB = self.create_project(organization=self.organization)
+        self.projectA = self.create_project(organization=self.organization, slug="projA")
+        self.projectB = self.create_project(organization=self.organization, slug="projB")
 
     @patch.object(PipelineView, "render_react_view", return_value=HttpResponse())
     def test_project_select(self, mock_react_view):
