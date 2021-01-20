@@ -16,10 +16,14 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView, {EventData, isFieldSortable} from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {getAggregateAlias, Sort, WebVital} from 'app/utils/discover/fields';
+import {
+  fieldAlignment,
+  getAggregateAlias,
+  Sort,
+  WebVital,
+} from 'app/utils/discover/fields';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
-import HeaderCell from 'app/views/eventsV2/table/headerCell';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
 import {DisplayModes} from '../transactionSummary/charts';
@@ -235,39 +239,33 @@ class Table extends React.Component<Props, State> {
     title: React.ReactNode
   ): React.ReactNode {
     const {eventView, location} = this.props;
+    const align = fieldAlignment(column.name, column.type, tableMeta);
+    const field = {field: column.name, width: column.width};
+
+    function generateSortLink(): LocationDescriptorObject | undefined {
+      if (!tableMeta) {
+        return undefined;
+      }
+
+      const nextEventView = eventView.sortOnField(field, tableMeta);
+      const queryStringObject = nextEventView.generateQueryStringObject();
+
+      return {
+        ...location,
+        query: {...location.query, sort: queryStringObject.sort},
+      };
+    }
+    const currentSort = eventView.sortForField(field, tableMeta);
+    const canSort = isFieldSortable(field, tableMeta);
 
     return (
-      <HeaderCell column={column} tableMeta={tableMeta}>
-        {({align}) => {
-          const field = {field: column.name, width: column.width};
-
-          function generateSortLink(): LocationDescriptorObject | undefined {
-            if (!tableMeta) {
-              return undefined;
-            }
-
-            const nextEventView = eventView.sortOnField(field, tableMeta);
-            const queryStringObject = nextEventView.generateQueryStringObject();
-
-            return {
-              ...location,
-              query: {...location.query, sort: queryStringObject.sort},
-            };
-          }
-          const currentSort = eventView.sortForField(field, tableMeta);
-          const canSort = isFieldSortable(field, tableMeta);
-
-          return (
-            <SortLink
-              align={align}
-              title={title || field.field}
-              direction={currentSort ? currentSort.kind : undefined}
-              canSort={canSort}
-              generateSortLink={generateSortLink}
-            />
-          );
-        }}
-      </HeaderCell>
+      <SortLink
+        align={align}
+        title={title || field.field}
+        direction={currentSort ? currentSort.kind : undefined}
+        canSort={canSort}
+        generateSortLink={generateSortLink}
+      />
     );
   }
 

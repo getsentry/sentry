@@ -61,6 +61,8 @@ export type QueryFieldValue =
 // Column is just an alias of a Query value
 export type Column = QueryFieldValue;
 
+export type Alignments = 'left' | 'right';
+
 // Refer to src/sentry/api/event_search.py
 export const AGGREGATIONS = {
   count: {
@@ -736,4 +738,26 @@ function validateForNumericAggregate(
 
     return validColumnTypes.includes(dataType);
   };
+}
+
+const alignedTypes: ColumnValueType[] = ['number', 'duration', 'integer', 'percentage'];
+
+export function fieldAlignment(
+  columnName: string,
+  columnType?: undefined | ColumnValueType,
+  metadata?: Record<string, ColumnValueType>
+): Alignments {
+  let align: Alignments = 'left';
+  if (columnType) {
+    align = alignedTypes.includes(columnType) ? 'right' : 'left';
+  }
+  if (columnType === undefined || columnType === 'never') {
+    // fallback to align the column based on the table metadata
+    const maybeType = metadata ? metadata[getAggregateAlias(columnName)] : undefined;
+
+    if (maybeType !== undefined && alignedTypes.includes(maybeType)) {
+      align = 'right';
+    }
+  }
+  return align;
 }
