@@ -105,8 +105,8 @@ class IntegrationServerlessRow extends React.Component<Props> {
           <NameRuntimeVersionWrapper>
             <Name>{serverlessFunction.name}</Name>
             <RuntimeAndVersion>
-              <BranchWrapper>{serverlessFunction.runtime}</BranchWrapper>
-              <BranchWrapper>{versionText}</BranchWrapper>
+              <DetailWrapper>{serverlessFunction.runtime}</DetailWrapper>
+              <DetailWrapper>{versionText}</DetailWrapper>
             </RuntimeAndVersion>
           </NameRuntimeVersionWrapper>
         </NameWrapper>
@@ -169,7 +169,6 @@ const RuntimeAndVersion = styled('div')`
   color: ${p => p.theme.gray300};
 `;
 
-//match the line eight of the badge
-const BranchWrapper = styled('div')`
+const DetailWrapper = styled('div')`
   line-height: 1.2;
 `;

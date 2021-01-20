@@ -172,6 +172,7 @@ const StyledTextareaField = styled(TextareaField)`
   ${FieldErrorReason} {
     right: 67px;
   }
+  border-bottom: none;
 `;
 
 const InstallSentry = styled('div')`

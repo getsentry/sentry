@@ -43,6 +43,7 @@ export default class AwsLambdaProjectSelect extends React.Component<Props> {
           label: t('Select a project'),
           inline: false,
           projects,
+          flexibleControlStateSize: true,
         },
       ],
     };

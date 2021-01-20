@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/actions/button';
+import ButtonBar from 'app/components/buttonBar';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 
@@ -13,34 +14,34 @@ type Props = {buttonText: string; docsUrl: string} & Pick<
 export default function FooterWithButtons({buttonText, docsUrl, ...rest}: Props) {
   return (
     <Footer>
-      <ButtonWrapper>
+      <StyledButtonBar gap={1}>
         <StyledButton external href={docsUrl} size="small">
           {t('View Docs')}
         </StyledButton>
         <StyledButton priority="primary" type="submit" size="small" {...rest}>
           {buttonText}
         </StyledButton>
-      </ButtonWrapper>
+      </StyledButtonBar>
     </Footer>
   );
 }
 
 //wrap in form so we can keep form submission behavior
 const Footer = styled('form')`
-  position: fixed;
-  bottom: 0;
   width: 100%;
+  position: fixed;
+  display: flex;
+  justify-content: flex-end;
+  bottom: 0;
   z-index: 100;
   background-color: ${p => p.theme.bodyBackground};
   border-top: 1px solid ${p => p.theme.gray100};
 `;
 
-const StyledButton = styled(Button)`
-  padding: 0;
-  margin-right: ${space(2)};
+const StyledButtonBar = styled(ButtonBar)`
+  padding: ${space(2)};
 `;
 
-const ButtonWrapper = styled('div')`
-  padding: ${space(2)} 0;
-  float: right;
+const StyledButton = styled(Button)`
+  padding: 0;
 `;
