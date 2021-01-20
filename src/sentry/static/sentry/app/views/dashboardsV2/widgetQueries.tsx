@@ -166,10 +166,9 @@ class WidgetQueries extends React.Component<Props, State> {
 
           completed++;
           this.setState(prevState => {
-            tableResults.push(tableData);
             return {
               ...prevState,
-              tableResults,
+              tableResults: [...tableResults, tableData],
               loading: completed === promises.length ? false : true,
             };
           });
