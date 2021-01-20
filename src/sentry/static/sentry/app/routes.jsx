@@ -1443,6 +1443,17 @@ function routes() {
               component={errorHandler(LazyLoad)}
             />
 
+            <Route
+              path="rules/details/:alertId/"
+              name="Alert Rule Details"
+              component={errorHandler(LazyLoad)}
+              componentPromise={() =>
+                import(
+                  /* webpackChunkName: "AlertRulesDetails" */ 'app/views/alerts/rules/details'
+                )
+              }
+            />
+
             <Route path="rules/">
               <IndexRoute
                 component={errorHandler(LazyLoad)}
