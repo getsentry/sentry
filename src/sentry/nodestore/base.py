@@ -139,6 +139,14 @@ class NodeStorage(local, Service):
         return items
 
     def _encode(self, data):
+        """
+        Encode data dict in a way where its keys can be deserialized
+        independently. A `None` key must always be present which is served as
+        the "default" subkey (the regular event payload).
+
+        >>> _encode({"unprocessed": {}, None: {"stacktrace": {}}})
+        b'{"stacktrace": {}}\nunprocessed\n{}'
+        """
         lines = [json_dumps(data.pop(None)).encode("utf8")]
         for key, value in six.iteritems(data):
             lines.append(key.encode("utf8"))
