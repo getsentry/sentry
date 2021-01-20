@@ -2097,27 +2097,6 @@ FUNCTIONS = {
             default_result_type="number",
             private=True,
         ),
-        # The user facing signature for this function is histogram(<column>, <num_buckets>)
-        # Internally, snuba.discover.query() expands the user request into this value by
-        # calculating the bucket size and start_offset.
-        Function(
-            "histogram_deprecated",
-            required_args=[
-                DurationColumnNoLookup("column"),
-                NumberRange("num_buckets", 1, 500),
-                NumberRange("bucket_size", 0, None),
-                NumberRange("start_offset", 0, None),
-            ],
-            column=[
-                "multiply",
-                [
-                    ["floor", [["divide", [ArgValue("column"), ArgValue("bucket_size")]]]],
-                    ArgValue("bucket_size"),
-                ],
-                None,
-            ],
-            default_result_type="number",
-        ),
         Function(
             "count_unique",
             optional_args=[CountColumn("column")],

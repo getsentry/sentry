@@ -1,12 +1,9 @@
 from __future__ import absolute_import
 
 import six
-import random
 import mock
 
 from pytz import utc
-from datetime import timedelta
-from math import ceil
 
 from django.core.urlresolvers import reverse
 
@@ -2375,114 +2372,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
             for (field, exp) in zip(fields, expected):
                 assert results[0][field] == exp, field + six.text_type(datum)
-
-    def test_histogram_deprecated_deprecated_function(self):
-        project = self.create_project()
-        start = before_now(minutes=2).replace(microsecond=0)
-        latencies = [
-            (1, 500, 5),
-            (1000, 1500, 4),
-            (3000, 3500, 3),
-            (6000, 6500, 2),
-            (10000, 10000, 1),  # just to make the math easy
-        ]
-        values = []
-        for bucket in latencies:
-            for i in range(bucket[2]):
-                # Don't generate a wide range of variance as the buckets can mis-align.
-                milliseconds = random.randint(bucket[0], bucket[1])
-                values.append(milliseconds)
-                data = load_data("transaction")
-                data["transaction"] = "/failure_rate/{}".format(milliseconds)
-                data["timestamp"] = iso_format(start)
-                data["start_timestamp"] = (start - timedelta(milliseconds=milliseconds)).isoformat()
-                self.store_event(data, project_id=project.id)
-
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
-        query = {
-            "field": ["histogram_deprecated(transaction.duration, 10)", "count()"],
-            "query": "event.type:transaction",
-            "sort": "histogram_deprecated_transaction_duration_10",
-        }
-        response = self.do_request(query, features=features)
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 11
-        bucket_size = ceil((max(values) - min(values)) / 10.0)
-        expected = [
-            (0, 5),
-            (bucket_size, 4),
-            (bucket_size * 2, 0),
-            (bucket_size * 3, 3),
-            (bucket_size * 4, 0),
-            (bucket_size * 5, 0),
-            (bucket_size * 6, 2),
-            (bucket_size * 7, 0),
-            (bucket_size * 8, 0),
-            (bucket_size * 9, 0),
-            (bucket_size * 10, 1),
-        ]
-        for idx, datum in enumerate(data):
-            assert datum["histogram_deprecated_transaction_duration_10"] == expected[idx][0]
-            assert datum["count"] == expected[idx][1]
-
-    def test_histogram_deprecated_function_with_filters(self):
-        project = self.create_project()
-        start = before_now(minutes=2).replace(microsecond=0)
-        latencies = [
-            (1, 500, 5),
-            (1000, 1500, 4),
-            (3000, 3500, 3),
-            (6000, 6500, 2),
-            (10000, 10000, 1),  # just to make the math easy
-        ]
-        values = []
-        for bucket in latencies:
-            for i in range(bucket[2]):
-                milliseconds = random.randint(bucket[0], bucket[1])
-                values.append(milliseconds)
-                data = load_data("transaction")
-                data["transaction"] = "/failure_rate/sleepy_gary/{}".format(milliseconds)
-                data["timestamp"] = iso_format(start)
-                data["start_timestamp"] = (start - timedelta(milliseconds=milliseconds)).isoformat()
-                self.store_event(data, project_id=project.id)
-
-        # Add a transaction that totally throws off the buckets
-        milliseconds = random.randint(bucket[0], bucket[1])
-        data = load_data("transaction")
-        data["transaction"] = "/failure_rate/hamurai"
-        data["timestamp"] = iso_format(start)
-        data["start_timestamp"] = iso_format(start - timedelta(milliseconds=1000000))
-        self.store_event(data, project_id=project.id)
-
-        query = {
-            "field": ["histogram_deprecated(transaction.duration, 10)", "count()"],
-            "query": "event.type:transaction transaction:/failure_rate/sleepy_gary*",
-            "sort": "histogram_deprecated_transaction_duration_10",
-        }
-        features = {"organizations:discover-basic": True, "organizations:global-views": True}
-        response = self.do_request(query, features=features)
-
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 11
-        bucket_size = ceil((max(values) - min(values)) / 10.0)
-        expected = [
-            (0, 5),
-            (bucket_size, 4),
-            (bucket_size * 2, 0),
-            (bucket_size * 3, 3),
-            (bucket_size * 4, 0),
-            (bucket_size * 5, 0),
-            (bucket_size * 6, 2),
-            (bucket_size * 7, 0),
-            (bucket_size * 8, 0),
-            (bucket_size * 9, 0),
-            (bucket_size * 10, 1),
-        ]
-        for idx, datum in enumerate(data):
-            assert datum["histogram_deprecated_transaction_duration_10"] == expected[idx][0]
-            assert datum["count"] == expected[idx][1]
 
     def test_failure_count_alias_field(self):
         project = self.create_project()
