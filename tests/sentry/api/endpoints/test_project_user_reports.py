@@ -33,21 +33,21 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         self.report = UserReport.objects.create(
-            project=self.project,
-            environment=self.environment,
+            project_id=self.project.id,
+            environment_id=self.environment.id,
             event_id="a" * 32,
             name="Foo",
             email="foo@example.com",
             comments="Hello world",
-            group=self.event.group,
+            group_id=self.event.group.id,
         )
         self.report2 = UserReport.objects.create(
-            project=self.project,
+            project_id=self.project.id,
             event_id="b" * 32,
             name="Foo",
             email="foo@example.com",
             comments="Hello world",
-            group=self.event.group,
+            group_id=self.event.group.id,
         )
 
     def test_simple(self):
@@ -57,17 +57,17 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         group = self.create_group(project=project)
         group2 = self.create_group(project=project, status=GroupStatus.RESOLVED)
         report_1 = UserReport.objects.create(
-            project=project,
+            project_id=project.id,
             event_id="a" * 32,
             name="Foo",
             email="foo@example.com",
             comments="Hello world",
-            group=group,
+            group_id=group.id,
         )
 
         # should not be included due to missing link
         UserReport.objects.create(
-            project=project,
+            project_id=project.id,
             event_id="b" * 32,
             name="Bar",
             email="bar@example.com",
@@ -76,12 +76,12 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
 
         # should not be included due to resolution
         UserReport.objects.create(
-            project=project,
+            project_id=project.id,
             event_id="c" * 32,
             name="Baz",
             email="baz@example.com",
             comments="Hello world",
-            group=group2,
+            group_id=group2.id,
         )
 
         url = u"/api/0/projects/{}/{}/user-feedback/".format(
@@ -112,12 +112,12 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         project = self.create_project()
         group = self.create_group(project=project, status=GroupStatus.RESOLVED)
         report_1 = UserReport.objects.create(
-            project=project,
+            project_id=project.id,
             event_id="a" * 32,
             name="Foo",
             email="foo@example.com",
             comments="Hello world",
-            group=group,
+            group_id=group.id,
         )
 
         url = u"/api/0/projects/{}/{}/user-feedback/".format(
@@ -203,8 +203,8 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
 
         report = UserReport.objects.get(id=response.data["id"])
-        assert report.project == self.project
-        assert report.group == self.event.group
+        assert report.project_id == self.project.id
+        assert report.group_id == self.event.group.id
         assert report.email == "foo@example.com"
         assert report.name == "Foo Bar"
         assert report.comments == "It broke!"
@@ -255,8 +255,8 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         UserReport.objects.create(
-            group=self.event.group,
-            project=self.project,
+            group_id=self.event.group.id,
+            project_id=self.project.id,
             event_id=self.event.event_id,
             name="foo",
             email="bar@example.com",
@@ -280,8 +280,8 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
 
         report = UserReport.objects.get(id=response.data["id"])
-        assert report.project == self.project
-        assert report.group == self.event.group
+        assert report.project_id == self.project.id
+        assert report.group_id == self.event.group.id
         assert report.email == "foo@example.com"
         assert report.name == "Foo Bar"
         assert report.comments == "It broke!"
@@ -292,8 +292,8 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         euser = EventUser.objects.get(project_id=self.project.id, email="foo@example.com")
 
         UserReport.objects.create(
-            group=self.event.group,
-            project=self.project,
+            group_id=self.event.group.id,
+            project_id=self.project.id,
             event_id=self.event.event_id,
             name="foo",
             email="bar@example.com",
@@ -317,8 +317,8 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
 
         report = UserReport.objects.get(id=response.data["id"])
-        assert report.project == self.project
-        assert report.group == self.event.group
+        assert report.project_id == self.project.id
+        assert report.group_id == self.event.group.id
         assert report.email == "foo@example.com"
         assert report.name == "Foo Bar"
         assert report.comments == "It broke!"
@@ -331,8 +331,8 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         UserReport.objects.create(
-            group=self.old_event.group,
-            project=self.project,
+            group_id=self.old_event.group.id,
+            project_id=self.project.id,
             event_id=self.old_event.event_id,
             name="foo",
             email="bar@example.com",
@@ -393,4 +393,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert UserReport.objects.get(event_id=self.event.event_id).environment == self.environment
+        assert (
+            UserReport.objects.get(event_id=self.event.event_id).environment.id
+            == self.environment.id
+        )

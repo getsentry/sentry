@@ -5,7 +5,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from sentry import eventstore
-from sentry.models import EventUser, UserReport
+from sentry.models import EventUser, Group, Project, UserReport
 from sentry.signals import user_feedback_received
 
 
@@ -19,7 +19,7 @@ def save_userreport(project, report, start_time=None):
 
     # XXX(dcramer): enforce case insensitivity by coercing this to a lowercase string
     report["event_id"] = report["event_id"].lower()
-    report["project"] = project
+    report["project_id"] = project.id
 
     event = eventstore.get_event_by_id(project.id, report["event_id"])
 
@@ -38,8 +38,8 @@ def save_userreport(project, report, start_time=None):
         if event.datetime < start_time - timedelta(minutes=30):
             raise Conflict("Feedback for this event cannot be modified.")
 
-        report["environment"] = event.get_environment()
-        report["group"] = event.group
+        report["environment_id"] = event.get_environment().id
+        report["group_id"] = event.group.id
 
     try:
         with transaction.atomic():
@@ -54,7 +54,7 @@ def save_userreport(project, report, start_time=None):
         # expected.
 
         existing_report = UserReport.objects.get(
-            project=report["project"], event_id=report["event_id"]
+            project_id=report["project_id"], event_id=report["event_id"]
         )
 
         # if the existing report was submitted more than 5 minutes ago, we dont
@@ -72,11 +72,13 @@ def save_userreport(project, report, start_time=None):
         report_instance = existing_report
 
     else:
-        if report_instance.group:
+        if report_instance.group_id:
             report_instance.notify()
 
     user_feedback_received.send(
-        project=report_instance.project, group=report_instance.group, sender=save_userreport
+        project=Project.objects.get(id=report_instance.project_id),
+        group=Group.objects.get(id=report_instance.group_id),
+        sender=save_userreport,
     )
 
     return report_instance

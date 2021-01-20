@@ -776,9 +776,9 @@ class Factories(object):
     @staticmethod
     def create_userreport(group, project=None, event_id=None, **kwargs):
         return UserReport.objects.create(
-            group=group,
+            group_id=group.id,
             event_id=event_id or "a" * 32,
-            project=project or group.project,
+            project_id=project.id if project is not None else group.project.id,
             name="Jane Bloggs",
             email="jane@example.com",
             comments="the application crashed",

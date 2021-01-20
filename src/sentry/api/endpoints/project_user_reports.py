@@ -41,14 +41,13 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         except Environment.DoesNotExist:
             queryset = UserReport.objects.none()
         else:
-            queryset = UserReport.objects.filter(
-                project=project, group__isnull=False
-            ).select_related("group")
+            queryset = UserReport.objects.filter(project_id=project.id, group_id__isnull=False)
             if environment is not None:
-                queryset = queryset.filter(environment=environment)
+                queryset = queryset.filter(environment_id=environment.id)
 
             status = request.GET.get("status", "unresolved")
             if status == "unresolved":
+                # TODO: Figure out cross db join
                 queryset = queryset.filter(group__status=GroupStatus.UNRESOLVED)
             elif status:
                 return self.respond({"status": "Invalid status choice"}, status=400)
