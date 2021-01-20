@@ -5,7 +5,7 @@ import {Location} from 'history';
 import Button from 'app/components/button';
 import Collapsible from 'app/components/collapsible';
 import Count from 'app/components/count';
-import Link from 'app/components/links/link';
+import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import {PanelItem} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import ProgressBar from 'app/components/progressBar';
@@ -16,7 +16,7 @@ import space from 'app/styles/space';
 import {Release, ReleaseProject} from 'app/types';
 import {defined} from 'app/utils';
 
-import {getReleaseNewIssuesUrl} from '../../utils';
+import {getReleaseNewIssuesUrl, getReleaseUnhandledIssuesUrl} from '../../utils';
 import AdoptionTooltip from '../adoptionTooltip';
 import CrashFree from '../crashFree';
 import HealthStatsChart from '../healthStatsChart';
@@ -192,7 +192,17 @@ const Content = ({
                     {showPlaceholders ? (
                       <StyledPlaceholder width="30px" />
                     ) : hasHealthData && defined(sessionsCrashed) ? (
-                      <Count value={sessionsCrashed} />
+                      <Tooltip title={t('Open in Issues')}>
+                        <GlobalSelectionLink
+                          to={getReleaseUnhandledIssuesUrl(
+                            orgSlug,
+                            project.id,
+                            releaseVersion
+                          )}
+                        >
+                          <Count value={sessionsCrashed} />
+                        </GlobalSelectionLink>
+                      </Tooltip>
                     ) : (
                       <NotAvailable />
                     )}
@@ -200,11 +210,11 @@ const Content = ({
 
                   <IssuesColumn>
                     <Tooltip title={t('Open in Issues')}>
-                      <Link
+                      <GlobalSelectionLink
                         to={getReleaseNewIssuesUrl(orgSlug, project.id, releaseVersion)}
                       >
                         <Count value={newGroups || 0} />
-                      </Link>
+                      </GlobalSelectionLink>
                     </Tooltip>
                   </IssuesColumn>
                 </Layout>

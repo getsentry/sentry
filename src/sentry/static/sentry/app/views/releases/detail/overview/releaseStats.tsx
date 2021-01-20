@@ -22,6 +22,7 @@ import {
   sessionTerm,
 } from 'app/views/releases/utils/sessionTerm';
 
+import {getReleaseNewIssuesUrl, getReleaseUnhandledIssuesUrl} from '../../utils';
 import {getReleaseEventView} from '../utils';
 
 type Props = {
@@ -67,7 +68,13 @@ function ReleaseStats({organization, release, project, location, selection}: Pro
       <div>
         <SectionHeading>{t('New Issues')}</SectionHeading>
         <div>
-          <Count value={newGroups} />
+          <Tooltip title={t('Open in Issues')}>
+            <GlobalSelectionLink
+              to={getReleaseNewIssuesUrl(organization.slug, project.id, version)}
+            >
+              <Count value={newGroups} />
+            </GlobalSelectionLink>
+          </Tooltip>
         </div>
       </div>
 
@@ -140,7 +147,13 @@ function ReleaseStats({organization, release, project, location, selection}: Pro
         </SectionHeading>
         <div>
           {hasHealthData ? (
-            <Count value={sessionsCrashed} />
+            <Tooltip title={t('Open in Issues')}>
+              <GlobalSelectionLink
+                to={getReleaseUnhandledIssuesUrl(organization.slug, project.id, version)}
+              >
+                <Count value={sessionsCrashed} />
+              </GlobalSelectionLink>
+            </Tooltip>
           ) : (
             <Tooltip title={t('This view is only available with release health data.')}>
               {'\u2014'}
