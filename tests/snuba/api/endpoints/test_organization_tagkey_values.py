@@ -315,7 +315,7 @@ class TransactionTagKeyValues(OrganizationTagKeyTestCase):
         self.run_test("transaction", expected=[("/city_by_code/", 1), ("/country_by_code/", 1)])
         self.run_test(
             "transaction",
-            qs_params={"query": "by_code"},
+            qs_params={"query": "by_code", "includeTransactions": "1"},
             expected=[("/city_by_code/", 1), ("/country_by_code/", 1)],
         )
         self.run_test("transaction", qs_params={"query": "city"}, expected=[("/city_by_code/", 1)])
