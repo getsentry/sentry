@@ -24,7 +24,7 @@ google-cloud-storage==1.13.3
 googleapis-common-protos==1.6.0
 ipaddress>=1.0.16,<1.1.0 ; python_version < "3.3"
 jsonschema==3.2.0
-lxml>=4.3.3,<4.4.0
+lxml>=4.6.1,<4.7.0
 maxminddb==1.5.4
 mistune>0.7,<0.9
 mmh3>=2.3.1,<2.4
