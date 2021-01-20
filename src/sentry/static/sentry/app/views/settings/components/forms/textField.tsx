@@ -7,5 +7,3 @@ type Props = InputField['props'];
 export default function TextField(props: Omit<Props, 'type'>) {
   return <InputField {...props} type="text" />;
 }
-
-TextField.propTypes = {...InputField.propTypes};
