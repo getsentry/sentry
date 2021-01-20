@@ -97,7 +97,7 @@ class DashboardDetail extends React.Component<Props, State> {
   };
 
   onDelete = (dashboard: State['modifiedDashboard']) => () => {
-    const {api, organization} = this.props;
+    const {api, organization, location} = this.props;
     if (!dashboard?.id) {
       return;
     }
@@ -115,7 +115,9 @@ class DashboardDetail extends React.Component<Props, State> {
 
             browserHistory.replace({
               pathname: `/organizations/${organization.slug}/dashboards/`,
-              query: {},
+              query: {
+                ...location.query,
+              },
             });
           })
           .catch(() => {
