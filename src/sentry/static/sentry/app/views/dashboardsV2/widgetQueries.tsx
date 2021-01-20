@@ -119,6 +119,7 @@ class WidgetQueries extends React.Component<Props, State> {
       !isEqual(widget.displayType, prevProps.widget.displayType) ||
       !isEqual(widget.interval, prevProps.widget.interval) ||
       !isEqual(widget.queries, prevProps.widget.queries) ||
+      !isEqual(widget.displayType, prevProps.widget.displayType) ||
       !isEqual(selection, prevProps.selection)
     ) {
       this.fetchData();
