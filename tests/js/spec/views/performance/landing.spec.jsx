@@ -210,6 +210,18 @@ describe('Performance > Landing', function () {
         events: {meta: {}, data: []},
       },
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-vitals/',
+      body: {
+        'measurements.lcp': {
+          poor: 1,
+          meh: 2,
+          good: 3,
+          total: 6,
+          p75: 4500,
+        },
+      },
+    });
   });
 
   afterEach(function () {
@@ -233,7 +245,7 @@ describe('Performance > Landing', function () {
     wrapper.update();
 
     // Check number of rendered tab buttons
-    expect(wrapper.find('StyledPageHeader ButtonBar Button')).toHaveLength(2);
+    expect(wrapper.find('PageHeader ButtonBar Button')).toHaveLength(2);
 
     // No onboarding should show.
     expect(wrapper.find('Onboarding')).toHaveLength(0);

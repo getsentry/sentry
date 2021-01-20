@@ -3,9 +3,10 @@ from __future__ import absolute_import, print_function
 import logging
 import sentry_sdk
 
-
 from sentry import features
+from sentry.app import locks
 from sentry.utils.cache import cache
+from sentry.utils.locking import UnableToAcquireLock
 from sentry.exceptions import PluginError
 from sentry.signals import event_processed, issue_unignored
 from sentry.tasks.base import instrumented_task
@@ -82,7 +83,7 @@ def handle_owner_assignment(project, group, event):
     from sentry.models import GroupAssignee, ProjectOwnership
 
     with metrics.timer("post_process.handle_owner_assignment"):
-        owners_ingestion = features.has("projects:workflow-owners-ingestion", event.project)
+        owners_ingestion = features.has("organizations:workflow-owners", event.project.organization)
 
         # Is the issue already assigned to a team or user?
         key = "assignee_exists:1:%s" % group.id
@@ -119,43 +120,45 @@ def handle_group_owners(project, group, owners):
     from sentry.models.team import Team
     from sentry.models.user import User
 
-    current_group_owners = GroupOwner.objects.filter(
-        group=group, type=GroupOwnerType.OWNERSHIP_RULE.value
-    )
-    new_owners = {(type(owner), owner.id) for owner in owners}
-    # Owners already in the database that we'll keep
-    keeping_owners = set()
-    for owner in current_group_owners:
-        lookup_key = (Team, owner.team_id) if owner.team_id is not None else (User, owner.user_id)
-        if lookup_key not in new_owners:
-            owner.delete()
-        else:
-            keeping_owners.add(lookup_key)
-
-    new_group_owners = []
-
-    for key in new_owners:
-        if key not in keeping_owners:
-            owner_type, owner_id = key
-            user_id = None
-            team_id = None
-            if owner_type is User:
-                user_id = owner_id
-            if owner_type is Team:
-                team_id = owner_id
-            new_group_owners.append(
-                GroupOwner(
-                    group=group,
-                    type=GroupOwnerType.OWNERSHIP_RULE.value,
-                    user_id=user_id,
-                    team_id=team_id,
-                    project=project,
-                    organization=project.organization,
-                )
+    with metrics.timer("post_process.handle_group_owners"):
+        current_group_owners = GroupOwner.objects.filter(
+            group=group, type=GroupOwnerType.OWNERSHIP_RULE.value
+        )
+        new_owners = {(type(owner), owner.id) for owner in owners}
+        # Owners already in the database that we'll keep
+        keeping_owners = set()
+        for owner in current_group_owners:
+            lookup_key = (
+                (Team, owner.team_id) if owner.team_id is not None else (User, owner.user_id)
             )
+            if lookup_key not in new_owners:
+                owner.delete()
+            else:
+                keeping_owners.add(lookup_key)
 
-    if new_group_owners:
-        GroupOwner.objects.bulk_create(new_group_owners)
+        new_group_owners = []
+
+        for key in new_owners:
+            if key not in keeping_owners:
+                owner_type, owner_id = key
+                user_id = None
+                team_id = None
+                if owner_type is User:
+                    user_id = owner_id
+                if owner_type is Team:
+                    team_id = owner_id
+                new_group_owners.append(
+                    GroupOwner(
+                        group=group,
+                        type=GroupOwnerType.OWNERSHIP_RULE.value,
+                        user_id=user_id,
+                        team_id=team_id,
+                        project=project,
+                        organization=project.organization,
+                    )
+                )
+        if new_group_owners:
+            GroupOwner.objects.bulk_create(new_group_owners)
 
 
 def update_existing_attachments(event):
@@ -242,6 +245,10 @@ def post_process_group(
 
         _capture_stats(event, is_new)
 
+        from sentry.reprocessing2 import spawn_capture_nodestore_stats
+
+        spawn_capture_nodestore_stats(cache_key, event.project_id, event.event_id)
+
         if event.group_id and is_reprocessed and is_new:
             add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
 
@@ -270,22 +277,24 @@ def post_process_group(
                 ):
                     safe_execute(callback, event, futures)
 
-            has_commit_key = "workflow-owners-ingestion:org-{}-has-commits".format(
-                event.project.organization_id
-            )
-
             try:
-                org_has_commit = cache.get(has_commit_key)
-                if org_has_commit is None:
-                    org_has_commit = Commit.objects.filter(
-                        organization_id=event.project.organization_id
-                    ).exists()
-                    cache.set(has_commit_key, org_has_commit, 3600)
+                lock = locks.get("w-o:{}-d-l".format(event.group_id), duration=10,)
+                try:
+                    with lock.acquire():
+                        has_commit_key = "w-o:{}-h-c".format(event.project.organization_id)
+                        org_has_commit = cache.get(has_commit_key)
+                        if org_has_commit is None:
+                            org_has_commit = Commit.objects.filter(
+                                organization_id=event.project.organization_id
+                            ).exists()
+                            cache.set(has_commit_key, org_has_commit, 3600)
 
-                if org_has_commit and features.has(
-                    "projects:workflow-owners-ingestion", event.project,
-                ):
-                    process_suspect_commits(event=event)
+                        if org_has_commit and features.has(
+                            "organizations:workflow-owners", event.project.organization,
+                        ):
+                            process_suspect_commits(event=event)
+                except UnableToAcquireLock:
+                    pass
             except Exception:
                 logger.exception("Failed to process suspect commits")
 

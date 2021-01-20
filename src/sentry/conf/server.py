@@ -69,6 +69,7 @@ ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
 IS_DEV = ENVIRONMENT == "development"
 
 DEBUG = IS_DEV
+
 MAINTENANCE = False
 
 ADMINS = ()
@@ -835,6 +836,8 @@ SENTRY_FEATURES = {
     "organizations:discover": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
+    # Enable Filters & Sampling in the org settings
+    "organizations:filters-and-sampling": False,
     # Enable inline preview of attachments.
     "organizations:event-attachments-viewer": False,
     # Allow organizations to configure built-in symbol sources.
@@ -854,7 +857,7 @@ SENTRY_FEATURES = {
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
     # Lets organizations set a custom title through fingerprinting
-    "organizations:custom-event-title": False,
+    "organizations:custom-event-title": True,
     # Enable rule page.
     "organizations:rule-page": False,
     # Enable incidents feature
@@ -886,6 +889,9 @@ SENTRY_FEATURES = {
     "organizations:integrations-stacktrace-link": False,
     # Enables aws lambda integration
     "organizations:integrations-aws_lambda": False,
+    # Temporary safety measure, turned on for specific orgs only if
+    # absolutely necessary, to be removed shortly
+    "organizations:slack-allow-workspace": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable custom dashboards (dashboards 2)
@@ -939,6 +945,10 @@ SENTRY_FEATURES = {
     "organizations:inbox": False,
     # Set default tab to inbox
     "organizations:inbox-tab-default": False,
+    # Add `owner:me_or_none` to inbox tab query
+    "organizations:inbox-owners-query": False,
+    # Enable the new alert details ux design
+    "organizations:alert-details-redesign": False,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": False,
     # Return unhandled information on the issue level
@@ -970,8 +980,6 @@ SENTRY_FEATURES = {
     "projects:servicehooks": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     "projects:kafka-ingest": False,
-    # Enable "owner"/"suggested assignee" features in ingestion (suspect commit calculation).
-    "projects:workflow-owners-ingestion": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }
@@ -1022,7 +1030,10 @@ SENTRY_FRONTEND_WHITELIST_URLS = None
 # ----
 
 # sample rate for transactions initiated from the frontend
-SENTRY_APM_SAMPLING = 0
+SENTRY_FRONTEND_APM_SAMPLING = 0
+
+# sample rate for transactions in the backend
+SENTRY_BACKEND_APM_SAMPLING = 0
 
 # Sample rate for symbolicate_event task transactions
 SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING = 0
@@ -1347,6 +1358,7 @@ SENTRY_ROLES = (
                 "member:read",
                 "team:read",
                 "alerts:read",
+                "alerts:write",
             ]
         ),
     },
@@ -1372,8 +1384,8 @@ SENTRY_ROLES = (
                 "team:write",
                 "team:admin",
                 "org:integrations",
-                "alerts:write",
                 "alerts:read",
+                "alerts:write",
             ]
         ),
     },
@@ -1400,8 +1412,8 @@ SENTRY_ROLES = (
                 "org:read",
                 "org:write",
                 "org:integrations",
-                "alerts:write",
                 "alerts:read",
+                "alerts:write",
             ]
         ),
     },
@@ -1430,8 +1442,8 @@ SENTRY_ROLES = (
                 "event:read",
                 "event:write",
                 "event:admin",
-                "alerts:write",
                 "alerts:read",
+                "alerts:write",
             ]
         ),
     },

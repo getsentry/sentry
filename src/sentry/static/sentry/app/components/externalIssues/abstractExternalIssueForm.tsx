@@ -1,8 +1,8 @@
 import React from 'react';
-import {Modal} from 'react-bootstrap';
 import debounce from 'lodash/debounce';
 import * as queryString from 'query-string';
 
+import {ModalRenderProps} from 'app/actionCreators/modal';
 import AsyncComponent from 'app/components/asyncComponent';
 import {tct} from 'app/locale';
 import {IntegrationIssueConfig, IssueConfigField} from 'app/types';
@@ -13,7 +13,7 @@ import {FormField} from 'app/views/settings/projectAlerts/issueEditor/ruleNode';
 
 export type ExternalIssueAction = 'create' | 'link';
 
-type Props = AsyncComponent['props'];
+type Props = ModalRenderProps & AsyncComponent['props'];
 
 type State = {
   action: ExternalIssueAction;
@@ -77,6 +77,13 @@ export default class AbstractExternalIssueForm<
     }
   };
 
+  /**
+   * Convert IntegrationIssueConfig to an object that maps field names to the
+   * values of fields where `updatesFrom` is true. This function prefers to read
+   * configs from its parameters and otherwise falls back to reading from state.
+   * @param integrationDetailsParam
+   * @returns Object of field names to values.
+   */
   getDynamicFields = (
     integrationDetailsParam?: IntegrationIssueConfig
   ): {[key: string]: FieldValue | null} => {
@@ -225,13 +232,13 @@ export default class AbstractExternalIssueForm<
       {}
     );
 
+    const {Header, Body} = this.props as ModalRenderProps;
+
     return (
       <React.Fragment>
-        <Modal.Header closeButton>
-          <Modal.Title>{this.getTitle()}</Modal.Title>
-        </Modal.Header>
+        <Header closeButton>{this.getTitle()}</Header>
         {this.renderNavTabs()}
-        <Modal.Body>
+        <Body>
           {this.shouldRenderLoading() ? (
             this.renderLoading()
           ) : (
@@ -254,7 +261,7 @@ export default class AbstractExternalIssueForm<
               </Form>
             </React.Fragment>
           )}
-        </Modal.Body>
+        </Body>
       </React.Fragment>
     );
   };

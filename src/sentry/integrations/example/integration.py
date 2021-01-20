@@ -201,3 +201,9 @@ class FeatureFlagIntegration(ExampleIntegrationProvider):
     key = "feature_flag_integration"
     name = "Feature Flag Integration"
     requires_feature_flag = True
+
+
+class AlertRuleIntegrationProvider(ExampleIntegrationProvider):
+    key = "alert_rule_integration"
+    name = "Alert Rule Integration"
+    features = frozenset([IntegrationFeatures.ALERT_RULE])

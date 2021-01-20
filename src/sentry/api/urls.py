@@ -93,13 +93,7 @@ from .endpoints.organization_environments import OrganizationEnvironmentsEndpoin
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsV2Endpoint
-from .endpoints.organization_events_measurements_histogram import (
-    OrganizationEventsMeasurementsHistogramEndpoint,
-)
-from .endpoints.organization_events_trends import (
-    OrganizationEventsTrendsEndpoint,
-    OrganizationEventsTrendsStatsEndpoint,
-)
+from .endpoints.organization_events_histogram import OrganizationEventsHistogramEndpoint
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_meta import (
     OrganizationEventsMetaEndpoint,
@@ -107,6 +101,11 @@ from .endpoints.organization_events_meta import (
     OrganizationEventsRelatedIssuesEndpoint,
 )
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
+from .endpoints.organization_events_trends import (
+    OrganizationEventsTrendsEndpoint,
+    OrganizationEventsTrendsStatsEndpoint,
+)
+from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from .endpoints.organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
@@ -117,6 +116,9 @@ from .endpoints.organization_integration_repository_project_path_configs import 
 )
 from .endpoints.organization_integration_repository_project_path_config_details import (
     OrganizationIntegrationRepositoryProjectPathConfigDetailsEndpoint,
+)
+from .endpoints.organization_integration_serverless_functions import (
+    OrganizationIntegrationServerlessFunctionsEndpoint,
 )
 from .endpoints.organization_integration_request import OrganizationIntegrationRequestEndpoint
 from .endpoints.organization_integrations import OrganizationIntegrationsEndpoint
@@ -169,6 +171,7 @@ from .endpoints.organization_repository_details import OrganizationRepositoryDet
 from .endpoints.organization_join_request import OrganizationJoinRequestEndpoint
 from .endpoints.organization_search_details import OrganizationSearchDetailsEndpoint
 from .endpoints.organization_searches import OrganizationSearchesEndpoint
+from .endpoints.organization_sessions import OrganizationSessionsEndpoint
 from .endpoints.organization_sentry_apps import OrganizationSentryAppsEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_slugs import SlugsUpdateEndpoint
@@ -846,14 +849,19 @@ urlpatterns = [
                     name="sentry-api-0-organization-events-meta",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/events-measurements-histogram/$",
-                    OrganizationEventsMeasurementsHistogramEndpoint.as_view(),
-                    name="sentry-api-0-organization-events-measurements-histogram",
+                    r"^(?P<organization_slug>[^\/]+)/events-histogram/$",
+                    OrganizationEventsHistogramEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-histogram",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-trends/$",
                     OrganizationEventsTrendsEndpoint.as_view(),
                     name="sentry-api-0-organization-events-trends",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/events-vitals/$",
+                    OrganizationEventsVitalsEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-vitals",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-trends-stats/$",
@@ -908,6 +916,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-integration-repository-project-path-config-details",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/serverless-functions/$",
+                    OrganizationIntegrationServerlessFunctionsEndpoint.as_view(),
+                    name="sentry-api-0-organization-integration-serverless-functions",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/members/$",
                     OrganizationMemberIndexEndpoint.as_view(),
                     name="sentry-api-0-organization-member-index",
@@ -950,6 +963,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/searches/$",
                     OrganizationSearchesEndpoint.as_view(),
                     name="sentry-api-0-organization-searches",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/sessions/$",
+                    OrganizationSessionsEndpoint.as_view(),
+                    name="sentry-api-0-organization-sessions",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/users/issues/$",

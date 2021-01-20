@@ -4,16 +4,14 @@ import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import {SectionHeading} from 'app/components/charts/styles';
-import {
-  setBodyUserSelect,
-  UserSelectValues,
-} from 'app/components/events/interfaces/spans/utils';
 import {IconAdd, IconDelete, IconGrabbable} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {LightWeightOrganization, SelectValue} from 'app/types';
 import {Column} from 'app/utils/discover/fields';
 import theme from 'app/utils/theme';
+import {getPointerPosition} from 'app/utils/touch';
+import {setBodyUserSelect, UserSelectValues} from 'app/utils/userselect';
 
 import {generateFieldOptions} from '../utils';
 
@@ -34,6 +32,7 @@ type State = {
   isDragging: boolean;
   draggingIndex: undefined | number;
   draggingTargetIndex: undefined | number;
+  draggingGrabbedOffset: undefined | {x: number; y: number};
   left: undefined | number;
   top: undefined | number;
   // Stored as a object so we can find elements later.
@@ -41,7 +40,7 @@ type State = {
 };
 
 const DRAG_CLASS = 'draggable-item';
-const GRAB_HANDLE_FUDGE = 25;
+const GHOST_PADDING = 4;
 const MAX_COL_COUNT = 20;
 
 enum PlaceholderPosition {
@@ -49,36 +48,12 @@ enum PlaceholderPosition {
   BOTTOM,
 }
 
-function isReactEvent(
-  maybe: MouseEvent | TouchEvent | React.MouseEvent | React.TouchEvent
-): maybe is React.MouseEvent | React.TouchEvent {
-  return 'nativeEvent' in maybe;
-}
-
-/**
- * Handle getting position out of both React and Raw DOM events
- * as both are handled here due to mousedown/mousemove events
- * working differently.
- */
-function getPointerPosition(
-  event: MouseEvent | TouchEvent | React.MouseEvent | React.TouchEvent,
-  property: 'pageX' | 'pageY'
-): number {
-  const actual = isReactEvent(event) ? event.nativeEvent : event;
-  if (window.TouchEvent && actual instanceof TouchEvent) {
-    return actual.targetTouches[0][property];
-  }
-  if (actual instanceof MouseEvent) {
-    return actual[property];
-  }
-  return 0;
-}
-
 class ColumnEditCollection extends React.Component<Props, State> {
-  state = {
+  state: State = {
     isDragging: false,
     draggingIndex: void 0,
     draggingTargetIndex: void 0,
+    draggingGrabbedOffset: void 0,
     left: void 0,
     top: void 0,
     fieldOptions: this.fieldOptions,
@@ -176,6 +151,20 @@ class ColumnEditCollection extends React.Component<Props, State> {
     event.preventDefault();
     event.stopPropagation();
 
+    const top = getPointerPosition(event, 'pageY');
+    const left = getPointerPosition(event, 'pageX');
+
+    // Compute where the user clicked on the drag handle. Avoids the element
+    // jumping from the cursor on mousedown.
+    const {x, y} = Array.from(document.querySelectorAll(`.${DRAG_CLASS}`))
+      .find(n => n.contains(event.currentTarget))!
+      .getBoundingClientRect();
+
+    const draggingGrabbedOffset = {
+      x: left - x + GHOST_PADDING,
+      y: top - y + GHOST_PADDING,
+    };
+
     // prevent the user from selecting things when dragging a column.
     this.previousUserSelect = setBodyUserSelect({
       userSelect: 'none',
@@ -194,13 +183,16 @@ class ColumnEditCollection extends React.Component<Props, State> {
       isDragging: true,
       draggingIndex: index,
       draggingTargetIndex: index,
-      top: getPointerPosition(event, 'pageY'),
-      left: getPointerPosition(event, 'pageX'),
+      draggingGrabbedOffset,
+      top,
+      left,
     });
   }
 
   onDragMove = (event: MouseEvent | TouchEvent) => {
-    if (!this.state.isDragging || !['mousemove', 'touchmove'].includes(event.type)) {
+    const {isDragging, draggingTargetIndex, draggingGrabbedOffset} = this.state;
+
+    if (!isDragging || !['mousemove', 'touchmove'].includes(event.type)) {
       return;
     }
     event.preventDefault();
@@ -209,12 +201,15 @@ class ColumnEditCollection extends React.Component<Props, State> {
     const pointerX = getPointerPosition(event, 'pageX');
     const pointerY = getPointerPosition(event, 'pageY');
 
+    const dragOffsetX = draggingGrabbedOffset?.x ?? 0;
+    const dragOffsetY = draggingGrabbedOffset?.y ?? 0;
+
     if (this.dragGhostRef.current) {
       // move the ghost box
       const ghostDOM = this.dragGhostRef.current;
       // Adjust so cursor is over the grab handle.
-      ghostDOM.style.left = `${pointerX - GRAB_HANDLE_FUDGE}px`;
-      ghostDOM.style.top = `${pointerY - GRAB_HANDLE_FUDGE}px`;
+      ghostDOM.style.left = `${pointerX - dragOffsetX}px`;
+      ghostDOM.style.top = `${pointerY - dragOffsetY}px`;
     }
 
     const dragItems = document.querySelectorAll(`.${DRAG_CLASS}`);
@@ -229,7 +224,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
       return top >= thresholdStart && top <= thresholdEnd;
     });
 
-    if (targetIndex >= 0 && targetIndex !== this.state.draggingTargetIndex) {
+    if (targetIndex >= 0 && targetIndex !== draggingTargetIndex) {
       this.setState({draggingTargetIndex: targetIndex});
     }
   };
@@ -266,16 +261,22 @@ class ColumnEditCollection extends React.Component<Props, State> {
       top: undefined,
       draggingIndex: undefined,
       draggingTargetIndex: undefined,
+      draggingGrabbedOffset: undefined,
     });
   };
 
   renderGhost(gridColumns: number) {
-    const index = this.state.draggingIndex;
-    if (typeof index !== 'number' || !this.state.isDragging || !this.portal) {
+    const {isDragging, draggingIndex, draggingGrabbedOffset} = this.state;
+
+    const index = draggingIndex;
+    if (typeof index !== 'number' || !isDragging || !this.portal) {
       return null;
     }
-    const top = Number(this.state.top) - GRAB_HANDLE_FUDGE;
-    const left = Number(this.state.left) - GRAB_HANDLE_FUDGE;
+    const dragOffsetX = draggingGrabbedOffset?.x ?? 0;
+    const dragOffsetY = draggingGrabbedOffset?.y ?? 0;
+
+    const top = Number(this.state.top) - dragOffsetY;
+    const left = Number(this.state.left) - dragOffsetX;
     const col = this.props.columns[index];
 
     const style = {
@@ -412,7 +413,8 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
 const RowContainer = styled('div')`
   display: grid;
-  grid-template-columns: 24px auto 24px;
+  grid-template-columns: ${space(3)} 1fr ${space(3)};
+  justify-content: center;
   align-items: center;
   width: 100%;
   touch-action: none;
@@ -423,12 +425,13 @@ const Ghost = styled('div')`
   background: ${p => p.theme.background};
   display: block;
   position: absolute;
-  padding: ${space(0.5)};
+  padding: ${GHOST_PADDING}px;
   border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.border};
-  width: max-content;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
+  width: 710px;
   opacity: 0.8;
   cursor: grabbing;
+  padding-right: ${space(2)};
 
   & > ${RowContainer} {
     padding-bottom: 0;
@@ -440,10 +443,10 @@ const Ghost = styled('div')`
 `;
 
 const DragPlaceholder = styled('div')`
-  margin: 0 ${space(4)} ${space(1)} ${space(4)};
+  margin: 0 ${space(3)} ${space(1)} ${space(3)};
   border: 2px dashed ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  height: 40px;
+  height: 41px;
 `;
 
 const Actions = styled('div')`

@@ -9,6 +9,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model, JSONField
+from sentry.signals import inbox_in, inbox_out
 
 INBOX_REASON_DETAILS = {
     "type": ["object", "null"],
@@ -44,7 +45,7 @@ class GroupInbox(Model):
     organization = FlexibleForeignKey("sentry.Organization", null=True, db_constraint=False)
     reason = models.PositiveSmallIntegerField(null=False, default=GroupInboxReason.NEW.value)
     reason_details = JSONField(null=True)
-    date_added = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
         app_label = "sentry"
@@ -71,13 +72,30 @@ def add_group_to_inbox(group, reason, reason_details=None):
             "reason_details": reason_details,
         },
     )
+
+    inbox_in.send_robust(
+        project=group.project,
+        user=None,
+        group=group,
+        sender="add_group_to_inbox",
+        reason=reason.name.lower(),
+    )
     return group_inbox
 
 
-def remove_group_from_inbox(group):
+def remove_group_from_inbox(group, action=None, user=None):
     try:
         group_inbox = GroupInbox.objects.get(group=group)
         group_inbox.delete()
+
+        inbox_out.send_robust(
+            group=group_inbox.group,
+            project=group_inbox.group.project,
+            user=user,
+            sender="remove_group_from_inbox",
+            action=action,
+            inbox_date_added=group_inbox.date_added,
+        )
     except GroupInbox.DoesNotExist:
         pass
 

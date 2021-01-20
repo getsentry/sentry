@@ -48,7 +48,6 @@ class Container extends React.Component<Props> {
     const start = globalSelection.datetime.start
       ? getUtcToLocalDateObject(globalSelection.datetime.start)
       : undefined;
-
     const end = globalSelection.datetime.end
       ? getUtcToLocalDateObject(globalSelection.datetime.end)
       : undefined;
@@ -113,8 +112,6 @@ class Container extends React.Component<Props> {
                         router={router}
                         statsPeriod={globalSelection.datetime.period}
                         utc={utc === 'true'}
-                        projects={globalSelection.projects}
-                        environments={globalSelection.environments}
                       />
                     ),
                     fixed: 'apdex and throughput charts',

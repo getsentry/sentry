@@ -29,7 +29,6 @@ from sentry.models import (
     Group,
     GroupAssignee,
     GroupHash,
-    GroupInbox,
     GroupInboxReason,
     GroupLink,
     GroupStatus,
@@ -49,7 +48,7 @@ from sentry.models import (
     User,
     UserOption,
 )
-from sentry.models.groupinbox import add_group_to_inbox, get_inbox_details
+from sentry.models.groupinbox import add_group_to_inbox
 from sentry.models.group import looks_like_short_id, STATUS_UPDATE_CHOICES
 from sentry.api.issue_search import convert_query_values, InvalidSearchQuery, parse_search_query
 from sentry.signals import (
@@ -441,10 +440,21 @@ def track_update_groups(function):
         try:
             response = function(request, projects, *args, **kwargs)
         except snuba.RateLimitExceeded:
-            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 429})
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={
+                    "status": 429,
+                    "detail": "group_index:track_update_groups:snuba.RateLimitExceeded",
+                },
+            )
             raise
         except Exception:
-            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": 500, "detail": "group_index:track_update_groups:Exception"},
+            )
             # Continue raising the error now that we've incr the metric
             raise
 
@@ -456,7 +466,7 @@ def track_update_groups(function):
         results = dict(serializer.validated_data) if serializer.is_valid() else {}
         tags = {key: True for key in results.keys()}
         tags["status"] = response.status_code
-
+        tags["detail"] = "group_index:track_update_groups:response"
         metrics.incr("group.update.http_response", sample_rate=1.0, tags=tags)
         return response
 
@@ -679,7 +689,7 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
 
                 group.status = GroupStatus.RESOLVED
                 group.resolved_at = now
-                remove_group_from_inbox(group)
+                remove_group_from_inbox(group, action="resolved", user=acting_user)
                 if has_inbox:
                     result["inbox"] = None
 
@@ -723,16 +733,10 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
             happened = queryset.exclude(status=new_status).update(status=new_status)
 
             GroupResolution.objects.filter(group__in=group_ids).delete()
-            if new_status == GroupStatus.UNRESOLVED:
-                for group in group_list:
-                    add_group_to_inbox(group, GroupInboxReason.MANUAL)
-                if has_inbox:
-                    result["inbox"] = get_inbox_details([group_list[0]])[group_list[0].id]
-                result["statusDetails"] = {}
-            elif new_status == GroupStatus.IGNORED:
+            if new_status == GroupStatus.IGNORED:
                 metrics.incr("group.ignored", skip_internal=True)
                 for group in group_ids:
-                    remove_group_from_inbox(group)
+                    remove_group_from_inbox(group, action="ignored", user=acting_user)
                 if has_inbox:
                     result["inbox"] = None
 
@@ -997,8 +1001,8 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
             for group in group_list:
                 add_group_to_inbox(group, GroupInboxReason.MANUAL)
         elif not inbox:
-            GroupInbox.objects.filter(group__in=group_ids).delete()
             for group in group_list:
+                remove_group_from_inbox(group, action="mark_reviewed", user=acting_user)
                 issue_mark_reviewed.send_robust(
                     project=project, user=acting_user, group=group, sender=update_groups,
                 )

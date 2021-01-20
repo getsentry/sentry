@@ -51,4 +51,6 @@ class Migration(migrations.Migration):
 
     dependencies = [("sentry", "0050_auto_20200306_2346")]
 
-    operations = [migrations.RunPython(code=cleanup_audit_log_data)]
+    operations = [
+        migrations.RunPython(code=cleanup_audit_log_data, reverse_code=migrations.RunPython.noop)
+    ]

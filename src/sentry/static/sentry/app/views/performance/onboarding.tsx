@@ -1,6 +1,12 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import emptyStateImg from 'sentry-images/spot/performance-empty-state.svg';
+import tourAlert from 'sentry-images/spot/performance-tour-alert.svg';
+import tourCorrelate from 'sentry-images/spot/performance-tour-correlate.svg';
+import tourMetrics from 'sentry-images/spot/performance-tour-metrics.svg';
+import tourTrace from 'sentry-images/spot/performance-tour-trace.svg';
+
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import FeatureTourModal, {
@@ -12,12 +18,6 @@ import OnboardingPanel from 'app/components/onboardingPanel';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-
-import emptyStateImg from '../../../images/spot/performance-empty-state.svg';
-import tourAlert from '../../../images/spot/performance-tour-alert.svg';
-import tourCorrelate from '../../../images/spot/performance-tour-correlate.svg';
-import tourMetrics from '../../../images/spot/performance-tour-metrics.svg';
-import tourTrace from '../../../images/spot/performance-tour-trace.svg';
 
 const performanceSetupUrl =
   'https://docs.sentry.io/performance-monitoring/getting-started/';

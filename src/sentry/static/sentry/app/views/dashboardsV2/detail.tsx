@@ -21,7 +21,7 @@ import withOrganization from 'app/utils/withOrganization';
 
 import Controls from './controls';
 import Dashboard from './dashboard';
-import {EMPTY_DASHBOARD} from './data';
+import {DEFAULT_STATS_PERIOD, EMPTY_DASHBOARD} from './data';
 import OrgDashboards from './orgDashboards';
 import DashboardTitle from './title';
 import {DashboardDetails, DashboardState, Widget} from './types';
@@ -67,7 +67,7 @@ class DashboardDetail extends React.Component<Props, State> {
   };
 
   onRouteLeave = (): string | undefined => {
-    if (this.state.dashboardState !== 'view') {
+    if (!['view', 'pending_delete'].includes(this.state.dashboardState)) {
       return UNSAVED_MESSAGE;
     }
     // eslint-disable-next-line consistent-return
@@ -75,7 +75,7 @@ class DashboardDetail extends React.Component<Props, State> {
   };
 
   onUnload = (event: BeforeUnloadEvent) => {
-    if (this.state.dashboardState === 'view') {
+    if (['view', 'pending_delete'].includes(this.state.dashboardState)) {
       return;
     }
     event.preventDefault();
@@ -97,19 +97,36 @@ class DashboardDetail extends React.Component<Props, State> {
   };
 
   onDelete = (dashboard: State['modifiedDashboard']) => () => {
-    const {api, organization} = this.props;
+    const {api, organization, location} = this.props;
     if (!dashboard?.id) {
       return;
     }
 
-    deleteDashboard(api, organization.slug, dashboard.id).then(() => {
-      addSuccessMessage(t('Dashboard deleted'));
+    const previousDashboardState = this.state.dashboardState;
 
-      browserHistory.replace({
-        pathname: `/organizations/${organization.slug}/dashboards/`,
-        query: {},
-      });
-    });
+    this.setState(
+      {
+        dashboardState: 'pending_delete',
+      },
+      () => {
+        deleteDashboard(api, organization.slug, dashboard.id)
+          .then(() => {
+            addSuccessMessage(t('Dashboard deleted'));
+
+            browserHistory.replace({
+              pathname: `/organizations/${organization.slug}/dashboards/`,
+              query: {
+                ...location.query,
+              },
+            });
+          })
+          .catch(() => {
+            this.setState({
+              dashboardState: previousDashboardState,
+            });
+          });
+      }
+    );
   };
 
   onCommit = ({
@@ -227,9 +244,19 @@ class DashboardDetail extends React.Component<Props, State> {
     const {api, location, params, organization} = this.props;
     const {modifiedDashboard, dashboardState} = this.state;
 
+    const isEditing = ['edit', 'create', 'pending_delete'].includes(dashboardState);
+
     return (
       <GlobalSelectionHeader
         skipLoadLastUsed={organization.features.includes('global-views')}
+        defaultSelection={{
+          datetime: {
+            start: null,
+            end: null,
+            utc: false,
+            period: DEFAULT_STATS_PERIOD,
+          },
+        }}
       >
         <OrgDashboards
           api={api}
@@ -244,7 +271,7 @@ class DashboardDetail extends React.Component<Props, State> {
                   <DashboardTitle
                     dashboard={modifiedDashboard || dashboard}
                     onUpdate={this.setModifiedDashboard}
-                    isEditing={dashboardState !== 'view'}
+                    isEditing={isEditing}
                   />
                   <Controls
                     organization={organization}
@@ -264,7 +291,7 @@ class DashboardDetail extends React.Component<Props, State> {
                   <Dashboard
                     dashboard={modifiedDashboard || dashboard}
                     organization={organization}
-                    isEditing={dashboardState === 'edit' || dashboardState === 'create'}
+                    isEditing={isEditing}
                     onUpdate={this.onWidgetChange}
                   />
                 ) : (
@@ -287,7 +314,12 @@ const StyledPageHeader = styled('div')`
   color: ${p => p.theme.textColor};
   height: 40px;
   margin-bottom: ${space(1)};
-  white-space: nowrap;
+
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    flex-direction: column;
+    align-items: flex-start;
+    height: auto;
+  }
 `;
 
 export default withApi(withOrganization(DashboardDetail));

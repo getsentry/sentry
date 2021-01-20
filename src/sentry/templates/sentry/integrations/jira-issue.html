@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+{% load i18n %}
+{% load sentry_assets %}
+<html lang="en">
+  <head>
+    {% script src=ac_js_src %}{% endscript %}
+    {% asset_url 'sentry' 'vendor/jquery.2.2.4.min.js' as jquery_url %}
+    {% script src=jquery_url %}{% endscript %}
+    {% asset_url 'sentry' 'vendor/aui-prototyping.9.1.5.js' as aui_js_url %}
+    {% script src=aui_js_url %}{% endscript %}
+    <link
+      rel="stylesheet"
+      href="{% asset_url 'sentry' 'vendor/aui-prototyping.9.1.5.css' %}"
+      media="all"
+    />
+    <style>
+      body {
+        background: transparent;
+      }
+      .container {
+        padding: 30px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      {% if error_message %}
+      <div class="aui-message aui-message-info">
+        <h2>Error</h2>
+        <p>{{ error_message }}</p>
+      </div>
+
+      {% elif refresh_required %}
+      <div class="aui-message aui-message-info">
+        <h2>Error</h2>
+        <p>
+          {% trans "This page has expired, please refresh to view the Sentry issue" %}
+        </p>
+      </div>
+
+      {% elif issue_not_linked %}
+      <div class="aui-message aui-message-info">
+        <h2>Issue not linked</h2>
+        <p>{% trans "This Sentry issue is not linked to a Jira issue" %}</p>
+      </div>
+      {% else %}
+
+      <div>
+        <h2>{{ type }}</h2>
+        <p><a href="{{ title_url }}" target="_blank">{{title}}</a></p>
+        <br />
+        <div class="aui-group">
+          <div class="aui-item">
+            <span>{% trans "Events last 24 hours:" %}</span>
+            <aui-badge>{{ stats_24hr }}</aui-badge>
+          </div>
+        </div>
+        <div class="aui-group">
+          <div class="aui-item">
+            <span>{% trans "Events last 14 days:" %}</span>
+            <aui-badge>{{ stats_14d }}</aui-badge>
+          </div>
+        </div>
+      </div>
+
+      <!-- FIRST SEEN GROUP -->
+      <div class="aui-group">
+        <div class="aui-item">
+          <h4>{% trans "First Seen" %}</h4>
+        </div>
+      </div>
+
+      <div class="aui-group">
+        <div class="aui-item">
+          <span class="left-grid">{% trans "Date:" %}</span>
+        </div>
+        <div class="aui-item">
+          <span class="right-grid">{{ first_seen }} UTC</span>
+        </div>
+      </div>
+
+      {% if first_release %}
+      <div class="aui-group">
+        <div class="aui-item">
+          <span class="left-grid">{% trans "Release:" %}</span>
+        </div>
+        <div class="aui-item">
+          <span class="right-grid"
+            ><a href="{{ first_release_url}}" target="_blank">{{first_release}}</a></span
+          >
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- LAST SEEN GROUP -->
+      <div class="aui-group">
+        <div class="aui-item">
+          <h4>{% trans "Last Seen" %}</h4>
+        </div>
+      </div>
+
+      <div class="aui-group">
+        <div class="aui-item">
+          <span class="left-grid">{% trans "Date:" %}</span>
+        </div>
+        <div class="aui-item">
+          <span class="right-grid">{{ last_seen }} UTC</span>
+        </div>
+      </div>
+
+      {% if last_release %}
+      <div class="aui-group">
+        <div class="aui-item">
+          <span class="left-grid">{% trans "Release:" %}</span>
+        </div>
+        <div class="aui-item">
+          <span class="right-grid"
+            ><a href="{{ last_release_url}}" target="_blank">{{last_release}}</a></span
+          >
+        </div>
+      </div>
+      {% endif %} {% endif %}
+    </div>
+  </body>
+</html>

@@ -6,7 +6,6 @@ import SelectorItems from 'app/components/organizations/timeRangeSelector/dateRa
 import SidebarItem from 'app/components/sidebar/sidebarItem';
 import {IntegrationProvider, Organization, Project, User} from 'app/types';
 import {ExperimentKey} from 'app/types/experiments';
-import {StepProps} from 'app/views/onboarding/types';
 import {NavigationSection} from 'app/views/settings/types';
 
 // XXX(epurkhiser): A Note about `_`.
@@ -129,7 +128,6 @@ export type InterfaceChromeHooks = {
  * Onboarding experience hooks
  */
 export type OnboardingHooks = {
-  'onboarding:invite-members': OnboardingInviteMembersHook;
   'onboarding:extra-chrome': GenericComponentHook;
   'onboarding-wizard:skip-help': GenericOrganizationComponentHook;
 };
@@ -321,12 +319,6 @@ type HelpModalFooterHook = (opts: {
   closeModal: () => void;
   organization: Organization;
 }) => React.ReactNode;
-
-/**
- * Wrapper component to allow for customization of the onboarding member
- * invitation component.
- */
-type OnboardingInviteMembersHook = () => React.ComponentType<StepProps>;
 
 /**
  * The DecoratedIntegrationFeature differs from the IntegrationFeature as it is

@@ -68,7 +68,7 @@ function ActionSet({
       {hasInbox && (
         <div className="hidden-sm hidden-xs">
           <ReviewAction
-            primary={query === Query.NEEDS_REVIEW}
+            primary={query === Query.NEEDS_REVIEW || query === Query.NEEDS_REVIEW_OWNER}
             disabled={!anySelected}
             onUpdate={onUpdate}
           />
@@ -246,6 +246,7 @@ const Wrapper = styled('div')<{hasInbox?: boolean}>`
   gap: ${space(0.5)};
   grid-auto-flow: column;
   justify-content: flex-start;
+  white-space: nowrap;
 
   ${p =>
     p.hasInbox &&

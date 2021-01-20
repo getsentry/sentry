@@ -5,6 +5,7 @@ import {Panel, PanelBody} from 'app/components/panels';
 import QuestionTooltip from 'app/components/questionTooltip';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
+import {defined} from 'app/utils';
 import {Theme} from 'app/utils/theme';
 
 type Props = {
@@ -29,7 +30,7 @@ function ScoreCard({title, score, help, trend, trendStyle, className}: Props) {
         <ScoreWrapper>
           <Score>{score ?? '\u2014'}</Score>
 
-          {trend && <Trend trendStyle={trendStyle}>{trend}</Trend>}
+          {defined(trend) && <Trend trendStyle={trendStyle}>{trend}</Trend>}
         </ScoreWrapper>
       </PanelBody>
     </StyledPanel>
@@ -49,6 +50,7 @@ function getTrendColor(p: TrendProps & {theme: Theme}) {
 
 const StyledPanel = styled(Panel)`
   margin-bottom: 0;
+  min-height: 105px;
 `;
 
 const TitleWrapper = styled('div')`

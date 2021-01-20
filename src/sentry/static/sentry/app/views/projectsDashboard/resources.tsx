@@ -1,16 +1,16 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import breadcrumbsImg from 'sentry-images/spot/breadcrumbs-generic.svg';
+import docsImg from 'sentry-images/spot/code-arguments-tags-mirrored.svg';
+import releasesImg from 'sentry-images/spot/releases.svg';
+
 import PageHeading from 'app/components/pageHeading';
 import ResourceCard from 'app/components/resourceCard';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-
-import breadcrumbsImg from '../../../images/spot/breadcrumbs-generic.svg';
-import docsImg from '../../../images/spot/code-arguments-tags-mirrored.svg';
-import releasesImg from '../../../images/spot/releases.svg';
 
 type Props = {
   organization: Organization;

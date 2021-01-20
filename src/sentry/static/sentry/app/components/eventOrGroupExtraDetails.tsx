@@ -15,7 +15,8 @@ import ShortId from 'app/components/shortId';
 import {IconChat} from 'app/icons';
 import {tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Event, Group, Organization} from 'app/types';
+import {Group, Organization} from 'app/types';
+import {Event} from 'app/types/event';
 import withOrganization from 'app/utils/withOrganization';
 
 type Props = WithRouterProps<{orgId: string}> & {
@@ -46,6 +47,7 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
 
   return (
     <GroupExtra hasInbox={hasInbox}>
+      {hasInbox && inbox && <InboxReason inbox={inbox} />}
       {shortId &&
         (hasInbox ? (
           <InboxShortId
@@ -68,7 +70,6 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
             }}
           />
         ))}
-      {hasInbox && inbox && <InboxReason inbox={inbox} />}
       {isUnhandled && hasInbox && <UnhandledTag organization={organization} />}
       {!lifetime && !firstSeen && !lastSeen ? (
         <Placeholder height="14px" width="100px" />

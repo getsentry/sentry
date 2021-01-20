@@ -1,7 +1,7 @@
 import {ColumnType, WebVital} from 'app/utils/discover/fields';
 
 export type HistogramData = {
-  histogram: number;
+  bin: number;
   count: number;
 };
 
@@ -31,3 +31,5 @@ export type Rectangle = {
   point1: Point;
   point2: Point;
 };
+
+export type DataFilter = 'all' | 'exclude_outliers';

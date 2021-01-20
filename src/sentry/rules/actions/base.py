@@ -1,8 +1,6 @@
 from __future__ import absolute_import, print_function
 
-import functools
 import logging
-import operator
 import six
 
 from django import forms
@@ -126,13 +124,24 @@ def has_linked_issue(event, integration):
     return _linked_issues(event, integration).exists()
 
 
-def create_link(key, integration, installation, event):
+def create_link(integration, installation, event, response):
+    """
+    After creating the event on a third-party service, create a link to the
+    external resource in the DB. TODO make this a transaction.
+    :param integration: Integration object.
+    :param installation: Installation object.
+    :param event: The event object that was recorded on an external service.
+    :param response: The API response from creating the new resource.
+        - key: String. The unique ID of the external resource
+        - metadata: Optional Object. Can contain `display_name`.
+    """
     external_issue = ExternalIssue.objects.create(
         organization_id=event.group.project.organization_id,
         integration_id=integration.id,
-        key=key,
+        key=response["key"],
         title=event.title,
         description=installation.get_group_description(event.group, event),
+        metadata=response.get("metadata"),
     )
     GroupLink.objects.create(
         group_id=event.group.id,
@@ -196,13 +205,13 @@ def create_issue(event, futures):
             )
             return
         response = installation.create_issue(data)
-        issue_key_path = future.kwargs.get("issue_key_path")
-        issue_key = functools.reduce(operator.getitem, issue_key_path.split("."), response)
-        create_link(issue_key, integration, installation, event)
+        create_link(integration, installation, event, response)
 
 
 class TicketEventAction(IntegrationEventAction):
     """Shared ticket actions"""
+
+    form_cls = IntegrationNotifyServiceForm
 
     def __init__(self, *args, **kwargs):
         super(IntegrationEventAction, self).__init__(*args, **kwargs)
@@ -218,6 +227,7 @@ class TicketEventAction(IntegrationEventAction):
                 "choices": integration_choices,
                 "initial": six.text_type(self.get_integration_id()),
                 "type": "choice",
+                "resetsForm": True,
                 "updatesForm": True,
             }
         }
@@ -225,6 +235,9 @@ class TicketEventAction(IntegrationEventAction):
         dynamic_fields = self.get_dynamic_form_fields()
         if dynamic_fields:
             self.form_fields.update(dynamic_fields)
+
+    def render_label(self):
+        return self.label.format(integration=self.get_integration_name())
 
     def get_dynamic_form_fields(self):
         """
@@ -264,6 +277,5 @@ class TicketEventAction(IntegrationEventAction):
             data=self.data,
             generate_footer=self.generate_footer,
             integration_id=integration_id,
-            issue_key_path=self.issue_key_path,
             provider=self.provider,
         )

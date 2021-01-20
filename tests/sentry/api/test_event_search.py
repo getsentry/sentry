@@ -73,9 +73,9 @@ def test_parse_function():
     assert parse_function("p75(measurements.lcp)") == ("p75", ["measurements.lcp"], None)
     assert parse_function("apdex(300)") == ("apdex", ["300"], None)
     assert parse_function("failure_rate()") == ("failure_rate", [], None)
-    assert parse_function("measurements_histogram(1,0,1)") == (
-        "measurements_histogram",
-        ["1", "0", "1"],
+    assert parse_function("histogram(measurements_value, 1,0,1)") == (
+        "histogram",
+        ["measurements_value", "1", "0", "1"],
         None,
     )
     assert parse_function("count_unique(transaction.status)") == (
@@ -1695,6 +1695,14 @@ class GetSnubaQueryArgsTest(TestCase):
         ]
         assert _filter.filter_keys == {}
 
+    def test_existence_array_field(self):
+        _filter = get_filter('has:stack.filename !has:stack.lineno error.value:""')
+        assert _filter.conditions == [
+            [["notEmpty", ["stack.filename"]], "=", 1],
+            [["notEmpty", ["stack.lineno"]], "=", 0],
+            [["notEmpty", ["error.value"]], "=", 0],
+        ]
+
     def test_wildcard_with_trailing_backslash(self):
         results = get_filter("title:*misgegaan\\")
         assert results.conditions == [[["match", ["title", u"'(?i)^.*misgegaan\\\\$'"]], "=", 1]]
@@ -2429,11 +2437,9 @@ class ResolveFieldListTest(unittest.TestCase):
             resolve_field_list(fields, eventstore.Filter())
         assert "no access to private function" in six.text_type(err)
 
-    def test_measurements_histogram_function(self):
-        fields = ["measurements_histogram(10, 5, 1)"]
-        result = resolve_field_list(
-            fields, eventstore.Filter(), functions_acl=["measurements_histogram"]
-        )
+    def test_histogram_function(self):
+        fields = ["histogram(measurements_value, 10, 5, 1)"]
+        result = resolve_field_list(fields, eventstore.Filter(), functions_acl=["histogram"])
         assert result["selected_columns"] == [
             [
                 "plus",
@@ -2467,7 +2473,7 @@ class ResolveFieldListTest(unittest.TestCase):
                     ],
                     5,
                 ],
-                "measurements_histogram_10_5_1",
+                "histogram_measurements_value_10_5_1",
             ],
             "id",
             "project.id",
@@ -2478,47 +2484,11 @@ class ResolveFieldListTest(unittest.TestCase):
             ],
         ]
 
-    def test_measurements_histogram_function_no_access(self):
-        fields = ["measurements_histogram(10, 5, 1)"]
+    def test_histogram_function_no_access(self):
+        fields = ["histogram(measurements_value, 10, 5, 1)"]
         with pytest.raises(InvalidSearchQuery) as err:
             resolve_field_list(fields, eventstore.Filter())
         assert "no access to private function" in six.text_type(err)
-
-    def test_histogram_function(self):
-        fields = ["histogram(transaction.duration, 10, 1000, 0)", "count()"]
-        result = resolve_field_list(fields, eventstore.Filter())
-        assert result["selected_columns"] == [
-            [
-                "multiply",
-                [["floor", [["divide", ["transaction.duration", 1000]]]], 1000],
-                "histogram_transaction_duration_10_1000_0",
-            ]
-        ]
-        assert result["aggregations"] == [
-            ["count", None, "count"],
-        ]
-        assert result["groupby"] == ["histogram_transaction_duration_10_1000_0"]
-
-        with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["histogram(stack.colno, 10, 1000, 0)"]
-            resolve_field_list(fields, eventstore.Filter())
-        assert (
-            "histogram(stack.colno, 10, 1000, 0): column argument invalid: stack.colno is not a duration column"
-            in six.text_type(err)
-        )
-
-        with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["histogram(transaction.duration, 10)"]
-            resolve_field_list(fields, eventstore.Filter())
-        assert "histogram(transaction.duration, 10): expected 4 argument(s)" in six.text_type(err)
-
-        with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["histogram(transaction.duration, 1000, 1000, 0)"]
-            resolve_field_list(fields, eventstore.Filter())
-        assert (
-            "histogram(transaction.duration, 1000, 1000, 0): num_buckets argument invalid: 1000 must be less than 500"
-            in six.text_type(err)
-        )
 
     def test_count_at_least_function(self):
         fields = ["count_at_least(measurements.baz, 1000)"]
@@ -2533,7 +2503,7 @@ class ResolveFieldListTest(unittest.TestCase):
 
     def test_percentile_range(self):
         fields = [
-            "percentile_range(transaction.duration, 0.5, 2020-05-01T01:12:34, 2020-05-03T06:48:57) as percentile_range_1"
+            "percentile_range(transaction.duration, 0.5, greater, 2020-05-03T06:48:57) as percentile_range_1"
         ]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
@@ -2541,65 +2511,45 @@ class ResolveFieldListTest(unittest.TestCase):
                 "quantileIf(0.50)",
                 [
                     "transaction.duration",
-                    [
-                        "and",
-                        [
-                            [
-                                "lessOrEquals",
-                                [["toDateTime", ["'2020-05-01T01:12:34'"]], "timestamp"],
-                            ],
-                            ["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]],
-                        ],
-                    ],
+                    ["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]],
                 ],
                 "percentile_range_1",
             ]
         ]
 
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["percentile_range(transaction.duration, 0.5, 2020-05-01T01:12:34, tomorrow)"]
+            fields = ["percentile_range(transaction.duration, 0.5, greater, tomorrow)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "end argument invalid: tomorrow is in the wrong format" in six.text_type(err)
+        assert "middle argument invalid: tomorrow is in the wrong format" in six.text_type(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["percentile_range(transaction.duration, 0.5, today, 2020-05-03T06:48:57)"]
+            fields = ["percentile_range(transaction.duration, 0.5, lessOrEquals, today)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "start argument invalid: today is in the wrong format" in six.text_type(err)
+        assert "middle argument invalid: today is in the wrong format" in six.text_type(err)
 
     def test_average_range(self):
-        fields = [
-            "avg_range(transaction.duration, 2020-05-01T01:12:34, 2020-05-03T06:48:57) as avg_range_1"
-        ]
+        fields = ["avg_range(transaction.duration, greater, 2020-05-03T06:48:57) as avg_range_1"]
         result = resolve_field_list(fields, eventstore.Filter())
         assert result["aggregations"] == [
             [
                 "avgIf",
                 [
                     "transaction.duration",
-                    [
-                        "and",
-                        [
-                            [
-                                "lessOrEquals",
-                                [["toDateTime", ["'2020-05-01T01:12:34'"]], "timestamp"],
-                            ],
-                            ["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]],
-                        ],
-                    ],
+                    ["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]],
                 ],
                 "avg_range_1",
             ]
         ]
 
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["avg_range(transaction.duration, 2020-05-01T01:12:34, tomorrow)"]
+            fields = ["avg_range(transaction.duration, greater, tomorrow)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "end argument invalid: tomorrow is in the wrong format" in six.text_type(err)
+        assert "middle argument invalid: tomorrow is in the wrong format" in six.text_type(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["avg_range(transaction.duration, today, 2020-05-03T06:48:57)"]
+            fields = ["avg_range(transaction.duration, lessOrEquals, today)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "start argument invalid: today is in the wrong format" in six.text_type(err)
+        assert "middle argument invalid: today is in the wrong format" in six.text_type(err)
 
     def test_absolute_correlation(self):
         fields = ["absolute_correlation()"]
@@ -2614,8 +2564,8 @@ class ResolveFieldListTest(unittest.TestCase):
 
     def test_percentage(self):
         fields = [
-            "percentile_range(transaction.duration, 0.95, 2020-05-01T01:12:34, 2020-05-03T06:48:57) as percentile_range_1",
-            "percentile_range(transaction.duration, 0.95, 2020-05-03T06:48:57, 2020-05-05T01:12:34) as percentile_range_2",
+            "percentile_range(transaction.duration, 0.95, greater, 2020-05-03T06:48:57) as percentile_range_1",
+            "percentile_range(transaction.duration, 0.95, lessOrEquals, 2020-05-03T06:48:57) as percentile_range_2",
             "percentage(percentile_range_2, percentile_range_1) as trend_percentage",
         ]
         result = resolve_field_list(fields, eventstore.Filter())
@@ -2624,16 +2574,7 @@ class ResolveFieldListTest(unittest.TestCase):
                 "quantileIf(0.95)",
                 [
                     "transaction.duration",
-                    [
-                        "and",
-                        [
-                            [
-                                "lessOrEquals",
-                                [["toDateTime", ["'2020-05-01T01:12:34'"]], "timestamp"],
-                            ],
-                            ["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]],
-                        ],
-                    ],
+                    ["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]],
                 ],
                 "percentile_range_1",
             ],
@@ -2641,16 +2582,7 @@ class ResolveFieldListTest(unittest.TestCase):
                 "quantileIf(0.95)",
                 [
                     "transaction.duration",
-                    [
-                        "and",
-                        [
-                            [
-                                "lessOrEquals",
-                                [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"],
-                            ],
-                            ["greater", [["toDateTime", ["'2020-05-05T01:12:34'"]], "timestamp"]],
-                        ],
-                    ],
+                    ["lessOrEquals", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]],
                 ],
                 "percentile_range_2",
             ],
@@ -2663,8 +2595,8 @@ class ResolveFieldListTest(unittest.TestCase):
 
     def test_minus(self):
         fields = [
-            "percentile_range(transaction.duration, 0.95, 2020-05-01T01:12:34, 2020-05-03T06:48:57) as percentile_range_1",
-            "percentile_range(transaction.duration, 0.95, 2020-05-03T06:48:57, 2020-05-05T01:12:34) as percentile_range_2",
+            "percentile_range(transaction.duration, 0.95, greater, 2020-05-03T06:48:57) as percentile_range_1",
+            "percentile_range(transaction.duration, 0.95, lessOrEquals, 2020-05-03T06:48:57) as percentile_range_2",
             "minus(percentile_range_2, percentile_range_1) as trend_difference",
         ]
         result = resolve_field_list(fields, eventstore.Filter())
@@ -2673,16 +2605,7 @@ class ResolveFieldListTest(unittest.TestCase):
                 "quantileIf(0.95)",
                 [
                     "transaction.duration",
-                    [
-                        "and",
-                        [
-                            [
-                                "lessOrEquals",
-                                [["toDateTime", ["'2020-05-01T01:12:34'"]], "timestamp"],
-                            ],
-                            ["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]],
-                        ],
-                    ],
+                    ["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]],
                 ],
                 "percentile_range_1",
             ],
@@ -2690,16 +2613,7 @@ class ResolveFieldListTest(unittest.TestCase):
                 "quantileIf(0.95)",
                 [
                     "transaction.duration",
-                    [
-                        "and",
-                        [
-                            [
-                                "lessOrEquals",
-                                [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"],
-                            ],
-                            ["greater", [["toDateTime", ["'2020-05-05T01:12:34'"]], "timestamp"]],
-                        ],
-                    ],
+                    ["lessOrEquals", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]],
                 ],
                 "percentile_range_2",
             ],
@@ -2828,12 +2742,6 @@ class ResolveFieldListTest(unittest.TestCase):
             resolve_field_list(fields, eventstore.Filter(orderby="timestamp"))
         assert "Cannot order" in six.text_type(err)
 
-    def test_orderby_unselected_field_with_histogram(self):
-        fields = ["histogram(transaction.duration, 10, 1000, 0)", "message"]
-        with pytest.raises(InvalidSearchQuery) as err:
-            resolve_field_list(fields, eventstore.Filter(orderby="timestamp"))
-        assert "Cannot order" in six.text_type(err)
-
     def test_orderby_basic_field(self):
         fields = ["message"]
         result = resolve_field_list(fields, eventstore.Filter(orderby="-message"))
@@ -2851,14 +2759,25 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == []
 
     def test_orderby_field_aggregate(self):
+        """ When there's only aggregates don't sort """
         fields = ["count(id)", "count_unique(user)"]
+        result = resolve_field_list(fields, eventstore.Filter(orderby="-count(id)"))
+        assert result["orderby"] is None
+        assert result["aggregations"] == [
+            ["count", None, "count_id"],
+            ["uniq", "user", "count_unique_user"],
+        ]
+        assert result["groupby"] == []
+
+    def test_orderby_field_aggregate_only(self):
+        fields = ["transaction.name", "count(id)", "count_unique(user)"]
         result = resolve_field_list(fields, eventstore.Filter(orderby="-count(id)"))
         assert result["orderby"] == ["-count_id"]
         assert result["aggregations"] == [
             ["count", None, "count_id"],
             ["uniq", "user", "count_unique_user"],
         ]
-        assert result["groupby"] == []
+        assert result["groupby"] == ["transaction.name"]
 
     def test_orderby_issue_alias(self):
         fields = ["issue"]

@@ -1,22 +1,22 @@
-// Candidate Stacktrace Info
-export enum CandidateStacktraceStatus {
+// Candidate Processing Info
+export enum CandidateProcessingStatus {
   OK = 'ok',
   MALFORMED = 'malformed',
   ERROR = 'error',
 }
 
-type CandidateStacktraceInfoOkStatus = {
-  status: CandidateStacktraceStatus.OK;
+type CandidateProcessingInfoOkStatus = {
+  status: CandidateProcessingStatus.OK;
 };
 
-type CandidateStacktraceInfoOtherStatus = {
-  status: CandidateStacktraceStatus.MALFORMED | CandidateStacktraceStatus.ERROR;
+type CandidateProcessingInfoOtherStatus = {
+  status: CandidateProcessingStatus.MALFORMED | CandidateProcessingStatus.ERROR;
   details?: string;
 };
 
-export type CandidateStacktraceInfo =
-  | CandidateStacktraceInfoOkStatus
-  | CandidateStacktraceInfoOtherStatus;
+export type CandidateProcessingInfo =
+  | CandidateProcessingInfoOkStatus
+  | CandidateProcessingInfoOtherStatus;
 
 // Candidate Download Status
 export enum CandidateDownloadStatus {
@@ -29,19 +29,19 @@ export enum CandidateDownloadStatus {
   UNAPPLIED = 'unapplied',
 }
 
-type Features = {
+type ImageFeatures = {
   has_sources: boolean;
   has_debug_info: boolean;
   has_unwind_info: boolean;
   has_symbols: boolean;
 };
 
+export type CandidateFeatures = ImageFeatures;
+
 type CandidateDownloadOkStatus = {
   status: CandidateDownloadStatus.OK;
-  features: Features;
+  features: CandidateFeatures;
   details?: string;
-  unwind?: CandidateStacktraceInfo;
-  debug?: CandidateStacktraceInfo;
 };
 
 type CandidateDownloadNotFoundStatus = {
@@ -65,42 +65,60 @@ type CandidateDownloadOtherStatus = {
   details?: string;
 };
 
-type CandidateDownload =
+export type CandidateDownload =
   | CandidateDownloadNotFoundStatus
   | CandidateDownloadOkStatus
   | CandidateDownloadDeletedStatus
   | CandidateDownloadUnAppliedStatus
   | CandidateDownloadOtherStatus;
 
-export type Candidate = {
-  download: CandidateDownload;
+type ImageCandidateBase = {
   source: string;
   source_name?: string;
   location?: string;
 };
 
+export type ImageCandidateOk = ImageCandidateBase & {
+  download: CandidateDownloadOkStatus;
+  unwind?: CandidateProcessingInfo;
+  debug?: CandidateProcessingInfo;
+};
+
+type ImageCandidateOthers = ImageCandidateBase & {
+  download:
+    | CandidateDownloadNotFoundStatus
+    | CandidateDownloadDeletedStatus
+    | CandidateDownloadUnAppliedStatus
+    | CandidateDownloadOtherStatus;
+  source: string;
+  source_name?: string;
+  location?: string;
+};
+
+export type ImageCandidate = ImageCandidateOk | ImageCandidateOthers;
+
 // Debug Status
-enum ImageStackTraceInfo {
+export enum ImageStatus {
   FOUND = 'found',
   UNUSED = 'unused',
   MISSING = 'missing',
   MALFORMED = 'malformed',
-  TIMEOUT = 'timeout',
   FETCHING_FAILED = 'fetching_failed',
+  TIMEOUT = 'timeout',
   OTHER = 'other',
 }
 
 export type Image = {
   debug_file: string;
-  debug_id: string;
   code_file: string;
   code_id: string;
   type: string;
   image_size: number;
-  debug_status: ImageStackTraceInfo;
-  unwind_status: ImageStackTraceInfo;
-  features: Features;
-  candidates: Array<Candidate>;
+  features: ImageFeatures;
+  candidates: Array<ImageCandidate>;
+  debug_id?: string;
+  debug_status?: ImageStatus | null;
+  unwind_status?: ImageStatus | null;
   arch?: string;
   image_addr?: string;
 };

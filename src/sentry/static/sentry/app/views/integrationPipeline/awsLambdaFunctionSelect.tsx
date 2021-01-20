@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {addLoadingMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
@@ -12,7 +13,7 @@ type Props = {
   lambdaFunctions: LambdaFunction[];
 };
 
-const getLabel = (func: LambdaFunction) => `${func.Runtime} - ${func.FunctionName}`;
+const getLabel = (func: LambdaFunction) => `${func.FunctionName} - ${func.Runtime}`;
 
 export default class AwsLambdaFunctionSelect extends React.Component<Props> {
   model = new FormModel({apiOptions: {baseUrl: window.location.origin}});
@@ -29,6 +30,7 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props> {
       getLabel(a).toLowerCase() < getLabel(b).toLowerCase() ? -1 : 1
     );
   }
+  handlePreSubmit = () => addLoadingMessage(t('Submitting\u2026'));
   render = () => {
     const model = this.model;
     const formFields: JsonFormObject = {
@@ -48,6 +50,7 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props> {
         skipPreventDefault
         model={model}
         apiEndpoint="/extensions/aws_lambda/setup/"
+        onPreSubmit={this.handlePreSubmit}
       >
         <JsonForm forms={[formFields]} />
       </StyledForm>

@@ -67,6 +67,11 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         )
         assert dashboard.created_by == self.user
 
+    def test_post_permissions(self):
+        self.create_user_member_role()
+        response = self.client.post(self.url, data={"title": "Dashboard from Post"})
+        assert response.status_code == 201
+
     def test_post_with_widgets(self):
         data = {
             "title": "Dashboard from Post",

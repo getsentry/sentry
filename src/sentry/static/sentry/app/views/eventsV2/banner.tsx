@@ -1,6 +1,11 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import tourAlert from 'sentry-images/spot/discover-tour-alert.svg';
+import tourExplore from 'sentry-images/spot/discover-tour-explore.svg';
+import tourFilter from 'sentry-images/spot/discover-tour-filter.svg';
+import tourGroup from 'sentry-images/spot/discover-tour-group.svg';
+
 import Banner from 'app/components/banner';
 import Button from 'app/components/button';
 import FeatureTourModal, {
@@ -12,11 +17,6 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-
-import tourAlert from '../../../images/spot/discover-tour-alert.svg';
-import tourExplore from '../../../images/spot/discover-tour-explore.svg';
-import tourFilter from '../../../images/spot/discover-tour-filter.svg';
-import tourGroup from '../../../images/spot/discover-tour-group.svg';
 
 import BackgroundSpace from './backgroundSpace';
 
