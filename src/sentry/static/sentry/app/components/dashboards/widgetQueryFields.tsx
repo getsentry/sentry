@@ -113,12 +113,7 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
         </QueryFieldWrapper>
       ))}
       <div>
-        <Button
-          data-test-id="add-field"
-          size="small"
-          onClick={handleAdd}
-          icon={<IconAdd isCircled />}
-        >
+        <Button size="small" onClick={handleAdd} icon={<IconAdd isCircled />}>
           {t('Add an overlay')}
         </Button>
       </div>
