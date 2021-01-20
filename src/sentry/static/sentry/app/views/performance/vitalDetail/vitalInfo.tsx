@@ -37,10 +37,10 @@ export default function vitalInfo(props: Props) {
       location={location}
       vitals={Array.isArray(vital) ? vital : [vital]}
     >
-      {({isLoading, tableData}) => (
+      {({isLoading, vitalsData}) => (
         <VitalBar
           isLoading={isLoading}
-          result={tableData?.data?.[0]}
+          data={vitalsData}
           vital={vital}
           showBar={!hideBar}
           showStates={!hideStates}
