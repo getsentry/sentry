@@ -34,21 +34,23 @@ def mad(values, K=1.4826):
 
 def nice_int(x):
     """
-    Round up to the nearest "nice" number.
+    Round away from zero to the nearest "nice" number.
     """
 
     if x == 0:
         return 0
 
-    exp = int(math.log10(x))
+    sign = 1 if x > 0 else -1
+    x = abs(x)
 
     if x < 10:
-        rounded = 10 ** exp
+        rounded = 1
         steps = [1, 2, 5, 10]
     elif x < 100:
-        rounded = 10 ** (exp - 1)
+        rounded = 1
         steps = [10, 20, 25, 50, 100]
     else:
+        exp = int(math.log10(x))
         rounded = 10 ** (exp - 2)
         steps = [100, 120, 200, 250, 500, 750, 1000]
 
@@ -59,4 +61,4 @@ def nice_int(x):
             nice_frac = step
             break
 
-    return nice_frac * rounded
+    return sign * nice_frac * rounded
