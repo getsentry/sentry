@@ -7,7 +7,6 @@ import * as qs from 'query-string';
 import BackgroundAvatar from 'app/components/avatar/backgroundAvatar';
 import LetterAvatar from 'app/components/letterAvatar';
 import Tooltip from 'app/components/tooltip';
-import theme from 'app/utils/theme';
 
 import Gravatar from './gravatar';
 import {imageStyle, ImageStyleProps} from './styles';
