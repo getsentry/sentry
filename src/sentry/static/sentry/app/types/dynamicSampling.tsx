@@ -15,6 +15,10 @@ export enum DynamicSamplingRuleType {
 
 export enum DynamicSamplingConditionOperator {
   /**
+   * It uses all other operators
+   */
+  ALL = 'all',
+  /**
    * It uses glob matches for checking (e.g. releases use glob matching "1.1.*" will match release 1.1.1 and 1.1.2)
    */
   GLOB_MATCH = 'globMatch',

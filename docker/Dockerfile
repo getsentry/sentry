@@ -1,5 +1,4 @@
-ARG PY_VER=2.7.16
-FROM python:${PY_VER}-slim-buster
+FROM python:3.6-slim-buster
 
 LABEL maintainer="oss@sentry.io"
 LABEL org.opencontainers.image.title="Sentry"

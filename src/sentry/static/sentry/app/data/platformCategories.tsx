@@ -10,7 +10,9 @@ const popular = [
   'node-express',
   'php-laravel',
   'java',
+  'java-spring-boot',
   'dotnet',
+  'dotnet-aspnetcore',
   'csharp',
   'go',
   'php',
@@ -19,6 +21,11 @@ const popular = [
   'react-native',
   'javascript-angular',
   'javascript-vue',
+  'android',
+  'apple-ios',
+  'react-native',
+  'flutter',
+  'dart-flutter',
 ] as const;
 
 const frontend = [
@@ -47,6 +54,7 @@ const mobile = [
 const backend = [
   'dotnet',
   'dotnet-aspnetcore',
+  'dotnet-aspnet',
   'elixir',
   'go',
   'go-http',
@@ -57,6 +65,7 @@ const backend = [
   'java-logback',
   'java-logging',
   'java-spring',
+  'java-spring-boot',
   'native',
   'node',
   'node-express',
@@ -96,6 +105,8 @@ const serverless = [
 const desktop = [
   'apple-macos',
   'dotnet',
+  'dotnet-winforms',
+  'dotnet-wpf',
   'java',
   'electron',
   'javascript-electron',

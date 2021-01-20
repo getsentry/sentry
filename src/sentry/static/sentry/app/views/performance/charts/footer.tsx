@@ -17,12 +17,13 @@ import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView, {isAPIPayloadSimilar} from 'app/utils/discover/eventView';
 
-import {getAxisOptions} from '../data';
+import {getAxisOptions, TooltipOption} from '../data';
 
 type Props = {
   api: Client;
   eventView: EventView;
   organization: Organization;
+  options?: TooltipOption[];
   location: Location;
   rightAxis: string;
   leftAxis: string;
@@ -108,7 +109,7 @@ class ChartFooter extends React.Component<Props, State> {
 
     const value = typeof totalValues === 'number' ? totalValues.toLocaleString() : '-';
 
-    const options = getAxisOptions(organization);
+    const options = this.props.options || getAxisOptions(organization);
     const leftOptions = options.map(opt => ({
       ...opt,
       disabled: opt.value === rightAxis,
