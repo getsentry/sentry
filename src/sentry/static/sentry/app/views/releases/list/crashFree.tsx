@@ -38,8 +38,9 @@ const CrashFree = ({percent}: Props) => {
 const Wrapper = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
-  grid-gap: ${space(1)};
+  grid-column-gap: ${space(1)};
   align-items: center;
+  vertical-align: middle;
 `;
 
 const CrashFreePercent = styled('div')`
