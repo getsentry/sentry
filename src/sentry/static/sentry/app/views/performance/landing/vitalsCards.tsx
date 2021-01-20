@@ -41,19 +41,12 @@ import {
 } from '../vitalDetail/utils';
 import VitalPercents from '../vitalDetail/vitalPercents';
 
-import {backendCardDetails, getBackendFunction} from './utils';
-
-// Temporary list of platforms to only show web vitals for.
-const VITALS_PLATFORMS = [
-  'javascript',
-  'javascript-react',
-  'javascript-angular',
-  'javascript-angularjs',
-  'javascript-backbone',
-  'javascript-ember',
-  'javascript-gatsby',
-  'javascript-vue',
-];
+import {
+  backendCardDetails,
+  getBackendFunction,
+  getDefaultDisplayFieldForPlatform,
+  LandingDisplayField,
+} from './utils';
 
 type FrontendCardsProps = {
   eventView: EventView;
@@ -67,11 +60,8 @@ export function FrontendCards(props: FrontendCardsProps) {
   const {eventView, location, organization, projects, frontendOnly = false} = props;
 
   if (frontendOnly) {
-    const isFrontend = eventView.project.some(projectId =>
-      VITALS_PLATFORMS.includes(
-        projects.find(project => project.id === `${projectId}`)?.platform || ''
-      )
-    );
+    const defaultDisplay = getDefaultDisplayFieldForPlatform(eventView, projects);
+    const isFrontend = defaultDisplay === LandingDisplayField.FRONTEND;
 
     if (!isFrontend) {
       return null;
@@ -214,6 +204,7 @@ function _BackendCards(props: BackendCardsProps) {
                       chart={chart}
                       horizontal
                       minHeight={102}
+                      isNotInteractive
                     />
                   );
                 })}
@@ -234,19 +225,27 @@ type SparklineChartProps = {
 
 function SparklineChart(props: SparklineChartProps) {
   const {data} = props;
+  const width = 150;
+  const height = 24;
+  const lineColor = theme.charts.getColorPalette(1)[0];
   return (
-    <SparklineContainer data-test-id="sparkline">
-      <Sparklines data={data} width={240} height={24}>
-        <SparklinesLine style={{stroke: theme.gray300, fill: 'none', strokeWidth: 4}} />
+    <SparklineContainer data-test-id="sparkline" width={width} height={height}>
+      <Sparklines data={data} width={width} height={height}>
+        <SparklinesLine style={{stroke: lineColor, fill: 'none', strokeWidth: 3}} />
       </Sparklines>
     </SparklineContainer>
   );
 }
 
-const SparklineContainer = styled('div')`
+type SparklineContainerProps = {
+  width: number;
+  height: number;
+};
+
+const SparklineContainer = styled('div')<SparklineContainerProps>`
   flex-grow: 4;
-  max-height: 24px;
-  max-width: 240px;
+  max-height: ${p => p.height}px;
+  max-width: ${p => p.width}px;
   margin: ${space(1)} ${space(0)} ${space(1.5)} ${space(3)};
 `;
 
@@ -347,12 +346,13 @@ type VitalCardProps = {
   chart: React.ReactNode;
   minHeight?: number;
   horizontal?: boolean;
+  isNotInteractive?: boolean;
 };
 
 function VitalCard(props: VitalCardProps) {
-  const {chart, minHeight, horizontal, title, tooltip, value} = props;
+  const {chart, minHeight, horizontal, title, tooltip, value, isNotInteractive} = props;
   return (
-    <StyledCard interactive minHeight={minHeight}>
+    <StyledCard interactive={!isNotInteractive} minHeight={minHeight}>
       <HeaderTitle>
         <OverflowEllipsis>{t(title)}</OverflowEllipsis>
         <QuestionTooltip size="sm" position="top" title={tooltip} />

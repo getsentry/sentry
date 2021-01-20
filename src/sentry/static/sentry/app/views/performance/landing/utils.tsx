@@ -1,6 +1,9 @@
 import {Location} from 'history';
 
-import {Organization} from 'app/types';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
+import {backend, frontend} from 'app/data/platformCategories';
+import {Organization, Project} from 'app/types';
+import EventView from 'app/utils/discover/eventView';
 import {AggregationKey, Column} from 'app/utils/discover/fields';
 import {
   formatAbbreviatedNumber,
@@ -10,7 +13,11 @@ import {
 } from 'app/utils/formatters';
 import {decodeScalar} from 'app/utils/queryString';
 
+import {AxisOption} from '../data';
 import {HistogramData, Rectangle} from '../transactionVitals/types';
+
+export const LEFT_AXIS_QUERY_KEY = 'left';
+export const RIGHT_AXIS_QUERY_KEY = 'right';
 
 type LandingDisplay = {
   label: string;
@@ -18,11 +25,16 @@ type LandingDisplay = {
 };
 
 export enum LandingDisplayField {
+  ALL = 'all',
   FRONTEND = 'frontend',
   BACKEND = 'backend',
 }
 
 export const LANDING_DISPLAYS = [
+  {
+    label: 'All',
+    field: LandingDisplayField.ALL,
+  },
   {
     label: 'Frontend',
     field: LandingDisplayField.FRONTEND,
@@ -33,10 +45,22 @@ export const LANDING_DISPLAYS = [
   },
 ];
 
-export function getCurrentLandingDisplay(location: Location): LandingDisplay {
+export function getCurrentLandingDisplay(
+  location: Location,
+  eventView: EventView,
+  projects: Project[]
+): LandingDisplay {
   const landingField = decodeScalar(location?.query?.landingDisplay);
   const display = LANDING_DISPLAYS.find(({field}) => field === landingField);
-  return display || LANDING_DISPLAYS[0];
+  if (display) {
+    return display;
+  }
+
+  const defaultDisplayField = getDefaultDisplayFieldForPlatform(eventView, projects);
+  const defaultDisplay = LANDING_DISPLAYS.find(
+    ({field}) => field === defaultDisplayField
+  );
+  return defaultDisplay || LANDING_DISPLAYS[0];
 }
 
 export function getChartWidth(
@@ -72,6 +96,41 @@ export function getBackendFunction(
   }
 }
 
+const VITALS_FRONTEND_PLATFORMS: string[] = [...frontend];
+const VITALS_BACKEND_PLATFORMS: string[] = [...backend];
+
+export function getDefaultDisplayFieldForPlatform(
+  eventView: EventView,
+  projects: Project[]
+) {
+  if (!eventView) {
+    return LandingDisplayField.ALL;
+  }
+  const projectIds = eventView.project;
+  if (
+    projectIds.length > 1 ||
+    projectIds.length === 0 ||
+    projectIds[0] === ALL_ACCESS_PROJECTS
+  ) {
+    return LandingDisplayField.ALL;
+  }
+  const projectId = eventView.project[0];
+  const project = projects.find(p => p.id === `${projectId}`);
+  if (!project || !project.platform) {
+    return LandingDisplayField.ALL;
+  }
+
+  if (VITALS_FRONTEND_PLATFORMS.includes(project.platform as string)) {
+    return LandingDisplayField.FRONTEND;
+  }
+
+  if (VITALS_BACKEND_PLATFORMS.includes(project.platform as string)) {
+    return LandingDisplayField.BACKEND;
+  }
+
+  return LandingDisplayField.ALL;
+}
+
 export const backendCardDetails = {
   p75: {
     title: 'Duration (p75)',
@@ -94,3 +153,18 @@ export const backendCardDetails = {
     formatter: value => formatFloat(value, 4),
   },
 };
+
+export function getDisplayAxes(options: AxisOption[], location: Location) {
+  const leftDefault = options.find(opt => opt.isLeftDefault) || options[0];
+  const rightDefault = options.find(opt => opt.isRightDefault) || options[1];
+
+  const leftAxis =
+    options.find(opt => opt.value === location.query[LEFT_AXIS_QUERY_KEY]) || leftDefault;
+  const rightAxis =
+    options.find(opt => opt.value === location.query[RIGHT_AXIS_QUERY_KEY]) ||
+    rightDefault;
+  return {
+    leftAxis,
+    rightAxis,
+  };
+}

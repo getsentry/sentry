@@ -66,36 +66,95 @@ export function getAxisOptions(organization: LightWeightOrganization): TooltipOp
   ];
 }
 
+export type AxisOption = TooltipOption & {
+  field: string;
+  isDistribution?: boolean;
+  isLeftDefault?: boolean;
+  isRightDefault?: boolean;
+};
+
 export function getFrontendAxisOptions(
   organization: LightWeightOrganization
-): TooltipOption[] {
+): AxisOption[] {
   return [
     {
       tooltip: getTermHelp(organization, 'lcp'),
       value: `p75(lcp)`,
       label: t('LCP p75'),
+      field: 'p75(measurements.lcp)',
+      isLeftDefault: true,
     },
     {
       tooltip: getTermHelp(organization, 'lcp'),
       value: 'lcp_distribution',
       label: t('LCP Distribution'),
+      field: 'measurements.lcp',
+      isDistribution: true,
+      isRightDefault: true,
+    },
+    {
+      tooltip: getTermHelp(organization, 'tpm'),
+      value: 'tpm()',
+      label: t('Transactions Per Minute'),
+      field: 'tpm()',
     },
   ];
 }
 
 export function getBackendAxisOptions(
   organization: LightWeightOrganization
-): TooltipOption[] {
+): AxisOption[] {
   return [
+    {
+      tooltip: getTermHelp(organization, 'p50'),
+      value: `p50()`,
+      label: t('Duration p50'),
+      field: 'p50(transaction.duration)',
+    },
     {
       tooltip: getTermHelp(organization, 'p75'),
       value: `p75()`,
       label: t('Duration p75'),
+      field: 'p75(transaction.duration)',
+      isLeftDefault: true,
+    },
+    {
+      tooltip: getTermHelp(organization, 'p95'),
+      value: `p95()`,
+      label: t('Duration p95'),
+      field: 'p95(transaction.duration)',
+    },
+    {
+      tooltip: getTermHelp(organization, 'p99'),
+      value: `p99()`,
+      label: t('Duration p99'),
+      field: 'p99(transaction.duration)',
+    },
+    {
+      tooltip: getTermHelp(organization, 'apdex'),
+      value: `apdex(${organization.apdexThreshold})`,
+      label: t('Apdex'),
+      field: `apdex(${organization.apdexThreshold})`,
+    },
+    {
+      tooltip: getTermHelp(organization, 'tpm'),
+      value: 'tpm()',
+      label: t('Transactions Per Minute'),
+      field: 'tpm()',
+    },
+    {
+      tooltip: getTermHelp(organization, 'failureRate'),
+      value: 'failure_rate()',
+      label: t('Failure Rate'),
+      field: 'failure_rate()',
     },
     {
       tooltip: getTermHelp(organization, 'durationDistribution'),
       value: 'duration_distribution',
       label: t('Duration Distribution'),
+      field: 'transaction.duration',
+      isDistribution: true,
+      isRightDefault: true,
     },
   ];
 }

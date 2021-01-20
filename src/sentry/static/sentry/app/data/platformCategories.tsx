@@ -28,7 +28,7 @@ const popular = [
   'dart-flutter',
 ] as const;
 
-const frontend = [
+export const frontend = [
   'dart',
   'javascript',
   'javascript-react',
@@ -51,7 +51,7 @@ const mobile = [
   'unity',
 ] as const;
 
-const backend = [
+export const backend = [
   'dotnet',
   'dotnet-aspnetcore',
   'dotnet-aspnet',

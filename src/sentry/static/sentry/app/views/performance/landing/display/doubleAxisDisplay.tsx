@@ -4,31 +4,31 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Panel} from 'app/components/panels';
-import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 
-import _Footer from '../charts/footer';
-import {getBackendAxisOptions} from '../data';
-import {getTransactionSearchQuery} from '../utils';
+import _Footer from '../../charts/footer';
+import {AxisOption} from '../../data';
+import {getTransactionSearchQuery} from '../../utils';
 
-import DurationChart from './durationChart';
-import HistogramChart from './histogramChart';
+import {SingleAxisChart} from './singleAxisChart';
 
 type Props = {
   location: Location;
   organization: Organization;
   eventView: EventView;
+  axisOptions: AxisOption[];
+  leftAxis: AxisOption;
+  rightAxis: AxisOption;
 };
 
-function BackendDisplay(props: Props) {
-  const {eventView, location, organization} = props;
-  const field = 'transaction.duration';
+function DoubleAxisDisplay(props: Props) {
+  const {eventView, location, organization, axisOptions, leftAxis, rightAxis} = props;
 
-  const onFilterChange = (minValue, maxValue) => {
+  const onFilterChange = (field: string) => (minValue, maxValue) => {
     const filterString = getTransactionSearchQuery(location);
     const conditions = tokenizeSearch(filterString);
     conditions.setTagValues(field, [
@@ -46,35 +46,25 @@ function BackendDisplay(props: Props) {
     });
   };
 
-  const axisOptions = getBackendAxisOptions(organization);
-  const leftAxis = axisOptions[0].value; // TODO: Temporary until backend changes
-  const rightAxis = axisOptions[1].value; // TODO: Temporary until backend changes
-
   return (
     <Panel>
       <DoubleChartContainer>
-        <DurationChart
-          field="p75(transaction.duration)"
-          eventView={eventView}
-          organization={organization}
-          title={t('Duration p75')}
-          titleTooltip={t(
-            'This is the 75th percentile over time of the duration of the transaction.'
-          )}
-        />
-        <HistogramChart
-          field="transaction.duration"
+        <SingleAxisChart
+          axis={leftAxis}
+          onFilterChange={onFilterChange(leftAxis.field)}
           {...props}
-          onFilterChange={onFilterChange}
-          title={t('Duration Distribution')}
-          titleTooltip={t('This is a histogram of the duration of the transaction.')}
+        />
+        <SingleAxisChart
+          axis={rightAxis}
+          onFilterChange={onFilterChange(rightAxis.field)}
+          {...props}
         />
       </DoubleChartContainer>
 
       <Footer
-        options={getBackendAxisOptions(organization)}
-        leftAxis={leftAxis}
-        rightAxis={rightAxis}
+        options={axisOptions}
+        leftAxis={leftAxis.value}
+        rightAxis={rightAxis.value}
         organization={organization}
         eventView={eventView}
         location={location}
@@ -91,4 +81,4 @@ const DoubleChartContainer = styled('div')`
 
 const Footer = withApi(_Footer);
 
-export default BackendDisplay;
+export default DoubleAxisDisplay;
