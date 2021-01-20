@@ -9,7 +9,7 @@ import TeamActions from 'app/actions/teamActions';
 import {Client} from 'app/api';
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
-import {Organization} from 'app/types';
+import {Organization, Project, Team} from 'app/types';
 
 async function fetchOrg(
   api: Client,
@@ -30,7 +30,7 @@ async function fetchOrg(
   return org;
 }
 
-async function fetchProjectsAndTeams(slug: string) {
+async function fetchProjectsAndTeams(slug: string): Promise<[Project[], Team[]]> {
   // Create a new client so the request is not cancelled
   const uncancelableApi = new Client();
   try {
@@ -43,8 +43,8 @@ async function fetchProjectsAndTeams(slug: string) {
       }),
       uncancelableApi.requestPromise(`/organizations/${slug}/teams/`),
     ]);
-    ProjectActions.loadProjects(projects);
-    TeamActions.loadTeams(teams);
+
+    return [projects, teams];
   } catch (err) {
     // It's possible these requests fail with a 403 if the user has a role with insufficient access
     // to projects and teams, but *can* access org details (e.g. billing).
@@ -55,6 +55,7 @@ async function fetchProjectsAndTeams(slug: string) {
       throw err;
     }
   }
+  return [[], []];
 }
 
 /**
@@ -85,7 +86,13 @@ export async function fetchOrganizationDetails(
       promises.push(fetchProjectsAndTeams(slug));
     }
 
-    const [org] = await Promise.all(promises);
+    const [org, projectsAndTeams] = await Promise.all(promises);
+
+    if (!detailed) {
+      const [projects, teams] = projectsAndTeams as [Project[], Team[]];
+      ProjectActions.loadProjects(projects);
+      TeamActions.loadTeams(teams);
+    }
 
     if (org && detailed) {
       // TODO(davidenwang): Change these to actions after organization.projects
