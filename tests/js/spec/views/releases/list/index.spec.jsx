@@ -318,7 +318,7 @@ describe('ReleasesList', function () {
 
     expect(healthSection.find('ProjectRow').length).toBe(1);
 
-    expect(healthSection.find('ProjectName').text()).toBe('test2');
+    expect(healthSection.find('ProjectBadge').text()).toBe('test2');
   });
 
   it('does not hide health rows when "All Projects" are selected in global header', function () {

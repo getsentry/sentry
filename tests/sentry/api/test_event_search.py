@@ -2490,45 +2490,6 @@ class ResolveFieldListTest(unittest.TestCase):
             resolve_field_list(fields, eventstore.Filter())
         assert "no access to private function" in six.text_type(err)
 
-    def test_histogram_deprecated_function(self):
-        fields = ["histogram_deprecated(transaction.duration, 10, 1000, 0)", "count()"]
-        result = resolve_field_list(fields, eventstore.Filter())
-        assert result["selected_columns"] == [
-            [
-                "multiply",
-                [["floor", [["divide", ["transaction.duration", 1000]]]], 1000],
-                "histogram_deprecated_transaction_duration_10_1000_0",
-            ]
-        ]
-        assert result["aggregations"] == [
-            ["count", None, "count"],
-        ]
-        assert result["groupby"] == ["histogram_deprecated_transaction_duration_10_1000_0"]
-
-        with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["histogram_deprecated(stack.colno, 10, 1000, 0)"]
-            resolve_field_list(fields, eventstore.Filter())
-        assert (
-            "histogram_deprecated(stack.colno, 10, 1000, 0): column argument invalid: stack.colno is not a duration column"
-            in six.text_type(err)
-        )
-
-        with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["histogram_deprecated(transaction.duration, 10)"]
-            resolve_field_list(fields, eventstore.Filter())
-        assert (
-            "histogram_deprecated(transaction.duration, 10): expected 4 argument(s)"
-            in six.text_type(err)
-        )
-
-        with pytest.raises(InvalidSearchQuery) as err:
-            fields = ["histogram_deprecated(transaction.duration, 1000, 1000, 0)"]
-            resolve_field_list(fields, eventstore.Filter())
-        assert (
-            "histogram_deprecated(transaction.duration, 1000, 1000, 0): num_buckets argument invalid: 1000 must be less than 500"
-            in six.text_type(err)
-        )
-
     def test_count_at_least_function(self):
         fields = ["count_at_least(measurements.baz, 1000)"]
         result = resolve_field_list(fields, eventstore.Filter())
@@ -2777,12 +2738,6 @@ class ResolveFieldListTest(unittest.TestCase):
 
     def test_orderby_unselected_field(self):
         fields = ["message"]
-        with pytest.raises(InvalidSearchQuery) as err:
-            resolve_field_list(fields, eventstore.Filter(orderby="timestamp"))
-        assert "Cannot order" in six.text_type(err)
-
-    def test_orderby_unselected_field_with_histogram_deprecated(self):
-        fields = ["histogram_deprecated(transaction.duration, 10, 1000, 0)", "message"]
         with pytest.raises(InvalidSearchQuery) as err:
             resolve_field_list(fields, eventstore.Filter(orderby="timestamp"))
         assert "Cannot order" in six.text_type(err)
