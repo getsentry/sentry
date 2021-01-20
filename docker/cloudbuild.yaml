@@ -25,8 +25,6 @@ steps:
         '--cache=true',
         '--build-arg',
         'SOURCE_COMMIT=$COMMIT_SHA',
-        '--build-arg',
-        'PY_VER=3.6.10',
         '--destination=us.gcr.io/$PROJECT_ID/sentry:$COMMIT_SHA',
         '-f',
         './docker/Dockerfile',
