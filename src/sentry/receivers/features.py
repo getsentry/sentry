@@ -485,7 +485,7 @@ def record_inbox_out(project, user, group, action, inbox_date_added, **kwargs):
         default_user_id = project.organization.get_default_owner().id
 
     analytics.record(
-        "inbox.inbox_out",
+        "inbox.issue_out",
         user_id=user_id,
         default_user_id=default_user_id,
         organization_id=project.organization_id,
