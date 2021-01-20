@@ -75,7 +75,7 @@ class NodeStorage(local, Service):
                 next(lines_iter)
 
                 for line in lines_iter:
-                    if line.strip() == subkey:
+                    if line.strip() == subkey.encode("utf8"):
                         break
 
             return json_loads(next(lines_iter))
