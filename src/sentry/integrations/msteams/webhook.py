@@ -279,10 +279,11 @@ class MsTeamsWebhookEndpoint(Endpoint):
                 elif resolve_type == "inCurrentRelease":
                     action_data.update({"statusDetails": {"inRelease": "latest"}})
         elif action_type == ACTION_TYPE.IGNORE:
-            action_data = {"status": "ignored"}
-            ignore_count = int(data["ignoreInput"])
-            if ignore_count > 0:
-                action_data.update({"statusDetails": {"ignoreCount": ignore_count}})
+            ignore_count = data.get("ignoreInput")
+            if ignore_count:
+                action_data = {"status": "ignored"}
+                if int(ignore_count) > 0:
+                    action_data.update({"statusDetails": {"ignoreCount": int(ignore_count)}})
         elif action_type == ACTION_TYPE.ASSIGN:
             assignee = data["assignInput"]
             if assignee == "ME":

@@ -167,6 +167,15 @@ class StatusActionTest(BaseEventTest):
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
+    def test_no_ignore_input(self, verify):
+        resp = self.post_webhook(action_type=ACTION_TYPE.IGNORE, ignore_input="")
+        self.group1 = Group.objects.get(id=self.group1.id)
+
+        assert resp.status_code == 200, resp.content
+        assert self.group1.get_status() == GroupStatus.UNRESOLVED
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     def test_ignore_issue_with_additional_user_auth(self, verify):
         auth_idp = AuthProvider.objects.create(organization=self.org, provider="nobody")
         AuthIdentity.objects.create(auth_provider=auth_idp, user=self.user)
