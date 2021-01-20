@@ -10,35 +10,15 @@ from google.cloud import bigtable
 from google.cloud.bigtable.row_set import RowSet
 from django.utils import timezone
 
-from sentry.utils import json
 from sentry.nodestore.base import NodeStorage
-
-
-# Cache an instance of the encoder we want to use
-json_dumps = json.JSONEncoder(
-    separators=(",", ":"),
-    sort_keys=True,
-    skipkeys=False,
-    ensure_ascii=True,
-    check_circular=True,
-    allow_nan=True,
-    indent=None,
-    encoding="utf-8",
-    default=None,
-).encode
-
-json_loads = json._default_decoder.decode
 
 
 _connection_lock = Lock()
 _connection_cache = {}
 
 
-def _compress_data(orig_data, data, compression):
+def _compress_data(data, compression):
     flags = 0
-
-    if callable(compression):
-        compression = compression(orig_data)
 
     if compression == "zstd":
         flags |= BigtableNodeStorage._FLAG_COMPRESSED_ZSTD
@@ -147,37 +127,18 @@ class BigtableNodeStorage(NodeStorage):
     def connection(self):
         return get_connection(self.project, self.instance, self.table, self.options)
 
-    def get(self, id):
-        item_from_cache = self._get_cache_item(id)
-        if item_from_cache:
-            return item_from_cache
+    def _get_bytes(self, id):
+        return self.decode_row(self.connection.read_row(id))
 
-        data = self.decode_row(self.connection.read_row(id))
-        self._set_cache_item(id, data)
-        return data
-
-    def get_multi(self, id_list):
-        id_list = list(set(id_list))
-
-        if len(id_list) == 1:
-            return {id_list[0]: self.get(id_list[0])}
-
-        cache_items = self._get_cache_items(id_list)
-
-        if len(cache_items) == len(id_list):
-            return cache_items
-
-        uncached_ids = [id for id in id_list if id not in cache_items]
+    def _get_bytes_multi(self, id_list):
         rv = {}
         rows = RowSet()
-        for id in uncached_ids:
+        for id in id_list:
             rows.add_row_key(id)
             rv[id] = None
 
         for row in self.connection.read_rows(row_set=rows):
             rv[row.row_key.decode("utf-8")] = self.decode_row(row)
-        self._set_cache_items(rv)
-        rv.update(cache_items)
         return rv
 
     def decode_row(self, row):
@@ -209,18 +170,13 @@ class BigtableNodeStorage(NodeStorage):
         if self.flags_column in columns:
             flags = struct.unpack("B", columns[self.flags_column][0].value)[0]
 
-        data = _decompress_data(data, flags)
-        return json_loads(data)
+        return _decompress_data(data, flags)
 
-    def set(self, id, data, ttl=None):
+    def _set_bytes(self, id, data, ttl=None):
         row = self.encode_row(id, data, ttl)
         row.commit()
-        self._set_cache_item(id, data)
 
     def encode_row(self, id, data, ttl=None):
-        orig_data = data
-        data = json_dumps(data).encode("utf-8")
-
         row = self.connection.row(id)
         # Call to delete is just a state mutation,
         # and in this case is just used to clear all columns
@@ -256,7 +212,7 @@ class BigtableNodeStorage(NodeStorage):
         # is on or not for the data column.
         flags = 0
 
-        data, compression_flag = _compress_data(orig_data, data, self.compression)
+        data, compression_flag = _compress_data(data, self.compression)
         flags |= compression_flag
 
         # Only need to write the column at all if any flags

@@ -2,62 +2,66 @@
 
 from __future__ import absolute_import
 
+import pytest
+
 from datetime import timedelta
 from django.utils import timezone
 
+from sentry.nodestore.base import json_dumps
 from sentry.nodestore.django.models import Node
 from sentry.nodestore.django.backend import DjangoNodeStorage
-from sentry.testutils import TestCase
-from sentry.utils.compat import mock
+from sentry.utils.compat import mock, pickle
+from sentry.utils.strings import compress
 
 
-class DjangoNodeStorageTest(TestCase):
-    def setUp(self):
+@pytest.mark.django_db
+class TestDjangoNodeStorage:
+    def setup_method(self):
         self.ns = DjangoNodeStorage()
 
-    def test_get(self):
-        node = Node.objects.create(id="d2502ebbd7df41ceba8d3275595cac33", data={"foo": "bar"})
+    @pytest.mark.parametrize(
+        "node_data",
+        [
+            compress(b'{"foo": "bar"}'),
+            compress(pickle.dumps({"foo": "bar"})),
+            # hardcoded pickle value from python 3.6
+            compress(b"\x80\x03}q\x00X\x03\x00\x00\x00fooq\x01X\x03\x00\x00\x00barq\x02s."),
+            # hardcoded pickle value from python 2.7
+            compress(b"(dp0\nS'foo'\np1\nS'bar'\np2\ns."),
+        ],
+    )
+    def test_get(self, node_data):
+        node = Node.objects.create(id="d2502ebbd7df41ceba8d3275595cac33", data=node_data)
 
         result = self.ns.get(node.id)
-        assert result == node.data
+        assert result == {"foo": "bar"}
 
     def test_get_multi(self):
-        nodes = [
-            Node.objects.create(id="d2502ebbd7df41ceba8d3275595cac33", data={"foo": "bar"}),
-            Node.objects.create(id="5394aa025b8e401ca6bc3ddee3130edc", data={"foo": "baz"}),
-        ]
+        Node.objects.create(id="d2502ebbd7df41ceba8d3275595cac33", data=compress(b'{"foo": "bar"}'))
+        Node.objects.create(id="5394aa025b8e401ca6bc3ddee3130edc", data=compress(b'{"foo": "baz"}'))
 
         result = self.ns.get_multi(
             ["d2502ebbd7df41ceba8d3275595cac33", "5394aa025b8e401ca6bc3ddee3130edc"]
         )
-        assert result == dict((n.id, n.data) for n in nodes)
+        assert result == {
+            "d2502ebbd7df41ceba8d3275595cac33": {"foo": "bar"},
+            "5394aa025b8e401ca6bc3ddee3130edc": {"foo": "baz"},
+        }
 
     def test_set(self):
         self.ns.set("d2502ebbd7df41ceba8d3275595cac33", {"foo": "bar"})
-        assert Node.objects.get(id="d2502ebbd7df41ceba8d3275595cac33").data == {"foo": "bar"}
-
-    def test_set_multi(self):
-        self.ns.set_multi(
-            {
-                "d2502ebbd7df41ceba8d3275595cac33": {"foo": "bar"},
-                "5394aa025b8e401ca6bc3ddee3130edc": {"foo": "baz"},
-            }
+        assert Node.objects.get(id="d2502ebbd7df41ceba8d3275595cac33").data == compress(
+            b'{"foo":"bar"}'
         )
-        assert Node.objects.get(id="d2502ebbd7df41ceba8d3275595cac33").data == {"foo": "bar"}
-        assert Node.objects.get(id="5394aa025b8e401ca6bc3ddee3130edc").data == {"foo": "baz"}
-
-    def test_create(self):
-        node_id = self.ns.create({"foo": "bar"})
-        assert Node.objects.get(id=node_id).data == {"foo": "bar"}
 
     def test_delete(self):
-        node = Node.objects.create(id="d2502ebbd7df41ceba8d3275595cac33", data={"foo": "bar"})
+        node = Node.objects.create(id="d2502ebbd7df41ceba8d3275595cac33", data=b'{"foo": "bar"}')
 
         self.ns.delete(node.id)
         assert not Node.objects.filter(id=node.id).exists()
 
     def test_delete_multi(self):
-        node = Node.objects.create(id="d2502ebbd7df41ceba8d3275595cac33", data={"foo": "bar"})
+        node = Node.objects.create(id="d2502ebbd7df41ceba8d3275595cac33", data=b'{"foo": "bar"}')
 
         self.ns.delete_multi([node.id])
         assert not Node.objects.filter(id=node.id).exists()
@@ -67,11 +71,11 @@ class DjangoNodeStorageTest(TestCase):
         cutoff = now - timedelta(days=1)
 
         node = Node.objects.create(
-            id="d2502ebbd7df41ceba8d3275595cac33", timestamp=now, data={"foo": "bar"}
+            id="d2502ebbd7df41ceba8d3275595cac33", timestamp=now, data=b'{"foo": "bar"}'
         )
 
         node2 = Node.objects.create(
-            id="d2502ebbd7df41ceba8d3275595cac34", timestamp=cutoff, data={"foo": "bar"}
+            id="d2502ebbd7df41ceba8d3275595cac34", timestamp=cutoff, data=b'{"foo": "bar"}'
         )
 
         self.ns.cleanup(cutoff)
@@ -85,7 +89,7 @@ class DjangoNodeStorageTest(TestCase):
         node_3 = ("c" * 32, {"foo": "c"})
 
         for node_id, data in [node_1, node_2, node_3]:
-            Node.objects.create(id=node_id, data=data)
+            Node.objects.create(id=node_id, data=compress(json_dumps(data).encode("utf8")))
 
         # Get / get multi populates cache
         assert self.ns.get(node_1[0]) == node_1[1]
