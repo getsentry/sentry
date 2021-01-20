@@ -1,41 +1,48 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
+import {Client} from 'app/api';
 import MiniBarChart from 'app/components/charts/miniBarChart';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {t} from 'app/locale';
+import {TimeseriesValue} from 'app/types';
+import {SeriesDataUnit} from 'app/types/echarts';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 
-class EventChart extends React.Component {
-  static propTypes = {
-    api: PropTypes.object.isRequired,
-    since: PropTypes.number.isRequired,
-    resolution: PropTypes.string.isRequired,
-  };
+type Props = {
+  api: Client;
+  since: number;
+  resolution: string;
+};
 
-  state = this.getInitialState();
+type State = {
+  error: boolean;
+  loading: boolean;
+  rawData: Record<string, TimeseriesValue[]>;
+  stats: Record<string, SeriesDataUnit[]>;
+};
 
-  getInitialState() {
-    return {
-      error: false,
-      loading: true,
-      rawData: {
-        'events.total': null,
-        'events.dropped': null,
-      },
-      stats: {received: [], rejected: []},
-    };
-  }
+const initialState: State = {
+  error: false,
+  loading: true,
+  rawData: {
+    'events.total': [],
+    'events.dropped': [],
+  },
+  stats: {received: [], rejected: []},
+};
+
+class EventChart extends React.Component<Props, State> {
+  state: State = initialState;
 
   componentWillMount() {
     this.fetchData();
   }
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: Props) {
     if (this.props.since !== nextProps.since) {
-      this.setState(this.getInitialState(), this.fetchData);
+      this.setState(initialState, this.fetchData);
     }
   }
 
@@ -79,8 +86,8 @@ class EventChart extends React.Component {
 
   processOrgData() {
     const {rawData} = this.state;
-    const sReceived = {};
-    const sRejected = {};
+    const sReceived: Record<string, number> = {};
+    const sRejected: Record<string, number> = {};
     const aReceived = [0, 0]; // received, points
 
     rawData['events.total'].forEach((point, idx) => {
@@ -103,12 +110,12 @@ class EventChart extends React.Component {
     this.setState({
       stats: {
         rejected: Object.keys(sRejected).map(ts => ({
-          name: ts * 1000,
+          name: parseInt(ts, 10) * 1000,
           value: sRejected[ts] || 0,
         })),
         accepted: Object.keys(sReceived).map(ts =>
           // total number of events accepted (received - rejected)
-          ({name: ts * 1000, value: sReceived[ts] - sRejected[ts]})
+          ({name: parseInt(ts, 10) * 1000, value: sReceived[ts] - sRejected[ts]})
         ),
       },
       loading: false,

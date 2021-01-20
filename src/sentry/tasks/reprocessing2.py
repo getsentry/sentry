@@ -1,16 +1,25 @@
 from __future__ import absolute_import
 
 import time
+import logging
+import six
+import zstandard
 
 from django.db import transaction
 
 from sentry import eventstore, eventstream, models, nodestore
 from sentry.eventstore.models import Event
 from sentry.utils.query import celery_run_batch_query
-
+from sentry.utils import metrics
+from sentry.utils.sdk import set_current_project
+from sentry.eventstore.processing import event_processing_store
 from sentry.tasks.base import instrumented_task, retry
+from sentry.eventstore.processing.base import _get_unprocessed_key
+from sentry.lang.native.utils import is_minidump_event
 
 GROUP_REPROCESSING_CHUNK_SIZE = 100
+
+nodestore_stats_logger = logging.getLogger("sentry.nodestore.stats")
 
 
 @instrumented_task(
@@ -180,3 +189,92 @@ def finish_reprocessing(project_id, group_id):
     from sentry import similarity
 
     similarity.delete(None, group)
+
+
+def _json_size(*json_blobs):
+    from sentry.nodestore.bigtable.backend import json_dumps
+
+    bytestring = b"\n".join(json_dumps(data).encode("utf8") for data in json_blobs)
+    cctx = zstandard.ZstdCompressor()
+    return len(cctx.compress(bytestring))
+
+
+@instrumented_task(name="sentry.tasks.reprocessing2.capture_nodestore_stats")
+def capture_nodestore_stats(cache_key, project_id, event_id):
+    set_current_project(project_id)
+
+    from sentry.eventstore.compressor import deduplicate
+    from sentry.eventstore.models import Event
+
+    node_id = Event.generate_node_id(project_id, event_id)
+    data = nodestore.get(node_id)
+
+    if not data:
+        metrics.incr("eventstore.compressor.error", tags={"reason": "no_data"})
+        return
+
+    old_event_size = _json_size(data)
+
+    unprocessed_data = event_processing_store.get(_get_unprocessed_key(cache_key))
+    event_processing_store.delete_by_key(_get_unprocessed_key(cache_key))
+
+    tags = {
+        "with_reprocessing": bool(unprocessed_data),
+        "platform": data.get("platform") or "none",
+        "is_minidump": is_minidump_event(data),
+    }
+
+    if unprocessed_data:
+        metrics.incr("nodestore_stats.with_reprocessing")
+
+        concatenated_size = _json_size(data, unprocessed_data)
+        metrics.timing("events.size.concatenated", concatenated_size, tags=tags)
+        metrics.timing(
+            "events.size.concatenated.ratio", concatenated_size / old_event_size, tags=tags
+        )
+
+        _data = dict(data)
+        _data["__nodestore_reprocessing"] = unprocessed_data
+        simple_concatenated_size = _json_size(_data)
+        metrics.timing("events.size.simple_concatenated", simple_concatenated_size, tags=tags)
+        metrics.timing(
+            "events.size.simple_concatenated.ratio",
+            simple_concatenated_size / old_event_size,
+            tags=tags,
+        )
+    else:
+        metrics.incr("nodestore_stats.without_reprocessing")
+
+    new_data, extra_keys = deduplicate(dict(data))
+    total_size = event_size = _json_size(new_data)
+
+    for key, value in six.iteritems(extra_keys):
+        if nodestore.get(key) is not None:
+            metrics.incr("eventstore.compressor.hits", tags=tags)
+            # do not continue, nodestore.set() should bump TTL
+        else:
+            metrics.incr("eventstore.compressor.misses", tags=tags)
+            total_size += _json_size(value)
+
+        # key is md5sum of content
+        # do not store actual value to keep prod impact to a minimum
+        nodestore.set(key, {})
+
+    metrics.timing("events.size.deduplicated", event_size, tags=tags)
+    metrics.timing("events.size.deduplicated.total_written", total_size, tags=tags)
+
+    metrics.timing("events.size.deduplicated.ratio", event_size / old_event_size, tags=tags)
+    metrics.timing(
+        "events.size.deduplicated.total_written.ratio", total_size / old_event_size, tags=tags
+    )
+
+    if total_size > old_event_size:
+        nodestore_stats_logger.info(
+            "events.size.deduplicated.details",
+            extra={
+                "project_id": project_id,
+                "event_id": event_id,
+                "total_size": total_size,
+                "old_event_size": old_event_size,
+            },
+        )

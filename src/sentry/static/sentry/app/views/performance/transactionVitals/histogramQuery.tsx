@@ -8,7 +8,7 @@ import GenericDiscoverQuery, {
 } from 'app/utils/discover/genericDiscoverQuery';
 import withApi from 'app/utils/withApi';
 
-import {HistogramData} from './types';
+import {DataFilter, HistogramData} from './types';
 
 type Histograms = Record<string, HistogramData[]>;
 
@@ -18,7 +18,7 @@ type HistogramProps = {
   min?: number;
   max?: number;
   precision?: number;
-  dataFilter?: string;
+  dataFilter?: DataFilter;
 };
 
 type RequestProps = DiscoverQueryProps & HistogramProps;

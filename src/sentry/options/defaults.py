@@ -171,10 +171,10 @@ register("msteams.app-id")
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK)
 register("aws-lambda.secret-access-key", flags=FLAG_PRIORITIZE_DISK)
 register("aws-lambda.cloudformation-url")
-register("aws-lambda.node-layer-name")
-register("aws-lambda.node-layer-version")
+register("aws-lambda.account-number")
+register("aws-lambda.node.layer-name")
+register("aws-lambda.node.layer-version")
 # the region of the host account we use for assuming the role
-register("aws-lambda.host-account-id")
 register("aws-lambda.host-region", default="us-east-2")
 
 # Snuba
@@ -255,6 +255,9 @@ register("eventstore.use-nodestore", default=False, flags=FLAG_PRIORITIZE_DISK)
 
 # Alerts / Workflow incremental rollout rate. Tied to feature handlers in getsentry
 register("workflow.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
+
+# Incremental rollout rate for Workflow Owners related features.
+register("workflow-owners.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
 
 # Performance metric alerts incremental rollout rate. Tied to feature handlers
 # in getsentry

@@ -16,6 +16,7 @@ from time import time
 from sentry.app import locks
 from sentry.db.models import (
     ArrayField,
+    BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     JSONField,
@@ -136,7 +137,7 @@ class Release(Model):
 
     # materialized stats
     commit_count = BoundedPositiveIntegerField(null=True, default=0)
-    last_commit_id = BoundedPositiveIntegerField(null=True)
+    last_commit_id = BoundedBigIntegerField(null=True)
     authors = ArrayField(null=True)
     total_deploys = BoundedPositiveIntegerField(null=True, default=0)
     last_deploy_id = BoundedPositiveIntegerField(null=True)
@@ -677,7 +678,7 @@ class Release(Model):
                 )
                 group = Group.objects.get(id=group_id)
                 group.update(status=GroupStatus.RESOLVED)
-                remove_group_from_inbox(group)
+                remove_group_from_inbox(group, action="resolved", user=actor)
                 metrics.incr("group.resolved", instance="in_commit", skip_internal=True)
 
             issue_resolved.send_robust(
