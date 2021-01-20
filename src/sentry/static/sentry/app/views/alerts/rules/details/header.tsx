@@ -6,6 +6,7 @@ import moment from 'moment';
 
 import Breadcrumbs from 'app/components/breadcrumbs';
 import Count from 'app/components/count';
+import DateTime from 'app/components/dateTime';
 import DropdownControl from 'app/components/dropdownControl';
 import Duration from 'app/components/duration';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
@@ -78,8 +79,6 @@ export default class DetailsHeader extends React.Component<Props> {
     const isIncidentReady = !!incident && !hasIncidentDetailsError;
     // ex - Wed, May 27, 2020 11:09 AM
     const dateFormat = use24Hours() ? 'ddd, MMM D, YYYY HH:mm' : 'llll';
-    const dateStarted =
-      incident && moment(new Date(incident.dateStarted)).format(dateFormat);
     const duration =
       incident &&
       moment(incident.dateClosed ? new Date(incident.dateClosed) : new Date()).diff(
@@ -117,7 +116,7 @@ export default class DetailsHeader extends React.Component<Props> {
             </IncidentTitle>
             <IncidentSubTitle loading={!isIncidentReady}>
               {t('Triggered: ')}
-              {dateStarted}
+              {incident && <DateTime date={incident.dateStarted} format={dateFormat} />}
             </IncidentSubTitle>
           </div>
 
