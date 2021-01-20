@@ -7,6 +7,7 @@ import ExternalLink from 'app/components/links/externalLink';
 import {t, tct} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {DynamicSamplingRules, DynamicSamplingRuleType} from 'app/types/dynamicSampling';
+import withProject from 'app/utils/withProject';
 import AsyncView from 'app/views/asyncView';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
@@ -20,10 +21,10 @@ import {getPlatformDocLink} from './utils';
 type Props = RouteComponentProps<{projectId: string; orgId: string}, {}> &
   AsyncView['props'] & {
     organization: Organization;
+    project: Project;
   };
 
 type State = AsyncView['state'] & {
-  project: Project | null;
   transactionRules: DynamicSamplingRules;
 };
 
@@ -41,8 +42,8 @@ class FiltersAndSampling extends AsyncView<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {orgId, projectId} = this.props.params;
-    return [['project', `/projects/${orgId}/${projectId}/`]];
+    // TODO(PRISCILA): it will come soon
+    return [['', '']];
   }
 
   componentDidMount() {
@@ -93,11 +94,8 @@ class FiltersAndSampling extends AsyncView<Props, State> {
   };
 
   renderBody() {
-    const {transactionRules, project} = this.state;
-
-    if (!project) {
-      return null;
-    }
+    const {transactionRules} = this.state;
+    const {project} = this.props;
 
     const {platform} = project;
     const platformDocLink = getPlatformDocLink(platform);
@@ -128,4 +126,4 @@ class FiltersAndSampling extends AsyncView<Props, State> {
   }
 }
 
-export default FiltersAndSampling;
+export default withProject(FiltersAndSampling);
