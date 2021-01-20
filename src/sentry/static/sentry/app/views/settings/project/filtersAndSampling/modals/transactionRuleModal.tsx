@@ -29,6 +29,7 @@ const conditionChoices = [
 type Props = ModalRenderProps & {
   organization: Organization;
   onSubmit: (rule: DynamicSamplingRule) => void;
+  platformDocLink?: string;
 };
 
 type State = {
@@ -73,7 +74,7 @@ class TransactionRuleModal extends React.Component<Props, State> {
   };
 
   render() {
-    const {Header, Body, closeModal} = this.props;
+    const {Header, Body, closeModal, platformDocLink} = this.props;
     const {tracing, condition, sampleRate} = this.state;
 
     const submitDisabled = !defined(sampleRate);
@@ -107,10 +108,14 @@ class TransactionRuleModal extends React.Component<Props, State> {
                   onClick={this.handleClickTracing}
                   isChecked={tracing}
                 />
-                {tct(
-                  'Include all related transactions by trace ID. This can span across multiple projects. All related errors will remain. [link:Learn more about tracing].',
-                  {link: <ExternalLink href="/" />}
-                )}
+                {platformDocLink
+                  ? tct(
+                      'Include all related transactions by trace ID. This can span across multiple projects. All related errors will remain. [link:Learn more about tracing].',
+                      {link: <ExternalLink href={platformDocLink} />}
+                    )
+                  : t(
+                      'Include all related transactions by trace ID. This can span across multiple projects. All related errors will remain.'
+                    )}
               </TracingWrapper>
             </Field>
             <Field

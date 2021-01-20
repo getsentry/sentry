@@ -77,7 +77,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
     // TODO(Priscila): Finalize this logic according to the new structure
   };
 
-  handleAddTransactionRule = () => {
+  handleAddTransactionRule = (platformDocLink?: string) => () => {
     const {organization} = this.props;
     return openModal(
       modalProps => (
@@ -85,6 +85,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
           {...modalProps}
           organization={organization}
           onSubmit={this.handleSaveRule}
+          platformDocLink={platformDocLink}
         />
       ),
       {
@@ -118,7 +119,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
         </TextBlock>
         <TransactionRules
           rules={transactionRules}
-          onAddRule={this.handleAddTransactionRule}
+          onAddRule={this.handleAddTransactionRule(platformDocLink)}
           platformDocLink={platformDocLink}
         />
       </React.Fragment>
