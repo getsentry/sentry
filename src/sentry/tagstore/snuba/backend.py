@@ -769,7 +769,6 @@ class SnubaTagStorage(TagStorage):
                 # user.alias is a pseudo column in discover. It is computed by coalescing
                 # together multiple user attributes. Here we get the coalese function used,
                 # and resolve it to the corresponding snuba query
-                # dataset = Dataset.Discover
                 resolver = snuba.resolve_column(dataset)
                 snuba_name = FIELD_ALIASES[USER_DISPLAY_ALIAS].get_field()
                 snuba.resolve_complex_column(snuba_name, resolver)
