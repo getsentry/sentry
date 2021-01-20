@@ -243,7 +243,7 @@ def timer(name, prefix="snuba.client"):
     try:
         yield
     finally:
-        metrics.timing(u"{}.{}".format(prefix, name), time.time() - t)
+        metrics.timing("{}.{}".format(prefix, name), time.time() - t)
 
 
 @contextmanager
@@ -347,9 +347,9 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
 
     measurement_name = get_measurement_name(name)
     if "measurements_key" in DATASETS[dataset] and measurement_name:
-        default = u"measurements[{}]".format(measurement_name)
+        default = "measurements[{}]".format(measurement_name)
     else:
-        default = u"tags[{}]".format(name)
+        default = "tags[{}]".format(name)
 
     return DATASETS[dataset].get(name, default)
 
@@ -370,7 +370,7 @@ def get_function_index(column_expr, depth=0):
          [func, [arg1], alias] => function(arg1) AS alias
      You can also have a function part of an argument list:
          [func1, [arg1, func2, [arg2, arg3]]] => func1(arg1, func2(arg2, arg3))
-     """
+    """
     index = None
     if isinstance(column_expr, (tuple, list)):
         i = 0
@@ -589,7 +589,7 @@ class SnubaQueryParams(object):
         rollup=None,
         referrer=None,
         is_grouprelease=False,
-        **kwargs
+        **kwargs,
     ):
         # TODO: instead of having events be the default, make dataset required.
         self.dataset = dataset or Dataset.Events
@@ -620,7 +620,7 @@ def raw_query(
     rollup=None,
     referrer=None,
     is_grouprelease=False,
-    **kwargs
+    **kwargs,
 ):
     """
     Sends a query to snuba.  See `SnubaQueryParams` docstring for param
@@ -636,7 +636,7 @@ def raw_query(
         aggregations=aggregations,
         rollup=rollup,
         is_grouprelease=is_grouprelease,
-        **kwargs
+        **kwargs,
     )
     return bulk_raw_query([snuba_params], referrer=referrer)[0]
 
@@ -658,7 +658,7 @@ def bulk_raw_query(snuba_param_list, referrer=None):
                     query_params["debug"] = True
                 body = json.dumps(query_params)
                 with thread_hub.start_span(
-                    op="snuba", description=u"query {}".format(referrer)
+                    op="snuba", description="query {}".format(referrer)
                 ) as span:
                     span.set_tag("referrer", referrer)
                     for param_key, param_data in six.iteritems(query_params):
@@ -673,7 +673,7 @@ def bulk_raw_query(snuba_param_list, referrer=None):
 
     with sentry_sdk.start_span(
         op="start_snuba_query",
-        description=u"running {} snuba queries".format(len(snuba_param_list)),
+        description="running {} snuba queries".format(len(snuba_param_list)),
     ) as span:
         span.set_tag("referrer", headers.get("referer", "<unknown>"))
         if len(snuba_param_list) > 1:
@@ -705,7 +705,7 @@ def bulk_raw_query(snuba_param_list, referrer=None):
                 logger.error("snuba.query.invalid-json")
                 raise SnubaError("Failed to parse snuba error response")
             raise UnexpectedResponseError(
-                u"Could not decode JSON response: {}".format(response.data)
+                "Could not decode JSON response: {}".format(response.data)
             )
 
         if response.status != 200:
@@ -722,7 +722,7 @@ def bulk_raw_query(snuba_param_list, referrer=None):
                 else:
                     raise SnubaError(error["message"])
             else:
-                raise SnubaError(u"HTTP {}".format(response.status))
+                raise SnubaError("HTTP {}".format(response.status))
 
         # Forward and reverse translation maps from model ids to snuba keys, per column
         body["data"] = [reverse(d) for d in body["data"]]
@@ -741,7 +741,7 @@ def query(
     aggregations=None,
     selected_columns=None,
     totals=None,
-    **kwargs
+    **kwargs,
 ):
 
     aggregations = aggregations or [["count()", "", "aggregate"]]
@@ -760,7 +760,7 @@ def query(
             aggregations=aggregations,
             selected_columns=selected_columns,
             totals=totals,
-            **kwargs
+            **kwargs,
         )
     except (QueryOutsideRetentionError, QueryOutsideGroupActivityError):
         if totals:
@@ -834,9 +834,9 @@ def resolve_column(dataset):
 
         measurement_name = get_measurement_name(col)
         if "measurements_key" in DATASETS[dataset] and measurement_name:
-            return u"measurements[{}]".format(measurement_name)
+            return "measurements[{}]".format(measurement_name)
 
-        return u"tags[{}]".format(col)
+        return "tags[{}]".format(col)
 
     return _resolve_column
 
@@ -871,9 +871,9 @@ def resolve_condition(cond, column_resolver):
                         func_args[i] = column_resolver(arg)
                 else:
                     if isinstance(arg, six.string_types):
-                        func_args[i] = u"'{}'".format(arg)
+                        func_args[i] = "'{}'".format(arg)
                     elif isinstance(arg, datetime):
-                        func_args[i] = u"'{}'".format(arg.isoformat())
+                        func_args[i] = "'{}'".format(arg.isoformat())
                     else:
                         func_args[i] = arg
 
@@ -935,7 +935,7 @@ def _aliased_query_impl(
     dataset=None,
     orderby=None,
     condition_resolver=None,
-    **kwargs
+    **kwargs,
 ):
     if dataset is None:
         raise ValueError("A dataset is required, and is no longer automatically detected.")
@@ -972,7 +972,7 @@ def _aliased_query_impl(
             order_field = order.lstrip("-")
             if order_field not in derived_columns:
                 order_field = resolve_func(order_field)
-            updated_order.append(u"{}{}".format("-" if order.startswith("-") else "", order_field))
+            updated_order.append("{}{}".format("-" if order.startswith("-") else "", order_field))
         orderby = updated_order
 
     return raw_query(
@@ -987,7 +987,7 @@ def _aliased_query_impl(
         having=having,
         dataset=dataset,
         orderby=orderby,
-        **kwargs
+        **kwargs,
     )
 
 
@@ -1082,7 +1082,7 @@ def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None
         for field_with_order in orderby:
             field = field_with_order.lstrip("-")
             resolved_orderby.append(
-                u"{}{}".format(
+                "{}{}".format(
                     "-" if field_with_order.startswith("-") else "",
                     field if field in derived_columns else resolve_func(field),
                 )
@@ -1287,17 +1287,17 @@ def naiveify_datetime(dt):
 
 
 def quantize_time(time, key_hash, duration=300):
-    """ Adds jitter based on the key_hash around start/end times for caching snuba queries
+    """Adds jitter based on the key_hash around start/end times for caching snuba queries
 
-        Given a time and a key_hash this should result in a timestamp that remains the same for a duration
-        The end of the duration will be different per key_hash which avoids spikes in the number of queries
-        Must be based on the key_hash so they cache keys are consistent per query
+    Given a time and a key_hash this should result in a timestamp that remains the same for a duration
+    The end of the duration will be different per key_hash which avoids spikes in the number of queries
+    Must be based on the key_hash so they cache keys are consistent per query
 
-        For example: the time is 17:02:00, there's two queries query A has a key_hash of 30, query B has a key_hash of
-        60, we have the default duration of 300 (5 Minutes)
-        - query A will have the suffix of 17:00:30 for a timewindow from 17:00:30 until 17:05:30
-            - eg. Even when its 17:05:00 the suffix will still be 17:00:30
-        - query B will have the suffix of 17:01:00 for a timewindow from 17:01:00 until 17:06:00
+    For example: the time is 17:02:00, there's two queries query A has a key_hash of 30, query B has a key_hash of
+    60, we have the default duration of 300 (5 Minutes)
+    - query A will have the suffix of 17:00:30 for a timewindow from 17:00:30 until 17:05:30
+        - eg. Even when its 17:05:00 the suffix will still be 17:00:30
+    - query B will have the suffix of 17:01:00 for a timewindow from 17:01:00 until 17:06:00
     """
     # Use the hash so that seconds past the hour gets rounded differently per query.
     jitter = key_hash % duration

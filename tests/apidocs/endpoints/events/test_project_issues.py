@@ -12,7 +12,7 @@ class ProjectIssuesDocs(APIDocsTestCase):
         self.create_event("a")
         self.create_event("b")
 
-        self.url = u"/api/0/projects/{}/{}/issues/".format(
+        self.url = "/api/0/projects/{}/{}/issues/".format(
             self.project.organization.slug, self.project.slug
         )
 

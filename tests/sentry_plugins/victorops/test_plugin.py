@@ -98,12 +98,12 @@ class VictorOpsPluginTest(PluginTestCase):
 
     def test_build_description_unicode(self):
         event = self.store_event(
-            data={"message": u"abcd\xde\xb4", "culprit": "foo.bar", "level": "error"},
+            data={"message": "abcd\xde\xb4", "culprit": "foo.bar", "level": "error"},
             project_id=self.project.id,
         )
         event.interfaces = {
-            u"Message": UnicodeTestInterface(u"abcd\xde\xb4", u"\xdc\xea\x80\x80abcd\xde\xb4")
+            "Message": UnicodeTestInterface("abcd\xde\xb4", "\xdc\xea\x80\x80abcd\xde\xb4")
         }
 
         description = self.plugin.build_description(event)
-        assert description == u"abcd\xde\xb4\n-----------\n\n\xdc\xea\x80\x80abcd\xde\xb4"
+        assert description == "abcd\xde\xb4\n-----------\n\n\xdc\xea\x80\x80abcd\xde\xb4"

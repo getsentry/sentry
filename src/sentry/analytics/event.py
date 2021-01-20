@@ -56,13 +56,13 @@ class Map(Attribute):
         for attr in self.attributes:
             nv = items.pop(attr.name, None)
             if attr.required and nv is None:
-                raise ValueError(u"{} is required (cannot be None)".format(attr.name))
+                raise ValueError("{} is required (cannot be None)".format(attr.name))
 
             data[attr.name] = attr.extract(nv)
 
         if items:
             raise ValueError(
-                u"Unknown attributes: {}".format(", ".join(map(six.text_type, six.iterkeys(items))))
+                "Unknown attributes: {}".format(", ".join(map(six.text_type, six.iterkeys(items))))
             )
 
         return data
@@ -89,11 +89,11 @@ class Event(object):
         for attr in self.attributes:
             nv = items.pop(attr.name, None)
             if attr.required and nv is None:
-                raise ValueError(u"{} is required (cannot be None)".format(attr.name))
+                raise ValueError("{} is required (cannot be None)".format(attr.name))
             data[attr.name] = attr.extract(nv)
 
         if items:
-            raise ValueError(u"Unknown attributes: {}".format(", ".join(six.iterkeys(items))))
+            raise ValueError("Unknown attributes: {}".format(", ".join(six.iterkeys(items))))
 
         self.data = data
 

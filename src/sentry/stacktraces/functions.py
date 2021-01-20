@@ -142,11 +142,11 @@ def trim_native_function_name(function, normalize_lambdas=True):
     # around that by replacing it with a character we do not observe in
     # `split_func_tokens` or `replace_enclosed_string`.
     function = (
-        function.replace("operator<<", u"operator⟨⟨")
-        .replace("operator<", u"operator⟨")
-        .replace("operator()", u"operator◯")
-        .replace(" -> ", u" ⟿ ")
-        .replace("`anonymous namespace'", u"〔anonymousnamespace〕")
+        function.replace("operator<<", "operator⟨⟨")
+        .replace("operator<", "operator⟨")
+        .replace("operator()", "operator◯")
+        .replace(" -> ", " ⟿ ")
+        .replace("`anonymous namespace'", "〔anonymousnamespace〕")
     )
 
     # normalize C++ lambdas.  This is necessary because different
@@ -165,7 +165,7 @@ def trim_native_function_name(function, normalize_lambdas=True):
     # The regular expression matches the trailing "::" to avoid accidental
     # replacement in mangled function names.
     if normalize_lambdas:
-        function = _anon_namespace_re.sub(u"〔anonymousnamespace〕::", function)
+        function = _anon_namespace_re.sub("〔anonymousnamespace〕::", function)
 
     # Remove the arguments if there is one.
     def process_args(value, start):
@@ -210,7 +210,7 @@ def trim_native_function_name(function, normalize_lambdas=True):
     # ["unsigned", "int", "whatever"] -> whatever
     # ["@objc", "whatever", "->", "int"] -> whatever
     try:
-        func_token = tokens[tokens.index(u"⟿") - 1]
+        func_token = tokens[tokens.index("⟿") - 1]
     except ValueError:
         if tokens:
             func_token = tokens[-1]
@@ -219,10 +219,10 @@ def trim_native_function_name(function, normalize_lambdas=True):
 
     if func_token:
         function = (
-            func_token.replace(u"⟨", "<")
-            .replace(u"◯", "()")
-            .replace(u" ⟿ ", " -> ")
-            .replace(u"〔anonymousnamespace〕", "`anonymous namespace'")
+            func_token.replace("⟨", "<")
+            .replace("◯", "()")
+            .replace(" ⟿ ", " -> ")
+            .replace("〔anonymousnamespace〕", "`anonymous namespace'")
         )
 
     # This really should never happen

@@ -30,7 +30,7 @@ def sane_repr(*attrs):
 
         pairs = ("%s=%s" % (a, repr(getattr(self, a, None))) for a in attrs)
 
-        return u"<%s at 0x%x: %s>" % (cls, id(self), ", ".join(pairs))
+        return "<%s at 0x%x: %s>" % (cls, id(self), ", ".join(pairs))
 
     return _repr
 
@@ -153,7 +153,7 @@ def __model_class_prepared(sender, **kwargs):
         return
 
     if not hasattr(sender, "__core__"):
-        raise ValueError(u"{!r} model has not defined __core__".format(sender))
+        raise ValueError("{!r} model has not defined __core__".format(sender))
 
 
 signals.pre_save.connect(__model_pre_save)

@@ -6,8 +6,10 @@ from django.db import migrations, models
 
 BATCH_SIZE = 500
 
+
 def obliterate_group_inbox(apps, schema_editor):
     import progressbar
+
     GroupInbox = apps.get_model("sentry.GroupInbox")
 
     total = GroupInbox.objects.all().count()
@@ -23,7 +25,9 @@ def obliterate_group_inbox(apps, schema_editor):
     bar.start()
     progress = 0
     while True:
-        deleted, _ = GroupInbox.objects.filter(id__in=GroupInbox.objects.all()[:BATCH_SIZE]).delete()
+        deleted, _ = GroupInbox.objects.filter(
+            id__in=GroupInbox.objects.all()[:BATCH_SIZE]
+        ).delete()
         progress += deleted
         bar.update(min(progress, total))
         if not deleted:
@@ -49,11 +53,8 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = False
 
-
     dependencies = [
-        ('sentry', '0120_commit_author_charfield'),
+        ("sentry", "0120_commit_author_charfield"),
     ]
 
-    operations = [
-        migrations.RunPython(obliterate_group_inbox,migrations.RunPython.noop)
-    ]
+    operations = [migrations.RunPython(obliterate_group_inbox, migrations.RunPython.noop)]

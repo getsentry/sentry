@@ -169,14 +169,15 @@ class EmailActionHandlerTest(FireTest, TestCase):
     @responses.activate
     def run_test(self, incident, method):
         action = self.create_alert_rule_trigger_action(
-            target_identifier=six.text_type(self.user.id), triggered_for_incident=incident,
+            target_identifier=six.text_type(self.user.id),
+            triggered_for_incident=incident,
         )
         handler = EmailActionHandler(action, incident, self.project)
         with self.tasks():
             handler.fire(1000)
         out = mail.outbox[0]
         assert out.to == [self.user.email]
-        assert out.subject == u"[{}] {} - {}".format(
+        assert out.subject == "[{}] {} - {}".format(
             INCIDENT_STATUS[IncidentStatus(incident.status)], incident.title, self.project.slug
         )
 
@@ -251,7 +252,9 @@ class SlackWorkspaceActionHandlerTest(FireTest, TestCase):
 
         token = "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         integration = Integration.objects.create(
-            external_id="1", provider="slack", metadata={"access_token": token},
+            external_id="1",
+            provider="slack",
+            metadata={"access_token": token},
         )
         integration.add_organization(self.organization, self.user)
         channel_id = "some_id"
@@ -461,7 +464,10 @@ class PagerDutyActionHandlerTest(FireTest, TestCase):
 class SentryAppActionHandlerTest(FireTest, TestCase):
     def setUp(self):
         self.sentry_app = self.create_sentry_app(
-            name="foo", organization=self.organization, is_alertable=True, verify_install=False,
+            name="foo",
+            organization=self.organization,
+            is_alertable=True,
+            verify_install=False,
         )
         self.create_sentry_app_installation(
             slug=self.sentry_app.slug, organization=self.organization, user=self.user

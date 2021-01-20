@@ -49,7 +49,7 @@ def incident_attachment_info(incident, metric_value=None):
 
     ts = incident.date_started
 
-    title = u"{}: {}".format(status, alert_rule.name)
+    title = "{}: {}".format(status, alert_rule.name)
 
     title_link = absolute_uri(
         reverse(

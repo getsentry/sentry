@@ -23,15 +23,14 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0092_remove_trigger_threshold_type_nullable'),
+        ("sentry", "0092_remove_trigger_threshold_type_nullable"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='identity',
-            name='external_id',
+            model_name="identity",
+            name="external_id",
             field=models.TextField(),
         ),
     ]

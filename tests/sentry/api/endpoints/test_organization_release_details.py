@@ -559,7 +559,7 @@ class ReleaseDeleteTest(APITestCase):
             },
         )
         assert response.status_code == 400
-        assert response.data == {"refs": [u"Invalid repository names: not_a_repo"]}
+        assert response.data == {"refs": ["Invalid repository names: not_a_repo"]}
 
     def test_bad_commit_list(self):
         user = self.create_user(is_staff=False, is_superuser=False)

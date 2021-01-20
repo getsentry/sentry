@@ -187,7 +187,7 @@ class GitHubIssueBasicTest(TestCase):
         )
 
         resp = self.integration.get_create_issue_config(group=event.group, user=self.user)
-        assert resp[0]["choices"] == [(u"getsentry/sentry", u"sentry")]
+        assert resp[0]["choices"] == [("getsentry/sentry", "sentry")]
 
         responses.add(
             responses.GET,
@@ -199,15 +199,15 @@ class GitHubIssueBasicTest(TestCase):
         data = {"params": {"repo": "getsentry/hello"}}
         resp = self.integration.get_create_issue_config(group=event.group, user=self.user, **data)
         assert resp[0]["choices"] == [
-            (u"getsentry/hello", u"hello"),
-            (u"getsentry/sentry", u"sentry"),
+            ("getsentry/hello", "hello"),
+            ("getsentry/sentry", "sentry"),
         ]
         # link an issue
         data = {"params": {"repo": "getsentry/hello"}}
         resp = self.integration.get_link_issue_config(group=event.group, **data)
         assert resp[0]["choices"] == [
-            (u"getsentry/hello", u"hello"),
-            (u"getsentry/sentry", u"sentry"),
+            ("getsentry/hello", "hello"),
+            ("getsentry/sentry", "sentry"),
         ]
 
     @responses.activate

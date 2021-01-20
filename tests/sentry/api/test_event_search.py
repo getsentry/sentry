@@ -69,7 +69,11 @@ def test_parse_function():
         ["transaction.duration", "0.5"],
         None,
     )
-    assert parse_function("p50()") == ("p50", [], None,)
+    assert parse_function("p50()") == (
+        "p50",
+        [],
+        None,
+    )
     assert parse_function("p75(measurements.lcp)") == ("p75", ["measurements.lcp"], None)
     assert parse_function("apdex(300)") == ("apdex", ["300"], None)
     assert parse_function("failure_rate()") == ("failure_rate", [], None)
@@ -679,7 +683,9 @@ class ParseSearchQueryTest(unittest.TestCase):
 
         assert parse_search_query("!stack.in_app:false") == [
             SearchFilter(
-                key=SearchKey(name="stack.in_app"), operator="=", value=SearchValue(raw_value=1),
+                key=SearchKey(name="stack.in_app"),
+                operator="=",
+                value=SearchValue(raw_value=1),
             )
         ]
 
@@ -1011,7 +1017,7 @@ def _noeq(xy):
 
 # message ("foo bar baz")
 def _m(x):
-    return ["notEquals", [["positionCaseInsensitive", ["message", u"'{}'".format(x)]], 0]]
+    return ["notEquals", [["positionCaseInsensitive", ["message", "'{}'".format(x)]], 0]]
 
 
 # message ("foo bar baz") using operators instead of functions
@@ -1070,7 +1076,8 @@ class ParseBooleanSearchQueryTest(TestCase):
         assert _filter.conditions == [
             [
                 _or(
-                    ["like", ["error.value", "Deadlock%"]], ["notLike", ["stack.filename", "%.py"]],
+                    ["like", ["error.value", "Deadlock%"]],
+                    ["notLike", ["stack.filename", "%.py"]],
                 ),
                 "=",
                 1,
@@ -1113,7 +1120,14 @@ class ParseBooleanSearchQueryTest(TestCase):
             "user.email:foo@example.com AND user.email:bar@example.com OR user.email:foobar@example.com AND user.email:hello@example.com AND user.email:hi@example.com"
         )
         assert result.conditions == [
-            [_or(_and(self.foo, self.bar), _and(self.foobar, _and(self.hello, self.hi)),), "=", 1]
+            [
+                _or(
+                    _and(self.foo, self.bar),
+                    _and(self.foobar, _and(self.hello, self.hi)),
+                ),
+                "=",
+                1,
+            ]
         ]
 
         # absurdly long
@@ -1127,7 +1141,8 @@ class ParseBooleanSearchQueryTest(TestCase):
                     _or(
                         _and(self.foobar, _and(self.hello, self.hi)),
                         _or(
-                            _and(self.foo, self.bar), _and(self.foobar, _and(self.hello, self.hi)),
+                            _and(self.foo, self.bar),
+                            _and(self.foobar, _and(self.hello, self.hi)),
                         ),
                     ),
                 ),
@@ -1164,7 +1179,14 @@ class ParseBooleanSearchQueryTest(TestCase):
             "(user.email:foo@example.com OR (user.email:bar@example.com OR (user.email:foobar@example.com AND user.email:hello@example.com OR user.email:hi@example.com)))"
         )
         assert result.conditions == [
-            [_or(self.foo, _or(self.bar, _or(_and(self.foobar, self.hello), self.hi)),), "=", 1]
+            [
+                _or(
+                    self.foo,
+                    _or(self.bar, _or(_and(self.foobar, self.hello), self.hi)),
+                ),
+                "=",
+                1,
+            ]
         ]
 
     def test_grouping_without_boolean_terms(self):
@@ -1217,7 +1239,10 @@ class ParseBooleanSearchQueryTest(TestCase):
                         _or(
                             _and(
                                 _eq("ab"),
-                                _and(_or(_eq("cd"), _eq("ef")), _and(_eq("gh"), _eq("ij")),),
+                                _and(
+                                    _or(_eq("cd"), _eq("ef")),
+                                    _and(_eq("gh"), _eq("ij")),
+                                ),
                             ),
                             _eq("kl"),
                         ),
@@ -1250,7 +1275,10 @@ class ParseBooleanSearchQueryTest(TestCase):
                         _or(
                             _eq("ab"),
                             _or(
-                                _and(_eq("cd"), _and(_eq("ef"), _and(_eq("gh"), _eq("ij"))),),
+                                _and(
+                                    _eq("cd"),
+                                    _and(_eq("ef"), _and(_eq("gh"), _eq("ij"))),
+                                ),
                                 _eq("kl"),
                             ),
                         ),
@@ -1264,7 +1292,10 @@ class ParseBooleanSearchQueryTest(TestCase):
                 [
                     [
                         _or(
-                            _and(_or(_eq("ab"), _eq("cd")), _and(_eq("ef"), _eq("gh")),),
+                            _and(
+                                _or(_eq("ab"), _eq("cd")),
+                                _and(_eq("ef"), _eq("gh")),
+                            ),
                             _and(_eq("ij"), _eq("kl")),
                         ),
                         "=",
@@ -1277,7 +1308,8 @@ class ParseBooleanSearchQueryTest(TestCase):
                 [
                     [
                         _or(
-                            _and(_eq("ab"), _and(_eq("cd"), _eq("ef"))), _and(_eq("gh"), _eq("ij")),
+                            _and(_eq("ab"), _and(_eq("cd"), _eq("ef"))),
+                            _and(_eq("gh"), _eq("ij")),
                         ),
                         "=",
                         1,
@@ -1305,7 +1337,8 @@ class ParseBooleanSearchQueryTest(TestCase):
                 [
                     [
                         _or(
-                            _eq("ab"), _and(_eq("cd"), _or(_eq("ef"), _and(_eq("gh"), _eq("ef")))),
+                            _eq("ab"),
+                            _and(_eq("cd"), _or(_eq("ef"), _and(_eq("gh"), _eq("ef")))),
                         ),
                         "=",
                         1,
@@ -1637,7 +1670,7 @@ class GetSnubaQueryArgsTest(TestCase):
 
     def test_wildcard_with_unicode(self):
         _filter = get_filter(
-            u"message:*\u716e\u6211\u66f4\u591a\u7684\u98df\u7269\uff0c\u6211\u9913\u4e86."
+            "message:*\u716e\u6211\u66f4\u591a\u7684\u98df\u7269\uff0c\u6211\u9913\u4e86."
         )
         assert _filter.conditions == [
             [
@@ -1645,7 +1678,7 @@ class GetSnubaQueryArgsTest(TestCase):
                     "match",
                     [
                         "message",
-                        u"'(?i).*\u716e\u6211\u66f4\u591a\u7684\u98df\u7269\uff0c\u6211\u9913\u4e86\\.'",
+                        "'(?i).*\u716e\u6211\u66f4\u591a\u7684\u98df\u7269\uff0c\u6211\u9913\u4e86\\.'",
                     ],
                 ],
                 "=",
@@ -1705,7 +1738,7 @@ class GetSnubaQueryArgsTest(TestCase):
 
     def test_wildcard_with_trailing_backslash(self):
         results = get_filter("title:*misgegaan\\")
-        assert results.conditions == [[["match", ["title", u"'(?i)^.*misgegaan\\\\$'"]], "=", 1]]
+        assert results.conditions == [[["match", ["title", "'(?i)^.*misgegaan\\\\$'"]], "=", 1]]
 
     def test_has(self):
         assert get_filter("has:release").conditions == [[["isNull", ["release"]], "!=", 1]]
@@ -2558,7 +2591,7 @@ class ResolveFieldListTest(unittest.TestCase):
             [
                 "abs",
                 [["corr", [["toUnixTimestamp", ["timestamp"]], "transaction.duration"]]],
-                u"absolute_correlation",
+                "absolute_correlation",
             ]
         ]
 
@@ -3017,7 +3050,9 @@ def with_type(type, argument):
 class FunctionTest(unittest.TestCase):
     def setUp(self):
         self.fn_wo_optionals = Function(
-            "wo_optionals", required_args=[FunctionArg("arg1"), FunctionArg("arg2")], transform="",
+            "wo_optionals",
+            required_args=[FunctionArg("arg1"), FunctionArg("arg2")],
+            transform="",
         )
         self.fn_w_optionals = Function(
             "w_optionals",
@@ -3031,13 +3066,13 @@ class FunctionTest(unittest.TestCase):
 
     def test_no_optional_not_enough_arguments(self):
         with self.assertRaisesRegexp(
-            InvalidSearchQuery, u"fn_wo_optionals\(\): expected 2 argument\(s\)"
+            InvalidSearchQuery, "fn_wo_optionals\(\): expected 2 argument\(s\)"
         ):
             self.fn_wo_optionals.validate_argument_count("fn_wo_optionals()", ["arg1"])
 
     def test_no_optional_too_may_arguments(self):
         with self.assertRaisesRegexp(
-            InvalidSearchQuery, u"fn_wo_optionals\(\): expected 2 argument\(s\)"
+            InvalidSearchQuery, "fn_wo_optionals\(\): expected 2 argument\(s\)"
         ):
             self.fn_wo_optionals.validate_argument_count(
                 "fn_wo_optionals()", ["arg1", "arg2", "arg3"]
@@ -3050,13 +3085,13 @@ class FunctionTest(unittest.TestCase):
 
     def test_optional_not_enough_arguments(self):
         with self.assertRaisesRegexp(
-            InvalidSearchQuery, u"fn_w_optionals\(\): expected at least 1 argument\(s\)"
+            InvalidSearchQuery, "fn_w_optionals\(\): expected at least 1 argument\(s\)"
         ):
             self.fn_w_optionals.validate_argument_count("fn_w_optionals()", [])
 
     def test_optional_too_many_arguments(self):
         with self.assertRaisesRegexp(
-            InvalidSearchQuery, u"fn_w_optionals\(\): expected at most 2 argument\(s\)"
+            InvalidSearchQuery, "fn_w_optionals\(\): expected at most 2 argument\(s\)"
         ):
             self.fn_w_optionals.validate_argument_count(
                 "fn_w_optionals()", ["arg1", "arg2", "arg3"]
@@ -3064,13 +3099,13 @@ class FunctionTest(unittest.TestCase):
 
     def test_optional_args_have_default(self):
         with self.assertRaisesRegexp(
-            AssertionError, u"test: optional argument at index 0 does not have default"
+            AssertionError, "test: optional argument at index 0 does not have default"
         ):
             Function("test", optional_args=[FunctionArg("arg1")])
 
     def test_defining_duplicate_args(self):
         with self.assertRaisesRegexp(
-            AssertionError, u"test: argument arg1 specified more than once"
+            AssertionError, "test: argument arg1 specified more than once"
         ):
             Function(
                 "test",
@@ -3080,7 +3115,7 @@ class FunctionTest(unittest.TestCase):
             )
 
         with self.assertRaisesRegexp(
-            AssertionError, u"test: argument arg1 specified more than once"
+            AssertionError, "test: argument arg1 specified more than once"
         ):
             Function(
                 "test",
@@ -3090,7 +3125,7 @@ class FunctionTest(unittest.TestCase):
             )
 
         with self.assertRaisesRegexp(
-            AssertionError, u"test: argument arg1 specified more than once"
+            AssertionError, "test: argument arg1 specified more than once"
         ):
             Function(
                 "test",

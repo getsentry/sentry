@@ -8,7 +8,7 @@ from sentry.constants import LOG_LEVELS, LOG_LEVELS_MAP
 from sentry.rules.conditions.base import EventCondition
 
 LEVEL_CHOICES = OrderedDict(
-    [(u"{0}".format(k), v) for k, v in sorted(LOG_LEVELS.items(), key=lambda x: x[0], reverse=True)]
+    [("{0}".format(k), v) for k, v in sorted(LOG_LEVELS.items(), key=lambda x: x[0], reverse=True)]
 )
 
 

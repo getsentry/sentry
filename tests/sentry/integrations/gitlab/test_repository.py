@@ -62,19 +62,19 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
     def add_create_repository_responses(self, repository_config):
         responses.add(
             responses.GET,
-            u"https://example.gitlab.com/api/v4/projects/%s" % self.gitlab_id,
+            "https://example.gitlab.com/api/v4/projects/%s" % self.gitlab_id,
             json=repository_config,
         )
         responses.add(
             responses.POST,
-            u"https://example.gitlab.com/api/v4/projects/%s/hooks" % self.gitlab_id,
+            "https://example.gitlab.com/api/v4/projects/%s/hooks" % self.gitlab_id,
             json={"id": 99},
         )
 
     def assert_repository(self, repository_config, organization_id=None):
         instance = self.integration.metadata["instance"]
 
-        external_id = u"{}:{}".format(instance, repository_config["id"])
+        external_id = "{}:{}".format(instance, repository_config["id"])
         repo = Repository.objects.get(
             organization_id=organization_id or self.organization.id,
             provider=self.provider_name,
@@ -103,7 +103,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             assert "url" in payload
             assert payload["push_events"]
             assert payload["merge_requests_events"]
-            expected_token = u"{}:{}".format(
+            expected_token = "{}:{}".format(
                 self.integration.external_id, self.integration.metadata["webhook_secret"]
             )
             assert payload["token"] == expected_token
@@ -112,7 +112,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
 
         responses.add_callback(
             responses.POST,
-            u"https://example.gitlab.com/api/v4/projects/%s/hooks" % self.gitlab_id,
+            "https://example.gitlab.com/api/v4/projects/%s/hooks" % self.gitlab_id,
             callback=request_callback,
         )
         response = self.create_repository(self.default_repository_config, self.integration.id)
@@ -123,13 +123,13 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
     def test_create_repository_request_invalid_url(self):
         responses.add(
             responses.GET,
-            u"https://example.gitlab.com/api/v4/projects/%s" % self.gitlab_id,
+            "https://example.gitlab.com/api/v4/projects/%s" % self.gitlab_id,
             status=200,
             json=self.default_repository_config,
         )
         responses.add(
             responses.POST,
-            u"https://example.gitlab.com/api/v4/projects/%s/hooks" % self.gitlab_id,
+            "https://example.gitlab.com/api/v4/projects/%s/hooks" % self.gitlab_id,
             status=422,
             json={"error": "Invalid url given"},
         )
@@ -167,7 +167,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
     def test_create_repository_get_project_request_fails(self):
         responses.add(
             responses.GET,
-            u"https://example.gitlab.com/api/v4/projects/%s" % self.gitlab_id,
+            "https://example.gitlab.com/api/v4/projects/%s" % self.gitlab_id,
             status=503,
         )
         response = self.create_repository(
@@ -179,12 +179,12 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
     def test_create_repository_integration_create_webhook_failure(self):
         responses.add(
             responses.GET,
-            u"https://example.gitlab.com/api/v4/projects/%s" % self.gitlab_id,
+            "https://example.gitlab.com/api/v4/projects/%s" % self.gitlab_id,
             json=self.default_repository_config,
         )
         responses.add(
             responses.POST,
-            u"https://example.gitlab.com/api/v4/projects/%s/hooks" % self.gitlab_id,
+            "https://example.gitlab.com/api/v4/projects/%s/hooks" % self.gitlab_id,
             status=503,
         )
         response = self.create_repository(

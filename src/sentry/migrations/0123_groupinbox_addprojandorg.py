@@ -25,9 +25,8 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = False
 
-
     dependencies = [
-        ('sentry', '0122_add_release_status'),
+        ("sentry", "0122_add_release_status"),
     ]
 
     operations = [
@@ -51,7 +50,7 @@ class Migration(migrations.Migration):
                         DROP INDEX CONCURRENTLY "sentry_groupinbox_organization_id_7b67769a";
                         """,
                 ),
-                  migrations.RunSQL(
+                migrations.RunSQL(
                     """
                     CREATE INDEX CONCURRENTLY "sentry_groupinbox_project_id_ef8f034d" ON "sentry_groupinbox" ("project_id");
                     """,
@@ -62,14 +61,24 @@ class Migration(migrations.Migration):
             ],
             state_operations=[
                 migrations.AddField(
-                    model_name='groupinbox',
-                    name='organization',
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(db_constraint=False, null=True, on_delete=django.db.models.deletion.CASCADE, to='sentry.Organization'),
+                    model_name="groupinbox",
+                    name="organization",
+                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        db_constraint=False,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="sentry.Organization",
+                    ),
                 ),
                 migrations.AddField(
-                    model_name='groupinbox',
-                    name='project',
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(db_constraint=False, null=True, on_delete=django.db.models.deletion.CASCADE, to='sentry.Project'),
+                    model_name="groupinbox",
+                    name="project",
+                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        db_constraint=False,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="sentry.Project",
+                    ),
                 ),
             ],
         )

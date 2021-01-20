@@ -24,20 +24,19 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0147_add_groupinbox_date_added_index'),
+        ("sentry", "0147_add_groupinbox_date_added_index"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='groupcommitresolution',
-            name='group_id',
+            model_name="groupcommitresolution",
+            name="group_id",
             field=sentry.db.models.fields.bounded.BoundedBigIntegerField(),
         ),
         migrations.AlterField(
-            model_name='grouprelease',
-            name='group_id',
+            model_name="grouprelease",
+            name="group_id",
             field=sentry.db.models.fields.bounded.BoundedBigIntegerField(),
         ),
     ]

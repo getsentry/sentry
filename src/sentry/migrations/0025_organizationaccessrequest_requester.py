@@ -23,16 +23,17 @@ class Migration(migrations.Migration):
     # - Adding columns to highly active tables, even ones that are NULL.
     is_dangerous = False
 
-
     dependencies = [
-        ('sentry', '0024_auto_20191230_2052'),
+        ("sentry", "0024_auto_20191230_2052"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='organizationaccessrequest',
-            name='requester',
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL),
+            model_name="organizationaccessrequest",
+            name="requester",
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                null=True, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL
+            ),
         ),
     ]
 

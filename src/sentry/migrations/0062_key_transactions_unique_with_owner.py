@@ -23,14 +23,13 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0061_alertrule_partial_index'),
+        ("sentry", "0061_alertrule_partial_index"),
     ]
 
     operations = [
         migrations.AlterUniqueTogether(
-            name='keytransaction',
-            unique_together=set([('project', 'owner', 'transaction')]),
+            name="keytransaction",
+            unique_together=set([("project", "owner", "transaction")]),
         ),
     ]

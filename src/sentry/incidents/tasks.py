@@ -68,9 +68,9 @@ def send_subscriber_notifications(activity_id):
 def generate_incident_activity_email(activity, user):
     incident = activity.incident
     return MessageBuilder(
-        subject=u"Activity on Alert {} (#{})".format(incident.title, incident.identifier),
-        template=u"sentry/emails/incidents/activity.txt",
-        html_template=u"sentry/emails/incidents/activity.html",
+        subject="Activity on Alert {} (#{})".format(incident.title, incident.identifier),
+        template="sentry/emails/incidents/activity.txt",
+        html_template="sentry/emails/incidents/activity.html",
         type="incident.activity",
         context=build_activity_context(activity, user),
     )
@@ -210,7 +210,9 @@ def process_pending_incident_snapshots(next_id=None):
         # of total pending snapshots so that we can alert if we notice the queue
         # constantly growing.
         metrics.incr(
-            "incidents.pending_snapshots", amount=pending_snapshots.count(), sample_rate=1.0,
+            "incidents.pending_snapshots",
+            amount=pending_snapshots.count(),
+            sample_rate=1.0,
         )
 
     if next_id is not None:

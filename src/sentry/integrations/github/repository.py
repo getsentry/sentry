@@ -28,7 +28,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
             # https://developer.github.com/v3/repos/hooks/#list-hooks
             client.repo_hooks(repo)
         except ApiError:
-            raise IntegrationError(u"You must grant Sentry access to {}".format(repo))
+            raise IntegrationError("You must grant Sentry access to {}".format(repo))
 
         return repo_data
 
@@ -47,7 +47,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
         return {
             "name": data["identifier"],
             "external_id": data["external_id"],
-            "url": u"https://github.com/{}".format(data["identifier"]),
+            "url": "https://github.com/{}".format(data["identifier"]),
             "config": {"name": data["identifier"]},
             "integration_id": data["integration_id"],
         }
@@ -107,8 +107,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
         ]
 
     def _get_patchset(self, client, repo_name, sha):
-        """Get the modified files for a commit
-        """
+        """Get the modified files for a commit"""
         commit = client.get_commit(repo_name, sha)
         return self._transform_patchset(commit["files"])
 
@@ -131,7 +130,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
         return changes
 
     def pull_request_url(self, repo, pull_request):
-        return u"{}/pull/{}".format(repo.url, pull_request.key)
+        return "{}/pull/{}".format(repo.url, pull_request.key)
 
     def repository_external_slug(self, repo):
         return repo.name

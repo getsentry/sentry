@@ -27,22 +27,34 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0069_remove_tracked_superusers'),
+        ("sentry", "0069_remove_tracked_superusers"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='PendingIncidentSnapshot',
+            name="PendingIncidentSnapshot",
             fields=[
-                ('id', sentry.db.models.fields.bounded.BoundedBigAutoField(primary_key=True, serialize=False)),
-                ('target_run_date', models.DateTimeField(db_index=True, default=django.utils.timezone.now)),
-                ('date_added', models.DateTimeField(default=django.utils.timezone.now)),
-                ('incident', sentry.db.models.fields.onetoone.OneToOneCascadeDeletes(on_delete=django.db.models.deletion.CASCADE, to='sentry.Incident')),
+                (
+                    "id",
+                    sentry.db.models.fields.bounded.BoundedBigAutoField(
+                        primary_key=True, serialize=False
+                    ),
+                ),
+                (
+                    "target_run_date",
+                    models.DateTimeField(db_index=True, default=django.utils.timezone.now),
+                ),
+                ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    "incident",
+                    sentry.db.models.fields.onetoone.OneToOneCascadeDeletes(
+                        on_delete=django.db.models.deletion.CASCADE, to="sentry.Incident"
+                    ),
+                ),
             ],
             options={
-                'db_table': 'sentry_pendingincidentsnapshot',
+                "db_table": "sentry_pendingincidentsnapshot",
             },
         ),
     ]

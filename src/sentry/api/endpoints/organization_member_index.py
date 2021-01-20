@@ -205,7 +205,10 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         result = serializer.validated_data
 
         if ratelimits.for_organization_member_invite(
-            organization=organization, email=result["email"], user=request.user, auth=request.auth,
+            organization=organization,
+            email=result["email"],
+            user=request.user,
+            auth=request.auth,
         ):
             metrics.incr(
                 "member-invite.attempt",
@@ -236,7 +239,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             om.save()
 
         if result["teams"]:
-            lock = locks.get(u"org:member:{}".format(om.id), duration=5)
+            lock = locks.get("org:member:{}".format(om.id), duration=5)
             with TimedRetryPolicy(10)(lock.acquire):
                 save_team_assignments(om, result["teams"])
 

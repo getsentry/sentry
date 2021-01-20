@@ -29,26 +29,72 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0131_drop_widget_tables'),
+        ("sentry", "0131_drop_widget_tables"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='GroupOwner',
+            name="GroupOwner",
             fields=[
-                ('id', sentry.db.models.fields.bounded.BoundedBigAutoField(primary_key=True, serialize=False)),
-                ('type', models.PositiveSmallIntegerField(choices=[(sentry.models.groupowner.GroupOwnerType(0), 'Suspect Commit'), (sentry.models.groupowner.GroupOwnerType(1), 'Ownership Rule')])),
-                ('date_added', models.DateTimeField(default=django.utils.timezone.now)),
-                ('group', sentry.db.models.fields.foreignkey.FlexibleForeignKey(db_constraint=False, on_delete=django.db.models.deletion.CASCADE, to='sentry.Group', unique=True)),
-                ('organization', sentry.db.models.fields.foreignkey.FlexibleForeignKey(db_constraint=False, on_delete=django.db.models.deletion.CASCADE, to='sentry.Organization')),
-                ('project', sentry.db.models.fields.foreignkey.FlexibleForeignKey(db_constraint=False, on_delete=django.db.models.deletion.CASCADE, to='sentry.Project')),
-                ('team', sentry.db.models.fields.foreignkey.FlexibleForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, to='sentry.Team')),
-                ('user', sentry.db.models.fields.foreignkey.FlexibleForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    sentry.db.models.fields.bounded.BoundedBigAutoField(
+                        primary_key=True, serialize=False
+                    ),
+                ),
+                (
+                    "type",
+                    models.PositiveSmallIntegerField(
+                        choices=[
+                            (sentry.models.groupowner.GroupOwnerType(0), "Suspect Commit"),
+                            (sentry.models.groupowner.GroupOwnerType(1), "Ownership Rule"),
+                        ]
+                    ),
+                ),
+                ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    "group",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        db_constraint=False,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="sentry.Group",
+                        unique=True,
+                    ),
+                ),
+                (
+                    "organization",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        db_constraint=False,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="sentry.Organization",
+                    ),
+                ),
+                (
+                    "project",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        db_constraint=False,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="sentry.Project",
+                    ),
+                ),
+                (
+                    "team",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        null=True, on_delete=django.db.models.deletion.CASCADE, to="sentry.Team"
+                    ),
+                ),
+                (
+                    "user",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'db_table': 'sentry_groupowner',
+                "db_table": "sentry_groupowner",
             },
         ),
     ]

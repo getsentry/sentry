@@ -626,7 +626,7 @@ class AlertRuleTriggerAction(Model):
                     handler, slug, type, frozenset(supported_target_types), integration_provider
                 )
             else:
-                raise Exception(u"Handler already registered for type %s" % type)
+                raise Exception("Handler already registered for type %s" % type)
             return handler
 
         return inner

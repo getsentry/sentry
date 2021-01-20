@@ -27,26 +27,35 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0141_remove_widget_constraints'),
+        ("sentry", "0141_remove_widget_constraints"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='DashboardTombstone',
+            name="DashboardTombstone",
             fields=[
-                ('id', sentry.db.models.fields.bounded.BoundedBigAutoField(primary_key=True, serialize=False)),
-                ('slug', models.CharField(max_length=255)),
-                ('date_added', models.DateTimeField(default=django.utils.timezone.now)),
-                ('organization', sentry.db.models.fields.foreignkey.FlexibleForeignKey(on_delete=django.db.models.deletion.CASCADE, to='sentry.Organization')),
+                (
+                    "id",
+                    sentry.db.models.fields.bounded.BoundedBigAutoField(
+                        primary_key=True, serialize=False
+                    ),
+                ),
+                ("slug", models.CharField(max_length=255)),
+                ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    "organization",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="sentry.Organization"
+                    ),
+                ),
             ],
             options={
-                'db_table': 'sentry_dashboardtombstone',
+                "db_table": "sentry_dashboardtombstone",
             },
         ),
         migrations.AlterUniqueTogether(
-            name='dashboardtombstone',
-            unique_together=set([('organization', 'slug')]),
+            name="dashboardtombstone",
+            unique_together=set([("organization", "slug")]),
         ),
     ]

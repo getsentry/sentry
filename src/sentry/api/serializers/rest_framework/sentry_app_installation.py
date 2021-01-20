@@ -13,7 +13,7 @@ class SentryAppInstallationSerializer(Serializer):
         # can only set status to installed
         if new_status != SentryAppInstallationStatus.INSTALLED_STR:
             raise ValidationError(
-                u"Invalid value '{}' for status. Valid values: '{}'".format(
+                "Invalid value '{}' for status. Valid values: '{}'".format(
                     new_status, SentryAppInstallationStatus.INSTALLED_STR
                 )
             )

@@ -29,24 +29,24 @@ def for_organization_member_invite(organization, email, user=None, auth=None, co
 
     limits = (
         ratelimiter.is_limited(
-            u"members:invite-by-user:{}".format(
+            "members:invite-by-user:{}".format(
                 md5_text(
                     user.id if user and user.is_authenticated() else six.text_type(auth)
                 ).hexdigest()
             ),
-            **config["members:invite-by-user"]
+            **config["members:invite-by-user"],
         )
         if (user or auth)
         else None,
         ratelimiter.is_limited(
-            u"members:invite-by-org:{}".format(md5_text(organization.id).hexdigest()),
-            **config["members:invite-by-org"]
+            "members:invite-by-org:{}".format(md5_text(organization.id).hexdigest()),
+            **config["members:invite-by-org"],
         ),
         ratelimiter.is_limited(
-            u"members:org-invite-to-email:{}-{}".format(
+            "members:org-invite-to-email:{}-{}".format(
                 organization.id, md5_text(email.lower()).hexdigest()
             ),
-            **config["members:org-invite-to-email"]
+            **config["members:org-invite-to-email"],
         ),
     )
     return any(limits)

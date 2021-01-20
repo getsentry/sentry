@@ -85,7 +85,7 @@ def set_filter_state(filter_id, project, state):
             option_val = set(state["subfilters"])
 
         ProjectOption.objects.set_value(
-            project=project, key=u"filters:{}".format(filter_id), value=option_val
+            project=project, key="filters:{}".format(filter_id), value=option_val
         )
 
         return option_val == "1" if option_val in ("0", "1") else option_val
@@ -97,7 +97,7 @@ def set_filter_state(filter_id, project, state):
 
         ProjectOption.objects.set_value(
             project=project,
-            key=u"filters:{}".format(filter_id),
+            key="filters:{}".format(filter_id),
             value="1" if state.get("active", False) else "0",
         )
 
@@ -122,9 +122,7 @@ def get_filter_state(filter_id, project):
     if flt is None:
         raise FilterNotRegistered(filter_id)
 
-    filter_state = ProjectOption.objects.get_value(
-        project=project, key=u"filters:{}".format(flt.id)
-    )
+    filter_state = ProjectOption.objects.get_value(project=project, key="filters:{}".format(flt.id))
 
     if filter_state is None:
         raise ValueError(

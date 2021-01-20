@@ -120,7 +120,11 @@ class RelayStoreHelper(object):
         url = self.get_relay_minidump_url(self.project.id, self.projectkey.public_key)
         responses.add_passthru(url)
 
-        resp = requests.post(url, files=dict(files or ()), data=dict(data or ()),)
+        resp = requests.post(
+            url,
+            files=dict(files or ()),
+            data=dict(data or ()),
+        )
 
         assert resp.ok
         event_id = resp.text.strip().replace("-", "")
@@ -136,7 +140,10 @@ class RelayStoreHelper(object):
         url = self.get_relay_unreal_url(self.project.id, self.projectkey.public_key)
         responses.add_passthru(url)
 
-        resp = requests.post(url, data=payload,)
+        resp = requests.post(
+            url,
+            data=payload,
+        )
 
         assert resp.ok
         event_id = resp.text.strip().replace("-", "")

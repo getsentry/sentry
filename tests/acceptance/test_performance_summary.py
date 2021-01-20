@@ -32,7 +32,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.group = self.create_group(project=self.project)
         self.login_as(self.user)
-        self.path = u"/organizations/{}/performance/summary/?{}".format(
+        self.path = "/organizations/{}/performance/summary/?{}".format(
             self.org.slug,
             urlencode({"transaction": "/country_by_code/", "project": self.project.id}),
         )
@@ -92,7 +92,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
     def test_transaction_vitals(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
-        vitals_path = u"/organizations/{}/performance/summary/vitals/?{}".format(
+        vitals_path = "/organizations/{}/performance/summary/vitals/?{}".format(
             self.org.slug,
             urlencode({"transaction": "/country_by_code/", "project": self.project.id}),
         )
@@ -116,7 +116,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
     def test_transaction_vitals_filtering(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
-        vitals_path = u"/organizations/{}/performance/summary/vitals/?{}".format(
+        vitals_path = "/organizations/{}/performance/summary/vitals/?{}".format(
             self.org.slug,
             urlencode(
                 {

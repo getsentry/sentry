@@ -49,7 +49,7 @@ def trim(
     object_hook=None,
     _depth=0,
     _size=0,
-    **kwargs
+    **kwargs,
 ):
     """
     Truncates a value to ```MAX_VARIABLE_SIZE```.

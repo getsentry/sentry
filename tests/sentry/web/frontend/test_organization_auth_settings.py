@@ -284,7 +284,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             actor=self.user,
         )[0]
 
-        assert result.data == {"require_link": u"to False", "default_role": u"to owner"}
+        assert result.data == {"require_link": "to False", "default_role": "to owner"}
 
     def test_edit_sso_settings__sso_required(self):
         organization, auth_provider = self.create_org_and_auth_provider()
@@ -314,7 +314,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             actor=self.user,
         )[0]
 
-        assert result.data == {"require_link": u"to False"}
+        assert result.data == {"require_link": "to False"}
 
     def test_edit_sso_settings__default_role(self):
         organization, auth_provider = self.create_org_and_auth_provider()
@@ -344,7 +344,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             actor=self.user,
         )[0]
 
-        assert result.data == {"default_role": u"to owner"}
+        assert result.data == {"default_role": "to owner"}
 
     def test_edit_sso_settings__no_change(self):
         organization, auth_provider = self.create_org_and_auth_provider()

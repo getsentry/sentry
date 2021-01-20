@@ -24,15 +24,39 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = False
 
-
     dependencies = [
-        ('sentry', '0116_backfill_debug_file_checksum'),
+        ("sentry", "0116_backfill_debug_file_checksum"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='activity',
-            name='type',
-            field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(choices=[(1, 'set_resolved'), (15, 'set_resolved_by_age'), (13, 'set_resolved_in_release'), (16, 'set_resolved_in_commit'), (21, 'set_resolved_in_pull_request'), (2, 'set_unresolved'), (3, 'set_ignored'), (4, 'set_public'), (5, 'set_private'), (6, 'set_regression'), (7, 'create_issue'), (8, 'note'), (9, 'first_seen'), (10, 'release'), (11, 'assigned'), (12, 'unassigned'), (14, 'merge'), (17, 'deploy'), (18, 'new_processing_issues'), (19, 'unmerge_source'), (20, 'unmerge_destination'), (22, 'reprocess')]),
+            model_name="activity",
+            name="type",
+            field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(
+                choices=[
+                    (1, "set_resolved"),
+                    (15, "set_resolved_by_age"),
+                    (13, "set_resolved_in_release"),
+                    (16, "set_resolved_in_commit"),
+                    (21, "set_resolved_in_pull_request"),
+                    (2, "set_unresolved"),
+                    (3, "set_ignored"),
+                    (4, "set_public"),
+                    (5, "set_private"),
+                    (6, "set_regression"),
+                    (7, "create_issue"),
+                    (8, "note"),
+                    (9, "first_seen"),
+                    (10, "release"),
+                    (11, "assigned"),
+                    (12, "unassigned"),
+                    (14, "merge"),
+                    (17, "deploy"),
+                    (18, "new_processing_issues"),
+                    (19, "unmerge_source"),
+                    (20, "unmerge_destination"),
+                    (22, "reprocess"),
+                ]
+            ),
         ),
     ]

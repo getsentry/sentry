@@ -32,13 +32,13 @@ class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
 
             vitals = [vital.lower() for vital in request.GET.getlist("vital", [])]
             if len(vitals) == 0:
-                raise ParseError(detail=u"Need to pass at least one vital")
+                raise ParseError(detail="Need to pass at least one vital")
 
             selected_columns = []
             aliases = {}
             for vital in vitals:
                 if vital not in self.VITALS:
-                    raise ParseError(detail=u"{} is not a valid vital".format(vital))
+                    raise ParseError(detail="{} is not a valid vital".format(vital))
                 aliases[vital] = []
                 for index, threshold in enumerate(self.VITALS[vital]["thresholds"]):
                     column = "count_at_least({vital}, {threshold})".format(

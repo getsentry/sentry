@@ -42,7 +42,7 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
         )
 
         self.login_as(self.user)
-        self.path1 = u"/settings/{}/projects/{}/alerts/".format(self.org.slug, self.project.slug)
+        self.path1 = "/settings/{}/projects/{}/alerts/".format(self.org.slug, self.project.slug)
 
     def test_settings_load(self):
         self.browser.get(self.path1)

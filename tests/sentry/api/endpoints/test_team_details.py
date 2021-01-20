@@ -40,7 +40,7 @@ class TeamUpdateTest(APITestCase):
 class TeamDeleteTest(APITestCase):
     def assert_team_deleted(self, team_id, mock_delete_team, transaction_id):
         """Checks team status, membership in DeletedTeams table, org
-           audit log, and to see that delete function has been called"""
+        audit log, and to see that delete function has been called"""
 
         team = Team.objects.get(id=team_id)
 
@@ -63,7 +63,7 @@ class TeamDeleteTest(APITestCase):
 
     def assert_team_not_deleted(self, team_id, mock_delete_team):
         """Checks team status, membership in DeletedTeams table, org
-           audit log, and to see that delete function has not been called"""
+        audit log, and to see that delete function has not been called"""
 
         team = Team.objects.get(id=team_id)
 
@@ -114,7 +114,7 @@ class TeamDeleteTest(APITestCase):
     @patch("sentry.api.endpoints.team_details.delete_team")
     def test_remove_as_admin_not_in_team(self, mock_delete_team, mock_uuid4):
         """Admins can't remove teams of which they're not a part, unless
-           open membership is on."""
+        open membership is on."""
 
         # mock the transaction_id when mock_delete_team is called
         class uuid(object):

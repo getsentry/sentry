@@ -492,4 +492,4 @@ class OptionManager(BaseManager):
 
     def _make_key(self, instance_id):
         assert instance_id
-        return u"%s:%s" % (self.model._meta.db_table, instance_id)
+        return "%s:%s" % (self.model._meta.db_table, instance_id)

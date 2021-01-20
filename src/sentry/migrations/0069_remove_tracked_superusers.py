@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 
 from django.db import migrations
 
+
 def has_access(org, user, access=None):
     queryset = org.member_set.filter(user=user)
     if access is not None:
@@ -43,11 +44,12 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = False
 
-
     dependencies = [
-        ('sentry', '0068_project_default_flags'),
+        ("sentry", "0068_project_default_flags"),
     ]
 
     operations = [
-        migrations.RunPython(remove_tracked_superuser_views, reverse_code=migrations.RunPython.noop),
+        migrations.RunPython(
+            remove_tracked_superuser_views, reverse_code=migrations.RunPython.noop
+        ),
     ]

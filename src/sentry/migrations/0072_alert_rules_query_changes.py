@@ -27,86 +27,108 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0071_add_default_fields_model_subclass'),
+        ("sentry", "0071_add_default_fields_model_subclass"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='SnubaQuery',
+            name="SnubaQuery",
             fields=[
-                ('id', sentry.db.models.fields.bounded.BoundedBigAutoField(primary_key=True, serialize=False)),
-                ('dataset', models.TextField()),
-                ('query', models.TextField()),
-                ('aggregate', models.TextField()),
-                ('time_window', models.IntegerField()),
-                ('resolution', models.IntegerField()),
-                ('date_added', models.DateTimeField(default=django.utils.timezone.now)),
-                ('environment', sentry.db.models.fields.foreignkey.FlexibleForeignKey(db_constraint=False, null=True, on_delete=django.db.models.deletion.CASCADE, to='sentry.Environment')),
+                (
+                    "id",
+                    sentry.db.models.fields.bounded.BoundedBigAutoField(
+                        primary_key=True, serialize=False
+                    ),
+                ),
+                ("dataset", models.TextField()),
+                ("query", models.TextField()),
+                ("aggregate", models.TextField()),
+                ("time_window", models.IntegerField()),
+                ("resolution", models.IntegerField()),
+                ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    "environment",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        db_constraint=False,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="sentry.Environment",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'sentry_snubaquery',
+                "db_table": "sentry_snubaquery",
             },
         ),
         migrations.AlterField(
-            model_name='alertrule',
-            name='aggregation',
+            model_name="alertrule",
+            name="aggregation",
             field=models.IntegerField(default=0, null=True),
         ),
         migrations.AlterField(
-            model_name='alertrule',
-            name='dataset',
+            model_name="alertrule",
+            name="dataset",
             field=models.TextField(null=True),
         ),
         migrations.AlterField(
-            model_name='alertrule',
-            name='query',
+            model_name="alertrule",
+            name="query",
             field=models.TextField(null=True),
         ),
         migrations.AlterField(
-            model_name='alertrule',
-            name='resolution',
+            model_name="alertrule",
+            name="resolution",
             field=models.IntegerField(null=True),
         ),
         migrations.AlterField(
-            model_name='alertrule',
-            name='time_window',
+            model_name="alertrule",
+            name="time_window",
             field=models.IntegerField(null=True),
         ),
         migrations.AlterField(
-            model_name='querysubscription',
-            name='aggregation',
+            model_name="querysubscription",
+            name="aggregation",
             field=models.IntegerField(default=0, null=True),
         ),
         migrations.AlterField(
-            model_name='querysubscription',
-            name='dataset',
+            model_name="querysubscription",
+            name="dataset",
             field=models.TextField(null=True),
         ),
         migrations.AlterField(
-            model_name='querysubscription',
-            name='query',
+            model_name="querysubscription",
+            name="query",
             field=models.TextField(null=True),
         ),
         migrations.AlterField(
-            model_name='querysubscription',
-            name='resolution',
+            model_name="querysubscription",
+            name="resolution",
             field=models.IntegerField(null=True),
         ),
         migrations.AlterField(
-            model_name='querysubscription',
-            name='time_window',
+            model_name="querysubscription",
+            name="time_window",
             field=models.IntegerField(null=True),
         ),
         migrations.AddField(
-            model_name='alertrule',
-            name='snuba_query',
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, to='sentry.SnubaQuery', unique=True),
+            model_name="alertrule",
+            name="snuba_query",
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="sentry.SnubaQuery",
+                unique=True,
+            ),
         ),
         migrations.AddField(
-            model_name='querysubscription',
-            name='snuba_query',
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='subscriptions', to='sentry.SnubaQuery'),
+            model_name="querysubscription",
+            name="snuba_query",
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="subscriptions",
+                to="sentry.SnubaQuery",
+            ),
         ),
     ]

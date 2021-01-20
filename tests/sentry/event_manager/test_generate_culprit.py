@@ -103,5 +103,5 @@ def test_truncation():
 
 
 def test_hash_from_values():
-    result = hash_from_values(["foo", "bar", u"foô"])
+    result = hash_from_values(["foo", "bar", "foô"])
     assert result == "6d81588029ed4190110b2779ba952a00"

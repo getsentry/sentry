@@ -24,9 +24,8 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0036_auto_20200213_0106'),
+        ("sentry", "0036_auto_20200213_0106"),
     ]
 
     operations = [

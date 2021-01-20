@@ -22,9 +22,8 @@ class Migration(migrations.Migration):
     # - Adding columns to highly active tables, even ones that are NULL.
     is_dangerous = False
 
-
     dependencies = [
-        ('sentry', '0020_auto_20191125_1420'),
+        ("sentry", "0020_auto_20191125_1420"),
     ]
 
     operations = [
@@ -32,9 +31,11 @@ class Migration(migrations.Migration):
             database_operations=[],
             state_operations=[
                 migrations.AlterField(
-                    model_name='incidentsnapshot',
-                    name='incident',
-                    field=sentry.db.models.fields.onetoone.OneToOneCascadeDeletes(on_delete=django.db.models.deletion.CASCADE, to='sentry.Incident'),
+                    model_name="incidentsnapshot",
+                    name="incident",
+                    field=sentry.db.models.fields.onetoone.OneToOneCascadeDeletes(
+                        on_delete=django.db.models.deletion.CASCADE, to="sentry.Incident"
+                    ),
                 ),
             ],
         )

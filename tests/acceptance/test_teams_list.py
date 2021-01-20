@@ -15,7 +15,7 @@ class TeamsListTest(AcceptanceTestCase):
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
         self.login_as(self.user)
         # this should redirect to /settings/{}/teams/
-        self.path = u"/organizations/{}/teams/".format(self.org.slug)
+        self.path = "/organizations/{}/teams/".format(self.org.slug)
 
     def test_simple(self):
         self.project.update(first_event=timezone.now())

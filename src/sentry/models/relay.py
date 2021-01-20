@@ -14,7 +14,7 @@ class RelayUsage(Model):
     __core__ = True
 
     relay_id = models.CharField(max_length=64)
-    version = models.CharField(max_length=32, default=u"0.0.1")
+    version = models.CharField(max_length=32, default="0.0.1")
     first_seen = models.DateTimeField(default=timezone.now)
     last_seen = models.DateTimeField(default=timezone.now)
     public_key = models.CharField(max_length=200, null=True, db_index=True)
@@ -53,7 +53,7 @@ class Relay(Model):
         key = six.text_type(self.public_key_object)
 
         for relay_info in trusted_relays:
-            if relay_info is not None and relay_info.get(u"public_key") == key:
+            if relay_info is not None and relay_info.get("public_key") == key:
                 return True
 
         return False

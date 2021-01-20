@@ -21,7 +21,7 @@ class InstallationNotifier(Mediator):
 
     def _verify_action(self):
         if self.action not in ["created", "deleted"]:
-            raise APIUnauthorized(u"Invalid action '{}'".format(self.action))
+            raise APIUnauthorized("Invalid action '{}'".format(self.action))
 
     def _send_webhook(self):
         safe_urlread(send_and_save_webhook_request(self.sentry_app, self.request))

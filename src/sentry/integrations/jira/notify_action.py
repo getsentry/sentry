@@ -15,7 +15,7 @@ logger = logging.getLogger("sentry.rules")
 
 
 class JiraCreateTicketAction(TicketEventAction):
-    label = u"Create a Jira issue in {integration} with these "
+    label = "Create a Jira issue in {integration} with these "
     ticket_type = "a Jira issue"
     link = "https://docs.sentry.io/product/integrations/jira/#issue-sync"
     provider = "jira"
@@ -29,12 +29,16 @@ class JiraCreateTicketAction(TicketEventAction):
             Integration.objects.get(id=integration)
         except Integration.DoesNotExist:
             raise forms.ValidationError(
-                _("Jira integration is a required field.",), code="invalid",
+                _(
+                    "Jira integration is a required field.",
+                ),
+                code="invalid",
             )
 
     def generate_footer(self, rule_url):
-        return u"This ticket was automatically created by Sentry via [{}|{}]".format(
-            self.rule.label, absolute_uri(rule_url),
+        return "This ticket was automatically created by Sentry via [{}|{}]".format(
+            self.rule.label,
+            absolute_uri(rule_url),
         )
 
     def fix_data_for_issue(self):

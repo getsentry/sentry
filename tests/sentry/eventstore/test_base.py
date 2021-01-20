@@ -27,11 +27,11 @@ class EventStorageTest(TestCase):
         """
         min_ago = iso_format(before_now(minutes=1))
         self.store_event(
-            data={"event_id": "a" * 32, "timestamp": min_ago, "user": {"id": u"user1"}},
+            data={"event_id": "a" * 32, "timestamp": min_ago, "user": {"id": "user1"}},
             project_id=self.project.id,
         )
         self.store_event(
-            data={"event_id": "b" * 32, "timestamp": min_ago, "user": {"id": u"user2"}},
+            data={"event_id": "b" * 32, "timestamp": min_ago, "user": {"id": "user2"}},
             project_id=self.project.id,
         )
 
@@ -40,7 +40,7 @@ class EventStorageTest(TestCase):
         assert event.data._node_data is None
         self.eventstorage.bind_nodes([event, event2], "data")
         assert event.data._node_data is not None
-        assert event.data["user"]["id"] == u"user1"
+        assert event.data["user"]["id"] == "user1"
 
 
 class ServiceDelegationTest(TestCase, SnubaTestCase):

@@ -23,15 +23,14 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0082_alert_rules_threshold_float'),
+        ("sentry", "0082_alert_rules_threshold_float"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='sentryapp',
-            name='webhook_url',
+            model_name="sentryapp",
+            name="webhook_url",
             field=models.URLField(max_length=512, null=True),
         ),
     ]

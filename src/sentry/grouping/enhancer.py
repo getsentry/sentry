@@ -431,7 +431,7 @@ class Enhancements(object):
         return (
             base64.urlsafe_b64encode(zlib.compress(msgpack.dumps(self._to_config_structure())))
             .decode("ascii")
-            .strip(u"=")
+            .strip("=")
         )
 
     def iter_rules(self):

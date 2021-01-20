@@ -31,7 +31,7 @@ class JiraUiHookView(JiraBaseHook):
             "external_id": integration.external_id,
             "metadata": json.dumps(integration.metadata),
         }
-        finish_link = u"{}.?signed_params={}".format(
+        finish_link = "{}.?signed_params={}".format(
             absolute_uri("/extensions/jira/configure/"), sign(**signed_data)
         )
 

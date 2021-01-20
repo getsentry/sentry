@@ -24,9 +24,8 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = False
 
-
     dependencies = [
-        ('sentry', '0121_obliterate_group_inbox'),
+        ("sentry", "0121_obliterate_group_inbox"),
     ]
 
     operations = [
@@ -41,6 +40,6 @@ class Migration(migrations.Migration):
                     """,
                 )
             ],
-            state_operations=[]
+            state_operations=[],
         )
     ]

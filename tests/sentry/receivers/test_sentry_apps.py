@@ -21,7 +21,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             organization=self.organization, slug=self.sentry_app.slug
         )
 
-        self.url = u"/api/0/projects/{}/{}/issues/?id={}".format(
+        self.url = "/api/0/projects/{}/{}/issues/?id={}".format(
             self.organization.slug, self.issue.project.slug, self.issue.id
         )
 
@@ -122,7 +122,7 @@ class TestIssueWorkflowNotifications(APITestCase):
                     "repository": repo.name,
                     "author_email": "foo@example.com",
                     "author_name": "Foo Bar",
-                    "message": u"FIXES {}".format(self.issue.qualified_short_id),
+                    "message": "FIXES {}".format(self.issue.qualified_short_id),
                 }
             ]
         )

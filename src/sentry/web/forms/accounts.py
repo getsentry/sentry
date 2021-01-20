@@ -99,7 +99,7 @@ class AuthenticationForm(forms.Form):
             return False
 
         ip_address = self.request.META["REMOTE_ADDR"]
-        return ratelimiter.is_limited(u"auth:ip:{}".format(ip_address), limit)
+        return ratelimiter.is_limited("auth:ip:{}".format(ip_address), limit)
 
     def _is_user_rate_limited(self):
         limit = options.get("auth.user-rate-limit")
@@ -110,7 +110,7 @@ class AuthenticationForm(forms.Form):
         if not username:
             return False
 
-        return ratelimiter.is_limited(u"auth:username:{}".format(username), limit)
+        return ratelimiter.is_limited("auth:username:{}".format(username), limit)
 
     def clean(self):
         username = self.cleaned_data.get("username")
@@ -166,11 +166,11 @@ class PasswordlessRegistrationForm(forms.ModelForm):
         required=True,
     )
     subscribe = CustomTypedChoiceField(
-        coerce=lambda x: six.text_type(x) == u"1",
+        coerce=lambda x: six.text_type(x) == "1",
         label=_("Email updates"),
         choices=(
-            (1, u"Yes, I would like to receive updates via email"),
-            (0, u"No, I'd prefer not to receive these updates"),
+            (1, "Yes, I would like to receive updates via email"),
+            (0, "No, I'd prefer not to receive these updates"),
         ),
         widget=forms.RadioSelect,
         required=True,

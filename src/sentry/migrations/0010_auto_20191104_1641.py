@@ -19,14 +19,13 @@ class Migration(migrations.Migration):
     # - Adding columns to highly active tables, even ones that are NULL.
     is_dangerous = False
 
-
     dependencies = [
-        ('sentry', '0009_auto_20191101_1608'),
+        ("sentry", "0009_auto_20191101_1608"),
     ]
 
     operations = [
         migrations.AlterUniqueTogether(
-            name='pagerdutyservice',
+            name="pagerdutyservice",
             unique_together=set([]),
         ),
     ]

@@ -29,17 +29,17 @@ class GroupSubscriptionReason(object):
     team_mentioned = 7
 
     descriptions = {
-        implicit: u"have opted to receive updates for all issues within "
+        implicit: "have opted to receive updates for all issues within "
         "projects that you are a member of",
-        committed: u"were involved in a commit that is part of this release",
-        processing_issue: u"are subscribed to alerts for this project",
-        comment: u"have commented on this issue",
-        assigned: u"have been assigned to this issue",
-        bookmark: u"have bookmarked this issue",
-        status_change: u"have changed the resolution status of this issue",
-        deploy_setting: u"opted to receive all deploy notifications for this organization",
-        mentioned: u"have been mentioned in this issue",
-        team_mentioned: u"are a member of a team mentioned in this issue",
+        committed: "were involved in a commit that is part of this release",
+        processing_issue: "are subscribed to alerts for this project",
+        comment: "have commented on this issue",
+        assigned: "have been assigned to this issue",
+        bookmark: "have bookmarked this issue",
+        status_change: "have changed the resolution status of this issue",
+        deploy_setting: "opted to receive all deploy notifications for this organization",
+        mentioned: "have been mentioned in this issue",
+        team_mentioned: "are a member of a team mentioned in this issue",
     }
 
 

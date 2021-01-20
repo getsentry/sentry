@@ -84,9 +84,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
             group=group2,
         )
 
-        url = u"/api/0/projects/{}/{}/user-feedback/".format(
-            project.organization.slug, project.slug
-        )
+        url = "/api/0/projects/{}/{}/user-feedback/".format(project.organization.slug, project.slug)
 
         response = self.client.get(url, format="json")
 
@@ -98,11 +96,9 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         project = self.create_project()
         project_key = self.create_project_key(project=project)
 
-        url = u"/api/0/projects/{}/{}/user-feedback/".format(
-            project.organization.slug, project.slug
-        )
+        url = "/api/0/projects/{}/{}/user-feedback/".format(project.organization.slug, project.slug)
 
-        response = self.client.get(url, HTTP_AUTHORIZATION=u"DSN {}".format(project_key.dsn_public))
+        response = self.client.get(url, HTTP_AUTHORIZATION="DSN {}".format(project_key.dsn_public))
 
         assert response.status_code == 401, response.content
 
@@ -120,11 +116,9 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
             group=group,
         )
 
-        url = u"/api/0/projects/{}/{}/user-feedback/".format(
-            project.organization.slug, project.slug
-        )
+        url = "/api/0/projects/{}/{}/user-feedback/".format(project.organization.slug, project.slug)
 
-        response = self.client.get(u"{}?status=".format(url), format="json")
+        response = self.client.get("{}?status=".format(url), format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
@@ -133,7 +127,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
     def test_environments(self):
         self.login_as(user=self.user)
 
-        base_url = u"/api/0/projects/{}/{}/user-feedback/".format(
+        base_url = "/api/0/projects/{}/{}/user-feedback/".format(
             self.project.organization.slug, self.project.slug
         )
 
@@ -186,7 +180,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
     def test_simple(self):
         self.login_as(user=self.user)
 
-        url = u"/api/0/projects/{}/{}/user-feedback/".format(
+        url = "/api/0/projects/{}/{}/user-feedback/".format(
             self.project.organization.slug, self.project.slug
         )
 
@@ -211,13 +205,13 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
 
     def test_with_dsn_auth(self):
         project_key = self.create_project_key(project=self.project)
-        url = u"/api/0/projects/{}/{}/user-feedback/".format(
+        url = "/api/0/projects/{}/{}/user-feedback/".format(
             self.project.organization.slug, self.project.slug
         )
 
         response = self.client.post(
             url,
-            HTTP_AUTHORIZATION=u"DSN {}".format(project_key.dsn_public),
+            HTTP_AUTHORIZATION="DSN {}".format(project_key.dsn_public),
             data={
                 "event_id": self.event.event_id,
                 "email": "foo@example.com",
@@ -234,13 +228,13 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         project2 = self.create_project()
         project_key = self.create_project_key(project=self.project)
 
-        url = u"/api/0/projects/{}/{}/user-feedback/".format(
+        url = "/api/0/projects/{}/{}/user-feedback/".format(
             project2.organization.slug, project2.slug
         )
 
         response = self.client.post(
             url,
-            HTTP_AUTHORIZATION=u"DSN {}".format(project_key.dsn_public),
+            HTTP_AUTHORIZATION="DSN {}".format(project_key.dsn_public),
             data={
                 "event_id": uuid4().hex,
                 "email": "foo@example.com",
@@ -263,7 +257,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
             comments="",
         )
 
-        url = u"/api/0/projects/{}/{}/user-feedback/".format(
+        url = "/api/0/projects/{}/{}/user-feedback/".format(
             self.project.organization.slug, self.project.slug
         )
 
@@ -300,7 +294,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
             comments="",
         )
 
-        url = u"/api/0/projects/{}/{}/user-feedback/".format(
+        url = "/api/0/projects/{}/{}/user-feedback/".format(
             self.project.organization.slug, self.project.slug
         )
 
@@ -340,7 +334,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
             date_added=timezone.now() - timedelta(minutes=10),
         )
 
-        url = u"/api/0/projects/{}/{}/user-feedback/".format(
+        url = "/api/0/projects/{}/{}/user-feedback/".format(
             self.project.organization.slug, self.project.slug
         )
 
@@ -359,7 +353,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
     def test_after_event_deadline(self):
         self.login_as(user=self.user)
 
-        url = u"/api/0/projects/{}/{}/user-feedback/".format(
+        url = "/api/0/projects/{}/{}/user-feedback/".format(
             self.project.organization.slug, self.project.slug
         )
 
@@ -378,7 +372,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
     def test_environments(self):
         self.login_as(user=self.user)
 
-        url = u"/api/0/projects/{}/{}/user-feedback/".format(
+        url = "/api/0/projects/{}/{}/user-feedback/".format(
             self.project.organization.slug, self.project.slug
         )
 

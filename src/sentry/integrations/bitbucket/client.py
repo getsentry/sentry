@@ -24,16 +24,16 @@ class BitbucketAPIPath(object):
     username - username or UUID
     """
 
-    issue = u"/2.0/repositories/{repo}/issues/{issue_id}"
-    issues = u"/2.0/repositories/{repo}/issues"
-    issue_comments = u"/2.0/repositories/{repo}/issues/{issue_id}/comments"
+    issue = "/2.0/repositories/{repo}/issues/{issue_id}"
+    issues = "/2.0/repositories/{repo}/issues"
+    issue_comments = "/2.0/repositories/{repo}/issues/{issue_id}/comments"
 
-    repository = u"/2.0/repositories/{repo}"
-    repositories = u"/2.0/repositories/{username}"
-    repository_commits = u"/2.0/repositories/{repo}/commits/{revision}"
-    repository_diff = u"/2.0/repositories/{repo}/diff/{spec}"
-    repository_hook = u"/2.0/repositories/{repo}/hooks/{uid}"
-    repository_hooks = u"/2.0/repositories/{repo}/hooks"
+    repository = "/2.0/repositories/{repo}"
+    repositories = "/2.0/repositories/{username}"
+    repository_commits = "/2.0/repositories/{repo}/commits/{revision}"
+    repository_diff = "/2.0/repositories/{repo}/diff/{spec}"
+    repository_hook = "/2.0/repositories/{repo}/hooks/{uid}"
+    repository_hooks = "/2.0/repositories/{repo}/hooks"
 
 
 class BitbucketApiClient(ApiClient):

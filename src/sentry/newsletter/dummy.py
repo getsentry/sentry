@@ -20,7 +20,7 @@ class NewsletterSubscription(object):
         subscribed=False,
         subscribed_date=None,
         unsubscribed_date=None,
-        **kwargs
+        **kwargs,
     ):
         from sentry.models import UserEmail
 

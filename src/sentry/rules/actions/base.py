@@ -158,7 +158,7 @@ def build_description(event, rule_id, installation, generate_footer):
     Format the description of the ticket/work item
     """
     project = event.group.project
-    rule_url = u"/organizations/{}/alerts/rules/{}/{}/".format(
+    rule_url = "/organizations/{}/alerts/rules/{}/{}/".format(
         project.organization.slug, project.slug, rule_id
     )
 
@@ -196,7 +196,7 @@ def create_issue(event, futures):
 
         if has_linked_issue(event, integration):
             logger.info(
-                u"{}.rule_trigger.link_already_exists".format(integration.provider),
+                "{}.rule_trigger.link_already_exists".format(integration.provider),
                 extra={
                     "rule_id": rule_id,
                     "project_id": event.group.project.id,
@@ -263,14 +263,14 @@ class TicketEventAction(IntegrationEventAction):
 
     @property
     def prompt(self):
-        return u"Create {}".format(self.ticket_type)
+        return "Create {}".format(self.ticket_type)
 
     def generate_footer(self, rule_url):
         raise NotImplementedError
 
     def after(self, event, state):
         integration_id = self.get_integration_id()
-        key = u"{}:{}".format(self.provider, integration_id)
+        key = "{}:{}".format(self.provider, integration_id)
         return self.future(
             create_issue,
             key=key,

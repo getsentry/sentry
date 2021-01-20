@@ -264,7 +264,7 @@ class OrganizationReleasesEndpoint(
                 summary_stats_period=summary_stats_period,
                 environments=filter_params.get("environment") or None,
             ),
-            **paginator_kwargs
+            **paginator_kwargs,
         )
 
     def post(self, request, organization):
@@ -445,7 +445,9 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, Enviro
             Release.objects.filter(
                 organization=organization, projects__id__in=filter_params["project_id"]
             )
-            .annotate(date=Coalesce("date_released", "date_added"),)
+            .annotate(
+                date=Coalesce("date_released", "date_added"),
+            )
             .values("version", "date")
             .order_by("-date")
             .distinct()

@@ -81,7 +81,7 @@ cmdclass = {
 
 
 def get_requirements(env):
-    with open(u"requirements-{}.txt".format(env)) as fp:
+    with open("requirements-{}.txt".format(env)) as fp:
         return [x.strip() for x in fp.read().split("\n") if not x.startswith("#")]
 
 

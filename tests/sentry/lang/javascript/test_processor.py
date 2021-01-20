@@ -380,7 +380,7 @@ class FetchFileTest(TestCase):
         for i, (header_name_option_value, expected_request_header_name) in enumerate(header_pairs):
             self.project.update_option("sentry:token_header", header_name_option_value)
 
-            url = u"http://example.com/{}/".format(i)
+            url = "http://example.com/{}/".format(i)
             result = fetch_file(url, project=self.project)
 
             assert result.url == url
@@ -676,8 +676,8 @@ class FetchSourcemapTest(TestCase):
 
         assert list(smap_view) == tokens
         sv = smap_view.get_sourceview(0)
-        assert sv.get_source() == u'console.log("hello, World!")'
-        assert smap_view.get_source_name(0) == u"/test.js"
+        assert sv.get_source() == 'console.log("hello, World!")'
+        assert smap_view.get_source_name(0) == "/test.js"
 
     def test_base64_without_padding(self):
         smap_view = fetch_sourcemap(base64_sourcemap.rstrip("="))
@@ -685,8 +685,8 @@ class FetchSourcemapTest(TestCase):
 
         assert list(smap_view) == tokens
         sv = smap_view.get_sourceview(0)
-        assert sv.get_source() == u'console.log("hello, World!")'
-        assert smap_view.get_source_name(0) == u"/test.js"
+        assert sv.get_source() == 'console.log("hello, World!")'
+        assert smap_view.get_source_name(0) == "/test.js"
 
     def test_broken_base64(self):
         with pytest.raises(UnparseableSourcemap):
@@ -912,8 +912,8 @@ class ErrorMappingTest(unittest.TestCase):
                     {
                         "type": "InvariantViolation",
                         "value": (
-                            u"Minified React error #108; visit http://facebook"
-                            u".github.io/react/docs/error-decoder.html?\u2026"
+                            "Minified React error #108; visit http://facebook"
+                            ".github.io/react/docs/error-decoder.html?\u2026"
                         ),
                         "stacktrace": {
                             "frames": [

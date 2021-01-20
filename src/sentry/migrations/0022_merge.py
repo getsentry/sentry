@@ -20,11 +20,9 @@ class Migration(migrations.Migration):
     # - Adding columns to highly active tables, even ones that are NULL.
     is_dangerous = False
 
-
     dependencies = [
-        ('sentry', '0021_auto_20191203_1803'),
-        ('sentry', '0021_auto_20191202_1716'),
+        ("sentry", "0021_auto_20191203_1803"),
+        ("sentry", "0021_auto_20191202_1716"),
     ]
 
-    operations = [
-    ]
+    operations = []

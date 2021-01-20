@@ -33,7 +33,9 @@ class RelayProjectIdsEndpointTest(APITestCase):
         self.relay_id = six.text_type(uuid4())
 
         self.relay = Relay.objects.create(
-            relay_id=self.relay_id, public_key=self.public_key, is_internal=internal,
+            relay_id=self.relay_id,
+            public_key=self.public_key,
+            is_internal=internal,
         )
 
         self.project = self.create_project()

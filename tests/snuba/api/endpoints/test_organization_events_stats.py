@@ -1206,9 +1206,9 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         ]
 
     def test_top_events_none_filter(self):
-        """ When a field is None in one of the top events, make sure we filter by it
+        """When a field is None in one of the top events, make sure we filter by it
 
-            In this case event[4] is a transaction and has no issue
+        In this case event[4] is a transaction and has no issue
         """
         with self.feature(self.enabled_features):
             response = self.client.get(

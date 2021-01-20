@@ -6,6 +6,7 @@ from django.db import migrations
 import django.db.models.deletion
 import sentry.db.models.fields.foreignkey
 
+
 class Migration(migrations.Migration):
     # This flag is used to mark that a migration shouldn't be automatically run in
     # production. We set this to True for operations that we think are risky and want
@@ -24,15 +25,15 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = False
 
-
     dependencies = [
-        ('sentry', '0062_key_transactions_unique_with_owner'),
+        ("sentry", "0062_key_transactions_unique_with_owner"),
     ]
 
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL("""
+                migrations.RunSQL(
+                    """
                     ALTER TABLE sentry_alertrule DROP CONSTRAINT IF EXISTS sentry_alertrule_organization_id_382634eccd5f9371_uniq;
                     """,
                     reverse_sql="""DO $$
@@ -43,10 +44,9 @@ class Migration(migrations.Migration):
                             WHEN duplicate_table THEN
                         END;
                     END $$;
-                    """
+                    """,
                 ),
             ],
-            state_operations=[
-            ],
+            state_operations=[],
         ),
     ]

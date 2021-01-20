@@ -18,8 +18,8 @@ class TaggedEventConditionTest(RuleTestCase):
         return event
 
     def test_render_label(self):
-        rule = self.get_rule(data={"match": MatchType.EQUAL, "key": u"\xc3", "value": u"\xc4"})
-        assert rule.render_label() == u"The event's tags match \xc3 equals \xc4"
+        rule = self.get_rule(data={"match": MatchType.EQUAL, "key": "\xc3", "value": "\xc4"})
+        assert rule.render_label() == "The event's tags match \xc3 equals \xc4"
 
     def test_equals(self):
         event = self.get_event()

@@ -125,7 +125,7 @@ class AmazonSQSPluginTest(PluginTestCase):
             QueueUrl="https://sqs-us-east-1.amazonaws.com/12345678/myqueue",
             MessageBody=json.dumps(
                 {
-                    "s3Url": u"https://my_bucket.s3-us-east-1.amazonaws.com/{}".format(key),
+                    "s3Url": "https://my_bucket.s3-us-east-1.amazonaws.com/{}".format(key),
                     "eventID": event.event_id,
                 }
             ),
@@ -140,7 +140,8 @@ class AmazonSQSPluginTest(PluginTestCase):
     def test_invalid_s3_bucket(self, mock_client, logger):
         self.plugin.set_option("s3_bucket", "bad_bucket", self.project)
         mock_client.return_value.put_object.side_effect = ClientError(
-            {"Error": {"Code": "NoSuchBucket"}}, "PutObject",
+            {"Error": {"Code": "NoSuchBucket"}},
+            "PutObject",
         )
         self.run_test()
         assert len(logger.info.call_args_list) == 2

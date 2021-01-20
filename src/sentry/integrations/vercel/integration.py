@@ -60,7 +60,7 @@ INSTALL_NOTICE_TEXT = _(
 
 
 external_install = {
-    "url": u"https://vercel.com/integrations/%s/add" % options.get("vercel.integration-slug"),
+    "url": "https://vercel.com/integrations/%s/add" % options.get("vercel.integration-slug"),
     "buttonText": _("Vercel Marketplace"),
     "noticeText": _(INSTALL_NOTICE_TEXT),
 }
@@ -110,10 +110,10 @@ class VercelIntegration(IntegrationInstallation):
     def get_dynamic_display_information(self):
         organization = Organization.objects.get_from_cache(id=self.organization_id)
         source_code_link = absolute_uri(
-            u"/settings/%s/integrations/?%s"
+            "/settings/%s/integrations/?%s"
             % (organization.slug, urlencode({"category": "source code management"}))
         )
-        add_project_link = absolute_uri(u"/organizations/%s/projects/new/" % (organization.slug))
+        add_project_link = absolute_uri("/organizations/%s/projects/new/" % (organization.slug))
         return {
             "configure_integration": {
                 "instructions": [
@@ -129,10 +129,10 @@ class VercelIntegration(IntegrationInstallation):
         configuration_id = self.get_configuration_id()
         if configuration_id:
             if self.metadata["installation_type"] == "team":
-                dashboard_url = u"https://vercel.com/dashboard/%s/" % slug
+                dashboard_url = "https://vercel.com/dashboard/%s/" % slug
             else:
                 dashboard_url = "https://vercel.com/dashboard/"
-            return u"%sintegrations/%s" % (dashboard_url, configuration_id)
+            return "%sintegrations/%s" % (dashboard_url, configuration_id)
         return None
 
     def get_client(self):
@@ -167,9 +167,9 @@ class VercelIntegration(IntegrationInstallation):
         vercel_client = self.get_client()
         # TODO: add try/catch if we get API failure
         slug = self.get_slug()
-        base_url = u"https://vercel.com/%s" % slug
+        base_url = "https://vercel.com/%s" % slug
         vercel_projects = [
-            {"value": p["id"], "label": p["name"], "url": u"%s/%s" % (base_url, p["name"])}
+            {"value": p["id"], "label": p["name"], "url": "%s/%s" % (base_url, p["name"])}
             for p in vercel_client.get_projects()
         ]
 
@@ -364,7 +364,7 @@ class VercelIntegrationProvider(IntegrationProvider):
                 details = list(err.json["messages"][0].values()).pop()
             except Exception:
                 details = "Unknown Error"
-            message = u"Could not create deployment webhook in Vercel: {}".format(details)
+            message = "Could not create deployment webhook in Vercel: {}".format(details)
             raise IntegrationError(message)
 
         configurations = self.get_configuration_metadata(external_id)

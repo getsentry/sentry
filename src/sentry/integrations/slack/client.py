@@ -36,7 +36,9 @@ class SlackClient(ApiClient):
                 span.set_tag("slack_error", error)
 
         metrics.incr(
-            SLACK_DATADOG_METRIC, sample_rate=1.0, tags={"ok": is_ok, "status": code},
+            SLACK_DATADOG_METRIC,
+            sample_rate=1.0,
+            tags={"ok": is_ok, "status": code},
         )
 
         extra = {
@@ -45,7 +47,7 @@ class SlackClient(ApiClient):
             "error": six.text_type(error)[:256] if error else None,
         }
         extra.update(getattr(self, "logging_context", None) or {})
-        self.logger.info(u"%s.http_response" % (self.integration_type), extra=extra)
+        self.logger.info("%s.http_response" % (self.integration_type), extra=extra)
 
     def request(self, method, path, headers=None, data=None, params=None, json=False, timeout=None):
         # TODO(meredith): Slack actually supports json now for the chat.postMessage so we

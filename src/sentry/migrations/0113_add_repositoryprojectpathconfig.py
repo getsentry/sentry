@@ -27,31 +27,53 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0112_groupinboxmodel'),
+        ("sentry", "0112_groupinboxmodel"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='RepositoryProjectPathConfig',
+            name="RepositoryProjectPathConfig",
             fields=[
-                ('id', sentry.db.models.fields.bounded.BoundedBigAutoField(primary_key=True, serialize=False)),
-                ('date_updated', models.DateTimeField(default=django.utils.timezone.now)),
-                ('date_added', models.DateTimeField(default=django.utils.timezone.now, null=True)),
-                ('stack_root', models.TextField()),
-                ('source_root', models.TextField()),
-                ('default_branch', models.TextField(null=True)),
-                ('organization_integration', sentry.db.models.fields.foreignkey.FlexibleForeignKey(on_delete=django.db.models.deletion.CASCADE, to='sentry.OrganizationIntegration')),
-                ('project', sentry.db.models.fields.foreignkey.FlexibleForeignKey(db_constraint=False, on_delete=django.db.models.deletion.CASCADE, to='sentry.Project')),
-                ('repository', sentry.db.models.fields.foreignkey.FlexibleForeignKey(on_delete=django.db.models.deletion.CASCADE, to='sentry.Repository')),
+                (
+                    "id",
+                    sentry.db.models.fields.bounded.BoundedBigAutoField(
+                        primary_key=True, serialize=False
+                    ),
+                ),
+                ("date_updated", models.DateTimeField(default=django.utils.timezone.now)),
+                ("date_added", models.DateTimeField(default=django.utils.timezone.now, null=True)),
+                ("stack_root", models.TextField()),
+                ("source_root", models.TextField()),
+                ("default_branch", models.TextField(null=True)),
+                (
+                    "organization_integration",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="sentry.OrganizationIntegration",
+                    ),
+                ),
+                (
+                    "project",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        db_constraint=False,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="sentry.Project",
+                    ),
+                ),
+                (
+                    "repository",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="sentry.Repository"
+                    ),
+                ),
             ],
             options={
-                'db_table': 'sentry_repositoryprojectpathconfig',
+                "db_table": "sentry_repositoryprojectpathconfig",
             },
         ),
         migrations.AlterUniqueTogether(
-            name='repositoryprojectpathconfig',
-            unique_together=set([('project', 'stack_root')]),
+            name="repositoryprojectpathconfig",
+            unique_together=set([("project", "stack_root")]),
         ),
     ]

@@ -26,20 +26,26 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0045_remove_incidentactivity_event_stats_snapshot'),
+        ("sentry", "0045_remove_incidentactivity_event_stats_snapshot"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='exporteddata',
-            name='file',
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(db_constraint=False, null=True, on_delete=django.db.models.deletion.SET_NULL, to='sentry.File'),
+            model_name="exporteddata",
+            name="file",
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                db_constraint=False,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                to="sentry.File",
+            ),
         ),
         migrations.AlterField(
-            model_name='exporteddata',
-            name='user',
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL),
+            model_name="exporteddata",
+            name="user",
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL
+            ),
         ),
     ]

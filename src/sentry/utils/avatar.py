@@ -74,7 +74,7 @@ def get_letter_avatar(display_name, identifier, size=None, use_svg=True):
     if use_svg:
         size_attrs = 'height="%s" width="%s"' % (size, size) if size else ""
         return (
-            u'<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" {size_attrs}>'
+            '<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" {size_attrs}>'
             '<rect x="0" y="0" width="120" height="120" rx="15" ry="15" fill={color}></rect>'
             '<text x="50%" y="50%" font-size="65" dominant-baseline="central" text-anchor="middle" fill="#FFFFFF">'
             "{initials}"
@@ -86,7 +86,7 @@ def get_letter_avatar(display_name, identifier, size=None, use_svg=True):
         font_size = "font-size:%spx;" % (size / 2) if size else ""
         line_height = "line-height:%spx;" % size if size else ""
         return (
-            u'<span class="html-avatar" '
+            '<span class="html-avatar" '
             'style="background-color:{color};{size_attrs}{font_size}{line_height}">'
             "{initials}</span>"
         ).format(
@@ -113,5 +113,5 @@ def get_email_avatar(display_name, identifier, size=None, try_gravatar=True):
                 if resp.status_code == 200:
                     # default to mm if including in emails
                     gravatar_url = get_gravatar_url(identifier, size=size)
-                    return u'<img class="avatar" src="{url}">'.format(url=gravatar_url)
+                    return '<img class="avatar" src="{url}">'.format(url=gravatar_url)
     return get_letter_avatar(display_name, identifier, size, use_svg=False)

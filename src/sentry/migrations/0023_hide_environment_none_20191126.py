@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 from django.db import migrations, models
 
+
 def hide_environment_none(apps, schema_editor):
     """
     Hide environments that are named none, since they're blacklisted and no longer can be created.
@@ -11,7 +12,7 @@ def hide_environment_none(apps, schema_editor):
     far slower but much safer
     """
     EnvironmentProject = apps.get_model("sentry", "EnvironmentProject")
-    for project in EnvironmentProject.objects.filter(environment__name='none'):
+    for project in EnvironmentProject.objects.filter(environment__name="none"):
         project.is_hidden = True
         project.save()
 
@@ -31,11 +32,8 @@ class Migration(migrations.Migration):
     # - Adding columns to highly active tables, even ones that are NULL.
     is_dangerous = False
 
-
     dependencies = [
         ("sentry", "0022_merge"),
     ]
 
-    operations = [
-        migrations.RunPython(hide_environment_none, migrations.RunPython.noop)
-    ]
+    operations = [migrations.RunPython(hide_environment_none, migrations.RunPython.noop)]

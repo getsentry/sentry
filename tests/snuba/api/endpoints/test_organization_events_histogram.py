@@ -606,7 +606,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(query)
         assert response.status_code == 400
         assert response.data == {
-            "dataFilter": [u'"invalid" is not a valid choice.'],
+            "dataFilter": ['"invalid" is not a valid choice.'],
         }
 
     def test_histogram_all_data_filter(self):

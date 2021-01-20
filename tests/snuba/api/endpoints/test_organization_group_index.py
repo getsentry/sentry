@@ -895,10 +895,10 @@ class GroupListTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
-        query = u"server:example.com"
-        query += u" status:unresolved"
-        query += u" active_at:" + iso_format(before_now(seconds=350))
-        query += u" first_seen:" + iso_format(before_now(seconds=500))
+        query = "server:example.com"
+        query += " status:unresolved"
+        query += " active_at:" + iso_format(before_now(seconds=350))
+        query += " first_seen:" + iso_format(before_now(seconds=500))
 
         self.login_as(user=self.user)
         response = self.get_response(sort_by="date", limit=10, query=query)
@@ -916,7 +916,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 project_id=self.project.id,
             )
             add_group_to_inbox(event.group, GroupInboxReason.NEW)
-            query = u"status:unresolved"
+            query = "status:unresolved"
             self.login_as(user=self.user)
             response = self.get_response(sort_by="date", limit=10, query=query, expand=["inbox"])
 
@@ -951,7 +951,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 project_id=self.project.id,
             )
             add_group_to_inbox(event.group, GroupInboxReason.NEW)
-            query = u"status:unresolved"
+            query = "status:unresolved"
             self.login_as(user=self.user)
             response = self.get_response(sort_by="date", limit=10, query=query, expand="inbox")
             assert response.status_code == 200
@@ -967,7 +967,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
                 project_id=self.project.id,
             )
-            query = u"status:unresolved"
+            query = "status:unresolved"
             self.login_as(user=self.user)
             # Test with no owner
             response = self.get_response(sort_by="date", limit=10, query=query, expand="owners")
@@ -2004,7 +2004,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group.project.add_team(team)
 
         response = self.get_valid_response(
-            qs_params={"id": group.id}, assignedTo=u"team:{}".format(team.id)
+            qs_params={"id": group.id}, assignedTo="team:{}".format(team.id)
         )
         assert response.data["assignedTo"]["id"] == six.text_type(team.id)
         assert response.data["assignedTo"]["type"] == "team"

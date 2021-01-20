@@ -141,10 +141,12 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
 
         def log_and_increment(metrics_name):
             logger.info(
-                metrics_name, extra=logging_params,
+                metrics_name,
+                extra=logging_params,
             )
             metrics.incr(
-                metrics_name, tags=metric_tags,
+                metrics_name,
+                tags=metric_tags,
             )
 
         def s3_put_object(*args, **kwargs):
@@ -174,11 +176,11 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
             if s3_bucket:
                 # we want something like 2020-08-29 so we can store it by the date
                 date = event.datetime.strftime("%Y-%m-%d")
-                key = u"{}/{}/{}".format(event.project.slug, date, event.event_id)
+                key = "{}/{}/{}".format(event.project.slug, date, event.event_id)
                 logger.info("sentry_plugins.amazon_sqs.s3_put_object", extra=logging_params)
                 s3_put_object(Bucket=s3_bucket, Body=json.dumps(payload), Key=key)
 
-                url = u"https://{}.s3-{}.amazonaws.com/{}".format(s3_bucket, region, key)
+                url = "https://{}.s3-{}.amazonaws.com/{}".format(s3_bucket, region, key)
                 # just include the s3Url and the event ID in the payload
                 payload = {"s3Url": url, "eventID": event.event_id}
 

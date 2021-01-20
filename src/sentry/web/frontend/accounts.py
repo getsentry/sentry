@@ -26,7 +26,7 @@ logger = logging.getLogger("sentry.accounts")
 
 
 def get_template(mode, name):
-    return u"sentry/account/{}/{}.html".format(mode, name)
+    return "sentry/account/{}/{}.html".format(mode, name)
 
 
 @login_required
@@ -52,7 +52,7 @@ def recover(request):
     }
 
     if request.method == "POST" and ratelimiter.is_limited(
-        u"accounts:recover:{}".format(extra["ip_address"]),
+        "accounts:recover:{}".format(extra["ip_address"]),
         limit=5,
         window=60,  # 5 per minute should be enough for anyone
     ):
@@ -148,7 +148,7 @@ def start_confirm_email(request):
     from sentry.app import ratelimiter
 
     if ratelimiter.is_limited(
-        u"auth:confirm-email:{}".format(request.user.id),
+        "auth:confirm-email:{}".format(request.user.id),
         limit=10,
         window=60,  # 10 per minute should be enough for anyone
     ):

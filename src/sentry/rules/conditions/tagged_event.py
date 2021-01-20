@@ -49,7 +49,7 @@ class TaggedEventForm(forms.Form):
 
 class TaggedEventCondition(EventCondition):
     form_cls = TaggedEventForm
-    label = u"The event's tags match {key} {match} {value}"
+    label = "The event's tags match {key} {match} {value}"
 
     form_fields = {
         "key": {"type": "string", "placeholder": "key"},

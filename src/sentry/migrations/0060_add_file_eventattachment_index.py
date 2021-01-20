@@ -23,9 +23,8 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = False
 
-
     dependencies = [
-        ('sentry', '0059_add_new_sentry_app_features'),
+        ("sentry", "0059_add_new_sentry_app_features"),
     ]
 
     operations = [
@@ -42,8 +41,10 @@ class Migration(migrations.Migration):
             ],
             state_operations=[
                 migrations.AlterIndexTogether(
-                    name='eventattachment',
-                    index_together=set([('project_id', 'date_added', 'file'), ('project_id', 'date_added')]),
+                    name="eventattachment",
+                    index_together=set(
+                        [("project_id", "date_added", "file"), ("project_id", "date_added")]
+                    ),
                 ),
             ],
         )

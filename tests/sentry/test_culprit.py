@@ -43,17 +43,17 @@ def test_emoji_culprit():
                         {
                             "filename": "foo/baz.c",
                             "package": "/foo/bar/baz.dylib",
-                            "module": u"\U0001f62d",
+                            "module": "\U0001f62d",
                             "lineno": 1,
                             "in_app": True,
-                            "function": u"\U0001f60d",
+                            "function": "\U0001f60d",
                         }
                     ]
                 },
             },
         }
     )
-    assert culprit == u"\U0001f60d"
+    assert culprit == "\U0001f60d"
 
 
 def test_cocoa_strict_stacktrace():

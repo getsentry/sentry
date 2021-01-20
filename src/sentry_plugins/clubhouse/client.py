@@ -4,7 +4,7 @@ from sentry_plugins.client import ApiClient
 
 
 class ClubhouseClient(ApiClient):
-    base_url = u"https://api.clubhouse.io/api/v2"
+    base_url = "https://api.clubhouse.io/api/v2"
     plugin_name = "clubhouse"
 
     def __init__(self, token):

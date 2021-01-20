@@ -48,5 +48,5 @@ class CsvMixin(object):
         response = StreamingHttpResponse(
             (writer.writerow(encode_row(r)) for r in row_iter()), content_type="text/csv"
         )
-        response["Content-Disposition"] = u'attachment; filename="{}.csv"'.format(filename)
+        response["Content-Disposition"] = 'attachment; filename="{}.csv"'.format(filename)
         return response

@@ -73,7 +73,7 @@ API_ERRORS = {
 
 def build_repository_query(metadata, name, query):
     account_type = "user" if metadata["account_type"] == "User" else "org"
-    return (u"%s:%s %s" % (account_type, name, query)).encode("utf-8")
+    return ("%s:%s %s" % (account_type, name, query)).encode("utf-8")
 
 
 class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin):
@@ -101,7 +101,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
     def format_source_url(self, repo, filepath, branch):
         # Must format the url ourselves since `check_file` is a head request
         # "https://github.com/octokit/octokit.rb/blob/master/README.md"
-        return u"https://github.com/{}/blob/{}/{}".format(repo.name, branch, filepath)
+        return "https://github.com/{}/blob/{}/{}".format(repo.name, branch, filepath)
 
     def get_unmigratable_repositories(self):
         accessible_repos = self.get_repositories()

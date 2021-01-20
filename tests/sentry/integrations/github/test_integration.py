@@ -85,7 +85,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         # App installation ID is provided
         resp = self.client.get(
-            u"{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
+            "{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
         )
 
         auth_header = responses.calls[0].request.headers["Authorization"]
@@ -158,7 +158,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert integration.external_id == self.installation_id
 
         resp = self.client.get(
-            u"{}?{}".format(self.init_path, urlencode({"reinstall_id": integration.id}))
+            "{}?{}".format(self.init_path, urlencode({"reinstall_id": integration.id}))
         )
 
         assert resp.status_code == 302
@@ -173,7 +173,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self._stub_github()
 
         resp = self.client.get(
-            u"{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
+            "{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
         )
 
         assert resp.status_code == 200
@@ -255,7 +255,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         default = "master"
         responses.add(
             responses.HEAD,
-            self.base_url + u"/repos/{}/contents/{}?ref={}".format(repo.name, path, version),
+            self.base_url + "/repos/{}/contents/{}?ref={}".format(repo.name, path, version),
         )
         installation = integration.get_installation(self.organization)
         result = installation.get_stacktrace_link(repo, path, default, version)
@@ -281,7 +281,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         default = "master"
         responses.add(
             responses.HEAD,
-            self.base_url + u"/repos/{}/contents/{}?ref={}".format(repo.name, path, version),
+            self.base_url + "/repos/{}/contents/{}?ref={}".format(repo.name, path, version),
             status=404,
         )
         installation = integration.get_installation(self.organization)
@@ -308,12 +308,12 @@ class GitHubIntegrationTest(IntegrationTestCase):
         default = "master"
         responses.add(
             responses.HEAD,
-            self.base_url + u"/repos/{}/contents/{}?ref={}".format(repo.name, path, version),
+            self.base_url + "/repos/{}/contents/{}?ref={}".format(repo.name, path, version),
             status=404,
         )
         responses.add(
             responses.HEAD,
-            self.base_url + u"/repos/{}/contents/{}?ref={}".format(repo.name, path, default),
+            self.base_url + "/repos/{}/contents/{}?ref={}".format(repo.name, path, default),
         )
         installation = integration.get_installation(self.organization)
         result = installation.get_stacktrace_link(repo, path, default, version)

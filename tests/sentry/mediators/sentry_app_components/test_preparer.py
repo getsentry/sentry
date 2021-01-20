@@ -90,6 +90,6 @@ class TestPreparerStacktraceLink(TestCase):
 
         assert self.component.schema[
             "url"
-        ] == u"https://example.com/redirection?installationId={}&projectSlug={}".format(
+        ] == "https://example.com/redirection?installationId={}&projectSlug={}".format(
             self.install.uuid, self.project.slug
         )

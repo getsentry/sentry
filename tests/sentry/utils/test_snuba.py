@@ -255,10 +255,10 @@ class QuantizeTimeTest(unittest.TestCase):
         assert starting_key != finishing_key
 
     def test_quantize_hour_edges(self):
-        """ a suffix should still behave correctly around the end of the hour
+        """a suffix should still behave correctly around the end of the hour
 
-            At a duration of 10 only one key between 0-10 should flip on the hour, the other 9
-            should flip at different times.
+        At a duration of 10 only one key between 0-10 should flip on the hour, the other 9
+        should flip at different times.
         """
         before = datetime(2019, 9, 5, 17, 59, 59)
         on_hour = datetime(2019, 9, 5, 18, 0, 0)
@@ -273,10 +273,10 @@ class QuantizeTimeTest(unittest.TestCase):
         assert changed_on_hour == 1
 
     def test_quantize_day_edges(self):
-        """ a suffix should still behave correctly around the end of a day
+        """a suffix should still behave correctly around the end of a day
 
-            This test is nearly identical to test_quantize_hour_edges, but is to confirm that date changes don't
-            cause a different behaviour
+        This test is nearly identical to test_quantize_hour_edges, but is to confirm that date changes don't
+        cause a different behaviour
         """
         before = datetime(2019, 9, 5, 23, 59, 59)
         next_day = datetime(2019, 9, 6, 0, 0, 0)
@@ -304,9 +304,9 @@ class QuantizeTimeTest(unittest.TestCase):
         assert (changes[1] - changes[0]).total_seconds() == 10
 
     def test_quantize_time_jitter(self):
-        """ Different key hashes should change keys at different times
+        """Different key hashes should change keys at different times
 
-            While starting_key and other_key might begin as the same values they should change at different times
+        While starting_key and other_key might begin as the same values they should change at different times
         """
         starting_key = quantize_time(self.now, 0, duration=10)
         for i in range(11):

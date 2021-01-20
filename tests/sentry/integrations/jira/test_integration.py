@@ -66,7 +66,8 @@ class JiraIntegrationTest(APITestCase):
         group = event.group
         installation = self.integration.get_installation(self.organization.id)
         search_url = reverse(
-            "sentry-extensions-jira-search", args=[self.organization.slug, self.integration.id],
+            "sentry-extensions-jira-search",
+            args=[self.organization.slug, self.integration.id],
         )
         with mock.patch.object(installation, "get_client", get_client):
             assert installation.get_create_issue_config(group, self.user) == [

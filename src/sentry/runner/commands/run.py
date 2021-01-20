@@ -160,7 +160,7 @@ def run_worker(**options):
             without_gossip=True,
             without_heartbeat=True,
             pool_cls="processes",
-            **options
+            **options,
         )
         worker.start()
         try:

@@ -37,17 +37,17 @@ class GoogleIdentityProvider(OAuth2Provider):
         try:
             id_token = data["id_token"]
         except KeyError:
-            raise IdentityNotValid(u"Missing id_token in OAuth response: %s" % data)
+            raise IdentityNotValid("Missing id_token in OAuth response: %s" % data)
 
         try:
             _, payload, _ = map(urlsafe_b64decode, id_token.split(".", 2))
         except Exception as exc:
-            raise IdentityNotValid(u"Unable to decode id_token: %s" % exc)
+            raise IdentityNotValid("Unable to decode id_token: %s" % exc)
 
         try:
             user_data = json.loads(payload)
         except ValueError as exc:
-            raise IdentityNotValid(u"Unable to decode id_token payload: %s" % exc)
+            raise IdentityNotValid("Unable to decode id_token payload: %s" % exc)
 
         # XXX(epurkhiser): This is carryover from the AuthProvider version of
         # google identity. Because we will have code that handles interop

@@ -45,7 +45,7 @@ class GitlabIssuesTest(GitLabTestCase):
     @responses.activate
     def test_get_create_issue_config(self):
         group_description = (
-            u"Sentry Issue: [%s](%s)\n\n"
+            "Sentry Issue: [%s](%s)\n\n"
             "```\nStacktrace (most recent call first):\n\n"
             '  File "sentry/models/foo.py", line 29, in build_msg\n'
             "    string_max_length=self.string_max_length)\n\nmessage\n```"
@@ -55,7 +55,7 @@ class GitlabIssuesTest(GitLabTestCase):
         )
         responses.add(
             responses.GET,
-            u"https://example.gitlab.com/api/v4/groups/%s/projects"
+            "https://example.gitlab.com/api/v4/groups/%s/projects"
             % self.installation.model.metadata["group_id"],
             json=[
                 {"name_with_namespace": "getsentry / sentry", "id": 1},
@@ -69,7 +69,7 @@ class GitlabIssuesTest(GitLabTestCase):
                 "required": True,
                 "type": "select",
                 "label": "GitLab Project",
-                "choices": [(1, u"getsentry / sentry"), (22, u"getsentry / hello")],
+                "choices": [(1, "getsentry / sentry"), (22, "getsentry / hello")],
                 "defaultValue": 1,
             },
             {
@@ -93,7 +93,7 @@ class GitlabIssuesTest(GitLabTestCase):
     def test_get_link_issue_config(self):
         responses.add(
             responses.GET,
-            u"https://example.gitlab.com/api/v4/groups/%s/projects"
+            "https://example.gitlab.com/api/v4/groups/%s/projects"
             % self.installation.model.metadata["group_id"],
             json=[
                 {"name_with_namespace": "getsentry / sentry", "id": 1},
@@ -107,7 +107,7 @@ class GitlabIssuesTest(GitLabTestCase):
                 "label": "GitLab Project",
                 "type": "select",
                 "default": 1,
-                "choices": [(1, u"getsentry / sentry"), (22, u"getsentry / hello")],
+                "choices": [(1, "getsentry / sentry"), (22, "getsentry / hello")],
                 "url": autocomplete_url,
                 "updatesForm": True,
                 "required": True,
@@ -123,7 +123,7 @@ class GitlabIssuesTest(GitLabTestCase):
             {
                 "name": "comment",
                 "label": "Comment",
-                "default": u"Sentry issue: [{issue_id}]({url})".format(
+                "default": "Sentry issue: [{issue_id}]({url})".format(
                     url=absolute_uri(
                         self.group.get_absolute_url(params={"referrer": "gitlab_integration"})
                     ),
@@ -143,7 +143,7 @@ class GitlabIssuesTest(GitLabTestCase):
         key = "%s#%s" % (project_name, issue_iid)
         responses.add(
             responses.POST,
-            u"https://example.gitlab.com/api/v4/projects/%s/issues" % project_id,
+            "https://example.gitlab.com/api/v4/projects/%s/issues" % project_id,
             json={
                 "id": 8,
                 "iid": issue_iid,
@@ -154,7 +154,7 @@ class GitlabIssuesTest(GitLabTestCase):
         )
         responses.add(
             responses.GET,
-            u"https://example.gitlab.com/api/v4/projects/%s" % project_id,
+            "https://example.gitlab.com/api/v4/projects/%s" % project_id,
             json={"path_with_namespace": project_name, "id": 10},
         )
         form_data = {
@@ -180,7 +180,7 @@ class GitlabIssuesTest(GitLabTestCase):
         key = "%s#%s" % (project_name, issue_iid)
         responses.add(
             responses.GET,
-            u"https://example.gitlab.com/api/v4/projects/%s/issues/%s" % (project_id, issue_iid),
+            "https://example.gitlab.com/api/v4/projects/%s/issues/%s" % (project_id, issue_iid),
             json={
                 "id": 18,
                 "iid": issue_iid,
@@ -191,7 +191,7 @@ class GitlabIssuesTest(GitLabTestCase):
         )
         responses.add(
             responses.GET,
-            u"https://example.gitlab.com/api/v4/projects/%s" % project_id,
+            "https://example.gitlab.com/api/v4/projects/%s" % project_id,
             json={"id": project_id, "path_with_namespace": project_name},
         )
 
@@ -207,7 +207,7 @@ class GitlabIssuesTest(GitLabTestCase):
     @responses.activate
     def test_create_issue_default_project_in_group_api_call(self):
         group_description = (
-            u"Sentry Issue: [%s](%s)\n\n"
+            "Sentry Issue: [%s](%s)\n\n"
             "```\nStacktrace (most recent call first):\n\n"
             '  File "sentry/models/foo.py", line 29, in build_msg\n'
             "    string_max_length=self.string_max_length)\n\nmessage\n```"
@@ -225,7 +225,7 @@ class GitlabIssuesTest(GitLabTestCase):
 
         responses.add(
             responses.GET,
-            u"https://example.gitlab.com/api/v4/groups/%s/projects"
+            "https://example.gitlab.com/api/v4/groups/%s/projects"
             % self.installation.model.metadata["group_id"],
             json=[
                 {"name_with_namespace": "getsentry / sentry", "id": 1},
@@ -235,7 +235,7 @@ class GitlabIssuesTest(GitLabTestCase):
         )
         responses.add(
             responses.GET,
-            u"https://example.gitlab.com/api/v4/projects/%s" % project_id,
+            "https://example.gitlab.com/api/v4/projects/%s" % project_id,
             json={"path_with_namespace": project_name, "id": project_id},
         )
         assert self.installation.get_create_issue_config(self.group, self.user) == [
@@ -244,9 +244,9 @@ class GitlabIssuesTest(GitLabTestCase):
                 "name": "project",
                 "required": True,
                 "choices": [
-                    (1, u"getsentry / sentry"),
-                    (10, u"This_is / a_project"),
-                    (22, u"getsentry / hello"),
+                    (1, "getsentry / sentry"),
+                    (10, "This_is / a_project"),
+                    (22, "getsentry / hello"),
                 ],
                 "defaultValue": project_id,
                 "type": "select",
@@ -272,7 +272,7 @@ class GitlabIssuesTest(GitLabTestCase):
     @responses.activate
     def test_create_issue_default_project_not_in_api_call(self):
         group_description = (
-            u"Sentry Issue: [%s](%s)\n\n"
+            "Sentry Issue: [%s](%s)\n\n"
             "```\nStacktrace (most recent call first):\n\n"
             '  File "sentry/models/foo.py", line 29, in build_msg\n'
             "    string_max_length=self.string_max_length)\n\nmessage\n```"
@@ -290,7 +290,7 @@ class GitlabIssuesTest(GitLabTestCase):
 
         responses.add(
             responses.GET,
-            u"https://example.gitlab.com/api/v4/groups/%s/projects"
+            "https://example.gitlab.com/api/v4/groups/%s/projects"
             % self.installation.model.metadata["group_id"],
             json=[
                 {"name_with_namespace": "getsentry / sentry", "id": 1},
@@ -299,7 +299,7 @@ class GitlabIssuesTest(GitLabTestCase):
         )
         responses.add(
             responses.GET,
-            u"https://example.gitlab.com/api/v4/projects/%s" % project_id,
+            "https://example.gitlab.com/api/v4/projects/%s" % project_id,
             json={"name_with_namespace": project_name, "id": project_id},
         )
         assert self.installation.get_create_issue_config(self.group, self.user) == [
@@ -308,9 +308,9 @@ class GitlabIssuesTest(GitLabTestCase):
                 "name": "project",
                 "required": True,
                 "choices": [
-                    (10, u"This_is / a_project"),
-                    (1, u"getsentry / sentry"),
-                    (22, u"getsentry / hello"),
+                    (10, "This_is / a_project"),
+                    (1, "getsentry / sentry"),
+                    (22, "getsentry / hello"),
                 ],
                 "defaultValue": project_id,
                 "type": "select",
@@ -336,7 +336,7 @@ class GitlabIssuesTest(GitLabTestCase):
     @responses.activate
     def test_create_issue_no_projects(self):
         group_description = (
-            u"Sentry Issue: [%s](%s)\n\n"
+            "Sentry Issue: [%s](%s)\n\n"
             "```\nStacktrace (most recent call first):\n\n"
             '  File "sentry/models/foo.py", line 29, in build_msg\n'
             "    string_max_length=self.string_max_length)\n\nmessage\n```"
@@ -347,7 +347,7 @@ class GitlabIssuesTest(GitLabTestCase):
 
         responses.add(
             responses.GET,
-            u"https://example.gitlab.com/api/v4/groups/%s/projects"
+            "https://example.gitlab.com/api/v4/groups/%s/projects"
             % self.installation.model.metadata["group_id"],
             json=[],
         )
@@ -382,7 +382,7 @@ class GitlabIssuesTest(GitLabTestCase):
     def test_after_link_issue(self):
         responses.add(
             responses.POST,
-            u"https://example.gitlab.com/api/v4/projects/2/issues/321/notes",
+            "https://example.gitlab.com/api/v4/projects/2/issues/321/notes",
             json=[],
         )
         data = {"externalIssue": "2#321", "comment": "This is not good."}
@@ -403,7 +403,7 @@ class GitlabIssuesTest(GitLabTestCase):
     def test_after_link_issue_failure(self):
         responses.add(
             responses.POST,
-            u"https://example.gitlab.com/api/v4/projects/2/issues/321/notes",
+            "https://example.gitlab.com/api/v4/projects/2/issues/321/notes",
             status=502,
         )
         data = {"externalIssue": "2#321", "comment": "This is not good."}

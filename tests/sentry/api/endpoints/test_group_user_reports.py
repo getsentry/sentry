@@ -27,7 +27,7 @@ class GroupUserReport(APITestCase, SnubaTestCase):
 
     @fixture
     def path(self):
-        return u"/api/0/groups/{}/user-feedback/".format(self.group.id)
+        return "/api/0/groups/{}/user-feedback/".format(self.group.id)
 
     def create_environment(self, project, name):
         env = Environment.objects.create(
@@ -93,7 +93,7 @@ class GroupUserReport(APITestCase, SnubaTestCase):
     def test_no_environment(self):
         self.login_as(user=self.user)
 
-        empty_env = self.create_environment(self.project, u"")
+        empty_env = self.create_environment(self.project, "")
         empty_env_events = self.create_events_for_environment(empty_env, 5)
         userreports = self.create_user_report_for_events(
             self.project, self.group, empty_env_events, empty_env

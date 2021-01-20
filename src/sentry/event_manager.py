@@ -260,7 +260,7 @@ class EventManager(object):
             remove_other=self._remove_other,
             normalize_user_agent=True,
             sent_at=self.sent_at.isoformat() if self.sent_at is not None else None,
-            **DEFAULT_STORE_NORMALIZER_ARGS
+            **DEFAULT_STORE_NORMALIZER_ARGS,
         )
 
         self._data = CanonicalKeyDict(rust_normalizer.normalize_event(dict(self._data)))
@@ -838,7 +838,7 @@ def _get_event_user_impl(project, data, metrics_tags):
     if not euser.hash:
         return
 
-    cache_key = u"euserid:1:{}:{}".format(project.id, euser.hash)
+    cache_key = "euserid:1:{}:{}".format(project.id, euser.hash)
     euser_id = cache.get(cache_key)
     if euser_id is None:
         metrics_tags["cache_hit"] = "false"
@@ -927,7 +927,7 @@ def _save_aggregate(event, hashes, release, **kwargs):
                     .first()
                     if first_release
                     else None,
-                    **kwargs
+                    **kwargs,
                 ),
                 True,
             )
@@ -1147,7 +1147,9 @@ def discard_event(job, attachments):
         )
 
     metrics.incr(
-        "events.discarded", skip_internal=True, tags={"platform": job["platform"]},
+        "events.discarded",
+        skip_internal=True,
+        tags={"platform": job["platform"]},
     )
 
 

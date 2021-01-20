@@ -132,7 +132,7 @@ class BigtableNodeStorage(NodeStorage):
         default_ttl=None,
         compression=False,
         thread_pool_size=5,  # TODO(mattrobenolt): Remove this
-        **kwargs
+        **kwargs,
     ):
         self.project = project
         self.instance = instance

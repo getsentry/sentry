@@ -152,7 +152,7 @@ class ClubhousePlugin(CorePluginMixin, IssuePlugin2):
         # Should it switch the search mechanism from search_stories(text) to get_story(id)?
         try:
             response = client.search_stories(
-                query=(u"project:%s %s" % (project, query)).encode("utf-8")
+                query=("project:%s %s" % (project, query)).encode("utf-8")
             )
         except Exception as e:
             return self.handle_api_error(e)

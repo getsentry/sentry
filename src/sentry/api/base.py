@@ -39,7 +39,7 @@ ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
 ONE_DAY = ONE_HOUR * 24
 
-LINK_HEADER = u'<{uri}&cursor={cursor}>; rel="{name}"; results="{has_results}"; cursor="{cursor}"'
+LINK_HEADER = '<{uri}&cursor={cursor}>; rel="{name}"; results="{has_results}"; cursor="{cursor}"'
 
 DEFAULT_AUTHENTICATION = (TokenAuthentication, ApiKeyAuthentication, SessionAuthentication)
 
@@ -98,14 +98,14 @@ class Endpoint(APIView):
     permission_classes = (NoPermission,)
 
     def build_cursor_link(self, request, name, cursor):
-        querystring = u"&".join(
-            u"{0}={1}".format(urlquote(k), urlquote(v))
+        querystring = "&".join(
+            "{0}={1}".format(urlquote(k), urlquote(v))
             for k, v in six.iteritems(request.GET)
             if k != "cursor"
         )
         base_url = absolute_uri(urlquote(request.path))
         if querystring:
-            base_url = u"{0}?{1}".format(base_url, querystring)
+            base_url = "{0}?{1}".format(base_url, querystring)
         else:
             base_url = base_url + "?"
 
@@ -249,7 +249,8 @@ class Endpoint(APIView):
 
             if duration < (settings.SENTRY_API_RESPONSE_DELAY / 1000.0):
                 with sentry_sdk.start_span(
-                    op="base.dispatch.sleep", description=type(self).__name__,
+                    op="base.dispatch.sleep",
+                    description=type(self).__name__,
                 ) as span:
                     span.set_data("SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY)
                     time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0 - duration)
@@ -297,7 +298,7 @@ class Endpoint(APIView):
         paginator_cls=Paginator,
         default_per_page=100,
         max_per_page=100,
-        **paginator_kwargs
+        **paginator_kwargs,
     ):
         assert (paginator and not paginator_kwargs) or (paginator_cls and paginator_kwargs)
 
@@ -315,7 +316,8 @@ class Endpoint(APIView):
 
         try:
             with sentry_sdk.start_span(
-                op="base.paginate.get_result", description=type(self).__name__,
+                op="base.paginate.get_result",
+                description=type(self).__name__,
             ) as span:
                 span.set_data("Limit", per_page)
                 cursor_result = paginator.get_result(limit=per_page, cursor=input_cursor)
@@ -325,7 +327,8 @@ class Endpoint(APIView):
         # map results based on callback
         if on_results:
             with sentry_sdk.start_span(
-                op="base.paginate.on_results", description=type(self).__name__,
+                op="base.paginate.on_results",
+                description=type(self).__name__,
             ):
                 results = on_results(cursor_result.results)
         else:

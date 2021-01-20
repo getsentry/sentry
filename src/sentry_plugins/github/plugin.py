@@ -145,7 +145,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
             {
                 "name": "comment",
                 "label": "Comment",
-                "default": u"Sentry issue: [{issue_id}]({url})".format(
+                "default": "Sentry issue: [{issue_id}]({url})".format(
                     url=absolute_uri(group.get_absolute_url(params={"referrer": "github_plugin"})),
                     issue_id=group.qualified_short_id,
                 ),
@@ -220,7 +220,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
         client = self.get_client(request.user)
 
         try:
-            response = client.search_issues(query=(u"repo:%s %s" % (repo, query)).encode("utf-8"))
+            response = client.search_issues(query=("repo:%s %s" % (repo, query)).encode("utf-8"))
         except Exception as e:
             return self.handle_api_error(e)
 
@@ -241,7 +241,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
                 "placeholder": "e.g. getsentry/sentry",
                 "help": (
                     "If you want to add a repository to integrate commit data with releases, please install the "
-                    u'new <a href="/settings/{}/integrations/github/">'
+                    'new <a href="/settings/{}/integrations/github/">'
                     "Github global integration</a>.  "
                     "You cannot add repositories to the legacy Github integration."
                 ).format(project.organization.slug),
@@ -301,7 +301,7 @@ class GitHubRepositoryProvider(GitHubMixin, providers.RepositoryProvider):
         return config
 
     def get_webhook_secret(self, organization):
-        lock = locks.get(u"github:webhook-secret:{}".format(organization.id), duration=60)
+        lock = locks.get("github:webhook-secret:{}".format(organization.id), duration=60)
         with lock.acquire():
             # TODO(dcramer): get_or_create would be a useful native solution
             secret = OrganizationOption.objects.get_value(
@@ -321,7 +321,7 @@ class GitHubRepositoryProvider(GitHubMixin, providers.RepositoryProvider):
             "events": WEBHOOK_EVENTS,
             "config": {
                 "url": absolute_uri(
-                    u"/plugins/github/organizations/{}/webhook/".format(organization.id)
+                    "/plugins/github/organizations/{}/webhook/".format(organization.id)
                 ),
                 "content_type": "json",
                 "secret": self.get_webhook_secret(organization),
@@ -357,7 +357,7 @@ class GitHubRepositoryProvider(GitHubMixin, providers.RepositoryProvider):
             return {
                 "name": data["name"],
                 "external_id": data["external_id"],
-                "url": u"https://github.com/{}".format(data["name"]),
+                "url": "https://github.com/{}".format(data["name"]),
                 "config": {
                     "name": data["name"],
                     "webhook_id": resp["id"],

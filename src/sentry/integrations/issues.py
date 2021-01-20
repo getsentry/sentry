@@ -41,7 +41,7 @@ class IssueBasicMixin(object):
         if kwargs.get("link_referrer"):
             params["referrer"] = kwargs.get("link_referrer")
         output = [
-            u"Sentry Issue: [{}]({})".format(
+            "Sentry Issue: [{}]({})".format(
                 group.qualified_short_id, absolute_uri(group.get_absolute_url(params=params))
             )
         ]

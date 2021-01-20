@@ -20,6 +20,11 @@ class JiraExtensionConfigurationView(IntegrationExtensionConfigurationView):
         params = params.copy()
         signed_params = params["signed_params"]
         del params["signed_params"]
-        params.update(unsign(signed_params, max_age=INSTALL_EXPIRATION_TIME,))
+        params.update(
+            unsign(
+                signed_params,
+                max_age=INSTALL_EXPIRATION_TIME,
+            )
+        )
         params["metadata"] = json.loads(params["metadata"])
         return params

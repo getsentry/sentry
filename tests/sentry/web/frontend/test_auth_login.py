@@ -49,7 +49,7 @@ class AuthLoginTest(TestCase):
         )
         assert resp.status_code == 200
         assert resp.context["login_form"].errors["__all__"] == [
-            u"Please enter a correct username and password. Note that both fields may be case-sensitive."
+            "Please enter a correct username and password. Note that both fields may be case-sensitive."
         ]
 
     def test_login_valid_credentials(self):

@@ -37,11 +37,13 @@ class BitbucketIntegrationTest(APITestCase):
         self.integration.metadata["uuid"] = uuid
         url = "https://api.bitbucket.org/2.0/repositories/{}".format(quote(uuid))
         responses.add(
-            responses.GET, url, json={"values": [{"full_name": "sentryuser/stuf"}]},
+            responses.GET,
+            url,
+            json={"values": [{"full_name": "sentryuser/stuf"}]},
         )
         installation = self.integration.get_installation(self.organization)
         result = installation.get_repositories()
-        assert result == [{"identifier": u"sentryuser/stuf", "name": u"sentryuser/stuf"}]
+        assert result == [{"identifier": "sentryuser/stuf", "name": "sentryuser/stuf"}]
 
     @responses.activate
     def test_get_repositories_exact_match(self):

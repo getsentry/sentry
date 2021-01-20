@@ -13,7 +13,7 @@ class CreateTeamTest(AcceptanceTestCase):
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
         self.login_as(self.user)
-        self.path = u"/settings/{}/teams/".format(self.org.slug)
+        self.path = "/settings/{}/teams/".format(self.org.slug)
 
     def test_create(self):
         self.browser.get(self.path)

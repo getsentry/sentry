@@ -89,7 +89,7 @@ def name_for_username(username):
 def generate_user(username=None, email=None, ip_address=None, id=None):
     if username is None and email is None:
         username = random_username()
-        email = u"{}@example.com".format(username)
+        email = "{}@example.com".format(username)
     return UserInterface.to_python(
         {
             "id": id,
@@ -135,7 +135,7 @@ def load_data(
 
         # Verify by checking if the file is within our folder explicitly
         # avoids being able to have a name that invokes traversing directories.
-        json_path = u"{}.json".format(platform)
+        json_path = "{}.json".format(platform)
 
         if json_path not in all_samples:
             continue
@@ -259,7 +259,7 @@ def create_sample_event(
     timestamp=None,
     start_timestamp=None,
     trace=None,
-    **kwargs
+    **kwargs,
 ):
     if not platform and not default:
         return

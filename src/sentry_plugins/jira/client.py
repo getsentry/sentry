@@ -26,11 +26,11 @@ class JiraClient(ApiClient):
     META_URL = "/rest/api/2/issue/createmeta"
     CREATE_URL = "/rest/api/2/issue"
     PRIORITIES_URL = "/rest/api/2/priority"
-    VERSIONS_URL = u"/rest/api/2/project/{}/versions"
+    VERSIONS_URL = "/rest/api/2/project/{}/versions"
     USERS_URL = "/rest/api/2/user/assignable/search"
-    ISSUE_URL = u"/rest/api/2/issue/{}"
+    ISSUE_URL = "/rest/api/2/issue/{}"
     SEARCH_URL = "/rest/api/2/search/"
-    COMMENT_URL = u"/rest/api/2/issue/{}/comment"
+    COMMENT_URL = "/rest/api/2/issue/{}/comment"
     HTTP_TIMEOUT = 5
     plugin_name = "jira"
 
@@ -95,10 +95,10 @@ class JiraClient(ApiClient):
     def search_issues(self, project, query):
         # check if it looks like an issue id
         if re.search(r"^[A-Za-z]+-\d+$", query) and project.lower() in query.lower():
-            jql = u'id="{}"'.format(query.replace('"', '\\"'))
+            jql = 'id="{}"'.format(query.replace('"', '\\"'))
         else:
-            jql = u'text ~ "{}"'.format(query.replace('"', '\\"'))
-        jql = u'project="{project}" AND {jql}'.format(project=project, jql=jql)
+            jql = 'text ~ "{}"'.format(query.replace('"', '\\"'))
+        jql = 'project="{project}" AND {jql}'.format(project=project, jql=jql)
         return self.get(self.SEARCH_URL, params={"jql": jql})
 
     # Steve(XXX): Might consider moving this method to the base plugin API client

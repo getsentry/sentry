@@ -23,9 +23,8 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0138_widget_query_remove_interval'),
+        ("sentry", "0138_widget_query_remove_interval"),
     ]
 
     operations = [

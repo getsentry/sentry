@@ -397,7 +397,7 @@ class MailAdapter(object):
             )
 
     def get_digest_subject(self, group, counts, date):
-        return u"{short_id} - {count} new {noun} since {date}".format(
+        return "{short_id} - {count} new {noun} since {date}".format(
             short_id=group.qualified_short_id,
             count=len(counts),
             noun="alert" if len(counts) == 1 else "alerts",
@@ -471,7 +471,7 @@ class MailAdapter(object):
         email_cls = emails.get(activity.type)
         if not email_cls:
             logger.debug(
-                u"No email associated with activity type `{}`".format(activity.get_type_display())
+                "No email associated with activity type `{}`".format(activity.get_type_display())
             )
             return
 
@@ -492,17 +492,15 @@ class MailAdapter(object):
 
         context = {
             "project": project,
-            "project_link": absolute_uri(
-                u"/{}/{}/".format(project.organization.slug, project.slug)
-            ),
+            "project_link": absolute_uri("/{}/{}/".format(project.organization.slug, project.slug)),
             "issue_link": absolute_uri(
-                u"/{}/{}/issues/{}/".format(
+                "/{}/{}/issues/{}/".format(
                     project.organization.slug, project.slug, payload["report"]["issue"]["id"]
                 )
             ),
             # TODO(dcramer): we dont have permalinks to feedback yet
             "link": absolute_uri(
-                u"/{}/{}/issues/{}/feedback/".format(
+                "/{}/{}/issues/{}/feedback/".format(
                     project.organization.slug, project.slug, payload["report"]["issue"]["id"]
                 )
             ),
@@ -513,7 +511,7 @@ class MailAdapter(object):
 
         subject_prefix = self._build_subject_prefix(project)
         subject = force_text(
-            u"{}{} - New Feedback from {}".format(
+            "{}{} - New Feedback from {}".format(
                 subject_prefix, group.qualified_short_id, payload["report"]["name"]
             )
         )

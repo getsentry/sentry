@@ -20,7 +20,7 @@ class GroupExternalIssuesEndpointTest(APITestCase):
             web_url="https://example.com/app/issues/1",
         )
 
-        url = u"/api/0/issues/{}/external-issues/".format(group.id)
+        url = "/api/0/issues/{}/external-issues/".format(group.id)
         response = self.client.get(url, format="json")
         external_issue = PlatformExternalIssue.objects.first()
         assert response.status_code == 200, response.content

@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 
 from django.db import migrations
 
+
 def add_unhandled_search(apps, schema_editor):
     SavedSearch = apps.get_model("sentry", "SavedSearch")
     search = SavedSearch.objects.create(
@@ -16,7 +17,6 @@ def add_unhandled_search(apps, schema_editor):
         type=0,
     )
     search.save()
-
 
 
 class Migration(migrations.Migration):
@@ -37,9 +37,8 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0113_add_repositoryprojectpathconfig'),
+        ("sentry", "0113_add_repositoryprojectpathconfig"),
     ]
 
     migrations.RunPython(code=add_unhandled_search, reverse_code=migrations.RunPython.noop)

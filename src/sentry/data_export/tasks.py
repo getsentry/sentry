@@ -58,10 +58,12 @@ def assemble_download(
     offset=0,
     bytes_written=0,
     environment_id=None,
-    **kwargs
+    **kwargs,
 ):
     with sentry_sdk.start_transaction(
-        op="task.data_export.assemble", name="DataExportAssemble", sampled=True,
+        op="task.data_export.assemble",
+        name="DataExportAssemble",
+        sampled=True,
     ):
         first_page = offset == 0
 
@@ -208,7 +210,8 @@ def get_processor(data_export, environment_id):
             )
         elif data_export.query_type == ExportQueryType.DISCOVER:
             processor = DiscoverProcessor(
-                discover_query=data_export.query_info, organization_id=data_export.organization_id,
+                discover_query=data_export.query_info,
+                organization_id=data_export.organization_id,
             )
         return processor
     except ExportError as error:
@@ -285,7 +288,9 @@ def store_export_chunk_as_blob(data_export, bytes_written, fileobj, blob_size=DE
 @instrumented_task(name="sentry.data_export.tasks.merge_blobs", queue="data_export", acks_late=True)
 def merge_export_blobs(data_export_id, **kwargs):
     with sentry_sdk.start_transaction(
-        op="task.data_export.merge", name="DataExportMerge", sampled=True,
+        op="task.data_export.merge",
+        name="DataExportMerge",
+        sampled=True,
     ):
         try:
             data_export = ExportedData.objects.get(id=data_export_id)

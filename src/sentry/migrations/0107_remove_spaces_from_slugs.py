@@ -37,7 +37,5 @@ class Migration(migrations.Migration):
     dependencies = [("sentry", "0106_service_hook_project_id_nullable")]
 
     operations = [
-        migrations.RunPython(
-            remove_trailing_spaces, reverse_code=migrations.RunPython.noop
-        )
+        migrations.RunPython(remove_trailing_spaces, reverse_code=migrations.RunPython.noop)
     ]

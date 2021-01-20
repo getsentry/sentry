@@ -87,7 +87,7 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
     def test_dashboard_does_not_exist(self):
         response = self.client.get(self.url(1234567890))
         assert response.status_code == 404
-        assert response.data == {u"detail": "The requested resource does not exist"}
+        assert response.data == {"detail": "The requested resource does not exist"}
 
     def test_get_prebuilt_dashboard(self):
         # Pre-built dashboards should be accessible
@@ -124,7 +124,7 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
     def test_dashboard_does_not_exist(self):
         response = self.client.delete(self.url(1234567890))
         assert response.status_code == 404
-        assert response.data == {u"detail": "The requested resource does not exist"}
+        assert response.data == {"detail": "The requested resource does not exist"}
 
     def test_delete_prebuilt_dashboard(self):
         slug = "default-overview"
@@ -171,7 +171,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
     def test_dashboard_does_not_exist(self):
         response = self.client.put(self.url(1234567890))
         assert response.status_code == 404
-        assert response.data == {u"detail": u"The requested resource does not exist"}
+        assert response.data == {"detail": "The requested resource does not exist"}
 
     def test_change_dashboard_title(self):
         response = self.client.put(self.url(self.dashboard.id), data={"title": "Dashboard Hello"})
@@ -186,7 +186,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         )
         response = self.client.put(self.url(self.dashboard.id), data={"title": "Dashboard 2"})
         assert response.status_code == 409, response.data
-        assert list(response.data) == [u"Dashboard with that title already exists."]
+        assert list(response.data) == ["Dashboard with that title already exists."]
 
     def test_add_widget(self):
         data = {
@@ -611,7 +611,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             data={"widgets": [{"id": self.widget_4.id}, {"id": widget.id}]},
         )
         assert response.status_code == 400
-        assert response.data == [u"You cannot update widgets that are not part of this dashboard."]
+        assert response.data == ["You cannot update widgets that are not part of this dashboard."]
         self.assert_no_changes()
 
     def test_widget_does_not_exist(self):
@@ -620,5 +620,5 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             data={"widgets": [{"id": self.widget_4.id}, {"id": 1234567890}]},
         )
         assert response.status_code == 400
-        assert response.data == [u"You cannot update widgets that are not part of this dashboard."]
+        assert response.data == ["You cannot update widgets that are not part of this dashboard."]
         self.assert_no_changes()

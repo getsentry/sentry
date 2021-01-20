@@ -24,20 +24,22 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0065_add_incident_status_method'),
+        ("sentry", "0065_add_incident_status_method"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='alertrule',
-            options={'base_manager_name': 'objects_with_snapshots', 'default_manager_name': 'objects_with_snapshots'},
+            name="alertrule",
+            options={
+                "base_manager_name": "objects_with_snapshots",
+                "default_manager_name": "objects_with_snapshots",
+            },
         ),
         migrations.AlterModelManagers(
-            name='alertrule',
+            name="alertrule",
             managers=[
-                ('objects_with_snapshots', django.db.models.manager.Manager()),
+                ("objects_with_snapshots", django.db.models.manager.Manager()),
             ],
         ),
     ]

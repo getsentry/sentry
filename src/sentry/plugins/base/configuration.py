@@ -19,7 +19,7 @@ from sentry.web.helpers import render_to_string
 
 def react_plugin_config(plugin, project, request):
     response = client.get(
-        u"/projects/{}/{}/plugins/{}/".format(project.organization.slug, project.slug, plugin.slug),
+        "/projects/{}/{}/plugins/{}/".format(project.organization.slug, project.slug, plugin.slug),
         request=request,
     )
     nonce = ""

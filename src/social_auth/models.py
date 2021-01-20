@@ -29,7 +29,7 @@ class UserSocialAuth(models.Model):
     user = models.ForeignKey(AUTH_USER_MODEL, related_name="social_auth")
     provider = models.CharField(max_length=32)
     uid = models.CharField(max_length=UID_LENGTH)
-    extra_data = JSONField(default=u"{}")
+    extra_data = JSONField(default="{}")
 
     class Meta:
         """Meta data"""
@@ -39,7 +39,7 @@ class UserSocialAuth(models.Model):
 
     def __unicode__(self):
         """Return associated user unicode representation"""
-        return u"%s - %s" % (six.text_type(self.user), self.provider.title())
+        return "%s - %s" % (six.text_type(self.user), self.provider.title())
 
     def get_backend(self):
         # Make import here to avoid recursive imports :-/

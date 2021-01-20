@@ -19,7 +19,7 @@ def merge_pii_configs(prefixes_and_configs):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("field", [u"aaa", u"aää", u"a a", u"a\na", u"a'a"])
+@pytest.mark.parametrize("field", ["aaa", "aää", "a a", "a\na", "a'a"])
 def test_scrub_data(field, default_project):
     project = default_project
     organization = project.organization
@@ -53,31 +53,31 @@ def test_scrub_data(field, default_project):
 
     assert new_event == (
         {
-            u"_meta": {
-                u"debug_meta": {
-                    u"images": {
-                        u"0": {
-                            u"code_file": {
-                                u"": {u"len": 10, u"rem": [[u"@userpath:replace", u"s", 7, 13]]}
+            "_meta": {
+                "debug_meta": {
+                    "images": {
+                        "0": {
+                            "code_file": {
+                                "": {"len": 10, "rem": [["@userpath:replace", "s", 7, 13]]}
                             },
-                            u"debug_file": {
-                                u"": {u"len": 10, u"rem": [[u"@userpath:replace", u"s", 7, 13]]}
+                            "debug_file": {
+                                "": {"len": 10, "rem": [["@userpath:replace", "s", 7, 13]]}
                             },
                         }
                     }
                 },
-                u"extra": {field: {u"": {u"len": 10, u"rem": [[u"strip-fields", u"s", 0, 10]]}}},
+                "extra": {field: {"": {"len": 10, "rem": [["strip-fields", "s", 0, 10]]}}},
             },
-            u"debug_meta": {
-                u"images": [
+            "debug_meta": {
+                "images": [
                     {
-                        u"code_file": u"/Users/[user]/bar",
-                        u"debug_file": u"/Users/[user]/bar",
-                        u"type": u"symbolic",
+                        "code_file": "/Users/[user]/bar",
+                        "debug_file": "/Users/[user]/bar",
+                        "type": "symbolic",
                     }
                 ]
             },
-            u"extra": {field: u"[Filtered]"},
+            "extra": {field: "[Filtered]"},
         }
     )
 

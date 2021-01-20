@@ -26,25 +26,36 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0128_change_dashboards'),
+        ("sentry", "0128_change_dashboards"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='widget',
-            name='dashboard',
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(db_constraint=False, db_index=False, on_delete=django.db.models.deletion.CASCADE, to='sentry.Dashboard'),
+            model_name="widget",
+            name="dashboard",
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                db_constraint=False,
+                db_index=False,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="sentry.Dashboard",
+            ),
         ),
         migrations.AlterField(
-            model_name='widget',
-            name='display_type',
-            field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(choices=[(0, 'line'), (1, 'area'), (2, 'stacked_area'), (3, 'bar'), (4, 'table')]),
+            model_name="widget",
+            name="display_type",
+            field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(
+                choices=[(0, "line"), (1, "area"), (2, "stacked_area"), (3, "bar"), (4, "table")]
+            ),
         ),
         migrations.AlterField(
-            model_name='widgetdatasource',
-            name='widget',
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(db_constraint=False, db_index=False, on_delete=django.db.models.deletion.CASCADE, to='sentry.Widget'),
+            model_name="widgetdatasource",
+            name="widget",
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                db_constraint=False,
+                db_index=False,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="sentry.Widget",
+            ),
         ),
     ]

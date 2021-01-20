@@ -213,8 +213,8 @@ class AbstractQueryExecutor:
         self, search_filter, converted_filter, project_ids, environment_ids=None
     ):
         """This method serves as a hook - after we convert the search_filter into a snuba compatible filter (which converts it in a general dataset ambigious method),
-            we may want to transform the query - maybe change the value (time formats, translate value into id (like turning Release `version` into `id`) or vice versa),  alias fields, etc.
-            By default, no transformation is done.
+        we may want to transform the query - maybe change the value (time formats, translate value into id (like turning Release `version` into `id`) or vice versa),  alias fields, etc.
+        By default, no transformation is done.
         """
         return converted_filter
 

@@ -184,7 +184,7 @@ def owner_filter(owner, projects):
         else:
             return owner_query
 
-    raise InvalidSearchQuery(u"Unsupported owner type.")
+    raise InvalidSearchQuery("Unsupported owner type.")
 
 
 class Condition(object):
@@ -206,7 +206,7 @@ class QCallbackCondition(Condition):
         q = self.callback(value)
         if search_filter.operator not in ("=", "!="):
             raise InvalidSearchQuery(
-                u"Operator {} not valid for search {}".format(search_filter.operator, search_filter)
+                "Operator {} not valid for search {}".format(search_filter.operator, search_filter)
             )
         queryset_method = queryset.filter if search_filter.operator == "=" else queryset.exclude
         queryset = queryset_method(q)
@@ -307,7 +307,7 @@ class SnubaSearchBackendBase(SearchBackend):
 
         # ensure sort strategy is supported by executor
         if not query_executor.has_sort_strategy(sort_by):
-            raise InvalidSearchQuery(u"Sort key '{}' not supported.".format(sort_by))
+            raise InvalidSearchQuery("Sort key '{}' not supported.".format(sort_by))
 
         return query_executor.query(
             projects=projects,

@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 
 from django.db import migrations
 
-#update the field with mutation
+# update the field with mutation
 def convert_field(field):
     # even if async if false, we had a bug where we'd treat it the same as true
     # so to maintain legacy behavior, we have to replicate that same check when setting skip_load_on_open
@@ -31,9 +31,12 @@ def update_element_schema(schema):
     for field in create.get("optional_fields", []):
         convert_field(field)
 
+
 def update_ui_components(apps, schema_editor):
     SentryAppComponent = apps.get_model("sentry", "SentryAppComponent")
-    for component in SentryAppComponent.objects.filter(type="issue-link").select_related("sentry_app"):
+    for component in SentryAppComponent.objects.filter(type="issue-link").select_related(
+        "sentry_app"
+    ):
         # need to update the denormalized data
         update_element_schema(component.schema)
         for element in component.sentry_app.schema.get("elements", []):
@@ -44,7 +47,6 @@ def update_ui_components(apps, schema_editor):
         # save the UI component and the sentry app
         component.save()
         component.sentry_app.save()
-
 
 
 class Migration(migrations.Migration):
@@ -65,9 +67,8 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = False
 
-
     dependencies = [
-        ('sentry', '0095_ruleactivity'),
+        ("sentry", "0095_ruleactivity"),
     ]
 
     operations = [migrations.RunPython(update_ui_components, migrations.RunPython.noop)]

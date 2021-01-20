@@ -27,28 +27,43 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0085_fix_error_rate_snuba_query'),
+        ("sentry", "0085_fix_error_rate_snuba_query"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='SentryAppInstallationForProvider',
+            name="SentryAppInstallationForProvider",
             fields=[
-                ('id', sentry.db.models.fields.bounded.BoundedBigAutoField(primary_key=True, serialize=False)),
-                ('date_updated', models.DateTimeField(default=django.utils.timezone.now)),
-                ('date_added', models.DateTimeField(default=django.utils.timezone.now, null=True)),
-                ('provider', models.CharField(max_length=64)),
-                ('organization', sentry.db.models.fields.foreignkey.FlexibleForeignKey(on_delete=django.db.models.deletion.CASCADE, to='sentry.Organization')),
-                ('sentry_app_installation', sentry.db.models.fields.foreignkey.FlexibleForeignKey(on_delete=django.db.models.deletion.CASCADE, to='sentry.SentryAppInstallation')),
+                (
+                    "id",
+                    sentry.db.models.fields.bounded.BoundedBigAutoField(
+                        primary_key=True, serialize=False
+                    ),
+                ),
+                ("date_updated", models.DateTimeField(default=django.utils.timezone.now)),
+                ("date_added", models.DateTimeField(default=django.utils.timezone.now, null=True)),
+                ("provider", models.CharField(max_length=64)),
+                (
+                    "organization",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="sentry.Organization"
+                    ),
+                ),
+                (
+                    "sentry_app_installation",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="sentry.SentryAppInstallation",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'sentry_sentryappinstallationforprovider',
+                "db_table": "sentry_sentryappinstallationforprovider",
             },
         ),
         migrations.AlterUniqueTogether(
-            name='sentryappinstallationforprovider',
-            unique_together=set([('provider', 'organization')]),
+            name="sentryappinstallationforprovider",
+            unique_together=set([("provider", "organization")]),
         ),
     ]

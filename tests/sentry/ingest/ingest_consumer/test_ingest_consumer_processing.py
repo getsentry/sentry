@@ -53,7 +53,7 @@ def test_deduplication_works(default_project, task_runner, preprocess_event):
 
     (kwargs,) = preprocess_event
     assert kwargs == {
-        "cache_key": u"e:{event_id}:{project_id}".format(event_id=event_id, project_id=project_id),
+        "cache_key": "e:{event_id}:{project_id}".format(event_id=event_id, project_id=project_id),
         "data": payload,
         "event_id": event_id,
         "project": default_project,

@@ -314,7 +314,7 @@ class Quota(Service):
         # XXX(epurkhiser): Avoid excessive feature manager checks (which can be
         # expensive depending on feature handlers) for project rate limits.
         # This happens on /store.
-        cache_key = u"project:{}:features:rate-limits".format(key.project.id)
+        cache_key = "project:{}:features:rate-limits".format(key.project.id)
 
         has_rate_limits = cache.get(cache_key)
         if has_rate_limits is None:
@@ -342,7 +342,7 @@ class Quota(Service):
         org_quota, window = self.get_organization_quota(org)
 
         if max_quota_share != 100 and org_quota:
-            quota = self._translate_quota(u"{}%".format(max_quota_share), org_quota)
+            quota = self._translate_quota("{}%".format(max_quota_share), org_quota)
         else:
             quota = None
 

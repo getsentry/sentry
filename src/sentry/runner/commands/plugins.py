@@ -15,5 +15,5 @@ def list():
 
     for ep in iter_entry_points("sentry.plugins"):
         click.echo(
-            u"%s: %s %s (%s)" % (ep.name, ep.dist.project_name, ep.dist.version, ep.dist.location)
+            "%s: %s %s (%s)" % (ep.name, ep.dist.project_name, ep.dist.version, ep.dist.location)
         )

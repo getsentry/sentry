@@ -62,7 +62,7 @@ class SlackMigrationTest(IntegrationTestCase):
         responses.reset()
 
         resp = self.client.get(
-            u"{}?{}".format(self.init_path, urlencode({"integration_id": self.integration.id}))
+            "{}?{}".format(self.init_path, urlencode({"integration_id": self.integration.id}))
         )
         assert resp.status_code == 200
 
@@ -114,7 +114,7 @@ class SlackMigrationTest(IntegrationTestCase):
         )
 
         resp = self.client.get(
-            u"{}?{}".format(
+            "{}?{}".format(
                 self.setup_path,
                 urlencode({"code": "oauth-code", "state": authorize_params["state"]}),
             )
@@ -176,7 +176,7 @@ class SlackMigrationTest(IntegrationTestCase):
         OrganizationIntegration.objects.create(organization=new_org, integration=self.integration)
 
         resp = self.client.get(
-            u"{}?{}".format(self.init_path, urlencode({"integration_id": self.integration.id}))
+            "{}?{}".format(self.init_path, urlencode({"integration_id": self.integration.id}))
         )
         assert resp.status_code == 200
         self.assertContains(resp, self.integration.name)
@@ -209,7 +209,7 @@ class SlackMigrationTest(IntegrationTestCase):
     def test_invalid_integration_id(self):
         responses.reset()
 
-        resp = self.client.get(u"{}?{}".format(self.init_path, urlencode({"integration_id": -1})))
+        resp = self.client.get("{}?{}".format(self.init_path, urlencode({"integration_id": -1})))
         assert resp.status_code == 200
         self.assertContains(resp, "Setup Error")
 

@@ -13,7 +13,7 @@ class TeamGroupsNewTest(APITestCase):
         group2 = self.create_group(checksum="b" * 32, project=project2, times_seen=5)
 
         self.login_as(user=self.user)
-        url = u"/api/0/teams/{}/{}/issues/new/".format(self.team.organization.slug, self.team.slug)
+        url = "/api/0/teams/{}/{}/issues/new/".format(self.team.organization.slug, self.team.slug)
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert len(response.data) == 2

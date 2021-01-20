@@ -23,20 +23,19 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0081_add_integraiton_upgrade_audit_log'),
+        ("sentry", "0081_add_integraiton_upgrade_audit_log"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='alertruletrigger',
-            name='alert_threshold',
+            model_name="alertruletrigger",
+            name="alert_threshold",
             field=models.FloatField(),
         ),
         migrations.AlterField(
-            model_name='alertruletrigger',
-            name='resolve_threshold',
+            model_name="alertruletrigger",
+            name="resolve_threshold",
             field=models.FloatField(null=True),
         ),
     ]

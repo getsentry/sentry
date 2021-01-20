@@ -19,9 +19,8 @@ class Migration(migrations.Migration):
     # - Adding columns to highly active tables, even ones that are NULL.
     is_dangerous = False
 
-
     dependencies = [
-        ('sentry', '0014_delete_sentryappwebhookerror'),
+        ("sentry", "0014_delete_sentryappwebhookerror"),
     ]
 
     operations = [

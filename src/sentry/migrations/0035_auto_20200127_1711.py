@@ -23,30 +23,48 @@ class Migration(migrations.Migration):
     # - Adding columns to highly active tables, even ones that are NULL.
     is_dangerous = True
 
-
     dependencies = [
-        ('sentry', '0034_auto_20200210_2311'),
+        ("sentry", "0034_auto_20200210_2311"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='AlertRuleEnvironment',
+            name="AlertRuleEnvironment",
             fields=[
-                ('id', sentry.db.models.fields.bounded.BoundedBigAutoField(primary_key=True, serialize=False)),
-                ('alert_rule', sentry.db.models.fields.foreignkey.FlexibleForeignKey(on_delete=django.db.models.deletion.CASCADE, to='sentry.AlertRule')),
-                ('environment', sentry.db.models.fields.foreignkey.FlexibleForeignKey(on_delete=django.db.models.deletion.CASCADE, to='sentry.Environment')),
+                (
+                    "id",
+                    sentry.db.models.fields.bounded.BoundedBigAutoField(
+                        primary_key=True, serialize=False
+                    ),
+                ),
+                (
+                    "alert_rule",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="sentry.AlertRule"
+                    ),
+                ),
+                (
+                    "environment",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="sentry.Environment"
+                    ),
+                ),
             ],
             options={
-                'db_table': 'sentry_alertruleenvironment',
+                "db_table": "sentry_alertruleenvironment",
             },
         ),
         migrations.AddField(
-            model_name='alertrule',
-            name='environment',
-            field=models.ManyToManyField(related_name='alert_rule_environment', through='sentry.AlertRuleEnvironment', to='sentry.Environment'),
+            model_name="alertrule",
+            name="environment",
+            field=models.ManyToManyField(
+                related_name="alert_rule_environment",
+                through="sentry.AlertRuleEnvironment",
+                to="sentry.Environment",
+            ),
         ),
         migrations.AlterUniqueTogether(
-            name='alertruleenvironment',
-            unique_together=set([('alert_rule', 'environment')]),
+            name="alertruleenvironment",
+            unique_together=set([("alert_rule", "environment")]),
         ),
     ]

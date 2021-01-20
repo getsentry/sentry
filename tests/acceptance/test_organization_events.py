@@ -15,7 +15,7 @@ class OrganizationEventsTest(AcceptanceTestCase):
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
 
         self.login_as(self.user)
-        self.path = u"/organizations/{}/events/".format(self.org.slug)
+        self.path = "/organizations/{}/events/".format(self.org.slug)
 
     def test_no_access(self):
         self.browser.get(self.path)

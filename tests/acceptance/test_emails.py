@@ -63,14 +63,14 @@ class EmailTestCase(AcceptanceTestCase):
         self.login_as(self.user)
 
     def build_url(self, path, format="html"):
-        return u"{}?{}".format(path, urlencode({"format": format, "seed": b"123"}))
+        return "{}?{}".format(path, urlencode({"format": format, "seed": b"123"}))
 
     def test_emails(self):
         for url, name in EMAILS:
             # HTML output is captured as a snapshot
             self.browser.get(self.build_url(url, "html"))
             self.browser.wait_until("#preview")
-            self.browser.snapshot(u"{} email html".format(name))
+            self.browser.snapshot("{} email html".format(name))
 
             # Text output is asserted against static fixture files
             self.browser.get(self.build_url(url, "txt"))

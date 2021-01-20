@@ -84,7 +84,7 @@ class RuleSerializer(serializers.Serializer):
                 self.context["project"].organization_id, environment
             ).id
         except Environment.DoesNotExist:
-            raise serializers.ValidationError(u"This environment has not been created.")
+            raise serializers.ValidationError("This environment has not been created.")
 
         return environment
 
@@ -100,7 +100,7 @@ class RuleSerializer(serializers.Serializer):
             if action["id"] in TICKET_ACTIONS:
                 if not action.get("dynamic_form_fields"):
                     raise serializers.ValidationError(
-                        {"actions": u"Must configure issue link settings."}
+                        {"actions": "Must configure issue link settings."}
                     )
             # remove this attribute because we don't want it to be saved in the rule
             if action.pop("pending_save", None):
@@ -114,7 +114,7 @@ class RuleSerializer(serializers.Serializer):
             if not filter_match:
                 raise serializers.ValidationError(
                     {
-                        "filterMatch": u"Must select a filter match (all, any, none) if filters are supplied."
+                        "filterMatch": "Must select a filter match (all, any, none) if filters are supplied."
                     }
                 )
 
@@ -129,7 +129,7 @@ class RuleSerializer(serializers.Serializer):
             if old_conditions:
                 raise serializers.ValidationError(
                     {
-                        "conditions": u"Conditions evaluating an event attribute, tag, or level are outdated please use an appropriate filter instead."
+                        "conditions": "Conditions evaluating an event attribute, tag, or level are outdated please use an appropriate filter instead."
                     }
                 )
 
@@ -137,7 +137,7 @@ class RuleSerializer(serializers.Serializer):
         if project_has_filters and attrs.get("actionMatch") == "none":
             raise serializers.ValidationError(
                 {
-                    "conditions": u"The 'none' match on conditions is outdated and no longer supported."
+                    "conditions": "The 'none' match on conditions is outdated and no longer supported."
                 }
             )
 

@@ -209,13 +209,13 @@ class GitlabSearchTest(GitLabTestCase):
     # Distributed System Issues
     @responses.activate
     def test_search_issues_request_fails(self):
-        responses.add(responses.GET, u"https://example.gitlab.com/api/v4/issues", status=503)
+        responses.add(responses.GET, "https://example.gitlab.com/api/v4/issues", status=503)
         resp = self.client.get(
             self.url, data={"field": "externalIssue", "query": "GetSentry", "project": "5"}
         )
         assert resp.status_code == 400
 
     def test_projects_request_fails(self):
-        responses.add(responses.GET, u"https://example.gitlab.com/api/v4/projects", status=503)
+        responses.add(responses.GET, "https://example.gitlab.com/api/v4/projects", status=503)
         resp = self.client.get(self.url, data={"field": "project", "query": "GetSentry"})
         assert resp.status_code == 400

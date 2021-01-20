@@ -20,7 +20,7 @@ class ProjectTagsSettingsTest(AcceptanceTestCase, SnubaTestCase):
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
 
         self.login_as(self.user)
-        self.path = u"/settings/{}/projects/{}/tags/".format(self.org.slug, self.project.slug)
+        self.path = "/settings/{}/projects/{}/tags/".format(self.org.slug, self.project.slug)
 
     @patch("django.utils.timezone.now", return_value=current_time)
     def test_tags_list(self, mock_timezone):

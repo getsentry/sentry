@@ -26,7 +26,7 @@ class AvatarField(serializers.Field):
         max_size=settings.SENTRY_MAX_AVATAR_SIZE,
         min_dimension=MIN_DIMENSION,
         max_dimension=MAX_DIMENSION,
-        **kwargs
+        **kwargs,
     ):
         super(AvatarField, self).__init__(**kwargs)
         self.max_size = max_size

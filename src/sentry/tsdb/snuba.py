@@ -236,7 +236,7 @@ class SnubaTSDB(BaseTSDB):
             model_query_settings = self.model_query_settings.get(model)
 
         if model_query_settings is None:
-            raise Exception(u"Unsupported TSDBModel: {}".format(model.name))
+            raise Exception("Unsupported TSDBModel: {}".format(model.name))
 
         model_group = model_query_settings.groupby
         model_aggregate = model_query_settings.aggregate
@@ -344,7 +344,7 @@ class SnubaTSDB(BaseTSDB):
         else:
             model_query_settings = self.model_query_settings.get(model)
 
-        assert model_query_settings is not None, u"Unsupported TSDBModel: {}".format(model.name)
+        assert model_query_settings is not None, "Unsupported TSDBModel: {}".format(model.name)
 
         if model_query_settings.dataset == snuba.Dataset.Outcomes:
             aggregate_function = "sum"
@@ -417,7 +417,7 @@ class SnubaTSDB(BaseTSDB):
     def get_most_frequent(
         self, model, keys, start, end=None, rollup=None, limit=10, environment_id=None
     ):
-        aggregation = u"topK({})".format(limit)
+        aggregation = "topK({})".format(limit)
         result = self.get_data(
             model,
             keys,
@@ -440,7 +440,7 @@ class SnubaTSDB(BaseTSDB):
     def get_most_frequent_series(
         self, model, keys, start, end=None, rollup=None, limit=10, environment_id=None
     ):
-        aggregation = u"topK({})".format(limit)
+        aggregation = "topK({})".format(limit)
         result = self.get_data(
             model,
             keys,

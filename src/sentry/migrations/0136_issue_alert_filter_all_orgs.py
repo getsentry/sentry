@@ -84,8 +84,18 @@ def split_alert_rule(rule, Rule):
         original_name = original_name[:60]
 
     # split the conditions into a filters and triggers array
-    filters = [migrate_condition(condition) for condition in conditions if condition["id"] in conditions_to_filters or condition["id"].startswith(filter_prefix)]
-    triggers = [condition for condition in conditions if not (condition["id"] in conditions_to_filters or condition["id"].startswith(filter_prefix))]
+    filters = [
+        migrate_condition(condition)
+        for condition in conditions
+        if condition["id"] in conditions_to_filters or condition["id"].startswith(filter_prefix)
+    ]
+    triggers = [
+        condition
+        for condition in conditions
+        if not (
+            condition["id"] in conditions_to_filters or condition["id"].startswith(filter_prefix)
+        )
+    ]
 
     # the original rule will only have the triggers
     rule.data["conditions"] = triggers
@@ -115,7 +125,9 @@ def modify_none_rule(rule, Rule):
     conditions = data.get("conditions") or []
 
     # remove the event occurs condition if it exists and migrate all conditions that should be filters
-    migrated_conditions = [migrate_condition(cond) for cond in conditions if cond["id"] != every_event_condition]
+    migrated_conditions = [
+        migrate_condition(cond) for cond in conditions if cond["id"] != every_event_condition
+    ]
     rule.data["conditions"] = migrated_conditions
     rule.data["filter_match"] = "none"
 
@@ -175,7 +187,9 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ('sentry', '0135_removinguniquegroupownerconstraint'),
+        ("sentry", "0135_removinguniquegroupownerconstraint"),
     ]
 
-    operations = [migrations.RunPython(code=migrate_all_orgs, reverse_code=migrations.RunPython.noop)]
+    operations = [
+        migrations.RunPython(code=migrate_all_orgs, reverse_code=migrations.RunPython.noop)
+    ]

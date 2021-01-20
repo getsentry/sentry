@@ -215,7 +215,9 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
 
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
-                url, data={"field": ["", " "], "statsPeriod": "24h"}, format="json",
+                url,
+                data={"field": ["", " "], "statsPeriod": "24h"},
+                format="json",
             )
 
         assert response.status_code == 200, response.content

@@ -41,30 +41,37 @@ OPERATOR_KEYS = set(
 # Aggregates are now fields
 def convert_field(fieldname, unique, reverse):
     if fieldname == "count":
-        fieldname = u"count()"
+        fieldname = "count()"
     elif unique:
-        fieldname = u"count_unique({})".format(fieldname)
+        fieldname = "count_unique({})".format(fieldname)
 
-    fieldname = u"-{}".format(fieldname) if reverse else fieldname
+    fieldname = "-{}".format(fieldname) if reverse else fieldname
     return fieldname
+
 
 def prepare_value(value):
     value = value.replace("%", "*")
     if " " in value and not value.startswith('"'):
-        value = u'"{}"'.format(value)
+        value = '"{}"'.format(value)
     return value
 
-def convert(DiscoverSavedQuery, DiscoverSavedQueryProject, saved_query, name_extra=" (migrated from legacy discover)"):
+
+def convert(
+    DiscoverSavedQuery,
+    DiscoverSavedQueryProject,
+    saved_query,
+    name_extra=" (migrated from legacy discover)",
+):
     """ Create a v2 query from a v1 query"""
     if saved_query.version == 2:
         # nothing to do! Already v2 :)
         return saved_query
 
     updated_query = {
-        u"environment": [],
-        u"fields": saved_query.query.get('fields', []),
-        u"orderby": u"",
-        u"query": [],  # Will become a string later via join
+        "environment": [],
+        "fields": saved_query.query.get("fields", []),
+        "orderby": "",
+        "query": [],  # Will become a string later via join
     }
 
     if "range" in saved_query.query:
@@ -84,18 +91,18 @@ def convert(DiscoverSavedQuery, DiscoverSavedQueryProject, saved_query, name_ext
             updated_query["fields"].append(field)
 
     # Order by
-    orderby = saved_query.query.get('orderby', "")
+    orderby = saved_query.query.get("orderby", "")
     unique = reverse = False
-    if orderby.startswith('-'):
+    if orderby.startswith("-"):
         reverse = True
         orderby = orderby[1:]
-    if orderby.startswith('uniq_'):
+    if orderby.startswith("uniq_"):
         unique = True
-        orderby = orderby[5:].replace('_', '.')
+        orderby = orderby[5:].replace("_", ".")
     field = convert_field(orderby, unique, reverse)
 
     if field:
-        updated_query['orderby'] = field
+        updated_query["orderby"] = field
         if reverse:
             field = field[1:]
         if field not in updated_query["fields"]:
@@ -104,25 +111,23 @@ def convert(DiscoverSavedQuery, DiscoverSavedQueryProject, saved_query, name_ext
     # Conditions become a query now
     for condition in saved_query.query.get("conditions", []):
         column, operator, value = condition
-        if column in ['contexts.key']:
+        if column in ["contexts.key"]:
             column = "tags[contexts.key]"
         if column == "environment" and operator == "=":
-            updated_query['environment'].append(value.strip('"'))
-        elif operator == 'IS NOT NULL':
-            updated_query["query"].append(u"has:{}".format(column))
-        elif operator == 'IS NULL':
-            updated_query["query"].append(u"!has:{}".format(column))
+            updated_query["environment"].append(value.strip('"'))
+        elif operator == "IS NOT NULL":
+            updated_query["query"].append("has:{}".format(column))
+        elif operator == "IS NULL":
+            updated_query["query"].append("!has:{}".format(column))
         elif column in OPERATOR_KEYS:
-            updated_query["query"].append(u"{}:{}{}".format(
-                column,
-                operator if operator != '=' else '',
-                value
-            ))
-        elif operator in ['LIKE', '=']:
-            updated_query["query"].append(u"{}:{}".format(column, prepare_value(value)))
-        elif operator in ['NOT LIKE', '!=']:
-            updated_query["query"].append(u"!{}:{}".format(column, prepare_value(value)))
-    updated_query["query"] = ' '.join(updated_query["query"])
+            updated_query["query"].append(
+                "{}:{}{}".format(column, operator if operator != "=" else "", value)
+            )
+        elif operator in ["LIKE", "="]:
+            updated_query["query"].append("{}:{}".format(column, prepare_value(value)))
+        elif operator in ["NOT LIKE", "!="]:
+            updated_query["query"].append("!{}:{}".format(column, prepare_value(value)))
+    updated_query["query"] = " ".join(updated_query["query"])
 
     # Create the version 2 query
     new_query = DiscoverSavedQuery.objects.create(
@@ -156,6 +161,7 @@ def convert(DiscoverSavedQuery, DiscoverSavedQueryProject, saved_query, name_ext
     )
 
     return new_query
+
 
 def migrate_v1_queries(apps, schema_editor):
     """

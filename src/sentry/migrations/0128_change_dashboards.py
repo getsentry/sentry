@@ -28,48 +28,78 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0127_backfill_platformexternalissue_project_id'),
+        ("sentry", "0127_backfill_platformexternalissue_project_id"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='DashboardWidget',
+            name="DashboardWidget",
             fields=[
-                ('id', sentry.db.models.fields.bounded.BoundedBigAutoField(primary_key=True, serialize=False)),
-                ('order', sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
-                ('title', models.CharField(max_length=255)),
-                ('display_type', sentry.db.models.fields.bounded.BoundedPositiveIntegerField(choices=[(0, 'line'), (1, 'area'), (2, 'stacked_area'), (3, 'bar'), (4, 'table')])),
-                ('date_added', models.DateTimeField(default=django.utils.timezone.now)),
-                ('dashboard', sentry.db.models.fields.foreignkey.FlexibleForeignKey(on_delete=django.db.models.deletion.CASCADE, to='sentry.Dashboard')),
+                (
+                    "id",
+                    sentry.db.models.fields.bounded.BoundedBigAutoField(
+                        primary_key=True, serialize=False
+                    ),
+                ),
+                ("order", sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
+                ("title", models.CharField(max_length=255)),
+                (
+                    "display_type",
+                    sentry.db.models.fields.bounded.BoundedPositiveIntegerField(
+                        choices=[
+                            (0, "line"),
+                            (1, "area"),
+                            (2, "stacked_area"),
+                            (3, "bar"),
+                            (4, "table"),
+                        ]
+                    ),
+                ),
+                ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    "dashboard",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="sentry.Dashboard"
+                    ),
+                ),
             ],
             options={
-                'db_table': 'sentry_dashboardwidget',
+                "db_table": "sentry_dashboardwidget",
             },
         ),
         migrations.CreateModel(
-            name='DashboardWidgetQuery',
+            name="DashboardWidgetQuery",
             fields=[
-                ('id', sentry.db.models.fields.bounded.BoundedBigAutoField(primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=255)),
-                ('fields', sentry.db.models.fields.array.ArrayField(null=True)),
-                ('conditions', models.TextField()),
-                ('interval', models.CharField(max_length=10)),
-                ('order', sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
-                ('date_added', models.DateTimeField(default=django.utils.timezone.now)),
-                ('widget', sentry.db.models.fields.foreignkey.FlexibleForeignKey(on_delete=django.db.models.deletion.CASCADE, to='sentry.DashboardWidget')),
+                (
+                    "id",
+                    sentry.db.models.fields.bounded.BoundedBigAutoField(
+                        primary_key=True, serialize=False
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+                ("fields", sentry.db.models.fields.array.ArrayField(null=True)),
+                ("conditions", models.TextField()),
+                ("interval", models.CharField(max_length=10)),
+                ("order", sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
+                ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    "widget",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="sentry.DashboardWidget"
+                    ),
+                ),
             ],
             options={
-                'db_table': 'sentry_dashboardwidgetquery',
+                "db_table": "sentry_dashboardwidgetquery",
             },
         ),
         migrations.AlterUniqueTogether(
-            name='dashboardwidgetquery',
-            unique_together=set([('widget', 'order'), ('widget', 'name')]),
+            name="dashboardwidgetquery",
+            unique_together=set([("widget", "order"), ("widget", "name")]),
         ),
         migrations.AlterUniqueTogether(
-            name='dashboardwidget',
-            unique_together=set([('dashboard', 'title'), ('dashboard', 'order')]),
+            name="dashboardwidget",
+            unique_together=set([("dashboard", "title"), ("dashboard", "order")]),
         ),
     ]

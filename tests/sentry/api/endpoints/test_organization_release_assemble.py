@@ -24,7 +24,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
 
     def test_assemble_json_schema(self):
         response = self.client.post(
-            self.url, data={"lol": "test"}, HTTP_AUTHORIZATION=u"Bearer {}".format(self.token.token)
+            self.url, data={"lol": "test"}, HTTP_AUTHORIZATION="Bearer {}".format(self.token.token)
         )
         assert response.status_code == 400, response.content
 
@@ -32,21 +32,21 @@ class OrganizationReleaseAssembleTest(APITestCase):
         response = self.client.post(
             self.url,
             data={"checksum": "invalid"},
-            HTTP_AUTHORIZATION=u"Bearer {}".format(self.token.token),
+            HTTP_AUTHORIZATION="Bearer {}".format(self.token.token),
         )
         assert response.status_code == 400, response.content
 
         response = self.client.post(
             self.url,
             data={"checksum": checksum},
-            HTTP_AUTHORIZATION=u"Bearer {}".format(self.token.token),
+            HTTP_AUTHORIZATION="Bearer {}".format(self.token.token),
         )
         assert response.status_code == 400, response.content
 
         response = self.client.post(
             self.url,
             data={"checksum": checksum, "chunks": []},
-            HTTP_AUTHORIZATION=u"Bearer {}".format(self.token.token),
+            HTTP_AUTHORIZATION="Bearer {}".format(self.token.token),
         )
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.NOT_FOUND
@@ -62,7 +62,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
         response = self.client.post(
             self.url,
             data={"checksum": total_checksum, "chunks": [blob1.checksum]},
-            HTTP_AUTHORIZATION=u"Bearer {}".format(self.token.token),
+            HTTP_AUTHORIZATION="Bearer {}".format(self.token.token),
         )
 
         assert response.status_code == 200, response.content
@@ -93,7 +93,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
         response = self.client.post(
             self.url,
             data={"checksum": total_checksum, "chunks": [blob1.checksum]},
-            HTTP_AUTHORIZATION=u"Bearer {}".format(self.token.token),
+            HTTP_AUTHORIZATION="Bearer {}".format(self.token.token),
         )
 
         assert response.status_code == 200, response.content
@@ -114,7 +114,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
         response = self.client.post(
             self.url,
             data={"checksum": total_checksum, "chunks": [blob1.checksum]},
-            HTTP_AUTHORIZATION=u"Bearer {}".format(self.token.token),
+            HTTP_AUTHORIZATION="Bearer {}".format(self.token.token),
         )
 
         assert response.status_code == 200, response.content

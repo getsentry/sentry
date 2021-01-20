@@ -86,9 +86,7 @@ class Updater(Mediator):
         for event in self.events:
             needed_scope = REQUIRED_EVENT_PERMISSIONS[event]
             if needed_scope not in self.sentry_app.scope_list:
-                raise APIError(
-                    u"{} webhooks require the {} permission.".format(event, needed_scope)
-                )
+                raise APIError("{} webhooks require the {} permission.".format(event, needed_scope))
 
         from sentry.mediators.service_hooks.creator import expand_events
 
@@ -134,7 +132,7 @@ class Updater(Mediator):
     @if_param("verify_install")
     def _update_verify_install(self):
         if self.sentry_app.is_internal and self.verify_install:
-            raise APIError(u"Internal integrations cannot have verify_install=True.")
+            raise APIError("Internal integrations cannot have verify_install=True.")
         self.sentry_app.verify_install = self.verify_install
 
     @if_param("overview")

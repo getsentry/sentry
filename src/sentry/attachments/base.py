@@ -7,9 +7,9 @@ from sentry.utils import metrics
 from sentry.utils.json import prune_empty_keys
 
 
-ATTACHMENT_META_KEY = u"{key}:a"
-ATTACHMENT_UNCHUNKED_DATA_KEY = u"{key}:a:{id}"
-ATTACHMENT_DATA_CHUNK_KEY = u"{key}:a:{id}:{chunk_index}"
+ATTACHMENT_META_KEY = "{key}:a"
+ATTACHMENT_UNCHUNKED_DATA_KEY = "{key}:a:{id}"
+ATTACHMENT_DATA_CHUNK_KEY = "{key}:a:{id}:{chunk_index}"
 
 UNINITIALIZED_DATA = object()
 
@@ -31,7 +31,7 @@ class CachedAttachment(object):
         cache=None,
         rate_limited=None,
         size=None,
-        **kwargs
+        **kwargs,
     ):
         self.key = key
         self.id = id

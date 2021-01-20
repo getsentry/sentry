@@ -61,7 +61,7 @@ class SlackPostMigrationTest(TestCase):
         assert request.headers["Authorization"] == "Bearer xoxa-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
 
         expected_email_args = {
-            "subject": u"Your Slack Sentry Integration has been upgraded",
+            "subject": "Your Slack Sentry Integration has been upgraded",
             "type": "slack_migration.summary",
             "template": "sentry/emails/slack-migration.txt",
             "html_template": "sentry/emails/slack-migration.html",

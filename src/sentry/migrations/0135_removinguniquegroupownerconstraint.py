@@ -25,15 +25,16 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0134_dashboard_drop_object_status_column'),
+        ("sentry", "0134_dashboard_drop_object_status_column"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='groupowner',
-            name='group',
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(db_constraint=False, on_delete=django.db.models.deletion.CASCADE, to='sentry.Group'),
+            model_name="groupowner",
+            name="group",
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                db_constraint=False, on_delete=django.db.models.deletion.CASCADE, to="sentry.Group"
+            ),
         ),
     ]

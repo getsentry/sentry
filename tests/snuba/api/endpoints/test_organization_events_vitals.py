@@ -28,7 +28,8 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
                 data["measurements"][vital]["value"] = value
 
         return super(OrganizationEventsVitalsEndpointTest, self).store_event(
-            data.copy(), project_id=self.project.id,
+            data.copy(),
+            project_id=self.project.id,
         )
 
     def do_request(self, query=None, features=None):
@@ -53,7 +54,8 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
 
     def test_no_vitals(self):
         self.store_event(
-            self.transaction_data, project_id=self.project.id,
+            self.transaction_data,
+            project_id=self.project.id,
         )
 
         self.query.update({"vital": []})
@@ -63,7 +65,8 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
 
     def test_bad_vital(self):
         self.store_event(
-            self.transaction_data, project_id=self.project.id,
+            self.transaction_data,
+            project_id=self.project.id,
         )
 
         self.query.update({"vital": ["foobar"]})
@@ -75,7 +78,9 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
         data = self.transaction_data.copy()
         for lcp in [2000, 3000, 5000]:
             self.store_event(
-                data, {"lcp": lcp}, project_id=self.project.id,
+                data,
+                {"lcp": lcp},
+                project_id=self.project.id,
             )
 
         self.query.update({"vital": ["measurements.lcp"]})
@@ -117,7 +122,9 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
     def test_multiple_vitals(self):
         vitals = {"lcp": 3000, "fid": 50, "cls": 0.15, "fcp": 5000, "fp": 4000}
         self.store_event(
-            load_data("transaction", timestamp=self.start), vitals, project_id=self.project.id,
+            load_data("transaction", timestamp=self.start),
+            vitals,
+            project_id=self.project.id,
         )
 
         self.query.update(
@@ -172,7 +179,8 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
     def test_transactions_without_vitals(self):
         del self.transaction_data["measurements"]
         self.store_event(
-            self.transaction_data, project_id=self.project.id,
+            self.transaction_data,
+            project_id=self.project.id,
         )
 
         self.query.update({"vital": ["measurements.lcp", "measurements.fcp"]})

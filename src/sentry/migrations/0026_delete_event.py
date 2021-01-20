@@ -20,13 +20,12 @@ class Migration(migrations.Migration):
     # - Adding columns to highly active tables, even ones that are NULL.
     is_dangerous = True
 
-
     dependencies = [
-        ('sentry', '0025_organizationaccessrequest_requester'),
+        ("sentry", "0025_organizationaccessrequest_requester"),
     ]
 
     operations = [
         migrations.DeleteModel(
-            name='Event',
+            name="Event",
         ),
     ]

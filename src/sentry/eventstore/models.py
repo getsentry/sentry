@@ -265,7 +265,7 @@ class Event(object):
         be saved under this key in nodestore so it can be retrieved using the
         same generated id when we only have project_id and event_id.
         """
-        return md5(u"{}:{}".format(project_id, event_id).encode("utf-8")).hexdigest()
+        return md5("{}:{}".format(project_id, event_id).encode("utf-8")).hexdigest()
 
     # TODO We need a better way to cache these properties.  functools32
     # doesn't quite do the trick as there is a reference bug with unsaved
@@ -472,11 +472,11 @@ class Event(object):
             for value in six.itervalues(event_metadata):
                 value_u = force_text(value, errors="replace")
                 if value_u not in message:
-                    message = u"{} {}".format(message, value_u)
+                    message = "{} {}".format(message, value_u)
 
         if culprit and culprit not in message:
             culprit_u = force_text(culprit, errors="replace")
-            message = u"{} {}".format(message, culprit_u)
+            message = "{} {}".format(message, culprit_u)
 
         return trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH)
 

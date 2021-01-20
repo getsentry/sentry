@@ -36,7 +36,7 @@ class Type(object):
             # and give us the type we were expecting
             if self.test(rv):
                 return rv
-        raise InvalidTypeError(u"{!r} is not a valid {}".format(value, repr(self)))
+        raise InvalidTypeError("{!r} is not a valid {}".format(value, repr(self)))
 
     def convert(self, value):
         return value
@@ -110,7 +110,7 @@ class StringType(Type):
     """String type without any coersion, must be a string"""
 
     name = "string"
-    default = u""
+    default = ""
     expected_types = six.string_types
     compatible_types = six.string_types
 

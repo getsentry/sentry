@@ -276,7 +276,7 @@ class JiraServerIntegrationProvider(IntegrationProvider):
         webhook_secret = sha1_text(install["private_key"]).hexdigest()
 
         hostname = urlparse(install["url"]).netloc
-        external_id = u"{}:{}".format(hostname, install["consumer_key"])[:64]
+        external_id = "{}:{}".format(hostname, install["consumer_key"])[:64]
 
         credentials = {
             "consumer_key": install["consumer_key"],
@@ -321,5 +321,5 @@ class JiraServerIntegrationProvider(IntegrationProvider):
                 details = next(x for x in err.json["messages"][0].values())
             except (KeyError, TypeError, StopIteration):
                 details = ""
-            message = u"Could not create issue webhook in Jira. {}".format(details)
+            message = "Could not create issue webhook in Jira. {}".format(details)
             raise IntegrationError(message)

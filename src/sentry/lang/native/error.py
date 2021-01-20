@@ -78,13 +78,13 @@ class SymbolicationFailed(Exception):
     def __str__(self):
         rv = []
         if self.type is not None:
-            rv.append(u"%s: " % self.type)
+            rv.append("%s: " % self.type)
         rv.append(self.message or "no information available")
         if self.image_uuid is not None:
             rv.append(" image-uuid=%s" % self.image_uuid)
         if self.image_name is not None:
             rv.append(" image-name=%s" % self.image_name)
-        return u"".join(rv)
+        return "".join(rv)
 
 
 def write_error(e, data):

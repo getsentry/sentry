@@ -19,7 +19,7 @@ class RedisLockBackendTestCase(TestCase):
         return RedisLockBackend(self.cluster)
 
     def test_success(self):
-        key = u"\U0001F4A9"
+        key = "\U0001F4A9"
         duration = 60
         full_key = self.backend.prefix_key(key)
         client = self.backend.get_client(key)

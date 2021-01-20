@@ -24,30 +24,29 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = False
 
-
     dependencies = [
-        ('sentry', '0070_incident_snapshot_support'),
+        ("sentry", "0070_incident_snapshot_support"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='integration',
-            name='date_updated',
+            model_name="integration",
+            name="date_updated",
             field=models.DateTimeField(default=django.utils.timezone.now),
         ),
         migrations.AddField(
-            model_name='integrationexternalproject',
-            name='date_updated',
+            model_name="integrationexternalproject",
+            name="date_updated",
             field=models.DateTimeField(default=django.utils.timezone.now),
         ),
         migrations.AddField(
-            model_name='organizationintegration',
-            name='date_updated',
+            model_name="organizationintegration",
+            name="date_updated",
             field=models.DateTimeField(default=django.utils.timezone.now),
         ),
         migrations.AddField(
-            model_name='pagerdutyservice',
-            name='date_updated',
+            model_name="pagerdutyservice",
+            name="date_updated",
             field=models.DateTimeField(default=django.utils.timezone.now),
         ),
     ]

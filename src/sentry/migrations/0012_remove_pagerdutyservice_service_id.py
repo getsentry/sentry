@@ -20,7 +20,7 @@ class Migration(migrations.Migration):
     is_dangerous = False
 
     dependencies = [
-        ('sentry', '0011_remove_pagerdutyservice_service_id_from_state'),
+        ("sentry", "0011_remove_pagerdutyservice_service_id_from_state"),
     ]
 
     operations = [

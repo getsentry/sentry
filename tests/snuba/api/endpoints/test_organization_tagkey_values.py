@@ -279,7 +279,8 @@ class TransactionTagKeyValues(OrganizationTagKeyTestCase):
             {"status": "unknown_error", "parent_span_id": "9000cec7cc0779c1", "op": "bar.server"}
         )
         self.store_event(
-            self.transaction, project_id=self.project.id,
+            self.transaction,
+            project_id=self.project.id,
         )
 
     def run_test(self, key, expected, **kwargs):
@@ -292,7 +293,9 @@ class TransactionTagKeyValues(OrganizationTagKeyTestCase):
     def test_status(self):
         self.run_test("transaction.status", expected=[("unknown", 1), ("ok", 1)])
         self.run_test(
-            "transaction.status", qs_params={"query": "o"}, expected=[("unknown", 1), ("ok", 1)],
+            "transaction.status",
+            qs_params={"query": "o"},
+            expected=[("unknown", 1), ("ok", 1)],
         )
         self.run_test("transaction.status", qs_params={"query": "ow"}, expected=[("unknown", 1)])
         self.run_test("transaction.status", qs_params={"query": "does-not-exist"}, expected=[])

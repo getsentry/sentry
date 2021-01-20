@@ -27,27 +27,50 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0053_migrate_alert_task_onboarding'),
+        ("sentry", "0053_migrate_alert_task_onboarding"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='KeyTransaction',
+            name="KeyTransaction",
             fields=[
-                ('id', sentry.db.models.fields.bounded.BoundedBigAutoField(primary_key=True, serialize=False)),
-                ('transaction', models.CharField(max_length=200)),
-                ('organization', sentry.db.models.fields.foreignkey.FlexibleForeignKey(on_delete=django.db.models.deletion.CASCADE, to='sentry.Organization')),
-                ('owner', sentry.db.models.fields.foreignkey.FlexibleForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
-                ('project', sentry.db.models.fields.foreignkey.FlexibleForeignKey(db_constraint=False, on_delete=django.db.models.deletion.CASCADE, to='sentry.Project')),
+                (
+                    "id",
+                    sentry.db.models.fields.bounded.BoundedBigAutoField(
+                        primary_key=True, serialize=False
+                    ),
+                ),
+                ("transaction", models.CharField(max_length=200)),
+                (
+                    "organization",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="sentry.Organization"
+                    ),
+                ),
+                (
+                    "owner",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "project",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        db_constraint=False,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="sentry.Project",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'sentry_discoverkeytransaction',
+                "db_table": "sentry_discoverkeytransaction",
             },
         ),
         migrations.AlterUniqueTogether(
-            name='keytransaction',
-            unique_together=set([('project', 'transaction')]),
+            name="keytransaction",
+            unique_together=set([("project", "transaction")]),
         ),
     ]

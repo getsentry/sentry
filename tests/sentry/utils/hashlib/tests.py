@@ -44,5 +44,5 @@ class HashlibTest(TestCase):
         sha1_text("x").hexdigest() == "11f6ad8ec52a2984abaafd7c3b516503785c2072"
 
     def test_unicode(self):
-        md5_text(u"ü").hexdigest() == "c03410a5204b21cd8229ff754688d743"
-        sha1_text(u"ü").hexdigest() == "94a759fd37735430753c7b6b80684306d80ea16e"
+        md5_text("ü").hexdigest() == "c03410a5204b21cd8229ff754688d743"
+        sha1_text("ü").hexdigest() == "94a759fd37735430753c7b6b80684306d80ea16e"

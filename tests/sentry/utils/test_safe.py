@@ -46,10 +46,10 @@ class TrimTest(unittest.TestCase):
         a = {"a": {"b": {"c": "d"}}}
         assert trm(a) == a
 
-        a = {"a": {"b": {"c": u"d"}}}
+        a = {"a": {"b": {"c": "d"}}}
         assert trm(a) == {"a": {"b": {"c": "d"}}}
 
-        a = {"a": {"b": {"c": {u"d": u"e"}}}}
+        a = {"a": {"b": {"c": {"d": "e"}}}}
         assert trm(a) == {"a": {"b": {"c": '{"d":"e"}'}}}
 
         a = {"a": {"b": {"c": []}}}

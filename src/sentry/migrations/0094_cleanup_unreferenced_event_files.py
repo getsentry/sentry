@@ -7,6 +7,7 @@ from django.db.models import Min
 
 from sentry.utils.query import RangeQuerySetWrapper
 
+
 def cleanup_event_attachment_files(apps, schema_editor):
     """
     Previously, cleanup task code did a SQL bulk delete on EventAttachment
@@ -31,9 +32,9 @@ def cleanup_event_attachment_files(apps, schema_editor):
         "unreal.context",
         "unreal.logs",
     ]
-    file_query = (File.objects
-        .filter(timestamp__lt=oldest_attachment["date_added__min"])
-        .filter(type__in=attachment_types))
+    file_query = File.objects.filter(timestamp__lt=oldest_attachment["date_added__min"]).filter(
+        type__in=attachment_types
+    )
 
     for f in RangeQuerySetWrapper(file_query):
         # Double check that the file is not referenced.
@@ -59,9 +60,8 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = False
 
-
     dependencies = [
-        ('sentry', '0093_make_identity_user_id_textfield'),
+        ("sentry", "0093_make_identity_user_id_textfield"),
     ]
 
     operations = [

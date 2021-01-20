@@ -47,7 +47,8 @@ class CloudflareWebhookEndpoint(Endpoint):
 
     def verify(self, payload, key, signature):
         return constant_time_compare(
-            signature, hmac.new(key=key.encode("utf-8"), msg=payload, digestmod=sha256).hexdigest(),
+            signature,
+            hmac.new(key=key.encode("utf-8"), msg=payload, digestmod=sha256).hexdigest(),
         )
 
     def organization_from_json(self, request, data, scope="project:write"):
@@ -203,7 +204,7 @@ class CloudflareWebhookEndpoint(Endpoint):
             return Response(status=400)
 
         event = data.get("event")
-        logger.info(u"cloudflare.webhook.{}".format(event), extra=logging_data)
+        logger.info("cloudflare.webhook.{}".format(event), extra=logging_data)
         if not signature:
             logger.error("cloudflare.webhook.invalid-signature", extra=logging_data)
             return Response(status=400)
@@ -225,7 +226,7 @@ class CloudflareWebhookEndpoint(Endpoint):
             return Response(status=400)
 
         if not self.verify(payload, key, signature):
-            logger.error(u"cloudflare.webhook.invalid-signature".format(event), extra=logging_data)
+            logger.error("cloudflare.webhook.invalid-signature".format(event), extra=logging_data)
             return Response(status=400)
 
         if event == "option-change:account":

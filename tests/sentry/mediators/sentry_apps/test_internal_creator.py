@@ -22,7 +22,7 @@ class TestInternalCreator(TestCase):
             scopes=("project:read",),
             webhook_url="http://example.com",
             schema={"elements": [self.create_issue_link_schema()]},
-            **kwargs
+            **kwargs,
         )
 
     def test_slug(self):

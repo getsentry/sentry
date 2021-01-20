@@ -61,7 +61,7 @@ def generate_slug(name, is_internal=False):
     slug = slugify(name)
     # for internal, add some uuid to make it unique
     if is_internal:
-        slug = u"{}-{}".format(slug, default_uuid()[:UUID_CHARS_IN_SLUG])
+        slug = "{}-{}".format(slug, default_uuid()[:UUID_CHARS_IN_SLUG])
 
     return slug
 
@@ -176,7 +176,8 @@ class SentryApp(ParanoidModel, HasApiScopes):
 
     def is_installed_on(self, organization):
         return SentryAppInstallation.objects.filter(
-            organization=organization, sentry_app=self,
+            organization=organization,
+            sentry_app=self,
         ).exists()
 
     def build_signature(self, body):
@@ -186,5 +187,5 @@ class SentryApp(ParanoidModel, HasApiScopes):
         ).hexdigest()
 
     def show_auth_info(self, access):
-        encoded_scopes = set({u"%s" % scope for scope in list(access.scopes)})
+        encoded_scopes = set({"%s" % scope for scope in list(access.scopes)})
         return set(self.scope_list).issubset(encoded_scopes)

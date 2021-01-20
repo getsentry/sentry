@@ -13,8 +13,8 @@ from sentry.utils.strings import (
     oxfordize_list,
 )
 
-ZWSP = u"\u200b"  # zero width space
-SHY = u"\u00ad"  # soft hyphen
+ZWSP = "\u200b"  # zero width space
+SHY = "\u00ad"  # soft hyphen
 
 
 def test_codec_lookup():
@@ -96,13 +96,13 @@ def test_truncatechars():
     assert truncatechars("12345", 1) == "..."
     assert truncatechars("12345", 0) == "..."
 
-    assert truncatechars("12345", 6, ellipsis=u"\u2026") == u"12345"
-    assert truncatechars("12345", 5, ellipsis=u"\u2026") == u"12345"
-    assert truncatechars("12345", 4, ellipsis=u"\u2026") == u"123\u2026"
-    assert truncatechars("12345", 3, ellipsis=u"\u2026") == u"12\u2026"
-    assert truncatechars("12345", 2, ellipsis=u"\u2026") == u"1\u2026"
-    assert truncatechars("12345", 1, ellipsis=u"\u2026") == u"\u2026"
-    assert truncatechars("12345", 0, ellipsis=u"\u2026") == u"\u2026"
+    assert truncatechars("12345", 6, ellipsis="\u2026") == "12345"
+    assert truncatechars("12345", 5, ellipsis="\u2026") == "12345"
+    assert truncatechars("12345", 4, ellipsis="\u2026") == "123\u2026"
+    assert truncatechars("12345", 3, ellipsis="\u2026") == "12\u2026"
+    assert truncatechars("12345", 2, ellipsis="\u2026") == "1\u2026"
+    assert truncatechars("12345", 1, ellipsis="\u2026") == "\u2026"
+    assert truncatechars("12345", 0, ellipsis="\u2026") == "\u2026"
 
     assert truncatechars(None, 1) is None
 

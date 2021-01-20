@@ -156,7 +156,8 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
             layers[sentry_layer_index] = layer_arn
 
         self.client.update_function_configuration(
-            FunctionName=target, Layers=layers,
+            FunctionName=target,
+            Layers=layers,
         )
         return self.get_serialized_lambda_function(target)
 
@@ -188,9 +189,9 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
         org_client = gen_aws_client(arn, aws_external_id, service_name="organizations")
         account = org_client.describe_account(AccountId=account_id)["Account"]
 
-        integration_name = u"{} {}".format(account["Name"], region)
+        integration_name = "{} {}".format(account["Name"], region)
 
-        external_id = u"{}-{}".format(account_id, region)
+        external_id = "{}-{}".format(account_id, region)
 
         integration = {
             "name": integration_name,
@@ -293,7 +294,9 @@ class AwsLambdaListFunctionsPipelineView(PipelineView):
         lambda_functions = get_supported_functions(lambda_client)
 
         return self.render_react_view(
-            request, "awsLambdaFunctionSelect", {"lambdaFunctions": lambda_functions},
+            request,
+            "awsLambdaFunctionSelect",
+            {"lambdaFunctions": lambda_functions},
         )
 
 

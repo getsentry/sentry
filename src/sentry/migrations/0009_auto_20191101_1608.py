@@ -19,15 +19,14 @@ class Migration(migrations.Migration):
     # - Adding columns to highly active tables, even ones that are NULL.
     is_dangerous = False
 
-
     dependencies = [
-        ('sentry', '0008_auto_20191030_0016'),
+        ("sentry", "0008_auto_20191030_0016"),
     ]
 
     operations = [
         migrations.AlterField(
             model_name="pagerdutyservice",
             name="service_id",
-            field=models.CharField(max_length=255, null=True)
+            field=models.CharField(max_length=255, null=True),
         )
     ]

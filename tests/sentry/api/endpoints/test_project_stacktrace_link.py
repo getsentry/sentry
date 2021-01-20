@@ -21,7 +21,10 @@ class ProjectStacktraceLinkTest(APITestCase):
         self.integration.add_organization(self.org, self.user)
         self.oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
 
-        self.repo = self.create_repo(project=self.project, name="getsentry/sentry",)
+        self.repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentry",
+        )
         self.repo.integration_id = self.integration.id
         self.repo.provider = "example"
         self.repo.save()
@@ -52,14 +55,16 @@ class ProjectStacktraceLinkTest(APITestCase):
         self.login_as(user=self.user)
         # new project that has no configurations set up for it
         project = self.create_project(
-            name="bloop", organization=self.org, teams=[self.create_team(organization=self.org)],
+            name="bloop",
+            organization=self.org,
+            teams=[self.create_team(organization=self.org)],
         )
 
         path = reverse(
             "sentry-api-0-project-stacktrace-link",
             kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
         )
-        url = u"{}?file={}".format(path, self.filepath)
+        url = "{}?file={}".format(path, self.filepath)
 
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
@@ -71,7 +76,7 @@ class ProjectStacktraceLinkTest(APITestCase):
 
     def test_file_not_found_error(self):
         self.login_as(user=self.user)
-        url = u"{}?file={}".format(self.url, self.filepath)
+        url = "{}?file={}".format(self.url, self.filepath)
 
         response = self.client.get(url)
 
@@ -102,7 +107,7 @@ class ProjectStacktraceLinkTest(APITestCase):
 
     def test_stack_root_mismatch_error(self):
         self.login_as(user=self.user)
-        url = u"{}?file={}".format(self.url, "wrong/file/path")
+        url = "{}?file={}".format(self.url, "wrong/file/path")
 
         response = self.client.get(url)
 
@@ -133,7 +138,7 @@ class ProjectStacktraceLinkTest(APITestCase):
 
     def test_config_and_source_url(self):
         self.login_as(user=self.user)
-        url = u"{}?file={}".format(self.url, self.filepath)
+        url = "{}?file={}".format(self.url, self.filepath)
 
         with mock.patch.object(
             ExampleIntegration, "get_stacktrace_link", return_value="https://sourceurl.com/"

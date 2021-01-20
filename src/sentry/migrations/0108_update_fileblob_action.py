@@ -25,18 +25,19 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0107_remove_spaces_from_slugs'),
+        ("sentry", "0107_remove_spaces_from_slugs"),
     ]
 
     operations = [
         migrations.SeparateDatabaseAndState(
             state_operations=[
                 migrations.AlterField(
-                    model_name='fileblobindex',
-                    name='blob',
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(on_delete=django.db.models.deletion.PROTECT, to='sentry.FileBlob'),
+                    model_name="fileblobindex",
+                    name="blob",
+                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT, to="sentry.FileBlob"
+                    ),
                 ),
             ]
         )

@@ -17,7 +17,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         environment = Environment.get_or_create(group.project, "production")
         environment2 = Environment.get_or_create(group.project, "staging")
 
-        url = u"/api/0/issues/{}/".format(group.id)
+        url = "/api/0/issues/{}/".format(group.id)
 
         from sentry.api.endpoints.group_details import tsdb
 
@@ -63,7 +63,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         group = event.group
 
-        url = u"/api/0/issues/{}/".format(group.id)
+        url = "/api/0/issues/{}/".format(group.id)
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -91,7 +91,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         group = event.group
 
-        url = u"/api/0/issues/{}/".format(group.id)
+        url = "/api/0/issues/{}/".format(group.id)
 
         with mock.patch(
             "sentry.api.endpoints.group_details.tagstore.get_release_tags"
@@ -118,7 +118,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         group = event.group
 
-        url = u"/api/0/issues/{}/".format(group.id)
+        url = "/api/0/issues/{}/".format(group.id)
 
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
@@ -136,12 +136,13 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             self.login_as(user=self.user)
 
             event = self.store_event(
-                data={"timestamp": iso_format(before_now(minutes=3))}, project_id=self.project.id,
+                data={"timestamp": iso_format(before_now(minutes=3))},
+                project_id=self.project.id,
             )
             group = event.group
             add_group_to_inbox(group, GroupInboxReason.NEW)
 
-            url = u"/api/0/issues/{}/?expand=inbox".format(group.id)
+            url = "/api/0/issues/{}/?expand=inbox".format(group.id)
 
             response = self.client.get(url, format="json")
             assert response.status_code == 200, response.content

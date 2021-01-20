@@ -164,7 +164,7 @@ def generate_tombstones(project, user):
         GroupTombstone.objects.create(
             previous_group_id=prev_group_id,
             actor_id=user.id,
-            **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP}
+            **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP},
         )
         prev_group_id += 1
 
@@ -260,7 +260,10 @@ def create_sample_time_series(event, release=None):
             int(count * 1.1),
         )
         tsdb.incr(
-            tsdb.models.project_total_forwarded, project.id, now, int(count * 1.1),
+            tsdb.models.project_total_forwarded,
+            project.id,
+            now,
+            int(count * 1.1),
         )
         tsdb.incr_multi(
             (

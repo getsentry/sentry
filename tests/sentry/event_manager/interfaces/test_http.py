@@ -96,12 +96,12 @@ def test_cookies_in_header2(make_http_snapshot):
 
 def test_query_string_and_fragment_as_params(make_http_snapshot):
     make_http_snapshot(
-        dict(url="http://example.com", query_string=u"foo\ufffd=bar\u2026", fragment="fragment")
+        dict(url="http://example.com", query_string="foo\ufffd=bar\u2026", fragment="fragment")
     )
 
 
 def test_query_string_and_fragment_in_url(make_http_snapshot):
-    make_http_snapshot(dict(url=u"http://example.com?foo\ufffd=bar#fragment\u2026"))
+    make_http_snapshot(dict(url="http://example.com?foo\ufffd=bar#fragment\u2026"))
 
 
 def test_header_value_list(make_http_snapshot):

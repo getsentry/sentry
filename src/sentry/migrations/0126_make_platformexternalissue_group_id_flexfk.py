@@ -25,32 +25,31 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0125_add_platformexternalissue_project_id'),
+        ("sentry", "0125_add_platformexternalissue_project_id"),
     ]
 
     operations = [
         migrations.SeparateDatabaseAndState(
             state_operations=[
                 migrations.AddField(
-                    model_name='platformexternalissue',
-                    name='group',
+                    model_name="platformexternalissue",
+                    name="group",
                     field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                         db_constraint=False,
                         db_index=False,
                         null=False,
                         on_delete=django.db.models.deletion.CASCADE,
-                        to='sentry.Group'
+                        to="sentry.Group",
                     ),
                 ),
                 migrations.RemoveField(
-                    model_name='platformexternalissue',
-                    name='group_id',
+                    model_name="platformexternalissue",
+                    name="group_id",
                 ),
                 migrations.AlterUniqueTogether(
-                    name='platformexternalissue',
-                    unique_together=set([('group', 'service_type')]),
+                    name="platformexternalissue",
+                    unique_together=set([("group", "service_type")]),
                 ),
             ]
         )

@@ -45,7 +45,10 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
             environment = None
         else:
             queryset = (
-                Release.objects.filter(projects=project, organization_id=project.organization_id,)
+                Release.objects.filter(
+                    projects=project,
+                    organization_id=project.organization_id,
+                )
                 .filter(Q(status=ReleaseStatus.OPEN) | Q(status=None))
                 .select_related("owner")
             )

@@ -55,6 +55,6 @@ class BitbucketPluginTest(PluginTestCase):
                 "message": "README.md edited online with Bitbucket",
                 "id": "e18e4e72de0d824edfbe0d73efe34cbd0d01d301",
                 "repository": "maxbittker/newsdiffs",
-                "patch_set": [{"path": u"README.md", "type": "M"}],
+                "patch_set": [{"path": "README.md", "type": "M"}],
             }
         ]

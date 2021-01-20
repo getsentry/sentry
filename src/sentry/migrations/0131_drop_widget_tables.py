@@ -23,21 +23,24 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0130_remove_old_widget_models'),
+        ("sentry", "0130_remove_old_widget_models"),
     ]
 
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL("""
+                migrations.RunSQL(
+                    """
                 DROP TABLE sentry_widget;
-                """),
-                migrations.RunSQL("""
+                """
+                ),
+                migrations.RunSQL(
+                    """
                 DROP TABLE sentry_widgetdatasource;
-                """)
+                """
+                ),
             ],
-            state_operations=[]
+            state_operations=[],
         )
     ]

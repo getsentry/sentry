@@ -176,7 +176,7 @@ class JiraApiClient(ApiClient):
 
         # XXX(dcramer): document how this is possible, if it even is
         if len(metas["projects"]) > 1:
-            raise ApiError(u"More than one project found matching {}.".format(project))
+            raise ApiError("More than one project found matching {}.".format(project))
 
         try:
             return metas["projects"][0]

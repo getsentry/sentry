@@ -215,7 +215,7 @@ class OptionsManager(object):
             # the default value would be equivalent to '' if no type / default
             # is specified and we assume six.text_type for safety
             if default_value is None:
-                default_value = u""
+                default_value = ""
 
                 def default():
                     return default_value

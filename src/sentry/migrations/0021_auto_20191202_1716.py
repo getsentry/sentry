@@ -20,14 +20,13 @@ class Migration(migrations.Migration):
     # - Adding columns to highly active tables, even ones that are NULL.
     is_dangerous = False
 
-
     dependencies = [
-        ('sentry', '0020_auto_20191125_1420'),
+        ("sentry", "0020_auto_20191125_1420"),
     ]
 
     operations = [
         migrations.RenameModel(
-            old_name='LatestRelease',
-            new_name='LatestRepoReleaseEnvironment',
+            old_name="LatestRelease",
+            new_name="LatestRepoReleaseEnvironment",
         ),
     ]

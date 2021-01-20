@@ -66,7 +66,7 @@ class IntegrationMetadata(IntegrationMetadata):
         we prefix them with `integration`.
         """
         if f is not None:
-            return u"integrations-{}".format(f)
+            return "integrations-{}".format(f)
 
     def _asdict(self):
         metadata = super(IntegrationMetadata, self)._asdict()

@@ -23,9 +23,8 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0129_remove_dashboard_keys'),
+        ("sentry", "0129_remove_dashboard_keys"),
     ]
 
     operations = [
@@ -33,11 +32,11 @@ class Migration(migrations.Migration):
             database_operations=[],
             state_operations=[
                 migrations.DeleteModel(
-                    name='Widget',
+                    name="Widget",
                 ),
                 migrations.DeleteModel(
-                    name='WidgetDataSource',
+                    name="WidgetDataSource",
                 ),
-            ]
+            ],
         )
     ]

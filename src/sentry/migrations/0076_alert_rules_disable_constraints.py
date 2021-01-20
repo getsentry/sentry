@@ -25,40 +25,64 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0075_metric_alerts_fix_releases'),
+        ("sentry", "0075_metric_alerts_fix_releases"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='alertruleenvironment',
-            name='alert_rule',
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(db_constraint=False, on_delete=django.db.models.deletion.CASCADE, to='sentry.AlertRule'),
+            model_name="alertruleenvironment",
+            name="alert_rule",
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                db_constraint=False,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="sentry.AlertRule",
+            ),
         ),
         migrations.AlterField(
-            model_name='alertruleenvironment',
-            name='environment',
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(db_constraint=False, on_delete=django.db.models.deletion.CASCADE, to='sentry.Environment'),
+            model_name="alertruleenvironment",
+            name="environment",
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                db_constraint=False,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="sentry.Environment",
+            ),
         ),
         migrations.AlterField(
-            model_name='alertrulequerysubscription',
-            name='alert_rule',
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(db_constraint=False, on_delete=django.db.models.deletion.CASCADE, to='sentry.AlertRule'),
+            model_name="alertrulequerysubscription",
+            name="alert_rule",
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                db_constraint=False,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="sentry.AlertRule",
+            ),
         ),
         migrations.AlterField(
-            model_name='alertrulequerysubscription',
-            name='query_subscription',
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(db_constraint=False, on_delete=django.db.models.deletion.CASCADE, to='sentry.QuerySubscription', unique=True),
+            model_name="alertrulequerysubscription",
+            name="query_subscription",
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                db_constraint=False,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="sentry.QuerySubscription",
+                unique=True,
+            ),
         ),
         migrations.AlterField(
-            model_name='querysubscriptionenvironment',
-            name='environment',
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(db_constraint=False, on_delete=django.db.models.deletion.CASCADE, to='sentry.Environment'),
+            model_name="querysubscriptionenvironment",
+            name="environment",
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                db_constraint=False,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="sentry.Environment",
+            ),
         ),
         migrations.AlterField(
-            model_name='querysubscriptionenvironment',
-            name='query_subscription',
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(db_constraint=False, on_delete=django.db.models.deletion.CASCADE, to='sentry.QuerySubscription'),
+            model_name="querysubscriptionenvironment",
+            name="query_subscription",
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                db_constraint=False,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="sentry.QuerySubscription",
+            ),
         ),
     ]

@@ -32,7 +32,7 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
         options = [{"label": "Project Name", "value": "1234"}]
         responses.add(
             method=responses.GET,
-            url=u"https://example.com/get-projects?projectSlug={}&installationId={}&query=proj".format(
+            url="https://example.com/get-projects?projectSlug={}&installationId={}&query=proj".format(
                 self.project.slug, self.install.uuid
             ),
             json=options,
@@ -40,7 +40,7 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
             content_type="application/json",
             match_querystring=True,
         )
-        url = self.url + u"?projectId={}&uri={}&query={}".format(
+        url = self.url + "?projectId={}&uri={}&query={}".format(
             self.project.id, "/get-projects", "proj"
         )
         response = self.client.get(url, format="json")
@@ -59,7 +59,7 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
         }
         responses.add(
             method=responses.GET,
-            url=u"https://example.com/get-projects?%s" % urlencode(query),
+            url="https://example.com/get-projects?%s" % urlencode(query),
             json=options,
             status=200,
             content_type="application/json",
@@ -71,7 +71,7 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
             "query": "proj",
             "dependentData": json.dumps({"org_id": "A"}),
         }
-        url = u"%s?%s" % (self.url, urlencode(query))
+        url = "%s?%s" % (self.url, urlencode(query))
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert response.data == {"choices": [["1234", "Project Name"]]}
@@ -81,12 +81,12 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
         self.login_as(user=self.user)
         responses.add(
             method=responses.GET,
-            url=u"https://example.com/get-projects?installationId={}".format(
+            url="https://example.com/get-projects?installationId={}".format(
                 self.project.slug, self.install.uuid
             ),
             status=500,
             content_type="application/json",
         )
-        url = self.url + u"?uri={}".format(self.project.id, "/get-projects")
+        url = self.url + "?uri={}".format(self.project.id, "/get-projects")
         response = self.client.get(url, format="json")
         assert response.status_code == 400

@@ -28,24 +28,48 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0090_fix_auditlog_pickled_data_take_2'),
+        ("sentry", "0090_fix_auditlog_pickled_data_take_2"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='AlertRuleActivity',
+            name="AlertRuleActivity",
             fields=[
-                ('id', sentry.db.models.fields.bounded.BoundedBigAutoField(primary_key=True, serialize=False)),
-                ('type', models.IntegerField()),
-                ('date_added', models.DateTimeField(default=django.utils.timezone.now)),
-                ('alert_rule', sentry.db.models.fields.foreignkey.FlexibleForeignKey(on_delete=django.db.models.deletion.CASCADE, to='sentry.AlertRule')),
-                ('previous_alert_rule', sentry.db.models.fields.foreignkey.FlexibleForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='previous_alert_rule', to='sentry.AlertRule')),
-                ('user', sentry.db.models.fields.foreignkey.FlexibleForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    sentry.db.models.fields.bounded.BoundedBigAutoField(
+                        primary_key=True, serialize=False
+                    ),
+                ),
+                ("type", models.IntegerField()),
+                ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    "alert_rule",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="sentry.AlertRule"
+                    ),
+                ),
+                (
+                    "previous_alert_rule",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="previous_alert_rule",
+                        to="sentry.AlertRule",
+                    ),
+                ),
+                (
+                    "user",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'db_table': 'sentry_alertruleactivity',
+                "db_table": "sentry_alertruleactivity",
             },
         ),
     ]

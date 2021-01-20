@@ -275,7 +275,7 @@ class OrganizationMemberListTest(APITestCase):
 
         assert len(mail.outbox) == 1
         assert mail.outbox[0].to == ["foo@example.com"]
-        assert mail.outbox[0].subject == u"Join {} in using Sentry".format(self.org.name)
+        assert mail.outbox[0].subject == "Join {} in using Sentry".format(self.org.name)
 
     def test_existing_user_for_invite(self):
         self.login_as(user=self.owner_user)
@@ -542,6 +542,10 @@ class OrganizationMemberListPostTest(APITestCase):
     def test_rate_limited(self, mock_rate_limit):
         mock_rate_limit.return_value = True
 
-        resp = self.get_response(self.org.slug, email="jane@gmail.com", role="member",)
+        resp = self.get_response(
+            self.org.slug,
+            email="jane@gmail.com",
+            role="member",
+        )
         assert resp.status_code == 429
         assert not OrganizationMember.objects.filter(email="jane@gmail.com").exists()

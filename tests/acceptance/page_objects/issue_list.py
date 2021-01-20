@@ -12,17 +12,17 @@ class IssueListPage(BasePage):
         self.global_selection = GlobalSelectionPage(browser)
 
     def visit_issue_list(self, org, query=""):
-        self.browser.get(u"/organizations/{}/issues/{}".format(org, query))
+        self.browser.get("/organizations/{}/issues/{}".format(org, query))
         self.wait_until_loaded()
 
     def wait_for_stream(self):
         self.browser.wait_until('[data-test-id="event-issue-header"]', timeout=20)
 
     def select_issue(self, position):
-        self.browser.click(u'[data-test-id="group"]:nth-child({})'.format(position))
+        self.browser.click('[data-test-id="group"]:nth-child({})'.format(position))
 
     def navigate_to_issue(self, position):
-        self.browser.click(u'[data-test-id="group"]:nth-child({}) a'.format(position))
+        self.browser.click('[data-test-id="group"]:nth-child({}) a'.format(position))
         self.browser.wait_until(".group-detail")
         self.issue_details = IssueDetailsPage(self.browser, self.client)
 

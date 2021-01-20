@@ -27,31 +27,47 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0048_auto_20200302_1825'),
+        ("sentry", "0048_auto_20200302_1825"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='QuerySubscriptionEnvironment',
+            name="QuerySubscriptionEnvironment",
             fields=[
-                ('id', sentry.db.models.fields.bounded.BoundedBigAutoField(primary_key=True, serialize=False)),
-                ('date_added', models.DateTimeField(default=django.utils.timezone.now)),
-                ('environment', sentry.db.models.fields.foreignkey.FlexibleForeignKey(on_delete=django.db.models.deletion.CASCADE, to='sentry.Environment')),
-                ('query_subscription', sentry.db.models.fields.foreignkey.FlexibleForeignKey(on_delete=django.db.models.deletion.CASCADE, to='sentry.QuerySubscription')),
+                (
+                    "id",
+                    sentry.db.models.fields.bounded.BoundedBigAutoField(
+                        primary_key=True, serialize=False
+                    ),
+                ),
+                ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    "environment",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="sentry.Environment"
+                    ),
+                ),
+                (
+                    "query_subscription",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="sentry.QuerySubscription"
+                    ),
+                ),
             ],
             options={
-                'db_table': 'sentry_querysubscriptionenvironment',
+                "db_table": "sentry_querysubscriptionenvironment",
             },
         ),
         migrations.AddField(
-            model_name='querysubscription',
-            name='environments',
-            field=models.ManyToManyField(through='sentry.QuerySubscriptionEnvironment', to='sentry.Environment'),
+            model_name="querysubscription",
+            name="environments",
+            field=models.ManyToManyField(
+                through="sentry.QuerySubscriptionEnvironment", to="sentry.Environment"
+            ),
         ),
         migrations.AlterUniqueTogether(
-            name='querysubscriptionenvironment',
-            unique_together=set([('query_subscription', 'environment')]),
+            name="querysubscriptionenvironment",
+            unique_together=set([("query_subscription", "environment")]),
         ),
     ]

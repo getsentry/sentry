@@ -33,10 +33,10 @@ from sentry.testutils import APITestCase, TwoFactorAPITestCase, pytest
 
 # some relay keys
 _VALID_RELAY_KEYS = [
-    u"IbXZDWy8DcGLVoT_Z6-ODALEnsyhKiC_i-0r3azaztQ",
-    u"CZa3eDblYqBVoxK3O_4fr5WBbUmUVwc6FrRXbOQTPfk",
-    u"gyKnK-__yfEOweJ95sB1JoqAh6VlS4c_uIwsrrQ4G7E",
-    u"kSdr7ozq2T3gLg7FehJro2PH_NnNMJrrCslleKGZQd8",
+    "IbXZDWy8DcGLVoT_Z6-ODALEnsyhKiC_i-0r3azaztQ",
+    "CZa3eDblYqBVoxK3O_4fr5WBbUmUVwc6FrRXbOQTPfk",
+    "gyKnK-__yfEOweJ95sB1JoqAh6VlS4c_uIwsrrQ4G7E",
+    "kSdr7ozq2T3gLg7FehJro2PH_NnNMJrrCslleKGZQd8",
 ]
 
 
@@ -110,7 +110,7 @@ class OrganizationDetailsTest(APITestCase):
         url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
         self.login_as(user=user)
 
-        response = self.client.get(u"{}?detailed=0".format(url), format="json")
+        response = self.client.get("{}?detailed=0".format(url), format="json")
 
         assert "projects" not in response.data
         assert "teams" not in response.data
@@ -162,14 +162,14 @@ class OrganizationDetailsTest(APITestCase):
 
         trusted_relays = [
             {
-                u"publicKey": _VALID_RELAY_KEYS[0],
-                u"name": u"name1",
-                u"description": u"description1",
+                "publicKey": _VALID_RELAY_KEYS[0],
+                "name": "name1",
+                "description": "description1",
             },
             {
-                u"publicKey": _VALID_RELAY_KEYS[1],
-                u"name": u"name2",
-                u"description": u"description2",
+                "publicKey": _VALID_RELAY_KEYS[1],
+                "name": "name2",
+                "description": "description2",
             },
         ]
 
@@ -189,14 +189,14 @@ class OrganizationDetailsTest(APITestCase):
         assert len(response_data) == len(trusted_relays)
 
         for i in range(len(trusted_relays)):
-            assert response_data[i][u"publicKey"] == trusted_relays[i][u"publicKey"]
-            assert response_data[i][u"name"] == trusted_relays[i][u"name"]
-            assert response_data[i][u"description"] == trusted_relays[i][u"description"]
+            assert response_data[i]["publicKey"] == trusted_relays[i]["publicKey"]
+            assert response_data[i]["name"] == trusted_relays[i]["name"]
+            assert response_data[i]["description"] == trusted_relays[i]["description"]
             # check that last_modified is in the correct range
-            last_modified = dateutil.parser.parse(response_data[i][u"lastModified"])
+            last_modified = dateutil.parser.parse(response_data[i]["lastModified"])
             assert start_time < last_modified < end_time
             # check that created is in the correct range
-            created = dateutil.parser.parse(response_data[i][u"created"])
+            created = dateutil.parser.parse(response_data[i]["created"])
             assert start_time < created < end_time
 
 
@@ -263,10 +263,10 @@ class OrganizationUpdateTest(APITestCase):
             "enhancedPrivacy": True,
             "dataScrubber": True,
             "dataScrubberDefaults": True,
-            "sensitiveFields": [u"password"],
+            "sensitiveFields": ["password"],
             "eventsMemberAdmin": False,
             "alertsMemberWrite": False,
-            "safeFields": [u"email"],
+            "safeFields": ["email"],
             "storeCrashReports": 10,
             "scrubIPAddresses": True,
             "scrapeJavaScript": False,
@@ -311,24 +311,24 @@ class OrganizationUpdateTest(APITestCase):
         log = AuditLogEntry.objects.get(organization=org)
         assert log.get_event_display() == "org.edit"
         # org fields & flags
-        assert u"to {}".format(data["defaultRole"]) in log.data["default_role"]
-        assert u"to {}".format(data["openMembership"]) in log.data["allow_joinleave"]
-        assert u"to {}".format(data["isEarlyAdopter"]) in log.data["early_adopter"]
-        assert u"to {}".format(data["enhancedPrivacy"]) in log.data["enhanced_privacy"]
-        assert u"to {}".format(not data["allowSharedIssues"]) in log.data["disable_shared_issues"]
-        assert u"to {}".format(data["require2FA"]) in log.data["require_2fa"]
+        assert "to {}".format(data["defaultRole"]) in log.data["default_role"]
+        assert "to {}".format(data["openMembership"]) in log.data["allow_joinleave"]
+        assert "to {}".format(data["isEarlyAdopter"]) in log.data["early_adopter"]
+        assert "to {}".format(data["enhancedPrivacy"]) in log.data["enhanced_privacy"]
+        assert "to {}".format(not data["allowSharedIssues"]) in log.data["disable_shared_issues"]
+        assert "to {}".format(data["require2FA"]) in log.data["require_2fa"]
         # org options
-        assert u"to {}".format(data["dataScrubber"]) in log.data["dataScrubber"]
-        assert u"to {}".format(data["dataScrubberDefaults"]) in log.data["dataScrubberDefaults"]
-        assert u"to {}".format(data["sensitiveFields"]) in log.data["sensitiveFields"]
-        assert u"to {}".format(data["safeFields"]) in log.data["safeFields"]
-        assert u"to {}".format(data["storeCrashReports"]) in log.data["storeCrashReports"]
-        assert u"to {}".format(data["scrubIPAddresses"]) in log.data["scrubIPAddresses"]
-        assert u"to {}".format(data["scrapeJavaScript"]) in log.data["scrapeJavaScript"]
-        assert u"to {}".format(data["allowJoinRequests"]) in log.data["allowJoinRequests"]
-        assert u"to {}".format(data["eventsMemberAdmin"]) in log.data["eventsMemberAdmin"]
-        assert u"to {}".format(data["alertsMemberWrite"]) in log.data["alertsMemberWrite"]
-        assert u"to {}".format(data["apdexThreshold"]) in log.data["apdexThreshold"]
+        assert "to {}".format(data["dataScrubber"]) in log.data["dataScrubber"]
+        assert "to {}".format(data["dataScrubberDefaults"]) in log.data["dataScrubberDefaults"]
+        assert "to {}".format(data["sensitiveFields"]) in log.data["sensitiveFields"]
+        assert "to {}".format(data["safeFields"]) in log.data["safeFields"]
+        assert "to {}".format(data["storeCrashReports"]) in log.data["storeCrashReports"]
+        assert "to {}".format(data["scrubIPAddresses"]) in log.data["scrubIPAddresses"]
+        assert "to {}".format(data["scrapeJavaScript"]) in log.data["scrapeJavaScript"]
+        assert "to {}".format(data["allowJoinRequests"]) in log.data["allowJoinRequests"]
+        assert "to {}".format(data["eventsMemberAdmin"]) in log.data["eventsMemberAdmin"]
+        assert "to {}".format(data["alertsMemberWrite"]) in log.data["alertsMemberWrite"]
+        assert "to {}".format(data["apdexThreshold"]) in log.data["apdexThreshold"]
 
     def test_setting_trusted_relays_forbidden(self):
         org = self.create_organization(owner=self.user)
@@ -337,8 +337,8 @@ class OrganizationUpdateTest(APITestCase):
 
         data = {
             "trustedRelays": [
-                {u"publicKey": _VALID_RELAY_KEYS[0], u"name": "name1"},
-                {u"publicKey": _VALID_RELAY_KEYS[1], u"name": "name2"},
+                {"publicKey": _VALID_RELAY_KEYS[0], "name": "name1"},
+                {"publicKey": _VALID_RELAY_KEYS[1], "name": "name2"},
             ]
         }
 
@@ -361,19 +361,19 @@ class OrganizationUpdateTest(APITestCase):
 
         trusted_relays = [
             {
-                u"publicKey": _VALID_RELAY_KEYS[0],
-                u"name": u"name1",
-                u"description": u"description1",
+                "publicKey": _VALID_RELAY_KEYS[0],
+                "name": "name1",
+                "description": "description1",
             },
             {
-                u"publicKey": _VALID_RELAY_KEYS[1],
-                u"name": u"name2",
-                u"description": u"description2",
+                "publicKey": _VALID_RELAY_KEYS[1],
+                "name": "name2",
+                "description": "description2",
             },
             {
-                u"publicKey": _VALID_RELAY_KEYS[0],
-                u"name": u"name1 2",
-                u"description": u"description1 2",
+                "publicKey": _VALID_RELAY_KEYS[0],
+                "name": "name1 2",
+                "description": "description1 2",
             },
         ]
 
@@ -397,14 +397,14 @@ class OrganizationUpdateTest(APITestCase):
 
         trusted_relays = [
             {
-                u"publicKey": _VALID_RELAY_KEYS[0],
-                u"name": u"name1",
-                u"description": u"description1",
+                "publicKey": _VALID_RELAY_KEYS[0],
+                "name": "name1",
+                "description": "description1",
             },
             {
-                u"publicKey": _VALID_RELAY_KEYS[1],
-                u"name": u"name2",
-                u"description": u"description2",
+                "publicKey": _VALID_RELAY_KEYS[1],
+                "name": "name2",
+                "description": "description2",
             },
         ]
 
@@ -426,20 +426,20 @@ class OrganizationUpdateTest(APITestCase):
         assert len(response_data) == len(trusted_relays)
 
         for i in range(len(actual)):
-            assert actual[i][u"public_key"] == trusted_relays[i][u"publicKey"]
-            assert actual[i][u"name"] == trusted_relays[i][u"name"]
-            assert actual[i][u"description"] == trusted_relays[i][u"description"]
-            assert response_data[i][u"publicKey"] == trusted_relays[i][u"publicKey"]
-            assert response_data[i][u"name"] == trusted_relays[i][u"name"]
-            assert response_data[i][u"description"] == trusted_relays[i][u"description"]
+            assert actual[i]["public_key"] == trusted_relays[i]["publicKey"]
+            assert actual[i]["name"] == trusted_relays[i]["name"]
+            assert actual[i]["description"] == trusted_relays[i]["description"]
+            assert response_data[i]["publicKey"] == trusted_relays[i]["publicKey"]
+            assert response_data[i]["name"] == trusted_relays[i]["name"]
+            assert response_data[i]["description"] == trusted_relays[i]["description"]
             # check that last_modified is in the correct range
-            last_modified = dateutil.parser.parse(actual[i][u"last_modified"])
+            last_modified = dateutil.parser.parse(actual[i]["last_modified"])
             assert start_time < last_modified < end_time
-            assert response_data[i][u"lastModified"] == actual[i][u"last_modified"]
+            assert response_data[i]["lastModified"] == actual[i]["last_modified"]
             # check that created is in the correct range
-            created = dateutil.parser.parse(actual[i][u"created"])
+            created = dateutil.parser.parse(actual[i]["created"])
             assert start_time < created < end_time
-            assert response_data[i][u"created"] == actual[i][u"created"]
+            assert response_data[i]["created"] == actual[i]["created"]
 
         log = AuditLogEntry.objects.get(organization=org)
         trusted_relay_log = log.data["trustedRelays"]
@@ -448,8 +448,8 @@ class OrganizationUpdateTest(APITestCase):
         # check that we log a new trusted-relays entry
         assert trusted_relay_log.startswith("to ")
         # check that we have the public keys somewhere in the log message
-        assert trusted_relays[0][u"publicKey"] in trusted_relay_log
-        assert trusted_relays[1][u"publicKey"] in trusted_relay_log
+        assert trusted_relays[0]["publicKey"] in trusted_relay_log
+        assert trusted_relays[1]["publicKey"] in trusted_relay_log
 
     def test_modifying_trusted_relays(self):
         org = self.create_organization(owner=self.user)
@@ -459,19 +459,19 @@ class OrganizationUpdateTest(APITestCase):
 
         initial_trusted_relays = [
             {
-                u"publicKey": _VALID_RELAY_KEYS[0],
-                u"name": u"name1",
-                u"description": u"description1",
+                "publicKey": _VALID_RELAY_KEYS[0],
+                "name": "name1",
+                "description": "description1",
             },
             {
-                u"publicKey": _VALID_RELAY_KEYS[1],
-                u"name": u"name2",
-                u"description": u"description2",
+                "publicKey": _VALID_RELAY_KEYS[1],
+                "name": "name2",
+                "description": "description2",
             },
             {
-                u"publicKey": _VALID_RELAY_KEYS[2],
-                u"name": u"name3",
-                u"description": u"description3",
+                "publicKey": _VALID_RELAY_KEYS[2],
+                "name": "name3",
+                "description": "description3",
             },
         ]
 
@@ -479,21 +479,21 @@ class OrganizationUpdateTest(APITestCase):
             # key1 was removed
             # key2 is not modified
             {
-                u"publicKey": _VALID_RELAY_KEYS[1],
-                u"name": u"name2",
-                u"description": u"description2",
+                "publicKey": _VALID_RELAY_KEYS[1],
+                "name": "name2",
+                "description": "description2",
             },
             # key3 modified name & desc
             {
-                u"publicKey": _VALID_RELAY_KEYS[2],
-                u"name": u"name3 modified",
-                u"description": u"description3 modified",
+                "publicKey": _VALID_RELAY_KEYS[2],
+                "name": "name3 modified",
+                "description": "description3 modified",
             },
             # key4 is new
             {
-                u"publicKey": _VALID_RELAY_KEYS[3],
-                u"name": u"name4",
-                u"description": u"description4",
+                "publicKey": _VALID_RELAY_KEYS[3],
+                "name": "name4",
+                "description": "description4",
             },
         ]
 
@@ -516,13 +516,13 @@ class OrganizationUpdateTest(APITestCase):
         assert len(actual) == len(modified_trusted_relays)
 
         for i in range(len(actual)):
-            assert actual[i][u"public_key"] == modified_trusted_relays[i][u"publicKey"]
-            assert actual[i][u"name"] == modified_trusted_relays[i][u"name"]
-            assert actual[i][u"description"] == modified_trusted_relays[i][u"description"]
+            assert actual[i]["public_key"] == modified_trusted_relays[i]["publicKey"]
+            assert actual[i]["name"] == modified_trusted_relays[i]["name"]
+            assert actual[i]["description"] == modified_trusted_relays[i]["description"]
 
-            last_modified = dateutil.parser.parse(actual[i][u"last_modified"])
-            created = dateutil.parser.parse(actual[i][u"created"])
-            key = modified_trusted_relays[i][u"publicKey"]
+            last_modified = dateutil.parser.parse(actual[i]["last_modified"])
+            created = dateutil.parser.parse(actual[i]["created"])
+            key = modified_trusted_relays[i]["publicKey"]
 
             if key == _VALID_RELAY_KEYS[1]:
                 # key2 should have not been modified
@@ -553,7 +553,7 @@ class OrganizationUpdateTest(APITestCase):
         assert modif_log.startswith("from ")
         # check that we have the new public keys somewhere in the modify operation log message
         for i in range(len(modified_trusted_relays)):
-            assert modified_trusted_relays[i][u"publicKey"] in modif_log
+            assert modified_trusted_relays[i]["publicKey"] in modif_log
 
     def test_deleting_trusted_relays(self):
         org = self.create_organization(owner=self.user)
@@ -563,9 +563,9 @@ class OrganizationUpdateTest(APITestCase):
 
         initial_trusted_relays = [
             {
-                u"publicKey": _VALID_RELAY_KEYS[0],
-                u"name": u"name1",
-                u"description": u"description1",
+                "publicKey": _VALID_RELAY_KEYS[0],
+                "name": "name1",
+                "description": "description1",
             },
         ]
 
@@ -907,19 +907,19 @@ from sentry.api.endpoints.organization_details import TrustedRelaySerializer
 def test_trusted_relays_option_serialization():
     # incoming raw data
     data = {
-        u"publicKey": _VALID_RELAY_KEYS[0],
-        u"name": u"Relay1",
-        u"description": u"the description",
-        u"lastModified": u"2020-05-20T20:21:22",
-        u"created": u"2020-01-17T11:12:13",
+        "publicKey": _VALID_RELAY_KEYS[0],
+        "name": "Relay1",
+        "description": "the description",
+        "lastModified": "2020-05-20T20:21:22",
+        "created": "2020-01-17T11:12:13",
     }
     serializer = TrustedRelaySerializer(data=data)
     assert serializer.is_valid()
 
     expected_incoming = {
-        u"public_key": _VALID_RELAY_KEYS[0],
-        u"name": u"Relay1",
-        u"description": u"the description",
+        "public_key": _VALID_RELAY_KEYS[0],
+        "name": "Relay1",
+        "description": "the description",
     }
 
     # check incoming deserialization (data will be further completed with date info the by server)
@@ -928,27 +928,27 @@ def test_trusted_relays_option_serialization():
 
 invalid_payloads = [
     {
-        u"publicKey": _VALID_RELAY_KEYS[0],
+        "publicKey": _VALID_RELAY_KEYS[0],
         # no name
-        u"description": u"the description",
+        "description": "the description",
     },
     {
-        u"publicKey": _VALID_RELAY_KEYS[0],
-        u"name": "  ",  # empty name
-        u"description": u"the description",
+        "publicKey": _VALID_RELAY_KEYS[0],
+        "name": "  ",  # empty name
+        "description": "the description",
     },
     {
-        u"publicKey": _VALID_RELAY_KEYS[0],
-        u"name": None,  # null name
-        u"description": u"the description",
+        "publicKey": _VALID_RELAY_KEYS[0],
+        "name": None,  # null name
+        "description": "the description",
     },
-    {u"publicKey": "Bad Key", u"name": u"name", u"description": u"the description"},  # invalid key
+    {"publicKey": "Bad Key", "name": "name", "description": "the description"},  # invalid key
     {
         # missing key
-        u"name": u"name",
-        u"description": u"the description",
+        "name": "name",
+        "description": "the description",
     },
-    {u"publicKey": None, u"name": u"name", u"description": u"the description"},  # null key
+    {"publicKey": None, "name": "name", "description": "the description"},  # null key
     "Bad input",  # not an object
 ]
 
@@ -956,7 +956,7 @@ invalid_payloads = [
 @pytest.mark.parametrize("invalid_data", invalid_payloads)
 def test_trusted_relay_serializer_validation(invalid_data):
     """
-        Tests that the public key is validated
+    Tests that the public key is validated
     """
     # incoming raw data
     serializer = TrustedRelaySerializer(data=invalid_data)
@@ -966,20 +966,20 @@ def test_trusted_relay_serializer_validation(invalid_data):
 def test_trusted_relays_option_deserialization():
     # internal data
     instance = {
-        u"public_key": u"key1",
-        u"name": u"Relay1",
-        u"description": u"the description",
-        u"last_modified": u"2020-05-20T20:21:22Z",
-        u"created": u"2020-01-17T11:12:13Z",
+        "public_key": "key1",
+        "name": "Relay1",
+        "description": "the description",
+        "last_modified": "2020-05-20T20:21:22Z",
+        "created": "2020-01-17T11:12:13Z",
     }
     serializer = TrustedRelaySerializer(instance)
 
     expected_outgoing = {
-        u"publicKey": u"key1",
-        u"name": u"Relay1",
-        u"description": u"the description",
-        u"lastModified": u"2020-05-20T20:21:22Z",
-        u"created": u"2020-01-17T11:12:13Z",
+        "publicKey": "key1",
+        "name": "Relay1",
+        "description": "the description",
+        "lastModified": "2020-05-20T20:21:22Z",
+        "created": "2020-01-17T11:12:13Z",
     }
     # check outgoing deserialization (all info in camelCase)
     assert serializer.data == expected_outgoing

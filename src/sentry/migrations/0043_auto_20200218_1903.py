@@ -23,15 +23,14 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0042_auto_20200214_1607'),
+        ("sentry", "0042_auto_20200214_1607"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='incident',
-            name='type',
+            model_name="incident",
+            name="type",
             field=models.PositiveSmallIntegerField(),
         ),
     ]

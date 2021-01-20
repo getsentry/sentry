@@ -15,7 +15,7 @@ def get_direct_hit_response(request, query, snuba_params, referrer):
     """
     event_id = normalize_event_id(query)
     if event_id:
-        snuba_filter = get_filter(query=u"id:{}".format(event_id), params=snuba_params)
+        snuba_filter = get_filter(query="id:{}".format(event_id), params=snuba_params)
         snuba_filter.conditions.append(["event.type", "!=", "transaction"])
 
         results = eventstore.get_events(referrer=referrer, filter=snuba_filter)

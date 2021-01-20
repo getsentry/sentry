@@ -26,26 +26,42 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0083_add_max_length_webhook_url'),
+        ("sentry", "0083_add_max_length_webhook_url"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='ExportedDataBlob',
+            name="ExportedDataBlob",
             fields=[
-                ('id', sentry.db.models.fields.bounded.BoundedBigAutoField(primary_key=True, serialize=False)),
-                ('offset', sentry.db.models.fields.bounded.BoundedBigIntegerField()),
-                ('blob', sentry.db.models.fields.foreignkey.FlexibleForeignKey(db_constraint=False, on_delete=django.db.models.deletion.CASCADE, to='sentry.FileBlob')),
-                ('data_export', sentry.db.models.fields.foreignkey.FlexibleForeignKey(on_delete=django.db.models.deletion.CASCADE, to='sentry.ExportedData')),
+                (
+                    "id",
+                    sentry.db.models.fields.bounded.BoundedBigAutoField(
+                        primary_key=True, serialize=False
+                    ),
+                ),
+                ("offset", sentry.db.models.fields.bounded.BoundedBigIntegerField()),
+                (
+                    "blob",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        db_constraint=False,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="sentry.FileBlob",
+                    ),
+                ),
+                (
+                    "data_export",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="sentry.ExportedData"
+                    ),
+                ),
             ],
             options={
-                'db_table': 'sentry_exporteddatablob',
+                "db_table": "sentry_exporteddatablob",
             },
         ),
         migrations.AlterUniqueTogether(
-            name='exporteddatablob',
-            unique_together=set([('data_export', 'blob', 'offset')]),
+            name="exporteddatablob",
+            unique_together=set([("data_export", "blob", "offset")]),
         ),
     ]

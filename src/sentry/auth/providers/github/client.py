@@ -24,7 +24,8 @@ class GitHubClient(object):
 
         try:
             req = self.http.get(
-                "https://{0}/{1}".format(API_DOMAIN, path.lstrip("/")), headers=headers,
+                "https://{0}/{1}".format(API_DOMAIN, path.lstrip("/")),
+                headers=headers,
             )
         except RequestException as e:
             raise GitHubApiError(six.text_type(e), status=getattr(e, "status_code", 0))

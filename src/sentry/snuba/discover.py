@@ -252,7 +252,7 @@ def query(
         for having_clause in snuba_filter.having:
             # The first element of the having can be an alias, or a nested array of functions. Loop through to make sure
             # any referenced functions are in the aggregations.
-            error_extra = u", and could not be automatically added" if auto_aggregations else u""
+            error_extra = ", and could not be automatically added" if auto_aggregations else ""
             if isinstance(having_clause[0], (list, tuple)):
                 # Functions are of the form [fn, [args]]
                 args_to_check = [[having_clause[0]]]
@@ -273,8 +273,9 @@ def query(
 
                 if len(conditions_not_in_aggregations) > 0:
                     raise InvalidSearchQuery(
-                        u"Aggregate(s) {} used in a condition but are not in the selected columns{}.".format(
-                            ", ".join(conditions_not_in_aggregations), error_extra,
+                        "Aggregate(s) {} used in a condition but are not in the selected columns{}.".format(
+                            ", ".join(conditions_not_in_aggregations),
+                            error_extra,
                         )
                     )
             else:
@@ -283,8 +284,9 @@ def query(
                 )
                 if not found:
                     raise InvalidSearchQuery(
-                        u"Aggregate {} used in a condition but is not a selected column{}.".format(
-                            having_clause[0], error_extra,
+                        "Aggregate {} used in a condition but is not a selected column{}.".format(
+                            having_clause[0],
+                            error_extra,
                         )
                     )
 
@@ -684,7 +686,7 @@ def get_facets(query, params, limit=10, referrer=None):
     ) as span:
         span.set_data("tag_count", len(individual_tags))
         for tag_name in individual_tags:
-            tag = u"tags[{}]".format(tag_name)
+            tag = "tags[{}]".format(tag_name)
             tag_values = raw_query(
                 aggregations=[["count", None, "count"]],
                 conditions=snuba_filter.conditions,
@@ -789,7 +791,7 @@ def histogram_query(
             measurement = get_measurement_name(f)
             if measurement is None:
                 raise InvalidSearchQuery(
-                    u"multihistogram expected all measurements, received: {}".format(f)
+                    "multihistogram expected all measurements, received: {}".format(f)
                 )
             measurements.append(measurement)
         conditions.append([key_alias, "IN", measurements])
@@ -834,7 +836,7 @@ def get_histogram_column(fields, key_column, histogram_params):
     """
 
     field = fields[0] if key_column is None else "measurements_value"
-    return u"histogram({}, {:d}, {:d}, {:d})".format(
+    return "histogram({}, {:d}, {:d}, {:d})".format(
         field,
         histogram_params.bucket_size,
         histogram_params.start_offset,

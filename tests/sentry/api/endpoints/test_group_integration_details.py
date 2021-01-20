@@ -34,9 +34,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(org, self.user)
 
-        path = u"/api/0/issues/{}/integrations/{}/?action=link".format(
-            self.group.id, integration.id
-        )
+        path = "/api/0/issues/{}/integrations/{}/?action=link".format(self.group.id, integration.id)
 
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.get(path)
@@ -76,7 +74,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         integration.add_organization(org, self.user)
         group = self.group
 
-        path = u"/api/0/issues/{}/integrations/{}/?action=create".format(group.id, integration.id)
+        path = "/api/0/issues/{}/integrations/{}/?action=create".format(group.id, integration.id)
 
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.get(path)
@@ -140,7 +138,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(org, self.user)
 
-        path = u"/api/0/issues/{}/integrations/{}/?action=create".format(
+        path = "/api/0/issues/{}/integrations/{}/?action=create".format(
             self.group.id, integration.id
         )
 
@@ -159,7 +157,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(org, self.user)
 
-        path = u"/api/0/issues/{}/integrations/{}/?action=create".format(
+        path = "/api/0/issues/{}/integrations/{}/?action=create".format(
             self.group.id, integration.id
         )
 
@@ -175,7 +173,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(org, self.user)
 
-        path = u"/api/0/issues/{}/integrations/{}/".format(group.id, integration.id)
+        path = "/api/0/issues/{}/integrations/{}/".format(group.id, integration.id)
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.put(path, data={"externalIssue": "APP-123"})
 
@@ -210,7 +208,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(org, self.user)
 
-        path = u"/api/0/issues/{}/integrations/{}/".format(group.id, integration.id)
+        path = "/api/0/issues/{}/integrations/{}/".format(group.id, integration.id)
 
         with self.feature({"organizations:integrations-issue-basic": False}):
             response = self.client.put(path, data={"externalIssue": "APP-123"})
@@ -224,7 +222,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(org, self.user)
 
-        path = u"/api/0/issues/{}/integrations/{}/".format(group.id, integration.id)
+        path = "/api/0/issues/{}/integrations/{}/".format(group.id, integration.id)
 
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.post(path, data={})
@@ -237,8 +235,8 @@ class GroupIntegrationDetailsTest(APITestCase):
             external_issue = ExternalIssue.objects.get(
                 key="APP-123", integration_id=integration.id, organization_id=org.id
             )
-            assert external_issue.description == u"This is a test external issue description"
-            assert external_issue.title == u"This is a test external issue title"
+            assert external_issue.description == "This is a test external issue description"
+            assert external_issue.title == "This is a test external issue title"
 
             assert GroupLink.objects.filter(
                 linked_type=GroupLink.LinkedType.issue,
@@ -265,7 +263,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(org, self.user)
 
-        path = u"/api/0/issues/{}/integrations/{}/".format(group.id, integration.id)
+        path = "/api/0/issues/{}/integrations/{}/".format(group.id, integration.id)
 
         with self.feature({"organizations:integrations-issue-basic": False}):
             response = self.client.post(path, data={})
@@ -291,7 +289,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             relationship=GroupLink.Relationship.references,
         )[0]
 
-        path = u"/api/0/issues/{}/integrations/{}/?externalIssue={}".format(
+        path = "/api/0/issues/{}/integrations/{}/?externalIssue={}".format(
             group.id, integration.id, external_issue.id
         )
 
@@ -321,7 +319,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             relationship=GroupLink.Relationship.references,
         )[0]
 
-        path = u"/api/0/issues/{}/integrations/{}/?externalIssue={}".format(
+        path = "/api/0/issues/{}/integrations/{}/?externalIssue={}".format(
             group.id, integration.id, external_issue.id
         )
 
@@ -357,12 +355,10 @@ class GroupIntegrationDetailsTest(APITestCase):
         org_integration = integration.add_organization(org, self.user)
         org_integration.config = {"project_issue_defaults": {group.project_id: {"project": "2"}}}
         org_integration.save()
-        create_path = u"/api/0/issues/{}/integrations/{}/?action=create".format(
+        create_path = "/api/0/issues/{}/integrations/{}/?action=create".format(
             group.id, integration.id
         )
-        link_path = u"/api/0/issues/{}/integrations/{}/?action=link".format(
-            group.id, integration.id
-        )
+        link_path = "/api/0/issues/{}/integrations/{}/?action=link".format(group.id, integration.id)
         project_field = {
             "name": "project",
             "label": "Project",

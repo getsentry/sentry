@@ -38,7 +38,7 @@ class JiraIssueHookTest(APITestCase):
             first_release=self.first_release,
         )
         group = self.group
-        self.path = absolute_uri(u"extensions/jira/issue/{}/".format("APP-123")) + "?xdm_e=base_url"
+        self.path = absolute_uri("extensions/jira/issue/{}/".format("APP-123")) + "?xdm_e=base_url"
 
         self.integration = Integration.objects.create(
             provider="jira",
@@ -96,7 +96,7 @@ class JiraIssueHookTest(APITestCase):
     @patch("sentry.integrations.jira.issue_hook.get_integration_from_request")
     def test_simple_not_linked(self, mock_get_integration_from_request):
         mock_get_integration_from_request.return_value = self.integration
-        path = absolute_uri(u"extensions/jira/issue/{}/".format("bad-key")) + "?xdm_e=base_url"
+        path = absolute_uri("extensions/jira/issue/{}/".format("bad-key")) + "?xdm_e=base_url"
         response = self.client.get(path)
         assert response.status_code == 200
         assert b"This Sentry issue is not linked to a Jira issue" in response.content

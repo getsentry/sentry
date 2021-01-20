@@ -219,18 +219,18 @@ class QueryDefinition(object):
         raw_groupby = query.getlist("groupBy", [])
 
         if len(raw_fields) == 0:
-            raise InvalidField(u'Request is missing a "field"')
+            raise InvalidField('Request is missing a "field"')
 
         self.fields = {}
         for key in raw_fields:
             if key not in COLUMN_MAP:
-                raise InvalidField(u'Invalid field: "{}"'.format(key))
+                raise InvalidField('Invalid field: "{}"'.format(key))
             self.fields[key] = COLUMN_MAP[key]
 
         self.groupby = []
         for key in raw_groupby:
             if key not in GROUPBY_MAP:
-                raise InvalidField(u'Invalid groupBy: "{}"'.format(key))
+                raise InvalidField('Invalid groupBy: "{}"'.format(key))
             self.groupby.append(GROUPBY_MAP[key])
 
         start, end, rollup = get_date_range_rollup_from_params(query, "1h", round_range=True)

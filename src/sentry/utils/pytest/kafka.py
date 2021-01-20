@@ -113,8 +113,8 @@ def requires_kafka():
 @pytest.fixture(scope="session")
 def scope_consumers():
     """
-      Sets up an object to keep track of the scope consumers ( consumers that will only
-      be created once per test session).
+    Sets up an object to keep track of the scope consumers ( consumers that will only
+    be created once per test session).
 
     """
     all_consumers = {

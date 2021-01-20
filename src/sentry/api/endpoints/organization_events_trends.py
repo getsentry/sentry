@@ -50,9 +50,9 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
 
     @staticmethod
     def get_function_aliases(trend_type):
-        """ Construct the dict of aliases
+        """Construct the dict of aliases
 
-            trend_percentage and trend_difference behave differently depending on the trend type
+        trend_percentage and trend_difference behave differently depending on the trend type
         """
         return {
             "trend_percentage()": Alias(
@@ -100,7 +100,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         trend_column = self.trend_columns.get(baseline_function)
         if trend_column is None:
             raise ParseError(
-                detail=u"{} is not a supported trend function".format(baseline_function)
+                detail="{} is not a supported trend function".format(baseline_function)
             )
 
         count_column = self.trend_columns["count_range"]
@@ -134,7 +134,11 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         else:
             avg_alias = "aggregate_range"
 
-        t_test_columns.append(self.trend_columns["t_test"].format(avg=avg_alias,))
+        t_test_columns.append(
+            self.trend_columns["t_test"].format(
+                avg=avg_alias,
+            )
+        )
 
         return t_test_columns + [
             trend_column.format(
@@ -185,7 +189,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
 
         trend_type = request.GET.get("trendType", REGRESSION)
         if trend_type not in TREND_TYPES:
-            raise ParseError(detail=u"{} is not a supported trend type".format(trend_type))
+            raise ParseError(detail="{} is not a supported trend type".format(trend_type))
 
         params["aliases"] = self.get_function_aliases(trend_type)
 

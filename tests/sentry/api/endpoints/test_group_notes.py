@@ -28,7 +28,7 @@ class GroupNoteTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = u"/api/0/issues/{}/comments/".format(group.id)
+        url = "/api/0/issues/{}/comments/".format(group.id)
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
@@ -41,7 +41,7 @@ class GroupNoteCreateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = u"/api/0/issues/{}/comments/".format(group.id)
+        url = "/api/0/issues/{}/comments/".format(group.id)
 
         response = self.client.post(url, format="json")
         assert response.status_code == 400
@@ -71,13 +71,13 @@ class GroupNoteCreateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = u"/api/0/issues/{}/comments/".format(group.id)
+        url = "/api/0/issues/{}/comments/".format(group.id)
 
         # mentioning a member that does not exist returns 400
         response = self.client.post(
             url,
             format="json",
-            data={"text": "**meredith@getsentry.com** is fun", "mentions": [u"8"]},
+            data={"text": "**meredith@getsentry.com** is fun", "mentions": ["8"]},
         )
         assert response.status_code == 400, response.content
 
@@ -87,7 +87,7 @@ class GroupNoteCreateTest(APITestCase):
         response = self.client.post(
             url,
             format="json",
-            data={"text": "**meredith@getsentry.com** is so fun", "mentions": [u"%s" % user_id]},
+            data={"text": "**meredith@getsentry.com** is so fun", "mentions": ["%s" % user_id]},
         )
         assert response.status_code == 201, response.content
 
@@ -98,7 +98,7 @@ class GroupNoteCreateTest(APITestCase):
         response = self.client.post(
             url,
             format="json",
-            data={"text": "**hello@meow.com** is not so fun", "mentions": [u"%s" % user_id]},
+            data={"text": "**hello@meow.com** is not so fun", "mentions": ["%s" % user_id]},
         )
 
         assert response.data == {"mentions": ["Cannot mention a non team member"]}
@@ -118,7 +118,7 @@ class GroupNoteCreateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = u"/api/0/issues/{}/comments/".format(group.id)
+        url = "/api/0/issues/{}/comments/".format(group.id)
 
         # mentioning a team that does not exist returns 400
         response = self.client.post(
@@ -126,7 +126,7 @@ class GroupNoteCreateTest(APITestCase):
             format="json",
             data={
                 "text": "hey **blue-team** fix this bug",
-                "mentions": [u"team:%s" % self.team2.id],
+                "mentions": ["team:%s" % self.team2.id],
             },
         )
         assert response.status_code == 400, response.content
@@ -139,7 +139,7 @@ class GroupNoteCreateTest(APITestCase):
         response = self.client.post(
             url,
             format="json",
-            data={"text": "hey **red-team** fix this bug", "mentions": [u"team:%s" % self.team.id]},
+            data={"text": "hey **red-team** fix this bug", "mentions": ["team:%s" % self.team.id]},
         )
         assert response.status_code == 201, response.content
         assert (
@@ -185,7 +185,7 @@ class GroupNoteCreateTest(APITestCase):
         self.user.save()
         self.login_as(user=self.user)
 
-        url = u"/api/0/issues/{}/comments/".format(group.id)
+        url = "/api/0/issues/{}/comments/".format(group.id)
 
         with self.feature({"organizations:integrations-issue-sync": True}):
             with self.tasks():

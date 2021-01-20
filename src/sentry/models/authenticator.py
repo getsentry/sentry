@@ -94,8 +94,7 @@ class AuthenticatorManager(BaseManager):
             return interface()
 
     def user_has_2fa(self, user):
-        """Checks if the user has any 2FA configured.
-        """
+        """Checks if the user has any 2FA configured."""
         return Authenticator.objects.filter(
             user=user, type__in=[a.type for a in available_authenticators(ignore_backup=True)]
         ).exists()

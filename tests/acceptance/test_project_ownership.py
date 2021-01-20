@@ -7,7 +7,7 @@ class ProjectOwnershipTest(AcceptanceTestCase):
     def setUp(self):
         super(ProjectOwnershipTest, self).setUp()
         self.login_as(self.user)
-        self.path = u"/settings/{}/projects/{}/ownership/".format(
+        self.path = "/settings/{}/projects/{}/ownership/".format(
             self.organization.slug, self.project.slug
         )
 

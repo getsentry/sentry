@@ -27,7 +27,7 @@ class ProjectOwnershipSerializer(serializers.Serializer):
         except ParseError as e:
             raise serializers.ValidationError(
                 {
-                    "raw": u"Parse error: %r (line %d, column %d)"
+                    "raw": "Parse error: %r (line %d, column %d)"
                     % (e.expr.name, e.line(), e.column())
                 }
             )
@@ -43,12 +43,12 @@ class ProjectOwnershipSerializer(serializers.Serializer):
                 if owner.type == "user":
                     bad_actors.append(owner.identifier)
                 elif owner.type == "team":
-                    bad_actors.append(u"#{}".format(owner.identifier))
+                    bad_actors.append("#{}".format(owner.identifier))
 
         if bad_actors:
             bad_actors.sort()
             raise serializers.ValidationError(
-                {"raw": u"Invalid rule owners: {}".format(", ".join(bad_actors))}
+                {"raw": "Invalid rule owners: {}".format(", ".join(bad_actors))}
             )
 
         attrs["schema"] = schema

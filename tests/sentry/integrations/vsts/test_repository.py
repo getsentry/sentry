@@ -71,7 +71,7 @@ class VisualStudioRepositoryProviderTest(TestCase):
 
         assert res == [
             {
-                "patch_set": [{"path": u"/README.md", "type": "M"}],
+                "patch_set": [{"path": "/README.md", "type": "M"}],
                 "author_email": "max@sentry.io",
                 "author_name": "max bittker",
                 "message": "Updated README.md\n\nSecond line\n\nFixes SENTRY-1",

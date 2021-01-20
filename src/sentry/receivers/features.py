@@ -179,11 +179,11 @@ def record_issue_assigned(project, group, user, **kwargs):
 
 @issue_resolved.connect(weak=False)
 def record_issue_resolved(organization_id, project, group, user, resolution_type, **kwargs):
-    """ There are three main types of ways to resolve issues
-        1) via a release (current release, next release, or other)
-        2) via commit (in the UI with the commit hash (marked as "in_commit")
-            or tagging the issue in a commit (marked as "with_commit"))
-        3) now
+    """There are three main types of ways to resolve issues
+    1) via a release (current release, next release, or other)
+    2) via commit (in the UI with the commit hash (marked as "in_commit")
+        or tagging the issue in a commit (marked as "with_commit"))
+    3) now
     """
     if resolution_type in ("in_next_release", "in_release"):
         FeatureAdoption.objects.record(
@@ -528,7 +528,9 @@ def record_integration_added(integration, organization, user, **kwargs):
         id=integration.id,
     )
     metrics.incr(
-        "integration.added", sample_rate=1.0, tags={"integration_slug": integration.provider},
+        "integration.added",
+        sample_rate=1.0,
+        tags={"integration_slug": integration.provider},
     )
 
 

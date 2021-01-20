@@ -32,7 +32,7 @@ class PullRequest(Model):
     __repr__ = sane_repr("organization_id", "repository_id", "key")
 
     def find_referenced_groups(self):
-        text = u"{} {}".format(self.message, self.title)
+        text = "{} {}".format(self.message, self.title)
         return find_referenced_groups(text, self.organization_id)
 
     @classmethod

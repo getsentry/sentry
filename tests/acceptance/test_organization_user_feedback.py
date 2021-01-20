@@ -15,7 +15,7 @@ class OrganizationUserFeedbackTest(AcceptanceTestCase):
         )
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.login_as(self.user)
-        self.path = u"/organizations/{}/user-feedback/".format(self.org.slug)
+        self.path = "/organizations/{}/user-feedback/".format(self.org.slug)
         self.project.update(first_event=timezone.now())
 
     def test(self):

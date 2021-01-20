@@ -43,7 +43,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
 
         assert new_event.group_id == old_event.group_id
 
-        url = u"/api/0/issues/{}/hashes/".format(new_event.group_id)
+        url = "/api/0/issues/{}/hashes/".format(new_event.group_id)
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -83,7 +83,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
 
         eventstream.end_merge(state)
 
-        url = u"/api/0/issues/{}/hashes/".format(event1.group_id)
+        url = "/api/0/issues/{}/hashes/".format(event1.group_id)
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -104,7 +104,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
 
         url = "?".join(
             [
-                u"/api/0/issues/{}/hashes/".format(group.id),
+                "/api/0/issues/{}/hashes/".format(group.id),
                 urlencode({"id": [h.hash for h in hashes]}, True),
             ]
         )

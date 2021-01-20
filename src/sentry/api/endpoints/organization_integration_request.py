@@ -22,9 +22,9 @@ class OrganizationIntegrationRequestPermission(OrganizationPermission):
 
 def get_url(organization, provider_type, provider_slug):
     return absolute_uri(
-        u"/".join(
+        "/".join(
             [
-                u"/settings",
+                "/settings",
                 organization.slug,
                 {
                     "first_party": "integrations",
@@ -61,9 +61,9 @@ def get_provider_name(provider_type, provider_slug):
         elif provider_type == "sentry_app":
             return SentryApp.objects.get(slug=provider_slug).name
         else:
-            raise ValueError(u"Invalid providerType {}".format(provider_type))
+            raise ValueError("Invalid providerType {}".format(provider_type))
     except (KeyError, SentryApp.DoesNotExist):
-        raise RuntimeError(u"Provider {} not found".format(provider_slug))
+        raise RuntimeError("Provider {} not found".format(provider_slug))
 
 
 class OrganizationIntegrationRequestEndpoint(OrganizationEndpoint):
@@ -111,7 +111,8 @@ class OrganizationIntegrationRequestEndpoint(OrganizationEndpoint):
                 "requester_name": requester.name or requester.username,
                 "requester_link": absolute_uri(
                     "/settings/{organization_slug}/members/{user_id}/".format(
-                        organization_slug=organization.slug, user_id=requester.id,
+                        organization_slug=organization.slug,
+                        user_id=requester.id,
                     )
                 ),
                 "settings_link": absolute_uri(

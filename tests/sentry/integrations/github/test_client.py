@@ -68,7 +68,9 @@ class GitHubAppsClientTest(TestCase):
         )
 
         responses.add(
-            method=responses.HEAD, url=url, json={"text": 200},
+            method=responses.HEAD,
+            url=url,
+            json={"text": 200},
         )
 
         resp = self.client.check_file(self.repo, path, version)
@@ -86,7 +88,7 @@ class GitHubAppsClientTest(TestCase):
 
         path = "/src/santry/integrations/github/client.py"
         version = "master"
-        url = u"https://api.github.com/repos/{}/contents/{}?ref={}".format(
+        url = "https://api.github.com/repos/{}/contents/{}?ref={}".format(
             self.repo.name, path, version
         )
 

@@ -46,7 +46,7 @@ logger:sentry.*                                 -> logger-{{ logger }} title="Me
                 "fingerprint": ["logger-", "{{ logger }}"],
                 "attributes": {},
             },
-            {"matchers": [["message", u"\\x\xff"]], "fingerprint": ["stuff"], "attributes": {}},
+            {"matchers": [["message", "\\x\xff"]], "fingerprint": ["stuff"], "attributes": {}},
             {
                 "matchers": [["logger", "sentry.*"]],
                 "fingerprint": ["logger-", "{{ logger }}"],

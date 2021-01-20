@@ -41,4 +41,9 @@ class ProjectReleaseRepositories(ProjectEndpoint):
 
         repositories = Repository.objects.filter(id__in=repository_ids)
 
-        return Response(serialize(list(repositories), request.user,))
+        return Response(
+            serialize(
+                list(repositories),
+                request.user,
+            )
+        )

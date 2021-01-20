@@ -141,7 +141,7 @@ class JiraWebhooksTest(APITestCase):
             resp = self.client.post(path, data=data, HTTP_AUTHORIZATION="JWT anexampletoken")
             assert resp.status_code == 200
             mock_get_integration_from_jwt.assert_called_with(
-                "anexampletoken", u"/extensions/jira/issue-updated/", "jira", {}, method="POST"
+                "anexampletoken", "/extensions/jira/issue-updated/", "jira", {}, method="POST"
             )
             mock_sync_status_inbound.assert_called_with(
                 "APP-123",
@@ -157,7 +157,7 @@ class JiraWebhooksTest(APITestCase):
                     },
                     "issue": {
                         "fields": {"project": {"id": "10000", "key": "APP"}},
-                        u"key": u"APP-123",
+                        "key": "APP-123",
                     },
                 },
             )

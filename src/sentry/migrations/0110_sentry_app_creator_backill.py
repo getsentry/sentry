@@ -7,9 +7,8 @@ from django.db import migrations
 
 def backfill_one(sentry_app, AuditLogEntry):
     queryset = AuditLogEntry.objects.filter(
-        organization_id=sentry_app.owner_id,
-        actor_id__isnull=False,
-        event=113) # sentry app add
+        organization_id=sentry_app.owner_id, actor_id__isnull=False, event=113
+    )  # sentry app add
 
     for audit_log_entry in queryset:
         name = audit_log_entry.data.get("sentry_app")
@@ -30,12 +29,11 @@ def backfill_sentry_app_creator(apps, schema_editor):
     SentryApp = apps.get_model("sentry", "SentryApp")
     AuditLogEntry = apps.get_model("sentry", "AuditLogEntry")
 
-    queryset = SentryApp.objects.filter(
-            date_deleted__isnull=True,
-            creator_user_id__isnull=True)
+    queryset = SentryApp.objects.filter(date_deleted__isnull=True, creator_user_id__isnull=True)
 
     for sentry_app in queryset:
         backfill_one(sentry_app, AuditLogEntry)
+
 
 class Migration(migrations.Migration):
     # This flag is used to mark that a migration shouldn't be automatically run in
@@ -55,9 +53,8 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = False
 
-
     dependencies = [
-        ('sentry', '0109_sentry_app_creator'),
+        ("sentry", "0109_sentry_app_creator"),
     ]
 
     operations = [

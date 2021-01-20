@@ -16,7 +16,10 @@ from .page_objects.base import BasePage
 
 class PerformanceTrendsTest(AcceptanceTestCase, SnubaTestCase):
     def make_trend(
-        self, name, durations, period_mins=60,
+        self,
+        name,
+        durations,
+        period_mins=60,
     ):
         for index, duration in enumerate(durations):
             time_between = period_mins / len(durations)
@@ -42,7 +45,7 @@ class PerformanceTrendsTest(AcceptanceTestCase, SnubaTestCase):
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.group = self.create_group(project=self.project)
         self.login_as(self.user)
-        self.path = u"/organizations/{}/performance/?{}".format(
+        self.path = "/organizations/{}/performance/?{}".format(
             self.org.slug,
             urlencode(
                 {

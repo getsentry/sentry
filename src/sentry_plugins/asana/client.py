@@ -5,7 +5,7 @@ from six import text_type
 
 
 class AsanaClient(AuthApiClient):
-    base_url = u"https://app.asana.com/api/1.0"
+    base_url = "https://app.asana.com/api/1.0"
     plugin_name = "asana"
 
     def get_workspaces(self):

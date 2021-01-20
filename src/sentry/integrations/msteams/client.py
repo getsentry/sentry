@@ -23,7 +23,7 @@ class MsTeamsAbstractClient(ApiClient):
     MEMBER_URL = "/v3/conversations/%s/pagedmembers"
 
     def request(self, method, path, data=None, params=None):
-        headers = {"Authorization": u"Bearer {}".format(self.access_token)}
+        headers = {"Authorization": "Bearer {}".format(self.access_token)}
         return self._request(method, path, headers=headers, data=data, params=params)
 
     def get_team_info(self, team_id):

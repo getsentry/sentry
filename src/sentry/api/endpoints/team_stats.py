@@ -51,7 +51,7 @@ class TeamStatsEndpoint(TeamEndpoint, EnvironmentMixin, StatsMixin):
             tsdb.get_range(
                 model=tsdb.models.project,
                 keys=[p.id for p in projects],
-                **self._parse_args(request, environment_id)
+                **self._parse_args(request, environment_id),
             ).values()
         )
 

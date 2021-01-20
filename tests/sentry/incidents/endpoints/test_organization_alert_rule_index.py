@@ -231,7 +231,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
             resp = self.get_valid_response(
                 self.organization.slug, status_code=400, **rule_no_triggers
             )
-            assert resp.data == {"triggers": [u"This field is required."]}
+            assert resp.data == {"triggers": ["This field is required."]}
 
     def test_no_critical_trigger(self):
         rule_one_trigger_only_warning = {
@@ -257,7 +257,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
             resp = self.get_valid_response(
                 self.organization.slug, status_code=400, **rule_one_trigger_only_warning
             )
-            assert resp.data == {"nonFieldErrors": [u'Trigger 1 must be labeled "critical"']}
+            assert resp.data == {"nonFieldErrors": ['Trigger 1 must be labeled "critical"']}
 
     def test_critical_trigger_no_action(self):
         rule_one_trigger_only_critical_no_action = {
@@ -309,7 +309,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
                     }
                 ],
             )
-            assert resp.data == {"projects": [u"Invalid project"]}
+            assert resp.data == {"projects": ["Invalid project"]}
 
     def test_no_feature(self):
         resp = self.get_response(self.organization.slug)

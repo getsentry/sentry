@@ -22,7 +22,7 @@ class DogStatsdMetricsBackend(MetricsBackend):
         if instance:
             tags["instance"] = instance
         if tags:
-            tags = [u"{}:{}".format(*i) for i in tags.items()]
+            tags = ["{}:{}".format(*i) for i in tags.items()]
         statsd.increment(self._get_key(key), amount, sample_rate=sample_rate, tags=tags)
 
     def timing(self, key, value, instance=None, tags=None, sample_rate=1):
@@ -33,5 +33,5 @@ class DogStatsdMetricsBackend(MetricsBackend):
         if instance:
             tags["instance"] = instance
         if tags:
-            tags = [u"{}:{}".format(*i) for i in tags.items()]
+            tags = ["{}:{}".format(*i) for i in tags.items()]
         statsd.timing(self._get_key(key), value, sample_rate=sample_rate, tags=tags)

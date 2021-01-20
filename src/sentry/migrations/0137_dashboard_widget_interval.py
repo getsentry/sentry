@@ -23,20 +23,19 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0136_issue_alert_filter_all_orgs'),
+        ("sentry", "0136_issue_alert_filter_all_orgs"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='dashboardwidget',
-            name='interval',
+            model_name="dashboardwidget",
+            name="interval",
             field=models.CharField(max_length=10, null=True),
         ),
         migrations.AlterField(
-            model_name='dashboardwidgetquery',
-            name='interval',
+            model_name="dashboardwidgetquery",
+            name="interval",
             field=models.CharField(max_length=10, null=True),
         ),
     ]

@@ -11,7 +11,7 @@ class SocialAuthBaseException(ValueError):
 
 class BackendError(SocialAuthBaseException):
     def __unicode__(self):
-        return ugettext(u"Backend error: %s" % self.message)
+        return ugettext("Backend error: %s" % self.message)
 
 
 class WrongBackend(BackendError):
@@ -19,7 +19,7 @@ class WrongBackend(BackendError):
         self.backend_name = backend_name
 
     def __unicode__(self):
-        return ugettext(u'Incorrect authentication service "%s"') % self.backend_name
+        return ugettext('Incorrect authentication service "%s"') % self.backend_name
 
 
 class StopPipeline(SocialAuthBaseException):
@@ -28,7 +28,7 @@ class StopPipeline(SocialAuthBaseException):
     """
 
     def __unicode__(self):
-        return ugettext(u"Stop pipeline")
+        return ugettext("Stop pipeline")
 
 
 class AuthException(SocialAuthBaseException):
@@ -44,23 +44,23 @@ class AuthFailed(AuthException):
 
     def __unicode__(self):
         if self.message == "access_denied":
-            return ugettext(u"Authentication process was cancelled")
+            return ugettext("Authentication process was cancelled")
         else:
-            return ugettext(u"Authentication failed: %s") % super(AuthFailed, self).__unicode__()
+            return ugettext("Authentication failed: %s") % super(AuthFailed, self).__unicode__()
 
 
 class AuthCanceled(AuthException):
     """Auth process was canceled by user."""
 
     def __unicode__(self):
-        return ugettext(u"Authentication process canceled")
+        return ugettext("Authentication process canceled")
 
 
 class AuthUnknownError(AuthException):
     """Unknown auth process error."""
 
     def __unicode__(self):
-        err = u"An unknown error happened while authenticating %s"
+        err = "An unknown error happened while authenticating %s"
         return ugettext(err) % super(AuthUnknownError, self).__unicode__()
 
 
@@ -69,7 +69,7 @@ class AuthTokenError(AuthException):
 
     def __unicode__(self):
         msg = super(AuthTokenError, self).__unicode__()
-        return ugettext(u"Token error: %s") % msg
+        return ugettext("Token error: %s") % msg
 
 
 class AuthMissingParameter(AuthException):
@@ -80,25 +80,25 @@ class AuthMissingParameter(AuthException):
         super(AuthMissingParameter, self).__init__(backend, *args, **kwargs)
 
     def __unicode__(self):
-        return ugettext(u"Missing needed parameter %s") % self.parameter
+        return ugettext("Missing needed parameter %s") % self.parameter
 
 
 class AuthStateMissing(AuthException):
     """State parameter is incorrect."""
 
     def __unicode__(self):
-        return ugettext(u"Session value state missing.")
+        return ugettext("Session value state missing.")
 
 
 class AuthStateForbidden(AuthException):
     """State parameter is incorrect."""
 
     def __unicode__(self):
-        return ugettext(u"Wrong state parameter given.")
+        return ugettext("Wrong state parameter given.")
 
 
 class AuthTokenRevoked(AuthException):
     """User revoked the access_token in the provider."""
 
     def __unicode__(self):
-        return ugettext(u"User revoke access to the token")
+        return ugettext("User revoke access to the token")

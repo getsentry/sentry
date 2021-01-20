@@ -136,15 +136,15 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
         event_data = {
             "contexts": {
                 "device": {"arch": "x86"},
-                "os": {"build": u"", "name": "Windows", "type": "os", "version": u"10.0.14393"},
+                "os": {"build": "", "name": "Windows", "type": "os", "version": "10.0.14393"},
             },
             "debug_meta": {
                 "images": [
                     {
-                        "id": u"3249d99d-0c40-4931-8610-f4e4fb0b6936-1",
+                        "id": "3249d99d-0c40-4931-8610-f4e4fb0b6936-1",
                         "image_addr": "0x2a0000",
                         "image_size": 36864,
-                        "name": u"C:\\projects\\breakpad-tools\\windows\\Release\\crash.exe",
+                        "name": "C:\\projects\\breakpad-tools\\windows\\Release\\crash.exe",
                         "type": "symbolic",
                     }
                 ]
@@ -155,13 +155,13 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
                         {
                             "function": "<unknown>",
                             "instruction_addr": "0x2a2a3d",
-                            "package": u"C:\\projects\\breakpad-tools\\windows\\Release\\crash.exe",
+                            "package": "C:\\projects\\breakpad-tools\\windows\\Release\\crash.exe",
                         }
                     ]
                 },
                 "thread_id": 1636,
-                "type": u"EXCEPTION_ACCESS_VIOLATION_WRITE",
-                "value": u"Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE",
+                "type": "EXCEPTION_ACCESS_VIOLATION_WRITE",
+                "value": "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE",
             },
             "platform": "native",
             "timestamp": iso_format(before_now(seconds=1)),

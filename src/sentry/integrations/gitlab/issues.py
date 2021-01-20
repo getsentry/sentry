@@ -12,12 +12,12 @@ ISSUE_EXTERNAL_KEY_FORMAT = re.compile(r".+:(.+)#(.+)")
 
 class GitlabIssueBasic(IssueBasicMixin):
     def make_external_key(self, data):
-        return u"{}:{}".format(self.model.metadata["domain_name"], data["key"])
+        return "{}:{}".format(self.model.metadata["domain_name"], data["key"])
 
     def get_issue_url(self, key):
         match = ISSUE_EXTERNAL_KEY_FORMAT.match(key)
         project, issue_id = match.group(1), match.group(2)
-        return u"{}/{}/issues/{}".format(self.model.metadata["base_url"], project, issue_id)
+        return "{}/{}/issues/{}".format(self.model.metadata["base_url"], project, issue_id)
 
     def get_persisted_default_config_fields(self):
         return ["project"]
@@ -137,7 +137,7 @@ class GitlabIssueBasic(IssueBasicMixin):
             {
                 "name": "comment",
                 "label": "Comment",
-                "default": u"Sentry issue: [{issue_id}]({url})".format(
+                "default": "Sentry issue: [{issue_id}]({url})".format(
                     url=absolute_uri(
                         group.get_absolute_url(params={"referrer": "gitlab_integration"})
                     ),

@@ -22,7 +22,7 @@ class OrganizationPluginDetailedView(AcceptanceTestCase):
         self.login_as(self.user)
 
     def load_page(self, slug, configuration_tab=False):
-        url = u"/settings/{}/plugins/{}/".format(self.organization.slug, slug)
+        url = "/settings/{}/plugins/{}/".format(self.organization.slug, slug)
         if configuration_tab:
             url += "?tab=configurations"
         self.browser.get(url)

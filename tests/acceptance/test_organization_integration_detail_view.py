@@ -23,7 +23,7 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
         self.login_as(self.user)
 
     def load_page(self, slug, configuration_tab=False):
-        url = u"/settings/{}/integrations/{}/".format(self.organization.slug, slug)
+        url = "/settings/{}/integrations/{}/".format(self.organization.slug, slug)
         if configuration_tab:
             url += "?tab=configurations"
         self.browser.get(url)
@@ -49,7 +49,7 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
 
         assert integration
         assert (
-            u"/settings/{}/integrations/{}/{}/".format(
+            "/settings/{}/integrations/{}/{}/".format(
                 self.organization.slug, self.provider.key, integration.id
             )
             in self.browser.driver.current_url

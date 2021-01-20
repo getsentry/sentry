@@ -94,7 +94,7 @@ class TagStorage(Service):
     def prefix_reserved_key(self, key):
         # XXX(dcramer): kill sentry prefix for internal reserved tags
         if self.is_reserved_key(key):
-            return u"sentry:{0}".format(key)
+            return "sentry:{0}".format(key)
         else:
             return key
 
@@ -291,7 +291,7 @@ class TagStorage(Service):
         environment_ids,
         keys=None,
         value_limit=TOP_VALUES_DEFAULT_LIMIT,
-        **kwargs
+        **kwargs,
     ):
 
         # only the snuba backend supports multi env, and that overrides this method

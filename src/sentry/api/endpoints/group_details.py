@@ -138,7 +138,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             )
         }
         serialized_releases = serialize(
-            [releases.get(version) for version in versions], request.user,
+            [releases.get(version) for version in versions],
+            request.user,
         )
         # Default to a dictionary if the release object wasn't found and not serialized
         return [
@@ -310,7 +311,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             # TODO(dcramer): we need to implement assignedTo in the bulk mutation
             # endpoint
             response = client.put(
-                path=u"/projects/{}/{}/issues/".format(
+                path="/projects/{}/{}/issues/".format(
                     group.project.organization.slug, group.project.slug
                 ),
                 params={"id": group.id},

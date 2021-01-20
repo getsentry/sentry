@@ -169,7 +169,7 @@ class WithProgressBar(object):
             count = len(iterator)
         self.iterator = iterator
         self.count = count
-        self.caption = six.text_type(caption or u"Progress")
+        self.caption = six.text_type(caption or "Progress")
 
     def __iter__(self):
         if self.count != 0:

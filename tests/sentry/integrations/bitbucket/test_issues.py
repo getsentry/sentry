@@ -53,7 +53,7 @@ class BitbucketIssueTest(APITestCase):
         repo = "myaccount/myrepo"
         responses.add(
             responses.GET,
-            u"https://api.bitbucket.org/2.0/repositories/{repo}/issues/{issue_id}".format(
+            "https://api.bitbucket.org/2.0/repositories/{repo}/issues/{issue_id}".format(
                 repo=repo, issue_id=issue_id
             ),
             json={"id": issue_id, "title": "hello", "content": {"html": "This is the description"}},
@@ -75,7 +75,7 @@ class BitbucketIssueTest(APITestCase):
         comment = {"comment": "hello I'm a comment"}
         responses.add(
             responses.POST,
-            u"https://api.bitbucket.org/2.0/repositories/{repo}/issues/{issue_id}/comments".format(
+            "https://api.bitbucket.org/2.0/repositories/{repo}/issues/{issue_id}/comments".format(
                 repo=repo, issue_id=issue_id
             ),
             status=201,
@@ -205,14 +205,14 @@ class BitbucketIssueTest(APITestCase):
             {
                 "name": "title",
                 "label": "Title",
-                "default": u"message",
+                "default": "message",
                 "type": "string",
                 "required": True,
             },
             {
                 "name": "description",
                 "label": "Description",
-                "default": u'Sentry Issue: [BAR-1](http://testserver/organizations/baz/issues/%d/?referrer=bitbucket_integration)\n\n```\nStacktrace (most recent call first):\n\n  File "sentry/models/foo.py", line 29, in build_msg\n    string_max_length=self.string_max_length)\n\nmessage\n```'
+                "default": 'Sentry Issue: [BAR-1](http://testserver/organizations/baz/issues/%d/?referrer=bitbucket_integration)\n\n```\nStacktrace (most recent call first):\n\n  File "sentry/models/foo.py", line 29, in build_msg\n    string_max_length=self.string_max_length)\n\nmessage\n```'
                 % self.group.id,
                 "type": "textarea",
                 "autosize": True,
@@ -282,7 +282,7 @@ class BitbucketIssueTest(APITestCase):
 
         responses.add(
             responses.POST,
-            u"https://api.bitbucket.org/2.0/repositories/{repo}/issues".format(repo=repo),
+            "https://api.bitbucket.org/2.0/repositories/{repo}/issues".format(repo=repo),
             json={"id": id, "title": title, "content": {"html": content}},
         )
         installation = self.integration.get_installation(self.organization.id)

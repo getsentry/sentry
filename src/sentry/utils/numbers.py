@@ -74,4 +74,4 @@ def format_bytes(number, units=DEFAULT_UNITS, decimal_places=2):
     while number >= block and u < max_unit:
         number /= block
         u += 1
-    return (u"{:.%df} {}" % (decimal_places,)).format(number, units[u])
+    return ("{:.%df} {}" % (decimal_places,)).format(number, units[u])

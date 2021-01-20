@@ -57,9 +57,9 @@ class ProjectKey(Model):
     roles = BitField(
         flags=(
             # access to post events to the store endpoint
-            (u"store", u"Event API access"),
+            ("store", "Event API access"),
             # read/write access to rest API
-            (u"api", u"Web API access"),
+            ("api", "Web API access"),
         ),
         default=["store"],
     )

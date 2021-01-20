@@ -19,7 +19,7 @@ def gen_aws_client(arn, aws_external_id, service_name="lambda"):
     account_id = parsed_arn["account"]
     region = parsed_arn["region"]
 
-    role_arn = u"arn:aws:iam::%s:role/SentryRole" % (account_id)
+    role_arn = "arn:aws:iam::%s:role/SentryRole" % (account_id)
 
     client = boto3.client(
         service_name="sts",
@@ -40,7 +40,7 @@ def gen_aws_client(arn, aws_external_id, service_name="lambda"):
                     {
                         "Effect": "Allow",
                         "Action": ["lambda:UpdateFunctionConfiguration", "lambda:GetFunction"],
-                        "Resource": u"arn:aws:lambda:{}:{}:function:*".format(region, account_id),
+                        "Resource": "arn:aws:lambda:{}:{}:function:*".format(region, account_id),
                     },
                     {
                         "Effect": "Allow",

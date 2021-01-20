@@ -6,6 +6,7 @@ from django.db import migrations
 import django.db.models.deletion
 import sentry.db.models.fields.foreignkey
 
+
 class Migration(migrations.Migration):
     # This flag is used to mark that a migration shouldn't be automatically run in
     # production. We set this to True for operations that we think are risky and want
@@ -24,15 +25,15 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = False
 
-
     dependencies = [
-        ('sentry', '0060_add_file_eventattachment_index'),
+        ("sentry", "0060_add_file_eventattachment_index"),
     ]
 
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
-                migrations.RunSQL("""
+                migrations.RunSQL(
+                    """
                     ALTER TABLE sentry_alertrule DROP CONSTRAINT IF EXISTS sentry_alertrule_organization_id_name_12c48b37_uniq;
                     """,
                     reverse_sql="""DO $$
@@ -43,9 +44,10 @@ class Migration(migrations.Migration):
                             WHEN duplicate_table THEN
                         END;
                     END $$;
-                    """
+                    """,
                 ),
-                 migrations.RunSQL("""
+                migrations.RunSQL(
+                    """
                     DROP INDEX CONCURRENTLY IF EXISTS sentry_alertrule_organization_id_name_12c48b37_uniq;
                     """,
                     reverse_sql="""
@@ -53,7 +55,8 @@ class Migration(migrations.Migration):
                     ON sentry_alertrule USING btree (organization_id, name);
                     """,
                 ),
-                migrations.RunSQL("""
+                migrations.RunSQL(
+                    """
                     CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS sentry_alertrule_status_active
                     ON sentry_alertrule USING btree (organization_id, name, status)
                     WHERE status = 0;
@@ -61,7 +64,7 @@ class Migration(migrations.Migration):
                     reverse_sql="""
                     DROP INDEX CONCURRENTLY IF EXISTS sentry_alertrule_status_active;
                     """,
-                )
+                ),
             ],
             state_operations=[
                 migrations.AlterUniqueTogether(
@@ -70,8 +73,10 @@ class Migration(migrations.Migration):
             ],
         ),
         migrations.AlterField(
-            model_name='alertrule',
-            name='organization',
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, to='sentry.Organization'),
+            model_name="alertrule",
+            name="organization",
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                null=True, on_delete=django.db.models.deletion.CASCADE, to="sentry.Organization"
+            ),
         ),
     ]

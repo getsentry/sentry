@@ -17,7 +17,7 @@ class GroupRelease(Model):
     group_id = BoundedBigIntegerField()
     # TODO: Should be BoundedBigIntegerField
     release_id = BoundedPositiveIntegerField(db_index=True)
-    environment = models.CharField(max_length=64, default=u"")
+    environment = models.CharField(max_length=64, default="")
     first_seen = models.DateTimeField(default=timezone.now)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
 
@@ -30,8 +30,8 @@ class GroupRelease(Model):
 
     @classmethod
     def get_cache_key(cls, group_id, release_id, environment):
-        return u"grouprelease:1:{}:{}".format(
-            group_id, md5_text(u"{}:{}".format(release_id, environment)).hexdigest()
+        return "grouprelease:1:{}:{}".format(
+            group_id, md5_text("{}:{}".format(release_id, environment)).hexdigest()
         )
 
     @classmethod

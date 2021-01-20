@@ -28,12 +28,12 @@ class NodeIntegrityFailure(Exception):
 
 class NodeData(collections.MutableMapping):
     """
-        A wrapper for nodestore data that fetches the underlying data
-        from nodestore.
+    A wrapper for nodestore data that fetches the underlying data
+    from nodestore.
 
-        Initializing with:
-        data=None means, this is a node that needs to be fetched from nodestore.
-        data={...} means, this is an object that should be saved to nodestore.
+    Initializing with:
+    data=None means, this is a node that needs to be fetched from nodestore.
+    data={...} means, this is an object that should be saved to nodestore.
     """
 
     def __init__(self, id, data=None, wrapper=None, ref_version=None, ref_func=None):
@@ -219,10 +219,10 @@ class NodeField(GzippedDictField):
 
     def get_prep_value(self, value):
         """
-            Prepares the NodeData to be written in a Model.save() call.
+        Prepares the NodeData to be written in a Model.save() call.
 
-            Makes sure the event body is written to nodestore and
-            returns the node_id reference to be written to rowstore.
+        Makes sure the event body is written to nodestore and
+        returns the node_id reference to be written to rowstore.
         """
         if not value and self.null:
             # save ourselves some storage

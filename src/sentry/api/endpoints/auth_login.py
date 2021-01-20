@@ -25,7 +25,7 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
 
         # Rate limit logins
         is_limited = ratelimiter.is_limited(
-            u"auth:login:username:{}".format(
+            "auth:login:username:{}".format(
                 md5_text(login_form.clean_username(request.data.get("username"))).hexdigest()
             ),
             limit=10,

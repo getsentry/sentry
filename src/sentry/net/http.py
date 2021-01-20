@@ -55,7 +55,7 @@ class SafeConnectionMixin(object):
 
     # Mostly yanked from https://github.com/urllib3/urllib3/blob/1.22/urllib3/connection.py#L127
     def _new_conn(self):
-        """ Establish a socket connection and set nodelay settings on it.
+        """Establish a socket connection and set nodelay settings on it.
         :return: New socket connection.
         """
         extra_kw = {}
@@ -141,7 +141,7 @@ class TimeoutAdapter(HTTPAdapter):
         return HTTPAdapter.send(self, *args, **kwargs)
 
 
-USER_AGENT = u"sentry/{version} (https://sentry.io)".format(version=SENTRY_VERSION)
+USER_AGENT = "sentry/{version} (https://sentry.io)".format(version=SENTRY_VERSION)
 
 
 class Session(_Session):

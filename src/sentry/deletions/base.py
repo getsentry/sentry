@@ -124,7 +124,7 @@ class BaseDeletionTask(object):
                 transaction_id=self.transaction_id,
                 actor_id=self.actor_id,
                 task=relation.task,
-                **relation.params
+                **relation.params,
             )
             has_more = True
             while has_more:
@@ -185,7 +185,7 @@ class ModelDeletionTask(BaseDeletionTask):
                 assert shard_id < num_shards
                 queryset = queryset.extra(
                     where=[
-                        u"id %% {num_shards} = {shard_id}".format(
+                        "id %% {num_shards} = {shard_id}".format(
                             num_shards=num_shards, shard_id=shard_id
                         )
                     ]
@@ -264,7 +264,7 @@ class BulkModelDeletionTask(ModelDeletionTask):
                 limit=self.chunk_size,
                 transaction_id=self.transaction_id,
                 partition_key=self.partition_key,
-                **self.query
+                **self.query,
             )
         finally:
             # Don't log Group and Event child object deletions.
@@ -278,6 +278,6 @@ class BulkModelDeletionTask(ModelDeletionTask):
                             "app_label": self.model._meta.app_label,
                             "model": model_name,
                         },
-                        **self.query
+                        **self.query,
                     ),
                 )

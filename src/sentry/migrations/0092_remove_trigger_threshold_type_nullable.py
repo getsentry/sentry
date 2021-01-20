@@ -23,15 +23,14 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0091_alertruleactivity'),
+        ("sentry", "0091_alertruleactivity"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='alertruletrigger',
-            name='threshold_type',
+            model_name="alertruletrigger",
+            name="threshold_type",
             field=models.SmallIntegerField(null=True),
         ),
     ]

@@ -26,25 +26,34 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0110_sentry_app_creator_backill'),
+        ("sentry", "0110_sentry_app_creator_backill"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='SnubaQueryEventType',
+            name="SnubaQueryEventType",
             fields=[
-                ('id', sentry.db.models.fields.bounded.BoundedBigAutoField(primary_key=True, serialize=False)),
-                ('type', models.SmallIntegerField()),
-                ('snuba_query', sentry.db.models.fields.foreignkey.FlexibleForeignKey(on_delete=django.db.models.deletion.CASCADE, to='sentry.SnubaQuery')),
+                (
+                    "id",
+                    sentry.db.models.fields.bounded.BoundedBigAutoField(
+                        primary_key=True, serialize=False
+                    ),
+                ),
+                ("type", models.SmallIntegerField()),
+                (
+                    "snuba_query",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="sentry.SnubaQuery"
+                    ),
+                ),
             ],
             options={
-                'db_table': 'sentry_snubaqueryeventtype',
+                "db_table": "sentry_snubaqueryeventtype",
             },
         ),
         migrations.AlterUniqueTogether(
-            name='snubaqueryeventtype',
-            unique_together=set([('snuba_query', 'type')]),
+            name="snubaqueryeventtype",
+            unique_together=set([("snuba_query", "type")]),
         ),
     ]

@@ -408,7 +408,7 @@ class RedisReportBackend(ReportBackend):
         self.namespace = namespace
 
     def __make_key(self, timestamp, duration, organization):
-        return u"{}:{}:{}:{}:{}".format(
+        return "{}:{}:{}:{}:{}".format(
             self.namespace, self.version, organization.id, int(timestamp), int(duration)
         )
 
@@ -528,7 +528,7 @@ def build_message(timestamp, duration, organization, user, reports):
 
     duration_spec = durations[duration]
     message = MessageBuilder(
-        subject=u"{} Report for {}: {} - {}".format(
+        subject="{} Report for {}: {} - {}".format(
             duration_spec.adjective.title(),
             organization.name,
             date_format(start),

@@ -22,7 +22,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            u"{}?redirect_uri={}&client_id={}".format(
+            "{}?redirect_uri={}&client_id={}".format(
                 self.path, "https://example.com", self.application.client_id
             )
         )
@@ -35,7 +35,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            u"{}?response_type=foobar&redirect_uri={}&client_id={}".format(
+            "{}?response_type=foobar&redirect_uri={}&client_id={}".format(
                 self.path, "https://example.com", self.application.client_id
             )
         )
@@ -48,7 +48,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            u"{}?response_type=code&redirect_uri={}".format(self.path, "https://example.com")
+            "{}?response_type=code&redirect_uri={}".format(self.path, "https://example.com")
         )
 
         assert resp.status_code == 400
@@ -59,7 +59,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            u"{}?response_type=code&client_id={}&scope=foo".format(
+            "{}?response_type=code&client_id={}&scope=foo".format(
                 self.path, self.application.client_id
             )
         )
@@ -71,7 +71,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            u"{}?response_type=code&redirect_uri=https://google.com&client_id={}".format(
+            "{}?response_type=code&redirect_uri=https://google.com&client_id={}".format(
                 self.path, self.application.client_id
             )
         )
@@ -84,7 +84,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            u"{}?response_type=code&client_id={}".format(self.path, self.application.client_id)
+            "{}?response_type=code&client_id={}".format(self.path, self.application.client_id)
         )
 
         assert resp.status_code == 200
@@ -99,7 +99,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         assert not grant.get_scopes()
 
         assert resp.status_code == 302
-        assert resp["Location"] == u"https://example.com?code={}".format(grant.code)
+        assert resp["Location"] == "https://example.com?code={}".format(grant.code)
 
         authorization = ApiAuthorization.objects.get(user=self.user, application=self.application)
         assert authorization.get_scopes() == grant.get_scopes()
@@ -108,7 +108,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            u"{}?response_type=code&client_id={}".format(self.path, self.application.client_id)
+            "{}?response_type=code&client_id={}".format(self.path, self.application.client_id)
         )
 
         assert resp.status_code == 200
@@ -127,7 +127,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            u"{}?response_type=code&client_id={}&scope=org%3Aread&state=foo".format(
+            "{}?response_type=code&client_id={}&scope=org%3Aread&state=foo".format(
                 self.path, self.application.client_id
             )
         )
@@ -148,7 +148,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         # XXX: Compare parsed query strings to avoid ordering differences
         # between py2/3
         assert parse_qs(urlparse(resp["Location"]).query) == parse_qs(
-            u"state=foo&code={}".format(grant.code)
+            "state=foo&code={}".format(grant.code)
         )
 
         assert not ApiToken.objects.filter(user=self.user).exists()
@@ -159,7 +159,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         ApiAuthorization.objects.create(user=self.user, application=self.application)
 
         resp = self.client.get(
-            u"{}?response_type=code&client_id={}".format(self.path, self.application.client_id)
+            "{}?response_type=code&client_id={}".format(self.path, self.application.client_id)
         )
 
         grant = ApiGrant.objects.get(user=self.user)
@@ -168,7 +168,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         assert not grant.get_scopes()
 
         assert resp.status_code == 302
-        assert resp["Location"] == u"https://example.com?code={}".format(grant.code)
+        assert resp["Location"] == "https://example.com?code={}".format(grant.code)
 
     def test_approve_flow_force_prompt(self):
         self.login_as(self.user)
@@ -176,7 +176,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         ApiAuthorization.objects.create(user=self.user, application=self.application)
 
         resp = self.client.get(
-            u"{}?response_type=code&client_id={}&force_prompt=1".format(
+            "{}?response_type=code&client_id={}&force_prompt=1".format(
                 self.path, self.application.client_id
             )
         )
@@ -193,7 +193,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         )
 
         resp = self.client.get(
-            u"{}?response_type=code&client_id={}&scope=org:read".format(
+            "{}?response_type=code&client_id={}&scope=org:read".format(
                 self.path, self.application.client_id
             )
         )
@@ -213,7 +213,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         ApiAuthorization.objects.create(user=self.user, application=self.application)
 
         resp = self.client.get(
-            u"{}?response_type=code&client_id={}&scope=member:read member:admin".format(
+            "{}?response_type=code&client_id={}&scope=member:read member:admin".format(
                 self.path, self.application.client_id
             )
         )
@@ -227,7 +227,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         ]
 
     def test_unauthenticated_basic_auth(self):
-        full_path = u"{}?response_type=code&client_id={}".format(
+        full_path = "{}?response_type=code&client_id={}".format(
             self.path, self.application.client_id
         )
 
@@ -235,7 +235,7 @@ class OAuthAuthorizeCodeTest(TestCase):
 
         assert resp.status_code == 200
         self.assertTemplateUsed("sentry/login.html")
-        assert resp.context["banner"] == u"Connect Sentry to {}".format(self.application.name)
+        assert resp.context["banner"] == "Connect Sentry to {}".format(self.application.name)
 
         resp = self.client.post(
             full_path, {"username": self.user.username, "password": "admin", "op": "login"}
@@ -254,7 +254,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         assert not grant.get_scopes()
 
         assert resp.status_code == 302
-        assert resp["Location"] == u"https://example.com?code={}".format(grant.code)
+        assert resp["Location"] == "https://example.com?code={}".format(grant.code)
 
         authorization = ApiAuthorization.objects.get(user=self.user, application=self.application)
         assert authorization.get_scopes() == grant.get_scopes()
@@ -275,7 +275,7 @@ class OAuthAuthorizeTokenTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            u"{}?redirect_uri={}&client_id={}".format(
+            "{}?redirect_uri={}&client_id={}".format(
                 self.path, "https://example.com", self.application.client_id
             )
         )
@@ -288,7 +288,7 @@ class OAuthAuthorizeTokenTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            u"{}?response_type=foobar&redirect_uri={}&client_id={}".format(
+            "{}?response_type=foobar&redirect_uri={}&client_id={}".format(
                 self.path, "https://example.com", self.application.client_id
             )
         )
@@ -301,7 +301,7 @@ class OAuthAuthorizeTokenTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            u"{}?response_type=token&redirect_uri={}".format(self.path, "https://example.com")
+            "{}?response_type=token&redirect_uri={}".format(self.path, "https://example.com")
         )
 
         assert resp.status_code == 400
@@ -312,7 +312,7 @@ class OAuthAuthorizeTokenTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            u"{}?response_type=token&client_id={}&scope=foo".format(
+            "{}?response_type=token&client_id={}&scope=foo".format(
                 self.path, self.application.client_id
             )
         )
@@ -324,7 +324,7 @@ class OAuthAuthorizeTokenTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            u"{}?response_type=token&client_id={}".format(self.path, self.application.client_id)
+            "{}?response_type=token&client_id={}".format(self.path, self.application.client_id)
         )
 
         assert resp.status_code == 200
@@ -354,7 +354,7 @@ class OAuthAuthorizeTokenTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            u"{}?response_type=token&client_id={}".format(self.path, self.application.client_id)
+            "{}?response_type=token&client_id={}".format(self.path, self.application.client_id)
         )
 
         assert resp.status_code == 200

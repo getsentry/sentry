@@ -13,7 +13,7 @@ class OrganizationIntegrationReposTest(APITestCase):
         self.org = self.create_organization(owner=self.user, name="baz")
         self.integration = Integration.objects.create(provider="github", name="Example")
         self.integration.add_organization(self.org, self.user)
-        self.path = u"/api/0/organizations/{}/integrations/{}/repos/".format(
+        self.path = "/api/0/organizations/{}/integrations/{}/repos/".format(
             self.org.slug, self.integration.id
         )
 
@@ -37,7 +37,7 @@ class OrganizationIntegrationReposTest(APITestCase):
     def test_no_repository_method(self):
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(self.org, self.user)
-        path = u"/api/0/organizations/{}/integrations/{}/repos/".format(
+        path = "/api/0/organizations/{}/integrations/{}/repos/".format(
             self.org.slug, integration.id
         )
         response = self.client.get(path, format="json")

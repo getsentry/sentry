@@ -207,13 +207,13 @@ class OAuthCallbackView(PipelineView):
         except ApiError as error:
             logger.info("identity.bitbucket-server.access-token", extra={"error": error})
             return pipeline.error(
-                u"Could not fetch an access token from Bitbucket. %s" % six.text_type(error)
+                "Could not fetch an access token from Bitbucket. %s" % six.text_type(error)
             )
 
 
 class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):
     """
-        IntegrationInstallation implementation for Bitbucket Server
+    IntegrationInstallation implementation for Bitbucket Server
     """
 
     repo_search = True
@@ -318,7 +318,7 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
         access_token = state["access_token"]
 
         hostname = urlparse(install["url"]).netloc
-        external_id = u"{}:{}".format(hostname, install["consumer_key"])[:64]
+        external_id = "{}:{}".format(hostname, install["consumer_key"])[:64]
 
         credentials = {
             "consumer_key": install["consumer_key"],

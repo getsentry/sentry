@@ -72,7 +72,7 @@ class VstsIssueBase(TestCase):
     def mock_categories(self, project):
         responses.add(
             responses.GET,
-            u"https://fabrikam-fiber-inc.visualstudio.com/{}/_apis/wit/workitemtypecategories".format(
+            "https://fabrikam-fiber-inc.visualstudio.com/{}/_apis/wit/workitemtypecategories".format(
                 project
             ),
             json={
@@ -80,7 +80,7 @@ class VstsIssueBase(TestCase):
                     {
                         "workItemTypes": [
                             {
-                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Bug".format(
+                                "url": "https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Bug".format(
                                     project
                                 ),
                                 "name": "Bug",
@@ -90,13 +90,13 @@ class VstsIssueBase(TestCase):
                     {
                         "workItemTypes": [
                             {
-                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Bug".format(
+                                "url": "https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Bug".format(
                                     project
                                 ),
                                 "name": "Issue Bug",
                             },
                             {
-                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Some-Thing.GIssue".format(
+                                "url": "https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Some-Thing.GIssue".format(
                                     project
                                 ),
                                 "name": "G Issue",
@@ -106,7 +106,7 @@ class VstsIssueBase(TestCase):
                     {
                         "workItemTypes": [
                             {
-                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Task".format(
+                                "url": "https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Task".format(
                                     project
                                 ),
                                 "name": "Task",
@@ -116,7 +116,7 @@ class VstsIssueBase(TestCase):
                     {
                         "workItemTypes": [
                             {
-                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.UserStory".format(
+                                "url": "https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.UserStory".format(
                                     project
                                 ),
                                 "name": "User Story",
@@ -151,7 +151,7 @@ class VstsIssueSyncTest(VstsIssueBase):
             "key": self.issue_id,
             "description": "Fix this.",
             "title": "Hello",
-            "metadata": {"display_name": u"Fabrikam-Fiber-Git#309"},
+            "metadata": {"display_name": "Fabrikam-Fiber-Git#309"},
         }
         request = responses.calls[-1].request
         assert request.headers["Content-Type"] == "application/json-patch+json"
@@ -176,7 +176,7 @@ class VstsIssueSyncTest(VstsIssueBase):
             "key": self.issue_id,
             "description": "Fix this.",
             "title": "Hello",
-            "metadata": {"display_name": u"Fabrikam-Fiber-Git#309"},
+            "metadata": {"display_name": "Fabrikam-Fiber-Git#309"},
         }
         request = responses.calls[-1].request
         assert request.headers["Content-Type"] == "application/json"

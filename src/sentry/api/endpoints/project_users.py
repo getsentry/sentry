@@ -32,7 +32,7 @@ class ProjectUsersEndpoint(ProjectEndpoint):
                 return Response([])
             try:
                 queryset = queryset.filter(
-                    **{u"{}__icontains".format(EventUser.attr_from_keyword(pieces[0])): pieces[1]}
+                    **{"{}__icontains".format(EventUser.attr_from_keyword(pieces[0])): pieces[1]}
                 )
             except KeyError:
                 return Response([])

@@ -103,7 +103,7 @@ class MarkInstalledSentryAppInstallationsTest(SentryAppInstallationDetailsTest):
         response = self.client.put(
             self.url,
             data={"status": "installed"},
-            HTTP_AUTHORIZATION=u"Bearer {}".format(self.token.token),
+            HTTP_AUTHORIZATION="Bearer {}".format(self.token.token),
             format="json",
         )
         assert response.status_code == 200
@@ -123,13 +123,13 @@ class MarkInstalledSentryAppInstallationsTest(SentryAppInstallationDetailsTest):
         response = self.client.put(
             self.url,
             data={"status": "pending"},
-            HTTP_AUTHORIZATION=u"Bearer {}".format(self.token.token),
+            HTTP_AUTHORIZATION="Bearer {}".format(self.token.token),
             format="json",
         )
         assert response.status_code == 400
         assert (
             response.data["status"][0]
-            == u"Invalid value 'pending' for status. Valid values: 'installed'"
+            == "Invalid value 'pending' for status. Valid values: 'installed'"
         )
 
     def test_sentry_app_installation_mark_installed_wrong_app(self):
@@ -145,7 +145,7 @@ class MarkInstalledSentryAppInstallationsTest(SentryAppInstallationDetailsTest):
         response = self.client.put(
             self.url,
             data={"status": "installed"},
-            HTTP_AUTHORIZATION=u"Bearer {}".format(self.token.token),
+            HTTP_AUTHORIZATION="Bearer {}".format(self.token.token),
             format="json",
         )
         assert response.status_code == 403

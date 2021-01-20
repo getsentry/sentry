@@ -24,20 +24,19 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0139_remove_widgetquery_interval'),
+        ("sentry", "0139_remove_widgetquery_interval"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='querysubscription',
-            name='date_updated',
+            model_name="querysubscription",
+            name="date_updated",
             field=models.DateTimeField(default=django.utils.timezone.now, null=True),
         ),
         migrations.AlterField(
-            model_name='querysubscription',
-            name='status',
+            model_name="querysubscription",
+            name="status",
             field=models.SmallIntegerField(db_index=True, default=0),
         ),
     ]

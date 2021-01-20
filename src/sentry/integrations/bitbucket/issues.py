@@ -23,7 +23,7 @@ PRIORITIES = (
 class BitbucketIssueBasicMixin(IssueBasicMixin):
     def get_issue_url(self, key):
         repo, issue_id = key.split("#")
-        return u"https://bitbucket.org/{}/issues/{}".format(repo, issue_id)
+        return "https://bitbucket.org/{}/issues/{}".format(repo, issue_id)
 
     def get_persisted_default_config_fields(self):
         return ["repo"]
@@ -143,7 +143,7 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
         }
 
     def make_external_key(self, data):
-        return u"{}#{}".format(data["repo"], data["key"])
+        return "{}#{}".format(data["repo"], data["key"])
 
     def after_link_issue(self, external_issue, **kwargs):
         data = kwargs["data"]

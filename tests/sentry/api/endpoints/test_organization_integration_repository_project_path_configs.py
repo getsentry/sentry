@@ -155,7 +155,7 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
         assert response.status_code == 400
         assert response.data == {
             "nonFieldErrors": [
-                u"Code path config already exists with this project and stack trace root"
+                "Code path config already exists with this project and stack trace root"
             ]
         }
 

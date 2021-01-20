@@ -20,10 +20,11 @@ def backfill_existing_orgs(apps, schema_editor):
         if org.status != 0:
             continue
         try:
-            OrganizationOption.objects.create(organization=org, key='sentry:alerts_member_write', value=False)
+            OrganizationOption.objects.create(
+                organization=org, key="sentry:alerts_member_write", value=False
+            )
         except Exception:
             logging.exception("Error backfilling organization {}".format(org.id))
-
 
 
 class Migration(migrations.Migration):
@@ -45,7 +46,7 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ('sentry', '0145_rename_alert_rule_feature'),
+        ("sentry", "0145_rename_alert_rule_feature"),
     ]
 
     operations = [

@@ -97,7 +97,7 @@ class DiscoverQuerySerializer(serializers.Serializer):
             invalid_functions = ", ".join((requested_functions - valid_functions))
 
             raise serializers.ValidationError(
-                u"Invalid aggregate function - {}".format(invalid_functions)
+                "Invalid aggregate function - {}".format(invalid_functions)
             )
 
         return value
@@ -128,7 +128,7 @@ class DiscoverQuerySerializer(serializers.Serializer):
             value = condition[2]
 
             if isinstance(value, six.string_types):
-                value = u"'{}'".format(value)
+                value = "'{}'".format(value)
 
             bool_value = 1 if condition[1] == "=" else 0
 

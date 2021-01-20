@@ -14,10 +14,10 @@ class ProjectServiceHooksTest(AcceptanceTestCase):
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
 
         self.login_as(self.user)
-        self.list_hooks_path = u"/settings/{}/projects/{}/hooks/".format(
+        self.list_hooks_path = "/settings/{}/projects/{}/hooks/".format(
             self.org.slug, self.project.slug
         )
-        self.new_hook_path = u"/settings/{}/projects/{}/hooks/new/".format(
+        self.new_hook_path = "/settings/{}/projects/{}/hooks/new/".format(
             self.org.slug, self.project.slug
         )
 
@@ -30,7 +30,7 @@ class ProjectServiceHooksTest(AcceptanceTestCase):
             self.browser.click('[data-test-id="new-service-hook"]')
 
             self.browser.wait_until_not(".loading-indicator")
-            assert self.browser.current_url == u"{}{}".format(
+            assert self.browser.current_url == "{}{}".format(
                 self.browser.live_server_url, self.new_hook_path
             )
             self.browser.snapshot("project settings - service hooks - create")
@@ -39,7 +39,7 @@ class ProjectServiceHooksTest(AcceptanceTestCase):
             self.browser.click('form [data-test-id="form-submit"]')
 
             self.browser.wait_until_not(".loading-indicator")
-            assert self.browser.current_url == u"{}{}".format(
+            assert self.browser.current_url == "{}{}".format(
                 self.browser.live_server_url, self.list_hooks_path
             )
             self.browser.snapshot("project settings - service hooks - list with entries")
@@ -51,9 +51,9 @@ class ProjectServiceHooksTest(AcceptanceTestCase):
             # hopefully click the first service hook
             self.browser.click('[data-test-id="project-service-hook"]')
             self.browser.wait_until_not(".loading-indicator")
-            assert self.browser.current_url == u"{}{}".format(
+            assert self.browser.current_url == "{}{}".format(
                 self.browser.live_server_url,
-                u"/settings/{}/projects/{}/hooks/{}/".format(
+                "/settings/{}/projects/{}/hooks/{}/".format(
                     self.org.slug, self.project.slug, hook.guid
                 ),
             )

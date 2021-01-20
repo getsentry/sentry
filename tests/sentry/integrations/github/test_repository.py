@@ -210,17 +210,17 @@ class GitHubAppsProviderTest(PluginTestCase):
         # compare_commits gives 400, token was refreshed, and compare_commits gives 200
         assert (
             responses.calls[0].response.url
-            == u"https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef"
+            == "https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef"
         )
         assert responses.calls[0].response.status_code == 404
         assert (
             responses.calls[1].response.url
-            == u"https://api.github.com/app/installations/654321/access_tokens"
+            == "https://api.github.com/app/installations/654321/access_tokens"
         )
         assert responses.calls[1].response.status_code == 200
         assert (
             responses.calls[2].response.url
-            == u"https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef"
+            == "https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef"
         )
         assert responses.calls[2].response.status_code == 200
 

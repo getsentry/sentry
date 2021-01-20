@@ -13,9 +13,9 @@ DEFAULT_SENTRY_SOURCE = "sentry"
 API_URL = "https://api.sessionstack.com"
 PLAYER_URL = "https://app.sessionstack.com/player"
 
-WEBSITES_ENDPOINT = u"/v1/websites/{}"
-SESSION_ENDPOINT = u"/v1/websites/{}/sessions/{}"
-ACCESS_TOKENS_ENDPOINT = u"/v1/websites/{}/sessions/{}/access_tokens"
+WEBSITES_ENDPOINT = "/v1/websites/{}"
+SESSION_ENDPOINT = "/v1/websites/{}/sessions/{}"
+ACCESS_TOKENS_ENDPOINT = "/v1/websites/{}/sessions/{}/access_tokens"
 SESSION_URL_PATH = "/#/sessions/"
 
 MILLISECONDS_BEFORE_EVENT = 5000

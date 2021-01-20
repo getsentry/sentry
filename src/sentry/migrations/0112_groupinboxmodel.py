@@ -28,23 +28,35 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0111_snuba_query_event_type'),
+        ("sentry", "0111_snuba_query_event_type"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='GroupInbox',
+            name="GroupInbox",
             fields=[
-                ('id', sentry.db.models.fields.bounded.BoundedBigAutoField(primary_key=True, serialize=False)),
-                ('reason', models.PositiveSmallIntegerField(default=0)),
-                ('reason_details', sentry.db.models.fields.jsonfield.JSONField(null=True)),
-                ('date_added', models.DateTimeField(default=django.utils.timezone.now)),
-                ('group', sentry.db.models.fields.foreignkey.FlexibleForeignKey(db_constraint=False, on_delete=django.db.models.deletion.CASCADE, to='sentry.Group', unique=True)),
+                (
+                    "id",
+                    sentry.db.models.fields.bounded.BoundedBigAutoField(
+                        primary_key=True, serialize=False
+                    ),
+                ),
+                ("reason", models.PositiveSmallIntegerField(default=0)),
+                ("reason_details", sentry.db.models.fields.jsonfield.JSONField(null=True)),
+                ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    "group",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        db_constraint=False,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="sentry.Group",
+                        unique=True,
+                    ),
+                ),
             ],
             options={
-                'db_table': 'sentry_groupinbox',
+                "db_table": "sentry_groupinbox",
             },
         ),
     ]

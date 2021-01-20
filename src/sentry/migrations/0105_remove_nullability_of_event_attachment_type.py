@@ -23,15 +23,14 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-         ("sentry", "0104_collect_relay_public_key_usage"),
+        ("sentry", "0104_collect_relay_public_key_usage"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='eventattachment',
-            name='type',
+            model_name="eventattachment",
+            name="type",
             field=models.CharField(db_index=True, max_length=64),
         ),
     ]

@@ -23,18 +23,17 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0140_subscription_checker'),
+        ("sentry", "0140_subscription_checker"),
     ]
 
     operations = [
         migrations.AlterUniqueTogether(
-            name='dashboardwidget',
-            unique_together=set([('dashboard', 'order')]),
+            name="dashboardwidget",
+            unique_together=set([("dashboard", "order")]),
         ),
         migrations.AlterUniqueTogether(
-            name='dashboardwidgetquery',
-            unique_together=set([('widget', 'order')]),
+            name="dashboardwidgetquery",
+            unique_together=set([("widget", "order")]),
         ),
     ]

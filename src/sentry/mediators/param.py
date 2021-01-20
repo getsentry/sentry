@@ -82,7 +82,7 @@ class Param(object):
 
     def setup(self, target, name):
         delattr(target, name)
-        setattr(target, u"_{}".format(name), self)
+        setattr(target, "_{}".format(name), self)
 
     def validate(self, target, name, value):
         """
@@ -93,10 +93,10 @@ class Param(object):
             value = self.default(target)
 
         if self._missing_value(value):
-            raise AttributeError(u"Missing required param: `{}`".format(name))
+            raise AttributeError("Missing required param: `{}`".format(name))
 
         if self.is_required and not isinstance(value, self.type):
-            raise TypeError(u"`{}` must be a {}, received {}".format(name, self.type, type(value)))
+            raise TypeError("`{}` must be a {}, received {}".format(name, self.type, type(value)))
 
         return True
 

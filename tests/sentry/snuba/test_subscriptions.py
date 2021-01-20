@@ -141,7 +141,14 @@ class UpdateSnubaQueryTest(TestCase):
         resolution = timedelta(minutes=1)
         event_types = [SnubaQueryEventType.EventType.ERROR, SnubaQueryEventType.EventType.DEFAULT]
         update_snuba_query(
-            snuba_query, dataset, query, aggregate, time_window, resolution, None, event_types,
+            snuba_query,
+            dataset,
+            query,
+            aggregate,
+            time_window,
+            resolution,
+            None,
+            event_types,
         )
         assert snuba_query.dataset == dataset.value
         assert snuba_query.query == query
@@ -153,7 +160,14 @@ class UpdateSnubaQueryTest(TestCase):
 
         event_types = [SnubaQueryEventType.EventType.DEFAULT]
         update_snuba_query(
-            snuba_query, dataset, query, aggregate, time_window, resolution, None, event_types,
+            snuba_query,
+            dataset,
+            query,
+            aggregate,
+            time_window,
+            resolution,
+            None,
+            event_types,
         )
         assert set(snuba_query.event_types) == set(event_types)
 
