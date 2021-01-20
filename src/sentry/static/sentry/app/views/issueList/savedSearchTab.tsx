@@ -2,10 +2,12 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import DropdownLink from 'app/components/dropdownLink';
+import QueryCount from 'app/components/queryCount';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, SavedSearch} from 'app/types';
+import theme from 'app/utils/theme';
 
 import SavedSearchMenu from './savedSearchMenu';
 
@@ -16,6 +18,7 @@ type Props = {
   onSavedSearchDelete: (savedSearch: SavedSearch) => void;
   isActive?: boolean;
   query?: string;
+  queryCount?: number;
 };
 
 function SavedSearchTab({
@@ -25,10 +28,25 @@ function SavedSearchTab({
   onSavedSearchSelect,
   onSavedSearchDelete,
   query,
+  queryCount,
 }: Props) {
-  const result = savedSearchList.find(search => query === search.query);
-  const activeTitle = result ? result.name : t('Custom Search');
-  const title = isActive ? activeTitle : t('More');
+  const savedSearch = savedSearchList.find(search => query === search.query);
+  const title = (
+    <TitleWrapper>
+      {isActive ? (
+        <React.Fragment>
+          {savedSearch ? savedSearch.name : t('Custom Search')}{' '}
+          <StyledQueryCount
+            count={queryCount}
+            max={1000}
+            backgroundColor={theme.gray100}
+          />
+        </React.Fragment>
+      ) : (
+        t('More')
+      )}
+    </TitleWrapper>
+  );
 
   return (
     <TabWrapper isActive={isActive} className="saved-search-tab">
@@ -36,7 +54,7 @@ function SavedSearchTab({
         alwaysRenderMenu={false}
         anchorMiddle
         caret
-        title={<TitleWrapper>{title}</TitleWrapper>}
+        title={title}
         isActive={isActive}
       >
         <SavedSearchMenu
@@ -106,4 +124,8 @@ const StyledDropdownLink = styled(DropdownLink)<{isActive?: boolean}>`
   :hover {
     color: #2f2936;
   }
+`;
+
+const StyledQueryCount = styled(QueryCount)`
+  color: ${p => p.theme.gray300};
 `;
