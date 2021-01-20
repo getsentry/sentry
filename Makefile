@@ -79,7 +79,7 @@ setup-git: ensure-venv setup-git-config
 	@echo "--> Installing git hooks"
 	mkdir -p .git/hooks && cd .git/hooks && ln -sf ../../config/hooks/* ./
 	@python3 -c '' || (echo 'Please run `make setup-pyenv` to install the required Python 3 version.'; exit 1)
-	$(PIP) install "pre-commit==2.9.3"
+	$(PIP) install -r requirements-pre-commit.txt
 	@pre-commit install --install-hooks
 	@echo ""
 
