@@ -21,7 +21,7 @@ from sentry.pipeline import PipelineView
 from sentry.utils.compat import map
 from sentry.utils import json
 
-from .client import gen_aws_client
+from .client import gen_aws_client, ConfigurationError
 from .utils import (
     parse_arn,
     get_index_of_sentry_layer,
@@ -217,7 +217,7 @@ class AwsLambdaProjectSelectPipelineView(PipelineView):
         organization = pipeline.organization
         projects = Project.objects.filter(
             organization=organization, status=ProjectStatus.VISIBLE
-        ).order_by("id")
+        ).order_by("slug")
 
         # if only one project, automatically use that
         if len(projects) == 1:
@@ -264,6 +264,9 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
                 return render_response(
                     _("Please validate the Cloudformation stack was created successfully")
                 )
+            except ConfigurationError:
+                # if we have a configuration error, we should blow up the pipeline
+                raise
             except Exception as e:
                 logger.error(
                     "AwsLambdaCloudFormationPipelineView.unexpected_error",

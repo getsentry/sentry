@@ -8,6 +8,10 @@ from sentry.utils import json
 from .utils import parse_arn
 
 
+class ConfigurationError(Exception):
+    pass
+
+
 def gen_aws_client(arn, aws_external_id, service_name="lambda"):
     """
     arn - the arn of the cloudformation stack
@@ -21,10 +25,17 @@ def gen_aws_client(arn, aws_external_id, service_name="lambda"):
 
     role_arn = u"arn:aws:iam::%s:role/SentryRole" % (account_id)
 
+    aws_access_key_id = options.get("aws-lambda.access-key-id")
+    aws_secret_access_key = options.get("aws-lambda.secret-access-key")
+
+    # throw a configuration error if we don't have keys
+    if not aws_access_key_id or not aws_secret_access_key:
+        raise ConfigurationError("AWS access key ID or secret access key not set")
+
     client = boto3.client(
         service_name="sts",
-        aws_access_key_id=options.get("aws-lambda.access-key-id"),
-        aws_secret_access_key=options.get("aws-lambda.secret-access-key"),
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key,
         region_name=options.get("aws-lambda.host-region"),
     )
 
