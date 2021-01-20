@@ -43,6 +43,7 @@ class RelayWrapper extends AsyncView<Props, State> {
 
     super.componentDidUpdate(prevProps, prevState);
   }
+
   getTitle() {
     return t('Relay');
   }
