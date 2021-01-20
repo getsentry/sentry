@@ -52,6 +52,7 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props> {
       <Observer>
         {() => (
           <FooterWithButtons
+            docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/"
             buttonText={t('Finish Setup')}
             onClick={this.handleSubmit}
             disabled={this.model.isError || this.model.isSaving}

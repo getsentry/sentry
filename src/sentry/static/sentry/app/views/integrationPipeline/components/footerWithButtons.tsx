@@ -5,16 +5,18 @@ import Button from 'app/components/actions/button';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 
-type Props = {buttonText: string} & Pick<
+type Props = {buttonText: string; docsUrl: string} & Pick<
   React.ComponentProps<typeof Button>,
   'disabled' | 'onClick'
 >;
 
-export default function FooterWithButtons({buttonText, ...rest}: Props) {
+export default function FooterWithButtons({buttonText, docsUrl, ...rest}: Props) {
   return (
     <Footer>
       <ButtonWrapper>
-        <StyledButton size="small">{t('View Docs')}</StyledButton>
+        <StyledButton external href={docsUrl} size="small">
+          {t('View Docs')}
+        </StyledButton>
         <StyledButton priority="primary" type="submit" size="small" {...rest}>
           {buttonText}
         </StyledButton>

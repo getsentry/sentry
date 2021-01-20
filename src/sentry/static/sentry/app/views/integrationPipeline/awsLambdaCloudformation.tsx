@@ -147,6 +147,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
           autosize
         />
         <FooterWithButtons
+          docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/"
           buttonText={t('Next')}
           onClick={this.handleSubmit}
           disabled={submitting || !this.arnValid}

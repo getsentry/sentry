@@ -55,6 +55,7 @@ export default class AwsLambdaProjectSelect extends React.Component<Props> {
         <Observer>
           {() => (
             <FooterWithButtons
+              docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/"
               buttonText={t('Next')}
               onClick={this.handleSubmit}
               disabled={this.model.isSaving || !this.model.getValue('projectId')}
