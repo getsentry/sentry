@@ -74,7 +74,7 @@ class WidgetCard extends React.Component<Props> {
     errorMessage,
     tableResults,
   }: TableResultProps): React.ReactNode {
-    const {location} = this.props;
+    const {location, widget} = this.props;
     if (errorMessage) {
       return (
         <ErrorPanel>
@@ -88,11 +88,13 @@ class WidgetCard extends React.Component<Props> {
       return <Placeholder height="200px" />;
     }
 
-    return tableResults.map(result => {
+    return tableResults.map((result, i) => {
+      const fields = widget.queries[i]?.fields ?? [];
       return (
         <SimpleTableChart
-          key={result.title}
+          key={`table:${result.title}`}
           location={location}
+          fields={fields}
           title={tableResults.length > 1 ? result.title : ''}
           loading={loading}
           metadata={result.meta}

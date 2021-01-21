@@ -34,16 +34,12 @@ export function findOption(wrapper, {value, label} = {}, options) {
 
 export function selectByLabel(wrapper, label, options = {}) {
   openMenu(wrapper, options);
-  findOption(wrapper, {label}, options)
-    .at(options.at || 0)
-    .simulate('click');
+  findOption(wrapper, {label}, options).at(0).simulate('click');
 }
 
 export function selectByValue(wrapper, value, options = {}) {
   openMenu(wrapper, options);
-  findOption(wrapper, {value}, options)
-    .at(options.at || 0)
-    .simulate('click');
+  findOption(wrapper, {value}, options).at(0).simulate('click');
 }
 
 //used for the text input to replicate a user typing
