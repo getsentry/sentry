@@ -73,8 +73,8 @@ const Content = ({
               </DailyColumn>
             </React.Fragment>
           )}
-          <CrashIssueColumn>{t('Crashes')}</CrashIssueColumn>
-          <CrashIssueColumn>{t('New Issues')}</CrashIssueColumn>
+          <CrashColumn>{t('Crashes')}</CrashColumn>
+          <IssueColumn>{t('New Issues')}</IssueColumn>
           <ViewColumn />
         </Layout>
       </Header>
@@ -186,7 +186,7 @@ const Content = ({
                     )}
                   </DailyColumn>
 
-                  <CrashIssueColumn>
+                  <CrashColumn>
                     {showPlaceholders ? (
                       <StyledPlaceholder width="30px" />
                     ) : hasHealthData && defined(sessionsCrashed) ? (
@@ -204,9 +204,9 @@ const Content = ({
                     ) : (
                       <NotAvailable />
                     )}
-                  </CrashIssueColumn>
+                  </CrashColumn>
 
-                  <CrashIssueColumn>
+                  <IssueColumn>
                     <Tooltip title={t('Open in Issues')}>
                       <GlobalSelectionLink
                         to={getReleaseNewIssuesUrl(orgSlug, project.id, releaseVersion)}
@@ -214,7 +214,7 @@ const Content = ({
                         <Count value={newGroups || 0} />
                       </GlobalSelectionLink>
                     </Tooltip>
-                  </CrashIssueColumn>
+                  </IssueColumn>
 
                   <ViewColumn>
                     <ProjectLink
@@ -276,7 +276,7 @@ const ProjectRow = styled(PanelItem)`
 
 const Layout = styled('div')`
   display: grid;
-  grid-template-columns: 1fr 1fr 0.5fr;
+  grid-template-columns: 1fr 1fr 0.5fr 0.5fr;
   grid-column-gap: ${space(1)};
   align-items: center;
   width: 100%;
@@ -329,13 +329,17 @@ const DailyColumn = styled(Column)`
   }
 `;
 
-const CrashIssueColumn = styled(Column)`
+const CrashColumn = styled(Column)`
   display: none;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     display: block;
     text-align: right;
   }
+`;
+
+const IssueColumn = styled(Column)`
+  text-align: right;
 `;
 
 const ViewColumn = styled(Column)`
