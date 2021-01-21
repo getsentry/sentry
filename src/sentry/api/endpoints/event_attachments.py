@@ -32,9 +32,7 @@ class EventAttachmentsEndpoint(ProjectEndpoint):
         if event is None:
             return self.respond({"detail": "Event not found"}, status=404)
 
-        queryset = EventAttachment.objects.filter(
-            project_id=project.id, event_id=event.event_id
-        ).select_related("file")
+        queryset = EventAttachment.objects.filter(project_id=project.id, event_id=event.event_id)
 
         query = request.GET.get("query")
         if query:

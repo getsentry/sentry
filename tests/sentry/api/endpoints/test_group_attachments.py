@@ -19,7 +19,7 @@ class GroupEventAttachmentsTest(APITestCase):
             event_id=self.event.event_id,
             project_id=self.event.project_id,
             group_id=self.group.id,
-            file=self.file,
+            file_id=self.file.id,
             type=self.file.type,
             name="hello.png",
         )

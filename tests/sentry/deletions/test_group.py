@@ -69,7 +69,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         EventAttachment.objects.create(
             event_id=self.event.event_id,
             project_id=self.event.project_id,
-            file=file,
+            file_id=file.id,
             type=file.type,
             name="hello.png",
         )

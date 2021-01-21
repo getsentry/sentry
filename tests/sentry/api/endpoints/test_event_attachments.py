@@ -22,14 +22,14 @@ class EventAttachmentsTest(APITestCase):
         attachment1 = EventAttachment.objects.create(
             event_id=event1.event_id,
             project_id=event1.project_id,
-            file=File.objects.create(name="hello.png", type="image/png"),
+            file_id=File.objects.create(name="hello.png", type="image/png").id,
             name="hello.png",
         )
         file = File.objects.create(name="hello.png", type="image/png")
         EventAttachment.objects.create(
             event_id=event2.event_id,
             project_id=event2.project_id,
-            file=file,
+            file_id=file.id,
             type=file.type,
             name="hello.png",
         )

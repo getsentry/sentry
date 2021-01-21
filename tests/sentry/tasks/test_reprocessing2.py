@@ -280,7 +280,7 @@ def test_attachments_and_userfeedback(
                 event_id=evt.event_id,
                 group_id=evt.group_id,
                 project_id=default_project.id,
-                file=file,
+                file_id=file.id,
                 type=file.type,
                 name="foo",
             )

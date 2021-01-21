@@ -44,12 +44,17 @@ class EventAttachment(Model):
 
     @cached_property
     def mimetype(self):
-        rv = self.file.headers.get("Content-Type")
+        from sentry.models import File
+
+        file = File.objects.get(id=self.file_id)
+        rv = file.headers.get("Content-Type")
         if rv:
             return rv.split(";")[0].strip()
         return mimetypes.guess_type(self.name)[0] or "application/octet-stream"
 
     def delete(self, *args, **kwargs):
+        from sentry.models import File
+
         rv = super(EventAttachment, self).delete(*args, **kwargs)
 
         # Always prune the group cache. Even if there are more crash reports
@@ -58,7 +63,7 @@ class EventAttachment(Model):
         cache.delete(get_crashreport_key(self.group_id))
 
         try:
-            file = self.file
+            file = File.objects.get(id=self.file_id)
         except ObjectDoesNotExist:
             # It's possible that the File itself was deleted
             # before we were deleted when the object is in memory
