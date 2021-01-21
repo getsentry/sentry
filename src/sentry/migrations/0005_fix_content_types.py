@@ -47,4 +47,4 @@ class Migration(migrations.Migration):
         )
     ]
 
-    operations = [migrations.RunPython(fix_content_types)]
+    operations = [migrations.RunPython(fix_content_types, migrations.RunPython.noop)]

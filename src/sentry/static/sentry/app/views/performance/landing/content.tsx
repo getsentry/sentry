@@ -17,10 +17,11 @@ import Charts from '../charts/index';
 import Table from '../table';
 import {getTransactionSearchQuery} from '../utils';
 
+import BackendDisplay from './backendDisplay';
 import {FRONTEND_COLUMN_TITLES} from './data';
 import FrontendDisplay from './frontendDisplay';
-import {getCurrentLandingDisplay, LANDING_DISPLAYS} from './utils';
-import {FrontendCards} from './vitalsCards';
+import {getCurrentLandingDisplay, LANDING_DISPLAYS, LandingDisplayField} from './utils';
+import {BackendCards, FrontendCards} from './vitalsCards';
 
 type Props = {
   organization: Organization;
@@ -52,15 +53,8 @@ class LandingContent extends React.Component<Props, State> {
     });
   };
 
-  renderLandingFrontend() {
-    const {
-      organization,
-      location,
-      projects,
-      eventView,
-      setError,
-      handleSearch,
-    } = this.props;
+  renderLandingV2() {
+    const {organization, location, eventView, handleSearch} = this.props;
 
     const currentLandingDisplay = getCurrentLandingDisplay(location);
     const filterString = getTransactionSearchQuery(location);
@@ -99,6 +93,27 @@ class LandingContent extends React.Component<Props, State> {
             </DropdownControl>
           </ProjectTypeDropdown>
         </SearchContainer>
+        {this.renderSelectedDisplay(currentLandingDisplay.field, summaryConditions)}
+      </React.Fragment>
+    );
+  }
+
+  renderSelectedDisplay(display, summaryConditions) {
+    switch (display) {
+      case LandingDisplayField.FRONTEND:
+        return this.renderLandingFrontend(summaryConditions);
+      case LandingDisplayField.BACKEND:
+        return this.renderLandingBackend(summaryConditions);
+      default:
+        throw new Error(`Unknown display: ${display}`);
+    }
+  }
+
+  renderLandingFrontend(summaryConditions) {
+    const {organization, location, projects, eventView, setError} = this.props;
+
+    return (
+      <React.Fragment>
         <FrontendCards
           eventView={eventView}
           organization={organization}
@@ -123,8 +138,31 @@ class LandingContent extends React.Component<Props, State> {
     );
   }
 
-  renderLandingV2() {
-    return this.renderLandingFrontend();
+  renderLandingBackend(summaryConditions) {
+    const {organization, location, projects, eventView, setError} = this.props;
+
+    return (
+      <React.Fragment>
+        <BackendCards
+          eventView={eventView}
+          organization={organization}
+          location={location}
+        />
+        <BackendDisplay
+          eventView={eventView}
+          organization={organization}
+          location={location}
+        />
+        <Table
+          eventView={eventView}
+          projects={projects}
+          organization={organization}
+          location={location}
+          setError={setError}
+          summaryConditions={summaryConditions}
+        />
+      </React.Fragment>
+    );
   }
 
   renderLandingV1 = () => {

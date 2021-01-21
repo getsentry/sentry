@@ -64,4 +64,8 @@ class Migration(migrations.Migration):
         ('sentry', '0093_make_identity_user_id_textfield'),
     ]
 
-    operations = [migrations.RunPython(code=cleanup_event_attachment_files)]
+    operations = [
+        migrations.RunPython(
+            code=cleanup_event_attachment_files, reverse_code=migrations.RunPython.noop
+        )
+    ]

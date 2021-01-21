@@ -1,21 +1,21 @@
 import React from 'react';
-import {browserHistory} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {openModal} from 'app/actionCreators/modal';
+import {ModalRenderProps, openModal} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
-import {t, tct} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {User} from 'app/types';
 import AsyncView from 'app/views/asyncView';
 import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import FormModel from 'app/views/settings/components/forms/model';
+import {JsonFormObject} from 'app/views/settings/components/forms/type';
 
-const userEditForm = {
+const userEditForm: JsonFormObject = {
   title: 'User details',
   fields: [
     {
@@ -71,14 +71,19 @@ const REMOVE_BUTTON_LABEL = {
   delete: t('Permanently Delete User'),
 };
 
-class RemoveUserModal extends React.Component {
-  static propTypes = {
-    user: SentryTypes.User,
-    onRemove: PropTypes.func,
-    closeModal: PropTypes.func,
-  };
+type DeleteType = 'disable' | 'delete';
 
-  state = {
+type RemoveModalProps = ModalRenderProps & {
+  user: User;
+  onRemove: (type: DeleteType) => void;
+};
+
+type RemoveModalState = {
+  deleteType: DeleteType;
+};
+
+class RemoveUserModal extends React.Component<RemoveModalProps, RemoveModalState> {
+  state: RemoveModalState = {
     deleteType: 'disable',
   };
 
@@ -93,9 +98,9 @@ class RemoveUserModal extends React.Component {
 
     return (
       <React.Fragment>
-        <p>{tct('Removing user [user]', {user: <strong>{user.email}</strong>})}</p>
         <RadioGroup
           value={deleteType}
+          label={t('Remove user %s', user.email)}
           onChange={type => this.setState({deleteType: type})}
           choices={[
             ['disable', t('Disable the account.')],
@@ -106,20 +111,26 @@ class RemoveUserModal extends React.Component {
           <Button priority="danger" onClick={this.onRemove}>
             {REMOVE_BUTTON_LABEL[deleteType]}
           </Button>
-          <Button onClick={this.props.closeModal}>{t('Nevermind')}</Button>
+          <Button onClick={this.props.closeModal}>{t('Cancel')}</Button>
         </ModalFooter>
       </React.Fragment>
     );
   }
 }
 
-class AdminUserEdit extends AsyncView {
+type Props = AsyncView['props'] & RouteComponentProps<{id: string}, {}>;
+
+type State = AsyncView['state'] & {
+  user: User | null;
+};
+
+class AdminUserEdit extends AsyncView<Props, State> {
   get userEndpoint() {
     const {params} = this.props;
     return `/users/${params.id}/`;
   }
 
-  getEndpoints() {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [['user', this.userEndpoint]];
   }
 
@@ -129,7 +140,7 @@ class AdminUserEdit extends AsyncView {
       data: {hardDelete: true, organizations: []},
     });
 
-    addSuccessMessage(t("%s's account has been deleted.", this.state.user.email));
+    addSuccessMessage(t("%s's account has been deleted.", this.state.user?.email));
     browserHistory.replace('/manage/users/');
   }
 
@@ -144,13 +155,18 @@ class AdminUserEdit extends AsyncView {
     addSuccessMessage(t("%s's account has been deactivated.", response.email));
   }
 
-  removeUser = actionTypes =>
+  removeUser = (actionTypes: DeleteType) =>
     actionTypes === 'delete' ? this.deleteUser() : this.deactivateUser();
 
   formModel = new FormModel();
 
   renderBody() {
     const {user} = this.state;
+
+    if (user === null) {
+      return null;
+    }
+
     const openDeleteModal = () =>
       openModal(opts => (
         <RemoveUserModal user={user} onRemove={this.removeUser} {...opts} />

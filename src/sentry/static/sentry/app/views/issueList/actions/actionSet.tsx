@@ -246,6 +246,7 @@ const Wrapper = styled('div')<{hasInbox?: boolean}>`
   gap: ${space(0.5)};
   grid-auto-flow: column;
   justify-content: flex-start;
+  white-space: nowrap;
 
   ${p =>
     p.hasInbox &&

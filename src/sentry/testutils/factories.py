@@ -576,7 +576,7 @@ class Factories(object):
         return EventAttachment.objects.create(
             project_id=event.project_id,
             event_id=event.event_id,
-            file=file,
+            file_id=file.id,
             type=file.type,
             **kwargs
         )

@@ -50,7 +50,7 @@ function Candidate({
       </DebugFileColumn>
 
       <Column>
-        <Processings download={download} />
+        <Processings candidate={candidate} />
       </Column>
 
       <Column>

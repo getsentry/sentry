@@ -26,38 +26,6 @@ export const webVitalMeh = {
   [WebVital.CLS]: 0.1,
 };
 
-export const vitalsPoorFields = {
-  [WebVital.FP]: `count_at_least(measurements.fp, 3000)`,
-  [WebVital.FCP]: `count_at_least(measurements.fcp, 3000)`,
-  [WebVital.LCP]: `count_at_least(measurements.lcp, 4000)`,
-  [WebVital.FID]: `count_at_least(measurements.fid, 300)`,
-  [WebVital.CLS]: `count_at_least(measurements.cls, 0.25)`,
-};
-
-export const vitalsMehFields = {
-  [WebVital.FP]: `count_at_least(measurements.fp, 1000)`,
-  [WebVital.FCP]: `count_at_least(measurements.fcp, 1000)`,
-  [WebVital.LCP]: `count_at_least(measurements.lcp, 2500)`,
-  [WebVital.FID]: `count_at_least(measurements.fid, 100)`,
-  [WebVital.CLS]: `count_at_least(measurements.cls, 0.1)`,
-};
-
-export const vitalsBaseFields = {
-  [WebVital.FP]: 'count_at_least(measurements.fp, 0)',
-  [WebVital.FCP]: 'count_at_least(measurements.fcp, 0)',
-  [WebVital.LCP]: 'count_at_least(measurements.lcp, 0)',
-  [WebVital.FID]: 'count_at_least(measurements.fid, 0)',
-  [WebVital.CLS]: 'count_at_least(measurements.cls, 0)',
-};
-
-export const vitalsP75Fields = {
-  [WebVital.FP]: 'p75(measurements.fp)',
-  [WebVital.FCP]: 'p75(measurements.fcp)',
-  [WebVital.LCP]: 'p75(measurements.lcp)',
-  [WebVital.FID]: 'p75(measurements.fid)',
-  [WebVital.CLS]: 'p75(measurements.cls)',
-};
-
 export enum VitalState {
   POOR = 'Poor',
   MEH = 'Meh',

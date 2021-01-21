@@ -200,7 +200,7 @@ class GroupDetails extends React.Component<Props, State> {
 
       const projects = organization.projects;
       const projectId = data.project.id;
-      const features = projects.find(proj => proj.id === projectId)?.features ?? [];
+      const features = projects?.find(proj => proj.id === projectId)?.features ?? [];
       // Check for the reprocessing-v2 feature flag
       const hasReprocessingV2Feature = features.includes('reprocessing-v2');
       const reprocessingStatus = getGroupReprocessingStatus(data);
@@ -279,6 +279,7 @@ class GroupDetails extends React.Component<Props, State> {
 
       GroupStore.loadInitialData([data]);
     } catch (err) {
+      Sentry.captureException(err);
       let errorType: Error = null;
       switch (err?.status) {
         case 404:

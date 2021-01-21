@@ -133,6 +133,11 @@ export default class AbstractExternalIssueForm<
     // Do nothing.
   };
 
+  /**
+   * Get the list of options for a field via debounced API call. For example,
+   * the list of users that match the input string. The Promise rejects if there
+   * are any errors.
+   */
   getOptions = (field: IssueConfigField, input: string) =>
     new Promise((resolve, reject) => {
       if (!input) {

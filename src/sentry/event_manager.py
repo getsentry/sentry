@@ -450,7 +450,7 @@ class EventManager(object):
             job["event_metrics"][key] = old_bytes + attachment.size
 
         _nodestore_save_many(jobs)
-        save_unprocessed_event(project, event_id=job["event"].event_id)
+        save_unprocessed_event(project, job["event"].event_id)
 
         if job["release"]:
             if job["is_new"]:
@@ -1324,7 +1324,7 @@ def save_attachment(
         project_id=project.id,
         group_id=group_id,
         name=attachment.name,
-        file=file,
+        file_id=file.id,
         type=attachment.type,
     )
 

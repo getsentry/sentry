@@ -1,24 +1,20 @@
 from __future__ import absolute_import, print_function
 
-import six
 import logging
 import sentry_sdk
-import random
-import zstandard
 
-from sentry import features, options
+from sentry import features
 from sentry.app import locks
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.exceptions import PluginError
 from sentry.signals import event_processed, issue_unignored
 from sentry.tasks.base import instrumented_task
-from sentry.utils import metrics, json
+from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_project, bind_organization_context
 
 logger = logging.getLogger("sentry")
-nodestore_stats_logger = logging.getLogger("sentry.nodestore.stats")
 
 
 def _get_service_hooks(project_id):
@@ -248,7 +244,10 @@ def post_process_group(
         bind_organization_context(event.project.organization)
 
         _capture_stats(event, is_new)
-        _spawn_capture_nodestore_stats(event)
+
+        from sentry.reprocessing2 import spawn_capture_nodestore_stats
+
+        spawn_capture_nodestore_stats(cache_key, event.project_id, event.event_id)
 
         if event.group_id and is_reprocessed and is_new:
             add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
@@ -276,7 +275,7 @@ def post_process_group(
                 with sentry_sdk.start_transaction(
                     op="post_process_group", name="rule_processor_apply", sampled=True
                 ):
-                    safe_execute(callback, event, futures)
+                    safe_execute(callback, event, futures, _with_transaction=False)
 
             try:
                 lock = locks.get("w-o:{}-d-l".format(event.group_id), duration=10,)
@@ -331,7 +330,7 @@ def post_process_group(
 
             from sentry import similarity
 
-            safe_execute(similarity.record, event.project, [event])
+            safe_execute(similarity.record, event.project, [event], _with_transaction=False)
 
         if event.group_id:
             # Patch attachments that were ingested on the standalone path.
@@ -414,73 +413,6 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
         event=event,
         group=event.group,
         expected_errors=(PluginError,),
+        _with_transaction=False,
         **kwargs
     )
-
-
-def _spawn_capture_nodestore_stats(event):
-    rate = options.get("store.nodestore-stats-sample-rate") or 0
-    metrics.timing("eventstore.compressor.sample_rate", rate)
-
-    if not rate:
-        return
-
-    if random.random() >= rate:
-        return
-
-    capture_nodestore_stats.delay(project_id=event.project_id, event_id=event.event_id)
-
-
-def _json_size(data):
-    bytestring = json.dumps(data, sort_keys=True).encode("utf8")
-    cctx = zstandard.ZstdCompressor()
-    return len(cctx.compress(bytestring))
-
-
-@instrumented_task(name="sentry.tasks.post_process.capture_nodestore_stats")
-def capture_nodestore_stats(project_id, event_id):
-    set_current_project(project_id)
-
-    from sentry import nodestore
-    from sentry.eventstore.compressor import deduplicate
-    from sentry.eventstore.models import Event
-
-    node_id = Event.generate_node_id(project_id, event_id)
-    data = nodestore.get(node_id)
-
-    if not data:
-        metrics.incr("eventstore.compressor.error", tags={"reason": "no_data"})
-        return
-
-    old_event_size = _json_size(data)
-    new_data, extra_keys = deduplicate(dict(data))
-    total_size = event_size = _json_size(new_data)
-
-    for key, value in six.iteritems(extra_keys):
-        if nodestore.get(key) is not None:
-            metrics.incr("eventstore.compressor.hits")
-            # do not continue, nodestore.set() should bump TTL
-        else:
-            metrics.incr("eventstore.compressor.misses")
-            total_size += _json_size(value)
-
-        # key is md5sum of content
-        # do not store actual value to keep prod impact to a minimum
-        nodestore.set(key, {})
-
-    metrics.timing("events.size.deduplicated", event_size)
-    metrics.timing("events.size.deduplicated.total_written", total_size)
-
-    metrics.timing("events.size.deduplicated.ratio", event_size / old_event_size)
-    metrics.timing("events.size.deduplicated.total_written.ratio", total_size / old_event_size)
-
-    if total_size > old_event_size:
-        nodestore_stats_logger.info(
-            "events.size.deduplicated.details",
-            extra={
-                "project_id": project_id,
-                "event_id": event_id,
-                "total_size": total_size,
-                "old_event_size": old_event_size,
-            },
-        )

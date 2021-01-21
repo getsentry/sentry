@@ -106,6 +106,7 @@ export function HistogramChart(props: Props) {
         orgSlug={organization.slug}
         eventView={eventView}
         numBuckets={NUM_BUCKETS}
+        precision={PRECISION}
         fields={[field]}
         dataFilter="exclude_outliers"
       >
