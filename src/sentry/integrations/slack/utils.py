@@ -555,6 +555,6 @@ def parse_link(url):
 
     parsed_path = "/".join(new_path)
 
-    parsed_path += "/" + six.binary_type(url_parts[4])
+    parsed_path += "/" + six.text_type(url_parts[4])
 
     return parsed_path
