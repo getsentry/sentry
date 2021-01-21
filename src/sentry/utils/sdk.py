@@ -183,6 +183,9 @@ def configure_sdk():
 
     class MultiplexingTransport(sentry_sdk.transport.Transport):
         def capture_envelope(self, envelope):
+            # Temporarily capture envelope counts to compare to ingested
+            # transactions.
+            metrics.incr("internal.captured.events.envelopes")
             # Assume only transactions get sent via envelopes
             if options.get("transaction-events.force-disable-internal-project"):
                 return
