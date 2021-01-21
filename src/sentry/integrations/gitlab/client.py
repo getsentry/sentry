@@ -258,8 +258,11 @@ class GitLabApiClient(ApiClient):
 
         See https://docs.gitlab.com/ee/api/repository_files.html#get-file-from-repository
         Path requires file path and ref
+        file_path must also be URL encoded Ex. lib%2Fclass%2Erb
         """
         self.base_url = self.metadata["base_url"]
         project_id = repo.config["project_id"]
-        request_path = GitLabApiClientPath.file.format(project=project_id, path=path)
+        encoded_path = quote(path, safe="")
+
+        request_path = GitLabApiClientPath.file.format(project=project_id, path=encoded_path)
         return self.head_cached(request_path, params={"ref": ref})
