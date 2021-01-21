@@ -424,6 +424,8 @@ const WidgetContainer = styled('div')`
 
 const WidgetWrapper = styled('div')`
   position: relative;
+  /* Min-width prevents grid items from stretching the grid */
+  min-width: 200px;
 `;
 
 const AddWidgetWrapper = styled('a')`
