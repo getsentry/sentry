@@ -6,6 +6,7 @@ import six
 
 from django.core.cache import cache
 from django.http import Http404
+from six.moves.urllib.parse import urlparse, urlencode, parse_qs
 
 from sentry import tagstore, features
 from sentry.api.fields.actor import Actor
@@ -529,3 +530,31 @@ def get_identity(user, organization_id, integration_id):
         raise Http404
 
     return organization, integration, idp
+
+
+def parse_link(url):
+    """
+    For data aggreggation purposes, rm unique information from URL
+    """
+
+    url_parts = list(urlparse(url))
+    query = dict(parse_qs(url_parts[4]))
+    for param in query:
+        if param == "project":
+            query.update({"project": "{project}"})
+
+    url_parts[4] = urlencode(query)
+    parsed_path = url_parts[2].strip("/").split("/")
+    scrubbed_items = {"organizations": "organization", "issues": "issue_id", "events": "event_id"}
+    new_path = []
+    for index, item in enumerate(parsed_path):
+        if item in scrubbed_items:
+            if len(parsed_path) > index + 1:
+                parsed_path[index + 1] = "{%s}" % (scrubbed_items[item])
+        new_path.append(item)
+
+    parsed_path = "/".join(new_path)
+
+    parsed_path += "/" + six.binary_type(url_parts[4])
+
+    return parsed_path

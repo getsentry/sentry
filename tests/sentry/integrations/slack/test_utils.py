@@ -10,8 +10,9 @@ from sentry.integrations.slack.utils import (
     build_incident_attachment,
     CHANNEL_PREFIX,
     get_channel_id,
-    RESOLVED_COLOR,
     MEMBER_PREFIX,
+    RESOLVED_COLOR,
+    parse_link,
 )
 from sentry.models import Integration
 from sentry.testutils import TestCase
@@ -396,3 +397,20 @@ class BuildIncidentAttachmentTest(TestCase):
         warning_event = self.store_event(data={"level": "warning"}, project_id=self.project.id)
         assert build_group_attachment(warning_event.group)["color"] == "#FFC227"
         assert build_group_attachment(warning_event.group, warning_event)["color"] == "#FFC227"
+
+    def test_parse_link(self):
+        link = "https://meowlificent.ngrok.io/organizations/sentry/issues/167/?project=2&amp;query=is%3Aunresolved"
+        link2 = "https://meowlificent.ngrok.io/organizations/sentry/issues/1/events/2d113519854c4f7a85bae8b69c7404ad/?project=2"
+        link3 = "https://meowlificent.ngrok.io/organizations/sentry/issues/9998089891/events/198e93sfa99d41b993ac8ae5dc384642/events/"
+        assert (
+            parse_link(link)
+            == "organizations/{organization}/issues/{issue_id}/project=%7Bproject%7D&query=%5B%27is%3Aunresolved%27%5D"
+        )
+        assert (
+            parse_link(link2)
+            == "organizations/{organization}/issues/{issue_id}/events/{event_id}/project=%7Bproject%7D"
+        )
+        assert (
+            parse_link(link3)
+            == "organizations/{organization}/issues/{issue_id}/events/{event_id}/events/"
+        )
