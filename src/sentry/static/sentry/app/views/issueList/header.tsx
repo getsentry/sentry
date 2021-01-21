@@ -30,11 +30,13 @@ type Props = {
   projects: Array<Project>;
   onRealtimeChange: (realtime: boolean) => void;
   displayReprocessingTab: boolean;
+  queryCount?: number;
 } & React.ComponentProps<typeof SavedSearchTab>;
 
 function IssueListHeader({
   organization,
   query,
+  queryCount,
   queryCounts,
   orgSlug,
   projectIds,
@@ -147,6 +149,7 @@ function IssueListHeader({
             onSavedSearchSelect={onSavedSearchSelect}
             onSavedSearchDelete={onSavedSearchDelete}
             isActive={savedSearchTabActive}
+            queryCount={queryCount}
           />
         </Layout.HeaderNavTabs>
       </TabLayoutHeader>
