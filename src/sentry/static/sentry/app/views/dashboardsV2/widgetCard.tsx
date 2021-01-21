@@ -146,10 +146,7 @@ class WidgetCard extends React.Component<Props> {
                       errorMessage={errorMessage}
                       loading={loading}
                       location={location}
-                      widget={{
-                        ...widget,
-                        title: '',
-                      }}
+                      widget={widget}
                       selection={selection}
                       router={router}
                     />
