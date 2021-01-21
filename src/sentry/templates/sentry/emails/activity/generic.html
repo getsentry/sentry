@@ -24,7 +24,18 @@
 
     <h2>{{ activity_name }}</h2>
 
-    <p>{{ html_description }}</p>
+    {% if enhanced_privacy %}
+
+      <div class="notice">
+        Details about this issue are not shown in this email since enhanced privacy
+        controls are enabled. For more details about this issue, <a href="{{ link }}">view on Sentry.</a>
+      </div>
+
+    {% else %}
+
+      <p>{{ html_description }}</p>
+
+  {% endif %}
 
   {% endblock %}
 

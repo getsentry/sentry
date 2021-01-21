@@ -71,11 +71,14 @@ class ActivityEmail(object):
     def get_base_context(self):
         activity = self.activity
 
+        enhanced_privacy = self.organization.flags.enhanced_privacy
+
         context = {
             "data": activity.data,
             "author": activity.user,
             "project": self.project,
             "project_link": self.get_project_link(),
+            "enhanced_privacy": enhanced_privacy,
         }
         if activity.group:
             context.update(self.get_group_context())

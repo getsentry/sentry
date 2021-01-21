@@ -2,14 +2,23 @@
 {% autoescape off %}
 # {{ activity_name }}
 
-{{ text_description }}
-
-
 ## Issue Details
 
+{% if enhanced_privacy %}
+Details about this issue are not shown in this email since enhanced privacy
+controls are enabled. For more details about this issue, view on Sentry:
+{{ link }}.
+{% else %}
+{{ text_description }}
+
+{% if group %}
 {{ group.title }}
+{{% endif %}
 
 {{ link }}
+
+{% endif %}
+
 {% if unsubscribe_link %}
 
 Unsubscribe: {{ unsubscribe_link }}{% endif %}
