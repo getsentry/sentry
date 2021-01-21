@@ -12,19 +12,21 @@ import Rules from './rules';
 
 type Props = {
   rules: Array<DynamicSamplingRule>;
-  docsUrl: string;
   onAddRule: () => void;
+  platformDocLink?: string;
 };
 
-function RulesPanel({rules, docsUrl, onAddRule}: Props) {
+function RulesPanel({rules, platformDocLink, onAddRule}: Props) {
   return (
     <Panel>
       <Rules rules={rules} />
       <StyledPanelFooter>
         <ButtonBar gap={1}>
-          <Button href={docsUrl} external>
-            {t('Read the docs')}
-          </Button>
+          {platformDocLink && (
+            <Button href={platformDocLink} external>
+              {t('Read the docs')}
+            </Button>
+          )}
           <Button priority="primary" onClick={onAddRule}>
             {t('Add rule')}
           </Button>
