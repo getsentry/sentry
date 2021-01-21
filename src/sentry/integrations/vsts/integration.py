@@ -77,6 +77,12 @@ FEATURES = [
         """,
         IntegrationFeatures.ISSUE_SYNC,
     ),
+    FeatureDescription(
+        """
+        Automatically create Azure DevOps work items based on Issue Alert conditions.
+        """,
+        IntegrationFeatures.TICKET_RULES,
+    ),
 ]
 
 metadata = IntegrationMetadata(
@@ -314,9 +320,10 @@ class VstsIntegrationProvider(IntegrationProvider):
 
     features = frozenset(
         [
+            IntegrationFeatures.COMMITS,
             IntegrationFeatures.ISSUE_BASIC,
             IntegrationFeatures.ISSUE_SYNC,
-            IntegrationFeatures.COMMITS,
+            IntegrationFeatures.TICKET_RULES,
         ]
     )
 
