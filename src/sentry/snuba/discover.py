@@ -6,7 +6,6 @@ import six
 import logging
 
 from collections import namedtuple
-from math import ceil, floor
 
 from sentry import options
 from sentry.api.event_search import (
