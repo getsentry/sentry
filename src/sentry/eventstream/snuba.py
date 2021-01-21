@@ -249,7 +249,7 @@ class SnubaProtocolEventStream(EventStream):
         """
 
         state = {"project_id": project_id, "event_ids": event_ids, "new_group_id": new_group_id}
-        self._send(project_id, "merge_events", extra_data=(state,), asynchronous=False)
+        self._send(project_id, "replace_group", extra_data=(state,), asynchronous=False)
 
     def exclude_groups(self, project_id, group_ids):
         """
