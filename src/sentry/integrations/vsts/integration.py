@@ -318,12 +318,14 @@ class VstsIntegrationProvider(IntegrationProvider):
     needs_default_identity = True
     integration_cls = VstsIntegration
 
-    features = frozenset([
-        IntegrationFeatures.COMMITS,
-        IntegrationFeatures.ISSUE_BASIC,
-        IntegrationFeatures.ISSUE_SYNC,
-        IntegrationFeatures.TICKET_RULES,
-    ])
+    features = frozenset(
+        [
+            IntegrationFeatures.COMMITS,
+            IntegrationFeatures.ISSUE_BASIC,
+            IntegrationFeatures.ISSUE_SYNC,
+            IntegrationFeatures.TICKET_RULES,
+        ]
+    )
 
     setup_dialog_config = {"width": 600, "height": 800}
 
