@@ -83,20 +83,35 @@ class IntegrationServerlessRow extends React.Component<Props> {
       addErrorMessage(t('An error ocurred'));
     }
   };
+  renderLayerStatus() {
+    const {serverlessFunction} = this.props;
+    if (!serverlessFunction.outOfDate) {
+      return this.enabled ? t('Latest') : t('Disabled');
+    }
+    return (
+      <UpdateButton size="small" priority="primary" onClick={this.updateVersion}>
+        {t('Update')}
+      </UpdateButton>
+    );
+  }
   render() {
     const {serverlessFunction} = this.props;
-    const versionDisplay = this.enabled ? serverlessFunction.version : 'None';
+    const versionText = this.enabled ? (
+      <React.Fragment>&nbsp;|&nbsp;v{serverlessFunction.version}</React.Fragment>
+    ) : null;
     return (
       <Item>
-        <NameWrapper>{serverlessFunction.name}</NameWrapper>
-        <RuntimeWrapper>{serverlessFunction.runtime}</RuntimeWrapper>
-        <VersionWrapper>{versionDisplay}</VersionWrapper>
+        <NameWrapper>
+          <NameRuntimeVersionWrapper>
+            <Name>{serverlessFunction.name}</Name>
+            <RuntimeAndVersion>
+              <DetailWrapper>{serverlessFunction.runtime}</DetailWrapper>
+              <DetailWrapper>{versionText}</DetailWrapper>
+            </RuntimeAndVersion>
+          </NameRuntimeVersionWrapper>
+        </NameWrapper>
+        <LayerStatusWrapper>{this.renderLayerStatus()}</LayerStatusWrapper>
         <StyledSwitch isActive={this.enabled} size="sm" toggle={this.toggleEnable} />
-        {serverlessFunction.outOfDate && (
-          <UpdateButton size="small" priority="primary" onClick={this.updateVersion}>
-            Update
-          </UpdateButton>
-        )}
       </Item>
     );
   }
@@ -105,7 +120,7 @@ class IntegrationServerlessRow extends React.Component<Props> {
 export default withApi(IntegrationServerlessRow);
 
 const Item = styled('div')`
-  padding: ${space(1)};
+  padding: ${space(2)};
 
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.innerBorder};
@@ -114,28 +129,46 @@ const Item = styled('div')`
   display: grid;
   grid-column-gap: ${space(1)};
   align-items: center;
-  grid-template-columns: 2fr 1fr 0.5fr 0.25fr 0.5fr;
-  grid-template-areas: 'function-name runtime version enable-switch update-button';
+  grid-template-columns: 2fr 1fr 0.5fr;
+  grid-template-areas: 'function-name layer-status enable-switch';
 `;
 
-const ItemWrapper = styled('span')``;
+const ItemWrapper = styled('span')`
+  height: 32px;
+  vertical-align: middle;
+  display: flex;
+  align-items: center;
+`;
 
 const NameWrapper = styled(ItemWrapper)`
   grid-area: function-name;
 `;
 
-const RuntimeWrapper = styled(ItemWrapper)`
-  grid-area: runtime;
-`;
-
-const VersionWrapper = styled(ItemWrapper)`
-  grid-area: version;
+const LayerStatusWrapper = styled(ItemWrapper)`
+  grid-area: layer-status;
 `;
 
 const StyledSwitch = styled(Switch)`
   grid-area: enable-switch;
 `;
 
-const UpdateButton = styled(Button)`
-  grid-area: update-button;
+const UpdateButton = styled(Button)``;
+
+const NameRuntimeVersionWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+`;
+
+const Name = styled(`span`)`
+  padding-bottom: ${space(1)};
+`;
+
+const RuntimeAndVersion = styled('div')`
+  display: flex;
+  flex-direction: row;
+  color: ${p => p.theme.gray300};
+`;
+
+const DetailWrapper = styled('div')`
+  line-height: 1.2;
 `;

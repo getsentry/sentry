@@ -3,13 +3,17 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {addErrorMessage, addLoadingMessage} from 'app/actionCreators/indicator';
-import ExternalLink from 'app/components/links/externalLink';
-import {t, tct} from 'app/locale';
+import Button from 'app/components/actions/button';
+import Alert from 'app/components/alert';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {uniqueId} from 'app/utils/guid';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import FormModel from 'app/views/settings/components/forms/model';
-import {JsonFormObject} from 'app/views/settings/components/forms/type';
+import StepHeading from 'app/views/onboarding/components/stepHeading';
+import FieldErrorReason from 'app/views/settings/components/forms/field/fieldErrorReason';
+import TextareaField from 'app/views/settings/components/forms/textareaField';
+
+import FooterWithButtons from './components/footerWithButtons';
+import IconGroup from './components/iconGroup';
 
 // let the browser generate and store the external ID
 // this way the same user always has the same external ID if they restart the pipeline
@@ -23,6 +27,9 @@ const getAwsExternalId = () => {
   return awsExternalId;
 };
 
+const cloudformationRegex = /arn:aws:cloudformation:\S+:\d+:stack+\/\S+/;
+const testArn = (arn: string) => cloudformationRegex.test(arn);
+
 type Props = {
   baseCloudformationUrl: string;
   templateUrl: string;
@@ -31,7 +38,17 @@ type Props = {
   error?: string;
 };
 
-export default class AwsLambdaCloudformation extends React.Component<Props> {
+type State = {
+  arn?: string;
+  syncError?: string;
+  submitting?: boolean;
+};
+
+export default class AwsLambdaCloudformation extends React.Component<Props, State> {
+  state: State = {
+    arn: this.props.arn,
+  };
+
   componentDidMount() {
     // show the error if we have it
     const {error} = this.props;
@@ -39,7 +56,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props> {
       addErrorMessage(error, {duration: 10000});
     }
   }
-  model = new FormModel();
+
   get initialData() {
     const {arn} = this.props;
     const awsExternalId = getAwsExternalId();
@@ -48,6 +65,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props> {
       arn,
     };
   }
+
   get cloudformationUrl() {
     // generarate the cloudformation URL using the params we get from the server
     // and the external id we generate
@@ -60,9 +78,16 @@ export default class AwsLambdaCloudformation extends React.Component<Props> {
     });
     return `${baseCloudformationUrl}?${query}`;
   }
-  handleSubmit = (data: any) => {
+
+  handleSubmit = (e: React.MouseEvent) => {
+    this.setState({submitting: true});
+    e.preventDefault();
+    const {arn} = this.state;
+    const data = {
+      arn,
+      awsExternalId: getAwsExternalId(),
+    };
     addLoadingMessage(t('Submitting\u2026'));
-    this.model.setFormSaving();
     const {
       location: {origin},
     } = window;
@@ -72,92 +97,107 @@ export default class AwsLambdaCloudformation extends React.Component<Props> {
     const newUrl = `${origin}/extensions/aws_lambda/setup/?${qs.stringify(data)}`;
     window.location.assign(newUrl);
   };
-  renderFormHeader = () => {
-    const cloudformationUrl = this.cloudformationUrl;
-    const acklowedgeResource = (
-      <strong>
-        {t('I Acknowledge that AWS CloudFormation might create IAM resources')}
-      </strong>
-    );
-    const create = <strong>{t('Create')}</strong>;
-    const arnStrong = <strong>ARN</strong>;
-    const sentryMonitoringStack = <strong>SentryMonitoringStack</strong>;
+
+  validateArn = (value: string) => {
+    // validate the ARN matches a cloudformation stack
+    let syncError = '';
+    if (!value) {
+      syncError = t('ARN required');
+    } else if (!testArn(value)) {
+      syncError = t('Invalid ARN');
+    }
+    this.setState({syncError});
+  };
+
+  handleChangeArn = (arn: string) => {
+    // reset the error if we ever get a valid ARN
+    if (testArn(arn)) {
+      this.setState({syncError: ''});
+    }
+    this.setState({arn});
+  };
+
+  get arnValid() {
+    return testArn(this.state.arn || '');
+  }
+
+  renderInstructions = () => {
     return (
       <InstructionWrapper>
-        <ol>
-          <li>
-            <ExternalLink href={cloudformationUrl}>
-              {t("Add Sentry's Cloudfromation stack to your AWS")}
-            </ExternalLink>
-          </li>
-          <li>
-            {tct('Mark "[acklowedgeResource]"', {
-              acklowedgeResource,
-            })}
-          </li>
-          <li>
-            {tct('Press "[create]"', {
-              create,
-            })}
-          </li>
-          <li>
-            {tct(
-              'It might take a minute or two for the CloudFormation stack to set up. Find the stack in list of stacks and copy the "[arnStrong]" value of "[sentryMonitoringStack]" into the input below:',
-              {
-                arnStrong,
-                sentryMonitoringStack,
-              }
-            )}
-          </li>
-        </ol>
+        <StyledStepHeading step={1}>
+          {t("Add Sentry's CloudFormation to your AWS")}
+        </StyledStepHeading>
+        <GoToAWSWrapper>
+          <Button priority="primary" external href={this.cloudformationUrl}>
+            {t('Go to AWS')}
+          </Button>
+        </GoToAWSWrapper>
+        <StyledStepHeading step={2}>
+          {t('Enter the ARN Value from AWS')}
+        </StyledStepHeading>
       </InstructionWrapper>
     );
   };
+
   render = () => {
-    const model = this.model;
-    const formFields: JsonFormObject = {
-      title: t('Install Sentry to your AWS account'),
-      fields: [
-        {
-          name: 'awsExternalId',
-          type: 'hidden',
-          required: true,
-        },
-        {
-          name: 'arn',
-          type: 'text',
-          required: true,
-          label: t('ARN'),
-          inline: false,
-          placeholder:
-            'arn:aws:iam::XXXXXXXXXXXX:stack/SentryMonitoringStack-XXXXXXXXXXXXX',
-          validate: ({id, form}) => {
-            const value = form[id];
-            // validate the ARN matches a cloudformation stack
-            return /arn:aws:cloudformation:\S+:\d+:stack+\/\S+/.test(value)
-              ? []
-              : [[id, 'Invalid ARN']];
-          },
-        },
-      ],
-    };
+    const {arn, syncError, submitting} = this.state;
     return (
-      <StyledForm
-        initialData={this.initialData}
-        model={model}
-        onSubmit={this.handleSubmit}
-      >
-        <JsonForm renderHeader={this.renderFormHeader} forms={[formFields]} />
-      </StyledForm>
+      <div>
+        <StyledAlert type="info">
+          {t('It might take a minute for the CloudFormation stack to be created')}
+        </StyledAlert>
+        <IconGroup pluginId="aws_lambda" />
+        <InstallSentry>{t('Install Sentry on your AWS Account')}</InstallSentry>
+        {this.renderInstructions()}
+        <StyledTextareaField
+          name="arn"
+          placeholder="arn:aws:cloudformation:us-east-2:599817902985:stack/Sentry-Monitoring-Stack-Filter/a3644150-5560-11eb-b6e6-0abd43d40ad8"
+          value={arn}
+          onChange={this.handleChangeArn}
+          onBlur={this.validateArn}
+          error={syncError}
+          inline={false}
+          autosize
+        />
+        <FooterWithButtons
+          docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/"
+          buttonText={t('Next')}
+          onClick={this.handleSubmit}
+          disabled={submitting || !this.arnValid}
+        />
+      </div>
     );
   };
 }
 
-const StyledForm = styled(Form)`
-  margin: 50px;
-  padding-bottom: 50px;
+const InstructionWrapper = styled('div')`
+  margin-left: 20px;
 `;
 
-const InstructionWrapper = styled('div')`
+const StyledStepHeading = styled(StepHeading)`
+  font-weight: normal;
+  font-size: ${p => p.theme.fontSizeLarge};
+  margin: 10px 0 0 0;
+`;
+
+const StyledTextareaField = styled(TextareaField)`
+  padding: ${space(1)} 65px;
+  ${FieldErrorReason} {
+    right: 67px;
+  }
+  border-bottom: none;
+`;
+
+const InstallSentry = styled('div')`
+  font-size: ${p => p.theme.headerFontSize};
   margin: 20px;
+  text-align: center;
+`;
+
+const GoToAWSWrapper = styled('div')`
+  margin-left: 46px;
+`;
+
+const StyledAlert = styled(Alert)`
+  border-radius: 0;
 `;

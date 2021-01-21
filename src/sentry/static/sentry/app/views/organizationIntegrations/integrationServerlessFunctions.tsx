@@ -75,10 +75,8 @@ class IntegrationServerlessFunctions extends AsyncComponent<Props, State> {
         <Panel>
           <StyledPanelHeader disablePadding hasButtons>
             <NameHeader>{t('Name')}</NameHeader>
-            <RuntimeHeader>{t('Runtime')}</RuntimeHeader>
-            <VersionHeader>{t('Version')}</VersionHeader>
+            <LayerStatusWrapper>{t('Layer Status')}</LayerStatusWrapper>
             <EnableHeader>{t('Enabled')}</EnableHeader>
-            <UpdateHeader>{t('Update')}</UpdateHeader>
           </StyledPanelHeader>
           <StyledPanelBody>
             {this.serverlessFunctions.map((serverlessFunction, i) => (
@@ -101,15 +99,15 @@ class IntegrationServerlessFunctions extends AsyncComponent<Props, State> {
 export default withOrganization(IntegrationServerlessFunctions);
 
 const StyledPanelHeader = styled(PanelHeader)`
+  padding: ${space(2)};
   display: grid;
   grid-column-gap: ${space(1)};
   align-items: center;
-  grid-template-columns: 2fr 1fr 0.5fr 0.25fr 0.5fr;
-  grid-template-areas: 'function-name runtime version enable-switch update-button';
+  grid-template-columns: 2fr 1fr 0.5fr;
+  grid-template-areas: 'function-name layer-status enable-switch';
 `;
 
 const HeaderText = styled('div')`
-  padding-left: ${space(2)};
   flex: 1;
 `;
 
@@ -119,18 +117,10 @@ const NameHeader = styled(HeaderText)`
   grid-area: function-name;
 `;
 
-const RuntimeHeader = styled(HeaderText)`
-  grid-area: runtime;
-`;
-
-const VersionHeader = styled(HeaderText)`
-  grid-area: version;
+const LayerStatusWrapper = styled(HeaderText)`
+  grid-area: layer-status;
 `;
 
 const EnableHeader = styled(HeaderText)`
   grid-area: enable-switch;
-`;
-
-const UpdateHeader = styled(HeaderText)`
-  grid-area: update-button;
 `;
