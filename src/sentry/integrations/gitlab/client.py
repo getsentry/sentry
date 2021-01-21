@@ -5,7 +5,6 @@ from django.core.urlresolvers import reverse
 from sentry.integrations.client import ApiClient
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.utils.http import absolute_uri
-from sentry.web.decorators import transaction_start
 from six.moves.urllib.parse import quote
 
 
@@ -252,7 +251,6 @@ class GitLabApiClient(ApiClient):
         path = GitLabApiClientPath.diff.format(project=project_id, sha=sha)
         return self.get(path)
 
-    @transaction_start("GitLabApiClient.check_file")
     def check_file(self, repo, path, ref):
         """Fetch a file for stacktrace linking
 
