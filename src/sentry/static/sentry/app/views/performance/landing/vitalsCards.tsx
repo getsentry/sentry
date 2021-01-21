@@ -61,7 +61,7 @@ export function FrontendCards(props: FrontendCardsProps) {
 
   if (frontendOnly) {
     const defaultDisplay = getDefaultDisplayFieldForPlatform(eventView, projects);
-    const isFrontend = defaultDisplay === LandingDisplayField.FRONTEND;
+    const isFrontend = defaultDisplay === LandingDisplayField.FRONTEND_PAGELOAD;
 
     if (!isFrontend) {
       return null;

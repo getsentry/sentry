@@ -10,16 +10,24 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {
+  QueryResults,
+  stringifyQueryObject,
+  tokenizeSearch,
+} from 'app/utils/tokenizeSearch';
 import SearchBar from 'app/views/events/searchBar';
 
 import Charts from '../charts/index';
-import {getBackendAxisOptions, getFrontendAxisOptions} from '../data';
+import {
+  getBackendAxisOptions,
+  getFrontendAxisOptions,
+  getFrontendNavigationAxisOptions,
+} from '../data';
 import Table from '../table';
 import {getTransactionSearchQuery} from '../utils';
 
 import DoubleAxisDisplay from './display/doubleAxisDisplay';
-import {FRONTEND_COLUMN_TITLES} from './data';
+import {FRONTEND_NAVIGATION_COLUMN_TITLES, FRONTEND_PAGELOAD_COLUMN_TITLES} from './data';
 import {
   getCurrentLandingDisplay,
   getDisplayAxes,
@@ -114,8 +122,10 @@ class LandingContent extends React.Component<Props, State> {
     switch (display) {
       case LandingDisplayField.ALL:
         return this.renderLandingAll(summaryConditions);
-      case LandingDisplayField.FRONTEND:
-        return this.renderLandingFrontend(summaryConditions);
+      case LandingDisplayField.FRONTEND_PAGELOAD:
+        return this.renderLandingFrontend(summaryConditions, true);
+      case LandingDisplayField.FRONTEND_NAVIGATION:
+        return this.renderLandingFrontend(summaryConditions, false);
       case LandingDisplayField.BACKEND:
         return this.renderLandingBackend(summaryConditions);
       default:
@@ -123,22 +133,44 @@ class LandingContent extends React.Component<Props, State> {
     }
   }
 
-  renderLandingFrontend = summaryConditions => {
+  renderLandingFrontend = (summaryConditions, isPageload) => {
     const {organization, location, projects, eventView, setError} = this.props;
 
-    const axisOptions = getFrontendAxisOptions(organization);
+    const op = isPageload ? 'pageload' : 'navigation';
+
+    const frontendView = eventView.clone();
+    const conditions = tokenizeSearch(frontendView.query);
+    const newConditions = new QueryResults([]); // Add conditions just to include in summary as transaction.op you want to likely keep
+    conditions.setTagValues('transaction.op', [op]);
+    newConditions.setTagValues('transaction.op', [op]);
+
+    frontendView.query = stringifyQueryObject(conditions);
+    const frontendSummaryConditions = [
+      summaryConditions,
+      stringifyQueryObject(newConditions),
+    ].join(' ');
+
+    const columnTitles = isPageload
+      ? FRONTEND_PAGELOAD_COLUMN_TITLES
+      : FRONTEND_NAVIGATION_COLUMN_TITLES;
+
+    const axisOptions = isPageload
+      ? getFrontendAxisOptions(organization)
+      : getFrontendNavigationAxisOptions(organization);
     const {leftAxis, rightAxis} = getDisplayAxes(axisOptions, location);
 
     return (
       <React.Fragment>
-        <FrontendCards
-          eventView={eventView}
-          organization={organization}
-          location={location}
-          projects={projects}
-        />
+        {isPageload && (
+          <FrontendCards
+            eventView={frontendView}
+            organization={organization}
+            location={location}
+            projects={projects}
+          />
+        )}
         <DoubleAxisDisplay
-          eventView={eventView}
+          eventView={frontendView}
           organization={organization}
           location={location}
           axisOptions={axisOptions}
@@ -146,13 +178,13 @@ class LandingContent extends React.Component<Props, State> {
           rightAxis={rightAxis}
         />
         <Table
-          eventView={eventView}
+          eventView={frontendView}
           projects={projects}
           organization={organization}
           location={location}
           setError={setError}
-          summaryConditions={summaryConditions}
-          columnTitles={FRONTEND_COLUMN_TITLES}
+          summaryConditions={frontendSummaryConditions}
+          columnTitles={columnTitles}
         />
       </React.Fragment>
     );

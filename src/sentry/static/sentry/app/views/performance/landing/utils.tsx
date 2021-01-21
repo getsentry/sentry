@@ -26,7 +26,8 @@ type LandingDisplay = {
 
 export enum LandingDisplayField {
   ALL = 'all',
-  FRONTEND = 'frontend',
+  FRONTEND_PAGELOAD = 'frontend_pageload',
+  FRONTEND_NAVIGATION = 'frontend_navigation',
   BACKEND = 'backend',
 }
 
@@ -36,8 +37,12 @@ export const LANDING_DISPLAYS = [
     field: LandingDisplayField.ALL,
   },
   {
-    label: 'Frontend',
-    field: LandingDisplayField.FRONTEND,
+    label: 'Frontend (Pageload)',
+    field: LandingDisplayField.FRONTEND_PAGELOAD,
+  },
+  {
+    label: 'Frontend (Navigation)',
+    field: LandingDisplayField.FRONTEND_NAVIGATION,
   },
   {
     label: 'Backend',
@@ -107,24 +112,27 @@ export function getDefaultDisplayFieldForPlatform(
     return LandingDisplayField.ALL;
   }
   const projectIds = eventView.project;
+  if (projectIds.length === 0 || projectIds[0] === ALL_ACCESS_PROJECTS) {
+    return LandingDisplayField.ALL;
+  }
+  const selectedProjects = projects.filter(p => projectIds.includes(parseInt(p.id, 10)));
+  if (selectedProjects.length === 0 || selectedProjects.some(p => !p.platform)) {
+    return LandingDisplayField.ALL;
+  }
+
   if (
-    projectIds.length > 1 ||
-    projectIds.length === 0 ||
-    projectIds[0] === ALL_ACCESS_PROJECTS
+    selectedProjects.every(project =>
+      VITALS_FRONTEND_PLATFORMS.includes(project.platform as string)
+    )
   ) {
-    return LandingDisplayField.ALL;
-  }
-  const projectId = eventView.project[0];
-  const project = projects.find(p => p.id === `${projectId}`);
-  if (!project || !project.platform) {
-    return LandingDisplayField.ALL;
+    return LandingDisplayField.FRONTEND_PAGELOAD;
   }
 
-  if (VITALS_FRONTEND_PLATFORMS.includes(project.platform as string)) {
-    return LandingDisplayField.FRONTEND;
-  }
-
-  if (VITALS_BACKEND_PLATFORMS.includes(project.platform as string)) {
+  if (
+    selectedProjects.every(project =>
+      VITALS_BACKEND_PLATFORMS.includes(project.platform as string)
+    )
+  ) {
     return LandingDisplayField.BACKEND;
   }
 

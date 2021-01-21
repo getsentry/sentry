@@ -14,7 +14,7 @@ type DisplayProps = {
   organization: Organization;
   eventView: EventView;
   axis: AxisOption;
-  onFilterChange: (minValue: number, maxValue: number) => void;
+  onFilterChange: (minValue: number, maxValue: number) => void; // only used for distribution graphs
 };
 
 export function SingleAxisChart(props: DisplayProps) {
