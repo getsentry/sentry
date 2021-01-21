@@ -394,6 +394,6 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert (
-            UserReport.objects.get(event_id=self.event.event_id).environment.id
+            UserReport.objects.get(event_id=self.event.event_id).environment_id
             == self.environment.id
         )
