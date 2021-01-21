@@ -33,7 +33,6 @@ class DjangoNodeStorage(NodeStorage):
 
             return None
         except Exception as e:
-            raise
             logger.exception(e)
             return {}
 
