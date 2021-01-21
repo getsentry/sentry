@@ -108,6 +108,7 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
               onClick={event => handleRemove(event, i)}
               icon={<IconDelete />}
               title={t('Remove this overlay')}
+              label={t('Remove this overlay')}
             />
           )}
         </QueryFieldWrapper>
