@@ -25,6 +25,7 @@ class OrganizationSerializerTest(TestCase):
         assert result["features"] == set(
             [
                 "advanced-search",
+                "custom-event-title",
                 "shared-issues",
                 "open-membership",
                 "event-attachments",

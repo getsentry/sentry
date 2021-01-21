@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+
 import video from 'sentry-images/spot/congrats-robots.mp4';
 
 import AutoplayVideo from 'app/components/autoplayVideo';

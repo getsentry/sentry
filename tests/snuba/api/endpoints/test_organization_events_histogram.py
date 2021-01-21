@@ -662,3 +662,102 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         ]
 
         assert response.data == self.as_response_data(expected)
+
+    def test_histogram_missing_measurement_data(self):
+        # make sure there is at least one transaction
+        specs = [
+            (0, 1, [("measurements.foo", 1)]),
+        ]
+        self.populate_measurements(specs)
+
+        query = {
+            "project": [self.project.id],
+            # make sure to query a measurement that does not exist
+            "field": ["measurements.bar"],
+            "numBuckets": 5,
+            "dataFilter": "exclude_outliers",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+
+        expected = [
+            (0, 1, [("measurements.bar", 0)]),
+            (1, 1, [("measurements.bar", 0)]),
+            (2, 2, [("measurements.bar", 0)]),
+            (3, 3, [("measurements.bar", 0)]),
+            (4, 4, [("measurements.bar", 0)]),
+        ]
+
+        assert response.data == self.as_response_data(expected)
+
+    def test_histogram_missing_measurement_data_with_explicit_bounds(self):
+        # make sure there is at least one transaction
+        specs = [
+            (0, 1, [("measurements.foo", 1)]),
+        ]
+        self.populate_measurements(specs)
+
+        query = {
+            "project": [self.project.id],
+            # make sure to query a measurement that does not exist
+            "field": ["measurements.bar"],
+            "numBuckets": 5,
+            "dataFilter": "exclude_outliers",
+            "min": 10,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+
+        expected = [
+            (10, 11, [("measurements.bar", 0)]),
+            (11, 11, [("measurements.bar", 0)]),
+            (12, 12, [("measurements.bar", 0)]),
+            (13, 13, [("measurements.bar", 0)]),
+            (14, 14, [("measurements.bar", 0)]),
+        ]
+
+        assert response.data == self.as_response_data(expected)
+
+    def test_histogram_ignores_aggregate_conditions(self):
+        # range is [0, 5), so it is divided into 5 buckets of width 1
+        specs = [
+            (0, 1, [("measurements.foo", 1)]),
+            (1, 2, [("measurements.foo", 1)]),
+            (2, 3, [("measurements.foo", 1)]),
+            (3, 4, [("measurements.foo", 0)]),
+            (4, 5, [("measurements.foo", 1)]),
+        ]
+        self.populate_measurements(specs)
+
+        query = {
+            "project": [self.project.id],
+            "field": ["measurements.foo"],
+            "numBuckets": 5,
+            "query": "tpm():>0.001",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert response.data == self.as_response_data(specs)
+
+    def test_histogram_outlier_filtering_with_no_rows(self):
+        specs = [
+            (0, 1, [("transaction.duration", 0)]),
+            (1, 2, [("transaction.duration", 0)]),
+            (2, 3, [("transaction.duration", 0)]),
+            (3, 4, [("transaction.duration", 0)]),
+            (4, 5, [("transaction.duration", 0)]),
+        ]
+
+        query = {
+            "project": [self.project.id],
+            "field": ["transaction.duration"],
+            "numBuckets": 5,
+            "dataFilter": "exclude_outliers",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert response.data == self.as_response_data(specs)

@@ -92,11 +92,9 @@ const ReleaseInfo = styled('div')`
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     border-right: 1px solid ${p => p.theme.border};
-    min-width: 250px;
-    width: 25%;
-  }
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    min-width: 300px;
+    min-width: 260px;
+    width: 22%;
+    max-width: 300px;
   }
 `;
 

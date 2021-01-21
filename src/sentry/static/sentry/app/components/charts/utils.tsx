@@ -47,7 +47,7 @@ export function getInterval(datetimeObj: DateTimeObject, highFidelity = false) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
 
   if (diffInMinutes >= SIXTY_DAYS) {
-    // Greater than or equal to 30 days
+    // Greater than or equal to 60 days
     if (highFidelity) {
       return '4h';
     } else {
@@ -128,7 +128,7 @@ export function getSeriesSelection(
   location: Location,
   parameter = 'unselectedSeries'
 ): EChartOption.Legend['selected'] {
-  const unselectedSeries = decodeList(location.query[parameter]) ?? [];
+  const unselectedSeries = decodeList(location?.query[parameter]) ?? [];
   return unselectedSeries.reduce((selection, series) => {
     selection[series] = false;
     return selection;

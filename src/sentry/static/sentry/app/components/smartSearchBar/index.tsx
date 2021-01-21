@@ -1305,7 +1305,6 @@ const StyledInput = styled('input')`
   background: transparent;
   border: 0;
   outline: none;
-
   font-size: ${p => p.theme.fontSizeMedium};
   width: 100%;
   height: 40px;

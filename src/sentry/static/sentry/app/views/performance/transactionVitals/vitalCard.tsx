@@ -303,11 +303,11 @@ class VitalCard extends React.Component<Props, State> {
                   eventView={eventView}
                   organization={organization}
                   location={location}
-                  vitalName={vital}
+                  vital={vital}
                   hideBar
+                  hideStates
                   hideVitalPercentNames
                   hideDurationDetail
-                  hideEmptyState
                 />
               </PercentContainer>
             </Feature>
@@ -398,7 +398,6 @@ class VitalCard extends React.Component<Props, State> {
       return vitalStateColors[VitalState.GOOD];
     }
   }
-  d;
 
   getBaselineSeries() {
     const {chartData, summary} = this.props;

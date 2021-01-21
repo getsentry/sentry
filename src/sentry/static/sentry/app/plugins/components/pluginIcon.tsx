@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
+
 import amixr from 'sentry-images/logos/logo-amixr.svg';
 import asana from 'sentry-images/logos/logo-asana.svg';
 import asayer from 'sentry-images/logos/logo-asayer.svg';

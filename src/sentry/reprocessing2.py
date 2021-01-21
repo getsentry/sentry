@@ -86,15 +86,16 @@ import six
 
 from django.conf import settings
 
-from sentry import nodestore, features, eventstore
+from sentry import nodestore, features, eventstore, options
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry import models
 from sentry.utils import snuba
-from sentry.utils.safe import set_path, get_path
 from sentry.utils.cache import cache_key_for_event
+from sentry.utils.safe import set_path, get_path
 from sentry.utils.redis import redis_clusters
 from sentry.eventstore.processing import event_processing_store
 from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
+from sentry.eventstore.processing.base import _get_unprocessed_key
 
 logger = logging.getLogger("sentry.reprocessing")
 
@@ -133,16 +134,43 @@ def save_unprocessed_event(project, event_id):
         nodestore.set(node_id, data)
 
 
+def _should_capture_nodestore_stats(event_id):
+    """
+    Computes a sample rate consistent per-event ID.
+
+    event IDs are assumed to be random, so this is like random sampling but
+    gives the same value for the same event ID.
+    """
+
+    try:
+        assert event_id
+        rate = options.get("store.nodestore-stats-sample-rate") or 0
+        return (int(event_id, 16) % 10000) < (rate * 10000)
+    except Exception:
+        logger.exception("nodestore-stats.error")
+        return False
+
+
+def spawn_capture_nodestore_stats(cache_key, project_id, event_id):
+    if not _should_capture_nodestore_stats(event_id):
+        event_processing_store.delete_by_key(_get_unprocessed_key(cache_key))
+        return
+
+    from sentry.tasks.reprocessing2 import capture_nodestore_stats
+
+    capture_nodestore_stats.delay(cache_key=cache_key, project_id=project_id, event_id=event_id)
+
+
 def backup_unprocessed_event(project, data):
     """
     Backup unprocessed event payload into redis. Only call if event should be
     able to be reprocessed.
     """
 
-    if not features.has("organizations:reprocessing-v2", project.organization, actor=None):
-        return
-
-    event_processing_store.store(data, unprocessed=True)
+    if features.has(
+        "organizations:reprocessing-v2", project.organization, actor=None
+    ) or _should_capture_nodestore_stats(data.get("event_id")):
+        event_processing_store.store(data, unprocessed=True)
 
 
 def delete_unprocessed_events(project_id, event_ids):

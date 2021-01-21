@@ -238,12 +238,12 @@ class SlackIntegrationProvider(IntegrationProvider):
 
 class SlackReAuthIntro(PipelineView):
     """
-        This pipeline step handles rendering the migration
-        intro with context about the migration.
+    This pipeline step handles rendering the migration
+    intro with context about the migration.
 
-        If the `integration_id` is not present in the request
-        then we can fast forward through the pipeline to move
-        on to installing the integration as normal.
+    If the `integration_id` is not present in the request
+    then we can fast forward through the pipeline to move
+    on to installing the integration as normal.
 
     """
 
@@ -296,15 +296,15 @@ class SlackReAuthIntro(PipelineView):
 
 class SlackReAuthChannels(PipelineView):
     """
-        This pipeline step handles making requests to Slack and
-        displaying the channels (if any) that are problematic:
+    This pipeline step handles making requests to Slack and
+    displaying the channels (if any) that are problematic:
 
-        1. private
-        2. removed
-        3. unauthorized
+    1. private
+    2. removed
+    3. unauthorized
 
-        Any private channels in alert rules will also be binded
-        to the pipeline state to be used later.
+    Any private channels in alert rules will also be binded
+    to the pipeline state to be used later.
 
     """
 

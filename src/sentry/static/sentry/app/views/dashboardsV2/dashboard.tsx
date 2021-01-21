@@ -395,7 +395,11 @@ class Dashboard extends React.Component<Props, State> {
         {widgets.map((widget, i) => this.renderWidget(widget, i))}
         {isEditing && (
           <WidgetWrapper key="add">
-            <AddWidgetWrapper key="add" onClick={this.handleStartAdd}>
+            <AddWidgetWrapper
+              key="add"
+              data-test-id="widget-add"
+              onClick={this.handleStartAdd}
+            >
               <IconAdd size="lg" isCircled color="inactive" />
             </AddWidgetWrapper>
           </WidgetWrapper>

@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+
 import congratsRobotsPlaceholder from 'sentry-images/spot/congrats-robots-placeholder.jpg';
 
 import {t} from 'app/locale';

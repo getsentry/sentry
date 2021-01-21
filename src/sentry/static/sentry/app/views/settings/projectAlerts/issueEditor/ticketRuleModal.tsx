@@ -4,7 +4,6 @@ import cloneDeep from 'lodash/cloneDeep';
 import set from 'lodash/set';
 
 import {addSuccessMessage} from 'app/actionCreators/indicator';
-import {ModalRenderProps} from 'app/actionCreators/modal';
 import AbstractExternalIssueForm from 'app/components/externalIssues/abstractExternalIssueForm';
 import ExternalLink from 'app/components/links/externalLink';
 import {t, tct} from 'app/locale';
@@ -14,7 +13,7 @@ import {IssueAlertRuleAction} from 'app/types/alerts';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
 
-type Props = ModalRenderProps & {
+type Props = {
   // Comes from the in-code definition of a `TicketEventAction`.
   formFields: {[key: string]: any};
   index: number;

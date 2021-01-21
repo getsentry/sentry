@@ -523,6 +523,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.assemble",
     "sentry.tasks.auth",
     "sentry.tasks.auto_resolve_issues",
+    "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.beacon",
     "sentry.tasks.check_auth",
     "sentry.tasks.check_monitors",
@@ -677,6 +678,11 @@ CELERYBEAT_SCHEDULE = {
     },
     "schedule-auto-resolution": {
         "task": "sentry.tasks.schedule_auto_resolution",
+        "schedule": timedelta(minutes=15),
+        "options": {"expires": 60 * 25},
+    },
+    "auto-remove-inbox": {
+        "task": "sentry.tasks.auto_remove_inbox",
         "schedule": timedelta(minutes=15),
         "options": {"expires": 60 * 25},
     },
@@ -851,7 +857,7 @@ SENTRY_FEATURES = {
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
     # Lets organizations set a custom title through fingerprinting
-    "organizations:custom-event-title": False,
+    "organizations:custom-event-title": True,
     # Enable rule page.
     "organizations:rule-page": False,
     # Enable incidents feature
@@ -883,6 +889,9 @@ SENTRY_FEATURES = {
     "organizations:integrations-stacktrace-link": False,
     # Enables aws lambda integration
     "organizations:integrations-aws_lambda": False,
+    # Temporary safety measure, turned on for specific orgs only if
+    # absolutely necessary, to be removed shortly
+    "organizations:slack-allow-workspace": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable custom dashboards (dashboards 2)
@@ -971,8 +980,6 @@ SENTRY_FEATURES = {
     "projects:servicehooks": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     "projects:kafka-ingest": False,
-    # Enable "owner"/"suggested assignee" features in ingestion (suspect commit calculation).
-    "projects:workflow-owners-ingestion": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }

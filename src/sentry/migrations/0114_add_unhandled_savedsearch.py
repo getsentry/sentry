@@ -42,6 +42,4 @@ class Migration(migrations.Migration):
         ('sentry', '0113_add_repositoryprojectpathconfig'),
     ]
 
-    operations = [
-        migrations.RunPython(code=add_unhandled_search)
-    ]
+    migrations.RunPython(code=add_unhandled_search, reverse_code=migrations.RunPython.noop)

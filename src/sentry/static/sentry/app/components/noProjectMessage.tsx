@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
+
 /* TODO: replace with I/O when finished */
 import img from 'sentry-images/spot/hair-on-fire.svg';
 
