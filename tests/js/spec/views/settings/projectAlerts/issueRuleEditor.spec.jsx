@@ -8,12 +8,12 @@ import {selectByValue} from 'sentry-test/select-new';
 
 import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
 import ProjectAlerts from 'app/views/settings/projectAlerts';
-import IssueEditor from 'app/views/settings/projectAlerts/issueEditor';
+import IssueRuleEditor from 'app/views/settings/projectAlerts/issueRuleEditor';
 
 jest.unmock('app/utils/recreateRoute');
 jest.mock('app/actionCreators/onboardingTasks');
 
-describe('ProjectAlerts -> IssueEditor', function () {
+describe('ProjectAlerts -> IssueRuleEditor', function () {
   const projectAlertRuleDetailsRoutes = [
     {
       path: '/',
@@ -79,7 +79,7 @@ describe('ProjectAlerts -> IssueEditor', function () {
     const onChangeTitleMock = jest.fn();
     const wrapper = mountWithTheme(
       <ProjectAlerts organization={organization} params={params}>
-        <IssueEditor
+        <IssueRuleEditor
           params={params}
           location={{pathname: ''}}
           routes={projectAlertRuleDetailsRoutes}

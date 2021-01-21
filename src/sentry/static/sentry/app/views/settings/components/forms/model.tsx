@@ -219,11 +219,7 @@ class FormModel {
   }
 
   getValue(id: string) {
-    if (!this.fields.has(id)) {
-      return '';
-    }
-
-    return this.fields.get(id);
+    return this.fields.has(id) ? this.fields.get(id) : '';
   }
 
   getTransformedValue(id: string) {

@@ -10,7 +10,7 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
 import IncidentRulesDetails from 'app/views/settings/incidentRules/details';
-import IssueEditor from 'app/views/settings/projectAlerts/issueEditor';
+import IssueEditor from 'app/views/settings/projectAlerts/issueRuleEditor';
 
 type RouteParams = {
   orgId: string;

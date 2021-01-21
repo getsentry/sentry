@@ -9,7 +9,7 @@ import {IntegrationIssueConfig, IssueConfigField} from 'app/types';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
 import {FieldValue} from 'app/views/settings/components/forms/model';
-import {FormField} from 'app/views/settings/projectAlerts/issueEditor/ruleNode';
+import {FormField} from 'app/views/settings/projectAlerts/issueRuleEditor/ruleNode';
 
 export type ExternalIssueAction = 'create' | 'link';
 
@@ -133,6 +133,11 @@ export default class AbstractExternalIssueForm<
     // Do nothing.
   };
 
+  /**
+   * Get the list of options for a field via debounced API call. For example,
+   * the list of users that match the input string. The Promise rejects if there
+   * are any errors.
+   */
   getOptions = (field: IssueConfigField, input: string) =>
     new Promise((resolve, reject) => {
       if (!input) {
