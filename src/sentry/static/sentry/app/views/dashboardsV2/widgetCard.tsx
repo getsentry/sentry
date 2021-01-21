@@ -28,7 +28,7 @@ import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 
-import {ChartContainer, HeaderTitleLegend} from '../performance/styles';
+import {HeaderTitle} from '../performance/styles';
 
 import {Widget} from './types';
 import WidgetQueries from './widgetQueries';
@@ -126,6 +126,7 @@ class WidgetCard extends React.Component<Props> {
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
       >
         <StyledPanel isDragging={isDragging}>
+          <WidgetTitle>{widget.title}</WidgetTitle>
           <WidgetQueries
             api={api}
             organization={organization}
@@ -138,20 +139,17 @@ class WidgetCard extends React.Component<Props> {
                   {typeof renderErrorMessage === 'function'
                     ? renderErrorMessage(errorMessage)
                     : null}
-                  <ChartContainer>
-                    <HeaderTitleLegend>{widget.title}</HeaderTitleLegend>
-                    <WidgetCardVisuals
-                      timeseriesResults={timeseriesResults}
-                      tableResults={tableResults}
-                      errorMessage={errorMessage}
-                      loading={loading}
-                      location={location}
-                      widget={widget}
-                      selection={selection}
-                      router={router}
-                    />
-                    {this.renderToolbar()}
-                  </ChartContainer>
+                  <WidgetCardVisuals
+                    timeseriesResults={timeseriesResults}
+                    tableResults={tableResults}
+                    errorMessage={errorMessage}
+                    loading={loading}
+                    location={location}
+                    widget={widget}
+                    selection={selection}
+                    router={router}
+                  />
+                  {this.renderToolbar()}
                 </React.Fragment>
               );
             }}
@@ -184,6 +182,8 @@ const StyledPanel = styled(Panel, {
 }>`
   margin: 0;
   visibility: ${p => (p.isDragging ? 'hidden' : 'visible')};
+  /* If a panel overflows due to a long title stretch its grid sibling */
+  height: 100%;
 `;
 
 const ToolbarPanel = styled('div')`
@@ -222,6 +222,11 @@ const StyledIconGrabbable = styled(IconGrabbable)`
   }
 `;
 
+const WidgetTitle = styled(HeaderTitle)`
+  padding: ${space(1)} ${space(2)} 0;
+  width: 100%;
+`;
+
 type WidgetCardVisualsProps = Pick<ReactRouter.WithRouterProps, 'router'> &
   Pick<
     WidgetQueries['state'],
@@ -231,6 +236,7 @@ type WidgetCardVisualsProps = Pick<ReactRouter.WithRouterProps, 'router'> &
     widget: Widget;
     selection: GlobalSelection;
   };
+
 class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
   shouldComponentUpdate(nextProps: WidgetCardVisualsProps): boolean {
     // Widget title changes should not update the WidgetCardVisuals component tree
@@ -345,10 +351,10 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
     const axisField = widget.queries[0]?.fields?.[0] ?? 'count()';
     const chartOptions = {
       grid: {
-        left: '0px',
-        right: '0px',
-        top: '40px',
-        bottom: '10px',
+        left: space(3),
+        right: space(3),
+        top: space(2),
+        bottom: space(3),
       },
       seriesOptions: {
         showSymbol: false,
