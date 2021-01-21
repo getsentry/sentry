@@ -95,3 +95,11 @@ class GetDateRangeRollupFromParamsTest(TestCase):
             start, end, interval = get_date_range_rollup_from_params(
                 {"interval": "1d"}, max_points=80
             )
+
+    def test_round_exact(self):
+        start, end, interval = get_date_range_rollup_from_params(
+            {"start": "2021-01-12T04:06:16", "end": "2021-01-17T08:26:13", "interval": "1d"},
+            round_range=True,
+        )
+        assert start == datetime.datetime(2021, 1, 12, tzinfo=timezone.utc)
+        assert end == datetime.datetime(2021, 1, 18, tzinfo=timezone.utc)

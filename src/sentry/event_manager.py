@@ -1337,7 +1337,7 @@ def save_attachment(
         project_id=project.id,
         group_id=group_id,
         name=attachment.name,
-        file=file,
+        file_id=file.id,
         type=attachment.type,
     )
 

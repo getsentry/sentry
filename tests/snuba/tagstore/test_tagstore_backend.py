@@ -1,15 +1,11 @@
 from __future__ import absolute_import
 
-import calendar
 from datetime import timedelta
 import pytest
-import requests
-import six
 
-from django.conf import settings
 from django.utils import timezone
 
-from sentry.models import GroupHash, EventUser
+from sentry.models import Environment, EventUser
 from sentry.tagstore.exceptions import (
     GroupTagKeyNotFound,
     GroupTagValueNotFound,
@@ -18,7 +14,7 @@ from sentry.tagstore.exceptions import (
 )
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.utils import json
+from sentry.testutils.helpers.datetime import iso_format
 
 
 class TagStorageTest(TestCase, SnubaTestCase):
@@ -28,106 +24,100 @@ class TagStorageTest(TestCase, SnubaTestCase):
         self.ts = SnubaTagStorage()
 
         self.proj1 = self.create_project()
-        self.proj1env1 = self.create_environment(project=self.proj1, name="test")
-        self.proj1env2 = self.create_environment(project=self.proj1, name="test2")
-
-        self.proj1group1 = self.create_group(self.proj1)
-        self.proj1group2 = self.create_group(self.proj1)
-
-        hash1 = "1" * 32
-        hash2 = "2" * 32
-        GroupHash.objects.create(project=self.proj1, group=self.proj1group1, hash=hash1)
-        GroupHash.objects.create(project=self.proj1, group=self.proj1group2, hash=hash2)
+        env1 = "test"
+        env2 = "test2"
 
         self.now = timezone.now().replace(microsecond=0)
-        data = json.dumps(
-            [
-                (
-                    2,
-                    "insert",
-                    {
-                        "event_id": six.text_type(r) * 32,
-                        "primary_hash": hash1,
-                        "group_id": self.proj1group1.id,
-                        "project_id": self.proj1.id,
-                        "message": "message 1",
-                        "platform": "python",
-                        "datetime": (self.now - timedelta(seconds=r)).strftime(
-                            "%Y-%m-%dT%H:%M:%S.%fZ"
-                        ),
-                        "data": {
-                            "received": calendar.timegm(self.now.timetuple()) - r,
-                            "tags": {
-                                "foo": "bar",
-                                "baz": "quux",
-                                "environment": self.proj1env1.name,
-                                "sentry:release": 100 * r,
-                                "sentry:user": u"id:user{}".format(r),
-                            },
-                            "user": {
-                                "id": u"user{}".format(r),
-                                "email": u"user{}@sentry.io".format(r),
-                            },
-                            "exception": {"values": [{"stacktrace": {"frames": [{"lineno": 29}]}}]},
-                        },
+
+        exception = {
+            "values": [
+                {
+                    "type": "ValidationError",
+                    "value": "Bad request",
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "function": "?",
+                                "filename": "http://localhost:1337/error.js",
+                                "lineno": 29,
+                                "colno": 3,
+                                "in_app": False,
+                            }
+                        ]
                     },
-                )
-                for r in [1, 2]
+                }
             ]
-            + [
-                (
-                    2,
-                    "insert",
-                    {
-                        "event_id": "3" * 32,
-                        "primary_hash": hash2,
-                        "group_id": self.proj1group2.id,
-                        "project_id": self.proj1.id,
-                        "message": "message 2",
-                        "platform": "python",
-                        "datetime": (self.now - timedelta(seconds=2)).strftime(
-                            "%Y-%m-%dT%H:%M:%S.%fZ"
-                        ),
-                        "data": {
-                            "received": calendar.timegm(self.now.timetuple()) - 2,
-                            "tags": {
-                                "browser": "chrome",
-                                "environment": self.proj1env1.name,
-                                "sentry:user": "id:user1",
-                            },
-                            "user": {"id": "user1"},
-                        },
-                    },
-                )
-            ]
-            + [
-                (
-                    2,
-                    "insert",
-                    {
-                        "event_id": "4" * 32,
-                        "primary_hash": hash2,
-                        "group_id": self.proj1group1.id,
-                        "project_id": self.proj1.id,
-                        "message": "message 2",
-                        "platform": "python",
-                        "datetime": (self.now - timedelta(seconds=2)).strftime(
-                            "%Y-%m-%dT%H:%M:%S.%fZ"
-                        ),
-                        "data": {
-                            "received": calendar.timegm(self.now.timetuple()) - 2,
-                            "tags": {"foo": "bar", "environment": self.proj1env2.name},
-                            "user": {"id": "user1"},
-                        },
-                    },
-                )
-            ]
+        }
+
+        self.store_event(
+            data={
+                "event_id": "1" * 32,
+                "message": "message 1",
+                "platform": "python",
+                "environment": env1,
+                "fingerprint": ["group-1"],
+                "timestamp": iso_format(self.now - timedelta(seconds=1)),
+                "tags": {
+                    "foo": "bar",
+                    "baz": "quux",
+                    "sentry:release": 100,
+                    "sentry:user": "id:user1",
+                },
+                "user": {"id": "user1"},
+                "exception": exception,
+            },
+            project_id=self.proj1.id,
         )
 
-        assert (
-            requests.post(settings.SENTRY_SNUBA + "/tests/events/insert", data=data).status_code
-            == 200
+        self.proj1group1 = self.store_event(
+            data={
+                "event_id": "2" * 32,
+                "message": "message 1",
+                "platform": "python",
+                "environment": env1,
+                "fingerprint": ["group-1"],
+                "timestamp": iso_format(self.now - timedelta(seconds=2)),
+                "tags": {
+                    "foo": "bar",
+                    "baz": "quux",
+                    "sentry:release": 200,
+                    "sentry:user": "id:user2",
+                },
+                "user": {"id": "user2"},
+                "exception": exception,
+            },
+            project_id=self.proj1.id,
+        ).group
+
+        self.proj1group2 = self.store_event(
+            data={
+                "event_id": "3" * 32,
+                "message": "message 2",
+                "platform": "python",
+                "environment": env1,
+                "fingerprint": ["group-2"],
+                "timestamp": iso_format(self.now - timedelta(seconds=2)),
+                "tags": {"browser": "chrome", "sentry:user": "id:user1"},
+                "user": {"id": "user1"},
+            },
+            project_id=self.proj1.id,
+        ).group
+
+        self.store_event(
+            data={
+                "event_id": "4" * 32,
+                "message": "message2",
+                "platform": "python",
+                "environment": env2,
+                "fingerprint": ["group-1"],
+                "timestamp": iso_format(self.now - timedelta(seconds=2)),
+                "tags": {"foo": "bar"},
+            },
+            project_id=self.proj1.id,
         )
+
+        self.proj1env1 = Environment.objects.get(name=env1)
+        self.proj1env2 = Environment.objects.get(name=env2)
 
     def test_get_group_tag_keys_and_top_values(self):
         result = list(
@@ -136,16 +126,18 @@ class TagStorageTest(TestCase, SnubaTestCase):
             )
         )
         tags = [r.key for r in result]
-        assert set(tags) == set(["foo", "baz", "environment", "sentry:release", "sentry:user"])
+        assert set(tags) == set(
+            ["foo", "baz", "environment", "sentry:release", "sentry:user", "level"]
+        )
 
         result.sort(key=lambda r: r.key)
         assert result[0].key == "baz"
         assert result[0].top_values[0].value == "quux"
         assert result[0].count == 2
 
-        assert result[3].key == "sentry:release"
-        assert result[3].count == 2
-        top_release_values = result[3].top_values
+        assert result[4].key == "sentry:release"
+        assert result[4].count == 2
+        top_release_values = result[4].top_values
         assert len(top_release_values) == 2
         assert set(v.value for v in top_release_values) == set(["100", "200"])
         assert all(v.times_seen == 1 for v in top_release_values)
@@ -192,7 +184,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
 
     def test_get_tag_keys(self):
         expected_keys = set(
-            ["baz", "browser", "environment", "foo", "sentry:release", "sentry:user"]
+            ["baz", "browser", "environment", "foo", "sentry:release", "sentry:user", "level"]
         )
         keys = {
             k.key: k
@@ -236,7 +228,9 @@ class TagStorageTest(TestCase, SnubaTestCase):
                 environment_ids=[self.proj1env1.id],
             )
         }
-        assert set(keys) == set(["baz", "environment", "foo", "sentry:release", "sentry:user"])
+        assert set(keys) == set(
+            ["baz", "environment", "foo", "sentry:release", "sentry:user", "level"]
+        )
 
     def test_get_group_tag_value(self):
         with pytest.raises(GroupTagValueNotFound):

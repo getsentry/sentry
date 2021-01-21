@@ -205,6 +205,7 @@ def test_concurrent_events_go_into_new_group(
 
 @pytest.mark.django_db
 @pytest.mark.snuba
+@pytest.mark.parametrize("remaining_events", ["delete", "keep"])
 def test_max_events(
     default_project,
     reset_snuba,
@@ -212,6 +213,7 @@ def test_max_events(
     process_and_save,
     burst_task_runner,
     monkeypatch,
+    remaining_events,
 ):
     @register_event_preprocessor
     def event_preprocessor(data):
@@ -221,25 +223,46 @@ def test_max_events(
         return data
 
     event_ids = [
-        process_and_save({"message": "hello world"}, seconds_ago=i + 1) for i in reversed(range(20))
+        process_and_save({"message": "hello world"}, seconds_ago=i + 1) for i in reversed(range(5))
     ]
 
-    (group_id,) = {
-        eventstore.get_event_by_id(default_project.id, event_id).group_id for event_id in event_ids
+    old_events = {
+        event_id: eventstore.get_event_by_id(default_project.id, event_id) for event_id in event_ids
     }
 
+    (group_id,) = {e.group_id for e in old_events.values()}
+
     with burst_task_runner() as burst:
-        reprocess_group(default_project.id, group_id, max_events=len(event_ids) // 2)
+        reprocess_group(
+            default_project.id,
+            group_id,
+            max_events=len(event_ids) // 2,
+            remaining_events=remaining_events,
+        )
 
     burst(max_jobs=100)
 
     for i, event_id in enumerate(event_ids):
         event = eventstore.get_event_by_id(default_project.id, event_id)
         if i < len(event_ids) / 2:
-            assert event is None
+            if remaining_events == "delete":
+                assert event is None
+            elif remaining_events == "keep":
+                assert event.group_id != group_id
+                assert dict(event.data) == dict(old_events[event_id].data)
+            else:
+                raise ValueError(remaining_events)
         else:
             assert event.group_id != group_id
             assert int(event.data["contexts"]["reprocessing"]["original_issue_id"]) == group_id
+            assert dict(event.data) != dict(old_events[event_id].data)
+
+    if remaining_events == "delete":
+        assert event.group.times_seen == len(event_ids) // 2
+    elif remaining_events == "keep":
+        assert event.group.times_seen == len(event_ids)
+    else:
+        raise ValueError(remaining_events)
 
     assert is_group_finished(group_id)
 
@@ -280,7 +303,7 @@ def test_attachments_and_userfeedback(
                 event_id=evt.event_id,
                 group_id=evt.group_id,
                 project_id=default_project.id,
-                file=file,
+                file_id=file.id,
                 type=file.type,
                 name="foo",
             )

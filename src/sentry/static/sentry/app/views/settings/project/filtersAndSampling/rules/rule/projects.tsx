@@ -19,7 +19,7 @@ function ProjectList({projectIds, organization}: Props) {
     .filter(project => projectIds.includes(Number(project.id)))
     .map(projectPlatform => projectPlatform?.platform ?? 'other');
 
-  return <PlatformList platforms={projectPlatforms} />;
+  return <PlatformList size={20} platforms={projectPlatforms} showCounter />;
 }
 
 export default withOrganization(ProjectList);
