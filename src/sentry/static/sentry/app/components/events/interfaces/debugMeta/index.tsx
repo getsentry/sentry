@@ -409,9 +409,9 @@ class DebugMeta extends React.PureComponent<Props, State> {
 
     return (
       <StyledEventDataSection
-        type="packages"
+        type="images-loaded"
         title={
-          <GuideAnchor target="packages" position="bottom">
+          <GuideAnchor target="images-loaded" position="bottom">
             <h3>{t('Images Loaded')}</h3>
           </GuideAnchor>
         }
