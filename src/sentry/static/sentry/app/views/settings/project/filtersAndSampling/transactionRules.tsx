@@ -7,7 +7,7 @@ import RulesPanel from './rulesPanel';
 
 type Props = Omit<React.ComponentProps<typeof RulesPanel>, 'docsUrl'>;
 
-function TransactionRules({rules, onAddRule}: Props) {
+function TransactionRules({rules, onAddRule, platformDocLink}: Props) {
   return (
     <React.Fragment>
       <TextBlock>
@@ -15,7 +15,7 @@ function TransactionRules({rules, onAddRule}: Props) {
           'The transaction order is limited. Traces must occur first and individual transactions must occur last. Any individual transaction rules before a trace rule will be disregarded. '
         )}
       </TextBlock>
-      <RulesPanel rules={rules} docsUrl="" onAddRule={onAddRule} />
+      <RulesPanel rules={rules} platformDocLink={platformDocLink} onAddRule={onAddRule} />
     </React.Fragment>
   );
 }
