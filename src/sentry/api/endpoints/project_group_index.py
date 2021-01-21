@@ -5,7 +5,7 @@ import functools
 import six
 from rest_framework.response import Response
 
-from sentry import analytics, eventstore, search
+from sentry import analytics, eventstore, search, features
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.helpers.group_index import (
@@ -17,7 +17,7 @@ from sentry.api.helpers.group_index import (
 )
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializer
-from sentry.models import Environment, Group, GroupStatus
+from sentry.models import Environment, Group, GroupStatus, Organization
 from sentry.signals import advanced_search
 from sentry.utils.cursors import CursorResult
 from sentry.utils.validators import normalize_event_id
@@ -239,7 +239,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         """
 
         search_fn = functools.partial(self._search, request, project)
-        return update_groups(request, [project], project.organization_id, search_fn)
+        organization = Organization.objects.get_from_cache(id=project.organization_id)
+        has_inbox = features.has("organizations:inbox", organization, actor=request.user)
+        return update_groups(request, [project], project.organization_id, search_fn, has_inbox)
 
     def delete(self, request, project):
         """

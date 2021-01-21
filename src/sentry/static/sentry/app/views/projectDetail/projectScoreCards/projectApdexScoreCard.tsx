@@ -1,7 +1,6 @@
 import React from 'react';
 
 import AsyncComponent from 'app/components/asyncComponent';
-import {canIncludePreviousPeriod} from 'app/components/charts/utils';
 import Count from 'app/components/count';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {parseStatsPeriod} from 'app/components/organizations/timeRangeSelector/utils';
@@ -16,6 +15,7 @@ import {getPeriod} from 'app/utils/getPeriod';
 import {getTermHelp} from 'app/views/performance/data';
 
 import MissingPerformanceButtons from '../missingFeatureButtons/missingPerformanceButtons';
+import {shouldFetchPreviousPeriod} from '../utils';
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
@@ -25,9 +25,19 @@ type Props = AsyncComponent['props'] & {
 type State = AsyncComponent['state'] & {
   currentApdex: TableData | null;
   previousApdex: TableData | null;
+  noApdexEver: boolean;
 };
 
 class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+      currentApdex: null,
+      previousApdex: null,
+      noApdexEver: false,
+    };
+  }
+
   getEndpoints() {
     const {organization, selection} = this.props;
 
@@ -51,7 +61,7 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
       ],
     ];
 
-    if (period && canIncludePreviousPeriod(true, period)) {
+    if (shouldFetchPreviousPeriod(datetime)) {
       const {start: previousStart} = parseStatsPeriod(
         getPeriod({period, start: undefined, end: undefined}, {shouldDoublePeriod: true})
           .statsPeriod!
@@ -70,6 +80,38 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
     }
 
     return endpoints;
+  }
+
+  /**
+   * If there's no apdex in the time frame, check if there is one in the last 90 days (empty message differs then)
+   */
+  async onLoadAllEndpointsSuccess() {
+    const {organization, selection} = this.props;
+    const {projects} = selection;
+
+    if (defined(this.currentApdex) || defined(this.previousApdex)) {
+      this.setState({noApdexEver: false});
+      return;
+    }
+
+    this.setState({loading: true});
+
+    const response = await this.api.requestPromise(
+      `/organizations/${organization.slug}/eventsv2/`,
+      {
+        query: {
+          project: projects.map(proj => String(proj)),
+          field: [`apdex(${organization.apdexThreshold})`],
+          query: 'event.type:transaction count():>0',
+          statsPeriod: '90d',
+        },
+      }
+    );
+
+    const apdex =
+      response?.data[0]?.[getAggregateAlias(`apdex(${organization.apdexThreshold})`)];
+
+    this.setState({noApdexEver: !defined(apdex), loading: false});
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -158,7 +200,7 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    if (!this.hasFeature()) {
+    if (!this.hasFeature() || this.state.noApdexEver) {
       return this.renderMissingFeatureCard();
     }
 

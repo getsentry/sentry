@@ -1,8 +1,14 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
+import PropTypes from 'prop-types';
 
+import Tooltip from 'app/components/tooltip';
 import {PlatformKey} from 'app/data/platformCategories';
+import {tn} from 'app/locale';
+import getPlatformName from 'app/utils/getPlatformName';
+import {Theme} from 'app/utils/theme';
 
 type Props = {
   platforms?: PlatformKey[];
@@ -20,64 +26,173 @@ type Props = {
    * This is good for lists where the project name is displayed
    */
   consistentWidth?: boolean;
+  /**
+   * If true and if the number of children is greater than the max prop,
+   * a counter will be displayed at the end of the stack
+   */
+  showCounter?: boolean;
   className?: string;
 };
 
-const PlatformList = ({
+type WrapperProps = Required<
+  Pick<Props, 'showCounter' | 'size' | 'direction' | 'consistentWidth' | 'max'>
+>;
+
+function PlatformList({
   platforms = [],
   direction = 'right',
   max = 3,
   size = 16,
   consistentWidth = false,
+  showCounter = false,
   className,
-}: Props) => {
-  const getIcon = (platform: PlatformKey, index: number) => (
-    <StyledPlatformIcon key={platform + index} platform={platform} size={size} />
-  );
+}: Props) {
+  const visiblePlatforms = platforms.slice(0, max);
+  const numNotVisiblePlatforms = platforms.length - visiblePlatforms.length;
+  const displayCounter = showCounter && !!numNotVisiblePlatforms;
 
-  const getIcons = (items: PlatformKey[]) => items.slice().reverse().map(getIcon);
+  function renderContent() {
+    if (!platforms.length) {
+      return <StyledPlatformIcon size={size} platform="default" />;
+    }
 
-  const platformsPreview = platforms.slice(0, max);
+    const platformIcons = visiblePlatforms.slice().reverse();
+
+    if (displayCounter) {
+      return (
+        <InnerWrapper>
+          <PlatformIcons>
+            {platformIcons.map((visiblePlatform, index) => (
+              <Tooltip
+                key={visiblePlatform + index}
+                title={getPlatformName(visiblePlatform)}
+                containerDisplayMode="inline-flex"
+              >
+                <StyledPlatformIcon platform={visiblePlatform} size={size} />
+              </Tooltip>
+            ))}
+          </PlatformIcons>
+          <Tooltip
+            title={tn('%s other platform', '%s other platforms', numNotVisiblePlatforms)}
+            containerDisplayMode="inline-flex"
+          >
+            <Counter>
+              {numNotVisiblePlatforms}
+              <Plus>{'\u002B'}</Plus>
+            </Counter>
+          </Tooltip>
+        </InnerWrapper>
+      );
+    }
+
+    return (
+      <PlatformIcons>
+        {platformIcons.map((visiblePlatform, index) => (
+          <StyledPlatformIcon
+            key={visiblePlatform + index}
+            platform={visiblePlatform}
+            size={size}
+          />
+        ))}
+      </PlatformIcons>
+    );
+  }
+
   return (
-    <PlatformIcons
-      direction={direction}
-      max={max}
-      size={size}
+    <Wrapper
       consistentWidth={consistentWidth}
       className={className}
+      size={size}
+      showCounter={displayCounter}
+      direction={direction}
+      max={max}
     >
-      {platforms.length > 0 ? (
-        getIcons(platformsPreview)
-      ) : (
-        <StyledPlatformIcon size={size} platform="default" />
-      )}
-    </PlatformIcons>
+      {renderContent()}
+    </Wrapper>
   );
+}
+
+export default PlatformList;
+
+PlatformList.propTypes = {
+  platforms: PropTypes.array,
 };
 
-const getOverlapWidth = (size: number) => Math.round(size / 4);
+function getOverlapWidth(size: number) {
+  return Math.round(size / 4);
+}
 
-type IconsProps = Required<Pick<Props, 'direction' | 'consistentWidth' | 'max' | 'size'>>;
-
-const PlatformIcons = styled('div')<IconsProps>`
-  display: flex;
-  flex-shrink: 0;
-  flex-direction: row;
-  justify-content: ${p => (p.direction === 'right' ? 'flex-end' : 'flex-start')};
-  ${p =>
-    p.consistentWidth && `width: ${p.size + (p.max - 1) * getOverlapWidth(p.size)}px;`};
-`;
-
-type IconProps = Omit<React.ComponentProps<typeof PlatformIcon>, 'size'> & {size: number};
-
-const StyledPlatformIcon = styled(({size, ...props}: IconProps) => (
-  <PlatformIcon size={`${size}px`} {...props} />
-))`
-  border-radius: ${p => p.theme.borderRadius};
-  box-shadow: 0 0 0 1px ${p => p.theme.background};
-  &:not(:first-child) {
-    margin-left: ${p => `${p.size * -1 + getOverlapWidth(p.size)}px;`};
+const commonStyles = ({theme}: {theme: Theme}) => `
+  cursor: default;
+  border-radius: ${theme.borderRadius};
+  box-shadow: 0 0 0 1px ${theme.background};
+  :hover {
+    z-index: 1;
   }
 `;
 
-export default PlatformList;
+const PlatformIcons = styled('div')`
+  display: flex;
+`;
+
+const InnerWrapper = styled('div')`
+  display: flex;
+  position: relative;
+`;
+
+const Plus = styled('span')`
+  font-size: 10px;
+`;
+
+const StyledPlatformIcon = styled(PlatformIcon)`
+  ${p => commonStyles(p)};
+`;
+
+const Counter = styled('div')`
+  ${p => commonStyles(p)};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-weight: 600;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  background-color: ${p => p.theme.gray200};
+  color: ${p => p.theme.gray300};
+  padding: 0 1px;
+  position: absolute;
+  right: -1px;
+`;
+
+const Wrapper = styled('div')<WrapperProps>`
+  display: flex;
+  flex-shrink: 0;
+  justify-content: ${p => (p.direction === 'right' ? 'flex-end' : 'flex-start')};
+  ${p =>
+    p.consistentWidth && `width: ${p.size + (p.max - 1) * getOverlapWidth(p.size)}px;`};
+
+  ${PlatformIcons} {
+    ${p =>
+      p.showCounter
+        ? css`
+            z-index: 1;
+            flex-direction: row-reverse;
+            > * :not(:first-child) {
+              margin-right: ${p.size * -1 + getOverlapWidth(p.size)}px;
+            }
+          `
+        : css`
+            > * :not(:first-child) {
+              margin-left: ${p.size * -1 + getOverlapWidth(p.size)}px;
+            }
+          `}
+  }
+
+  ${InnerWrapper} {
+    padding-right: ${p => p.size / 2 + 1}px;
+  }
+
+  ${Counter} {
+    height: ${p => p.size}px;
+    min-width: ${p => p.size}px;
+  }
+`;

@@ -14,19 +14,14 @@ import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import SearchBar from 'app/views/events/searchBar';
 
 import Charts from '../charts/index';
-import {generateFrontendPerformanceEventView} from '../data';
 import Table from '../table';
 import {getTransactionSearchQuery} from '../utils';
 
+import BackendDisplay from './backendDisplay';
 import {FRONTEND_COLUMN_TITLES} from './data';
 import FrontendDisplay from './frontendDisplay';
-import {
-  getAdditionalTableQuery,
-  getCurrentLandingDisplay,
-  LANDING_DISPLAYS,
-  LandingDisplayField,
-} from './utils';
-import VitalsCards from './vitalsCards';
+import {getCurrentLandingDisplay, LANDING_DISPLAYS, LandingDisplayField} from './utils';
+import {BackendCards, FrontendCards} from './vitalsCards';
 
 type Props = {
   organization: Organization;
@@ -58,19 +53,119 @@ class LandingContent extends React.Component<Props, State> {
     });
   };
 
-  handleTableQueryUpdate = (additionalTableQuery: string) => {
-    const {location} = this.props;
+  renderLandingV2() {
+    const {organization, location, eventView, handleSearch} = this.props;
 
-    browserHistory.push({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        tableFilterQuery: additionalTableQuery,
-      },
-    });
-  };
+    const currentLandingDisplay = getCurrentLandingDisplay(location);
+    const filterString = getTransactionSearchQuery(location);
+    const summaryConditions = this.getSummaryConditions(filterString);
 
-  render() {
+    return (
+      <React.Fragment>
+        <SearchContainer>
+          <StyledSearchBar
+            organization={organization}
+            projectIds={eventView.project}
+            query={filterString}
+            fields={generateAggregateFields(
+              organization,
+              [...eventView.fields, {field: 'tps()'}],
+              ['epm()', 'eps()']
+            )}
+            onSearch={handleSearch}
+          />
+          <ProjectTypeDropdown>
+            <DropdownControl
+              buttonProps={{prefix: t('Display')}}
+              label={currentLandingDisplay.label}
+            >
+              {LANDING_DISPLAYS.map(({label, field}) => (
+                <DropdownItem
+                  key={field}
+                  onSelect={this.handleLandingDisplayChange}
+                  eventKey={field}
+                  data-test-id={field}
+                  isActive={field === currentLandingDisplay.field}
+                >
+                  {label}
+                </DropdownItem>
+              ))}
+            </DropdownControl>
+          </ProjectTypeDropdown>
+        </SearchContainer>
+        {this.renderSelectedDisplay(currentLandingDisplay.field, summaryConditions)}
+      </React.Fragment>
+    );
+  }
+
+  renderSelectedDisplay(display, summaryConditions) {
+    switch (display) {
+      case LandingDisplayField.FRONTEND:
+        return this.renderLandingFrontend(summaryConditions);
+      case LandingDisplayField.BACKEND:
+        return this.renderLandingBackend(summaryConditions);
+      default:
+        throw new Error(`Unknown display: ${display}`);
+    }
+  }
+
+  renderLandingFrontend(summaryConditions) {
+    const {organization, location, projects, eventView, setError} = this.props;
+
+    return (
+      <React.Fragment>
+        <FrontendCards
+          eventView={eventView}
+          organization={organization}
+          location={location}
+          projects={projects}
+        />
+        <FrontendDisplay
+          eventView={eventView}
+          organization={organization}
+          location={location}
+        />
+        <Table
+          eventView={eventView}
+          projects={projects}
+          organization={organization}
+          location={location}
+          setError={setError}
+          summaryConditions={summaryConditions}
+          columnTitles={FRONTEND_COLUMN_TITLES}
+        />
+      </React.Fragment>
+    );
+  }
+
+  renderLandingBackend(summaryConditions) {
+    const {organization, location, projects, eventView, setError} = this.props;
+
+    return (
+      <React.Fragment>
+        <BackendCards
+          eventView={eventView}
+          organization={organization}
+          location={location}
+        />
+        <BackendDisplay
+          eventView={eventView}
+          organization={organization}
+          location={location}
+        />
+        <Table
+          eventView={eventView}
+          projects={projects}
+          organization={organization}
+          location={location}
+          setError={setError}
+          summaryConditions={summaryConditions}
+        />
+      </React.Fragment>
+    );
+  }
+
+  renderLandingV1 = () => {
     const {
       organization,
       location,
@@ -81,121 +176,60 @@ class LandingContent extends React.Component<Props, State> {
       handleSearch,
     } = this.props;
 
-    const currentLandingDisplay = getCurrentLandingDisplay(location);
     const filterString = getTransactionSearchQuery(location, eventView.query);
     const summaryConditions = this.getSummaryConditions(filterString);
 
     return (
-      <div>
-        <Feature organization={organization} features={['performance-landing-v2']}>
-          {({hasFeature}) => {
-            if (hasFeature) {
-              const additionalSummaryConditions = this.getSummaryConditions(
-                getAdditionalTableQuery(location)
-              );
-              const frontendEventView = generateFrontendPerformanceEventView(
-                this.props.organization,
-                this.props.location
-              );
+      <React.Fragment>
+        <StyledSearchBar
+          organization={organization}
+          projectIds={eventView.project}
+          query={filterString}
+          fields={generateAggregateFields(
+            organization,
+            [...eventView.fields, {field: 'tps()'}],
+            ['epm()', 'eps()']
+          )}
+          onSearch={handleSearch}
+        />
+        <Feature features={['performance-vitals-overview']}>
+          <FrontendCards
+            eventView={eventView}
+            organization={organization}
+            location={location}
+            projects={projects}
+            frontendOnly
+          />
+        </Feature>
+        <Charts
+          eventView={eventView}
+          organization={organization}
+          location={location}
+          router={router}
+        />
+        <Table
+          eventView={eventView}
+          projects={projects}
+          organization={organization}
+          location={location}
+          setError={setError}
+          summaryConditions={summaryConditions}
+        />
+      </React.Fragment>
+    );
+  };
 
-              const frontendTableEventView = frontendEventView.clone();
-              frontendTableEventView.query = `${summaryConditions} ${additionalSummaryConditions}`;
-              return (
-                <React.Fragment>
-                  <SearchContainer>
-                    <StyledSearchBar
-                      organization={organization}
-                      projectIds={frontendEventView.project}
-                      query={filterString}
-                      fields={generateAggregateFields(
-                        organization,
-                        [...frontendEventView.fields, {field: 'tps()'}],
-                        ['epm()', 'eps()']
-                      )}
-                      onSearch={handleSearch}
-                    />
-                    <ProjectTypeDropdown>
-                      <DropdownControl
-                        buttonProps={{prefix: t('Display')}}
-                        label={currentLandingDisplay.label}
-                      >
-                        {LANDING_DISPLAYS.map(({label, field}) => (
-                          <DropdownItem
-                            key={field}
-                            onSelect={this.handleLandingDisplayChange}
-                            eventKey={field}
-                            data-test-id={field}
-                            isActive={field === currentLandingDisplay.field}
-                          >
-                            {label}
-                          </DropdownItem>
-                        ))}
-                      </DropdownControl>
-                    </ProjectTypeDropdown>
-                  </SearchContainer>
-                  <VitalsCards
-                    eventView={frontendEventView}
-                    organization={organization}
-                    location={location}
-                    isAlwaysShown
-                  />
-                  {currentLandingDisplay.field === LandingDisplayField.FRONTEND && (
-                    <FrontendDisplay
-                      eventView={frontendEventView}
-                      organization={organization}
-                      location={location}
-                      onFrontendDisplayFilter={this.handleTableQueryUpdate}
-                    />
-                  )}
-                  <Table
-                    eventView={frontendTableEventView}
-                    projects={projects}
-                    organization={organization}
-                    location={location}
-                    setError={setError}
-                    summaryConditions={frontendEventView.query}
-                    columnTitles={FRONTEND_COLUMN_TITLES}
-                  />
-                </React.Fragment>
-              );
-            }
-            return (
-              <React.Fragment>
-                <StyledSearchBar
-                  organization={organization}
-                  projectIds={eventView.project}
-                  query={filterString}
-                  fields={generateAggregateFields(
-                    organization,
-                    [...eventView.fields, {field: 'tps()'}],
-                    ['epm()', 'eps()']
-                  )}
-                  onSearch={handleSearch}
-                />
-                <Feature features={['performance-vitals-overview']}>
-                  <VitalsCards
-                    eventView={eventView}
-                    organization={organization}
-                    location={location}
-                  />
-                </Feature>
-                <Charts
-                  eventView={eventView}
-                  organization={organization}
-                  location={location}
-                  router={router}
-                />
-                <Table
-                  eventView={eventView}
-                  projects={projects}
-                  organization={organization}
-                  location={location}
-                  setError={setError}
-                  summaryConditions={summaryConditions}
-                />
-              </React.Fragment>
-            );
-          }}
+  render() {
+    const {organization} = this.props;
+
+    return (
+      <div>
+        <Feature
+          organization={organization}
+          features={['performance-landing-v2']}
+          renderDisabled={this.renderLandingV1}
+        >
+          {this.renderLandingV2()}
         </Feature>
       </div>
     );

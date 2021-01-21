@@ -2,18 +2,31 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {Client} from 'app/api';
 import Card from 'app/components/card';
+import EventsRequest from 'app/components/charts/eventsRequest';
+import {getInterval} from 'app/components/charts/utils';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Link from 'app/components/links/link';
+import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
+import Sparklines from 'app/components/sparklines';
+import SparklinesLine from 'app/components/sparklines/line';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {getUtcToLocalDateObject} from 'app/utils/dates';
+import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {decodeList} from 'app/utils/queryString';
-import withProjects from 'app/utils/withProjects';
-import VitalsCardsDiscoverQuery from 'app/views/performance/vitalDetail/vitalsCardsDiscoverQuery';
+import theme from 'app/utils/theme';
+import withApi from 'app/utils/withApi';
+import VitalsCardsDiscoverQuery, {
+  VitalData,
+  VitalsData,
+} from 'app/views/performance/vitalDetail/vitalsCardsDiscoverQuery';
 
 import {HeaderTitle} from '../styles';
 import ColorBar from '../vitalDetail/colorBar';
@@ -22,25 +35,12 @@ import {
   vitalDescription,
   vitalDetailRouteWithQuery,
   vitalMap,
-  vitalsBaseFields,
-  vitalsMehFields,
-  vitalsP75Fields,
-  vitalsPoorFields,
   VitalState,
   vitalStateColors,
 } from '../vitalDetail/utils';
 import VitalPercents from '../vitalDetail/vitalPercents';
 
-type Props = {
-  eventView: EventView;
-  organization: Organization;
-  location: Location;
-  showVitalPercentNames?: boolean;
-  showDurationDetail?: boolean;
-  hasCondensedVitals?: boolean;
-  projects: Project[];
-  isAlwaysShown?: boolean; // Temporary while platform list still exists.
-};
+import {backendCardDetails, getBackendFunction} from './utils';
 
 // Temporary list of platforms to only show web vitals for.
 const VITALS_PLATFORMS = [
@@ -54,55 +54,201 @@ const VITALS_PLATFORMS = [
   'javascript-vue',
 ];
 
-function VitalsCards(props: Props) {
-  const {eventView, organization, location, projects} = props;
-  const vitalsView = eventView.clone();
+type FrontendCardsProps = {
+  eventView: EventView;
+  location: Location;
+  organization: Organization;
+  projects: Project[];
+  frontendOnly?: boolean;
+};
 
-  const showVitalsCard = vitalsView.project.some(projectId =>
-    VITALS_PLATFORMS.includes(
-      projects.find(project => project.id === `${projectId}`)?.platform || ''
-    )
-  );
+export function FrontendCards(props: FrontendCardsProps) {
+  const {eventView, location, organization, projects, frontendOnly = false} = props;
 
-  if (!showVitalsCard && !props.isAlwaysShown) {
-    return null;
+  if (frontendOnly) {
+    const isFrontend = eventView.project.some(projectId =>
+      VITALS_PLATFORMS.includes(
+        projects.find(project => project.id === `${projectId}`)?.platform || ''
+      )
+    );
+
+    if (!isFrontend) {
+      return null;
+    }
   }
 
-  const shownVitals = [WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS];
+  const vitals = [WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS];
 
   return (
     <VitalsCardsDiscoverQuery
-      eventView={vitalsView}
-      orgSlug={organization.slug}
+      eventView={eventView}
       location={location}
+      orgSlug={organization.slug}
+      vitals={vitals}
     >
-      {({isLoading, tableData}) => (
-        <VitalsContainer>
-          {props.hasCondensedVitals ? (
-            <CondensedVitalsCard
-              tableData={tableData}
-              isLoading={isLoading}
-              {...props}
-              condensedVitals={shownVitals}
-            />
-          ) : (
-            shownVitals.map(vitalName => (
-              <LinkedVitalsCard
-                key={vitalName}
-                vitalName={vitalName}
-                tableData={tableData}
-                isLoading={isLoading}
-                {...props}
-              />
-            ))
-          )}
-        </VitalsContainer>
-      )}
+      {({isLoading, vitalsData}) => {
+        return (
+          <VitalsContainer>
+            {vitals.map(vital => {
+              const target = vitalDetailRouteWithQuery({
+                orgSlug: organization.slug,
+                query: eventView.generateQueryStringObject(),
+                vitalName: vital,
+                projectID: decodeList(location.query.project),
+              });
+
+              const value = isLoading
+                ? '\u2014'
+                : getP75(vitalsData?.[vital] ?? null, vital);
+              const chart = (
+                <VitalBarContainer>
+                  <VitalBar isLoading={isLoading} vital={vital} data={vitalsData} />
+                </VitalBarContainer>
+              );
+
+              return (
+                <Link
+                  key={vital}
+                  to={target}
+                  data-test-id={`vitals-linked-card-${vitalAbbreviations[vital]}`}
+                >
+                  <VitalCard
+                    title={vitalMap[vital] ?? ''}
+                    tooltip={vitalDescription[vital] ?? ''}
+                    value={isLoading ? '\u2014' : value}
+                    chart={chart}
+                    minHeight={150}
+                  />
+                </Link>
+              );
+            })}
+          </VitalsContainer>
+        );
+      }}
     </VitalsCardsDiscoverQuery>
   );
 }
 
-export default withProjects(VitalsCards);
+const VitalBarContainer = styled('div')`
+  margin-top: ${space(1.5)};
+`;
+
+type BackendCardsProps = {
+  api: Client;
+  eventView: EventView;
+  location: Location;
+  organization: Organization;
+};
+
+function _BackendCards(props: BackendCardsProps) {
+  const {api, eventView: baseEventView, location, organization} = props;
+  const functionNames = [
+    'p75' as const,
+    'tpm' as const,
+    'failure_rate' as const,
+    'apdex' as const,
+  ];
+  const functions = functionNames.map(fn => getBackendFunction(fn, organization));
+  const eventView = baseEventView.withColumns(functions);
+
+  // construct request parameters for fetching chart data
+  const globalSelection = eventView.getGlobalSelection();
+  const start = globalSelection.datetime.start
+    ? getUtcToLocalDateObject(globalSelection.datetime.start)
+    : undefined;
+  const end = globalSelection.datetime.end
+    ? getUtcToLocalDateObject(globalSelection.datetime.end)
+    : undefined;
+
+  return (
+    <DiscoverQuery
+      location={location}
+      eventView={eventView}
+      orgSlug={organization.slug}
+      limit={1}
+    >
+      {({isLoading: isSummaryLoading, tableData}) => (
+        <EventsRequest
+          api={api}
+          organization={organization}
+          period={globalSelection.datetime.period}
+          project={globalSelection.projects}
+          environment={globalSelection.environments}
+          start={start}
+          end={end}
+          interval={getInterval({
+            start: start || null,
+            end: end || null,
+            period: globalSelection.datetime.period,
+          })}
+          query={eventView.getEventsAPIPayload(location).query}
+          includePrevious={false}
+          yAxis={eventView.getFields()}
+        >
+          {({results}) => {
+            const series = results?.reduce((allSeries, oneSeries) => {
+              allSeries[oneSeries.seriesName] = oneSeries.data.map(item => item.value);
+              return allSeries;
+            }, {});
+            const fields = eventView
+              .getFields()
+              .map((fn, i) => [functionNames[i], fn, series?.[fn]]);
+
+            return (
+              <VitalsContainer>
+                {fields.map(([name, fn, data]) => {
+                  const {title, tooltip, formatter} = backendCardDetails[name];
+                  const alias = getAggregateAlias(fn);
+                  const rawValue = tableData?.data?.[0]?.[alias];
+                  const value =
+                    isSummaryLoading || rawValue === undefined
+                      ? '\u2014'
+                      : formatter(rawValue);
+                  const chart = <SparklineChart data={data} />;
+                  return (
+                    <VitalCard
+                      key={name}
+                      title={title}
+                      tooltip={tooltip}
+                      value={value}
+                      chart={chart}
+                      horizontal
+                      minHeight={102}
+                    />
+                  );
+                })}
+              </VitalsContainer>
+            );
+          }}
+        </EventsRequest>
+      )}
+    </DiscoverQuery>
+  );
+}
+
+export const BackendCards = withApi(_BackendCards);
+
+type SparklineChartProps = {
+  data: number[];
+};
+
+function SparklineChart(props: SparklineChartProps) {
+  const {data} = props;
+  return (
+    <SparklineContainer data-test-id="sparkline">
+      <Sparklines data={data} width={240} height={24}>
+        <SparklinesLine style={{stroke: theme.gray300, fill: 'none', strokeWidth: 4}} />
+      </Sparklines>
+    </SparklineContainer>
+  );
+}
+
+const SparklineContainer = styled('div')`
+  flex-grow: 4;
+  max-height: 24px;
+  max-width: 240px;
+  margin: ${space(1)} ${space(0)} ${space(1.5)} ${space(3)};
+`;
 
 const VitalsContainer = styled('div')`
   display: grid;
@@ -118,58 +264,129 @@ const VitalsContainer = styled('div')`
   }
 `;
 
-type CardProps = Omit<Props, 'projects'> & {
-  vitalName: WebVital;
-  tableData: any;
-  isLoading?: boolean;
-  noBorder?: boolean;
-  hideBar?: boolean;
-  hideEmptyState?: boolean;
+type VitalBarProps = {
+  isLoading: boolean;
+  data: VitalsData | null;
+  vital: WebVital | WebVital[];
+  value?: string;
+  showBar?: boolean;
+  showStates?: boolean;
+  showDurationDetail?: boolean;
+  showVitalPercentNames?: boolean;
 };
 
-const NonPanel = styled('div')``;
+export function VitalBar(props: VitalBarProps) {
+  const {
+    isLoading,
+    data,
+    vital,
+    value,
+    showBar = true,
+    showStates = false,
+    showDurationDetail = false,
+    showVitalPercentNames = false,
+  } = props;
 
-const VitalCard = styled(Card)`
-  color: ${p => p.theme.textColor};
-  padding: ${space(2)} ${space(3)};
-  align-items: flex-start;
-  min-height: 150px;
-  margin-bottom: ${space(2)};
-`;
+  if (isLoading) {
+    return showStates ? <Placeholder height="48px" /> : null;
+  }
 
-export function LinkedVitalsCard(props: CardProps) {
-  const {vitalName} = props;
+  const emptyState = showStates ? (
+    <EmptyStateWarning small>{t('No data available')}</EmptyStateWarning>
+  ) : null;
+
+  if (!data) {
+    return emptyState;
+  }
+
+  const counts: Pick<VitalData, 'poor' | 'meh' | 'good' | 'total'> = {
+    poor: 0,
+    meh: 0,
+    good: 0,
+    total: 0,
+  };
+  const vitals = Array.isArray(vital) ? vital : [vital];
+  vitals.forEach(vitalName => {
+    const c = data?.[vitalName] ?? {};
+    Object.keys(counts).forEach(countKey => (counts[countKey] += c[countKey]));
+  });
+
+  if (!counts.total) {
+    return emptyState;
+  }
+
+  const p75: React.ReactNode = Array.isArray(vital)
+    ? null
+    : value ?? getP75(data?.[vital] ?? null, vital);
+  const percents = getPercentsFromCounts(counts);
+  const colorStops = getColorStopsFromPercents(percents);
+
   return (
-    <VitalLink {...props} vitalName={vitalName}>
-      <VitalsCard {...props} />
-    </VitalLink>
+    <React.Fragment>
+      {showBar && <ColorBar colorStops={colorStops} />}
+      <BarDetail>
+        {showDurationDetail && p75 && (
+          <div>
+            {t('The p75 for all transactions is ')}
+            <strong>{p75}</strong>
+          </div>
+        )}
+        <VitalPercents
+          percents={percents}
+          showVitalPercentNames={showVitalPercentNames}
+        />
+      </BarDetail>
+    </React.Fragment>
   );
 }
 
-type Counts = {
-  poorCount: number;
-  mehCount: number;
-  goodCount: number;
-  baseCount: number;
+type VitalCardProps = {
+  title: string;
+  tooltip: string;
+  value: string;
+  chart: React.ReactNode;
+  minHeight?: number;
+  horizontal?: boolean;
 };
 
-function getCounts(result: any, vitalName: WebVital): Counts {
-  const base = result[getAggregateAlias(vitalsBaseFields[vitalName])];
-  const poorCount: number =
-    parseFloat(result[getAggregateAlias(vitalsPoorFields[vitalName])]) || 0;
-  const mehTotal: number =
-    parseFloat(result[getAggregateAlias(vitalsMehFields[vitalName])]) || 0;
-  const mehCount = mehTotal - poorCount;
-  const baseCount: number = parseFloat(base) || Number.MIN_VALUE;
+function VitalCard(props: VitalCardProps) {
+  const {chart, minHeight, horizontal, title, tooltip, value} = props;
+  return (
+    <StyledCard interactive minHeight={minHeight}>
+      <HeaderTitle>
+        <OverflowEllipsis>{t(title)}</OverflowEllipsis>
+        <QuestionTooltip size="sm" position="top" title={tooltip} />
+      </HeaderTitle>
+      <CardContent horizontal={horizontal}>
+        <CardValue>{value}</CardValue>
+        {chart}
+      </CardContent>
+    </StyledCard>
+  );
+}
 
-  const goodCount: number = baseCount - mehCount - poorCount;
+const CardContent = styled('div')<{horizontal?: boolean}>`
+  width: 100%;
+  display: flex;
+  flex-direction: ${p => (p.horizontal ? 'row' : 'column')};
+  justify-content: space-between;
+`;
 
-  return {
-    poorCount,
-    mehCount,
-    goodCount,
-    baseCount,
-  };
+const StyledCard = styled(Card)<{minHeight?: number}>`
+  color: ${p => p.theme.textColor};
+  padding: ${space(2)} ${space(3)};
+  align-items: flex-start;
+  margin-bottom: ${space(2)};
+  ${p => p.minHeight && `min-height: ${p.minHeight}px`};
+`;
+
+function getP75(data: VitalData | null, vitalName: WebVital): string {
+  const p75 = data?.p75 ?? null;
+  if (p75 === null) {
+    return '\u2014';
+  } else {
+    return vitalName === WebVital.CLS ? p75.toFixed(2) : `${p75.toFixed(0)}ms`;
+  }
 }
 
 type Percent = {
@@ -177,10 +394,10 @@ type Percent = {
   percent: number;
 };
 
-function getPercentsFromCounts({poorCount, mehCount, goodCount, baseCount}) {
-  const poorPercent = poorCount / baseCount;
-  const mehPercent = mehCount / baseCount;
-  const goodPercent = goodCount / baseCount;
+function getPercentsFromCounts({poor, meh, good, total}) {
+  const poorPercent = poor / total;
+  const mehPercent = meh / total;
+  const goodPercent = good / total;
 
   const percents: Percent[] = [
     {
@@ -207,207 +424,6 @@ function getColorStopsFromPercents(percents: Percent[]) {
   }));
 }
 
-export function VitalsCard(props: CardProps) {
-  const {isLoading, tableData, vitalName, noBorder, hideBar, hideEmptyState} = props;
-
-  const measurement = vitalMap[vitalName];
-
-  if (isLoading || !tableData || !tableData.data || !tableData.data[0]) {
-    return (
-      <BlankCard
-        noBorder={noBorder}
-        measurement={measurement}
-        titleDescription={vitalName ? vitalDescription[vitalName] || '' : ''}
-        hideEmptyState={hideEmptyState}
-      />
-    );
-  }
-
-  const result = tableData.data[0];
-  const base = result[getAggregateAlias(vitalsBaseFields[vitalName])];
-
-  if (!base) {
-    return (
-      <BlankCard
-        noBorder={noBorder}
-        measurement={measurement}
-        titleDescription={vitalName ? vitalDescription[vitalName] || '' : ''}
-        hideEmptyState={hideEmptyState}
-      />
-    );
-  }
-
-  const percents = getPercentsFromCounts(getCounts(result, vitalName));
-  const p75: number =
-    parseFloat(result[getAggregateAlias(vitalsP75Fields[vitalName])]) || 0;
-  const value = vitalName === WebVital.CLS ? p75.toFixed(2) : p75.toFixed(0);
-
-  return (
-    <VitalsCardContent
-      percents={percents}
-      showVitalPercentNames={props.showVitalPercentNames}
-      showDurationDetail={props.showDurationDetail}
-      title={measurement}
-      titleDescription={vitalName ? vitalDescription[vitalName] || '' : ''}
-      value={`${value}${vitalName === WebVital.CLS ? '' : t('ms')}`}
-      noBorder={noBorder}
-      hideBar={hideBar}
-    />
-  );
-}
-
-type CondensedCardProps = Props & {
-  tableData: any;
-  isLoading?: boolean;
-  condensedVitals: WebVital[];
-};
-
-/**
- * To aggregate and visualize all vital counts in returned data.
- */
-function CondensedVitalsCard(props: CondensedCardProps) {
-  const {isLoading, tableData} = props;
-
-  if (isLoading || !tableData || !tableData.data || !tableData.data[0]) {
-    return <BlankCard noBorder />;
-  }
-
-  const result = tableData.data[0];
-
-  const vitals = props.condensedVitals;
-
-  const allCounts: Counts = {
-    poorCount: 0,
-    mehCount: 0,
-    goodCount: 0,
-    baseCount: 0,
-  };
-  vitals.forEach(vitalName => {
-    const counts = getCounts(result, vitalName);
-    Object.keys(counts).forEach(countKey => (allCounts[countKey] += counts[countKey]));
-  });
-
-  if (!allCounts.baseCount) {
-    return <BlankCard noBorder />;
-  }
-
-  const percents = getPercentsFromCounts(allCounts);
-
-  return (
-    <VitalsCardContent
-      noBorder
-      percents={percents}
-      showVitalPercentNames={props.showVitalPercentNames}
-      showDurationDetail={props.showDurationDetail}
-    />
-  );
-}
-
-type CardContentProps = {
-  percents: Percent[];
-  title?: string;
-  titleDescription?: string;
-  value?: string;
-  noBorder?: boolean;
-  showVitalPercentNames?: boolean;
-  showDurationDetail?: boolean;
-  hideBar?: boolean;
-};
-
-function VitalsCardContent(props: CardContentProps) {
-  const {
-    percents,
-    noBorder,
-    title,
-    titleDescription,
-    value,
-    showVitalPercentNames,
-    showDurationDetail,
-    hideBar,
-  } = props;
-  const Container = noBorder ? NonPanel : VitalCard;
-  const colorStops = getColorStopsFromPercents(percents);
-
-  return (
-    <Container interactive>
-      {noBorder || (
-        <HeaderTitle>
-          <OverflowEllipsis>{t(`${title}`)}</OverflowEllipsis>
-          <QuestionTooltip size="sm" position="top" title={titleDescription} />
-        </HeaderTitle>
-      )}
-      {noBorder || <CardValue>{value}</CardValue>}
-      {!hideBar && <ColorBar colorStops={colorStops} />}
-      <BarDetail>
-        {showDurationDetail && (
-          <div>
-            {t('The p75 for all transactions is ')}
-            <strong>{value}</strong>
-          </div>
-        )}
-        <VitalPercents
-          percents={percents}
-          showVitalPercentNames={showVitalPercentNames}
-        />
-      </BarDetail>
-    </Container>
-  );
-}
-
-type BlankCardProps = {
-  noBorder?: boolean;
-  measurement?: string;
-  titleDescription?: string;
-  hideEmptyState?: boolean;
-};
-
-const BlankCard = (props: BlankCardProps) => {
-  const Container = props.noBorder ? NonPanel : VitalCard;
-
-  if (props.hideEmptyState) {
-    return null;
-  }
-
-  return (
-    <Container interactive>
-      {props.noBorder || (
-        <HeaderTitle>
-          <OverflowEllipsis>{t(`${props.measurement}`)}</OverflowEllipsis>
-          <QuestionTooltip size="sm" position="top" title={props.titleDescription} />
-        </HeaderTitle>
-      )}
-      <CardValue>{'\u2014'}</CardValue>
-    </Container>
-  );
-};
-
-type VitalLinkProps = Omit<Props, 'projects'> & {
-  vitalName: WebVital;
-  children: React.ReactNode;
-};
-
-const VitalLink = (props: VitalLinkProps) => {
-  const {organization, eventView, vitalName, children, location} = props;
-
-  const view = eventView.clone();
-
-  const target = vitalDetailRouteWithQuery({
-    orgSlug: organization.slug,
-    query: view.generateQueryStringObject(),
-    vitalName,
-    projectID: decodeList(location.query.project),
-  });
-
-  return (
-    <Link
-      to={target}
-      data-test-id={`vitals-linked-card-${vitalAbbreviations[vitalName]}`}
-    >
-      {children}
-    </Link>
-  );
-};
-
 const BarDetail = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
 
@@ -420,7 +436,6 @@ const BarDetail = styled('div')`
 const CardValue = styled('div')`
   font-size: 32px;
   margin-top: ${space(1)};
-  margin-bottom: ${space(1.5)};
 `;
 
 const OverflowEllipsis = styled('div')`

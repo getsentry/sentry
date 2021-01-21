@@ -13,7 +13,7 @@ import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {getAggregateAlias} from 'app/utils/discover/fields';
+import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {getTermHelp} from 'app/views/performance/data';
 import {
@@ -23,7 +23,7 @@ import {
 } from 'app/views/performance/transactionVitals/constants';
 import {vitalsRouteWithQuery} from 'app/views/performance/transactionVitals/utils';
 
-import VitalsCards from '../landing/vitalsCards';
+import VitalInfo from '../vitalDetail/vitalInfo';
 
 type Props = {
   eventView: EventView;
@@ -125,11 +125,13 @@ function UserStats({eventView, totals, location, organization, transactionName}:
                     <IconOpen />
                   </Link>
                 </VitalsHeading>
-                <VitalsCards
+                <VitalInfo
                   eventView={eventView}
                   organization={organization}
                   location={location}
-                  hasCondensedVitals
+                  vital={[WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS]}
+                  hideVitalPercentNames
+                  hideDurationDetail
                 />
               </SidebarWrapper>
             );

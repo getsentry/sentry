@@ -12,7 +12,7 @@ from sentry.snuba.sessions_v2 import (
 
 
 def _make_query(qs):
-    return QueryDefinition(QueryDict(qs), {})
+    return QueryDefinition(QueryDict(qs), [])
 
 
 def result_sorted(result):
@@ -73,12 +73,109 @@ def test_virtual_groupby_query():
 
 
 @freeze_time("2020-12-18T11:14:17.105Z")
+def test_massage_empty():
+    query = _make_query("statsPeriod=1d&interval=1d&field=sum(session)")
+
+    result_totals = []
+    result_timeseries = []
+
+    expected_result = {
+        "query": "",
+        "intervals": ["2020-12-18T00:00:00Z"],
+        "groups": [],
+    }
+
+    actual_result = result_sorted(massage_sessions_result(query, result_totals, result_timeseries))
+
+    assert actual_result == expected_result
+
+
+@freeze_time("2020-12-18T11:14:17.105Z")
+def test_massage_unbalanced_results():
+    query = _make_query("statsPeriod=1d&interval=1d&field=sum(session)&groupBy=release")
+
+    result_totals = [
+        {"release": "test-example-release", "sessions": 1},
+    ]
+    result_timeseries = []
+
+    expected_result = {
+        "query": "",
+        "intervals": ["2020-12-18T00:00:00Z"],
+        "groups": [
+            {
+                "by": {"release": "test-example-release"},
+                "series": {"sum(session)": [0]},
+                "totals": {"sum(session)": 1},
+            }
+        ],
+    }
+
+    actual_result = result_sorted(massage_sessions_result(query, result_totals, result_timeseries))
+
+    assert actual_result == expected_result
+
+    result_totals = []
+    result_timeseries = [
+        {
+            "release": "test-example-release",
+            "sessions": 1,
+            "bucketed_started": "2020-12-18T00:00:00+00:00",
+        },
+    ]
+
+    expected_result = {
+        "query": "",
+        "intervals": ["2020-12-18T00:00:00Z"],
+        "groups": [
+            {
+                "by": {"release": "test-example-release"},
+                "series": {"sum(session)": [1]},
+                "totals": {"sum(session)": 0},
+            }
+        ],
+    }
+
+    actual_result = result_sorted(massage_sessions_result(query, result_totals, result_timeseries))
+
+    assert actual_result == expected_result
+
+
+@freeze_time("2020-12-18T11:14:17.105Z")
 def test_massage_simple_timeseries():
     """A timeseries is filled up when it only receives partial data"""
 
     query = _make_query("statsPeriod=1d&interval=6h&field=sum(session)")
     result_totals = [{"sessions": 4}]
     # snuba returns the datetimes as strings for now
+    result_timeseries = [
+        {"sessions": 2, "bucketed_started": "2020-12-17T12:00:00+00:00"},
+        {"sessions": 2, "bucketed_started": "2020-12-18T06:00:00+00:00"},
+    ]
+
+    expected_result = {
+        "query": "",
+        "intervals": [
+            "2020-12-17T12:00:00Z",
+            "2020-12-17T18:00:00Z",
+            "2020-12-18T00:00:00Z",
+            "2020-12-18T06:00:00Z",
+        ],
+        "groups": [
+            {"by": {}, "series": {"sum(session)": [2, 0, 0, 2]}, "totals": {"sum(session)": 4}}
+        ],
+    }
+
+    actual_result = result_sorted(massage_sessions_result(query, result_totals, result_timeseries))
+
+    assert actual_result == expected_result
+
+
+def test_massage_exact_timeseries():
+    query = _make_query(
+        "start=2020-12-17T15:12:34Z&end=2020-12-18T11:14:17Z&interval=6h&field=sum(session)"
+    )
+    result_totals = [{"sessions": 4}]
     result_timeseries = [
         {"sessions": 2, "bucketed_started": "2020-12-17T12:00:00+00:00"},
         {"sessions": 2, "bucketed_started": "2020-12-18T06:00:00+00:00"},

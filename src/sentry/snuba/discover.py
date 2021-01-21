@@ -6,7 +6,6 @@ import six
 import logging
 
 from collections import namedtuple
-from copy import deepcopy
 from math import ceil, floor
 
 from sentry import options
@@ -17,11 +16,8 @@ from sentry.api.event_search import (
     get_json_meta_type,
     is_function,
     InvalidSearchQuery,
-    parse_function,
     resolve_field_list,
 )
-
-from sentry import eventstore
 
 from sentry.models import Group
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
@@ -72,134 +68,6 @@ def is_real_column(col):
         return False
 
     return True
-
-
-# TODO (evanh) This whole function is here because we are using the max value to
-# calculate the entire bucket width. If we could do that in a smarter way,
-# we could avoid this whole calculation.
-def find_histogram_buckets(field, params, conditions):
-    _, columns, _ = parse_function(
-        field, err_msg=u"received {}, expected histogram function".format(field)
-    )
-
-    if len(columns) != 2:
-        raise InvalidSearchQuery(
-            u"histogram_deprecated(...) expects 2 column arguments, received {:g} arguments".format(
-                len(columns)
-            )
-        )
-
-    column = columns[0]
-    # TODO evanh: This can be expanded to more fields at a later date, for now keep this limited.
-    if column != "transaction.duration":
-        raise InvalidSearchQuery(
-            "histogram_deprecated(...) can only be used with the transaction.duration column"
-        )
-
-    try:
-        num_buckets = int(columns[1])
-        if num_buckets < 1 or num_buckets > 500:
-            raise Exception()
-    except Exception:
-        raise InvalidSearchQuery(
-            u"histogram_deprecated(...) requires a bucket value between 1 and 500, not {}".format(
-                columns[1]
-            )
-        )
-
-    max_alias = u"max_{}".format(column)
-    min_alias = u"min_{}".format(column)
-
-    conditions = deepcopy(conditions) if conditions else []
-    found = False
-    for cond in conditions:
-        if len(cond) == 3 and (cond[0], cond[1], cond[2]) == ("event.type", "=", "transaction"):
-            found = True
-            break
-    if not found:
-        conditions.append(["event.type", "=", "transaction"])
-    snuba_filter = eventstore.Filter(conditions=conditions)
-    translated_args, _ = resolve_discover_aliases(snuba_filter)
-
-    results = raw_query(
-        filter_keys={"project_id": params.get("project_id")},
-        start=params.get("start"),
-        end=params.get("end"),
-        dataset=Dataset.Discover,
-        conditions=translated_args.conditions,
-        aggregations=[["max", "duration", max_alias], ["min", "duration", min_alias]],
-    )
-    if len(results["data"]) != 1:
-        # If there are no transactions, so no max duration, return one empty bucket
-        return "histogram_deprecated({}, 1, 1, 0)".format(column)
-
-    bucket_min = results["data"][0][min_alias]
-    bucket_max = results["data"][0][max_alias]
-    if bucket_max == 0:
-        raise InvalidSearchQuery(u"Cannot calculate histogram for {}".format(field))
-    bucket_size = ceil((bucket_max - bucket_min) / float(num_buckets))
-    if bucket_size == 0.0:
-        bucket_size = 1.0
-
-    # Determine the first bucket that will show up in our results so that we can
-    # zerofill correctly.
-    offset = int(floor(bucket_min / bucket_size) * bucket_size)
-
-    return "histogram_deprecated({}, {:g}, {:.0f}, {:.0f})".format(
-        column, num_buckets, bucket_size, offset
-    )
-
-
-def zerofill_histogram(results, column_meta, orderby, sentry_function_alias, snuba_function_alias):
-    parts = snuba_function_alias.split("_")
-    # the histogram alias looks like `histogram_column_numbuckets_bucketsize_bucketoffest`
-    if len(parts) < 5 or parts[0] != "histogram":
-        raise Exception(u"{} is not a valid histogram alias".format(snuba_function_alias))
-
-    bucket_offset, bucket_size, num_buckets = int(parts[-1]), int(parts[-2]), int(parts[-3])
-    if len(results) == num_buckets:
-        return results
-
-    dummy_data = {}
-    for column in column_meta:
-        dummy_data[column["name"]] = "" if column.get("type") == "String" else 0
-
-    def build_new_bucket_row(bucket):
-        row = {key: value for key, value in six.iteritems(dummy_data)}
-        row[sentry_function_alias] = bucket
-        return row
-
-    bucket_map = {r[sentry_function_alias]: r for r in results}
-    new_results = []
-    is_sorted, is_reversed = False, False
-    if orderby:
-        for o in orderby:
-            if o.lstrip("-") == snuba_function_alias:
-                is_sorted = True
-                is_reversed = o.startswith("-")
-                break
-
-    for i in range(num_buckets):
-        bucket = bucket_offset + (bucket_size * i)
-        if bucket not in bucket_map:
-            bucket_map[bucket] = build_new_bucket_row(bucket)
-
-    # If the list was sorted, pull results out in sorted order, else concat the results
-    if is_sorted:
-        i, diff, end = (0, 1, num_buckets) if not is_reversed else (num_buckets, -1, 0)
-        while i <= end:
-            bucket = bucket_offset + (bucket_size * i)
-            if bucket in bucket_map:
-                new_results.append(bucket_map[bucket])
-            i += diff
-    else:
-        new_results = results
-        exists = set(r[sentry_function_alias] for r in results)
-        for bucket in bucket_map:
-            if bucket not in exists:
-                new_results.append(bucket_map[bucket])
-
-    return new_results
 
 
 def resolve_discover_aliases(snuba_filter, function_translations=None):
@@ -299,24 +167,6 @@ def transform_data(result, translated_columns, snuba_filter, selected_columns=No
                 result["data"], snuba_filter.start, snuba_filter.end, rollup, snuba_filter.orderby
             )
 
-    for col in result["meta"]:
-        if col["name"].startswith("histogram_deprecated"):
-            # The column name here has been translated, we need the original name
-            for snuba_name, sentry_name in six.iteritems(translated_columns):
-                if sentry_name == col["name"]:
-                    with sentry_sdk.start_span(
-                        op="discover.discover", description="transform_results.histogram_zerofill"
-                    ) as span:
-                        span.set_data("histogram_function", snuba_name)
-                        result["data"] = zerofill_histogram(
-                            result["data"],
-                            result["meta"],
-                            snuba_filter.orderby,
-                            sentry_name,
-                            snuba_name,
-                        )
-            break
-
     return result
 
 
@@ -376,36 +226,7 @@ def query(
             ), "Auto aggregations cannot be used without enabling aggregate conditions"
             snuba_filter.having = []
 
-    # We need to run a separate query to be able to properly bucket the values for the histogram
-    # Do that here, and format the bucket number in to the columns before passing it through
-    # to event search.
-    idx = 0
     function_translations = {}
-    for col in selected_columns:
-        if col.startswith("histogram_deprecated("):
-            with sentry_sdk.start_span(
-                op="discover.discover", description="query.histogram_calculation"
-            ) as span:
-                span.set_data("histogram", col)
-                histogram_column = find_histogram_buckets(col, params, snuba_filter.conditions)
-                selected_columns[idx] = histogram_column
-                snuba_name = get_function_alias(histogram_column)
-                sentry_name = get_function_alias(col)
-                function_translations[snuba_name] = sentry_name
-                # Since we're completely renaming the histogram function, we need to also check if we are
-                # ordering by the histogram values, and change that.
-                if orderby is not None:
-                    orderby = list(orderby) if isinstance(orderby, (list, tuple)) else [orderby]
-                    for i, ordering in enumerate(orderby):
-                        if sentry_name == ordering.lstrip("-"):
-                            ordering = "{}{}".format(
-                                "-" if ordering.startswith("-") else "", snuba_name
-                            )
-                            orderby[i] = ordering
-
-            break
-
-        idx += 1
 
     with sentry_sdk.start_span(op="discover.discover", description="query.field_translations"):
         if orderby is not None:
@@ -996,8 +817,6 @@ def histogram_query(
         orderby=[histogram_alias],
         limit=len(fields) * num_buckets,
         referrer=referrer,
-        auto_fields=True,
-        use_aggregate_conditions=True,
         functions_acl=["array_join", "histogram"],
     )
 
@@ -1094,9 +913,6 @@ def find_histogram_min_max(fields, min_value, max_value, user_query, params, dat
         params=params,
         limit=1,
         referrer="api.organization-events-histogram-min-max",
-        auto_fields=True,
-        auto_aggregations=True,
-        use_aggregate_conditions=True,
     )
 
     data = results.get("data")
@@ -1127,10 +943,17 @@ def find_histogram_min_max(fields, min_value, max_value, user_query, params, dat
                 first_quartile = row[q1_alias]
                 third_quartile = row[q3_alias]
 
-                if first_quartile is not None and third_quartile is not None:
-                    interquartile_range = abs(third_quartile - first_quartile)
-                    upper_outer_fence = third_quartile + 3 * interquartile_range
-                    fences.append(upper_outer_fence)
+                if (
+                    first_quartile is None
+                    or third_quartile is None
+                    or math.isnan(first_quartile)
+                    or math.isnan(third_quartile)
+                ):
+                    continue
+
+                interquartile_range = abs(third_quartile - first_quartile)
+                upper_outer_fence = third_quartile + 3 * interquartile_range
+                fences.append(upper_outer_fence)
 
         max_fence_value = max(fences) if fences else None
 

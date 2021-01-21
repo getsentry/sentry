@@ -7,6 +7,7 @@ from django.db import models
 
 from sentry.constants import LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
+    BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     GzippedDictField,
@@ -19,7 +20,7 @@ TOMBSTONE_FIELDS_FROM_GROUP = ("project_id", "level", "message", "culprit", "dat
 class GroupTombstone(Model):
     __core__ = False
 
-    previous_group_id = BoundedPositiveIntegerField(unique=True)
+    previous_group_id = BoundedBigIntegerField(unique=True)
     project = FlexibleForeignKey("sentry.Project")
     level = BoundedPositiveIntegerField(
         choices=[(key, six.text_type(val)) for key, val in sorted(LOG_LEVELS.items())],

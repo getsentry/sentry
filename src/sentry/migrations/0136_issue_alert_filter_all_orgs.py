@@ -178,4 +178,4 @@ class Migration(migrations.Migration):
         ('sentry', '0135_removinguniquegroupownerconstraint'),
     ]
 
-    operations = [migrations.RunPython(code=migrate_all_orgs)]
+    operations = [migrations.RunPython(code=migrate_all_orgs, reverse_code=migrations.RunPython.noop)]

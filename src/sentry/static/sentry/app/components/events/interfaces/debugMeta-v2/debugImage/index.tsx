@@ -7,27 +7,21 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Image, ImageStatus} from 'app/types/debugImage';
 
+import Address from '../address';
 import layout from '../layout';
 import {getFileName} from '../utils';
 
-import Address from './address';
 import Processings from './processings';
 import Status from './status';
 
-type ImageWithStatus = Image & {status: ImageStatus};
-
 type Props = {
-  image: ImageWithStatus;
-  onOpenImageDetailsModal: (
-    image: ImageWithStatus,
-    imageAddress: React.ReactElement | null,
-    fileName?: string
-  ) => void;
+  image: Image & {status: ImageStatus};
+  onOpenImageDetailsModal: (code_id: Image['code_id']) => void;
   style?: React.CSSProperties;
 };
 
 function DebugImage({image, onOpenImageDetailsModal, style}: Props) {
-  const {unwind_status, debug_status, code_file, status} = image;
+  const {unwind_status, debug_status, code_file, code_id, status} = image;
 
   const fileName = getFileName(code_file);
   const imageAddress = <Address image={image} />;
@@ -41,21 +35,21 @@ function DebugImage({image, onOpenImageDetailsModal, style}: Props) {
         <FileName>{fileName}</FileName>
         <ImageAddress>{imageAddress}</ImageAddress>
       </ImageColumn>
-      <ProcessingColumn>
+      <Column>
         <Processings unwind_status={unwind_status} debug_status={debug_status} />
-      </ProcessingColumn>
+      </Column>
       <DebugFilesColumn>
         <Button
           size="xsmall"
           icon={<IconStack size="xs" />}
-          onClick={() => onOpenImageDetailsModal(image, imageAddress, fileName)}
+          onClick={() => onOpenImageDetailsModal(code_id)}
         >
           {t('View')}
         </Button>
         <Button
           size="xsmall"
           icon={<IconStack size="xs" />}
-          onClick={() => onOpenImageDetailsModal(image, imageAddress, fileName)}
+          onClick={() => onOpenImageDetailsModal(code_id)}
           label={t('View')}
         />
       </DebugFilesColumn>
@@ -106,11 +100,8 @@ const ImageColumn = styled(Column)`
 
 const ImageAddress = styled('div')`
   white-space: pre-wrap;
-  word-break: break-all;
+  word-break: break-word;
 `;
-
-// Processing Column
-const ProcessingColumn = styled(Column)``;
 
 // Debug Files Column
 const DebugFilesColumn = styled(Column)`
