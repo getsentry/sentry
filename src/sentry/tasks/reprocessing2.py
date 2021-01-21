@@ -170,7 +170,7 @@ def finish_reprocessing(project_id, group_id):
 
 
 def _json_size(*json_blobs):
-    from sentry.nodestore.bigtable.backend import json_dumps
+    from sentry.nodestore.base import json_dumps
 
     bytestring = b"\n".join(json_dumps(data).encode("utf8") for data in json_blobs)
     cctx = zstandard.ZstdCompressor()
