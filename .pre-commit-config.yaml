@@ -14,12 +14,15 @@ exclude: >
 repos:
 -   repo: local
     hooks:
-    # Configuration for black exists in pyproject.toml.
+    # Configuration for black exists in pyproject.toml,
+    # but we let pre-commit take care of the file filtering.
     - id: black
       name: black
       entry: black
       language: python
       types: [python]
+    # Configuration for flake8 exists in setup.cfg,
+    # but we let pre-commit take care of the file filtering.
     - id: flake8
       name: flake8
       entry: flake8
