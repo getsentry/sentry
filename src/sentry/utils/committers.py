@@ -39,7 +39,7 @@ def score_path_match_length(path_a, path_b):
     return score
 
 
-def _get_frame_paths(data):
+def get_frame_paths(data):
     frames = get_path(data, "stacktrace", "frames", filter=True)
     if frames:
         return frames
@@ -180,7 +180,7 @@ def get_previous_releases(project, start_version, limit=5):
     return rv
 
 
-def get_event_file_committers(project, group_id, event_data, event_platform, frame_limit=25):
+def get_event_file_committers(project, group_id, event_frames, event_platform, frame_limit=25):
     group = Group.objects.get_from_cache(id=group_id)
 
     first_release_version = group.get_first_release()
@@ -197,7 +197,7 @@ def get_event_file_committers(project, group_id, event_data, event_platform, fra
     if not commits:
         raise Commit.DoesNotExist
 
-    frames = _get_frame_paths(event_data) or ()
+    frames = event_frames or ()
     app_frames = [frame for frame in frames if frame["in_app"]][-frame_limit:]
     if not app_frames:
         app_frames = [frame for frame in frames][-frame_limit:]
@@ -248,8 +248,9 @@ def get_event_file_committers(project, group_id, event_data, event_platform, fra
 
 
 def get_serialized_event_file_committers(project, event, frame_limit=25):
+    event_frames = get_frame_paths(event.data)
     committers = get_event_file_committers(
-        project, event.group_id, event.data, event.platform, frame_limit=frame_limit
+        project, event.group_id, event_frames, event.platform, frame_limit=frame_limit
     )
     commits = [commit for committer in committers for commit in committer["commits"]]
     serialized_commits = serialize(

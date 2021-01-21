@@ -7,7 +7,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.models import Repository
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
-from sentry.utils.committers import get_serialized_event_file_committers
+from sentry.utils.committers import get_serialized_event_file_committers, get_frame_paths
 from sentry.utils.compat.mock import patch
 
 
@@ -373,10 +373,11 @@ class TestGroupOwners(TestCase):
                 },
             },
         ]
+        event_frames = get_frame_paths(self.event.data)
         process_suspect_commits(
             event_id=self.event.event_id,
             event_platform=self.event.platform,
-            event_data=self.event.data,
+            event_data=event_frames,
             group_id=self.event.group_id,
             project_id=self.event.project_id,
         )
