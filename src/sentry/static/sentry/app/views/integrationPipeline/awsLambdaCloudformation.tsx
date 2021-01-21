@@ -48,6 +48,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
   state: State = {
     arn: this.props.arn,
   };
+
   componentDidMount() {
     // show the error if we have it
     const {error} = this.props;
@@ -55,6 +56,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
       addErrorMessage(error, {duration: 10000});
     }
   }
+
   get initialData() {
     const {arn} = this.props;
     const awsExternalId = getAwsExternalId();
@@ -63,6 +65,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
       arn,
     };
   }
+
   get cloudformationUrl() {
     // generarate the cloudformation URL using the params we get from the server
     // and the external id we generate
@@ -75,6 +78,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
     });
     return `${baseCloudformationUrl}?${query}`;
   }
+
   handleSubmit = (e: React.MouseEvent) => {
     this.setState({submitting: true});
     e.preventDefault();
@@ -93,22 +97,30 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
     const newUrl = `${origin}/extensions/aws_lambda/setup/?${qs.stringify(data)}`;
     window.location.assign(newUrl);
   };
+
   validateArn = (value: string) => {
     // validate the ARN matches a cloudformation stack
-    let syncError: string | undefined;
+    let syncError = '';
     if (!value) {
       syncError = t('ARN required');
-    } else if (testArn(value)) {
+    } else if (!testArn(value)) {
       syncError = t('Invalid ARN');
     }
     this.setState({syncError});
   };
+
   handleChangeArn = (arn: string) => {
+    // reset the error if we ever get a valid ARN
+    if (testArn(arn)) {
+      this.setState({syncError: ''});
+    }
     this.setState({arn});
   };
+
   get arnValid() {
     return testArn(this.state.arn || '');
   }
+
   renderInstructions = () => {
     return (
       <InstructionWrapper>
@@ -126,6 +138,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
       </InstructionWrapper>
     );
   };
+
   render = () => {
     const {arn, syncError, submitting} = this.state;
     return (

@@ -14,14 +14,14 @@ type Props = {buttonText: string; docsUrl: string} & Pick<
 export default function FooterWithButtons({buttonText, docsUrl, ...rest}: Props) {
   return (
     <Footer>
-      <StyledButtonBar gap={1}>
-        <StyledButton external href={docsUrl} size="small">
+      <ButtonBar gap={1}>
+        <Button external href={docsUrl} size="xsmall">
           {t('View Docs')}
-        </StyledButton>
-        <StyledButton priority="primary" type="submit" size="small" {...rest}>
+        </Button>
+        <Button priority="primary" type="submit" size="xsmall" {...rest}>
           {buttonText}
-        </StyledButton>
-      </StyledButtonBar>
+        </Button>
+      </ButtonBar>
     </Footer>
   );
 }
@@ -36,12 +36,5 @@ const Footer = styled('form')`
   z-index: 100;
   background-color: ${p => p.theme.bodyBackground};
   border-top: 1px solid ${p => p.theme.gray100};
-`;
-
-const StyledButtonBar = styled(ButtonBar)`
   padding: ${space(2)};
-`;
-
-const StyledButton = styled(Button)`
-  padding: 0;
 `;

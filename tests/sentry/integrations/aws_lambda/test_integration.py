@@ -170,7 +170,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
             Layers=["arn:aws:lambda:us-east-2:1234:layer:my-layer:3"],
             Environment={
                 "Variables": {
-                    "NODE_OPTIONS": "-r @sentry/serverless/dist/auto",
+                    "NODE_OPTIONS": "-r @sentry/serverless/dist/awslambda-auto",
                     "SENTRY_DSN": sentry_project_dsn,
                     "SENTRY_TRACES_SAMPLE_RATE": "1.0",
                 }

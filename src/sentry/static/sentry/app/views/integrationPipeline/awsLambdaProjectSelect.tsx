@@ -17,6 +17,7 @@ type Props = {projects: Project[]};
 
 export default class AwsLambdaProjectSelect extends React.Component<Props> {
   model = new FormModel();
+
   handleSubmit = (e: React.MouseEvent) => {
     e.preventDefault();
     const data = this.model.getData();
@@ -31,6 +32,7 @@ export default class AwsLambdaProjectSelect extends React.Component<Props> {
     const newUrl = `${origin}/extensions/aws_lambda/setup/?${qs.stringify(data)}`;
     window.location.assign(newUrl);
   };
+
   render() {
     const {projects} = this.props;
     const formFields: JsonFormObject = {
@@ -47,6 +49,7 @@ export default class AwsLambdaProjectSelect extends React.Component<Props> {
         },
       ],
     };
+
     // TODO: Add logic if no projects
     return (
       <Wrapper>

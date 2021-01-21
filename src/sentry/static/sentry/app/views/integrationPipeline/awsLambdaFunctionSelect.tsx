@@ -14,6 +14,7 @@ import FooterWithButtons from './components/footerWithButtons';
 import IconGroup from './components/iconGroup';
 
 type LambdaFunction = {FunctionName: string; Runtime: string};
+
 type Props = {
   lambdaFunctions: LambdaFunction[];
 };
@@ -22,6 +23,7 @@ const getLabel = (func: LambdaFunction) => func.FunctionName;
 
 export default class AwsLambdaFunctionSelect extends React.Component<Props> {
   model = new FormModel({apiOptions: {baseUrl: window.location.origin}});
+
   get initialData() {
     const {lambdaFunctions} = this.props;
     const initialData = lambdaFunctions.reduce((accum, func) => {
@@ -30,23 +32,28 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props> {
     }, {});
     return initialData;
   }
+
   get lambdaFunctions() {
     return this.props.lambdaFunctions.sort((a, b) =>
       getLabel(a).toLowerCase() < getLabel(b).toLowerCase() ? -1 : 1
     );
   }
-  handlePreSubmit = () => addLoadingMessage(t('Submitting\u2026'));
+
   handleSubmit = () => {
-    addLoadingMessage(t('Submitting\u2026'));
+    //submitting can take a while...
+    addLoadingMessage(t('Submitting\u2026', {duration: 120 * 1000}));
     this.model.saveForm();
   };
+
   renderWhatWeFound = () => {
     const count = this.lambdaFunctions.length;
     return (
       <WhatWeFound>{t('We found %s functions with Node runtimes', count)}</WhatWeFound>
     );
   };
+
   handleSubmitSuccess = () => {};
+
   renderFooter = () => {
     return (
       <Observer>
@@ -61,6 +68,7 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props> {
       </Observer>
     );
   };
+
   render = () => {
     const model = this.model;
     const formFields: JsonFormObject = {
@@ -75,7 +83,7 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props> {
       }),
     };
     return (
-      <Wrapper>
+      <React.Fragment>
         <StyledAlert type="info">
           {t('Currently only supports Node runtimes')}
         </StyledAlert>
@@ -94,7 +102,7 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props> {
           <JsonForm forms={[formFields]} />
         </StyledForm>
         {this.renderFooter()}
-      </Wrapper>
+      </React.Fragment>
     );
   };
 }
@@ -103,8 +111,6 @@ const StyledForm = styled(Form)`
   margin: 50px;
   padding-bottom: 50px;
 `;
-
-const Wrapper = styled('div')``;
 
 const WhatWeFound = styled('div')`
   font-size: ${p => p.theme.headerFontSize};
