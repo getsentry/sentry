@@ -14,6 +14,7 @@ from sentry.incidents.models import (
     IncidentTrigger,
     INCIDENT_STATUS,
 )
+from sentry.utils import json
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 
@@ -87,7 +88,7 @@ class EmailActionHandler(ActionHandler):
             html_template=u"sentry/emails/incidents/trigger.html",
             type="incident.alert_rule_{}".format(display.lower()),
             context=context,
-            headers={"category": "metric_alert_email"},
+            headers={"X-SMTPAPI": json.dumps({"category": "metric_alert_email"})},
         )
 
 

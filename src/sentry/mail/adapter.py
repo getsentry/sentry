@@ -28,7 +28,7 @@ from sentry.models import (
 from sentry.plugins.base.structs import Notification
 from sentry.plugins.base import plugins
 from sentry.tasks.digests import deliver_digest
-from sentry.utils import metrics
+from sentry.utils import metrics, json
 from sentry.utils.cache import cache
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.email import group_id_to_email, MessageBuilder
@@ -363,7 +363,7 @@ class MailAdapter(object):
             "X-Sentry-Logger-Level": group.get_level_display(),
             "X-Sentry-Project": project.slug,
             "X-Sentry-Reply-To": group_id_to_email(group.id),
-            "category": "issue_alert_email",
+            "X-SMTPAPI": json.dumps({"category": "issue_alert_email"}),
         }
 
         for user_id in self.get_send_to(
@@ -444,7 +444,7 @@ class MailAdapter(object):
 
             headers = {
                 "X-Sentry-Project": project.slug,
-                "category": "digest_email",
+                "X-SMTPAPI": json.dumps({"category": "digest_email"}),
             }
 
             group = six.next(iter(counts))
@@ -520,7 +520,7 @@ class MailAdapter(object):
 
         headers = {
             "X-Sentry-Project": project.slug,
-            "category": "user_report_email",
+            "X-SMTPAPI": json.dumps({"category": "user_report_email"}),
         }
 
         # TODO(dcramer): this is copypasta'd from activity notifications
