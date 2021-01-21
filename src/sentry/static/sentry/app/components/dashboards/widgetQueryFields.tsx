@@ -23,10 +23,6 @@ type Props = {
   displayType: Widget['displayType'];
   fieldOptions: ReturnType<typeof generateFieldOptions>;
   /**
-   * Any errors that need to be rendered.
-   */
-  errors: undefined | Record<string, any>;
-  /**
    * The field list for the widget.
    */
   fields: string[];
@@ -34,6 +30,10 @@ type Props = {
    * Fired when fields are added/removed/modified/reordered.
    */
   onChange: (fields: string[]) => void;
+    /**
+   * Any errors that need to be rendered.
+   */
+  errors?: Record<string, any>;
 };
 
 function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}: Props) {
@@ -68,7 +68,7 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
     return (
       <Field
         data-test-id="columns"
-        label="Columns"
+        label={t("Columns")}
         inline={false}
         flexibleControlStateSize
         stacked

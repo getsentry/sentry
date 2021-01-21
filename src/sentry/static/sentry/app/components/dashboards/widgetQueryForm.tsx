@@ -71,11 +71,7 @@ class WidgetQueryForm extends React.Component<Props, State> {
     const {onChange, displayType, widgetQuery} = this.props;
 
     const newQuery = cloneDeep(widgetQuery);
-    if (displayType === 'table') {
-      newQuery.fields = [...option.query.fields];
-    } else {
-      newQuery.fields = [option.query.yAxis ?? 'count()'];
-    }
+   newQuery.fields = displayType === 'table' ? [...option.query.fields] : [option.query.yAxis ?? 'count()'];
     newQuery.conditions = option.query.query ?? '';
     newQuery.name = option.query.name;
     onChange(newQuery);
