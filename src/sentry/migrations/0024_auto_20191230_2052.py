@@ -3,8 +3,7 @@
 from __future__ import unicode_literals, print_function
 
 import os
-import types
-from datetime import timedelta, datetime
+from datetime import timedelta
 
 from django.db import migrations
 from django.utils import timezone

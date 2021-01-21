@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from django.db import migrations, transaction
+from django.db import migrations
 
 
 def remove_trailing_spaces(apps, schema_editor):

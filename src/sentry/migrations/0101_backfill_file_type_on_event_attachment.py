@@ -6,7 +6,6 @@ import logging
 
 from django.db import migrations
 
-from sentry import eventstore
 from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger(__name__)

@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 
 import bitfield.models
 from django.db import migrations
-import django.db.models.manager
 
 
 class Migration(migrations.Migration):

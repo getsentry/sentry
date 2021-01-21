@@ -3,8 +3,6 @@
 from __future__ import unicode_literals
 
 from django.db import migrations
-import django.db.models.deletion
-import sentry.db.models.fields.foreignkey
 
 
 class Migration(migrations.Migration):

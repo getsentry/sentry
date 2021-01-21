@@ -73,7 +73,7 @@ def simple_migrate_alert_rule(rule, Rule):
 # In the case where the alert rule has an 'any' match with filters/conditions, we must split this rule into two
 def split_alert_rule(rule, Rule):
     data = rule.data
-    action_match = data.get("action_match")
+    data.get("action_match")
     conditions = data.get("conditions") or []
     actions = data.get("actions")
     frequency = data.get("frequency")
@@ -115,7 +115,7 @@ def split_alert_rule(rule, Rule):
         "environment_id": rule.environment_id,
         "project": rule.project,
     }
-    filter_rule = Rule.objects.create(**rule_args)
+    Rule.objects.create(**rule_args)
 
 
 # In the case where the alert rule has a 'none' match with migrated conditions, we migrate all applicable conditions and then set the match to 'any'
