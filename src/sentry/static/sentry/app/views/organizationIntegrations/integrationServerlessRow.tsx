@@ -85,14 +85,14 @@ class IntegrationServerlessRow extends React.Component<Props> {
   };
   renderLayerStatus() {
     const {serverlessFunction} = this.props;
-    if (serverlessFunction.outOfDate) {
-      return (
-        <UpdateButton size="small" priority="primary" onClick={this.updateVersion}>
-          {t('Update')}
-        </UpdateButton>
-      );
+    if (!serverlessFunction.outOfDate) {
+      return this.enabled ? t('Latest') : t('Disabled');
     }
-    return this.enabled ? t('Latest') : t('Disabled');
+    return (
+      <UpdateButton size="small" priority="primary" onClick={this.updateVersion}>
+        {t('Update')}
+      </UpdateButton>
+    );
   }
   render() {
     const {serverlessFunction} = this.props;
