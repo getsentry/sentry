@@ -852,12 +852,13 @@ class GroupSerializerSnuba(GroupSerializerBase):
         filters = {"project_id": project_ids, "group_id": group_ids}
         if self.environment_ids:
             filters["environment"] = self.environment_ids
+
         result = snuba.aliased_query(
             dataset=snuba.Dataset.Events,
             start=start,
             end=end,
             groupby=["group_id"],
-            conditions=conditions,
+            conditions=[*(conditions or []), ["type", "!=", "transaction"]],
             filter_keys=filters,
             aggregations=aggregations,
             referrer="serializers.GroupSerializerSnuba._execute_seen_stats_query",
