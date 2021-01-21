@@ -6,14 +6,15 @@ import PanelTable from 'app/components/panels/panelTable';
 import {Organization} from 'app/types';
 import {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
+import {fieldAlignment} from 'app/utils/discover/fields';
 import withOrganization from 'app/utils/withOrganization';
-import HeaderCell from 'app/views/eventsV2/table/headerCell';
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
 
 type Props = {
   organization: Organization;
   location: Location;
   loading: boolean;
+  fields: string[];
   title: string;
   metadata: TableData['meta'];
   data: TableData['data'];
@@ -36,19 +37,20 @@ class SimpleTableChart extends React.Component<Props> {
   }
 
   render() {
-    const {loading, metadata, data, title} = this.props;
+    const {loading, fields, metadata, data, title} = this.props;
     const meta = metadata ?? {};
-    const columns = decodeColumnOrder(Object.keys(meta).map(col => ({field: col})));
+    const columns = decodeColumnOrder(fields.map(field => ({field})));
     return (
       <TableWrapper>
         {title && <h4>{title}</h4>}
         <PanelTable
           isLoading={loading}
           headers={columns.map((column, index) => {
+            const align = fieldAlignment(column.name, column.type, meta);
             return (
-              <HeaderCell column={column} tableMeta={meta} key={index}>
-                {({align}) => <HeadCell align={align}>{column.name}</HeadCell>}
-              </HeaderCell>
+              <HeadCell key={index} align={align}>
+                {column.name}
+              </HeadCell>
             );
           })}
         >
@@ -60,11 +62,11 @@ class SimpleTableChart extends React.Component<Props> {
 }
 const TableWrapper = styled('div')`
   /* align height with charts */
-  height: 170px;
+  height: 160px;
   overflow-y: scroll;
 
   /* Space away from where the widget title is */
-  margin-top: 30px;
+  margin-top: 40px;
 `;
 
 type HeadCellProps = {

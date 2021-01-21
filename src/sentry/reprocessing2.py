@@ -220,9 +220,8 @@ def reprocess_event(project_id, event_id, start_time):
     cache_key = event_processing_store.store(data)
 
     # Step 2: Copy attachments into attachment cache
-    queryset = models.EventAttachment.objects.filter(
-        project_id=project_id, event_id=event_id
-    ).select_related("file")
+    queryset = models.EventAttachment.objects.filter(project_id=project_id, event_id=event_id)
+    files = {f.id: f for f in models.File.objects.filter(id__in=[ea.file_id for ea in queryset])}
 
     attachment_objects = []
 
@@ -233,6 +232,7 @@ def reprocess_event(project_id, event_id, start_time):
                 _copy_attachment_into_cache(
                     attachment_id=attachment_id,
                     attachment=attachment,
+                    file=files[attachment.file_id],
                     cache_key=cache_key,
                     cache_timeout=CACHE_TIMEOUT,
                 )
@@ -247,9 +247,8 @@ def reprocess_event(project_id, event_id, start_time):
     )
 
 
-def _copy_attachment_into_cache(attachment_id, attachment, cache_key, cache_timeout):
-    fp = attachment.file.getfile()
-    chunk = None
+def _copy_attachment_into_cache(attachment_id, attachment, file, cache_key, cache_timeout):
+    fp = file.getfile()
     chunk_index = 0
     size = 0
     while True:
@@ -268,7 +267,7 @@ def _copy_attachment_into_cache(attachment_id, attachment, cache_key, cache_time
         )
         chunk_index += 1
 
-    assert size == attachment.file.size
+    assert size == file.size
 
     return CachedAttachment(
         key=cache_key,
@@ -277,7 +276,7 @@ def _copy_attachment_into_cache(attachment_id, attachment, cache_key, cache_time
         # XXX: Not part of eventattachment model, but not strictly
         # necessary for processing
         content_type=None,
-        type=attachment.file.type,
+        type=file.type,
         chunks=chunk_index,
         size=size,
     )
@@ -319,7 +318,9 @@ def mark_event_reprocessed(data):
         finish_reprocessing.delay(project_id=data["project"], group_id=group_id)
 
 
-def start_group_reprocessing(project_id, group_id, max_events=None, acting_user_id=None):
+def start_group_reprocessing(
+    project_id, group_id, remaining_events, max_events=None, acting_user_id=None
+):
     from django.db import transaction
 
     with transaction.atomic():
@@ -347,8 +348,15 @@ def start_group_reprocessing(project_id, group_id, max_events=None, acting_user_
         del group
         new_group.status = original_status
         new_group.short_id = original_short_id
-        # this will be incremented by the events that are reprocessed
-        new_group.times_seen = 0
+
+        if remaining_events == "keep":
+            # this will be incremented by the events that are reprocessed
+            new_group.times_seen -= max_events
+        elif remaining_events == "delete":
+            new_group.times_seen = 0
+        else:
+            raise ValueError(remaining_events)
+
         new_group.save()
 
         # This migrates all models that are associated with a group but not

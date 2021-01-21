@@ -1,4 +1,5 @@
 import React from 'react';
+import {RouteComponentProps} from 'react-router';
 
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
@@ -7,13 +8,13 @@ import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 
-import OrganizationFiltersAndSampling from './organizationFiltersAndSampling';
+import FiltersAndSampling from './filtersAndSampling';
 
-type Props = {
+type Props = RouteComponentProps<{projectId: string; orgId: string}, {}> & {
   organization: Organization;
 };
 
-const Index = ({organization}: Props) => (
+const Index = ({organization, ...props}: Props) => (
   <Feature
     features={['filters-and-sampling']}
     organization={organization}
@@ -25,11 +26,9 @@ const Index = ({organization}: Props) => (
       />
     )}
   >
-    <OrganizationFiltersAndSampling
-      organization={{
-        ...organization,
-        dynamicSampling: [],
-      }}
+    <FiltersAndSampling
+      {...props}
+      organization={{...organization, dynamicSampling: []}}
     />
   </Feature>
 );

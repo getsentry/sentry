@@ -18,13 +18,12 @@ import {Organization} from 'app/types';
 import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView, {MetaType} from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {getAggregateAlias, Sort} from 'app/utils/discover/fields';
+import {fieldAlignment, getAggregateAlias, Sort} from 'app/utils/discover/fields';
 import {generateEventSlug} from 'app/utils/discover/urls';
 import {getDuration} from 'app/utils/formatters';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import CellAction, {Actions} from 'app/views/eventsV2/table/cellAction';
-import HeaderCell from 'app/views/eventsV2/table/headerCell';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
 import {GridCell, GridCellNumber} from 'app/views/performance/styles';
@@ -382,23 +381,21 @@ class TransactionsTable extends React.PureComponent<TableProps> {
     const generateSortLink = () => undefined;
     const tableTitles = this.getTitles();
 
-    const headers = tableTitles.map((title, index) => (
-      <HeaderCell column={columnOrder[index]} tableMeta={tableMeta} key={index}>
-        {({align}) => {
-          return (
-            <HeadCellContainer>
-              <SortLink
-                align={align}
-                title={title}
-                direction={undefined}
-                canSort={false}
-                generateSortLink={generateSortLink}
-              />
-            </HeadCellContainer>
-          );
-        }}
-      </HeaderCell>
-    ));
+    const headers = tableTitles.map((title, index) => {
+      const column = columnOrder[index];
+      const align = fieldAlignment(column.name, column.type, tableMeta);
+      return (
+        <HeadCellContainer key={index}>
+          <SortLink
+            align={align}
+            title={title}
+            direction={undefined}
+            canSort={false}
+            generateSortLink={generateSortLink}
+          />
+        </HeadCellContainer>
+      );
+    });
 
     if (baselineTransactionName) {
       headers.push(
