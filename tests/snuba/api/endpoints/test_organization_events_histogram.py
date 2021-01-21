@@ -248,8 +248,6 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         }
 
     def test_histogram_empty(self):
-        specs = [(i, i + 1, [("measurements.foo", 0), ("measurements.bar", 0)]) for i in range(5)]
-
         query = {
             "project": [self.project.id],
             "field": ["measurements.foo", "measurements.bar"],
@@ -258,7 +256,10 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(query)
         assert response.status_code == 200
-        assert response.data == self.as_response_data(specs)
+        expected = [
+            (i, i + 1, [("measurements.foo", 0), ("measurements.bar", 0)]) for i in range(5)
+        ]
+        assert response.data == self.as_response_data(expected)
 
     def test_histogram_simple(self):
         # range is [0, 5), so it is divided into 5 buckets of width 1
@@ -266,7 +267,6 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             (0, 1, [("measurements.foo", 1)]),
             (1, 2, [("measurements.foo", 1)]),
             (2, 3, [("measurements.foo", 1)]),
-            (3, 4, [("measurements.foo", 0)]),
             (4, 5, [("measurements.foo", 1)]),
         ]
         self.populate_measurements(specs)
@@ -279,7 +279,14 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(query)
         assert response.status_code == 200
-        assert response.data == self.as_response_data(specs)
+        expected = [
+            (0, 1, [("measurements.foo", 1)]),
+            (1, 2, [("measurements.foo", 1)]),
+            (2, 3, [("measurements.foo", 1)]),
+            (3, 4, [("measurements.foo", 0)]),
+            (4, 5, [("measurements.foo", 1)]),
+        ]
+        assert response.data == self.as_response_data(expected)
 
     def test_histogram_simple_using_min_max(self):
         # range is [0, 5), so it is divided into 5 buckets of width 1
@@ -287,7 +294,6 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             (0, 1, [("measurements.foo", 1)]),
             (1, 2, [("measurements.foo", 1)]),
             (2, 3, [("measurements.foo", 1)]),
-            (3, 4, [("measurements.foo", 0)]),
             (4, 5, [("measurements.foo", 1)]),
         ]
         self.populate_measurements(specs)
@@ -302,21 +308,23 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(query)
         assert response.status_code == 200
-        assert response.data == self.as_response_data(specs)
+        expected = [
+            (0, 1, [("measurements.foo", 1)]),
+            (1, 2, [("measurements.foo", 1)]),
+            (2, 3, [("measurements.foo", 1)]),
+            (3, 4, [("measurements.foo", 0)]),
+            (4, 5, [("measurements.foo", 1)]),
+        ]
+        assert response.data == self.as_response_data(expected)
 
     def test_histogram_large_buckets(self):
         # make sure that it works for large width buckets
         # range is [0, 99], so it is divided into 5 buckets of width 20
         specs = [
             (0, 0, [("measurements.foo", 2)]),
-            (20, 40, [("measurements.foo", 0)]),
-            (40, 60, [("measurements.foo", 0)]),
-            (60, 80, [("measurements.foo", 0)]),
             (99, 99, [("measurements.foo", 2)]),
         ]
         self.populate_measurements(specs)
-        specs[0] = (0, 20, specs[0][2])
-        specs[4] = (80, 100, specs[4][2])
 
         query = {
             "project": [self.project.id],
@@ -326,13 +334,19 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(query)
         assert response.status_code == 200
-        assert response.data == self.as_response_data(specs)
+        expected = [
+            (0, 20, [("measurements.foo", 2)]),
+            (20, 40, [("measurements.foo", 0)]),
+            (40, 60, [("measurements.foo", 0)]),
+            (60, 80, [("measurements.foo", 0)]),
+            (80, 100, [("measurements.foo", 2)]),
+        ]
+        assert response.data == self.as_response_data(expected)
 
     def test_histogram_non_zero_offset(self):
         # range is [10, 15), so it is divided into 5 buckets of width 1
         specs = [
             (10, 11, [("measurements.foo", 1)]),
-            (11, 12, [("measurements.foo", 0)]),
             (12, 13, [("measurements.foo", 1)]),
             (13, 14, [("measurements.foo", 1)]),
             (14, 15, [("measurements.foo", 1)]),
@@ -347,7 +361,14 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(query)
         assert response.status_code == 200
-        assert response.data == self.as_response_data(specs)
+        expected = [
+            (10, 11, [("measurements.foo", 1)]),
+            (11, 12, [("measurements.foo", 0)]),
+            (12, 13, [("measurements.foo", 1)]),
+            (13, 14, [("measurements.foo", 1)]),
+            (14, 15, [("measurements.foo", 1)]),
+        ]
+        assert response.data == self.as_response_data(expected)
 
     def test_histogram_extra_data(self):
         # range is [11, 16), so it is divided into 5 buckets of width 1
@@ -362,8 +383,6 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             (16, 17, [("measurements.foo", 1)]),
         ]
         self.populate_measurements(specs)
-        del specs[-1]
-        del specs[0]
 
         query = {
             "project": [self.project.id],
@@ -375,20 +394,23 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(query)
         assert response.status_code == 200
-        assert response.data == self.as_response_data(specs)
+        expected = [
+            (11, 12, [("measurements.foo", 1)]),
+            (12, 13, [("measurements.foo", 1)]),
+            (13, 14, [("measurements.foo", 1)]),
+            (14, 15, [("measurements.foo", 1)]),
+            (15, 16, [("measurements.foo", 1)]),
+        ]
+        assert response.data == self.as_response_data(expected)
 
     def test_histogram_non_zero_min_large_buckets(self):
         # range is [10, 59], so it is divided into 5 buckets of width 10
         specs = [
             (10, 10, [("measurements.foo", 1)]),
-            (20, 30, [("measurements.foo", 0)]),
-            (30, 40, [("measurements.foo", 0)]),
             (40, 50, [("measurements.foo", 1)]),
             (59, 59, [("measurements.foo", 2)]),
         ]
         self.populate_measurements(specs)
-        specs[0] = (10, 20, specs[0][2])
-        specs[4] = (50, 60, specs[4][2])
 
         query = {
             "project": [self.project.id],
@@ -398,16 +420,20 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(query)
         assert response.status_code == 200
-        assert response.data == self.as_response_data(specs)
+        expected = [
+            (10, 20, [("measurements.foo", 1)]),
+            (20, 30, [("measurements.foo", 0)]),
+            (30, 40, [("measurements.foo", 0)]),
+            (40, 50, [("measurements.foo", 1)]),
+            (50, 60, [("measurements.foo", 2)]),
+        ]
+        assert response.data == self.as_response_data(expected)
 
     @pytest.mark.xfail(reason="snuba does not allow - in alias names")
     def test_histogram_negative_values(self):
         # range is [-9, -4), so it is divided into 5 buckets of width 1
         specs = [
             (-9, -8, [("measurements.foo", 3)]),
-            (-8, -7, [("measurements.foo", 0)]),
-            (-7, -6, [("measurements.foo", 0)]),
-            (-6, -5, [("measurements.foo", 0)]),
             (-5, -4, [("measurements.foo", 1)]),
         ]
         self.populate_measurements(specs)
@@ -420,21 +446,24 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(query)
         assert response.status_code == 200
-        assert response.data == self.as_response_data(specs)
+        expected = [
+            (-9, -8, [("measurements.foo", 3)]),
+            (-8, -7, [("measurements.foo", 0)]),
+            (-7, -6, [("measurements.foo", 0)]),
+            (-6, -5, [("measurements.foo", 0)]),
+            (-5, -4, [("measurements.foo", 1)]),
+        ]
+        assert response.data == self.as_response_data(expected)
 
     @pytest.mark.xfail(reason="snuba does not allow - in alias names")
     def test_histogram_positive_and_negative_values(self):
         # range is [-50, 49], so it is divided into 5 buckets of width 10
         specs = [
             (-50, -50, [("measurements.foo", 1)]),
-            (-30, -10, [("measurements.foo", 0)]),
             (-10, 10, [("measurements.foo", 2)]),
-            (10, 30, [("measurements.foo", 0)]),
             (49, 49, [("measurements.foo", 1)]),
         ]
         self.populate_measurements(specs)
-        specs[0] = (-50, -30, specs[0][2])
-        specs[4] = (30, 50, specs[4][2])
 
         query = {
             "project": [self.project.id],
@@ -444,20 +473,22 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(query)
         assert response.status_code == 200
-        assert response.data == self.as_response_data(specs)
+        expected = [
+            (-50, -30, [("measurements.foo", 1)]),
+            (-30, -10, [("measurements.foo", 0)]),
+            (-10, 10, [("measurements.foo", 2)]),
+            (10, 30, [("measurements.foo", 0)]),
+            (30, 50, [("measurements.foo", 1)]),
+        ]
+        assert response.data == self.as_response_data(expected)
 
     def test_histogram_increased_precision(self):
         # range is [1.00, 2.24], so it is divided into 5 buckets of width 0.25
         specs = [
             (1.00, 1.00, [("measurements.foo", 3)]),
-            (1.25, 1.50, [("measurements.foo", 0)]),
-            (1.50, 1.75, [("measurements.foo", 0)]),
-            (1.75, 2.00, [("measurements.foo", 0)]),
             (2.24, 2.24, [("measurements.foo", 1)]),
         ]
         self.populate_measurements(specs)
-        specs[0] = (1.00, 1.25, specs[0][2])
-        specs[4] = (2.00, 2.25, specs[4][2])
 
         query = {
             "project": [self.project.id],
@@ -468,20 +499,22 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(query)
         assert response.status_code == 200
-        assert response.data == self.as_response_data(specs)
+        expected = [
+            (1.00, 1.25, [("measurements.foo", 3)]),
+            (1.25, 1.50, [("measurements.foo", 0)]),
+            (1.50, 1.75, [("measurements.foo", 0)]),
+            (1.75, 2.00, [("measurements.foo", 0)]),
+            (2.00, 2.25, [("measurements.foo", 1)]),
+        ]
+        assert response.data == self.as_response_data(expected)
 
     def test_histogram_increased_precision_with_min_max(self):
         # range is [1.25, 2.24], so it is divided into 5 buckets of width 0.25
         specs = [
             (1.00, 1.25, [("measurements.foo", 3)]),
-            (1.25, 1.25, [("measurements.foo", 0)]),
-            (1.50, 1.75, [("measurements.foo", 0)]),
-            (1.75, 1.75, [("measurements.foo", 0)]),
             (2.00, 2.25, [("measurements.foo", 1)]),
         ]
         self.populate_measurements(specs)
-        specs[1] = (1.25, 1.50, specs[1][2])
-        specs[3] = (1.75, 2.00, specs[1][2])
 
         query = {
             "project": [self.project.id],
@@ -494,20 +527,21 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(query)
         assert response.status_code == 200
-        assert response.data == self.as_response_data(specs[1:4])
+        expected = [
+            (1.25, 1.50, [("measurements.foo", 0)]),
+            (1.50, 1.75, [("measurements.foo", 0)]),
+            (1.75, 2.00, [("measurements.foo", 0)]),
+        ]
+        assert response.data == self.as_response_data(expected)
 
     def test_histogram_increased_precision_large_buckets(self):
         # range is [10.0000, 59.9999] so it is divided into 5 buckets of width 10
         specs = [
             (10.0000, 10.0000, [("measurements.foo", 1)]),
-            (20.0000, 30.0000, [("measurements.foo", 0)]),
             (30.0000, 40.0000, [("measurements.foo", 1)]),
-            (40.0000, 50.0000, [("measurements.foo", 0)]),
             (59.9999, 59.9999, [("measurements.foo", 2)]),
         ]
         self.populate_measurements(specs)
-        specs[0] = (10.0000, 20.0000, specs[0][2])
-        specs[4] = (50.0000, 60.0000, specs[4][2])
 
         query = {
             "project": [self.project.id],
@@ -518,20 +552,23 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(query)
         assert response.status_code == 200
-        assert response.data == self.as_response_data(specs)
+        expected = [
+            (10.0000, 20.0000, [("measurements.foo", 1)]),
+            (20.0000, 30.0000, [("measurements.foo", 0)]),
+            (30.0000, 40.0000, [("measurements.foo", 1)]),
+            (40.0000, 50.0000, [("measurements.foo", 0)]),
+            (50.0000, 60.0000, [("measurements.foo", 2)]),
+        ]
+        assert response.data == self.as_response_data(expected)
 
     def test_histogram_multiple_measures(self):
         # range is [10, 59] so it is divided into 5 buckets of width 10
         specs = [
             (10, 10, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 1)]),
-            (20, 30, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 0)]),
             (30, 40, [("measurements.bar", 2), ("measurements.baz", 0), ("measurements.foo", 0)]),
-            (40, 50, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 0)]),
             (59, 59, [("measurements.bar", 0), ("measurements.baz", 1), ("measurements.foo", 0)]),
         ]
         self.populate_measurements(specs)
-        specs[0] = (10, 20, specs[0][2])
-        specs[4] = (50, 60, specs[4][2])
 
         query = {
             "project": [self.project.id],
@@ -541,16 +578,21 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(query)
         assert response.status_code == 200
-        assert response.data == self.as_response_data(specs)
+        expected = [
+            (10, 20, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 1)]),
+            (20, 30, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 0)]),
+            (30, 40, [("measurements.bar", 2), ("measurements.baz", 0), ("measurements.foo", 0)]),
+            (40, 50, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 0)]),
+            (50, 60, [("measurements.bar", 0), ("measurements.baz", 1), ("measurements.foo", 0)]),
+        ]
+        assert response.data == self.as_response_data(expected)
 
     def test_histogram_max_value_on_edge(self):
-        # range is [11, 21] so it is divided into 5 buckets of width 3
-        # because using buckets of width 2 will exclude 21
+        # range is [11, 21] so it is divided into 5 buckets of width 5
+        # because using buckets of width 2 will exclude 21, and the next
+        # nice number is 5
         specs = [
             (11, 11, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 1)]),
-            (13, 15, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 0)]),
-            (15, 17, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 0)]),
-            (17, 19, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 0)]),
             (21, 21, [("measurements.bar", 1), ("measurements.baz", 1), ("measurements.foo", 1)]),
         ]
         self.populate_measurements(specs)
@@ -561,27 +603,23 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             "numBuckets": 5,
         }
 
-        specs = [
-            (11, 14, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 1)]),
-            (14, 17, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 0)]),
-            (17, 20, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 0)]),
-            (20, 23, [("measurements.bar", 1), ("measurements.baz", 1), ("measurements.foo", 1)]),
-            (23, 26, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 0)]),
-        ]
         response = self.do_request(query)
         assert response.status_code == 200
-        assert response.data == self.as_response_data(specs)
+        expected = [
+            (10, 15, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 1)]),
+            (15, 20, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 0)]),
+            (20, 25, [("measurements.bar", 1), ("measurements.baz", 1), ("measurements.foo", 1)]),
+            (25, 30, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 0)]),
+            (30, 35, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 0)]),
+        ]
+        assert response.data == self.as_response_data(expected)
 
     def test_histogram_bins_exceed_max(self):
         specs = [
-            (10, 13, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 1)]),
-            (13, 16, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 0)]),
-            (16, 19, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 0)]),
-            (19, 22, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 0)]),
-            (24, 24, [("measurements.bar", 1), ("measurements.baz", 1), ("measurements.foo", 1)]),
+            (10, 15, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 1)]),
+            (30, 30, [("measurements.bar", 1), ("measurements.baz", 1), ("measurements.foo", 1)]),
         ]
         self.populate_measurements(specs)
-        specs[4] = (22, 25, specs[4][2])
 
         query = {
             "project": [self.project.id],
@@ -593,7 +631,14 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(query)
         assert response.status_code == 200
-        assert response.data == self.as_response_data(specs)
+        expected = [
+            (10, 15, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 1)]),
+            (15, 20, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 0)]),
+            (20, 25, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 0)]),
+            (25, 30, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 0)]),
+            (30, 35, [("measurements.bar", 1), ("measurements.baz", 1), ("measurements.foo", 1)]),
+        ]
+        assert response.data == self.as_response_data(expected)
 
     def test_bad_params_invalid_data_filter(self):
         query = {
@@ -612,7 +657,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
     def test_histogram_all_data_filter(self):
         specs = [
             (0, 1, [("measurements.foo", 4)]),
-            (4000, 4001, [("measurements.foo", 1)]),
+            (4000, 5000, [("measurements.foo", 1)]),
         ]
         self.populate_measurements(specs)
 
@@ -625,15 +670,13 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(query)
         assert response.status_code == 200
-
         expected = [
-            (0, 1, [("measurements.foo", 4)]),
-            (801, 801, [("measurements.foo", 0)]),
-            (1602, 1602, [("measurements.foo", 0)]),
-            (2403, 2403, [("measurements.foo", 0)]),
-            (3204, 4001, [("measurements.foo", 1)]),
+            (0, 1000, [("measurements.foo", 4)]),
+            (1000, 2000, [("measurements.foo", 0)]),
+            (2000, 3000, [("measurements.foo", 0)]),
+            (3000, 4000, [("measurements.foo", 0)]),
+            (4000, 5000, [("measurements.foo", 1)]),
         ]
-
         assert response.data == self.as_response_data(expected)
 
     def test_histogram_exclude_outliers_data_filter(self):
@@ -652,7 +695,6 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(query)
         assert response.status_code == 200
-
         expected = [
             (0, 1, [("measurements.foo", 4)]),
             (1, 1, [("measurements.foo", 0)]),
@@ -660,7 +702,6 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             (3, 3, [("measurements.foo", 0)]),
             (4, 4, [("measurements.foo", 0)]),
         ]
-
         assert response.data == self.as_response_data(expected)
 
     def test_histogram_missing_measurement_data(self):
@@ -680,7 +721,6 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(query)
         assert response.status_code == 200
-
         expected = [
             (0, 1, [("measurements.bar", 0)]),
             (1, 1, [("measurements.bar", 0)]),
@@ -688,7 +728,6 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             (3, 3, [("measurements.bar", 0)]),
             (4, 4, [("measurements.bar", 0)]),
         ]
-
         assert response.data == self.as_response_data(expected)
 
     def test_histogram_missing_measurement_data_with_explicit_bounds(self):
@@ -709,7 +748,6 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(query)
         assert response.status_code == 200
-
         expected = [
             (10, 11, [("measurements.bar", 0)]),
             (11, 11, [("measurements.bar", 0)]),
@@ -717,7 +755,6 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             (13, 13, [("measurements.bar", 0)]),
             (14, 14, [("measurements.bar", 0)]),
         ]
-
         assert response.data == self.as_response_data(expected)
 
     def test_histogram_ignores_aggregate_conditions(self):
@@ -740,7 +777,8 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(query)
         assert response.status_code == 200
-        assert response.data == self.as_response_data(specs)
+        expected = specs
+        assert response.data == self.as_response_data(expected)
 
     def test_histogram_outlier_filtering_with_no_rows(self):
         specs = [
@@ -760,4 +798,5 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(query)
         assert response.status_code == 200
-        assert response.data == self.as_response_data(specs)
+        expected = specs
+        assert response.data == self.as_response_data(expected)
