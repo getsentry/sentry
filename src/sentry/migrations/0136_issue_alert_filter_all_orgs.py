@@ -73,7 +73,6 @@ def simple_migrate_alert_rule(rule, Rule):
 # In the case where the alert rule has an 'any' match with filters/conditions, we must split this rule into two
 def split_alert_rule(rule, Rule):
     data = rule.data
-    data.get("action_match")
     conditions = data.get("conditions") or []
     actions = data.get("actions")
     frequency = data.get("frequency")

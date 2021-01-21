@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 
 from django.db import migrations
 
+
 # update the field with mutation
 def convert_field(field):
     # even if async if false, we had a bug where we'd treat it the same as true
