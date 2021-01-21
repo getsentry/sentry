@@ -55,7 +55,9 @@ class UserReportWithGroupSerializer(UserReportSerializer):
     def get_attrs(self, item_list, user):
         from sentry.api.serializers import GroupSerializer
 
-        groups = list(Group.objects.filter(id__in=[i.group_id for i in item_list if i.group_id]))
+        groups = list(
+            Group.objects.filter(id__in=set([i.group_id for i in item_list if i.group_id]))
+        )
         serialized_groups = {}
         if groups:
             serialized_groups = {

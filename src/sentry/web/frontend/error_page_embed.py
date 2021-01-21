@@ -153,7 +153,7 @@ class ErrorPageEmbedView(View):
 
             if event is not None:
                 report.environment_id = event.get_environment().id
-                report.group_id = event.group.id
+                report.group_id = event.group_id
 
             try:
                 with transaction.atomic():

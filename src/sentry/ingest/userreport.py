@@ -5,7 +5,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from sentry import eventstore
-from sentry.models import EventUser, Group, Project, UserReport
+from sentry.models import EventUser, UserReport
 from sentry.signals import user_feedback_received
 
 
@@ -39,7 +39,7 @@ def save_userreport(project, report, start_time=None):
             raise Conflict("Feedback for this event cannot be modified.")
 
         report["environment_id"] = event.get_environment().id
-        report["group_id"] = event.group.id
+        report["group_id"] = event.group_id
 
     try:
         with transaction.atomic():
@@ -76,9 +76,7 @@ def save_userreport(project, report, start_time=None):
             report_instance.notify()
 
     user_feedback_received.send(
-        project=Project.objects.get(id=report_instance.project_id),
-        group=Group.objects.get(id=report_instance.group_id),
-        sender=save_userreport,
+        project=project, group=event.group, sender=save_userreport,
     )
 
     return report_instance
@@ -90,7 +88,7 @@ def find_event_user(report_data, event):
             return None
         try:
             return EventUser.objects.filter(
-                project_id=report_data["project"].id, email=report_data["email"]
+                project_id=report_data["project_id"], email=report_data["email"]
             )[0]
         except IndexError:
             return None
@@ -100,6 +98,6 @@ def find_event_user(report_data, event):
         return None
 
     try:
-        return EventUser.for_tags(project_id=report_data["project"].id, values=[tag])[tag]
+        return EventUser.for_tags(project_id=report_data["project_id"], values=[tag])[tag]
     except KeyError:
         pass
