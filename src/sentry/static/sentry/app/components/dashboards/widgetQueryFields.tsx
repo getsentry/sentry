@@ -30,7 +30,7 @@ type Props = {
    * Fired when fields are added/removed/modified/reordered.
    */
   onChange: (fields: string[]) => void;
-    /**
+  /**
    * Any errors that need to be rendered.
    */
   errors?: Record<string, any>;
@@ -68,7 +68,7 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
     return (
       <Field
         data-test-id="columns"
-        label={t("Columns")}
+        label={t('Columns')}
         inline={false}
         flexibleControlStateSize
         stacked
