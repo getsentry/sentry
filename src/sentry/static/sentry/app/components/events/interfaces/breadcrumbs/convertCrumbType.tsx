@@ -1,6 +1,5 @@
+import {Breadcrumb, BreadcrumbType} from 'app/types/breadcrumbs';
 import {defined} from 'app/utils';
-
-import {Breadcrumb, BreadcrumbType} from './types';
 
 function convertCrumbType(breadcrumb: Breadcrumb): Breadcrumb {
   if (breadcrumb.type === BreadcrumbType.EXCEPTION) {

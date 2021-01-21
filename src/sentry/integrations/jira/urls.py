@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 from django.conf.urls import url
 
 from .ui_hook import JiraUiHookView
+from .issue_hook import JiraIssueHookView
 from .descriptor import JiraDescriptorEndpoint
 from .installed import JiraInstalledEndpoint
 from .search import JiraSearchEndpoint
@@ -27,4 +28,5 @@ urlpatterns = [
         name="sentry-extensions-jira-search",
     ),
     url(r"^configure/$", JiraExtensionConfigurationView.as_view()),
+    url(r"^issue/(?P<issue_key>[^\/]+)/$", JiraIssueHookView.as_view()),
 ]

@@ -12,9 +12,11 @@ import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import WidgetQueryForm from 'app/components/dashboards/widgetQueryForm';
 import SelectControl from 'app/components/forms/selectControl';
+import {PanelAlert} from 'app/components/panels';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, TagCollection} from 'app/types';
+import Measurements from 'app/utils/measurements/measurements';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withTags from 'app/utils/withTags';
@@ -195,12 +197,12 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     const state = this.state;
     const errors = state.errors;
 
-    // TODO(mark) Figure out how to get measurement keys here.
-    const fieldOptions = generateFieldOptions({
-      organization,
-      tagKeys: Object.values(tags).map(({key}) => key),
-      measurementKeys: [],
-    });
+    const fieldOptions = (measurementKeys: string[]) =>
+      generateFieldOptions({
+        organization,
+        tagKeys: Object.values(tags).map(({key}) => key),
+        measurementKeys,
+      });
 
     const isUpdatingWidget = typeof onUpdateWidget === 'function' && !!previousWidget;
 
@@ -246,28 +248,41 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                 name="displayType"
                 label={t('Chart Style')}
                 value={state.displayType}
-                onChange={this.handleFieldChange('displayType')}
+                onChange={(option: {label: string; value: Widget['displayType']}) => {
+                  this.handleFieldChange('displayType')(option.value);
+                }}
               />
             </Field>
           </DoubleFieldWrapper>
-          {state.queries.map((query, i) => {
-            return (
-              <WidgetQueryForm
-                key={i}
-                api={api}
-                organization={organization}
-                selection={selection}
-                fieldOptions={fieldOptions}
-                widgetQuery={query}
-                canRemove={state.queries.length > 1}
-                onRemove={() => this.handleQueryRemove(i)}
-                onChange={(widgetQuery: WidgetQuery) =>
-                  this.handleQueryChange(widgetQuery, i)
-                }
-                errors={errors?.queries?.[i]}
-              />
-            );
-          })}
+          <Measurements>
+            {({measurements}) => {
+              const measurementKeys = Object.values(measurements).map(({key}) => key);
+              const amendedFieldOptions = fieldOptions(measurementKeys);
+              return (
+                <React.Fragment>
+                  {state.queries.map((query, i) => {
+                    return (
+                      <WidgetQueryForm
+                        key={i}
+                        api={api}
+                        organization={organization}
+                        selection={selection}
+                        fieldOptions={amendedFieldOptions}
+                        displayType={state.displayType}
+                        widgetQuery={query}
+                        canRemove={state.queries.length > 1}
+                        onRemove={() => this.handleQueryRemove(i)}
+                        onChange={(widgetQuery: WidgetQuery) =>
+                          this.handleQueryChange(widgetQuery, i)
+                        }
+                        errors={errors?.queries?.[i]}
+                      />
+                    );
+                  })}
+                </React.Fragment>
+              );
+            }}
+          </Measurements>
           <WidgetCard
             api={api}
             organization={organization}
@@ -276,6 +291,13 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
             isEditing={false}
             onDelete={() => undefined}
             onEdit={() => undefined}
+            renderErrorMessage={errorMessage =>
+              typeof errorMessage === 'string' && (
+                <PanelAlert type="error">{errorMessage}</PanelAlert>
+              )
+            }
+            isDragging={false}
+            startWidgetDrag={() => undefined}
           />
         </Body>
         <Footer>

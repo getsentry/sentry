@@ -9,7 +9,8 @@ import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import Tooltip from 'app/components/tooltip';
 import {IconMute, IconStar} from 'app/icons';
 import {tct} from 'app/locale';
-import {Event, Group, GroupTombstone, Level, Organization} from 'app/types';
+import {Group, GroupTombstone, Level, Organization} from 'app/types';
+import {Event} from 'app/types/event';
 import {getLocation, getMessage} from 'app/utils/events';
 import withOrganization from 'app/utils/withOrganization';
 import UnhandledTag, {
@@ -28,7 +29,7 @@ type Props = WithRouterProps<{orgId: string}> & {
   hideLevel?: boolean;
   query?: string;
   className?: string;
-} & DefaultProps;
+} & Partial<DefaultProps>;
 
 /**
  * Displays an event or group/issue title (i.e. in Stream)
@@ -62,7 +63,11 @@ class EventOrGroupHeader extends React.Component<Props> {
             <IconStar isSolid color="yellow300" />
           </IconWrapper>
         )}
-        <EventOrGroupTitle {...this.props} style={{fontWeight: hasSeen ? 400 : 600}} />
+        <EventOrGroupTitle
+          {...this.props}
+          style={{fontWeight: hasSeen ? 400 : 600}}
+          withStackTracePreview
+        />
       </React.Fragment>
     );
   }
@@ -142,6 +147,7 @@ const getMargin = ({size}) => {
 
 const Title = styled('div')`
   ${truncateStyles};
+  line-height: 1;
   ${getMargin};
   & em {
     font-size: ${p => p.theme.fontSizeMedium};

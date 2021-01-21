@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 import {selectByValue} from 'sentry-test/select-new';
 
 import {Client} from 'app/api';
@@ -86,13 +87,18 @@ describe('IntegrationCodeMappings', function () {
   });
 
   it('opens modal', async () => {
-    expect(wrapper.find('input[name="stackRoot"]')).toHaveLength(0);
+    const modal = await mountGlobalModal();
+
+    expect(modal.find('input[name="stackRoot"]')).toHaveLength(0);
     wrapper.find('button[aria-label="Add Mapping"]').first().simulate('click');
+
     await tick();
-    expect(wrapper.find('input[name="stackRoot"]')).toHaveLength(1);
+    modal.update();
+
+    expect(modal.find('input[name="stackRoot"]')).toHaveLength(1);
   });
 
-  it('create new config', () => {
+  it('create new config', async () => {
     const stackRoot = 'my/root';
     const sourceRoot = 'hey/dude';
     const defaultBranch = 'release';
@@ -108,19 +114,21 @@ describe('IntegrationCodeMappings', function () {
     });
     wrapper.find('button[aria-label="Add Mapping"]').first().simulate('click');
 
-    selectByValue(wrapper, projects[1].id, {control: true, name: 'projectId'});
-    selectByValue(wrapper, repos[1].id, {name: 'repositoryId'});
+    const modal = await mountGlobalModal();
 
-    wrapper
+    selectByValue(modal, projects[1].id, {control: true, name: 'projectId'});
+    selectByValue(modal, repos[1].id, {name: 'repositoryId'});
+
+    modal
       .find('input[name="stackRoot"]')
       .simulate('change', {target: {value: stackRoot}});
-    wrapper
+    modal
       .find('input[name="sourceRoot"]')
       .simulate('change', {target: {value: sourceRoot}});
-    wrapper
+    modal
       .find('input[name="defaultBranch"]')
       .simulate('change', {target: {value: defaultBranch}});
-    wrapper.find('form').simulate('submit');
+    modal.find('form').simulate('submit');
 
     expect(createMock).toHaveBeenCalledWith(
       url,
@@ -136,7 +144,7 @@ describe('IntegrationCodeMappings', function () {
     );
   });
 
-  it('edit existing config', () => {
+  it('edit existing config', async () => {
     const stackRoot = 'new/root';
     const sourceRoot = 'source/root';
     const defaultBranch = 'master';
@@ -151,10 +159,14 @@ describe('IntegrationCodeMappings', function () {
       }),
     });
     wrapper.find('button[aria-label="edit"]').first().simulate('click');
-    wrapper
+
+    const modal = await mountGlobalModal();
+
+    modal
       .find('input[name="stackRoot"]')
       .simulate('change', {target: {value: stackRoot}});
-    wrapper.find('form').simulate('submit');
+    modal.find('form').simulate('submit');
+
     expect(editMock).toHaveBeenCalledWith(
       url,
       expect.objectContaining({

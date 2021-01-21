@@ -229,7 +229,9 @@ class VercelIntegration(IntegrationInstallation):
                 raise ValidationError(
                     {"project_mappings": ["You must have an enabled DSN to continue!"]}
                 )
-            source_code_provider = self.get_source_code_provider(vercel_client, vercel_project_id)
+            vercel_project = vercel_client.get_project(vercel_project_id)
+            source_code_provider = vercel_project.get("link", {}).get("type")
+
             if not source_code_provider:
                 raise ValidationError(
                     {
@@ -247,10 +249,14 @@ class VercelIntegration(IntegrationInstallation):
             sentry_auth_token = sentry_app_installation.get_token(
                 self.organization_id, provider="vercel"
             )
+
+            is_next_js = vercel_project.get("framework") == "nextjs"
+            dsn_secret_name = "NEXT_PUBLIC_SENTRY_DSN_%s" if is_next_js else "SENTRY_DSN_%s"
+
             secret_names = [
                 "SENTRY_ORG_%s" % uuid,
                 "SENTRY_PROJECT_%s" % uuid,
-                "NEXT_PUBLIC_SENTRY_DSN_%s" % uuid,
+                dsn_secret_name % uuid,
                 "SENTRY_AUTH_TOKEN_%s" % uuid,
             ]
             values = [
@@ -259,17 +265,20 @@ class VercelIntegration(IntegrationInstallation):
                 sentry_project_dsn,
                 sentry_auth_token,
             ]
+
+            dsn_env_name = "NEXT_PUBLIC_SENTRY_DSN" if is_next_js else "SENTRY_DSN"
+
             env_var_names = [
                 "SENTRY_ORG",
                 "SENTRY_PROJECT",
-                "NEXT_PUBLIC_SENTRY_DSN",
+                dsn_env_name,
                 "SENTRY_AUTH_TOKEN",
                 "VERCEL_%s_COMMIT_SHA" % source_code_provider.upper(),
             ]
 
             secrets = []
             for name, val in zip(secret_names, values):
-                secrets.append(self.create_secret(vercel_client, vercel_project_id, name, val))
+                secrets.append(vercel_client.create_secret(vercel_project_id, name, val))
 
             secrets.append("")
             for secret, env_var in zip(secrets, env_var_names):
@@ -278,34 +287,19 @@ class VercelIntegration(IntegrationInstallation):
         config.update(data)
         self.org_integration.update(config=config)
 
-    def get_source_code_provider(self, client, vercel_project_id):
-        try:
-            return client.get_source_code_provider(vercel_project_id)
-        except KeyError:
-            return None
-
-    def get_env_vars(self, client, vercel_project_id):
-        return client.get_env_vars(vercel_project_id)
-
     def env_var_already_exists(self, client, vercel_project_id, name):
         return any(
             [
                 env_var
-                for env_var in self.get_env_vars(client, vercel_project_id)["envs"]
+                for env_var in client.get_env_vars(vercel_project_id)["envs"]
                 if env_var["key"] == name
             ]
         )
 
-    def create_secret(self, client, vercel_project_id, name, value):
-        return client.create_secret(vercel_project_id, name, value)
-
     def create_env_var(self, client, vercel_project_id, key, value):
         if not self.env_var_already_exists(client, vercel_project_id, key):
             return client.create_env_variable(vercel_project_id, key, value)
-        self.update_env_variable(client, vercel_project_id, key, value)
-
-    def update_env_variable(self, client, vercel_project_id, key, value):
-        return client.update_env_variable(vercel_project_id, key, value)
+        client.update_env_variable(vercel_project_id, key, value)
 
 
 class VercelIntegrationProvider(IntegrationProvider):

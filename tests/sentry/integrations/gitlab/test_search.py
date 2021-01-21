@@ -3,6 +3,10 @@ from __future__ import absolute_import
 import responses
 
 from django.core.urlresolvers import reverse
+from six.moves.urllib.parse import parse_qs
+
+from sentry.utils import json
+
 from .testutils import GitLabTestCase
 
 
@@ -79,6 +83,42 @@ class GitlabSearchTest(GitLabTestCase):
             {"value": "1", "label": "GetSentry / Sentry"},
             {"value": "2", "label": "GetSentry2 / Sentry2"},
         ]
+
+    @responses.activate
+    def test_finds_project_results_with_pagination(self):
+        project_a = {
+            "id": "1",
+            "name_with_namespace": "GetSentry / Sentry",
+            "path_with_namespace": "getsentry/sentry",
+        }
+        project_b = {
+            "id": "2",
+            "name_with_namespace": "GetSentry2 / Sentry2",
+            "path_with_namespace": "getsentry2/sentry2",
+        }
+
+        def request_callback(request):
+            query = parse_qs(request.url.split("?")[1])
+            # allow for 220 responses
+            if int(query["page"][0]) >= 3:
+                projects = [project_a, project_b] * 10
+            else:
+                projects = [project_a, project_b] * 50
+            return (200, {}, json.dumps(projects))
+
+        responses.add_callback(
+            responses.GET,
+            "https://example.gitlab.com/api/v4/groups/1/projects",
+            callback=request_callback,
+            match_querystring=False,
+        )
+        resp = self.client.get(self.url, data={"field": "project", "query": "GetSentry"})
+
+        assert resp.status_code == 200
+        assert resp.data[0] == {"value": "1", "label": "GetSentry / Sentry"}
+        assert resp.data[1] == {"value": "2", "label": "GetSentry2 / Sentry2"}
+
+        assert len(resp.data) == 220
 
     @responses.activate
     def test_finds_no_external_issues_results(self):

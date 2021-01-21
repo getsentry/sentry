@@ -13,7 +13,7 @@ import {Group, GroupIntegration} from 'app/types';
 import withApi from 'app/utils/withApi';
 import IntegrationItem from 'app/views/organizationIntegrations/integrationItem';
 
-import ExternalIssueModal from './externalIssueModal';
+import ExternalIssueForm from './externalIssueForm';
 
 type Props = AsyncComponent['props'] & {
   api: Client;
@@ -66,7 +66,7 @@ const ExternalIssueActions = ({configurations, group, onChange, api}: Props) => 
 
   const doOpenModal = (integration: GroupIntegration) =>
     openModal(deps => (
-      <ExternalIssueModal {...deps} {...{configurations, group, onChange, integration}} />
+      <ExternalIssueForm {...deps} {...{group, onChange, integration}} />
     ));
 
   return (

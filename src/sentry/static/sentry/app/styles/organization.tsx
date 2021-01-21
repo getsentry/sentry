@@ -21,6 +21,7 @@ export const PageHeader = styled('div')`
   justify-content: space-between;
   align-items: center;
   margin-bottom: ${space(2)};
+  min-height: 32px;
 `;
 
 export const HeaderTitle = styled('h4')`

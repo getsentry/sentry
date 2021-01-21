@@ -22,7 +22,8 @@ import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
 import space from 'app/styles/space';
-import {Event, Frame, Organization, Project} from 'app/types';
+import {Frame, Organization, Project} from 'app/types';
+import {Event} from 'app/types/event';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 import DebugImage from './debugImage';
@@ -41,7 +42,7 @@ type DefaultProps = {
 
 type Props = DefaultProps & {
   event: Event;
-  orgId: Organization['id'];
+  organization: Organization;
   projectId: Project['id'];
 };
 
@@ -311,7 +312,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
   }
 
   renderRow = ({index, key, parent, style}: ListRowProps) => {
-    const {orgId, projectId} = this.props;
+    const {organization, projectId} = this.props;
     const {filteredImages, showDetails} = this.state;
 
     return (
@@ -325,7 +326,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
         <DebugImage
           style={style}
           image={filteredImages[index]}
-          orgId={orgId}
+          organization={organization}
           projectId={projectId}
           showDetails={showDetails}
         />
@@ -350,14 +351,14 @@ class DebugMeta extends React.PureComponent<Props, State> {
 
   renderImageList() {
     const {filteredImages, showDetails, panelBodyHeight} = this.state;
-    const {orgId, projectId} = this.props;
+    const {organization, projectId} = this.props;
 
     if (!panelBodyHeight) {
       return filteredImages.map(filteredImage => (
         <DebugImage
           key={filteredImage.debug_id}
           image={filteredImage}
-          orgId={orgId}
+          organization={organization}
           projectId={projectId}
           showDetails={showDetails}
         />
@@ -485,6 +486,7 @@ const ToolbarWrapper = styled('div')`
     margin-top: ${space(1)};
   }
 `;
+
 const SearchInputWrapper = styled('div')`
   width: 100%;
 

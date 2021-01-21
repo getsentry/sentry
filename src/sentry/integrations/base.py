@@ -369,3 +369,7 @@ class IntegrationInstallation(object):
             six.reraise(
                 IntegrationError, IntegrationError(self.message_from_error(exc)), sys.exc_info()[2]
             )
+
+    @property
+    def metadata(self):
+        return self.model.metadata

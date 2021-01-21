@@ -129,11 +129,6 @@ export function getCurrentConfidenceLevel(location: Location): ConfidenceLevel {
   return confidenceLevel || CONFIDENCE_LEVELS[0];
 }
 
-export function getIntervalRatio(location: Location): number {
-  const intervalFromLocation = decodeScalar(location?.query?.intervalRatio);
-  return intervalFromLocation ? parseFloat(intervalFromLocation) : 0.5;
-}
-
 export function transformDeltaSpread(from: number, to: number) {
   const fromSeconds = from / 1000;
   const toSeconds = to / 1000;

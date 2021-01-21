@@ -22,6 +22,29 @@ describe('GroupStore', function () {
     });
   });
 
+  describe('remove()', function () {
+    it('should remove entry', function () {
+      GroupStore.items = [{id: 1}, {id: 2}];
+      GroupStore.remove([1]);
+
+      expect(GroupStore.items).toEqual([{id: 2}]);
+    });
+
+    it('should remove multiple entries', function () {
+      GroupStore.items = [{id: 1}, {id: 2}, {id: 3}];
+      GroupStore.remove([1, 2]);
+
+      expect(GroupStore.items).toEqual([{id: 3}]);
+    });
+
+    it('should not remove already removed item', function () {
+      GroupStore.items = [{id: 1}, {id: 2}];
+      GroupStore.remove([0]);
+
+      expect(GroupStore.items).toEqual([{id: 1}, {id: 2}]);
+    });
+  });
+
   describe('onMergeSuccess()', function () {
     it('should remove the non-parent merged ids', function () {
       GroupStore.items = [{id: 1}, {id: 2}, {id: 3}, {id: 4}];

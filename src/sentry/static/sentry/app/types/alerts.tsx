@@ -1,3 +1,5 @@
+import {IssueConfigField} from 'app/types/index';
+
 export type IssueAlertRuleFormField =
   | {
       type: 'choice';
@@ -41,6 +43,8 @@ export type IssueAlertRuleAction = Omit<
   IssueAlertRuleActionTemplate,
   'formFields' | 'enabled'
 > & {
+  dynamic_form_fields?: IssueConfigField[];
+} & {
   // These are the same values as the keys in `formFields` for a template
   [key: string]: number | string;
 };
@@ -49,6 +53,8 @@ export type IssueAlertRuleCondition = Omit<
   IssueAlertRuleConditionTemplate,
   'formFields' | 'enabled'
 > & {
+  dynamic_form_fields?: IssueConfigField[];
+} & {
   // These are the same values as the keys in `formFields` for a template
   [key: string]: number | string;
 };

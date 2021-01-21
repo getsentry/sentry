@@ -28,7 +28,12 @@ export type FormOptions = {
   onSubmitError?: (error: any, instance: FormModel, id?: string) => void;
 };
 
-type OptionsWithInitial = FormOptions & {initialData?: object};
+type ClientOptions = ConstructorParameters<typeof Client>[0];
+
+type OptionsWithInitial = FormOptions & {
+  initialData?: object;
+  apiOptions?: ClientOptions;
+};
 
 class FormModel {
   /**
@@ -78,13 +83,13 @@ class FormModel {
 
   options: FormOptions;
 
-  constructor({initialData, ...options}: OptionsWithInitial = {}) {
+  constructor({initialData, apiOptions, ...options}: OptionsWithInitial = {}) {
     this.options = options || {};
     if (initialData) {
       this.setInitialData(initialData);
     }
 
-    this.api = new Client();
+    this.api = new Client(apiOptions);
   }
 
   /**

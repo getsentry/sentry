@@ -9,7 +9,7 @@ import TagStore from 'app/stores/tagStore';
 
 const stubEl = props => <div>{props.children}</div>;
 
-function mountModal({onAddWidget, initialData}) {
+function mountModal({initialData, onAddWidget, onUpdateWidget, widget}) {
   return mountWithTheme(
     <AddDashboardWidgetModal
       Header={stubEl}
@@ -17,6 +17,8 @@ function mountModal({onAddWidget, initialData}) {
       Body={stubEl}
       organization={initialData.organization}
       onAddWidget={onAddWidget}
+      onUpdateWidget={onUpdateWidget}
+      widget={widget}
       closeModal={() => void 0}
     />,
     initialData.routerContext
@@ -208,5 +210,45 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.queries[0].conditions).toEqual(discoverQuery.query);
     expect(widget.queries[0].fields).toEqual([discoverQuery.yAxis]);
+  });
+
+  it('can edit a widget', async function () {
+    let widget = {
+      id: '9',
+      title: 'Errors over time',
+      interval: '5m',
+      displayType: 'line',
+      queries: [
+        {id: '9', name: 'errors', conditions: 'event.type:error', fields: ['count()']},
+        {id: '9', name: 'csp', conditions: 'event.type:csp', fields: ['count()']},
+      ],
+    };
+    const onAdd = jest.fn();
+    const wrapper = mountModal({
+      initialData,
+      widget,
+      onAddWidget: onAdd,
+      onUpdateWidget: data => {
+        widget = data;
+      },
+    });
+
+    // Should be in edit 'mode'
+    const heading = wrapper.find('h4');
+    expect(heading.text()).toContain('Edit');
+
+    // Should set widget data up.
+    const title = wrapper.find('Input[name="title"]');
+    expect(title.props().value).toEqual(widget.title);
+    expect(wrapper.find('input[name="displayType"]').props().value).toEqual(
+      widget.displayType
+    );
+    expect(wrapper.find('WidgetQueryForm')).toHaveLength(2);
+
+    title.simulate('change', {target: {value: 'New title'}});
+    await clickSubmit(wrapper);
+
+    expect(onAdd).not.toHaveBeenCalled();
+    expect(widget.title).toEqual('New title');
   });
 });

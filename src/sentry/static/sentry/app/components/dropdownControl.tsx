@@ -5,7 +5,8 @@ import DropdownBubble from 'app/components/dropdownBubble';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownMenu, {GetActorPropsFn} from 'app/components/dropdownMenu';
 import MenuItem from 'app/components/menuItem';
-import theme from 'app/utils/theme';
+
+type ButtonPriority = React.ComponentProps<typeof DropdownButton>['priority'];
 
 type DefaultProps = {
   /**
@@ -43,6 +44,8 @@ type Props = DefaultProps & {
    */
   blendWithActor?: boolean;
 
+  priority?: ButtonPriority;
+
   className?: string;
 };
 
@@ -58,13 +61,17 @@ class DropdownControl extends React.Component<Props> {
   };
 
   renderButton(isOpen: boolean, getActorProps: GetActorPropsFn) {
-    const {label, button, buttonProps} = this.props;
+    const {label, button, buttonProps, priority} = this.props;
     if (button) {
       return button({isOpen, getActorProps});
     }
 
     return (
-      <StyledDropdownButton {...getActorProps(buttonProps)} isOpen={isOpen}>
+      <StyledDropdownButton
+        priority={priority}
+        {...getActorProps(buttonProps)}
+        isOpen={isOpen}
+      >
         {label}
       </StyledDropdownButton>
     );
@@ -77,6 +84,7 @@ class DropdownControl extends React.Component<Props> {
       alignRight,
       menuWidth,
       blendWithActor,
+      priority,
       className,
     } = this.props;
     const alignMenu = alignRight ? 'right' : 'left';
@@ -89,11 +97,11 @@ class DropdownControl extends React.Component<Props> {
               {this.renderButton(isOpen, getActorProps)}
               <Content
                 {...getMenuProps()}
+                priority={priority}
                 alignMenu={alignMenu}
                 width={menuWidth}
                 isOpen={isOpen}
                 blendWithActor={blendWithActor}
-                theme={theme}
                 blendCorner
               >
                 {children}
@@ -116,15 +124,13 @@ const StyledDropdownButton = styled(DropdownButton)`
   white-space: nowrap;
 `;
 
-const Content = styled(DropdownBubble)<{isOpen: boolean}>`
+const Content = styled(DropdownBubble)<{priority: ButtonPriority; isOpen: boolean}>`
   display: ${p => (p.isOpen ? 'block' : 'none')};
-  border-top: 0;
-  top: 100%;
+  border-color: ${p => p.theme.button[p.priority || 'form'].border};
 `;
 
 const DropdownItem = styled(MenuItem)`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray300};
 `;
 
 export default DropdownControl;

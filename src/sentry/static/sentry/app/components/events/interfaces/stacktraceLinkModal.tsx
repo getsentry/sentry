@@ -11,7 +11,7 @@ import {IconInfo} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Integration, Organization, Project} from 'app/types';
-import {getIntegrationIcon} from 'app/utils/integrationUtil';
+import {getIntegrationIcon, trackIntegrationEvent} from 'app/utils/integrationUtil';
 import InputField from 'app/views/settings/components/forms/inputField';
 
 type Props = AsyncComponent['props'] &
@@ -41,9 +41,31 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
     });
   }
 
+  onManualSetup(provider: string) {
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.stacktrace_manual_option_clicked',
+        eventName: 'Integrations: Stacktrace Manual Option Clicked',
+        view: 'stacktrace_issue_details',
+        setup_type: 'manual',
+        provider,
+      },
+      this.props.organization
+    );
+  }
+
   handleSubmit = async () => {
     const {sourceCodeInput} = this.state;
     const {organization, filename, project} = this.props;
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.stacktrace_submit_config',
+        eventName: 'Integrations: Stacktrace Submit Config',
+        setup_type: 'automatic',
+        view: 'stacktrace_issue_details',
+      },
+      this.props.organization
+    );
 
     const parsingEndpoint = `/projects/${organization.slug}/${project.slug}/repo-path-parsing/`;
     try {
@@ -62,6 +84,16 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
       });
 
       addSuccessMessage(t('Stack trace configuration saved.'));
+      trackIntegrationEvent(
+        {
+          eventKey: 'integrations.stacktrace_complete_setup',
+          eventName: 'Integrations: Stacktrace Complete Setup',
+          setup_type: 'automatic',
+          provider: configData.config?.provider.key,
+          view: 'stacktrace_issue_details',
+        },
+        this.props.organization
+      );
       this.props.closeModal();
       this.props.onSubmit();
     } catch (err) {
@@ -133,7 +165,8 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
                 <Button
                   key={integration.id}
                   type="button"
-                  to={`${baseUrl}/${integration.provider.key}/${integration.id}/?tab=codeMappings`}
+                  onClick={() => this.onManualSetup(integration.provider.key)}
+                  to={`${baseUrl}/${integration.provider.key}/${integration.id}/?tab=codeMappings&referrer=stacktrace-issue-details`}
                 >
                   {getIntegrationIcon(integration.provider.key)}
                   <IntegrationName>{integration.name}</IntegrationName>

@@ -32,6 +32,7 @@ from sentry.models import (
     OrganizationIntegration,
     UserOption,
 )
+from sentry.models.groupinbox import add_group_to_inbox, GroupInboxReason
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import iso_format, before_now
@@ -1155,6 +1156,16 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         r4 = GroupSeen.objects.filter(group=group4, user=self.user)
         assert not r4.exists()
+
+    def test_inbox_fields(self):
+        with self.feature("organizations:inbox"):
+            group1 = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
+            add_group_to_inbox(group1, GroupInboxReason.NEW)
+            self.login_as(user=self.user)
+            url = u"{url}?id={group1.id}".format(url=self.path, group1=group1)
+            response = self.client.put(url, data={"status": "resolved"}, format="json")
+            assert "inbox" in response.data
+            assert response.data["inbox"] is None
 
     @patch("sentry.api.helpers.group_index.uuid4")
     @patch("sentry.api.helpers.group_index.merge_groups")

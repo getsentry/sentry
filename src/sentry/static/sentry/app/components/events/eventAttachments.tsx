@@ -15,7 +15,8 @@ import FileSize from 'app/components/fileSize';
 import {PanelTable} from 'app/components/panels';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
-import {Event, EventAttachment} from 'app/types';
+import {EventAttachment} from 'app/types';
+import {Event} from 'app/types/event';
 import AttachmentUrl from 'app/utils/attachmentUrl';
 import withApi from 'app/utils/withApi';
 

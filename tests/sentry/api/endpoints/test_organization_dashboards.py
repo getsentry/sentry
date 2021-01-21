@@ -25,6 +25,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert data["id"] == six.text_type(dashboard.id)
         assert data["title"] == dashboard.title
         assert data["createdBy"] == six.text_type(dashboard.created_by.id)
+        assert "widgets" not in data
 
     def test_get(self):
         response = self.client.get(self.url)
@@ -65,6 +66,11 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             organization=self.organization, title="Dashboard from Post"
         )
         assert dashboard.created_by == self.user
+
+    def test_post_permissions(self):
+        self.create_user_member_role()
+        response = self.client.post(self.url, data={"title": "Dashboard from Post"})
+        assert response.status_code == 201
 
     def test_post_with_widgets(self):
         data = {

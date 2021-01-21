@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationAlertRulePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import (
     OffsetPaginator,
@@ -66,6 +66,8 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
 
 
 class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
+    permission_classes = (OrganizationAlertRulePermission,)
+
     def get(self, request, organization):
         """
         Fetches alert rules for an organization

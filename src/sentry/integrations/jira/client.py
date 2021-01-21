@@ -16,6 +16,7 @@ logger = logging.getLogger("sentry.integrations.jira")
 
 JIRA_KEY = "%s.jira" % (urlparse(absolute_uri()).hostname,)
 ISSUE_KEY_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*-\d+$")
+CUSTOMFIELD_PREFIX = "customfield_"
 
 
 class JiraCloud(object):
@@ -89,6 +90,7 @@ class JiraApiClient(ApiClient):
     ASSIGN_URL = "/rest/api/2/issue/%s/assignee"
     TRANSITION_URL = "/rest/api/2/issue/%s/transitions"
     EMAIL_URL = "/rest/api/3/user/email"
+    AUTOCOMPLETE_URL = "/rest/api/2/jql/autocompletedata/suggestions"
 
     integration_name = "jira"
 
@@ -235,3 +237,14 @@ class JiraApiClient(ApiClient):
     def get_email(self, account_id):
         user = self.get_cached(self.EMAIL_URL, params={"accountId": account_id})
         return user.get("email")
+
+    def get_field_autocomplete(self, name, value):
+        if name.startswith(CUSTOMFIELD_PREFIX):
+            # Transform `customfield_0123` into `cf[0123]`
+            cf_id = name[len(CUSTOMFIELD_PREFIX) :]
+            jql_name = "cf[{}]".format(cf_id)
+        else:
+            jql_name = name
+        return self.get_cached(
+            self.AUTOCOMPLETE_URL, params={"fieldName": jql_name, "fieldValue": value}
+        )

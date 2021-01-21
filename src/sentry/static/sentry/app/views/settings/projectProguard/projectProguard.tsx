@@ -9,13 +9,13 @@ import SearchBar from 'app/components/searchBar';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {DebugFile} from 'app/types/debugFiles';
 import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 // TODO(android-mappings): use own components once we decide how this should look like
 import DebugFileRow from 'app/views/settings/projectDebugFiles/debugFileRow';
-import {DebugFile} from 'app/views/settings/projectDebugFiles/types';
 
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;

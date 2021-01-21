@@ -1,5 +1,5 @@
 ---
-created: '2020-11-17T16:59:32.679679Z'
+created: '2021-01-05T09:42:17.220118Z'
 creator: sentry
 source: tests/symbolicator/test_minidump_full.py
 ---
@@ -31,7 +31,7 @@ debug_meta:
     code_id: 57898e12145000
     debug_file: dbghelp.pdb
     debug_id: 9c2a902b-6fdf-40ad-8308-588a41d572a0-1
-    debug_status: missing
+    debug_status: unused
     features:
       has_debug_info: false
       has_sources: false
@@ -330,29 +330,9 @@ exception:
           symbolicator_status: missing
         function: null
         in_app: false
-        instruction_addr: '0x75810000'
-        lineno: null
-        package: C:\Windows\System32\rpcrt4.dll
-        symbol: null
-        trust: scan
-      - data:
-          orig_in_app: -1
-          symbolicator_status: missing
-        function: null
-        in_app: false
         instruction_addr: '0x70b7ae40'
         lineno: null
         package: C:\Windows\System32\dbgcore.dll
-        symbol: null
-        trust: scan
-      - data:
-          orig_in_app: -1
-          symbolicator_status: missing
-        function: null
-        in_app: false
-        instruction_addr: '0x70850000'
-        lineno: null
-        package: C:\Windows\System32\dbghelp.dll
         symbol: null
         trust: scan
       - data:

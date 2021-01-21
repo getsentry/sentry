@@ -14,7 +14,9 @@ import HeaderItemPosition from 'app/components/organizations/headerItemPosition'
 import HeaderSeparator from 'app/components/organizations/headerSeparator';
 import MultipleEnvironmentSelector from 'app/components/organizations/multipleEnvironmentSelector';
 import MultipleProjectSelector from 'app/components/organizations/multipleProjectSelector';
-import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
+import TimeRangeSelector, {
+  ChangeData,
+} from 'app/components/organizations/timeRangeSelector';
 import Tooltip from 'app/components/tooltip';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {IconArrow} from 'app/icons';
@@ -252,7 +254,7 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
     callIfFunction(this.props.onChangeEnvironments, environments);
   };
 
-  handleChangeTime = ({start, end, relative: period, utc}) => {
+  handleChangeTime = ({start, end, relative: period, utc}: ChangeData) => {
     callIfFunction(this.props.onChangeTime, {start, end, period, utc});
   };
 

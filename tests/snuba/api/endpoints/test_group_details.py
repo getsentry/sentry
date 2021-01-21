@@ -3,7 +3,8 @@ from __future__ import absolute_import, print_function
 import six
 from sentry.utils.compat import mock
 
-from sentry.models import Environment, Release
+from sentry.models import Environment, Release, GroupInboxReason
+from sentry.models.groupinbox import add_group_to_inbox, remove_group_from_inbox
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
@@ -129,3 +130,26 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         )
         assert response.data["firstRelease"]["firstEvent"].ctime() == first_event.ctime()
         assert response.data["lastRelease"] == {"version": "1.1"}
+
+    def test_group_expand_inbox(self):
+        with self.feature("organizations:inbox"):
+            self.login_as(user=self.user)
+
+            event = self.store_event(
+                data={"timestamp": iso_format(before_now(minutes=3))}, project_id=self.project.id,
+            )
+            group = event.group
+            add_group_to_inbox(group, GroupInboxReason.NEW)
+
+            url = u"/api/0/issues/{}/?expand=inbox".format(group.id)
+
+            response = self.client.get(url, format="json")
+            assert response.status_code == 200, response.content
+            assert response.data["inbox"] is not None
+            assert response.data["inbox"]["reason"] == GroupInboxReason.NEW.value
+            assert response.data["inbox"]["reason_details"] is None
+
+            remove_group_from_inbox(event.group)
+            response = self.client.get(url, format="json")
+            assert response.status_code == 200, response.content
+            assert response.data["inbox"] is None

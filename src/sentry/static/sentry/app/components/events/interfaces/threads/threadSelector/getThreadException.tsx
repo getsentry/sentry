@@ -1,4 +1,5 @@
-import {Event, ExceptionType} from 'app/types';
+import {ExceptionType} from 'app/types';
+import {Event} from 'app/types/event';
 import {Thread} from 'app/types/events';
 import {defined} from 'app/utils';
 

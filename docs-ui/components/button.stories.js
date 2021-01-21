@@ -1,13 +1,14 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {withInfo} from '@storybook/addon-info';
 import {action} from '@storybook/addon-actions';
+import {withInfo} from '@storybook/addon-info';
 import {boolean, number} from '@storybook/addon-knobs';
 
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import NavigationButtonGroup from 'app/components/navigationButtonGroup';
 import DropdownButton from 'app/components/dropdownButton';
+import DropdownLink from 'app/components/dropdownLink';
+import NavigationButtonGroup from 'app/components/navigationButtonGroup';
 import {IconDelete} from 'app/icons/iconDelete';
 
 const Item = styled('span')`
@@ -188,6 +189,25 @@ export const _ButtonBar = withInfo('Buttons in a Bar container')(() => (
         <Button barId="4">Fourth Button</Button>
       </ButtonBar>
     </div>
+
+    <div className="section">
+      <h3>Works with DropdownLink</h3>
+      <StartButtonBar merged>
+        <DropdownLink customTitle={<Button>First DropdownLink</Button>} />
+        <DropdownLink customTitle={<Button>Second DropdownLink</Button>} />
+        <DropdownLink customTitle={<Button>Third DropdownLink</Button>} />
+      </StartButtonBar>
+      <StartButtonBar merged>
+        <Button>First Button</Button>
+        <DropdownLink customTitle={<Button>Second DropdownLink</Button>} />
+        <Button>Third Button</Button>
+      </StartButtonBar>
+      <StartButtonBar merged>
+        <DropdownLink customTitle={<Button>First DropdownLink</Button>} />
+        <Button>Second Button</Button>
+        <DropdownLink customTitle={<Button>Third DropdownLink</Button>} />
+      </StartButtonBar>
+    </div>
   </div>
 ));
 
@@ -207,3 +227,8 @@ export const _NavigationButtonGroup = withInfo('Navigation Buttons Group')(() =>
 _NavigationButtonGroup.story = {
   name: 'NavigationButtonGroup',
 };
+
+const StartButtonBar = styled(ButtonBar)`
+  justify-content: flex-start;
+  margin-bottom: 6px;
+`;

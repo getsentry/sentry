@@ -182,8 +182,6 @@ def load_data(
         for tag in data["tags"]:
             if tag[0] == "trace":
                 tag[1] = trace
-            elif tag[0] == "trace.ctx":
-                tag[1] = trace + "-" + span
             elif tag[0] == "trace.span":
                 tag[1] = span
         data["contexts"]["trace"]["trace_id"] = trace

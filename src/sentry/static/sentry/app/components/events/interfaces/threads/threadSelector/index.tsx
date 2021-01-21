@@ -5,7 +5,8 @@ import partition from 'lodash/partition';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownButton from 'app/components/dropdownButton';
 import {t} from 'app/locale';
-import {EntryData, Event} from 'app/types';
+import {EntryData} from 'app/types';
+import {Event} from 'app/types/event';
 import {Thread} from 'app/types/events';
 import theme from 'app/utils/theme';
 

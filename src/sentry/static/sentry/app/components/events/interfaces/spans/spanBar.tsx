@@ -8,7 +8,8 @@ import Tooltip from 'app/components/tooltip';
 import {IconChevron, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, SentryTransactionEvent} from 'app/types';
+import {Organization} from 'app/types';
+import {EventTransaction} from 'app/types/event';
 import {defined, OmitHtmlDivProps} from 'app/utils';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import globalTheme from 'app/utils/theme';
@@ -20,7 +21,6 @@ import {
   MINIMAP_SPAN_BAR_HEIGHT,
   NUM_OF_SPANS_FIT_IN_MINI_MAP,
 } from './header';
-import * as ScrollbarManager from './scrollbarManager';
 import SpanDetail from './spanDetail';
 import {
   getHatchPattern,
@@ -203,7 +203,7 @@ export const getBackgroundColor = ({
 };
 
 type SpanBarProps = {
-  event: Readonly<SentryTransactionEvent>;
+  event: Readonly<EventTransaction>;
   orgId: string;
   organization: Organization;
   trace: Readonly<ParsedTraceType>;
@@ -497,13 +497,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     );
   }
 
-  renderTitle(
-    scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps
-  ) {
-    const {
-      generateContentSpanBarRef,
-      generateScrollableSpanBarRef,
-    } = scrollbarManagerChildrenProps;
+  renderTitle() {
     const {span, treeDepth, spanErrors} = this.props;
 
     const operationName = getSpanOperation(span) ? (
@@ -519,22 +513,20 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 
     return (
-      <ScrollableSpanBar ref={generateScrollableSpanBarRef()}>
-        <SpanBarTitleContainer ref={generateContentSpanBarRef()}>
-          {this.renderSpanTreeToggler({left})}
-          <SpanBarTitle
-            style={{
-              left: `${left}px`,
-              width: '100%',
-            }}
-          >
-            <span>
-              {operationName}
-              {description}
-            </span>
-          </SpanBarTitle>
-        </SpanBarTitleContainer>
-      </ScrollableSpanBar>
+      <SpanBarTitleContainer>
+        {this.renderSpanTreeToggler({left})}
+        <SpanBarTitle
+          style={{
+            left: `${left}px`,
+            width: '100%',
+          }}
+        >
+          <span>
+            {operationName}
+            {description}
+          </span>
+        </SpanBarTitle>
+      </SpanBarTitleContainer>
     );
   }
 
@@ -793,11 +785,9 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   }
 
   renderHeader({
-    scrollbarManagerChildrenProps,
     dividerHandlerChildrenProps,
   }: {
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
-    scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps;
   }) {
     const {span, spanBarColour, spanBarHatch, spanNumber} = this.props;
     const startTimestamp: number = span.start_timestamp;
@@ -822,7 +812,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             this.toggleDisplayDetail();
           }}
         >
-          {this.renderTitle(scrollbarManagerChildrenProps)}
+          {this.renderTitle()}
         </SpanRowCell>
         {this.renderDivider(dividerHandlerChildrenProps)}
         <SpanRowCell
@@ -898,23 +888,15 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         showBorder={this.state.showDetail}
         data-test-id="span-row"
       >
-        <ScrollbarManager.Consumer>
-          {scrollbarManagerChildrenProps => {
-            return (
-              <DividerHandlerManager.Consumer>
-                {(
-                  dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-                ) =>
-                  this.renderHeader({
-                    dividerHandlerChildrenProps,
-                    scrollbarManagerChildrenProps,
-                  })
-                }
-              </DividerHandlerManager.Consumer>
-            );
-          }}
-        </ScrollbarManager.Consumer>
-
+        <DividerHandlerManager.Consumer>
+          {(
+            dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
+          ) =>
+            this.renderHeader({
+              dividerHandlerChildrenProps,
+            })
+          }
+        </DividerHandlerManager.Consumer>
         {this.renderDetail({isVisible: isSpanVisible})}
       </SpanRow>
     );
@@ -1019,15 +1001,6 @@ export const SpanBarTitle = styled('div')`
   display: flex;
   flex: 1;
   align-items: center;
-`;
-
-const ScrollableSpanBar = styled('div')`
-  position: relative;
-  /* increase span bar height such that the horizontal scrollbar is out of view */
-  height: ${SPAN_ROW_HEIGHT + 50}px;
-  /* for virtual scrollbar */
-  overflow-y: hidden;
-  overflow-x: scroll;
 `;
 
 type TogglerTypes = OmitHtmlDivProps<{

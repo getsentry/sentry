@@ -5,7 +5,8 @@ import Papa from 'papaparse';
 import {COL_WIDTH_UNDEFINED} from 'app/components/gridEditable';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
-import {Event, LightWeightOrganization, Organization, SelectValue} from 'app/types';
+import {LightWeightOrganization, Organization, SelectValue} from 'app/types';
+import {Event} from 'app/types/event';
 import {getUtcDateString} from 'app/utils/dates';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
@@ -169,6 +170,7 @@ export function downloadAsCsv(tableData, columnOrder, filename) {
 
 const ALIASED_AGGREGATES_COLUMN = {
   last_seen: 'timestamp',
+  failure_count: 'transaction.status',
 };
 
 /**

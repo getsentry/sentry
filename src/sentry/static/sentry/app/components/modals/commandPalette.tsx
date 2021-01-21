@@ -23,7 +23,6 @@ class CommandPalette extends React.Component<ModalRenderProps> {
         <ClassNames>
           {({css: injectedCss}) => (
             <Search
-              isOpen
               entryPoint="command_palette"
               minSearch={1}
               maxResults={10}

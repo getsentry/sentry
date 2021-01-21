@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import RelativeSelector from 'app/components/organizations/timeRangeSelector/dateRange/relativeSelector';
 import SelectorItem from 'app/components/organizations/timeRangeSelector/dateRange/selectorItem';
@@ -37,14 +36,5 @@ const SelectorItems = ({
     )}
   </React.Fragment>
 );
-
-SelectorItems.propTypes = {
-  shouldShowRelative: PropTypes.bool,
-  shouldShowAbsolute: PropTypes.bool,
-  handleSelectRelative: PropTypes.func,
-  handleAbsoluteClick: PropTypes.func,
-  relativeSelected: PropTypes.string,
-  isAbsoluteSelected: PropTypes.bool,
-};
 
 export default SelectorItems;

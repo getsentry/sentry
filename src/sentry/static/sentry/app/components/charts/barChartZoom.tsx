@@ -52,6 +52,10 @@ type Props = {
    */
   children: (props: RenderProps) => React.ReactNode;
   /**
+   *
+   */
+  onHistoryPush?: (start: number, end: number) => void;
+  /**
    * This callback is called when the zoom action was cancelled. It can happen
    * when `minZoomWidth` is specified and the user tries to zoom on an area
    * smaller than that.
@@ -84,7 +88,14 @@ class BarChartZoom extends React.Component<Props> {
     // These values are null when the user uses the toolbox included in ECharts
     // to navigate back through zoom history, but we hide it below.
     if (axis.rangeStart !== null && axis.rangeEnd !== null) {
-      const {buckets, location, paramStart, paramEnd, minZoomWidth} = this.props;
+      const {
+        buckets,
+        location,
+        paramStart,
+        paramEnd,
+        minZoomWidth,
+        onHistoryPush,
+      } = this.props;
       const {start} = buckets[axis.rangeStart];
       const {end} = buckets[axis.rangeEnd];
 
@@ -97,7 +108,11 @@ class BarChartZoom extends React.Component<Props> {
             [paramEnd]: end,
           },
         };
-        browserHistory.push(target);
+        if (onHistoryPush) {
+          onHistoryPush(start, end);
+        } else {
+          browserHistory.push(target);
+        }
       } else {
         // Dispatch the restore action here to stop ECharts from zooming
         chart.dispatchAction({type: 'restore'});

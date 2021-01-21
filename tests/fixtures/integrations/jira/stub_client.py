@@ -40,3 +40,9 @@ class StubJiraApiClient(StubService):
         if user["accountId"] == user_id:
             return user
         raise ApiError("no user found")
+
+    def get_valid_statuses(self):
+        return self._get_stub_data("status_response.json")
+
+    def search_users_for_project(self, project, username):
+        return [self._get_stub_data("user.json")]

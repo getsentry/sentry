@@ -6,13 +6,13 @@ import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import {t} from 'app/locale';
 import {
-  Event,
   Frame,
   Integration,
   Organization,
   Project,
   RepositoryProjectPathConfig,
 } from 'app/types';
+import {Event} from 'app/types/event';
 import {getIntegrationIcon, trackIntegrationEvent} from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
@@ -81,11 +81,12 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       throw new Error('Unable to find project');
     }
     const commitId = event.release?.lastCommit?.id;
+    const platform = event.platform;
     return [
       [
         'match',
         `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
-        {query: {file: frame.filename, commitId}},
+        {query: {file: frame.filename, platform, commitId}},
       ],
     ];
   }
@@ -114,6 +115,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       );
     }
   }
+
   onReconfigureMapping() {
     const provider = this.config?.provider;
     const error = this.match.error;
@@ -149,13 +151,24 @@ class StacktraceLink extends AsyncComponent<Props, State> {
   renderNoMatch() {
     const {organization} = this.props;
     const filename = this.props.frame.filename;
+    const platform = this.props.event.platform;
 
     if (this.project && this.integrations.length > 0 && filename) {
       return (
         <CodeMappingButtonContainer columnQuantity={2}>
           {t('Enable source code stack trace linking by setting up a code mapping.')}
           <Button
-            onClick={() =>
+            onClick={() => {
+              trackIntegrationEvent(
+                {
+                  eventKey: 'integrations.stacktrace_start_setup',
+                  eventName: 'Integrations: Stacktrace Start Setup',
+                  view: 'stacktrace_issue_details',
+                  platform,
+                },
+                this.props.organization,
+                {startSession: true}
+              );
               openModal(
                 deps =>
                   this.project && (
@@ -168,11 +181,11 @@ class StacktraceLink extends AsyncComponent<Props, State> {
                       {...deps}
                     />
                   )
-              )
-            }
+              );
+            }}
             size="xsmall"
           >
-            {t('Setup Stack Trace Linking')}
+            {t('Set up Stack Trace Linking')}
           </Button>
         </CodeMappingButtonContainer>
       );

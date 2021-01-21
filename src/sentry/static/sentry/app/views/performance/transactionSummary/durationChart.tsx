@@ -1,7 +1,7 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 import * as ReactRouter from 'react-router';
-import {Location} from 'history';
+import {Location, Query} from 'history';
 
 import {Client} from 'app/api';
 import AreaChart from 'app/components/charts/areaChart';
@@ -42,7 +42,7 @@ type Props = ReactRouter.WithRouterProps &
     api: Client;
     location: Location;
     organization: OrganizationSummary;
-    queryExtra: object;
+    queryExtra: Query;
   };
 
 const YAXIS_VALUES = ['p50()', 'p75()', 'p95()', 'p99()', 'p100()'];
@@ -80,12 +80,9 @@ class DurationChart extends React.Component<Props> {
       queryExtra,
     } = this.props;
 
-    const start = this.props.start
-      ? getUtcToLocalDateObject(this.props.start)
-      : undefined;
-
-    const end = this.props.end ? getUtcToLocalDateObject(this.props.end) : undefined;
-    const utc = decodeScalar(router.location.query.utc);
+    const start = this.props.start ? getUtcToLocalDateObject(this.props.start) : null;
+    const end = this.props.end ? getUtcToLocalDateObject(this.props.end) : null;
+    const utc = decodeScalar(router.location.query.utc) !== 'false';
 
     const legend = {
       right: 10,
@@ -94,7 +91,7 @@ class DurationChart extends React.Component<Props> {
       itemHeight: 8,
       itemWidth: 8,
       itemGap: 12,
-      align: 'left',
+      align: 'left' as const,
       textStyle: {
         verticalAlign: 'top',
         fontSize: 11,
@@ -104,8 +101,8 @@ class DurationChart extends React.Component<Props> {
     };
 
     const datetimeSelection = {
-      start: start || null,
-      end: end || null,
+      start,
+      end,
       period: statsPeriod,
     };
 
@@ -120,7 +117,7 @@ class DurationChart extends React.Component<Props> {
         showSymbol: false,
       },
       tooltip: {
-        trigger: 'axis',
+        trigger: 'axis' as const,
         valueFormatter: tooltipFormatter,
       },
       yAxis: {
@@ -144,19 +141,14 @@ class DurationChart extends React.Component<Props> {
             )}
           />
         </HeaderTitleLegend>
-        <ChartZoom
-          router={router}
-          period={statsPeriod}
-          projects={project}
-          environments={environment}
-        >
+        <ChartZoom router={router} period={statsPeriod}>
           {zoomRenderProps => (
             <EventsRequest
               api={api}
               organization={organization}
               period={statsPeriod}
-              project={[...project]}
-              environment={[...environment]}
+              project={project}
+              environment={environment}
               start={start}
               end={end}
               interval={getInterval(datetimeSelection, true)}
@@ -191,10 +183,6 @@ class DurationChart extends React.Component<Props> {
                       })
                       .reverse()
                   : [];
-
-                // Stack the toolbox under the legend.
-                // so all series names are clickable.
-                zoomRenderProps.toolBox.z = -1;
 
                 return (
                   <ReleaseSeries

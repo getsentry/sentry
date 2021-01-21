@@ -252,25 +252,26 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                     project_id=project.id,
                 )
 
-        with self.feature("organizations:discover-basic"):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=6)),
-                    "interval": "1h",
-                    "yAxis": "epm()",
-                    "project": project.id,
-                },
-            )
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 6
+        for axis in ["epm()", "tpm()"]:
+            with self.feature("organizations:discover-basic"):
+                response = self.client.get(
+                    self.url,
+                    format="json",
+                    data={
+                        "start": iso_format(self.day_ago),
+                        "end": iso_format(self.day_ago + timedelta(hours=6)),
+                        "interval": "1h",
+                        "yAxis": axis,
+                        "project": project.id,
+                    },
+                )
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 6
 
-        rows = data[0:6]
-        for test in zip(event_counts, rows):
-            assert test[1][1][0]["count"] == test[0] / (3600.0 / 60.0)
+            rows = data[0:6]
+            for test in zip(event_counts, rows):
+                assert test[1][1][0]["count"] == test[0] / (3600.0 / 60.0)
 
     def test_throughput_epm_day_rollup(self):
         project = self.create_project()
@@ -291,23 +292,24 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                     project_id=project.id,
                 )
 
-        with self.feature("organizations:discover-basic"):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=24)),
-                    "interval": "24h",
-                    "yAxis": "epm()",
-                    "project": project.id,
-                },
-            )
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 2
+        for axis in ["epm()", "tpm()"]:
+            with self.feature("organizations:discover-basic"):
+                response = self.client.get(
+                    self.url,
+                    format="json",
+                    data={
+                        "start": iso_format(self.day_ago),
+                        "end": iso_format(self.day_ago + timedelta(hours=24)),
+                        "interval": "24h",
+                        "yAxis": axis,
+                        "project": project.id,
+                    },
+                )
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 2
 
-        assert data[0][1][0]["count"] == sum(event_counts) / (86400.0 / 60.0)
+            assert data[0][1][0]["count"] == sum(event_counts) / (86400.0 / 60.0)
 
     def test_throughput_eps_minute_rollup(self):
         project = self.create_project()
@@ -328,25 +330,26 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                     project_id=project.id,
                 )
 
-        with self.feature("organizations:discover-basic"):
-            response = self.client.get(
-                self.url,
-                format="json",
-                data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(minutes=6)),
-                    "interval": "1m",
-                    "yAxis": "eps()",
-                    "project": project.id,
-                },
-            )
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 6
+        for axis in ["eps()", "tps()"]:
+            with self.feature("organizations:discover-basic"):
+                response = self.client.get(
+                    self.url,
+                    format="json",
+                    data={
+                        "start": iso_format(self.day_ago),
+                        "end": iso_format(self.day_ago + timedelta(minutes=6)),
+                        "interval": "1m",
+                        "yAxis": axis,
+                        "project": project.id,
+                    },
+                )
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 6
 
-        rows = data[0:6]
-        for test in zip(event_counts, rows):
-            assert test[1][1][0]["count"] == test[0] / 60.0
+            rows = data[0:6]
+            for test in zip(event_counts, rows):
+                assert test[1][1][0]["count"] == test[0] / 60.0
 
     def test_throughput_eps_no_rollup(self):
         project = self.create_project()
@@ -724,6 +727,31 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             "sentry-api-0-organization-events-stats",
             kwargs={"organization_slug": self.project.organization.slug},
         )
+
+    def test_no_top_events(self):
+        project = self.create_project()
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    # make sure to query the project with 0 events
+                    "project": project.id,
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "message", "user.email"],
+                    "topEvents": 5,
+                },
+                format="json",
+            )
+
+        data = response.data["data"]
+        assert response.status_code == 200, response.content
+        # When there are no top events, we do not return an empty dict.
+        # Instead, we return a single zero-filled series for an empty graph.
+        assert [attrs for time, attrs in data] == [[{"count": 0}], [{"count": 0}]]
 
     def test_simple_top_events(self):
         with self.feature(self.enabled_features):

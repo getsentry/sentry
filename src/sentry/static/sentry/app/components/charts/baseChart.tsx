@@ -10,8 +10,14 @@ import {IS_ACCEPTANCE_TEST} from 'app/constants';
 import space from 'app/styles/space';
 import {
   EChartChartReadyHandler,
+  EChartClickHandler,
   EChartDataZoomHandler,
   EChartEventHandler,
+  EChartFinishedHandler,
+  EChartHighlightHandler,
+  EChartMouseOverHandler,
+  EChartRenderedHandler,
+  EChartRestoreHandler,
   ReactEchartsRef,
   Series,
 } from 'app/types/echarts';
@@ -152,16 +158,16 @@ type Props = {
    */
   lazyUpdate?: boolean;
   onChartReady?: EChartChartReadyHandler;
-  onHighlight?: EChartEventHandler<any>;
-  onMouseOver?: EChartEventHandler<any>;
-  onClick?: EChartEventHandler<any>;
+  onHighlight?: EChartHighlightHandler;
+  onMouseOver?: EChartMouseOverHandler;
+  onClick?: EChartClickHandler;
   onDataZoom?: EChartDataZoomHandler;
   /**
    * One example of when this is called is restoring chart from zoom levels
    */
-  onRestore?: EChartEventHandler<{type: 'restore'}>;
-  onFinished?: EChartEventHandler<{}>;
-  onRendered?: EChartEventHandler<{}>;
+  onRestore?: EChartRestoreHandler;
+  onFinished?: EChartFinishedHandler;
+  onRendered?: EChartRenderedHandler;
   onLegendSelectChanged?: EChartEventHandler<{}>;
   /**
    * Forwarded Ref
@@ -423,7 +429,7 @@ class BaseChart extends React.Component<Props> {
                     ...tooltip,
                   })
                 : undefined,
-            legend: legend ? Legend({...legend}) : undefined,
+            legend: legend ? Legend({theme, ...legend}) : undefined,
             yAxis: yAxisOrCustom,
             xAxis: xAxisOrCustom,
             series: this.getSeries(),

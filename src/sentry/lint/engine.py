@@ -53,7 +53,7 @@ def get_files(path):
 
 def get_modified_files(path):
     return [
-        s
+        s.decode("utf-8")
         for s in check_output(["git", "diff-index", "--cached", "--name-only", "HEAD"]).split(b"\n")
         if s
     ]
@@ -285,7 +285,7 @@ def run_formatter(cmd, file_list, prompt_on_changes=True):
     output = subprocess.check_output(["git", "diff", "--color"] + file_list)
     if output:
         sys.stdout.write("[sentry.lint] applied changes from autoformatting\n")
-        sys.stdout.write(output)
+        sys.stdout.write(output.decode("utf-8"))
         if prompt_on_changes:
             with open("/dev/tty") as fp:
                 sys.stdout.write("\033[1m" + "Stage this patch and continue? [Y/n] " + "\033[0m\n")

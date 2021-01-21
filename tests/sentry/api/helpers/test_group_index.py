@@ -84,7 +84,6 @@ class UpdateGroupsTest(TestCase):
         resolved_group.refresh_from_db()
 
         assert resolved_group.status == GroupStatus.UNRESOLVED
-        assert GroupInbox.objects.filter(group=resolved_group).exists()
         assert not send_robust.called
         assert send_unresolved.called
 
@@ -143,3 +142,22 @@ class UpdateGroupsTest(TestCase):
 
         assert group.status == GroupStatus.UNRESOLVED
         assert send_robust.called
+
+    @patch("sentry.signals.issue_mark_reviewed.send_robust")
+    def test_mark_reviewed_group(self, send_robust):
+        with self.feature("organizations:inbox"):
+            group = self.create_group()
+            add_group_to_inbox(group, GroupInboxReason.NEW)
+
+            request = self.make_request(user=self.user, method="GET")
+            request.user = self.user
+            request.data = {"inbox": False}
+            request.GET = QueryDict(query_string="id={}".format(group.id))
+
+            search_fn = Mock()
+            update_groups(request, [self.project], self.organization.id, search_fn)
+
+            group.refresh_from_db()
+
+            assert not GroupInbox.objects.filter(group=group).exists()
+            assert send_robust.called

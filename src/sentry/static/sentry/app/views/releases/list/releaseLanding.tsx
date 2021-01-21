@@ -1,6 +1,12 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import emptyStateImg from 'sentry-images/spot/releases-empty-state.svg';
+import commitImage from 'sentry-images/spot/releases-tour-commits.svg';
+import emailImage from 'sentry-images/spot/releases-tour-email.svg';
+import resolutionImage from 'sentry-images/spot/releases-tour-resolution.svg';
+import statsImage from 'sentry-images/spot/releases-tour-stats.svg';
+
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -14,12 +20,6 @@ import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import AsyncView from 'app/views/asyncView';
-
-import emptyStateImg from '../../../../images/spot/releases-empty-state.svg';
-import commitImage from '../../../../images/spot/releases-tour-commits.svg';
-import emailImage from '../../../../images/spot/releases-tour-email.svg';
-import resolutionImage from '../../../../images/spot/releases-tour-resolution.svg';
-import statsImage from '../../../../images/spot/releases-tour-stats.svg';
 
 const releasesSetupUrl = 'https://docs.sentry.io/product/releases/';
 

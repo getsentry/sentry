@@ -124,7 +124,7 @@ def resolved_in_commit(instance, created, **kwargs):
                 Group.objects.filter(id=group.id).update(
                     status=GroupStatus.RESOLVED, resolved_at=current_datetime
                 )
-                remove_group_from_inbox(group)
+                remove_group_from_inbox(group, action="resolved")
         except IntegrityError:
             pass
         else:

@@ -2,21 +2,23 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import Button from 'app/components/button';
+import Collapsible from 'app/components/collapsible';
 import Count from 'app/components/count';
-import Link from 'app/components/links/link';
+import GlobalSelectionLink from 'app/components/globalSelectionLink';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
 import {PanelItem} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import ProgressBar from 'app/components/progressBar';
 import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Release, ReleaseProject} from 'app/types';
 import {defined} from 'app/utils';
 
-import {getReleaseNewIssuesUrl} from '../../utils';
+import {getReleaseNewIssuesUrl, getReleaseUnhandledIssuesUrl} from '../../utils';
 import AdoptionTooltip from '../adoptionTooltip';
-import ClippedHealthRows from '../clippedHealthRows';
 import CrashFree from '../crashFree';
 import HealthStatsChart from '../healthStatsChart';
 import HealthStatsPeriod, {StatsPeriod} from '../healthStatsPeriod';
@@ -24,7 +26,7 @@ import NotAvailable from '../notAvailable';
 import {DisplayOption} from '../utils';
 
 import Header from './header';
-import ProjectName from './projectName';
+import ProjectLink from './projectLink';
 
 type Props = {
   projects: Array<ReleaseProject>;
@@ -52,11 +54,11 @@ const Content = ({
     <React.Fragment>
       <Header>
         <Layout>
-          <ProjectColumn>{t('Project name')}</ProjectColumn>
+          <Column>{t('Project Name')}</Column>
           <AdoptionColumn>{t('User Adoption')}</AdoptionColumn>
           {activeDisplay === DisplayOption.CRASH_FREE_USERS ? (
             <React.Fragment>
-              <UsersColumn>{t('Crash Free Users')}</UsersColumn>
+              <SessionsColumn>{t('Crash Free Users')}</SessionsColumn>
               <DailyColumn>
                 <span>{t('Users')}</span>
                 {healthStatsPeriod}
@@ -71,137 +73,202 @@ const Content = ({
               </DailyColumn>
             </React.Fragment>
           )}
-          <CrashesColumn>{t('Crashes')}</CrashesColumn>
-          <IssuesColumn>{t('New Issues')}</IssuesColumn>
+          <CrashIssueColumn>{t('Crashes')}</CrashIssueColumn>
+          <CrashIssueColumn>{t('New Issues')}</CrashIssueColumn>
+          <ViewColumn />
         </Layout>
       </Header>
 
-      <ClippedHealthRows>
-        {projects.map(project => {
-          const {slug, healthData, newGroups} = project;
-          const {
-            hasHealthData,
-            adoption,
-            stats,
-            crashFreeUsers,
-            crashFreeSessions,
-            sessionsCrashed,
-            totalUsers,
-            totalUsers24h,
-            totalSessions,
-            totalSessions24h,
-          } = healthData || {};
+      <ProjectRows>
+        <Collapsible
+          expandButton={({onExpand, numberOfCollapsedItems}) => (
+            <ExpandButtonWrapper>
+              <Button priority="primary" size="xsmall" onClick={onExpand}>
+                {tct('Show [numberOfCollapsedItems] More', {
+                  numberOfCollapsedItems,
+                })}
+              </Button>
+            </ExpandButtonWrapper>
+          )}
+          collapseButton={({onCollapse}) => (
+            <CollapseButtonWrapper>
+              <Button priority="primary" size="xsmall" onClick={onCollapse}>
+                {t('Collapse')}
+              </Button>
+            </CollapseButtonWrapper>
+          )}
+        >
+          {projects.map(project => {
+            const {slug, healthData, newGroups} = project;
+            const {
+              hasHealthData,
+              adoption,
+              stats,
+              crashFreeUsers,
+              crashFreeSessions,
+              sessionsCrashed,
+              totalUsers,
+              totalUsers24h,
+              totalSessions,
+              totalSessions24h,
+            } = healthData || {};
 
-          return (
-            <ProjectRow key={`${releaseVersion}-${slug}-health`}>
-              <Layout>
-                <ProjectColumn>
-                  <ProjectName
-                    orgSlug={orgSlug}
-                    project={project}
-                    releaseVersion={releaseVersion}
-                  />
-                </ProjectColumn>
+            return (
+              <ProjectRow key={`${releaseVersion}-${slug}-health`}>
+                <Layout>
+                  <Column>
+                    <ProjectBadge project={project} avatarSize={16} />
+                  </Column>
 
-                <AdoptionColumn>
-                  {showPlaceholders ? (
-                    <StyledPlaceholder width="150px" />
-                  ) : defined(adoption) ? (
-                    <AdoptionWrapper>
-                      <ProgressBarWrapper>
-                        <Tooltip
-                          containerDisplayMode="block"
-                          title={
-                            <AdoptionTooltip
-                              totalUsers={totalUsers}
-                              totalSessions={totalSessions}
-                              totalUsers24h={totalUsers24h}
-                              totalSessions24h={totalSessions24h}
-                            />
-                          }
+                  <AdoptionColumn>
+                    {showPlaceholders ? (
+                      <StyledPlaceholder width="150px" />
+                    ) : defined(adoption) ? (
+                      <AdoptionWrapper>
+                        <ProgressBarWrapper>
+                          <Tooltip
+                            containerDisplayMode="block"
+                            title={
+                              <AdoptionTooltip
+                                totalUsers={totalUsers}
+                                totalSessions={totalSessions}
+                                totalUsers24h={totalUsers24h}
+                                totalSessions24h={totalSessions24h}
+                              />
+                            }
+                          >
+                            <ProgressBar value={Math.ceil(adoption)} />
+                          </Tooltip>
+                        </ProgressBarWrapper>
+                        <Count value={totalUsers24h ?? 0} />
+                      </AdoptionWrapper>
+                    ) : (
+                      <NotAvailable />
+                    )}
+                  </AdoptionColumn>
+
+                  {activeDisplay === DisplayOption.CRASH_FREE_USERS ? (
+                    <SessionsColumn>
+                      {showPlaceholders ? (
+                        <StyledPlaceholder width="60px" />
+                      ) : defined(crashFreeUsers) ? (
+                        <CrashFree percent={crashFreeUsers} />
+                      ) : (
+                        <NotAvailable />
+                      )}
+                    </SessionsColumn>
+                  ) : (
+                    <SessionsColumn>
+                      {showPlaceholders ? (
+                        <StyledPlaceholder width="60px" />
+                      ) : defined(crashFreeSessions) ? (
+                        <CrashFree percent={crashFreeSessions} />
+                      ) : (
+                        <NotAvailable />
+                      )}
+                    </SessionsColumn>
+                  )}
+
+                  <DailyColumn>
+                    {showPlaceholders ? (
+                      <StyledPlaceholder />
+                    ) : hasHealthData && defined(stats) ? (
+                      <ChartWrapper>
+                        <HealthStatsChart
+                          data={stats}
+                          height={20}
+                          period={activeStatsPeriod}
+                          activeDisplay={activeDisplay}
+                        />
+                      </ChartWrapper>
+                    ) : (
+                      <NotAvailable />
+                    )}
+                  </DailyColumn>
+
+                  <CrashIssueColumn>
+                    {showPlaceholders ? (
+                      <StyledPlaceholder width="30px" />
+                    ) : hasHealthData && defined(sessionsCrashed) ? (
+                      <Tooltip title={t('Open in Issues')}>
+                        <GlobalSelectionLink
+                          to={getReleaseUnhandledIssuesUrl(
+                            orgSlug,
+                            project.id,
+                            releaseVersion
+                          )}
                         >
-                          <ProgressBar value={Math.ceil(adoption)} />
-                        </Tooltip>
-                      </ProgressBarWrapper>
-                      <Count value={totalUsers24h ?? 0} />
-                    </AdoptionWrapper>
-                  ) : (
-                    <NotAvailable />
-                  )}
-                </AdoptionColumn>
-
-                {activeDisplay === DisplayOption.CRASH_FREE_USERS ? (
-                  <UsersColumn>
-                    {showPlaceholders ? (
-                      <StyledPlaceholder width="60px" />
-                    ) : defined(crashFreeUsers) ? (
-                      <CrashFree percent={crashFreeUsers} />
+                          <Count value={sessionsCrashed} />
+                        </GlobalSelectionLink>
+                      </Tooltip>
                     ) : (
                       <NotAvailable />
                     )}
-                  </UsersColumn>
-                ) : (
-                  <SessionsColumn>
-                    {showPlaceholders ? (
-                      <StyledPlaceholder width="60px" />
-                    ) : defined(crashFreeSessions) ? (
-                      <CrashFree percent={crashFreeSessions} />
-                    ) : (
-                      <NotAvailable />
-                    )}
-                  </SessionsColumn>
-                )}
+                  </CrashIssueColumn>
 
-                <DailyColumn>
-                  {showPlaceholders ? (
-                    <StyledPlaceholder />
-                  ) : hasHealthData && defined(stats) ? (
-                    <ChartWrapper>
-                      <HealthStatsChart
-                        data={stats}
-                        height={20}
-                        period={activeStatsPeriod}
-                        activeDisplay={activeDisplay}
-                      />
-                    </ChartWrapper>
-                  ) : (
-                    <NotAvailable />
-                  )}
-                </DailyColumn>
+                  <CrashIssueColumn>
+                    <Tooltip title={t('Open in Issues')}>
+                      <GlobalSelectionLink
+                        to={getReleaseNewIssuesUrl(orgSlug, project.id, releaseVersion)}
+                      >
+                        <Count value={newGroups || 0} />
+                      </GlobalSelectionLink>
+                    </Tooltip>
+                  </CrashIssueColumn>
 
-                <CrashesColumn>
-                  {showPlaceholders ? (
-                    <StyledPlaceholder width="30px" />
-                  ) : hasHealthData && defined(sessionsCrashed) ? (
-                    <Count value={sessionsCrashed} />
-                  ) : (
-                    <NotAvailable />
-                  )}
-                </CrashesColumn>
-
-                <IssuesColumn>
-                  <Tooltip title={t('Open in Issues')}>
-                    <Link
-                      to={getReleaseNewIssuesUrl(orgSlug, project.id, releaseVersion)}
-                    >
-                      <Count value={newGroups || 0} />
-                    </Link>
-                  </Tooltip>
-                </IssuesColumn>
-              </Layout>
-            </ProjectRow>
-          );
-        })}
-      </ClippedHealthRows>
+                  <ViewColumn>
+                    <ProjectLink
+                      orgSlug={orgSlug}
+                      project={project}
+                      releaseVersion={releaseVersion}
+                    />
+                  </ViewColumn>
+                </Layout>
+              </ProjectRow>
+            );
+          })}
+        </Collapsible>
+      </ProjectRows>
     </React.Fragment>
   );
 };
 
 export default Content;
 
+const ProjectRows = styled('div')`
+  position: relative;
+`;
+
+const ExpandButtonWrapper = styled('div')`
+  position: absolute;
+  width: 100%;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-image: linear-gradient(
+    180deg,
+    hsla(0, 0%, 100%, 0.15) 0,
+    ${p => p.theme.white}
+  );
+  background-repeat: repeat-x;
+  border-bottom: ${space(1)} solid ${p => p.theme.white};
+  border-top: ${space(1)} solid transparent;
+  border-bottom-right-radius: ${p => p.theme.borderRadius};
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    border-bottom-left-radius: ${p => p.theme.borderRadius};
+  }
+`;
+
+const CollapseButtonWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 41px;
+`;
+
 const ProjectRow = styled(PanelItem)`
-  padding: 10px ${space(2)};
-  max-height: 41px;
+  padding: ${space(1)} ${space(2)};
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     font-size: ${p => p.theme.fontSizeMedium};
   }
@@ -209,31 +276,28 @@ const ProjectRow = styled(PanelItem)`
 
 const Layout = styled('div')`
   display: grid;
-  grid-template-columns: 1fr 1fr 0.5fr 0.5fr;
+  grid-template-columns: 1fr 1fr 0.5fr;
   grid-column-gap: ${space(1)};
-  align-content: center;
+  align-items: center;
   width: 100%;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 1fr 1fr 1fr 1fr 0.5fr 0.5fr;
+    grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
   }
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr;
+    grid-template-columns: 1fr 0.8fr 1fr 0.5fr 0.5fr 0.6fr;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: 1fr 1fr 1fr 1fr 0.5fr 0.5fr;
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    grid-template-columns: 1fr 0.8fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
   }
 `;
 
 const Column = styled('div')`
   ${overflowEllipsis};
-  height: 20px;
   line-height: 20px;
 `;
-
-const ProjectColumn = styled(Column)``;
 
 const AdoptionColumn = styled(Column)`
   display: none;
@@ -251,35 +315,30 @@ const AdoptionWrapper = styled('span')`
   align-items: center;
 `;
 
-const UsersColumn = styled(Column)``;
-
-const SessionsColumn = styled(Column)``;
+const SessionsColumn = styled(Column)`
+  text-align: center;
+`;
 
 const DailyColumn = styled(Column)`
   display: none;
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    display: flex;
+    /* Chart tooltips need overflow */
+    overflow: visible;
+  }
+`;
+
+const CrashIssueColumn = styled(Column)`
+  display: none;
+
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    display: flex;
-    /* Chart tooltips need overflow */
-    overflow: visible;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    display: none;
-    overflow: hidden;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    display: flex;
-    /* Chart tooltips need overflow */
-    overflow: visible;
+    display: block;
+    text-align: right;
   }
 `;
 
-const CrashesColumn = styled(Column)`
-  text-align: right;
-`;
-
-const IssuesColumn = styled(Column)`
+const ViewColumn = styled(Column)`
   text-align: right;
 `;
 

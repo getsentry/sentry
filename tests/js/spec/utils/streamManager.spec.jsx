@@ -55,7 +55,7 @@ describe('StreamManager', function () {
       mgr.push([{id: 1}, {id: 2}]);
 
       expect(mgr.idList).toHaveLength(1);
-      expect(storeRemove).toHaveBeenCalledWith(2, expect.anything(), expect.anything());
+      expect(storeRemove).toHaveBeenCalledWith([2]);
       expect(mgrTrim).toHaveBeenCalled();
     });
 
@@ -77,8 +77,7 @@ describe('StreamManager', function () {
 
       expect(mgr.idList).toEqual([1]);
       expect(mgr.idList).toHaveLength(1);
-      expect(storeRemove.mock.calls[0][0]).toEqual(2);
-      expect(storeRemove.mock.calls[1][0]).toEqual(3);
+      expect(storeRemove).toHaveBeenCalledWith([2, 3]);
     });
 
     it('does nothing with fewer items than limit', function () {

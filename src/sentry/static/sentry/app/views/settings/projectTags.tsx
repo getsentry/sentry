@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
+import Confirm from 'app/components/confirm';
 import ExternalLink from 'app/components/links/externalLink';
-import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
 import {IconDelete} from 'app/icons';
@@ -110,19 +110,18 @@ class ProjectTags extends AsyncView<Props, State> {
                                 : t('You do not have permission to remove tags.')
                             }
                           >
-                            <LinkWithConfirmation
-                              title={t('Remove tag?')}
+                            <Confirm
                               message={t('Are you sure you want to remove this tag?')}
                               onConfirm={this.handleDelete(key, idx)}
                               disabled={!enabled}
                             >
                               <Button
                                 size="xsmall"
+                                title={t('Remove tag')}
                                 icon={<IconDelete size="xs" />}
                                 data-test-id="delete"
-                                disabled={!enabled}
                               />
-                            </LinkWithConfirmation>
+                            </Confirm>
                           </Tooltip>
                         </Actions>
                       </TagPanelItem>

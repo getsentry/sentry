@@ -2,9 +2,12 @@ import {Widget} from './widget';
 
 const DEFAULT_WIDGETS = [Widget()];
 
-export function Dashboard(widgets = DEFAULT_WIDGETS) {
+export function Dashboard(widgets = DEFAULT_WIDGETS, props = {}) {
   return {
-    widgets,
+    id: 1,
     title: 'Dashboard',
+    createdBy: '',
+    widgets,
+    ...props,
   };
 }

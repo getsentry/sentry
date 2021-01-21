@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from rest_framework import status
 from rest_framework.response import Response
 
-from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
+from sentry.api.bases.project import ProjectEndpoint, ProjectAlertRulePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.rule import RuleSerializer
@@ -14,7 +14,7 @@ from sentry.web.decorators import transaction_start
 
 
 class ProjectRuleDetailsEndpoint(ProjectEndpoint):
-    permission_classes = [ProjectSettingPermission]
+    permission_classes = (ProjectAlertRulePermission,)
 
     def convert_args(self, request, rule_id, *args, **kwargs):
         args, kwargs = super(ProjectRuleDetailsEndpoint, self).convert_args(

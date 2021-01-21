@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectAlertRulePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import (
     OffsetPaginator,
@@ -52,6 +52,8 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
 
 
 class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
+    permission_classes = (ProjectAlertRulePermission,)
+
     def get(self, request, project):
         """
         Fetches alert rules for a project

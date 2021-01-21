@@ -9,7 +9,6 @@ import ButtonBar from 'app/components/buttonBar';
 import CreateAlertButton from 'app/components/createAlertButton';
 import * as Layout from 'app/components/layouts/thirds';
 import Link from 'app/components/links/link';
-import NavTabs from 'app/components/navTabs';
 import {IconSettings} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -32,10 +31,36 @@ const AlertHeader = ({router, organization, activeTab}: Props) => {
   };
 
   return (
-    <Layout.Header>
-      <StyledLayoutHeaderContent>
-        <StyledLayoutTitle>{t('Alerts')}</StyledLayoutTitle>
-        <StyledNavTabs underlined>
+    <React.Fragment>
+      <BorderlessHeader>
+        <StyledLayoutHeaderContent>
+          <StyledLayoutTitle>{t('Alerts')}</StyledLayoutTitle>
+        </StyledLayoutHeaderContent>
+        <Layout.HeaderActions>
+          <Actions gap={1}>
+            <Button
+              size="small"
+              onClick={handleNavigateToSettings}
+              href="#"
+              icon={<IconSettings size="xs" />}
+            >
+              {t('Settings')}
+            </Button>
+
+            <CreateAlertButton
+              organization={organization}
+              iconProps={{size: 'xs'}}
+              size="small"
+              priority="primary"
+              referrer="alert_stream"
+            >
+              {t('Create Alert Rule')}
+            </CreateAlertButton>
+          </Actions>
+        </Layout.HeaderActions>
+      </BorderlessHeader>
+      <TabLayoutHeader>
+        <Layout.HeaderNavTabs underlined>
           <Feature features={['incidents']} organization={organization}>
             <li className={activeTab === 'stream' ? 'active' : ''}>
               <Link to={`/organizations/${organization.slug}/alerts/`}>
@@ -48,53 +73,37 @@ const AlertHeader = ({router, organization, activeTab}: Props) => {
               {t('Alert Rules')}
             </Link>
           </li>
-        </StyledNavTabs>
-      </StyledLayoutHeaderContent>
-      <Layout.HeaderActions>
-        <Actions gap={1}>
-          <Button
-            size="small"
-            onClick={handleNavigateToSettings}
-            href="#"
-            icon={<IconSettings size="xs" />}
-          >
-            {t('Settings')}
-          </Button>
-
-          <CreateAlertButton
-            organization={organization}
-            iconProps={{size: 'xs'}}
-            size="small"
-            priority="primary"
-            referrer="alert_stream"
-          >
-            {t('Create Alert Rule')}
-          </CreateAlertButton>
-        </Actions>
-      </Layout.HeaderActions>
-    </Layout.Header>
+        </Layout.HeaderNavTabs>
+      </TabLayoutHeader>
+    </React.Fragment>
   );
 };
 
 export default AlertHeader;
 
+const BorderlessHeader = styled(Layout.Header)`
+  border-bottom: 0;
+
+  /* Not enough buttons to change direction for mobile view */
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    flex-direction: row;
+  }
+`;
+
 const StyledLayoutHeaderContent = styled(Layout.HeaderContent)`
   margin-bottom: 0;
+  margin-right: ${space(2)};
 `;
 
 const StyledLayoutTitle = styled(Layout.Title)`
-  margin-top: 0;
+  margin-top: ${space(0.5)};
 `;
 
-const StyledNavTabs = styled(NavTabs)`
-  margin-top: 15px;
-  margin-bottom: 0;
-  border-bottom: 0 !important;
-  li {
-    margin-right: ${space(0.5)};
-  }
-  li > a {
-    padding: ${space(1)} ${space(2)};
+const TabLayoutHeader = styled(Layout.Header)`
+  padding-top: ${space(1)};
+
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    padding-top: ${space(1)};
   }
 `;
 

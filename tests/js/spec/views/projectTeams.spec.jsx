@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 
 import * as modals from 'app/actionCreators/modal';
 import App from 'app/views/app';
@@ -111,7 +112,8 @@ describe('ProjectTeams', function () {
 
     // Modal opens because this is the last team in project
     // Click confirm
-    wrapper.find('ModalDialog Button[priority="primary"]').simulate('click');
+    const modal = await mountGlobalModal();
+    modal.find('Button[priority="primary"]').simulate('click');
 
     expect(mock2).toHaveBeenCalledWith(
       endpoint2,
@@ -183,7 +185,8 @@ describe('ProjectTeams', function () {
 
     // Modal opens because this is the last team in project
     // Click confirm
-    wrapper.find('ModalDialog Button[priority="primary"]').simulate('click');
+    const modal = await mountGlobalModal();
+    modal.find('Button[priority="primary"]').simulate('click');
 
     expect(mock2).toHaveBeenCalledWith(
       endpoint2,

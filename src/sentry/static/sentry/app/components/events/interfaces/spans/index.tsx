@@ -1,7 +1,6 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import Alert from 'app/components/alert';
 import {Panel} from 'app/components/panels';
@@ -11,7 +10,8 @@ import {IconWarning} from 'app/icons';
 import {t, tn} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-import {Organization, SentryTransactionEvent} from 'app/types';
+import {Organization} from 'app/types';
+import {EventTransaction} from 'app/types/event';
 import DiscoverQuery, {TableData} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
@@ -28,8 +28,7 @@ import {ParsedTraceType} from './types';
 import {getTraceDateTimeRange, parseTrace} from './utils';
 
 type Props = {
-  orgId: string;
-  event: SentryTransactionEvent;
+  event: EventTransaction;
   organization: Organization;
 } & ReactRouter.WithRouterProps;
 
@@ -42,7 +41,7 @@ type State = {
 class SpansInterface extends React.Component<Props, State> {
   static propTypes = {
     event: SentryTypes.Event.isRequired,
-    orgId: PropTypes.string.isRequired,
+    organization: SentryTypes.Organization.isRequired,
   };
 
   state: State = {
@@ -112,8 +111,10 @@ class SpansInterface extends React.Component<Props, State> {
   };
 
   render() {
-    const {event, orgId, location, organization} = this.props;
+    const {event, location, organization} = this.props;
     const {parsedTrace} = this.state;
+
+    const orgSlug = organization.slug;
 
     // construct discover query to fetch error events associated with this transaction
 
@@ -161,7 +162,7 @@ class SpansInterface extends React.Component<Props, State> {
         <DiscoverQuery
           location={location}
           eventView={traceErrorsEventView}
-          orgSlug={orgId}
+          orgSlug={orgSlug}
         >
           {({isLoading, tableData}) => {
             const spansWithErrors = filterSpansWithErrors(parsedTrace, tableData);
@@ -192,7 +193,7 @@ class SpansInterface extends React.Component<Props, State> {
                   <TraceView
                     event={event}
                     searchQuery={this.state.searchQuery}
-                    orgId={orgId}
+                    orgId={orgSlug}
                     organization={organization}
                     parsedTrace={parsedTrace}
                     spansWithErrors={spansWithErrors}

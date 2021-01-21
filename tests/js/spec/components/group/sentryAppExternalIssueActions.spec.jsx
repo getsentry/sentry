@@ -2,6 +2,7 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
+import GlobalModal from 'app/components/globalModal';
 import SentryAppExternalIssueActions from 'app/components/group/sentryAppExternalIssueActions';
 
 describe('SentryAppExternalIssueActions', () => {
@@ -39,11 +40,14 @@ describe('SentryAppExternalIssueActions', () => {
   describe('without an external issue linked', () => {
     beforeEach(() => {
       wrapper = mountWithTheme(
-        <SentryAppExternalIssueActions
-          group={group}
-          sentryAppInstallation={install}
-          sentryAppComponent={component}
-        />,
+        <React.Fragment>
+          <GlobalModal />
+          <SentryAppExternalIssueActions
+            group={group}
+            sentryAppInstallation={install}
+            sentryAppComponent={component}
+          />
+        </React.Fragment>,
         TestStubs.routerContext()
       );
     });
@@ -58,13 +62,20 @@ describe('SentryAppExternalIssueActions', () => {
       expect(wrapper.find('StyledIcon IconAdd')).toHaveLength(1);
     });
 
-    it('opens the modal', () => {
+    it('opens the modal', async () => {
       wrapper.find('IntegrationLink a').simulate('click');
+
+      await tick();
+      wrapper.update();
+
       expect(wrapper.find('Modal').first().prop('show')).toEqual(true);
     });
 
-    it('renders the Create Issue form fields, based on schema', () => {
+    it('renders the Create Issue form fields, based on schema', async () => {
       wrapper.find('IntegrationLink a').simulate('click');
+      await tick();
+      wrapper.update();
+
       wrapper.find('Modal NavTabs li.create a').first().simulate('click'); // Create
 
       component.schema.create.required_fields.forEach(field => {
@@ -76,8 +87,11 @@ describe('SentryAppExternalIssueActions', () => {
       });
     });
 
-    it('renders the Link Issue form fields, based on schema', () => {
+    it('renders the Link Issue form fields, based on schema', async () => {
       wrapper.find('IntegrationLink a').simulate('click');
+      await tick();
+      wrapper.update();
+
       wrapper.find('Modal NavTabs li.link a').first().simulate('click'); // Link
 
       component.schema.link.required_fields.forEach(field => {
@@ -89,7 +103,7 @@ describe('SentryAppExternalIssueActions', () => {
       });
     });
 
-    it('links to an existing Issue', () => {
+    it('links to an existing Issue', async () => {
       const request = MockApiClient.addMockResponse({
         url: `/sentry-app-installations/${install.uuid}/external-issues/`,
         method: 'POST',
@@ -97,6 +111,9 @@ describe('SentryAppExternalIssueActions', () => {
       });
 
       wrapper.find('IntegrationLink a').simulate('click');
+
+      await tick();
+      wrapper.update();
 
       wrapper.find('NavTabs li.link a').simulate('click');
 
@@ -116,7 +133,7 @@ describe('SentryAppExternalIssueActions', () => {
       );
     });
 
-    it('creates a new Issue', () => {
+    it('creates a new Issue', async () => {
       const request = MockApiClient.addMockResponse({
         url: `/sentry-app-installations/${install.uuid}/external-issues/`,
         method: 'POST',
@@ -124,6 +141,9 @@ describe('SentryAppExternalIssueActions', () => {
       });
 
       wrapper.find('IntegrationLink a').simulate('click');
+      await tick();
+      wrapper.update();
+
       wrapper.find('NavTabs li.create a').simulate('click');
 
       wrapper.find('Input#title').simulate('change', {target: {value: 'foo'}});

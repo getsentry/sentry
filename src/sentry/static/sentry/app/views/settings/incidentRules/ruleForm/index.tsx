@@ -578,7 +578,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     );
 
     return (
-      <Access access={['project:write']}>
+      <Access access={['alerts:write']}>
         {({hasAccess}) => (
           <Feature features={['metric-alert-gui-filters']} organization={organization}>
             {({hasFeature}) => (

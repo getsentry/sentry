@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from sentry.constants import ObjectStatus
 from sentry.models import Repository
 from sentry.shared_integrations.exceptions import ApiError
+from sentry_sdk import configure_scope
 
 
 class RepositoryMixin(object):
@@ -49,12 +50,16 @@ class RepositoryMixin(object):
         If no file was found return `None`, and re-raise for non "Not Found" errors
 
         """
-        if version:
-            source_url = self.check_file(repo, filepath, version)
-            if source_url:
-                return source_url
-
-        source_url = self.check_file(repo, filepath, default)
+        with configure_scope() as scope:
+            scope.set_tag("stacktrace_link.tried_version", False)
+            if version:
+                scope.set_tag("stacktrace_link.tried_version", True)
+                source_url = self.check_file(repo, filepath, version)
+                if source_url:
+                    scope.set_tag("stacktrace_link.used_version", True)
+                    return source_url
+            scope.set_tag("stacktrace_link.used_version", False)
+            source_url = self.check_file(repo, filepath, default)
 
         return source_url
 

@@ -7,7 +7,8 @@ import {getTraceDateTimeRange} from 'app/components/events/interfaces/spans/util
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Event, Organization} from 'app/types';
+import {Organization} from 'app/types';
+import {Event} from 'app/types/event';
 import EventView from 'app/utils/discover/eventView';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 

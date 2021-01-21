@@ -41,6 +41,8 @@ type Props = DefaultProps & {
    */
   shorten?: boolean;
 
+  tooltipTitle?: string;
+
   className?: string;
 } & TimeProps;
 
@@ -98,6 +100,7 @@ class TimeSince extends React.PureComponent<Props, State> {
       suffix: _suffix,
       disabledAbsoluteTooltip,
       className,
+      tooltipTitle,
       shorten: _shorten,
       ...props
     } = this.props;
@@ -113,7 +116,15 @@ class TimeSince extends React.PureComponent<Props, State> {
     });
 
     return (
-      <Tooltip title={tooltip} disabled={disabledAbsoluteTooltip}>
+      <Tooltip
+        disabled={disabledAbsoluteTooltip}
+        title={
+          <div>
+            <div>{tooltipTitle}</div>
+            {tooltip}
+          </div>
+        }
+      >
         <time dateTime={dateObj.toISOString()} className={className} {...props}>
           {this.state.relative}
         </time>
@@ -131,18 +142,20 @@ function getDateObj(date: RelaxedDateType): Date {
   return date;
 }
 
-function getRelativeDate(
+export function getRelativeDate(
   currentDateTime: RelaxedDateType,
   suffix?: string,
   shorten?: boolean
 ): string {
   const date = getDateObj(currentDateTime);
 
-  if (shorten) {
+  if (shorten && suffix) {
     return t('%(time)s %(suffix)s', {
       time: getDuration(moment().diff(moment(date), 'seconds'), 0, true),
       suffix,
     });
+  } else if (shorten && !suffix) {
+    return getDuration(moment().diff(moment(date), 'seconds'), 0, true);
   } else if (!suffix) {
     return moment(date).fromNow(true);
   } else if (suffix === 'ago') {

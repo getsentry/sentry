@@ -1,6 +1,7 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {Client} from 'app/api';
@@ -8,6 +9,7 @@ import BarChart from 'app/components/charts/barChart';
 import ChartZoom from 'app/components/charts/chartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import LineChart from 'app/components/charts/lineChart';
+import SimpleTableChart from 'app/components/charts/simpleTableChart';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {getSeriesSelection} from 'app/components/charts/utils';
@@ -34,31 +36,70 @@ import WidgetQueries from './widgetQueries';
 type Props = ReactRouter.WithRouterProps & {
   api: Client;
   organization: Organization;
+  location: Location;
   isEditing: boolean;
   widget: Widget;
   selection: GlobalSelection;
   onDelete: () => void;
   onEdit: () => void;
+  renderErrorMessage?: (errorMessage: string | undefined) => React.ReactNode;
+  isDragging: boolean;
+  hideToolbar?: boolean;
+  startWidgetDrag: (
+    event: React.MouseEvent<SVGElement> | React.TouchEvent<SVGElement>
+  ) => void;
 };
 
-type State = {
-  hovering: boolean;
-};
+type TableResultProps = Pick<
+  WidgetQueries['state'],
+  'errorMessage' | 'loading' | 'tableResults'
+>;
 
-class WidgetCard extends React.Component<Props, State> {
-  state: State = {
-    hovering: false,
-  };
-
-  shouldComponentUpdate(nextProps: Props, nextState: State): boolean {
+class WidgetCard extends React.Component<Props> {
+  shouldComponentUpdate(nextProps: Props): boolean {
     if (
       !isEqual(nextProps.widget, this.props.widget) ||
       !isEqual(nextProps.selection, this.props.selection) ||
-      nextState.hovering !== this.state.hovering
+      this.props.isEditing !== nextProps.isEditing ||
+      this.props.isDragging !== nextProps.isDragging ||
+      this.props.hideToolbar !== nextProps.hideToolbar
     ) {
       return true;
     }
     return false;
+  }
+
+  tableResultComponent({
+    loading,
+    errorMessage,
+    tableResults,
+  }: TableResultProps): React.ReactNode {
+    const {location} = this.props;
+    if (errorMessage) {
+      return (
+        <ErrorPanel>
+          <IconWarning color="gray500" size="lg" />
+        </ErrorPanel>
+      );
+    }
+
+    if (typeof tableResults === 'undefined' || loading) {
+      // Align height to other charts.
+      return <Placeholder height="200px" />;
+    }
+
+    return tableResults.map(result => {
+      return (
+        <SimpleTableChart
+          key={result.title}
+          location={location}
+          title={tableResults.length > 1 ? result.title : ''}
+          loading={loading}
+          metadata={result.meta}
+          data={result.data}
+        />
+      );
+    });
   }
 
   chartComponent(chartProps): React.ReactNode {
@@ -73,12 +114,27 @@ class WidgetCard extends React.Component<Props, State> {
     }
   }
 
-  renderVisual() {
-    const {location, router, selection, api, organization, widget} = this.props;
+  renderVisual({
+    tableResults,
+    timeseriesResults,
+    errorMessage,
+    loading,
+  }: Pick<
+    WidgetQueries['state'],
+    'timeseriesResults' | 'tableResults' | 'errorMessage' | 'loading'
+  >): React.ReactNode {
+    const {widget} = this.props;
+    if (widget.displayType === 'table') {
+      return (
+        <TransitionChart loading={loading} reloading={loading}>
+          <TransparentLoadingMask visible={loading} />
+          {this.tableResultComponent({tableResults, loading, errorMessage})}
+        </TransitionChart>
+      );
+    }
 
-    const statsPeriod = selection.datetime.period;
-    const {start, end} = selection.datetime;
-    const {projects, environments} = selection;
+    const {location, router, selection} = this.props;
+    const {start, end, period} = selection.datetime;
 
     const legend = {
       right: 10,
@@ -131,126 +187,128 @@ class WidgetCard extends React.Component<Props, State> {
     };
 
     return (
-      <ChartZoom
-        router={router}
-        period={statsPeriod}
-        start={start}
-        end={end}
-        projects={projects}
-        environments={environments}
-      >
+      <ChartZoom router={router} period={period} start={start} end={end}>
         {zoomRenderProps => {
+          if (errorMessage) {
+            return (
+              <ErrorPanel>
+                <IconWarning color="gray500" size="lg" />
+              </ErrorPanel>
+            );
+          }
+
+          const colors = timeseriesResults
+            ? theme.charts.getColorPalette(timeseriesResults.length - 2)
+            : [];
+
+          // Create a list of series based on the order of the fields,
+          const series = timeseriesResults
+            ? timeseriesResults.map((values, i: number) => ({
+                ...values,
+                color: colors[i],
+              }))
+            : [];
+
           return (
-            <WidgetQueries
-              api={api}
-              organization={organization}
-              widget={widget}
-              selection={selection}
-            >
-              {({results, error, loading}) => {
-                if (error) {
-                  return (
-                    <ErrorPanel>
-                      <IconWarning color="gray500" size="lg" />
-                    </ErrorPanel>
-                  );
-                }
-
-                const colors = results
-                  ? theme.charts.getColorPalette(results.length - 2)
-                  : [];
-
-                // Create a list of series based on the order of the fields,
-                const series = results
-                  ? results.map((values, i: number) => ({
-                      ...values,
-                      color: colors[i],
-                    }))
-                  : [];
-
-                // Stack the toolbox under the legend.
-                // so all series names are clickable.
-                zoomRenderProps.toolBox.z = -1;
-
-                return (
-                  <TransitionChart loading={loading} reloading={loading}>
-                    <TransparentLoadingMask visible={loading} />
-                    {getDynamicText({
-                      value: this.chartComponent({
-                        ...zoomRenderProps,
-                        ...chartOptions,
-                        legend,
-                        series,
-                      }),
-                      fixed: 'Widget Chart',
-                    })}
-                  </TransitionChart>
-                );
-              }}
-            </WidgetQueries>
+            <TransitionChart loading={loading} reloading={loading}>
+              <TransparentLoadingMask visible={loading} />
+              {getDynamicText({
+                value: this.chartComponent({
+                  ...zoomRenderProps,
+                  ...chartOptions,
+                  legend,
+                  series,
+                }),
+                fixed: 'Widget Chart',
+              })}
+            </TransitionChart>
           );
         }}
       </ChartZoom>
     );
   }
 
-  renderEditPanel() {
-    if (!this.state.hovering || !this.props.isEditing) {
+  renderToolbar() {
+    if (!this.props.isEditing) {
       return null;
     }
 
-    const {onEdit, onDelete} = this.props;
+    if (this.props.hideToolbar) {
+      return <ToolbarPanel />;
+    }
+
+    const {onEdit, onDelete, startWidgetDrag} = this.props;
 
     return (
-      <EditPanel>
-        <IconContainer>
-          <IconGrabbable color="gray500" size="lg" />
+      <ToolbarPanel>
+        <IconContainer data-component="icon-container">
+          <StyledIconGrabbable
+            color="gray500"
+            size="md"
+            onMouseDown={event => startWidgetDrag(event)}
+            onTouchStart={event => startWidgetDrag(event)}
+          />
           <IconClick
+            data-test-id="widget-edit"
             onClick={() => {
               onEdit();
             }}
           >
-            <IconEdit color="gray500" size="lg" />
+            <IconEdit color="gray500" size="md" />
           </IconClick>
           <IconClick
+            data-test-id="widget-delete"
             onClick={() => {
               onDelete();
             }}
           >
-            <IconDelete color="gray500" size="lg" />
+            <IconDelete color="gray500" size="md" />
           </IconClick>
         </IconContainer>
-      </EditPanel>
+      </ToolbarPanel>
     );
   }
 
   render() {
-    const {widget} = this.props;
+    const {
+      widget,
+      isDragging,
+      api,
+      organization,
+      selection,
+      renderErrorMessage,
+    } = this.props;
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
       >
-        <StyledPanel
-          onMouseLeave={() => {
-            if (this.state.hovering) {
-              this.setState({
-                hovering: false,
-              });
-            }
-          }}
-          onMouseOver={() => {
-            if (!this.state.hovering) {
-              this.setState({
-                hovering: true,
-              });
-            }
-          }}
-        >
-          <ChartContainer>
-            <HeaderTitleLegend>{widget.title}</HeaderTitleLegend>
-            {this.renderVisual()}
-            {this.renderEditPanel()}
-          </ChartContainer>
+        <StyledPanel isDragging={isDragging}>
+          <WidgetQueries
+            api={api}
+            organization={organization}
+            widget={widget}
+            selection={selection}
+          >
+            {({tableResults, timeseriesResults, errorMessage, loading}) => {
+              return (
+                <React.Fragment>
+                  {typeof renderErrorMessage === 'function'
+                    ? renderErrorMessage(errorMessage)
+                    : null}
+                  <ChartContainer>
+                    <HeaderTitleLegend>{widget.title}</HeaderTitleLegend>
+                    {this.renderVisual({
+                      timeseriesResults,
+                      tableResults,
+                      errorMessage,
+                      loading,
+                    })}
+                    {this.renderToolbar()}
+                  </ChartContainer>
+                </React.Fragment>
+              );
+            }}
+          </WidgetQueries>
         </StyledPanel>
       </ErrorBoundary>
     );
@@ -272,11 +330,16 @@ const ErrorCard = styled(Placeholder)`
   margin-bottom: ${space(2)};
 `;
 
-const StyledPanel = styled(Panel)`
+const StyledPanel = styled(Panel, {
+  shouldForwardProp: prop => prop !== 'isDragging',
+})<{
+  isDragging: boolean;
+}>`
   margin: 0;
+  visibility: ${p => (p.isDragging ? 'hidden' : 'visible')};
 `;
 
-const EditPanel = styled('div')`
+const ToolbarPanel = styled('div')`
   position: absolute;
   top: 0;
   left: 0;
@@ -303,5 +366,11 @@ const IconContainer = styled('div')`
 const IconClick = styled('div')`
   &:hover {
     cursor: pointer;
+  }
+`;
+
+const StyledIconGrabbable = styled(IconGrabbable)`
+  &:hover {
+    cursor: grab;
   }
 `;

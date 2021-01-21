@@ -6,6 +6,7 @@ import ProgressBar from 'app/components/progressBar';
 import {IconRefresh} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
+import {percent} from 'app/utils';
 
 type Props = {
   totalEvents: number;
@@ -14,8 +15,10 @@ type Props = {
 
 function ReprocessingProgress({totalEvents, pendingEvents}: Props) {
   const remainingEventsToReprocess = totalEvents - pendingEvents;
-  const remainingEventsToReprocessPercent =
-    (remainingEventsToReprocess / totalEvents) * 100;
+  const remainingEventsToReprocessPercent = percent(
+    remainingEventsToReprocess,
+    totalEvents
+  );
 
   // this is a temp solution
   function handleRefresh() {

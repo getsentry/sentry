@@ -13,7 +13,8 @@ import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import GroupStore from 'app/stores/groupStore';
 import {PageContent} from 'app/styles/organization';
-import {AvatarProject, Event, Group, Organization, Project} from 'app/types';
+import {AvatarProject, Group, Organization, Project} from 'app/types';
+import {Event} from 'app/types/event';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {getMessage, getTitle} from 'app/utils/events';
 import Projects from 'app/utils/projects';
@@ -183,17 +184,23 @@ class GroupDetails extends React.Component<Props, State> {
       if (this.canLoadEventEarly(this.props)) {
         eventPromise = this.getEvent();
       }
+
+      const queryParams: Record<string, string | string[]> = {
+        // Note, we do not want to include the environment key at all if there are no environments
+        ...(environments ? {environment: environments} : {}),
+      };
+      if (organization?.features?.includes('inbox')) {
+        queryParams.expand = 'inbox';
+      }
+
       const groupPromise = await api.requestPromise(this.groupDetailsEndpoint, {
-        query: {
-          // Note, we do not want to include the environment key at all if there are no environments
-          ...(environments ? {environment: environments} : {}),
-        },
+        query: queryParams,
       });
       const [data] = await Promise.all([groupPromise, eventPromise]);
 
       const projects = organization.projects;
       const projectId = data.project.id;
-      const features = projects.find(proj => proj.id === projectId)?.features ?? [];
+      const features = projects?.find(proj => proj.id === projectId)?.features ?? [];
       // Check for the reprocessing-v2 feature flag
       const hasReprocessingV2Feature = features.includes('reprocessing-v2');
       const reprocessingStatus = getGroupReprocessingStatus(data);
@@ -272,6 +279,7 @@ class GroupDetails extends React.Component<Props, State> {
 
       GroupStore.loadInitialData([data]);
     } catch (err) {
+      Sentry.captureException(err);
       let errorType: Error = null;
       switch (err?.status) {
         case 404:
@@ -296,7 +304,7 @@ class GroupDetails extends React.Component<Props, State> {
   onGroupChange(itemIds: Set<string>) {
     const id = this.props.params.groupId;
     if (itemIds.has(id)) {
-      const group = GroupStore.get(id);
+      const group = GroupStore.get(id) as Group;
       if (group) {
         // TODO(ts) This needs a better approach. issueActions is splicing attributes onto
         // group objects to cheat here.
@@ -332,7 +340,7 @@ class GroupDetails extends React.Component<Props, State> {
 
   renderError() {
     const {organization, location} = this.props;
-    const projects = organization.projects;
+    const projects = organization.projects ?? [];
     const projectId = location.query.project;
 
     const projectSlug = projects.find(proj => proj.id === projectId)?.slug;
@@ -347,7 +355,7 @@ class GroupDetails extends React.Component<Props, State> {
         return (
           <MissingProjectMembership
             organization={this.props.organization}
-            projectId={projectSlug}
+            projectSlug={projectSlug}
           />
         );
       default:

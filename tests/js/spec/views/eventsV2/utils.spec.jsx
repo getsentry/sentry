@@ -282,7 +282,6 @@ describe('getExpandedResults()', function () {
       ...state,
       fields: [
         {field: 'last_seen()'}, // expect this to be transformed to timestamp
-        {field: 'latest_event()'},
         {field: 'title'},
         {field: 'avg(transaction.duration)'}, // expect this to be dropped
         {field: 'p50()'},
@@ -298,6 +297,7 @@ describe('getExpandedResults()', function () {
         {field: 'unique_count(id)'},
         {field: 'apdex(300)'}, // should be dropped
         {field: 'user_misery(300)'}, // should be dropped
+        {field: 'failure_count()'}, // expect this to be transformed to transaction.status
       ],
     });
 
@@ -307,6 +307,7 @@ describe('getExpandedResults()', function () {
       {field: 'title'},
       {field: 'transaction.duration', width: -1},
       {field: 'custom_tag'},
+      {field: 'transaction.status', width: -1},
     ]);
 
     // transforms pXX functions with optional arguments properly

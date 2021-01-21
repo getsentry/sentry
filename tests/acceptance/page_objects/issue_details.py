@@ -21,7 +21,7 @@ class IssueDetailsPage(BasePage):
         self.browser.wait_until(".group-detail")
 
     def visit_tag_values(self, org, groupid, tag):
-        self.browser.get(u"/organizations/{}/issues/{}/tags/{}".format(org, groupid, tag))
+        self.browser.get(u"/organizations/{}/issues/{}/tags/{}/".format(org, groupid, tag))
         self.browser.wait_until_not(".loading-indicator")
 
     def get_environment(self):
@@ -46,14 +46,14 @@ class IssueDetailsPage(BasePage):
         self.browser.find_element_by_xpath("//a//code[contains(text(), 'curl')]").click()
 
     def resolve_issue(self):
-        self.browser.click('[data-test-id="action-link-resolve"]')
+        self.browser.click('[aria-label="Resolve"]')
         # Resolve should become unresolve
-        self.browser.wait_until('[data-test-id="button-unresolve"]')
+        self.browser.wait_until('[aria-label="Unresolve"]')
 
     def ignore_issue(self):
-        self.browser.click('[data-test-id="action-link-ignore"]')
+        self.browser.click('[aria-label="Ignore"]')
         # Ignore should become unresolve
-        self.browser.wait_until('[data-test-id="button-unresolve"]')
+        self.browser.wait_until('[aria-label="Unignore"]')
 
     def bookmark_issue(self):
         self.browser.click('[aria-label="Bookmark"]')

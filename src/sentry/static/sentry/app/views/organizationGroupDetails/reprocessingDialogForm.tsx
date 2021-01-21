@@ -33,22 +33,16 @@ const impacts = [
 type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'closeModal'> & {
   group: Group;
   project: Project;
-  orgSlug: Organization['slug'];
+  organization: Organization;
 };
 
-function ReprocessingDialogForm({
-  orgSlug,
-  group,
-  project,
-  Header,
-  Body,
-  closeModal,
-}: Props) {
+function ReprocessingDialogForm({group, organization, Header, Body, closeModal}: Props) {
+  const orgSlug = organization.slug;
   const endpoint = `/organizations/${orgSlug}/issues/${group.id}/reprocessing/`;
   const title = t('Reprocess Events');
 
   function handleSuccess() {
-    const hasReprocessingV2Feature = !!project.features?.includes('reprocessing-v2');
+    const hasReprocessingV2Feature = !!organization.features?.includes('reprocessing-v2');
 
     if (hasReprocessingV2Feature) {
       closeModal();
@@ -88,8 +82,9 @@ function ReprocessingDialogForm({
           <NumberField
             name="maxEvents"
             label={t('Enter the number of events to be reprocessed')}
-            help={t(
-              'You can limit the number of events reprocessed in this Issue. If you set a limit, we will reprocess your most recent events.'
+            help={tct(
+              'You can limit the number of events reprocessed in this Issue. If you set a limit, we will reprocess your most recent events, [strong:and the rest will be deleted.]',
+              {strong: <strong />}
             )}
             placeholder={t('Reprocess all events')}
             min={1}

@@ -62,7 +62,7 @@ describe('StacktraceLinkModal', function () {
 
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
-      query: {file: filename, commitId: 'master'},
+      query: {file: filename, commitId: 'master', platform: 'python'},
       body: {config, sourceUrl, integrations: [integration]},
     });
 
@@ -111,7 +111,7 @@ describe('StacktraceLinkModal', function () {
 
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
-      query: {file: filename, commitId: 'master'},
+      query: {file: filename, commitId: 'master', platform: 'python'},
       body: {config, sourceUrl, integrations: [integration]},
     });
 

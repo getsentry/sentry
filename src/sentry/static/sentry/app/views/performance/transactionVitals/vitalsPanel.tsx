@@ -10,15 +10,15 @@ import {GenericChildrenProps} from 'app/utils/discover/genericDiscoverQuery';
 import {decodeScalar} from 'app/utils/queryString';
 
 import {NUM_BUCKETS, PERCENTILE, VITAL_GROUPS, WEB_VITAL_DETAILS} from './constants';
-import MeasurementsHistogramQuery from './measurementsHistogramQuery';
-import {HistogramData, VitalGroup} from './types';
+import HistogramQuery from './histogramQuery';
+import {DataFilter, HistogramData, VitalGroup} from './types';
 import VitalCard from './vitalCard';
 
 type Props = {
   organization: Organization;
   location: Location;
   eventView: EventView;
-  dataFilter?: string;
+  dataFilter?: DataFilter;
 };
 
 class VitalsPanel extends React.Component<Props> {
@@ -40,12 +40,12 @@ class VitalsPanel extends React.Component<Props> {
     const zoomed = min !== undefined || max !== undefined;
 
     return (
-      <MeasurementsHistogramQuery
+      <HistogramQuery
         location={location}
         orgSlug={organization.slug}
         eventView={eventView}
         numBuckets={NUM_BUCKETS}
-        measurements={zoomed ? [vitalDetails.slug] : []}
+        fields={zoomed ? [vital] : []}
         min={min}
         max={max}
         precision={precision}
@@ -74,7 +74,7 @@ class VitalsPanel extends React.Component<Props> {
             />
           );
         }}
-      </MeasurementsHistogramQuery>
+      </HistogramQuery>
     );
   }
 
@@ -100,12 +100,12 @@ class VitalsPanel extends React.Component<Props> {
     );
 
     return (
-      <MeasurementsHistogramQuery
+      <HistogramQuery
         location={location}
         orgSlug={organization.slug}
         eventView={eventView}
         numBuckets={NUM_BUCKETS}
-        measurements={vitals.map(vital => WEB_VITAL_DETAILS[vital].slug)}
+        fields={vitals}
         min={min}
         max={max}
         precision={precision}
@@ -156,7 +156,7 @@ class VitalsPanel extends React.Component<Props> {
             </React.Fragment>
           );
         }}
-      </MeasurementsHistogramQuery>
+      </HistogramQuery>
     );
   }
 

@@ -5,7 +5,8 @@ import CrashContent from 'app/components/events/interfaces/crashContent';
 import Pill from 'app/components/pill';
 import Pills from 'app/components/pills';
 import {t} from 'app/locale';
-import {Event, Project} from 'app/types';
+import {Project} from 'app/types';
+import {Event} from 'app/types/event';
 import {Thread} from 'app/types/events';
 import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 

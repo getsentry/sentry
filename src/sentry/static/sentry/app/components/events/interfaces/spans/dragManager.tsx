@@ -1,6 +1,8 @@
 import React from 'react';
 
-import {clamp, rectOfContent, setBodyUserSelect, UserSelectValues} from './utils';
+import {setBodyUserSelect, UserSelectValues} from 'app/utils/userselect';
+
+import {clamp, rectOfContent} from './utils';
 
 // we establish the minimum window size so that the window size of 0% is not possible
 const MINIMUM_WINDOW_SIZE = 0.5 / 100; // 0.5% window size

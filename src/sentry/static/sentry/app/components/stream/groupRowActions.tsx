@@ -3,16 +3,18 @@ import styled from '@emotion/styled';
 
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
-import ActionLink from 'app/components/actions/actionLink';
 import ResolveActions from 'app/components/actions/resolve';
 import DropdownLink from 'app/components/dropdownLink';
 import MenuItem from 'app/components/menuItem';
-import Tooltip from 'app/components/tooltip';
 import {IconEllipsis, IconIssues} from 'app/icons';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {GlobalSelection, Group, Project, Release, ResolutionStatus} from 'app/types';
 import Projects from 'app/utils/projects';
 import withApi from 'app/utils/withApi';
+
+import ActionButton from '../actions/button';
+import MenuItemActionLink from '../actions/menuItemActionLink';
 
 type Props = {
   api: Client;
@@ -23,7 +25,8 @@ type Props = {
 };
 
 class GroupRowActions extends React.Component<Props> {
-  handleUpdate = (data?: any) => {
+  handleUpdate = (data?: any, event?: React.MouseEvent) => {
+    event?.stopPropagation();
     const {api, group, orgId, query, selection} = this.props;
 
     addLoadingMessage(t('Saving changes\u2026'));
@@ -73,36 +76,34 @@ class GroupRowActions extends React.Component<Props> {
 
     return (
       <Wrapper>
-        <Tooltip title={t('Mark Reviewed')}>
-          <ActionLink
-            className="btn btn-default btn-sm"
-            onAction={() => this.handleUpdate({inbox: false})}
-            shouldConfirm={false}
-            title={t('Mark Reviewed')}
-          >
-            <IconIssues size="sm" color="gray300" />
-          </ActionLink>
-        </Tooltip>
+        <ActionButton
+          type="button"
+          disabled={!group.inbox}
+          title={t('Mark Reviewed')}
+          tooltipProps={{disabled: !group.inbox}}
+          icon={<IconIssues size="sm" />}
+          onClick={event => this.handleUpdate({inbox: false}, event)}
+        />
 
         <StyledDropdownLink
           caret={false}
-          className="btn btn-sm btn-default action-more"
-          customTitle={<IconEllipsis size="sm" color="gray300" />}
-          title=""
+          customTitle={
+            <ActionButton
+              label={t('More issue actions')}
+              icon={<IconEllipsis size="sm" />}
+            />
+          }
           anchorRight
         >
-          <MenuItem noAnchor>
-            <ActionLink
-              className="action-resolve"
-              onAction={() => this.handleUpdate({status: ResolutionStatus.RESOLVED})}
-              shouldConfirm={false}
-              title={t('Resolve')}
-            >
-              {t('Resolve')}
-            </ActionLink>
-          </MenuItem>
-          <MenuItem divider />
-          <MenuItem noAnchor>
+          <MenuItemActionLink
+            onAction={() => this.handleUpdate({status: ResolutionStatus.RESOLVED})}
+            shouldConfirm={false}
+            title={t('Resolve')}
+          >
+            {t('Resolve')}
+          </MenuItemActionLink>
+
+          <StyledMenuItem noAnchor>
             <Projects orgId={orgId} slugs={[group.project.slug]}>
               {({projects, initiallyLoaded, fetchError}) => {
                 const project = projects[0];
@@ -130,23 +131,36 @@ class GroupRowActions extends React.Component<Props> {
                 );
               }}
             </Projects>
-          </MenuItem>
-          <MenuItem divider />
-          <MenuItem noAnchor>
-            <ActionLink
-              className="action-delete"
-              onAction={this.handleDelete}
-              shouldConfirm={false}
-              title={t('Delete')}
-            >
-              {t('Delete')}
-            </ActionLink>
-          </MenuItem>
+          </StyledMenuItem>
+
+          <MenuItemActionLink
+            onAction={this.handleDelete}
+            shouldConfirm={false}
+            title={t('Delete')}
+          >
+            {t('Delete')}
+          </MenuItemActionLink>
         </StyledDropdownLink>
       </Wrapper>
     );
   }
 }
+
+const StyledMenuItem = styled(MenuItem)`
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
+
+  & .dropdown-submenu {
+    & > .dropdown {
+      & > .dropdown-menu-right.dropdown-toggle {
+        color: ${p => p.theme.textColor};
+        padding: ${space(1)};
+      }
+      .dropdown-menu {
+        left: -150%;
+      }
+    }
+  }
+`;
 
 const Wrapper = styled('div')`
   display: flex;

@@ -44,6 +44,7 @@ describe('Incident Rules Details', function () {
   it('renders and edits trigger', async function () {
     const {organization, project, routerContext} = initializeOrg();
     const rule = TestStubs.IncidentRule();
+    const onChangeTitleMock = jest.fn();
     const req = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
       body: rule,
@@ -70,6 +71,7 @@ describe('Incident Rules Details', function () {
             ruleId: rule.id,
           }}
           organization={organization}
+          onChangeTitle={onChangeTitleMock}
           project={project}
         />
       </React.Fragment>,
@@ -88,6 +90,9 @@ describe('Incident Rules Details', function () {
     );
 
     expect(req).toHaveBeenCalled();
+
+    // Check correct rule name is called
+    expect(onChangeTitleMock).toHaveBeenCalledWith(rule.name);
 
     wrapper
       .find('input[name="warningThreshold"]')

@@ -6,13 +6,13 @@ import logging
 import time
 import six
 import sentry_sdk
-from datetime import timedelta
+from datetime import datetime, timedelta
 from hashlib import md5
 
 from django.utils import timezone
 
 from sentry import options
-from sentry.api.event_search import convert_search_filter_to_snuba_query
+from sentry.api.event_search import convert_search_filter_to_snuba_query, DateArg
 from sentry.api.paginator import DateTimePaginator, SequencePaginator, Paginator
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.models import Group
@@ -154,7 +154,12 @@ class AbstractQueryExecutor:
 
         aggregations = []
         for alias in required_aggregations:
-            aggregations.append(self.aggregation_defs[alias] + [alias])
+            aggregation = self.aggregation_defs[alias]
+            if callable(aggregation):
+                # TODO: If we want to expand this pattern we should probably figure out
+                # more generic things to pass here.
+                aggregation = aggregation(start, end)
+            aggregations.append(aggregation + [alias])
 
         if cursor is not None:
             having.append((sort_field, ">=" if cursor.is_prev else "<=", cursor.value))
@@ -217,6 +222,18 @@ class AbstractQueryExecutor:
         return sort_by in self.sort_strategies.keys()
 
 
+def trend_aggregation(start, end):
+    middle = start + timedelta(seconds=(end - start).total_seconds() * 0.5)
+    middle = datetime.strftime(middle, DateArg.date_format)
+
+    agg_range_1 = "countIf(greater(toDateTime('{}'), timestamp))".format(middle)
+    agg_range_2 = "countIf(lessOrEquals(toDateTime('{}'), timestamp))".format(middle)
+    return [
+        "if(greater({}, 0), divide({}, {}), 0)".format(agg_range_1, agg_range_2, agg_range_1),
+        "",
+    ]
+
+
 class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
     ISSUE_FIELD_NAME = "group_id"
 
@@ -244,6 +261,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "new": "first_seen",
         "priority": "priority",
         "user": "user_count",
+        "trend": "trend",
     }
 
     aggregation_defs = {
@@ -255,6 +273,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # Only makes sense with WITH TOTALS, returns 1 for an individual group.
         "total": ["uniq", ISSUE_FIELD_NAME],
         "user_count": ["uniq", "tags[sentry:user]"],
+        "trend": trend_aggregation,
     }
 
     @property
@@ -275,6 +294,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         search_filters,
         date_from,
         date_to,
+        max_hits=None,
     ):
 
         now = timezone.now()
@@ -293,7 +313,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             if (
                 cursor is None
                 and sort_by == "date"
-                and not environments
                 and
                 # This handles tags and date parameters for search filters.
                 not [
@@ -305,7 +324,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 group_queryset = group_queryset.order_by("-last_seen")
                 paginator = DateTimePaginator(group_queryset, "-last_seen", **paginator_options)
                 # When its a simple django-only search, we count_hits like normal
-                return paginator.get_result(limit, cursor, count_hits=count_hits)
+                return paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
 
         # TODO: Presumably we only want to search back to the project's max
         # retention date, which may be closer than 90 days in the past, but
@@ -467,7 +486,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # or can we just make it after we've broken out of the loop?
             paginator_results = SequencePaginator(
                 [(score, id) for (id, score) in result_groups], reverse=True, **paginator_options
-            ).get_result(limit, cursor, known_hits=hits)
+            ).get_result(limit, cursor, known_hits=hits, max_hits=max_hits)
 
             if group_ids or len(paginator_results.results) >= limit or not more_results:
                 break

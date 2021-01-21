@@ -22,6 +22,10 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         response = self.client.post(self.url(), data=data,)
         assert response.status_code == 200, response.data
 
+    def test_valid_widget_permissions(self):
+        self.create_user_member_role()
+        self.test_valid_widget()
+
     def test_invalid_query_conditions(self):
         data = {
             "title": "Invalid query",
@@ -34,6 +38,10 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert response.status_code == 400, response.data
         assert "queries" in response.data, response.data
         assert response.data["queries"][0]["conditions"], response.data
+
+    def test_invalid_widget_permissions(self):
+        self.create_user_member_role()
+        self.test_invalid_query_conditions()
 
     def test_invalid_query_fields(self):
         data = {

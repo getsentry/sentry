@@ -16,7 +16,6 @@ export type TrendsQuery = EventQuery &
     trendFunction?: string;
     trendType?: TrendChangeType;
     middle?: string;
-    intervalRatio?: number;
     interval?: string;
   };
 

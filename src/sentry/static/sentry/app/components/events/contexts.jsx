@@ -101,7 +101,7 @@ class ContextChunk extends React.Component {
   getTitle = () => {
     const {value, alias, type} = this.props;
 
-    if (defined(value.title)) {
+    if (defined(value.title) && typeof value.title !== 'object') {
       return value.title;
     }
 
@@ -152,6 +152,12 @@ class ContextChunk extends React.Component {
 
     const evt = this.props.event;
     const {type, alias, value = {}} = this.props;
+
+    // we intentionally hide reprocessing context to not imply it was sent by the SDK.
+    if (alias === 'reprocessing') {
+      return null;
+    }
+
     const Component =
       type === 'default'
         ? getContextComponent(alias) || getContextComponent(type)

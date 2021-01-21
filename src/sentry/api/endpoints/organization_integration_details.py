@@ -7,6 +7,7 @@ import six
 from sentry.api.bases.organization import OrganizationIntegrationsPermission
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.integration import OrganizationIntegrationSerializer
 from sentry.models import AuditLogEntryEvent, ObjectStatus, OrganizationIntegration
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.deletion import delete_organization_integration
@@ -19,7 +20,11 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
     def get(self, request, organization, integration_id):
         org_integration = self.get_organization_integration(organization, integration_id)
 
-        return self.respond(serialize(org_integration, request.user))
+        return self.respond(
+            serialize(
+                org_integration, request.user, OrganizationIntegrationSerializer(params=request.GET)
+            )
+        )
 
     def delete(self, request, organization, integration_id):
         # Removing the integration removes the organization

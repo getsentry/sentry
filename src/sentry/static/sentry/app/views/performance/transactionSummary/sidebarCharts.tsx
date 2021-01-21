@@ -41,7 +41,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
   const statsPeriod = eventView.statsPeriod;
   const start = eventView.start ? getUtcToLocalDateObject(eventView.start) : undefined;
   const end = eventView.end ? getUtcToLocalDateObject(eventView.end) : undefined;
-  const utc = decodeScalar(router.location.query.utc);
+  const utc = decodeScalar(router.location.query.utc) !== 'false';
 
   const colors = theme.charts.getColorPalette(3);
   const axisLineConfig = {
@@ -84,7 +84,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
     },
     xAxes: Array.from(new Array(3)).map((_i, index) => ({
       gridIndex: index,
-      type: 'time',
+      type: 'time' as const,
       show: false,
     })),
     yAxes: [
@@ -99,18 +99,8 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         ...axisLineConfig,
       },
       {
-        // throughput
-        gridIndex: 1,
-        splitNumber: 4,
-        axisLabel: {
-          formatter: formatAbbreviatedNumber,
-          color: theme.chartLabel,
-        },
-        ...axisLineConfig,
-      },
-      {
         // failure rate
-        gridIndex: 2,
+        gridIndex: 1,
         splitNumber: 4,
         interval: 0.5,
         max: 1.0,
@@ -120,13 +110,23 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         },
         ...axisLineConfig,
       },
+      {
+        // throughput
+        gridIndex: 2,
+        splitNumber: 4,
+        axisLabel: {
+          formatter: formatAbbreviatedNumber,
+          color: theme.chartLabel,
+        },
+        ...axisLineConfig,
+      },
     ],
     utc,
     isGroupedByDate: true,
     showTimeInTooltip: true,
-    colors: [colors[0], colors[1], colors[2]],
+    colors: [colors[0], colors[1], colors[2]] as string[],
     tooltip: {
-      trigger: 'axis',
+      trigger: 'axis' as const,
       truncate: 80,
       valueFormatter: tooltipFormatter,
       nameFormatter(value: string) {
@@ -154,16 +154,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         />
       </ChartTitle>
 
-      <ChartTitle top="190px" key="throughput">
-        {t('TPM')}
-        <QuestionTooltip
-          position="top"
-          title={getTermHelp(organization, 'tpm')}
-          size="sm"
-        />
-      </ChartTitle>
-
-      <ChartTitle top="410px" key="failure-rate">
+      <ChartTitle top="190px" key="failure-rate">
         {t('Failure Rate')}
         <QuestionTooltip
           position="top"
@@ -172,27 +163,30 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         />
       </ChartTitle>
 
-      <ChartZoom
-        router={router}
-        period={statsPeriod}
-        projects={project}
-        environments={environment}
-        xAxisIndex={[0, 1, 2]}
-      >
+      <ChartTitle top="410px" key="throughput">
+        {t('TPM')}
+        <QuestionTooltip
+          position="top"
+          title={getTermHelp(organization, 'tpm')}
+          size="sm"
+        />
+      </ChartTitle>
+
+      <ChartZoom router={router} period={statsPeriod} xAxisIndex={[0, 1, 2]}>
         {zoomRenderProps => (
           <EventsRequest
             api={api}
             organization={organization}
             period={statsPeriod}
-            project={[...project]}
-            environment={[...environment]}
+            project={project}
+            environment={environment}
             start={start}
             end={end}
             interval={getInterval(datetimeSelection)}
             showLoading={false}
             query={eventView.query}
             includePrevious={false}
-            yAxis={[`apdex(${organization.apdexThreshold})`, 'epm()', 'failure_rate()']}
+            yAxis={[`apdex(${organization.apdexThreshold})`, 'failure_rate()', 'epm()']}
           >
             {({results, errored, loading, reloading}) => {
               if (errored) {

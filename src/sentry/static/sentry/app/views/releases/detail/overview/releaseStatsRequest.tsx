@@ -16,6 +16,7 @@ import {t, tct} from 'app/locale';
 import {CrashFreeTimeBreakdown, GlobalSelection, Organization} from 'app/types';
 import {Series} from 'app/types/echarts';
 import {defined, percent} from 'app/utils';
+import {WebVital} from 'app/utils/discover/fields';
 import {getExactDuration} from 'app/utils/formatters';
 
 import {displayCrashFreePercent, getCrashFreePercent, roundDuration} from '../../utils';
@@ -52,6 +53,7 @@ type Props = {
   location: Location;
   yAxis: YAxis;
   eventType: EventType;
+  vitalType: WebVital;
   children: (renderProps: ReleaseStatsRequestRenderProps) => React.ReactNode;
   hasHealthData: boolean;
   hasDiscover: boolean;
@@ -107,7 +109,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
         yAxis === YAxis.EVENTS ||
         yAxis === YAxis.FAILED_TRANSACTIONS ||
         yAxis === YAxis.COUNT_DURATION ||
-        yAxis === YAxis.COUNT_LCP
+        yAxis === YAxis.COUNT_VITAL
       ) {
         data = await this.fetchEventData();
       } else {
@@ -185,6 +187,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       location,
       yAxis,
       eventType,
+      vitalType,
       selection,
       version,
       hasHealthData,
@@ -195,6 +198,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       version,
       yAxis,
       eventType,
+      vitalType,
       organization,
       true
     );

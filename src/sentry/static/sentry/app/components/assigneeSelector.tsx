@@ -400,7 +400,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
               <DropdownButton {...getActorProps({})}>
                 {assignedTo ? (
                   <ActorAvatar actor={assignedTo} className="avatar" size={24} />
-                ) : suggestedActors ? (
+                ) : suggestedActors && suggestedActors.length > 0 ? (
                   <SuggestedAvatarStack size={24} owners={suggestedActors} />
                 ) : (
                   <StyledIconUser size="20px" color="gray400" />
@@ -510,10 +510,12 @@ const GroupHeader = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
   margin: ${space(1)} 0;
-  color: ${p => p.theme.gray500};
+  color: ${p => p.theme.subText};
+  line-height: ${p => p.theme.fontSizeSmall};
+  text-align: left;
 `;
 
 const SuggestedReason = styled('span')`
   margin-left: ${space(0.5)};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.textColor};
 `;

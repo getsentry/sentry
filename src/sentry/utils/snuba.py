@@ -345,9 +345,9 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
     if not name or name.startswith("tags[") or QUOTED_LITERAL_RE.match(name):
         return name
 
-    match = MEASUREMENTS_KEY_RE.match(name)
-    if "measurements_key" in DATASETS[dataset] and match:
-        default = u"measurements[{}]".format(match.group(1).lower())
+    measurement_name = get_measurement_name(name)
+    if "measurements_key" in DATASETS[dataset] and measurement_name:
+        default = u"measurements[{}]".format(measurement_name)
     else:
         default = u"tags[{}]".format(name)
 
@@ -832,9 +832,9 @@ def resolve_column(dataset):
         if col in DATASETS[dataset]:
             return DATASETS[dataset][col]
 
-        match = MEASUREMENTS_KEY_RE.match(col)
-        if "measurements_key" in DATASETS[dataset] and match:
-            return u"measurements[{}]".format(match.group(1).lower())
+        measurement_name = get_measurement_name(col)
+        if "measurements_key" in DATASETS[dataset] and measurement_name:
+            return u"measurements[{}]".format(measurement_name)
 
         return u"tags[{}]".format(col)
 
@@ -1332,3 +1332,8 @@ def is_duration_measurement(key):
         "measurements.ttfb",
         "measurements.ttfb.requesttime",
     ]
+
+
+def get_measurement_name(measurement):
+    match = MEASUREMENTS_KEY_RE.match(measurement)
+    return match.group(1).lower() if match else None

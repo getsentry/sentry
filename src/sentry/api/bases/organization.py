@@ -141,6 +141,15 @@ class OrganizationDataExportPermission(OrganizationPermission):
     }
 
 
+class OrganizationAlertRulePermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin", "alert_rule:read"],
+        "POST": ["org:write", "org:admin", "alert_rule:write"],
+        "PUT": ["org:write", "org:admin", "alert_rule:write"],
+        "DELETE": ["org:write", "org:admin", "alert_rule:write"],
+    }
+
+
 class OrganizationEndpoint(Endpoint):
     permission_classes = (OrganizationPermission,)
 

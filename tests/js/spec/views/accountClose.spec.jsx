@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 
 import AccountClose from 'app/views/settings/account/accountClose';
 
@@ -32,7 +33,7 @@ describe('AccountClose', function () {
     });
   });
 
-  it('lists all orgs user is an owner of', function () {
+  it('lists all orgs user is an owner of', async function () {
     const wrapper = mountWithTheme(<AccountClose />, TestStubs.routerContext());
 
     // Input for single owner org
@@ -57,7 +58,8 @@ describe('AccountClose', function () {
     wrapper.find('Confirm Button').simulate('click');
 
     // First button is cancel, target Button at index 2
-    wrapper.find('Modal Button').at(1).simulate('click');
+    const modal = await mountGlobalModal();
+    modal.find('Button').at(1).simulate('click');
 
     expect(deleteMock).toHaveBeenCalledWith(
       '/users/me/',

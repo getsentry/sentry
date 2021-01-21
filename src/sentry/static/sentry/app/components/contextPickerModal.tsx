@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import ReactSelect, {components} from 'react-select';
+import ReactSelect, {components, StylesConfig} from 'react-select';
 import styled from '@emotion/styled';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
@@ -63,6 +63,15 @@ type Props = ModalRenderProps & {
    * on which the modal was opened
    */
   comingFromProjectId?: string;
+};
+
+const selectSyles = {
+  menu: (provided: StylesConfig) => ({
+    ...provided,
+    position: 'auto',
+    boxShadow: 'none',
+    marginBottom: 0,
+  }),
 };
 
 class ContextPickerModal extends React.Component<Props> {
@@ -259,12 +268,14 @@ class ContextPickerModal extends React.Component<Props> {
           this.projectSelect = ref;
           this.focusProjectSelector();
         }}
-        placeholder={t('Select a Project')}
+        placeholder={t('Select a Project to continue')}
         name="project"
         options={projects.map(({slug}) => ({label: slug, value: slug}))}
         onChange={this.handleSelectProject}
         onMenuOpen={this.onProjectMenuOpen}
-        components={{Option: this.customOptionProject}}
+        components={{Option: this.customOptionProject, DropdownIndicator: null}}
+        styles={selectSyles}
+        menuIsOpen
       />
     );
   }
@@ -311,6 +322,9 @@ class ContextPickerModal extends React.Component<Props> {
               options={orgChoices}
               value={organization}
               onChange={this.handleSelectOrganization}
+              components={{DropdownIndicator: null}}
+              styles={selectSyles}
+              menuIsOpen
             />
           )}
 

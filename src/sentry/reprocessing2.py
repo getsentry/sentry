@@ -81,19 +81,21 @@ from __future__ import absolute_import
 import hashlib
 import logging
 import sentry_sdk
+from sentry.utils import json
 import six
 
 from django.conf import settings
 
-from sentry import nodestore, features, eventstore
+from sentry import nodestore, features, eventstore, options
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry import models
 from sentry.utils import snuba
-from sentry.utils.safe import set_path, get_path
 from sentry.utils.cache import cache_key_for_event
+from sentry.utils.safe import set_path, get_path
 from sentry.utils.redis import redis_clusters
 from sentry.eventstore.processing import event_processing_store
 from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
+from sentry.eventstore.processing.base import _get_unprocessed_key
 
 logger = logging.getLogger("sentry.reprocessing")
 
@@ -115,7 +117,7 @@ def save_unprocessed_event(project, event_id):
     Move event from event_processing_store into nodestore. Only call if event
     has outcome=accepted.
     """
-    if not features.has("projects:reprocessing-v2", project, actor=None):
+    if not features.has("organizations:reprocessing-v2", project.organization, actor=None):
         return
 
     with sentry_sdk.start_span(
@@ -132,16 +134,43 @@ def save_unprocessed_event(project, event_id):
         nodestore.set(node_id, data)
 
 
+def _should_capture_nodestore_stats(event_id):
+    """
+    Computes a sample rate consistent per-event ID.
+
+    event IDs are assumed to be random, so this is like random sampling but
+    gives the same value for the same event ID.
+    """
+
+    try:
+        assert event_id
+        rate = options.get("store.nodestore-stats-sample-rate") or 0
+        return (int(event_id, 16) % 10000) < (rate * 10000)
+    except Exception:
+        logger.exception("nodestore-stats.error")
+        return False
+
+
+def spawn_capture_nodestore_stats(cache_key, project_id, event_id):
+    if not _should_capture_nodestore_stats(event_id):
+        event_processing_store.delete_by_key(_get_unprocessed_key(cache_key))
+        return
+
+    from sentry.tasks.reprocessing2 import capture_nodestore_stats
+
+    capture_nodestore_stats.delay(cache_key=cache_key, project_id=project_id, event_id=event_id)
+
+
 def backup_unprocessed_event(project, data):
     """
     Backup unprocessed event payload into redis. Only call if event should be
     able to be reprocessed.
     """
 
-    if not features.has("projects:reprocessing-v2", project, actor=None):
-        return
-
-    event_processing_store.store(data, unprocessed=True)
+    if features.has(
+        "organizations:reprocessing-v2", project.organization, actor=None
+    ) or _should_capture_nodestore_stats(data.get("event_id")):
+        event_processing_store.store(data, unprocessed=True)
 
 
 def delete_unprocessed_events(project_id, event_ids):
@@ -270,6 +299,10 @@ def _get_sync_counter_key(group_id):
     return "re2:count:{}".format(group_id)
 
 
+def _get_info_reprocessed_key(group_id):
+    return "re2:info:{}".format(group_id)
+
+
 def mark_event_reprocessed(data):
     """
     This function is supposed to be unconditionally called when an event has
@@ -342,7 +375,7 @@ def start_group_reprocessing(project_id, group_id, max_events=None, acting_user_
     #
     # Later the activity is migrated to the new group where it is used to serve
     # the success message.
-    models.Activity.objects.create(
+    new_activity = models.Activity.objects.create(
         type=models.Activity.REPROCESS,
         project=new_group.project,
         ident=six.text_type(group_id),
@@ -351,8 +384,16 @@ def start_group_reprocessing(project_id, group_id, max_events=None, acting_user_
         data={"eventCount": event_count, "oldGroupId": group_id, "newGroupId": new_group.id},
     )
 
+    # New Activity Timestamp
+    date_created = new_activity.datetime
+
     client = _get_sync_redis_client()
     client.setex(_get_sync_counter_key(group_id), _REDIS_SYNC_TTL, event_count)
+    client.setex(
+        _get_info_reprocessed_key(group_id),
+        _REDIS_SYNC_TTL,
+        json.dumps({"dateCreated": date_created, "totalEvents": event_count}),
+    )
 
     return new_group.id
 
@@ -362,9 +403,17 @@ def is_group_finished(group_id):
     Checks whether a group has finished reprocessing.
     """
 
-    pending = get_num_pending_events(group_id)
+    pending, _ = get_progress(group_id)
     return pending <= 0
 
 
-def get_num_pending_events(group_id):
-    return int(_get_sync_redis_client().get(_get_sync_counter_key(group_id)))
+def get_progress(group_id):
+    pending = _get_sync_redis_client().get(_get_sync_counter_key(group_id))
+    info = _get_sync_redis_client().get(_get_info_reprocessed_key(group_id))
+    if pending is None:
+        logger.error("reprocessing2.missing_counter")
+        return 0, None
+    if info is None:
+        logger.error("reprocessing2.missing_info")
+        return 0, None
+    return int(pending), json.loads(info)

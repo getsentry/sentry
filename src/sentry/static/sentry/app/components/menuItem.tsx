@@ -193,17 +193,19 @@ function getListItemStyles(props: MenuListItemProps & {theme: Theme}) {
     return `
       ${common}
       color: ${props.theme.white};
-      background: ${props.theme.purple300};
+      background: ${props.theme.active};
+
+      &:hover {
+        color: ${props.theme.black};
+      }
     `;
   }
 
   return `
     ${common}
-    color: ${props.theme.gray500};
-    background-color: ${props.theme.white};
 
     &:hover {
-      background: ${props.theme.gray100};
+      background: ${props.theme.focus};
     }
   `;
 }
@@ -235,7 +237,7 @@ const MenuListItem = styled('li')<MenuListItemProps>`
 height: 1px;
 margin: ${space(0.5)} 0;
 overflow: hidden;
-background-color: ${p.theme.gray200};
+background-color: ${p.theme.innerBorder};
     `}
   ${p =>
     p.header &&
@@ -251,6 +253,7 @@ background-color: ${p.theme.gray200};
 
 const MenuTarget = styled('span')<MenuListItemProps>`
   ${getListItemStyles}
+  display: flex;
 `;
 
 const MenuLink = styled(Link, {

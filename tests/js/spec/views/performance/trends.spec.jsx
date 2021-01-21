@@ -483,5 +483,5 @@ describe('Performance > Trends', function () {
         })
       );
     }
-  });
+  }, 10000);
 });

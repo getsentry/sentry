@@ -1,8 +1,8 @@
 import React from 'react';
 import {withInfo} from '@storybook/addon-info';
 
-import SentryTypes from 'app/sentryTypes';
 import DebugMeta from 'app/components/events/interfaces/debugMeta';
+import SentryTypes from 'app/sentryTypes';
 
 const event = {
   id: 'deadbeef',
@@ -114,7 +114,7 @@ export const Default = withInfo('Various debug image metadata states')(() => (
       <DebugMeta
         event={event}
         data={event.entries[0].data}
-        orgId={organization.id}
+        organization={organization}
         projectId="1"
       />
     </OrganizationContext>

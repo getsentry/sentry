@@ -101,7 +101,7 @@ class TestGroupOwners(TestCase):
 
         assert GroupOwner.objects.filter(group=self.event.group).count() == 1
         assert GroupOwner.objects.filter(group=self.event.group, user=self.user).exists()
-        self.event_2 = self.store_event(
+        event_2 = self.store_event(
             data={
                 "message": "BANG!",
                 "platform": "python",
@@ -123,7 +123,7 @@ class TestGroupOwners(TestCase):
             },
             project_id=self.project.id,
         )
-        self.event_3 = self.store_event(
+        event_3 = self.store_event(
             data={
                 "message": "BOP!",
                 "platform": "python",
@@ -163,33 +163,33 @@ class TestGroupOwners(TestCase):
             ]
         )
 
-        assert self.event_2.group == self.event.group
-        assert self.event_3.group == self.event.group
+        assert event_2.group == self.event.group
+        assert event_3.group == self.event.group
 
         self.set_release_commits(self.user_2.email)
-        process_suspect_commits(self.event_2)
+        process_suspect_commits(event_2)
         assert GroupOwner.objects.filter(group=self.event.group).count() == 2
         assert GroupOwner.objects.filter(group=self.event.group, user=self.user).exists()
-        assert GroupOwner.objects.filter(group=self.event_2.group, user=self.user_2).exists()
+        assert GroupOwner.objects.filter(group=event_2.group, user=self.user_2).exists()
 
         self.set_release_commits(self.user_3.email)
-        process_suspect_commits(self.event_3)
+        process_suspect_commits(event_3)
         assert GroupOwner.objects.filter(group=self.event.group).count() == 2
         assert GroupOwner.objects.filter(group=self.event.group, user=self.user).exists()
-        assert GroupOwner.objects.filter(group=self.event_2.group, user=self.user_2).exists()
-        assert not GroupOwner.objects.filter(group=self.event_2.group, user=self.user_3).exists()
+        assert GroupOwner.objects.filter(group=event_2.group, user=self.user_2).exists()
+        assert not GroupOwner.objects.filter(group=event_2.group, user=self.user_3).exists()
 
-        go = GroupOwner.objects.filter(group=self.event_2.group, user=self.user_2).first()
+        go = GroupOwner.objects.filter(group=event_2.group, user=self.user_2).first()
         go.date_added = timezone.now() - PREFERRED_GROUP_OWNER_AGE * 2
         go.save()
 
         self.set_release_commits(self.user_3.email)
-        process_suspect_commits(self.event_3)
+        process_suspect_commits(event_3)
         # Won't be processed because the cache is present and this group has owners
         assert GroupOwner.objects.filter(group=self.event.group).count() == 2
         assert GroupOwner.objects.filter(group=self.event.group, user=self.user).exists()
-        assert not GroupOwner.objects.filter(group=self.event_2.group, user=self.user_2).exists()
-        assert GroupOwner.objects.filter(group=self.event_2.group, user=self.user_3).exists()
+        assert not GroupOwner.objects.filter(group=event_2.group, user=self.user_2).exists()
+        assert GroupOwner.objects.filter(group=event_2.group, user=self.user_3).exists()
 
     @patch("sentry.tasks.groupowner.OWNER_CACHE_LIFE", 0)
     def test_update_existing_entries(self):
@@ -214,6 +214,31 @@ class TestGroupOwners(TestCase):
             organization=self.event.project.organization,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
         )
+
+    def test_no_release_or_commit(self):
+        event_with_no_release = self.store_event(
+            data={
+                "message": "BOOM!",
+                "platform": "python",
+                "timestamp": iso_format(before_now(seconds=1)),
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "process_suspect_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/tasks/groupowner.py",
+                            "module": "sentry.tasks.groupowner",
+                            "in_app": True,
+                            "lineno": 48,
+                            "filename": "sentry/tasks/groupowner.py",
+                        },
+                    ]
+                },
+                "fingerprint": ["i-have-no-release"],
+            },
+            project_id=self.project.id,
+        )
+        process_suspect_commits(event_with_no_release)
+        assert GroupOwner.objects.filter(group=event_with_no_release.group).count() == 0
 
     @patch("sentry.tasks.groupowner.OWNER_CACHE_LIFE", 0)
     @patch("sentry.tasks.groupowner.get_event_file_committers")

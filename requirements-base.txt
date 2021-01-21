@@ -24,7 +24,7 @@ google-cloud-storage==1.13.3
 googleapis-common-protos==1.6.0
 ipaddress>=1.0.16,<1.1.0 ; python_version < "3.3"
 jsonschema==3.2.0
-lxml>=4.3.3,<4.4.0
+lxml>=4.6.1,<4.7.0
 maxminddb==1.5.4
 mistune>0.7,<0.9
 mmh3>=2.3.1,<2.4
@@ -59,11 +59,12 @@ sqlparse>=0.2.0,<0.3.0
 statsd>=3.1.0,<3.2.0
 structlog==17.1.0
 symbolic>=8.0.0,<9.0.0
-toronado>=0.0.11,<0.1.0
+toronado==0.1.0
 ua-parser>=0.10.0,<0.11.0
 unidiff>=0.5.4
 urllib3==1.24.2
 uwsgi>2.0.0,<2.1.0
+zstandard>=0.14.1,<=0.15
 
 # msgpack>=1.0.0 correctly encodes / decodes byte types in python3 as the
 # msgpack bin type. It could NOT do this in python 2. However, 1.0 also drops

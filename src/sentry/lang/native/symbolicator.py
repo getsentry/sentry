@@ -24,6 +24,7 @@ from sentry.models import Organization
 
 MAX_ATTEMPTS = 3
 REQUEST_CACHE_TIMEOUT = 3600
+INTERNAL_SOURCE_NAME = "sentry:project"
 
 logger = logging.getLogger(__name__)
 
@@ -107,17 +108,25 @@ class Symbolicator(object):
         base_url = symbolicator_options["url"].rstrip("/")
         assert base_url
 
+        if not getattr(project, "_organization_cache", False):
+            # needed for efficient featureflag checks in getsentry
+            with sentry_sdk.start_span(op="lang.native.symbolicator.organization.get_from_cache"):
+                project._organization_cache = Organization.objects.get_from_cache(
+                    id=project.organization_id
+                )
+
         self.sess = SymbolicatorSession(
             url=base_url,
             project_id=six.text_type(project.id),
             event_id=six.text_type(event_id),
             timeout=settings.SYMBOLICATOR_POLL_TIMEOUT,
             sources=get_sources_for_project(project),
+            options=get_options_for_project(project),
         )
 
         self.task_id_cache_key = _task_id_cache_key_for_event(project.id, event_id)
 
-    def _process(self, create_task):
+    def _process(self, create_task, task_name):
         task_id = default_cache.get(self.task_id_cache_key)
         json_response = None
 
@@ -146,7 +155,7 @@ class Symbolicator(object):
 
             metrics.incr(
                 "events.symbolicator.response",
-                tags={"response": json_response.get("status") or "null"},
+                tags={"response": json_response.get("status") or "null", "task_name": task_name},
             )
 
             # Symbolication is still in progress. Bail out and try again
@@ -164,20 +173,91 @@ class Symbolicator(object):
                 metrics.timing(
                     "events.symbolicator.response.completed.size", len(json.dumps(json_response))
                 )
-                return json_response
+                return redact_internal_sources(json_response)
 
     def process_minidump(self, minidump):
-        return self._process(lambda: self.sess.upload_minidump(minidump))
+        return self._process(lambda: self.sess.upload_minidump(minidump), "process_minidump")
 
     def process_applecrashreport(self, report):
-        return self._process(lambda: self.sess.upload_applecrashreport(report))
+        return self._process(
+            lambda: self.sess.upload_applecrashreport(report), "process_applecrashreport",
+        )
 
     def process_payload(self, stacktraces, modules, signal=None):
         return self._process(
             lambda: self.sess.symbolicate_stacktraces(
                 stacktraces=stacktraces, modules=modules, signal=signal
-            )
+            ),
+            "symbolicate_stacktraces",
         )
+
+
+def redact_internal_sources(response):
+    """Redacts information about internal sources from a response.
+
+    Symbolicator responses can contain a section about DIF object file candidates where were
+    attempted to be downloaded from the sources.  This includes a full URI of where the
+    download was attempted from.  For internal sources we want to redact this in order to
+    not leak any internal details.
+
+    Note that this modifies the argument passed in, thus redacting in-place.  It still
+    returns the modified response.
+    """
+    for module in response.get("modules", []):
+        redact_internal_sources_from_module(module)
+    return response
+
+
+def redact_internal_sources_from_module(module):
+    """Redacts information about internal sources from a single module.
+
+    This in-place redacts candidates from only a single module of the symbolicator response.
+
+    The strategy here is for each internal source to replace the location with the DebugID.
+    Furthermore if there are any "notfound" entries collapse them into a single entry and
+    only show this entry if there are no entries with another status.
+    """
+    sources_notfound = set()
+    sources_other = set()
+    new_candidates = []
+
+    for candidate in module.get("candidates", []):
+        source_id = candidate["source"]
+        if is_internal_source_id(source_id):
+
+            # Only keep location for sentry:project.
+            if source_id != "sentry:project":
+                candidate.pop("location", None)
+
+            # Collapse nofound statuses, collect info on sources which both have a notfound
+            # as well as other statusses.  This allows us to later filter the notfound ones.
+            try:
+                status = candidate.get("download", {})["status"]
+            except KeyError:
+                pass
+            else:
+                if status == "notfound":
+                    candidate.pop("location", None)  # This location is bogus, remove it.
+                    if source_id in sources_notfound:
+                        continue
+                    else:
+                        sources_notfound.add(source_id)
+                else:
+                    sources_other.add(source_id)
+        new_candidates.append(candidate)
+
+    def should_keep(candidate):
+        """Returns `False` if the candidate should be kept in the list of candidates.
+
+        This removes the candidates with a status of ``notfound`` *if* they also have
+        another status.
+        """
+        source_id = candidate["source"]
+        status = candidate.get("download", {}).get("status")
+        return status != "notfound" or source_id not in sources_other
+
+    if "candidates" in module:
+        module["candidates"] = [c for c in new_candidates if should_keep(c)]
 
 
 class TaskIdNotFound(Exception):
@@ -215,10 +295,18 @@ def get_internal_source(project):
 
     return {
         "type": "sentry",
-        "id": "sentry:project",
+        "id": INTERNAL_SOURCE_NAME,
         "url": sentry_source_url,
         "token": get_system_token(),
     }
+
+
+def is_internal_source_id(source_id):
+    """Determines if a DIF object source identifier is reserved for internal sentry use.
+
+    This is trivial, but multiple functions in this file need to use the same definition.
+    """
+    return source_id.startswith("sentry")
 
 
 def parse_sources(config):
@@ -241,13 +329,20 @@ def parse_sources(config):
 
     ids = set()
     for source in sources:
-        if source["id"].startswith("sentry"):
+        if is_internal_source_id(source["id"]):
             raise InvalidSourcesError('Source ids must not start with "sentry:"')
         if source["id"] in ids:
             raise InvalidSourcesError("Duplicate source id: %s" % (source["id"],))
         ids.add(source["id"])
 
     return sources
+
+
+def get_options_for_project(project):
+    return {
+        # Symbolicators who do not support options will ignore this field entirely.
+        "dif_candidates": features.has("organizations:images-loaded-v2", project.organization)
+    }
 
 
 def get_sources_for_project(project):
@@ -257,12 +352,6 @@ def get_sources_for_project(project):
 
     sources = []
 
-    if not getattr(project, "_organization_cache", False):
-        with sentry_sdk.start_span(op="lang.native.symbolicator.organization.get_from_cache"):
-            project._organization_cache = Organization.objects.get_from_cache(
-                id=project.organization_id
-            )
-
     # The symbolicator evaluates sources in the order they are declared. Always
     # try to download symbols from Sentry first.
     project_source = get_internal_source(project)
@@ -271,6 +360,7 @@ def get_sources_for_project(project):
     # Check that the organization still has access to symbol sources. This
     # controls both builtin and external sources.
     organization = project.organization
+
     if not features.has("organizations:symbol-sources", organization):
         return sources
 
@@ -319,11 +409,14 @@ def get_sources_for_project(project):
 
 
 class SymbolicatorSession(object):
-    def __init__(self, url=None, sources=None, project_id=None, event_id=None, timeout=None):
+    def __init__(
+        self, url=None, sources=None, project_id=None, event_id=None, timeout=None, options=None
+    ):
         self.url = url
         self.project_id = project_id
         self.event_id = event_id
         self.sources = sources or []
+        self.options = options or None
         self.timeout = timeout
         self.session = None
 
@@ -346,6 +439,17 @@ class SymbolicatorSession(object):
     def _ensure_open(self):
         if not self.session:
             raise RuntimeError("Session not opened")
+
+    def _process_response(self, json):
+        source_names = {source["id"]: source.get("name") for source in self.sources}
+        source_names[INTERNAL_SOURCE_NAME] = "Sentry"
+
+        for module in json.get("modules") or ():
+            for candidate in module.get("candidates") or ():
+                if candidate.get("source"):
+                    candidate["source_name"] = source_names.get(candidate["source"])
+
+        return json
 
     def _request(self, method, path, **kwargs):
         self._ensure_open()
@@ -392,7 +496,7 @@ class SymbolicatorSession(object):
                 else:
                     json = {"status": "failed", "message": "internal server error"}
 
-                return json
+                return self._process_response(json)
             except (IOError, RequestException) as e:
                 metrics.incr(
                     "events.symbolicator.request_error",
@@ -420,7 +524,12 @@ class SymbolicatorSession(object):
             return self._request(method="post", path=path, params=params, **kwargs)
 
     def symbolicate_stacktraces(self, stacktraces, modules, signal=None):
-        json = {"sources": self.sources, "stacktraces": stacktraces, "modules": modules}
+        json = {
+            "sources": self.sources,
+            "options": self.options,
+            "stacktraces": stacktraces,
+            "modules": modules,
+        }
 
         if signal:
             json["signal"] = signal
@@ -430,14 +539,14 @@ class SymbolicatorSession(object):
     def upload_minidump(self, minidump):
         return self._create_task(
             path="minidump",
-            data={"sources": json.dumps(self.sources)},
+            data={"sources": json.dumps(self.sources), "options": json.dumps(self.options)},
             files={"upload_file_minidump": minidump},
         )
 
     def upload_applecrashreport(self, report):
         return self._create_task(
             path="applecrashreport",
-            data={"sources": json.dumps(self.sources)},
+            data={"sources": json.dumps(self.sources), "options": json.dumps(self.options)},
             files={"apple_crash_report": report},
         )
 

@@ -1,8 +1,8 @@
 import React from 'react';
-import {Modal} from 'react-bootstrap';
 import PropTypes from 'prop-types';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {ModalRenderProps, openModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import IssueSyncListElement from 'app/components/issueSyncListElement';
 import NavTabs from 'app/components/navTabs';
@@ -13,22 +13,28 @@ import {Group, Organization, Plugin, Project} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
+type PluginIssue = {
+  issue_id: string;
+  url: string;
+  label: string;
+};
+
+type TitledPlugin = Plugin & {
+  // issue serializer adds more fields
+  // TODO: should be able to use name instead of title
+  title: string;
+};
+
 type Props = {
   api: Client;
   group: Group;
   organization: Organization;
   project: Project;
-  plugin: Plugin & {
-    // issue serializer adds more fields
-    // TODO: should be able to use name instead of title
-    title: string;
-  };
+  plugin: TitledPlugin;
 };
 
 type State = {
-  showModal: boolean;
-  actionType: 'create' | 'link' | null;
-  issue: {issue_id: string; url: string; label: string} | null;
+  issue: PluginIssue | null;
   pluginLoading: boolean;
 };
 
@@ -42,8 +48,6 @@ class PluginActions extends React.Component<Props, State> {
   };
 
   state: State = {
-    showModal: false,
-    actionType: null,
     issue: null,
     pluginLoading: false,
   };
@@ -52,7 +56,7 @@ class PluginActions extends React.Component<Props, State> {
     this.loadPlugin(this.props.plugin);
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
     if (this.props.plugin.id !== nextProps.plugin.id) {
       this.loadPlugin(nextProps.plugin);
     }
@@ -77,7 +81,7 @@ class PluginActions extends React.Component<Props, State> {
     });
   };
 
-  loadPlugin = data => {
+  loadPlugin = (data: any) => {
     this.setState(
       {
         pluginLoading: true,
@@ -91,75 +95,99 @@ class PluginActions extends React.Component<Props, State> {
     );
   };
 
-  openModal = () => {
-    this.setState({
-      showModal: true,
-      actionType: 'create',
-    });
-  };
-
-  closeModal = data => {
+  handleModalClose = (data?: any) =>
     this.setState({
       issue:
-        data && data.id && data.link
+        data?.id && data?.link
           ? {issue_id: data.id, url: data.link, label: data.label}
           : null,
-      showModal: false,
     });
-  };
 
-  handleClick = (actionType: Exclude<State['actionType'], null>) => {
-    this.setState({actionType});
+  openModal = () => {
+    const {issue} = this.state;
+    const {project, group, organization} = this.props;
+    const plugin = {...this.props.plugin, issue};
+
+    openModal(
+      deps => (
+        <PluginActionsModal
+          {...deps}
+          project={project}
+          group={group}
+          organization={organization}
+          plugin={plugin}
+          onSuccess={this.handleModalClose}
+        />
+      ),
+      {onClose: this.handleModalClose}
+    );
   };
 
   render() {
-    const {actionType, issue} = this.state;
+    const {issue} = this.state;
     const plugin = {...this.props.plugin, issue};
 
     return (
+      <IssueSyncListElement
+        onOpen={this.openModal}
+        externalIssueDisplayName={issue ? issue.label : null}
+        externalIssueId={issue ? issue.issue_id : null}
+        externalIssueLink={issue ? issue.url : null}
+        onClose={this.deleteIssue}
+        integrationType={plugin.id}
+      />
+    );
+  }
+}
+
+type ModalProps = ModalRenderProps & {
+  group: Group;
+  project: Project;
+  organization: Organization;
+  plugin: TitledPlugin & {issue: PluginIssue | null};
+  onSuccess: (data: any) => void;
+};
+
+type ModalState = {
+  actionType: 'create' | 'link' | null;
+};
+
+class PluginActionsModal extends React.Component<ModalProps, ModalState> {
+  state: ModalState = {
+    actionType: 'create',
+  };
+
+  render() {
+    const {Header, Body, group, project, organization, plugin, onSuccess} = this.props;
+    const {actionType} = this.state;
+
+    return (
       <React.Fragment>
-        <IssueSyncListElement
-          onOpen={this.openModal}
-          externalIssueDisplayName={issue ? issue.label : null}
-          externalIssueId={issue ? issue.issue_id : null}
-          externalIssueLink={issue ? issue.url : null}
-          onClose={this.deleteIssue}
-          integrationType={plugin.id}
-        />
-        <Modal
-          show={this.state.showModal}
-          onHide={this.closeModal}
-          animation={false}
-          enforceFocus={false}
-        >
-          <Modal.Header closeButton>
-            <Modal.Title>
-              {tct('[name] Issue', {name: plugin.name || plugin.title})}
-            </Modal.Title>
-          </Modal.Header>
-          <NavTabs underlined>
-            <li className={actionType === 'create' ? 'active' : ''}>
-              <a onClick={() => this.handleClick('create')}>{t('Create')}</a>
-            </li>
-            <li className={actionType === 'link' ? 'active' : ''}>
-              <a onClick={() => this.handleClick('link')}>{t('Link')}</a>
-            </li>
-          </NavTabs>
-          {this.state.showModal && actionType && !this.state.pluginLoading && (
-            // need the key here so React will re-render
-            // with new action prop
-            <Modal.Body key={actionType}>
-              {plugins.get(plugin).renderGroupActions({
-                plugin,
-                group: this.props.group,
-                project: this.props.project,
-                organization: this.props.organization,
-                actionType,
-                onSuccess: this.closeModal,
-              })}
-            </Modal.Body>
-          )}
-        </Modal>
+        <Header closeButton>
+          {tct('[name] Issue', {name: plugin.name || plugin.title})}
+        </Header>
+        <NavTabs underlined>
+          <li className={actionType === 'create' ? 'active' : ''}>
+            <a onClick={() => this.setState({actionType: 'create'})}>{t('Create')}</a>
+          </li>
+          <li className={actionType === 'link' ? 'active' : ''}>
+            <a onClick={() => this.setState({actionType: 'link'})}>{t('Link')}</a>
+          </li>
+        </NavTabs>
+        {actionType && (
+          // need the key here so React will re-render
+          // with new action prop
+          <Body key={actionType}>
+            {plugins.get(plugin).renderGroupActions({
+              plugin,
+              group,
+              project,
+              organization,
+              actionType,
+              onSuccess,
+            })}
+          </Body>
+        )}
       </React.Fragment>
     );
   }

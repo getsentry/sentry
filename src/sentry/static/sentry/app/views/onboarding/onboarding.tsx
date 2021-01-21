@@ -2,13 +2,12 @@ import React from 'react';
 import DocumentTitle from 'react-document-title';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion} from 'framer-motion';
-import scrollToElement from 'scroll-to-element';
+import {AnimatePresence, motion, useAnimation} from 'framer-motion';
 
+import Button from 'app/components/button';
 import Hook from 'app/components/hook';
 import InlineSvg from 'app/components/inlineSvg';
-import PageHeading from 'app/components/pageHeading';
-import {IS_ACCEPTANCE_TEST} from 'app/constants';
+import {IconChevron} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -17,6 +16,7 @@ import testableTransition from 'app/utils/testableTransition';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
+import PageCorners from './components/pageCorners';
 import OnboardingPlatform from './platform';
 import OnboardingProjectSetup from './projectSetup';
 import {StepData, StepDescriptor} from './types';
@@ -40,6 +40,7 @@ const ONBOARDING_STEPS: StepDescriptor[] = [
     id: 'welcome',
     title: t('Welcome to Sentry'),
     Component: OnboardingWelcome,
+    centered: true,
   },
   {
     id: 'select-platform',
@@ -135,21 +136,9 @@ class Onboarding extends React.Component<Props, State> {
     browserHistory.push(`/onboarding/${orgId}/${nextStep.id}/`);
   }
 
-  handleReturnToStep(step: StepDescriptor, data: StepData) {
-    const {orgId} = this.props.params;
-
-    this.handleUpdate(data);
-    browserHistory.push(`/onboarding/${orgId}/${step.id}/`);
-  }
-
-  scrollToActiveStep = () => {
-    const step = this.activeStep;
-    scrollToElement(`#onboarding_step_${step.id}`, {
-      align: 'middle',
-      offset: 0,
-      // Disable animations in CI - must be < 0 to disable
-      duration: IS_ACCEPTANCE_TEST ? -1 : 300,
-    });
+  handleGoBack = () => {
+    const previousStep = this.props.steps[this.activeStepIndex - 1];
+    browserHistory.replace(`/onboarding/${this.props.params.orgId}/${previousStep.id}/`);
   };
 
   renderProgressBar() {
@@ -163,32 +152,54 @@ class Onboarding extends React.Component<Props, State> {
     );
   }
 
-  renderOnboardingSteps() {
+  renderOnboardingStep() {
     const {orgId} = this.props.params;
-    const activeStepIndex = this.activeStepIndex;
-    const visibleSteps = this.props.steps.slice(0, activeStepIndex + 1);
+    const step = this.activeStep;
 
-    return visibleSteps.map((step, index) => (
+    return (
       <OnboardingStep
+        centered={step.centered}
         key={step.id}
         data-test-id={`onboarding-step-${step.id}`}
-        onAnimationComplete={this.scrollToActiveStep}
-        active={activeStepIndex === index}
       >
-        <PageHeading withMargins>{step.title}</PageHeading>
         <step.Component
-          scrollTargetId={`onboarding_step_${step.id}`}
-          active={activeStepIndex === index}
+          active
           orgId={orgId}
           project={this.firstProject}
           platform={this.projectPlatform}
-          onReturnToStep={data => this.handleReturnToStep(step, data)}
           onComplete={data => this.handleNextStep(step, data)}
           onUpdate={this.handleUpdate}
         />
       </OnboardingStep>
-    ));
+    );
   }
+
+  Contents = () => {
+    const cornerVariantControl = useAnimation();
+    const updateCornerVariant = () => {
+      cornerVariantControl.start(this.activeStepIndex === 0 ? 'top-right' : 'top-left');
+    };
+
+    // XXX(epurkhiser): We're using a react hook here becuase there's no other
+    // way to create framer-motion controls than by using the `useAnimation`
+    // hook.
+
+    // eslint-disable-next-line sentry/no-react-hooks
+    React.useEffect(updateCornerVariant, []);
+
+    return (
+      <Container>
+        <Back
+          animate={this.activeStepIndex > 0 ? 'visible' : 'hidden'}
+          onClick={this.handleGoBack}
+        />
+        <AnimatePresence exitBeforeEnter onExitComplete={updateCornerVariant}>
+          {this.renderOnboardingStep()}
+        </AnimatePresence>
+        <PageCorners animateVariant={cornerVariantControl} />
+      </Container>
+    );
+  };
 
   render() {
     if (this.activeStepIndex === -1) {
@@ -197,55 +208,48 @@ class Onboarding extends React.Component<Props, State> {
 
     return (
       <OnboardingWrapper>
-        <DocumentTitle title="Get Started on Sentry" />
+        <DocumentTitle title={this.activeStep.title} />
         <Header>
-          <Container>
-            <LogoSvg src="logo" />
+          <LogoSvg src="logo" />
+          <HeaderRight>
             {this.renderProgressBar()}
-            <AnimatePresence initial={false}>
-              <ProgressStatus key={this.activeStep.id}>
-                {this.activeStep.title}
-              </ProgressStatus>
-            </AnimatePresence>
-          </Container>
+            <Hook name="onboarding:extra-chrome" />
+          </HeaderRight>
         </Header>
-        <Container>
-          <AnimatePresence initial={false}>
-            {this.renderOnboardingSteps()}
-          </AnimatePresence>
-        </Container>
-        <Hook name="onboarding:extra-chrome" />
+        <this.Contents />
       </OnboardingWrapper>
     );
   }
 }
 
 const OnboardingWrapper = styled('main')`
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   flex-grow: 1;
-  background: ${p => p.theme.backgroundSecondary};
-  padding-bottom: 50vh;
 `;
 
 const Container = styled('div')`
-  padding: 0 ${space(3)};
-  max-width: ${p => p.theme.breakpoints[0]};
+  display: flex;
+  justify-content: center;
+  position: relative;
+  background: ${p => p.theme.background};
+  padding: 120px ${space(3)};
+  padding-top: 12vh;
   width: 100%;
   margin: 0 auto;
+  flex-grow: 1;
 `;
 
 const Header = styled('header')`
   background: ${p => p.theme.background};
-  padding: ${space(4)} 0;
+  padding: ${space(4)};
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
-
-  ${Container} {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    align-items: center;
-  }
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
+  display: flex;
+  justify-content: space-between;
 `;
 
 const LogoSvg = styled(InlineSvg)`
@@ -258,6 +262,8 @@ const ProgressBar = styled('div')`
   margin: 0 ${space(4)};
   position: relative;
   display: flex;
+  align-items: center;
+  min-width: 120px;
   justify-content: space-between;
 
   &:before {
@@ -290,6 +296,13 @@ const ProgressStatus = styled(motion.div)`
   grid-row: 1;
 `;
 
+const HeaderRight = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  grid-gap: ${space(1)};
+`;
+
 ProgressStatus.defaultProps = {
   initial: {opacity: 0, y: -10},
   animate: {opacity: 1, y: 0},
@@ -297,35 +310,49 @@ ProgressStatus.defaultProps = {
   transition: testableTransition(),
 };
 
-const OnboardingStep = styled(motion.div)<{active: boolean}>`
-  margin: 70px 0;
-  margin-left: -20px;
-  padding-left: 18px;
-  counter-increment: step;
-  position: relative;
+const Back = styled(({className, animate, ...props}) => (
+  <motion.div
+    className={className}
+    animate={animate}
+    variants={{
+      initial: {opacity: 0},
+      visible: {opacity: 1, transition: {delay: 1}},
+      hidden: {opacity: 0},
+    }}
+  >
+    <Button {...props} icon={<IconChevron direction="left" size="sm" />} priority="link">
+      {t('Go back')}
+    </Button>
+  </motion.div>
+))`
+  position: absolute;
+  top: 40px;
+  left: 20px;
 
-  &:before {
-    content: counter(step);
-    position: absolute;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-    top: -5px;
-    left: -30px;
-    background-color: ${p => (p.active ? p.theme.active : p.theme.gray300)};
-    border-radius: 50%;
-    color: #fff;
-    font-size: 1.5rem;
+  button {
+    font-size: ${p => p.theme.fontSizeSmall};
+    color: ${p => p.theme.subText};
   }
 `;
 
+const OnboardingStep = styled(motion.div)<{centered?: boolean}>`
+  width: 850px;
+  display: flex;
+  flex-direction: column;
+  ${p =>
+    p.centered &&
+    `justify-content: center;
+     align-items: center;`};
+`;
+
 OnboardingStep.defaultProps = {
-  initial: {opacity: 0, y: 100},
-  animate: {opacity: 1, y: 0},
-  exit: {opacity: 0, y: 100},
-  transition: testableTransition(),
+  initial: 'initial',
+  animate: 'animate',
+  exit: 'exit',
+  variants: {animate: {}},
+  transition: testableTransition({
+    staggerChildren: 0.2,
+  }),
 };
 
 export default withOrganization(withProjects(Onboarding));

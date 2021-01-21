@@ -16,6 +16,20 @@ const formGroups: JsonFormObject[] = [
     title: 'Preferences',
     fields: [
       {
+        name: 'theme',
+        type: 'choice',
+        label: t('Theme'),
+        help: t(
+          "Select your theme preference. It can be synced to your system's theme, always light mode, or always dark mode."
+        ),
+        choices: [
+          ['light', t('Light')],
+          ['dark', t('Dark')],
+          ['system', t('Default to system')],
+        ],
+        getData: transformOptions,
+      },
+      {
         name: 'stacktraceOrder',
         type: 'choice',
         required: false,

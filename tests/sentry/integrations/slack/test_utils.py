@@ -15,11 +15,15 @@ from sentry.integrations.slack.utils import (
 )
 from sentry.models import Integration
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
-from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
+from sentry.shared_integrations.exceptions import (
+    DuplicateDisplayNameError,
+    DeprecatedIntegrationError,
+)
 
 
 class GetChannelIdWorkspaceTest(TestCase):
@@ -30,7 +34,7 @@ class GetChannelIdWorkspaceTest(TestCase):
         self.integration = Integration.objects.create(
             provider="slack",
             name="Awesome Team",
-            external_id="TXXXXXXX1",
+            external_id="TXXXXXXX2",
             metadata={"access_token": "xoxa-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
         )
         self.integration.add_organization(self.event.project.organization, self.user)
@@ -41,6 +45,88 @@ class GetChannelIdWorkspaceTest(TestCase):
         )
         self.add_list_response(
             "groups", [{"name": "my-private-channel", "id": "m-p-c"}], result_name="groups"
+        )
+        self.add_list_response(
+            "users",
+            [
+                {"name": "first-morty", "id": "m", "profile": {"display_name": "Morty"}},
+                {"name": "other-user", "id": "o-u", "profile": {"display_name": "Jimbob"}},
+                {"name": "better_morty", "id": "bm", "profile": {"display_name": "Morty"}},
+            ],
+            result_name="members",
+        )
+
+    def tearDown(self):
+        self.resp.__exit__(None, None, None)
+
+    def add_list_response(self, list_type, channels, result_name="channels"):
+        self.resp.add(
+            method=responses.GET,
+            url="https://slack.com/api/%s.list" % list_type,
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": "true", result_name: channels}),
+        )
+
+    def run_valid_test(self, channel, expected_prefix, expected_id, timed_out):
+        assert (expected_prefix, expected_id, timed_out) == get_channel_id(
+            self.organization, self.integration, channel
+        )
+
+    @with_feature("organizations:slack-allow-workspace")
+    def test_valid_channel_selected(self):
+        self.run_valid_test("#My-Channel", CHANNEL_PREFIX, "m-c", False)
+
+    @with_feature("organizations:slack-allow-workspace")
+    def test_valid_private_channel_selected(self):
+        self.run_valid_test("#my-private-channel", CHANNEL_PREFIX, "m-p-c", False)
+
+    @with_feature("organizations:slack-allow-workspace")
+    def test_valid_member_selected(self):
+        self.run_valid_test("@first-morty", MEMBER_PREFIX, "m", False)
+
+    @with_feature("organizations:slack-allow-workspace")
+    def test_valid_member_selected_display_name(self):
+        self.run_valid_test("@Jimbob", MEMBER_PREFIX, "o-u", False)
+
+    @with_feature("organizations:slack-allow-workspace")
+    def test_invalid_member_selected_display_name(self):
+        with pytest.raises(DuplicateDisplayNameError):
+            get_channel_id(self.organization, self.integration, "@Morty")
+
+    @with_feature("organizations:slack-allow-workspace")
+    def test_invalid_channel_selected(self):
+        assert get_channel_id(self.organization, self.integration, "#fake-channel")[1] is None
+        assert get_channel_id(self.organization, self.integration, "@fake-user")[1] is None
+
+    def test_invalid_deprecated_workspace_app(self):
+        with pytest.raises(DeprecatedIntegrationError):
+            get_channel_id(self.organization, self.integration, "#hello")
+
+
+class GetChannelIdBotTest(TestCase):
+    def setUp(self):
+        self.resp = responses.mock
+        self.resp.__enter__()
+
+        self.integration = Integration.objects.create(
+            provider="slack",
+            name="Awesome Team",
+            external_id="TXXXXXXX1",
+            metadata={
+                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
+        )
+        self.integration.add_organization(self.event.project.organization, self.user)
+        self.add_list_response(
+            "conversations",
+            [
+                {"name": "my-channel", "id": "m-c"},
+                {"name": "other-chann", "id": "o-c"},
+                {"name": "my-private-channel", "id": "m-p-c", "is_private": True},
+            ],
+            result_name="channels",
         )
         self.add_list_response(
             "users",
@@ -88,41 +174,6 @@ class GetChannelIdWorkspaceTest(TestCase):
     def test_invalid_channel_selected(self):
         assert get_channel_id(self.organization, self.integration, "#fake-channel")[1] is None
         assert get_channel_id(self.organization, self.integration, "@fake-user")[1] is None
-
-
-class GetChannelIdBotTest(GetChannelIdWorkspaceTest):
-    def setUp(self):
-        self.resp = responses.mock
-        self.resp.__enter__()
-
-        self.integration = Integration.objects.create(
-            provider="slack",
-            name="Awesome Team",
-            external_id="TXXXXXXX1",
-            metadata={
-                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "installation_type": "born_as_bot",
-            },
-        )
-        self.integration.add_organization(self.event.project.organization, self.user)
-        self.add_list_response(
-            "conversations",
-            [
-                {"name": "my-channel", "id": "m-c"},
-                {"name": "other-chann", "id": "o-c"},
-                {"name": "my-private-channel", "id": "m-p-c", "is_private": True},
-            ],
-            result_name="channels",
-        )
-        self.add_list_response(
-            "users",
-            [
-                {"name": "first-morty", "id": "m", "profile": {"display_name": "Morty"}},
-                {"name": "other-user", "id": "o-u", "profile": {"display_name": "Jimbob"}},
-                {"name": "better_morty", "id": "bm", "profile": {"display_name": "Morty"}},
-            ],
-            result_name="members",
-        )
 
 
 class BuildIncidentAttachmentTest(TestCase):

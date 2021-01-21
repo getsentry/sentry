@@ -20,12 +20,20 @@ const TimesTag = ({lastSeen, firstSeen}: Props) => {
   return (
     <Wrapper>
       <StyledIconClock size="xs" color="gray300" />
-      {lastSeen && <TimeSince date={lastSeen} suffix={t('ago')} shorten />}
+      {lastSeen && (
+        <TimeSince
+          tooltipTitle={t('Last Seen')}
+          date={lastSeen}
+          suffix={t('ago')}
+          shorten
+        />
+      )}
       {firstSeen && lastSeen && (
         <Seperator className="hidden-xs hidden-sm">&nbsp;|&nbsp;</Seperator>
       )}
       {firstSeen && (
         <TimeSince
+          tooltipTitle={t('First Seen')}
           date={firstSeen}
           suffix={t('old')}
           className="hidden-xs hidden-sm"

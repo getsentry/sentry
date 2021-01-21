@@ -1,7 +1,6 @@
 import u2f from 'u2f-api';
 
 import {Props as AlertProps} from 'app/components/alert';
-import {SpanEntry, TraceContextType} from 'app/components/events/interfaces/spans/types';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 import {API_ACCESS_SCOPES} from 'app/constants';
 import {PlatformKey} from 'app/data/platformCategories';
@@ -15,6 +14,8 @@ import {
 } from 'app/views/organizationIntegrations/constants';
 import {Field} from 'app/views/settings/components/forms/type';
 
+import {DynamicSamplingRules} from './dynamicSampling';
+import {Event} from './event';
 import {Mechanism, RawStacktrace, StacktraceType} from './stacktrace';
 
 declare global {
@@ -152,6 +153,7 @@ export type LightWeightOrganization = OrganizationSummary & {
   attachmentsRole: string;
   debugFilesRole: string;
   eventsMemberAdmin: boolean;
+  alertsMemberWrite: boolean;
   sensitiveFields: string[];
   openMembership: boolean;
   quota: {
@@ -177,6 +179,7 @@ export type LightWeightOrganization = OrganizationSummary & {
   apdexThreshold: number;
   onboardingTasks: OnboardingTaskStatus[];
   trustedRelays: Relay[];
+  dynamicSampling: DynamicSamplingRules;
   role?: string;
 };
 
@@ -186,6 +189,15 @@ export type LightWeightOrganization = OrganizationSummary & {
 export type Organization = LightWeightOrganization & {
   projects: Project[];
   teams: Team[];
+};
+
+/**
+ * Minimal organization shape used on shared issue views.
+ */
+export type SharedViewOrganization = {
+  slug: string;
+  id?: string;
+  features?: Array<string>;
 };
 
 // Minimal project representation for use with avatars.
@@ -208,6 +220,7 @@ export type Project = {
   organization: Organization;
 
   isBookmarked: boolean;
+  isInternal: boolean;
   hasUserReports?: boolean;
   hasAccess: boolean;
   firstEvent: 'string' | null;
@@ -321,51 +334,6 @@ export type EventAttachment = {
 
 export type EntryData = Record<string, any | Array<any>>;
 
-export type Entry = {
-  data: EntryData;
-  type: string;
-};
-
-export type EventTag = {key: string; value: string};
-
-export type EventUser = {
-  username?: string;
-  name?: string;
-  ip_address?: string;
-  email?: string;
-  id?: string;
-};
-
-type RuntimeContext = {
-  type: 'runtime';
-  version: number;
-  build?: string;
-  name?: string;
-};
-
-type DeviceContext = {
-  arch: string;
-  family: string;
-  model: string;
-  type: string;
-};
-
-type OSContext = {
-  kernel_version: string;
-  version: string;
-  type: string;
-  build: string;
-  name: string;
-};
-
-type EventContexts = {
-  runtime?: RuntimeContext;
-  trace?: TraceContextType;
-  device?: DeviceContext;
-  os?: OSContext;
-  client_os?: OSContext;
-};
-
 type EnableIntegrationSuggestion = {
   type: 'enableIntegration';
   integrationName: string;
@@ -388,119 +356,10 @@ type ChangeSdkSuggestion = {
   sdkUrl?: string | null;
 };
 
-type SDKUpdatesSuggestion =
+export type SDKUpdatesSuggestion =
   | EnableIntegrationSuggestion
   | UpdateSdkSuggestion
   | ChangeSdkSuggestion;
-
-type Measurement = {value: number};
-
-type SentryEventBase = {
-  id: string;
-  eventID: string;
-  groupID?: string;
-  title: string;
-  culprit: string;
-  dateCreated: string;
-  dist: string | null;
-  metadata: EventMetadata;
-  contexts: EventContexts;
-  context?: {[key: string]: any};
-  device?: {[key: string]: any};
-  packages?: {[key: string]: string};
-  user: EventUser;
-  message: string;
-  platform?: PlatformKey;
-  dateReceived?: string;
-  endTimestamp?: number;
-  entries: Entry[];
-  errors: any[];
-
-  previousEventID?: string;
-  nextEventID?: string;
-  projectSlug: string;
-  projectID: string;
-
-  tags: EventTag[];
-
-  size: number;
-
-  location: string;
-
-  oldestEventID: string | null;
-  latestEventID: string | null;
-
-  groupingConfig: {
-    id: string;
-    enhancements: string;
-  };
-
-  userReport?: any;
-
-  crashFile: EventAttachment | null;
-
-  sdk?: {
-    name: string;
-    version: string;
-  };
-
-  sdkUpdates?: Array<SDKUpdatesSuggestion>;
-
-  measurements?: Record<string, Measurement>;
-
-  release?: Release;
-};
-
-export type SentryTransactionEvent = Omit<SentryEventBase, 'entries' | 'type'> & {
-  entries: (SpanEntry | RequestEntry)[];
-  startTimestamp: number;
-  endTimestamp: number;
-  type: 'transaction';
-  title?: string;
-  contexts?: {
-    trace?: TraceContextType;
-  };
-};
-
-export type ExceptionEntry = {
-  type: 'exception';
-  data: ExceptionType;
-};
-
-export type StacktraceEntry = {
-  type: 'stacktrace';
-  data: StacktraceType;
-};
-
-export type RequestEntry = {
-  type: 'request';
-  data: {
-    url: string;
-    method: string;
-    data?: string | null | Record<string, any> | [key: string, value: any][];
-    query?: [key: string, value: string][];
-    fragment?: string;
-    cookies?: [key: string, value: string][];
-    headers?: [key: string, value: string][];
-    env?: Record<string, string>;
-    inferredContentType?:
-      | null
-      | 'application/json'
-      | 'application/x-www-form-urlencoded'
-      | 'multipart/form-data';
-  };
-};
-
-export type SentryErrorEvent = Omit<SentryEventBase, 'entries' | 'type'> & {
-  entries: (ExceptionEntry | StacktraceEntry | RequestEntry)[];
-  type: 'error';
-};
-
-// This type is incomplete
-export type Event =
-  | SentryErrorEvent
-  | SentryTransactionEvent
-  | ({type: string} & SentryEventBase);
 
 export type EventsStatsData = [number, {count: number}[]][];
 
@@ -562,6 +421,7 @@ export type User = Omit<AvatarUser, 'options'> & {
   authenticators: UserEnrolledAuthenticator[];
   dateJoined: string;
   options: {
+    theme: 'system' | 'light' | 'dark';
     timezone: string;
     stacktraceOrder: number;
     language: string;
@@ -846,14 +706,6 @@ export type SuggestedOwner = {
   date_added: string;
 };
 
-type GroupFiltered = {
-  count: string;
-  stats: Record<string, TimeseriesValue[]>;
-  lastSeen: string;
-  firstSeen: string;
-  userCount: number;
-};
-
 export enum GroupActivityType {
   NOTE = 'note',
   SET_RESOLVED = 'set_resolved',
@@ -1047,22 +899,53 @@ export type GroupActivity =
 
 export type Activity = GroupActivity;
 
+type GroupFiltered = {
+  count: string;
+  stats: Record<string, TimeseriesValue[]>;
+  lastSeen: string;
+  firstSeen: string;
+  userCount: number;
+};
+
+export type GroupStats = GroupFiltered & {
+  lifetime?: GroupFiltered;
+  filtered: GroupFiltered | null;
+  id: string;
+};
+
+type BaseGroupStatusReprocessing = {
+  status: 'reprocessing';
+  statusDetails: {
+    pendingEvents: number;
+    info: {
+      dateCreated: string;
+      totalEvents: number;
+    };
+  };
+};
+
+type BaseGroupStatusResolution = {
+  status: ResolutionStatus;
+  statusDetails: ResolutionStatusDetails;
+};
+
 // TODO(ts): incomplete
-export type Group = GroupFiltered & {
+export type BaseGroup = {
   id: string;
   latestEvent: Event;
   activity: GroupActivity[];
   annotations: string[];
   assignedTo: User;
   culprit: string;
-  currentRelease: any; // TODO(ts)
-  firstRelease: any; // TODO(ts)
+  firstRelease: Release;
+  firstSeen: string;
   hasSeen: boolean;
   isBookmarked: boolean;
   isUnhandled: boolean;
   isPublic: boolean;
   isSubscribed: boolean;
-  lastRelease: any; // TODO(ts)
+  lastRelease: Release;
+  lastSeen: string;
   level: Level;
   logger: string;
   metadata: EventMetadata;
@@ -1077,18 +960,18 @@ export type Group = GroupFiltered & {
   seenBy: User[];
   shareId: string;
   shortId: string;
-  status: 'reprocessing' | ResolutionStatus;
-  statusDetails: ResolutionStatusDetails;
   tags: Pick<Tag, 'key' | 'name' | 'totalValues'>[];
   title: string;
   type: EventOrGroupType;
   userReportCount: number;
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
-  filtered: GroupFiltered | null;
-  lifetime?: any; // TODO(ts)
   inbox?: InboxDetails | null;
   owners?: SuggestedOwner[] | null;
 };
+
+export type GroupReprocessing = BaseGroup & GroupStats & BaseGroupStatusReprocessing;
+export type GroupResolution = BaseGroup & GroupStats & BaseGroupStatusResolution;
+export type Group = GroupResolution | GroupReprocessing;
 
 export type GroupTombstone = {
   id: string;
@@ -1478,6 +1361,17 @@ type BaseRelease = {
   status: ReleaseStatus;
 };
 
+export type CurrentRelease = {
+  environment: string;
+  firstSeen: string;
+  lastSeen: string;
+  release: Release;
+  stats: {
+    // 24h/30d is hardcoded in GroupReleaseWithStatsSerializer
+    '24h': TimeseriesValue[];
+    '30d': TimeseriesValue[];
+  };
+};
 export enum ReleaseStatus {
   Active = 'open',
   Archived = 'archived',
@@ -1559,7 +1453,7 @@ export type SentryAppComponent = {
   schema: SentryAppSchemaStacktraceLink;
   sentryApp: {
     uuid: string;
-    slug: 'clickup' | 'clubhouse' | 'rookout' | 'teamwork' | 'linear';
+    slug: 'clickup' | 'clubhouse' | 'rookout' | 'teamwork' | 'linear' | 'zepel';
     name: string;
   };
 };
@@ -1609,6 +1503,8 @@ export type SelectValue<T> = {
   tooltip?: string;
 };
 
+export type IssueConfigFieldChoices = [number | string, number | string][];
+
 /**
  * The issue config form fields we get are basically the form fields we use in
  * the UI but with some extra information. Some fields marked optional in the
@@ -1616,8 +1512,8 @@ export type SelectValue<T> = {
  */
 export type IssueConfigField = Field & {
   name: string;
-  default?: string;
-  choices?: [number | string, number | string][];
+  default?: string | number;
+  choices?: IssueConfigFieldChoices;
   url?: string;
   multiple?: boolean;
 };
@@ -1709,6 +1605,11 @@ export type Tag = {
   totalValues?: number;
   predefined?: boolean;
   isInput?: boolean;
+  /**
+   * How many values should be suggested in autocomplete.
+   * Overrides SmartSearchBar's `maxSearchItems` prop.
+   */
+  maxSuggestedValues?: number;
 };
 
 export type TagCollection = {[key: string]: Tag};
@@ -1784,8 +1685,8 @@ export type ResolutionStatusDetails = {
   inCommit?: Commit;
   inRelease?: string;
   inNextRelease?: boolean;
-  pendingEvents?: number;
 };
+
 export type UpdateResolutionStatus = {
   status: ResolutionStatus;
   statusDetails?: ResolutionStatusDetails;
@@ -2021,3 +1922,23 @@ export type AuthProvider = {
   requiredFeature: string;
   disables2FA: boolean;
 };
+
+export type PromptActivity = {
+  data: {
+    snoozed_ts?: number;
+    dismissed_ts?: number;
+  };
+};
+
+export type ServerlessFunction = {
+  name: string;
+  runtime: string;
+  version: number;
+  outOfDate: boolean;
+  enabled: boolean;
+};
+
+/**
+ * File storage service options for debug files
+ */
+export type DebugFileSource = 'http' | 's3' | 'gcs';

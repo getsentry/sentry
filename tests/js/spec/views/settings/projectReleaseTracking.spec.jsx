@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 
 import {fetchPlugins} from 'app/actionCreators/plugins';
 import ProjectReleaseTrackingContainer, {
@@ -47,7 +48,7 @@ describe('ProjectReleaseTracking', function () {
     expect(wrapper.find('TextCopyInput').prop('children')).toBe('token token token');
   });
 
-  it('can regenerate token', function (done) {
+  it('can regenerate token', async function () {
     const wrapper = mountWithTheme(
       <ProjectReleaseTracking
         organization={org}
@@ -69,24 +70,24 @@ describe('ProjectReleaseTracking', function () {
 
     // Click Regenerate Token
     wrapper.find('Field[label="Regenerate Token"] Button').simulate('click');
-    expect(wrapper.find('ModalDialog')).toHaveLength(1);
+
+    const modal = await mountGlobalModal();
+    expect(modal.find('ModalDialog')).toHaveLength(1);
 
     expect(mock).not.toHaveBeenCalled();
 
-    wrapper.find('ModalDialog Button[priority="danger"]').simulate('click');
+    modal.find('Button[priority="danger"]').simulate('click');
 
-    setTimeout(() => {
-      expect(mock).toHaveBeenCalledWith(
-        url,
-        expect.objectContaining({
-          method: 'POST',
-          data: {
-            project: project.slug,
-          },
-        })
-      );
-      done();
-    }, 1);
+    await tick();
+    expect(mock).toHaveBeenCalledWith(
+      url,
+      expect.objectContaining({
+        method: 'POST',
+        data: {
+          project: project.slug,
+        },
+      })
+    );
   });
 
   it('fetches new plugins when project changes', function () {

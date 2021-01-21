@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
+import color from 'color';
 import * as PopperJS from 'popper.js';
 
 import {IconEllipsis} from 'app/icons';
@@ -485,7 +486,7 @@ const MenuButton = styled('button')`
   justify-content: center;
   align-items: center;
 
-  background: rgba(255, 255, 255, 0.85);
+  background: ${p => color(p.theme.background).alpha(0.85).string()};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
   cursor: pointer;

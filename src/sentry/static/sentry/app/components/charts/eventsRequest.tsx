@@ -94,11 +94,11 @@ type EventsRequestPartialProps = {
   /**
    * List of project ids to query
    */
-  project?: number[];
+  project?: Readonly<number[]>;
   /**
    * List of environments to query
    */
-  environment?: string[];
+  environment?: Readonly<string[]>;
   /**
    * List of fields to group with when doing a topEvents request.
    */

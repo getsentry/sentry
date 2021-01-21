@@ -128,7 +128,6 @@ export default class AddIntegration extends React.Component<Props> {
     if (!data) {
       return;
     }
-    this.props.onInstall(data);
     trackIntegrationEvent(
       {
         eventKey: integrationId
@@ -144,6 +143,7 @@ export default class AddIntegration extends React.Component<Props> {
       this.props.organization
     );
     addSuccessMessage(t('%s added', this.props.provider.name));
+    this.props.onInstall(data);
   };
 
   render() {

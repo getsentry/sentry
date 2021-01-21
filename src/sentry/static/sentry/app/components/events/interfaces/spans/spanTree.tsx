@@ -2,7 +2,8 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {t, tct} from 'app/locale';
-import {Organization, SentryTransactionEvent} from 'app/types';
+import {Organization} from 'app/types';
+import {EventTransaction} from 'app/types/event';
 import {TableData} from 'app/utils/discover/discoverQuery';
 
 import * as DividerHandlerManager from './dividerHandlerManager';
@@ -48,7 +49,7 @@ type PropType = {
   trace: ParsedTraceType;
   dragProps: DragManagerChildrenProps;
   filterSpans: FilterSpans | undefined;
-  event: SentryTransactionEvent;
+  event: EventTransaction;
   spansWithErrors: TableData | null | undefined;
   operationNameFilters: ActiveOperationFilter;
   traceViewRef: React.RefObject<HTMLDivElement>;

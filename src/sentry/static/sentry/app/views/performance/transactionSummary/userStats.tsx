@@ -13,7 +13,7 @@ import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {getAggregateAlias} from 'app/utils/discover/fields';
+import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {getTermHelp} from 'app/views/performance/data';
 import {
@@ -23,7 +23,7 @@ import {
 } from 'app/views/performance/transactionVitals/constants';
 import {vitalsRouteWithQuery} from 'app/views/performance/transactionVitals/utils';
 
-import VitalsCards from '../vitalsCards';
+import VitalInfo from '../vitalDetail/vitalInfo';
 
 type Props = {
   eventView: EventView;
@@ -87,7 +87,7 @@ function UserStats({eventView, totals, location, organization, transactionName}:
 
   return (
     <div>
-      <ApdexContainer>
+      <SidebarWrapper>
         <SectionHeading>
           {t('Apdex Score')}
           <QuestionTooltip
@@ -104,12 +104,12 @@ function UserStats({eventView, totals, location, organization, transactionName}:
             {threshold}ms {t('threshold')}
           </SectionValue>
         </Link>
-      </ApdexContainer>
+      </SidebarWrapper>
       <Feature features={['organizations:performance-vitals-overview']}>
         {({hasFeature}) => {
-          if (hasFeature) {
+          if (vitalsPassRate !== null && hasFeature) {
             return (
-              <div>
+              <SidebarWrapper>
                 <VitalsHeading>
                   <SectionHeading>
                     {t('Web Vitals')}
@@ -125,13 +125,15 @@ function UserStats({eventView, totals, location, organization, transactionName}:
                     <IconOpen />
                   </Link>
                 </VitalsHeading>
-                <VitalsCards
+                <VitalInfo
                   eventView={eventView}
                   organization={organization}
                   location={location}
-                  hasCondensedVitals
+                  vital={[WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS]}
+                  hideVitalPercentNames
+                  hideDurationDetail
                 />
-              </div>
+              </SidebarWrapper>
             );
           } else {
             return (
@@ -172,7 +174,7 @@ function UserStats({eventView, totals, location, organization, transactionName}:
   );
 }
 
-const ApdexContainer = styled('div')`
+const SidebarWrapper = styled('div')`
   margin-bottom: ${space(3)};
 `;
 

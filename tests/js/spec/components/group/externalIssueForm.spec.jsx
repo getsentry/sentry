@@ -22,28 +22,36 @@ jest.mock('lodash/debounce', () => {
 });
 
 describe('ExternalIssueForm', () => {
-  let group, integration, handleSubmitSuccess, wrapper, formConfig;
+  let group, integration, onChange, wrapper, formConfig;
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     group = TestStubs.Group();
     integration = TestStubs.GitHubIntegration({externalIssues: []});
-    handleSubmitSuccess = jest.fn();
+    onChange = jest.fn();
   });
 
   afterEach(() => {
     jest.useRealTimers();
   });
 
-  const generateWrapper = (action = 'create') =>
-    mountWithTheme(
+  const generateWrapper = (action = 'create') => {
+    MockApiClient.addMockResponse({
+      url: `/groups/${group.id}/integrations/${integration.id}/?action=create`,
+      body: formConfig,
+    });
+    const component = mountWithTheme(
       <ExternalIssueForm
+        Body={p => p.children}
+        Header={p => p.children}
         group={group}
         integration={integration}
-        onSubmitSuccess={handleSubmitSuccess}
-        action={action}
+        onChange={onChange}
       />,
       TestStubs.routerContext()
     );
+    component.instance().handleClick(action);
+    return component;
+  };
 
   describe('create', () => {
     // TODO: expand tests

@@ -43,7 +43,7 @@ const Row = ({
   return (
     <AutoCompleteItem
       itemSize={itemSize}
-      hasGrayBackground={index === highlightedIndex}
+      isHighlighted={index === highlightedIndex}
       {...getItemProps({item, index, style})}
     >
       {typeof item.label === 'function' ? item.label({inputValue}) : item.label}
@@ -84,7 +84,7 @@ const getItemPaddingForSize = (itemSize?: ItemSize) => {
   return space(1);
 };
 
-const AutoCompleteItem = styled('div')<{hasGrayBackground: boolean; itemSize?: ItemSize}>`
+const AutoCompleteItem = styled('div')<{isHighlighted: boolean; itemSize?: ItemSize}>`
   /* needed for virtualized lists that do not fill parent height */
   /* e.g. breadcrumbs (org height > project, but want same fixed height for both) */
   display: flex;
@@ -92,9 +92,8 @@ const AutoCompleteItem = styled('div')<{hasGrayBackground: boolean; itemSize?: I
   justify-content: center;
 
   font-size: 0.9em;
-  background-color: ${p =>
-    p.hasGrayBackground ? p.theme.backgroundSecondary : 'transparent'};
-  color: ${p => (p.hasGrayBackground ? p.theme.textColor : 'inherit')};
+  background-color: ${p => (p.isHighlighted ? p.theme.focus : 'transparent')};
+  color: ${p => (p.isHighlighted ? p.theme.textColor : 'inherit')};
   padding: ${p => getItemPaddingForSize(p.itemSize)};
   cursor: pointer;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
@@ -105,6 +104,6 @@ const AutoCompleteItem = styled('div')<{hasGrayBackground: boolean; itemSize?: I
 
   :hover {
     color: ${p => p.theme.textColor};
-    background-color: ${p => p.theme.backgroundSecondary};
+    background-color: ${p => p.theme.focus};
   }
 `;
