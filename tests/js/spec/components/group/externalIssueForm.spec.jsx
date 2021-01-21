@@ -193,7 +193,7 @@ describe('ExternalIssueForm', () => {
 
       it('debounced function returns a promise with the options returned by fetch', async () => {
         const output = await wrapper.instance().getOptions(externalIssueField, 'd');
-        expect(output.options).toEqual(mockSuccessResponse);
+        expect(output).toEqual(mockSuccessResponse);
       });
     });
   });

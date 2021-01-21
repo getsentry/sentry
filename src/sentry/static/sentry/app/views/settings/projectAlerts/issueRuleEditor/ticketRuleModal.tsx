@@ -136,9 +136,9 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
 
   updateFetchedFieldOptionsCache = (
     field: IssueConfigField,
-    result: {options: {value: string; label: string}[]}
+    result: {value: string; label: string}[]
   ): void => {
-    const fetchedFieldOptionsCache = result.options.map(obj => [obj.value, obj.label]);
+    const fetchedFieldOptionsCache = result.map(obj => [obj.value, obj.label]);
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
       set(newState, `fetchedFieldOptionsCache[${field.name}]`, fetchedFieldOptionsCache);

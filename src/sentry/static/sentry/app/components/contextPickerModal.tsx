@@ -65,7 +65,7 @@ type Props = ModalRenderProps & {
   comingFromProjectId?: string;
 };
 
-const selectSyles = {
+const selectStyles = {
   menu: (provided: StylesConfig) => ({
     ...provided,
     position: 'auto',
@@ -274,7 +274,7 @@ class ContextPickerModal extends React.Component<Props> {
         onChange={this.handleSelectProject}
         onMenuOpen={this.onProjectMenuOpen}
         components={{Option: this.customOptionProject, DropdownIndicator: null}}
-        styles={selectSyles}
+        styles={selectStyles}
         menuIsOpen
       />
     );
@@ -323,7 +323,7 @@ class ContextPickerModal extends React.Component<Props> {
               value={organization}
               onChange={this.handleSelectOrganization}
               components={{DropdownIndicator: null}}
-              styles={selectSyles}
+              styles={selectStyles}
               menuIsOpen
             />
           )}
