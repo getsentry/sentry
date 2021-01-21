@@ -75,9 +75,7 @@ def save_userreport(project, report, start_time=None):
         if report_instance.group_id:
             report_instance.notify()
 
-    user_feedback_received.send(
-        project=project, group=event.group, sender=save_userreport,
-    )
+    user_feedback_received.send(project=project, sender=save_userreport)
 
     return report_instance
 

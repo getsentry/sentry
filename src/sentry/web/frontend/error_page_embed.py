@@ -12,7 +12,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry import eventstore
-from sentry.models import Group, Project, ProjectKey, ProjectOption, UserReport
+from sentry.models import Project, ProjectKey, ProjectOption, UserReport
 from sentry.web.helpers import render_to_response, render_to_string
 from sentry.signals import user_feedback_received
 from sentry.utils import json
@@ -179,9 +179,7 @@ class ErrorPageEmbedView(View):
                     report.notify()
 
             user_feedback_received.send(
-                project=Project.objects.get(id=report.project_id),
-                group=Group.objects.get(id=report.group_id),
-                sender=self,
+                project=Project.objects.get(id=report.project_id), sender=self,
             )
 
             return self._smart_response(request)
