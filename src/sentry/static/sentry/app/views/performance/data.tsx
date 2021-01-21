@@ -379,14 +379,9 @@ function generateFrontendNavigationPerformanceEventView(
   return EventView.fromNewQueryWithLocation(savedQuery, location);
 }
 
-export function generatePerformanceEventView(
-  organization,
-  location,
-  eventView,
-  projects
-) {
+export function generatePerformanceEventView(organization, location, projects) {
   const display = organization.features.includes('performance-landing-v2')
-    ? getCurrentLandingDisplay(location, eventView, projects)
+    ? getCurrentLandingDisplay(location, projects)
     : undefined;
   switch (display?.field) {
     case LandingDisplayField.FRONTEND_PAGELOAD:

@@ -52,8 +52,8 @@ export const LANDING_DISPLAYS = [
 
 export function getCurrentLandingDisplay(
   location: Location,
-  eventView: EventView,
-  projects: Project[]
+  projects: Project[],
+  eventView?: EventView
 ): LandingDisplay {
   const landingField = decodeScalar(location?.query?.landingDisplay);
   const display = LANDING_DISPLAYS.find(({field}) => field === landingField);
@@ -61,7 +61,7 @@ export function getCurrentLandingDisplay(
     return display;
   }
 
-  const defaultDisplayField = getDefaultDisplayFieldForPlatform(eventView, projects);
+  const defaultDisplayField = getDefaultDisplayFieldForPlatform(projects, eventView);
   const defaultDisplay = LANDING_DISPLAYS.find(
     ({field}) => field === defaultDisplayField
   );
@@ -105,8 +105,8 @@ const VITALS_FRONTEND_PLATFORMS: string[] = [...frontend];
 const VITALS_BACKEND_PLATFORMS: string[] = [...backend];
 
 export function getDefaultDisplayFieldForPlatform(
-  eventView: EventView,
-  projects: Project[]
+  projects: Project[],
+  eventView?: EventView
 ) {
   if (!eventView) {
     return LandingDisplayField.ALL;
