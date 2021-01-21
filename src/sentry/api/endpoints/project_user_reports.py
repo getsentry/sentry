@@ -6,9 +6,10 @@ from rest_framework import serializers
 from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.helpers.user_reports import user_reports_filter_to_unresolved
 from sentry.api.serializers import serialize, UserReportWithGroupSerializer
 from sentry.api.paginator import DateTimePaginator
-from sentry.models import Environment, GroupStatus, ProjectKey, UserReport
+from sentry.models import Environment, ProjectKey, UserReport
 from sentry.ingest.userreport import save_userreport, Conflict
 
 
@@ -36,6 +37,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
         if isinstance(request.auth, ProjectKey):
             return self.respond(status=401)
 
+        paginate_kwargs = {}
         try:
             environment = self._get_environment_from_request(request, project.organization_id)
         except Environment.DoesNotExist:
@@ -47,8 +49,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
 
             status = request.GET.get("status", "unresolved")
             if status == "unresolved":
-                # TODO: Figure out cross db join
-                queryset = queryset.filter(group__status=GroupStatus.UNRESOLVED)
+                paginate_kwargs["post_query_filter"] = user_reports_filter_to_unresolved
             elif status:
                 return self.respond({"status": "Invalid status choice"}, status=400)
 
@@ -64,6 +65,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
                 ),
             ),
             paginator_cls=DateTimePaginator,
+            **paginate_kwargs
         )
 
     def post(self, request, project):

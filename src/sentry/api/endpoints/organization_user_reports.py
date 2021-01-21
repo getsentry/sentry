@@ -4,10 +4,11 @@ from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationUserReportsPermission
 from sentry.api.bases import NoProjects
+from sentry.api.helpers.user_reports import user_reports_filter_to_unresolved
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import UserReportWithGroupSerializer
-from sentry.models import GroupStatus, UserReport
+from sentry.models import UserReport
 
 
 class OrganizationUserReportsEndpoint(OrganizationEndpoint):
@@ -43,9 +44,9 @@ class OrganizationUserReportsEndpoint(OrganizationEndpoint):
             )
 
         status = request.GET.get("status", "unresolved")
+        paginate_kwargs = {}
         if status == "unresolved":
-            # TODO: Figure out cross-db join
-            queryset = queryset.filter(group__status=GroupStatus.UNRESOLVED)
+            paginate_kwargs["post_query_filter"] = user_reports_filter_to_unresolved
         elif status:
             return self.respond({"status": "Invalid status choice"}, status=400)
 
@@ -55,4 +56,5 @@ class OrganizationUserReportsEndpoint(OrganizationEndpoint):
             order_by="-date_added",
             on_results=lambda x: serialize(x, request.user, UserReportWithGroupSerializer()),
             paginator_cls=DateTimePaginator,
+            **paginate_kwargs
         )
