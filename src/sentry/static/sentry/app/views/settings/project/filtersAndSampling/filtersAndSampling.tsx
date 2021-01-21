@@ -78,7 +78,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
             },
             {
               operator: 'strEqualNoCase',
-              name: 'userSegements',
+              name: 'userSegments',
               value: ['FirstSegment', 'SeCoNd'],
             },
           ],
