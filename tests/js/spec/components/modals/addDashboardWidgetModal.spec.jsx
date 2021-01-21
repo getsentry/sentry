@@ -133,7 +133,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
 
     // Click the add button
-    const add = wrapper.find('Button[data-test-id="add-field"] button');
+    const add = wrapper.find('button[aria-label="Add an overlay"]');
     add.simulate('click');
     wrapper.update();
 
