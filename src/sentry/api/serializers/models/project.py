@@ -700,6 +700,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
                 "builtinSymbolSources": get_value_with_default("sentry:builtin_symbol_sources"),
                 "symbolSources": attrs["options"].get("sentry:symbol_sources"),
+                "dynamicSampling": projectoptions.get(obj, "sentry:dynamic_sampling"),
             }
         )
         return data
