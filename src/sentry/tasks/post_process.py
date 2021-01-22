@@ -9,7 +9,6 @@ from sentry.exceptions import PluginError
 from sentry.signals import event_processed, issue_unignored
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
-from sentry.utils.committers import get_frame_paths
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_project, bind_organization_context
 
@@ -288,6 +287,8 @@ def post_process_group(
                 if org_has_commit and features.has(
                     "organizations:workflow-owners", event.project.organization,
                 ):
+                    from sentry.utils.committers import get_frame_paths
+
                     event_frames = get_frame_paths(event.data)
                     process_suspect_commits.delay(
                         event_id=event.event_id,

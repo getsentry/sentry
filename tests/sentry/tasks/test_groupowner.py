@@ -70,10 +70,11 @@ class TestGroupOwners(TestCase):
     def test_simple(self):
         self.set_release_commits(self.user.email)
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
+        event_frames = get_frame_paths(self.event.data)
         process_suspect_commits(
             event_id=self.event.event_id,
             event_platform=self.event.platform,
-            event_data=self.event.data,
+            event_frames=event_frames,
             group_id=self.event.group_id,
             project_id=self.event.project_id,
         )
@@ -94,10 +95,11 @@ class TestGroupOwners(TestCase):
         assert len(result[0]["commits"]) == 1
         assert result[0]["commits"][0]["id"] == "a" * 40
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
+        event_frames = get_frame_paths(self.event.data)
         process_suspect_commits(
             event_id=self.event.event_id,
             event_platform=self.event.platform,
-            event_data=self.event.data,
+            event_frames=event_frames,
             group_id=self.event.group_id,
             project_id=self.event.project_id,
         )
@@ -107,24 +109,25 @@ class TestGroupOwners(TestCase):
     def test_delete_old_entries(self):
         # As new events come in associated with new owners, we should delete old ones.
         self.set_release_commits(self.user.email)
+        event_frames = get_frame_paths(self.event.data)
         process_suspect_commits(
             event_id=self.event.event_id,
             event_platform=self.event.platform,
-            event_data=self.event.data,
+            event_frames=event_frames,
             group_id=self.event.group_id,
             project_id=self.event.project_id,
         )
         process_suspect_commits(
             event_id=self.event.event_id,
             event_platform=self.event.platform,
-            event_data=self.event.data,
+            event_frames=event_frames,
             group_id=self.event.group_id,
             project_id=self.event.project_id,
         )
         process_suspect_commits(
             event_id=self.event.event_id,
             event_platform=self.event.platform,
-            event_data=self.event.data,
+            event_frames=event_frames,
             group_id=self.event.group_id,
             project_id=self.event.project_id,
         )
@@ -197,16 +200,26 @@ class TestGroupOwners(TestCase):
         assert event_3.group == self.event.group
 
         self.set_release_commits(self.user_2.email)
+        event_2_frames = get_frame_paths(event_2.data)
         process_suspect_commits(
-            event_2.event_id, event_2.platform, event_2.data, event_2.group_id, event_2.project_id
+            event_id=event_2.event_id,
+            event_platform=event_2.platform,
+            event_frames=event_2_frames,
+            group_id=event_2.group_id,
+            project_id=event_2.project_id,
         )
         assert GroupOwner.objects.filter(group=self.event.group).count() == 2
         assert GroupOwner.objects.filter(group=self.event.group, user=self.user).exists()
         assert GroupOwner.objects.filter(group=event_2.group, user=self.user_2).exists()
 
         self.set_release_commits(self.user_3.email)
+        event_3_frames = get_frame_paths(event_3.data)
         process_suspect_commits(
-            event_3.event_id, event_3.platform, event_3.data, event_3.group_id, event_3.project_id
+            event_id=event_3.event_id,
+            event_platform=event_3.platform,
+            event_frames=event_3_frames,
+            group_id=event_3.group_id,
+            project_id=event_3.project_id,
         )
         assert GroupOwner.objects.filter(group=self.event.group).count() == 2
         assert GroupOwner.objects.filter(group=self.event.group, user=self.user).exists()
@@ -219,7 +232,11 @@ class TestGroupOwners(TestCase):
 
         self.set_release_commits(self.user_3.email)
         process_suspect_commits(
-            event_3.event_id, event_3.platform, event_3.data, event_3.group_id, event_3.project_id
+            event_id=event_3.event_id,
+            event_platform=event_3.platform,
+            event_frames=event_3_frames,
+            group_id=event_3.group_id,
+            project_id=event_3.project_id,
         )
         # Won't be processed because the cache is present and this group has owners
         assert GroupOwner.objects.filter(group=self.event.group).count() == 2
@@ -231,10 +248,11 @@ class TestGroupOwners(TestCase):
     def test_update_existing_entries(self):
         # As new events come in associated with existing owners, we should update the date_added of that owner.
         self.set_release_commits(self.user.email)
+        event_frames = get_frame_paths(self.event.data)
         process_suspect_commits(
             event_id=self.event.event_id,
             event_platform=self.event.platform,
-            event_data=self.event.data,
+            event_frames=event_frames,
             group_id=self.event.group_id,
             project_id=self.event.project_id,
         )
@@ -249,7 +267,7 @@ class TestGroupOwners(TestCase):
         process_suspect_commits(
             event_id=self.event.event_id,
             event_platform=self.event.platform,
-            event_data=self.event.data,
+            event_frames=event_frames,
             group_id=self.event.group_id,
             project_id=self.event.project_id,
         )
@@ -377,7 +395,7 @@ class TestGroupOwners(TestCase):
         process_suspect_commits(
             event_id=self.event.event_id,
             event_platform=self.event.platform,
-            event_data=event_frames,
+            event_frames=event_frames,
             group_id=self.event.group_id,
             project_id=self.event.project_id,
         )
