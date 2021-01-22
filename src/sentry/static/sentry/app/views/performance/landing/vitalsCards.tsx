@@ -292,7 +292,7 @@ export function VitalBar(props: VitalBarProps) {
   }
 
   const emptyState = showStates ? (
-    <EmptyStateWarning small>{t('No data available')}</EmptyStateWarning>
+    <EmptyVitalBar small>{t('No vitals available')}</EmptyVitalBar>
   ) : null;
 
   if (!data) {
@@ -339,6 +339,11 @@ export function VitalBar(props: VitalBarProps) {
     </React.Fragment>
   );
 }
+
+const EmptyVitalBar = styled(EmptyStateWarning)`
+  height: 48px;
+  padding: ${space(1.5)} 15%;
+`;
 
 type VitalCardProps = {
   title: string;
