@@ -1,8 +1,9 @@
 import React from 'react';
 
-interface OnChangeHandler {
-  (value: boolean, event: React.ChangeEvent<HTMLInputElement>): void;
-}
+type OnChangeHandler = (
+  value: boolean,
+  event: React.ChangeEvent<HTMLInputElement>
+) => void;
 
 type OptionProps = {
   label: string;
