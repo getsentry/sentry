@@ -5,6 +5,7 @@ import jsonschema
 import logging
 import six
 import time
+import base64
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -57,6 +58,8 @@ HTTP_SOURCE_SCHEMA = {
     "properties": dict(
         type={"type": "string", "enum": ["http"]},
         url={"type": "string"},
+        username={"type": "string"},
+        password={"type": "string"},
         **COMMON_SOURCE_PROPERTIES
     ),
     "required": ["type", "id", "url", "layout"],
@@ -309,6 +312,24 @@ def is_internal_source_id(source_id):
     return source_id.startswith("sentry")
 
 
+def normalize_user_source(source):
+    """Sources supplied from the user frontend might not match the format that
+    symbolicator expects.  For instance we currently do not permit headers to be
+    configured in the UI, but we allow basic auth to be configured for HTTP.
+    This means that we need to convert from username/password into the HTTP
+    basic auth header.
+    """
+    if source.get("type") == "http":
+        username = source.pop("username", None)
+        password = source.pop("password", None)
+        if username or password:
+            auth = base64.b64encode(("%s:%s" % (username or "", password or "")).encode("utf-8"))
+            source["headers"] = {
+                "authorization": "Basic %s" % auth.decode("ascii"),
+            }
+    return source
+
+
 def parse_sources(config):
     """
     Parses the given sources in the config string (from JSON).
@@ -373,7 +394,7 @@ def get_sources_for_project(project):
     if sources_config:
         try:
             custom_sources = parse_sources(sources_config)
-            sources.extend(custom_sources)
+            sources.extend(normalize_user_source(source) for source in custom_sources)
         except InvalidSourcesError:
             # Source configs should be validated when they are saved. If this
             # did not happen, this indicates a bug. Record this, but do not stop
