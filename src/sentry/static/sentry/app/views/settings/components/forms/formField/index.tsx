@@ -147,7 +147,7 @@ class FormField extends React.Component<Props> {
     /**
      * Determines the aligment of the label and field
      */
-    inline: PropTypes.bool,
+    inline: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
 
     // Default value to use for form field if value is not specified in `<Form>` parent
     defaultValue: PropTypes.oneOfType([
