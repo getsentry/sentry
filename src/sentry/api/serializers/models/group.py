@@ -158,7 +158,6 @@ class GroupSerializerBase(Serializer):
             ],
             groupby=["group_id"],
             filter_keys=filter_keys,
-            conditions=[["type", "!=", "transaction"]],
             start=start,
             orderby="group_id",
             referrer="group.unhandled-flag",
