@@ -1,5 +1,6 @@
 import React from 'react';
-import {browserHistory, WithRouterProps} from 'react-router';
+import {browserHistory} from 'react-router';
+import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {Client} from 'app/api';
@@ -20,9 +21,11 @@ type OrgDashboardsChildrenProps = {
   reloadData: () => void;
 };
 
-type Props = WithRouterProps<{orgId: string; dashboardId?: string}> & {
+type Props = {
   api: Client;
   organization: Organization;
+  params: {orgId: string; dashboardId?: string};
+  location: Location;
   children: (props: OrgDashboardsChildrenProps) => React.ReactNode;
 };
 
