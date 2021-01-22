@@ -1,5 +1,6 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
 
@@ -242,7 +243,7 @@ const StyledPanelTable = styled(PanelTable)`
   white-space: nowrap;
   ${p =>
     p.emptyMessage &&
-    `svg:not([data-test-id='icon-check-mark']) {
+    css`svg:not([data-test-id='icon-check-mark']) {
     display: none;`}
 `;
 

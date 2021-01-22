@@ -24,7 +24,7 @@ const IconWrapper = styled('div', {
   color: ${p => p.theme.textColor};
   ${p =>
     p.color &&
-    `
+    css`
       color: ${p.theme[p.color] || p.color};
       border-color: ${p.theme[p.color] || p.color};
     `}
@@ -45,7 +45,7 @@ const GridCell = styled('div')<{
   }
   ${p =>
     p.hasError &&
-    `
+    css`
       border-bottom: 1px solid ${p.theme.red300};
       :after {
         content: '';

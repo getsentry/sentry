@@ -1,4 +1,5 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import PropTypes from 'prop-types';
@@ -233,20 +234,20 @@ const MenuListItem = styled('li')<MenuListItemProps>`
 
   ${p =>
     p.divider &&
-    `
-height: 1px;
-margin: ${space(0.5)} 0;
-overflow: hidden;
-background-color: ${p.theme.innerBorder};
+    css`
+      height: 1px;
+      margin: ${space(0.5)} 0;
+      overflow: hidden;
+      background-color: ${p.theme.innerBorder};
     `}
   ${p =>
     p.header &&
-    `
-    padding: ${space(0.25)} ${space(1)};
-    font-size: ${p.theme.fontSizeSmall};
-    line-height: 1.4;
-    color: ${p.theme.gray300};
-  `}
+    css`
+      padding: ${space(0.25)} ${space(1)};
+      font-size: ${p.theme.fontSizeSmall};
+      line-height: 1.4;
+      color: ${p.theme.gray300};
+    `}
 
   ${getChildStyles}
 `;

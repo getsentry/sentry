@@ -1,4 +1,5 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import Access from 'app/components/acl/access';
@@ -124,16 +125,16 @@ const StyledMenuItem = styled(MenuItem)<{isActive: boolean; last: boolean}>`
 
   ${p =>
     p.isActive &&
-    `
-  ${SearchTitle}, ${SearchQuery} {
-    color: ${p.theme.white};
-  }
-  &:hover {
-    ${SearchTitle}, ${SearchQuery} {
-      color: ${p.theme.black};
-    }
-  }
-  `}
+    css`
+      ${SearchTitle}, ${SearchQuery} {
+        color: ${p.theme.white};
+      }
+      &:hover {
+        ${SearchTitle}, ${SearchQuery} {
+          color: ${p.theme.black};
+        }
+      }
+    `}
 `;
 
 const MenuItemLink = styled('a')`

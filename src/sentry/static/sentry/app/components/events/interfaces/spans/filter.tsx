@@ -1,4 +1,5 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
@@ -206,7 +207,7 @@ const StyledDropdownButton = styled(DropdownButton)<{hasDarkBorderBottomColor?: 
   ${p =>
     !p.isOpen &&
     p.hasDarkBorderBottomColor &&
-    `
+    css`
       border-bottom-color: ${p.theme.button.primary.border};
     `}
 `;

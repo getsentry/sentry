@@ -1,6 +1,7 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
 import {browserHistory, RouteComponentProps} from 'react-router';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, useAnimation} from 'framer-motion';
 
@@ -341,8 +342,10 @@ const OnboardingStep = styled(motion.div)<{centered?: boolean}>`
   flex-direction: column;
   ${p =>
     p.centered &&
-    `justify-content: center;
-     align-items: center;`};
+    css`
+      justify-content: center;
+      align-items: center;
+    `};
 `;
 
 OnboardingStep.defaultProps = {

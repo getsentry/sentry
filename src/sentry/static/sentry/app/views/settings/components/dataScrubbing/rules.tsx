@@ -1,4 +1,5 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
@@ -84,10 +85,10 @@ const List = styled('ul')<{
   margin-bottom: 0 !important;
   ${p =>
     p.isDisabled &&
-    `
+    css`
       color: ${p.theme.gray200};
       background: ${p.theme.backgroundSecondary};
-  `}
+    `}
 `;
 
 const ListItem = styled('li')`

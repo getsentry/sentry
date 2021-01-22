@@ -1,4 +1,5 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -107,10 +108,10 @@ const QuickLink = styled(p =>
 
   ${p =>
     p.disabled &&
-    `
-    color: ${p.theme.gray200};
-    cursor: not-allowed;
-  `}
+    css`
+      color: ${p.theme.gray200};
+      cursor: not-allowed;
+    `}
 `;
 
 const QuickLinkText = styled('span')`

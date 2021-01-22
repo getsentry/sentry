@@ -1,4 +1,5 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import {cancelDeleteRepository, deleteRepository} from 'app/actionCreators/integrations';
@@ -146,10 +147,10 @@ const StyledPanelItem = styled(PanelItem)<{status: RepositoryStatus}>`
 
   ${p =>
     p.status === RepositoryStatus.DISABLED &&
-    `
-    filter: grayscale(1);
-    opacity: 0.4;
-  `};
+    css`
+      filter: grayscale(1);
+      opacity: 0.4;
+    `};
 
   &:last-child {
     border-bottom: none;

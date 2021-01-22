@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import color from 'color';
 
@@ -151,10 +152,10 @@ const ClipWrapper = styled('div', {
 
   ${p =>
     p.isClipped &&
-    `
-    max-height: ${p.clipHeight}px;
-    overflow: hidden;
-  `};
+    css`
+      max-height: ${p.clipHeight}px;
+      overflow: hidden;
+    `};
 
   :first-of-type {
     margin-top: -${space(2)};

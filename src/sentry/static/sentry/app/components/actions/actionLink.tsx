@@ -1,4 +1,5 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -68,7 +69,7 @@ const StyledAction = styled('a')<{
   align-items: center;
   ${p =>
     p.disabled &&
-    `
-    cursor: not-allowed;
+    css`
+      cursor: not-allowed;
     `}
 `;

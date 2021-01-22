@@ -1,5 +1,6 @@
 import React from 'react';
 import {Link} from 'react-router';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import {LocationDescriptor} from 'history';
@@ -76,13 +77,13 @@ const StyledLi = styled('li', {
 })<{disabled?: boolean}>`
   ${p =>
     p.disabled &&
-    `
-   a {
-    color:${p.theme.disabled} !important;
-    pointer-events: none;
-    :hover {
-      color: ${p.theme.disabled}  !important;
-    }
-   }
-`}
+    css`
+      a {
+        color: ${p.theme.disabled} !important;
+        pointer-events: none;
+        :hover {
+          color: ${p.theme.disabled} !important;
+        }
+      }
+    `}
 `;

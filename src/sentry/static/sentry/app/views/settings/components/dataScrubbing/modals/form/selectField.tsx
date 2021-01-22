@@ -2,6 +2,7 @@ import React from 'react';
 // eslint import checks can't find types in the flow code.
 // eslint-disable-next-line import/named
 import {components, OptionProps} from 'react-select';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import SelectControl from 'app/components/forms/selectControl';
@@ -76,7 +77,7 @@ const Wrapper = styled('div')<{isSelected?: boolean}>`
   grid-gap: ${space(1)};
   ${p =>
     p.isSelected &&
-    `
+    css`
       ${Description} {
         :not(:hover) {
           color: ${p.theme.white};

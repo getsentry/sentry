@@ -176,11 +176,13 @@ Version.propTypes = {
 const VersionText = styled('span')<{truncate?: boolean}>`
   ${p =>
     p.truncate &&
-    `max-width: 100%;
-    display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;`}
+    css`
+      max-width: 100%;
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    `}
 `;
 
 const TooltipContent = styled('span')`

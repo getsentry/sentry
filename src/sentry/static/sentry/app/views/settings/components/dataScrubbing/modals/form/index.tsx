@@ -1,4 +1,5 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
@@ -203,14 +204,14 @@ const SourceGroup = styled('div')<{isExpanded: boolean}>`
   transition-property: height;
   ${p =>
     p.isExpanded &&
-    `
-    border-radius: ${p.theme.borderRadius};
-    border: 1px solid ${p.theme.border};
-    box-shadow: ${p.theme.dropShadowLight};
-    margin: ${space(2)} 0 ${space(3)} 0;
-    padding: ${space(2)};
-    height: 180px;
-  `}
+    css`
+      border-radius: ${p.theme.borderRadius};
+      border: 1px solid ${p.theme.border};
+      box-shadow: ${p.theme.dropShadowLight};
+      margin: ${space(2)} 0 ${space(3)} 0;
+      padding: ${space(2)};
+      height: 180px;
+    `}
 `;
 
 const RegularExpression = styled(Input)`

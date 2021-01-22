@@ -1,4 +1,5 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
@@ -172,10 +173,10 @@ const StyledIssueDiff = styled('div', {
 
   ${p =>
     p.loading &&
-    `
-        background-color: ${p.theme.background};
-        justify-content: center;
-      `};
+    css`
+      background-color: ${p.theme.background};
+      justify-content: center;
+    `};
 `;
 
 const HeaderWrapper = styled('div')`

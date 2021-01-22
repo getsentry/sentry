@@ -1,5 +1,6 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import {
@@ -314,12 +315,12 @@ class Actions extends React.Component<Props, State> {
 const BookmarkButton = styled(ActionButton)<{isActive: boolean}>`
   ${p =>
     p.isActive &&
-    `
-    background: ${p.theme.yellow100};
-    color: ${p.theme.yellow300};
-    border-color: ${p.theme.yellow300};
-    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
-  `}
+    css`
+      background: ${p.theme.yellow100};
+      color: ${p.theme.yellow300};
+      border-color: ${p.theme.yellow300};
+      text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
+    `}
 `;
 
 const Wrapper = styled('div')`

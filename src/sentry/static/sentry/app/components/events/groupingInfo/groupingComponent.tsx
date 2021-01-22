@@ -1,4 +1,5 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
@@ -54,11 +55,11 @@ export const GroupingComponentListItem = styled('li')<{isCollapsable?: boolean}>
 
   ${p =>
     p.isCollapsable &&
-    `
-    border-left: 1px solid ${p.theme.innerBorder};
-    margin: 0 0 -${space(0.25)} ${space(1)};
-    padding-left: ${space(0.5)};
-  `}
+    css`
+      border-left: 1px solid ${p.theme.innerBorder};
+      margin: 0 0 -${space(0.25)} ${space(1)};
+      padding-left: ${space(0.5)};
+    `}
 `;
 
 export const GroupingValue = styled('code')<{valueType: string}>`
@@ -71,10 +72,10 @@ export const GroupingValue = styled('code')<{valueType: string}>`
 
   ${({valueType}) =>
     (valueType === 'function' || valueType === 'symbol') &&
-    `
-    font-weight: bold;
-    color: #2c58a8;
-  `}
+    css`
+      font-weight: bold;
+      color: #2c58a8;
+    `}
 `;
 
 const GroupingComponentWrapper = styled('div')<{isContributing: boolean}>`

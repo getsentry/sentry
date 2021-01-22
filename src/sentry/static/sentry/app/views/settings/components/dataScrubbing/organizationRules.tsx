@@ -1,4 +1,5 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
@@ -102,7 +103,7 @@ const Wrapper = styled('div')<{isCollapsed?: boolean; contentHeight?: string}>`
   ${p =>
     !p.isCollapsed &&
     p.contentHeight &&
-    `
+    css`
       ${Content} {
         height: ${p.contentHeight};
       }

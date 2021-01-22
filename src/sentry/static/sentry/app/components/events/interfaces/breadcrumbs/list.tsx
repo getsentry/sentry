@@ -7,6 +7,7 @@ import {
   ListRowProps,
   ScrollbarPresenceParams,
 } from 'react-virtualized';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -180,10 +181,15 @@ const Row = styled('div')<{width?: number}>`
 const RowSticky = styled(Row)<{scrollbarSize?: number}>`
   ${p =>
     p.scrollbarSize &&
-    `padding-right: ${p.scrollbarSize};
-     grid-template-columns: 45px minmax(55px, 1fr) 6fr 86px calc(67px + ${p.scrollbarSize}px);
-     @media (min-width: ${p.theme.breakpoints[0]}) {
-      grid-template-columns: 63px minmax(132px, 1fr) 6fr 75px calc(85px + ${p.scrollbarSize}px);
-    }
-  `}
+    css`
+      padding-right: ${p.scrollbarSize};
+      grid-template-columns: 45px minmax(55px, 1fr) 6fr 86px calc(
+          67px + ${p.scrollbarSize}px
+        );
+      @media (min-width: ${p.theme.breakpoints[0]}) {
+        grid-template-columns: 63px minmax(132px, 1fr) 6fr 75px calc(
+            85px + ${p.scrollbarSize}px
+          );
+      }
+    `}
 `;

@@ -1,4 +1,5 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 import PropTypes from 'prop-types';
@@ -273,22 +274,22 @@ const StyledFooter = styled('div')<{saveOnBlur?: boolean}>`
 
   ${p =>
     !p.saveOnBlur &&
-    `
-  ${Panel} & {
-    margin-top: 0;
-    padding-right: 36px;
-  }
+    css`
+      ${Panel} & {
+        margin-top: 0;
+        padding-right: 36px;
+      }
 
-  /* Better padding with form inside of a modal */
-  .modal-content & {
-    padding-right: 30px;
-    margin-left: -30px;
-    margin-right: -30px;
-    margin-bottom: -30px;
-    margin-top: 16px;
-    padding-bottom: 16px;
-  }
-  `};
+      /* Better padding with form inside of a modal */
+      .modal-content & {
+        padding-right: 30px;
+        margin-left: -30px;
+        margin-right: -30px;
+        margin-bottom: -30px;
+        margin-top: 16px;
+        padding-bottom: 16px;
+      }
+    `};
 `;
 
 const DefaultButtons = styled('div')`

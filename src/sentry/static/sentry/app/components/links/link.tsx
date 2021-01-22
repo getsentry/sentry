@@ -1,5 +1,6 @@
 import React from 'react';
 import {Link as RouterLink} from 'react-router';
+import {css} from '@emotion/core';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -58,11 +59,11 @@ const Anchor = styled('a', {
 })<{disabled?: boolean}>`
   ${p =>
     p.disabled &&
-    `
-  color:${p.theme.disabled};
-  pointer-events: none;
-  :hover {
-    color: ${p.theme.disabled};
-  }
-  `};
+    css`
+      color: ${p.theme.disabled};
+      pointer-events: none;
+      :hover {
+        color: ${p.theme.disabled};
+      }
+    `};
 `;

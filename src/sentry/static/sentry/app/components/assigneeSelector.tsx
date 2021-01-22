@@ -1,4 +1,5 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import createReactClass from 'create-react-class';
 import PropTypes from 'prop-types';
@@ -474,7 +475,7 @@ const MenuItemWrapper = styled('div')<{
   font-size: 13px;
   ${p =>
     typeof p.py !== 'undefined' &&
-    `
+    css`
       padding-top: ${p.py};
       padding-bottom: ${p.py};
     `};

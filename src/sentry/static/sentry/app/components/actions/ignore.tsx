@@ -363,7 +363,7 @@ const DropdownMenuItem = styled('li')<{hasInbox: boolean}>`
   }
   ${p =>
     p.hasInbox &&
-    `
+    css`
       flex: 1;
       justify-content: flex-start;
     `};

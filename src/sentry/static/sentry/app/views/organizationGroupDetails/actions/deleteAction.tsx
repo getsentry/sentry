@@ -1,4 +1,5 @@
 import React from 'react';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps, openModal} from 'app/actionCreators/modal';
@@ -116,13 +117,13 @@ function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Pr
 const DeleteButton = styled(ActionButton)`
   ${p =>
     !p.disabled &&
-    `
-  &:hover {
-    background-color: ${p.theme.button.danger.background};
-    color: ${p.theme.button.danger.color};
-    border-color: ${p.theme.button.danger.border};
-  }
-  `}
+    css`
+      &:hover {
+        background-color: ${p.theme.button.danger.background};
+        color: ${p.theme.button.danger.color};
+        border-color: ${p.theme.button.danger.border};
+      }
+    `}
 `;
 
 export default DeleteAction;

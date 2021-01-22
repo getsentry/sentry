@@ -1,5 +1,6 @@
 import React from 'react';
 import {Link} from 'react-router';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
 import ActivityAvatar from 'app/components/activity/item/avatar';
@@ -405,23 +406,27 @@ const Bubble = styled('div')<{clipped: boolean}>`
 
   ${p =>
     p.clipped &&
-    `
-    max-height: 68px;
+    css`
+      max-height: 68px;
 
-    &:after {
-      position: absolute;
-      content: '';
-      display: block;
-      bottom: 0;
-      right: 0;
-      left: 0;
-      height: 36px;
-      background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 1));
-      border-bottom: 6px solid #fff;
-      border-radius: 0 0 3px 3px;
-      pointer-events: none;
-    }
-  `}
+      &:after {
+        position: absolute;
+        content: '';
+        display: block;
+        bottom: 0;
+        right: 0;
+        left: 0;
+        height: 36px;
+        background-image: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.15),
+          rgba(255, 255, 255, 1)
+        );
+        border-bottom: 6px solid #fff;
+        border-radius: 0 0 3px 3px;
+        pointer-events: none;
+      }
+    `}
 `;
 
 const StyledTimeSince = styled(TimeSince)`

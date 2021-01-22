@@ -1,5 +1,6 @@
 import React from 'react';
 import {Mention, MentionsInput} from 'react-mentions';
+import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import {withTheme} from 'emotion-theming';
 
@@ -375,12 +376,15 @@ const FooterButton = styled(Button)<FooterButtonProps>`
 
   ${p =>
     p.error &&
-    `
-  &, &:active, &:focus, &:hover {
-  border-bottom-color: ${p.theme.error};
-  border-right-color: ${p.theme.error};
-  }
-  `}
+    css`
+      &,
+      &:active,
+      &:focus,
+      &:hover {
+        border-bottom-color: ${p.theme.error};
+        border-right-color: ${p.theme.error};
+      }
+    `}
 `;
 
 const ErrorMessage = styled('span')`
