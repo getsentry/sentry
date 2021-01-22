@@ -4,6 +4,8 @@ import re
 import six
 from collections import defaultdict
 
+import sentry_sdk
+
 from django.db.models import Q
 
 from sentry import eventstore
@@ -16,7 +18,7 @@ from sentry.utils import json
 
 from .client import SlackClient
 from .requests import SlackEventRequest, SlackRequestError
-from .utils import build_group_attachment, build_incident_attachment, logger
+from .utils import build_group_attachment, build_incident_attachment, parse_link, logger
 
 # XXX(dcramer): this could be more tightly bound to our configured domain,
 # but slack limits what we can unfurl anyways so its probably safe
@@ -165,46 +167,53 @@ class SlackEventEndpoint(Endpoint):
         return self.respond()
 
     def on_link_shared(self, request, integration, token, data):
-        parsed_issues = defaultdict(dict)
-        event_id_by_url = {}
-        for item in data["links"]:
-            event_type, instance_id, event_id = self._parse_url(item["url"])
-            if not instance_id:
-                continue
-            # note that because we store the url by the issue,
-            # we will only unfurl one link per issue even if there are
-            # multiple links to different events
-            parsed_issues[event_type][instance_id] = item["url"]
-            event_id_by_url[item["url"]] = event_id
+        with sentry_sdk.start_transaction(
+            op=u"slack.link_shared", name=u"SlackLinkShared", sampled=1.0
+        ) as span:
+            parsed_issues = defaultdict(dict)
+            event_id_by_url = {}
+            for item in data["links"]:
+                try:
+                    span.set_tag("link", parse_link(item["url"]))
+                except Exception as e:
+                    logger.error("slack.parse-link-error", extra={"error": six.text_type(e)})
+                event_type, instance_id, event_id = self._parse_url(item["url"])
+                if not instance_id:
+                    continue
+                # note that because we store the url by the issue,
+                # we will only unfurl one link per issue even if there are
+                # multiple links to different events
+                parsed_issues[event_type][instance_id] = item["url"]
+                event_id_by_url[item["url"]] = event_id
 
-        if not parsed_issues:
-            return
+            if not parsed_issues:
+                return
 
-        results = {}
-        for event_type, instance_map in parsed_issues.items():
-            results.update(
-                self.event_handlers[event_type](integration, instance_map, event_id_by_url)
-            )
+            results = {}
+            for event_type, instance_map in parsed_issues.items():
+                results.update(
+                    self.event_handlers[event_type](integration, instance_map, event_id_by_url)
+                )
 
-        if not results:
-            return
+            if not results:
+                return
 
-        access_token = self._get_access_token(integration)
+            access_token = self._get_access_token(integration)
 
-        payload = {
-            "token": access_token,
-            "channel": data["channel"],
-            "ts": data["message_ts"],
-            "unfurls": json.dumps(results),
-        }
+            payload = {
+                "token": access_token,
+                "channel": data["channel"],
+                "ts": data["message_ts"],
+                "unfurls": json.dumps(results),
+            }
 
-        client = SlackClient()
-        try:
-            client.post("/chat.unfurl", data=payload)
-        except ApiError as e:
-            logger.error("slack.event.unfurl-error", extra={"error": six.text_type(e)})
+            client = SlackClient()
+            try:
+                client.post("/chat.unfurl", data=payload)
+            except ApiError as e:
+                logger.error("slack.event.unfurl-error", extra={"error": six.text_type(e)})
 
-        return self.respond()
+            return self.respond()
 
     # TODO(dcramer): implement app_uninstalled and tokens_revoked
     @transaction_start("SlackEventEndpoint")
