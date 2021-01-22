@@ -110,7 +110,7 @@ class AlertListRow extends AsyncComponent<Props, State> {
       .as('seconds');
     const slug = incident.projects[0];
     const incidentLink = organization.features.includes('alert-details-redesign')
-      ? `/organizations/${orgId}/alerts/rules/details/${incident.identifier}/`
+      ? `/organizations/${orgId}/alerts/rules/details/${incident.alertRule.id}/`
       : `/organizations/${orgId}/alerts/${incident.identifier}/`;
 
     return (
