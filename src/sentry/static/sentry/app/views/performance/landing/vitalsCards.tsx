@@ -292,7 +292,7 @@ export function VitalBar(props: VitalBarProps) {
   }
 
   const emptyState = showStates ? (
-    <EmptyVitalBar small>{t('No vitals available')}</EmptyVitalBar>
+    <EmptyVitalBar small>{t('No vitals found')}</EmptyVitalBar>
   ) : null;
 
   if (!data) {

@@ -58,9 +58,7 @@ function StatusBreakdown({eventView, location, organization}: Props) {
           }
           if (!tableData || tableData.data.length === 0) {
             return (
-              <EmptyStatusBreakdown small>
-                {t('No statuses available')}
-              </EmptyStatusBreakdown>
+              <EmptyStatusBreakdown small>{t('No statuses found')}</EmptyStatusBreakdown>
             );
           }
           const points = tableData.data.map(row => ({
