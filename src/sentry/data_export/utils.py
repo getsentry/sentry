@@ -72,17 +72,3 @@ def handle_snuba_errors(logger):
         return wrapped
 
     return wrapper
-
-
-# TODO(python3): For now, this function must be run to ensure only utf-8 is passed into the 'csv' module
-# It can be removed once converted to Python 3, See https://docs.python.org/2/library/csv.html
-# This function was adapted from https://stackoverflow.com/questions/13101653/python-convert-complex-dictionary-of-strings-from-unicode-to-ascii
-def convert_to_utf8(input):
-    if isinstance(input, dict):
-        return {convert_to_utf8(key): convert_to_utf8(value) for key, value in six.iteritems(input)}
-    elif isinstance(input, list):
-        return [convert_to_utf8(element) for element in input]
-    elif isinstance(input, six.text_type):
-        return input.encode("utf-8")
-    else:
-        return input
