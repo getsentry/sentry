@@ -1,8 +1,5 @@
 from __future__ import absolute_import
 
-
-import pytest
-
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -54,11 +51,11 @@ class OrganizationEventsGeoEndpointTest(APITestCase, SnubaTestCase):
     def test_happy_path(self):
         other_project = self.create_project()
         self.store_event(
-            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago,},
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
             project_id=self.project.id,
         )
         self.store_event(
-            data={"event_id": "b" * 32, "environment": "staging", "timestamp": self.min_ago,},
+            data={"event_id": "b" * 32, "environment": "staging", "timestamp": self.min_ago},
             project_id=other_project.id,
         )
         self.store_event(
@@ -94,9 +91,8 @@ class OrganizationEventsGeoEndpointTest(APITestCase, SnubaTestCase):
         assert "Link" not in response
 
     def test_only_use_last_field(self):
-        other_project = self.create_project()
         self.store_event(
-            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago,},
+            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
             project_id=self.project.id,
         )
 
