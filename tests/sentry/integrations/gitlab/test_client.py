@@ -128,12 +128,12 @@ class GitlabRefreshAuthTest(GitLabTestCase):
 
     @responses.activate
     def test_check_file(self):
-        path = "file.py"
+        path = "src/file.py"
         ref = "537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3"
         responses.add(
             responses.HEAD,
             "https://example.gitlab.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
-                self.gitlab_id, path, ref
+                self.gitlab_id, "src%2Ffile.py", ref
             ),
             json={"text": 200},
         )
@@ -144,12 +144,12 @@ class GitlabRefreshAuthTest(GitLabTestCase):
 
     @responses.activate
     def test_check_no_file(self):
-        path = "file.py"
+        path = "src/file.py"
         ref = "537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3"
         responses.add(
             responses.HEAD,
             "https://example.gitlab.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
-                self.gitlab_id, path, ref
+                self.gitlab_id, "src%2Ffile.py", ref
             ),
             status=404,
         )
