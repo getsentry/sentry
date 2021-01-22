@@ -11,8 +11,6 @@ export function getOperatorLabel(operator: DynamicSamplingConditionOperator) {
       return t('User');
     case DynamicSamplingConditionOperator.STR_EQUAL_NO_CASE:
       return t('Enviroment');
-    case DynamicSamplingConditionOperator.ALL:
-      return t('All');
     default: {
       Sentry.withScope(scope => {
         scope.setLevel(Sentry.Severity.Warning);
