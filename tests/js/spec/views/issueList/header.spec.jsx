@@ -53,6 +53,7 @@ describe('IssueListHeader', () => {
       <IssueListHeader
         organization={organization}
         query="is:unresolved is:needs_review"
+        queryCount={0}
         queryCounts={queryCounts}
         projectIds={[]}
         savedSearchList={[]}
@@ -67,6 +68,7 @@ describe('IssueListHeader', () => {
       <IssueListHeader
         organization={organization}
         query="is:unresolved is:needs_review owner:me_or_none"
+        queryCount={0}
         queryCounts={queryCounts}
         projectIds={[]}
         savedSearchList={[]}
@@ -81,6 +83,7 @@ describe('IssueListHeader', () => {
       <IssueListHeader
         organization={organization}
         query=""
+        queryCount={0}
         queryCounts={{
           ...queryCounts,
           'is:reprocessing': {
@@ -114,14 +117,16 @@ describe('IssueListHeader', () => {
       <IssueListHeader
         organization={organization}
         query=""
+        queryCount={0}
         queryCounts={queryCounts}
         projectIds={[]}
         savedSearchList={[]}
       />
     );
-    expect(wrapper.find('li').at(0).text()).toBe('Needs Review 1');
-    expect(wrapper.find('li').at(1).text()).toBe('All Unresolved 1');
-    expect(wrapper.find('li').at(2).text()).toBe('Ignored ');
+    const tabs = wrapper.find('li');
+    expect(tabs.at(0).text()).toBe('Needs Review 1');
+    expect(tabs.at(1).text()).toBe('All Unresolved 1');
+    expect(tabs.at(2).text()).toBe('Ignored ');
   });
 
   it('renders limited counts for tabs and exact for selected', () => {
@@ -129,14 +134,16 @@ describe('IssueListHeader', () => {
       <IssueListHeader
         organization={organization}
         query=""
+        queryCount={0}
         queryCounts={queryCountsMaxed}
         projectIds={[]}
         savedSearchList={[]}
       />
     );
-    expect(wrapper.find('li').at(0).text()).toBe('Needs Review 321');
-    expect(wrapper.find('li').at(1).text()).toBe('All Unresolved 99+');
-    expect(wrapper.find('li').at(2).text()).toBe('Ignored 99+');
+    const tabs = wrapper.find('li');
+    expect(tabs.at(0).text()).toBe('Needs Review 321');
+    expect(tabs.at(1).text()).toBe('All Unresolved 99+');
+    expect(tabs.at(2).text()).toBe('Ignored 99+');
   });
 
   it('transitions to new query on tab click', () => {
@@ -159,7 +166,7 @@ describe('IssueListHeader', () => {
     });
   });
 
-  it('should indicate when query is a custom search', async () => {
+  it('should indicate when query is a custom search and display count', async () => {
     const wrapper = mountWithTheme(
       <IssueListHeader
         organization={organization}
@@ -167,9 +174,34 @@ describe('IssueListHeader', () => {
         projectIds={[]}
         savedSearchList={[]}
         query="not a saved search"
+        queryCount={13}
       />
     );
-    expect(wrapper.find('SavedSearchTab a').text()).toBe('Custom Search');
+    expect(wrapper.find('SavedSearchTab a').text()).toBe('Custom Search 13');
+    expect(wrapper.find('SavedSearchTab').prop('isActive')).toBeTruthy();
+  });
+
+  it('should display saved search name and count', async () => {
+    const query = 'saved search query';
+    const wrapper = mountWithTheme(
+      <IssueListHeader
+        organization={organization}
+        queryCounts={queryCounts}
+        projectIds={[]}
+        savedSearchList={[
+          {
+            id: '789',
+            query,
+            name: 'Saved Search',
+            isPinned: false,
+            isGlobal: true,
+          },
+        ]}
+        query={query}
+        queryCount={13}
+      />
+    );
+    expect(wrapper.find('SavedSearchTab a').text()).toBe('Saved Search 13');
     expect(wrapper.find('SavedSearchTab').prop('isActive')).toBeTruthy();
   });
 

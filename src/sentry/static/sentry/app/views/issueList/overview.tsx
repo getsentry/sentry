@@ -924,6 +924,7 @@ class IssueListOverview extends React.Component<Props, State> {
               <IssueListHeader
                 organization={organization}
                 query={query}
+                queryCount={queryCount}
                 queryCounts={queryCounts}
                 realtimeActive={realtimeActive}
                 onRealtimeChange={this.onRealtimeChange}

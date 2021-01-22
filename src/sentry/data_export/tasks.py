@@ -36,7 +36,7 @@ from .base import (
     MAX_BATCH_SIZE,
 )
 from .models import ExportedData, ExportedDataBlob
-from .utils import convert_to_utf8, handle_snuba_errors
+from .utils import handle_snuba_errors
 from .processors.discover import DiscoverProcessor
 from .processors.issues_by_tag import IssuesByTagProcessor
 
@@ -106,19 +106,11 @@ def assemble_download(
             with tempfile.TemporaryFile(mode="w+b") as tf:
                 # XXX(python3):
                 #
-                # In python2 land we write utf-8 encoded strings as bytes via
-                # the csv writer (see convert_to_utf8). The CSV writer will
-                # ONLY write bytes, even if you give it unicode it will convert
-                # it to bytes.
-                #
                 # In python3 we write unicode strings (which is all the csv
                 # module is able to do, it will NOT write bytes like in py2).
                 # Because of this we use the codec getwriter to transform our
                 # file handle to a stream writer that will encode to utf8.
-                if six.PY2:
-                    tfw = tf
-                else:
-                    tfw = codecs.getwriter("utf-8")(tf)
+                tfw = codecs.getwriter("utf-8")(tf)
 
                 writer = csv.DictWriter(tfw, processor.header_fields, extrasaction="ignore")
                 if first_page:
@@ -234,27 +226,13 @@ def process_rows(processor, data_export, batch_size, offset):
 
 @handle_snuba_errors(logger)
 def process_issues_by_tag(processor, limit, offset):
-    gtv_list_unicode = processor.get_serialized_data(limit=limit, offset=offset)
-    # TODO(python3): Remove next block once the 'csv' module has been updated
-    # to Python 3
-    if six.PY2:
-        gtv_list = convert_to_utf8(gtv_list_unicode)
-    else:
-        gtv_list = gtv_list_unicode
-    return gtv_list
+    return processor.get_serialized_data(limit=limit, offset=offset)
 
 
 @handle_snuba_errors(logger)
 def process_discover(processor, limit, offset):
     raw_data_unicode = processor.data_fn(limit=limit, offset=offset)["data"]
-    # TODO(python3): Remove next block once the 'csv' module has been updated
-    # to Python 3
-    if six.PY2:
-        raw_data = convert_to_utf8(raw_data_unicode)
-    else:
-        raw_data = raw_data_unicode
-    raw_data = processor.handle_fields(raw_data)
-    return raw_data
+    return processor.handle_fields(raw_data_unicode)
 
 
 @transaction.atomic()

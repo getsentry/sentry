@@ -69,12 +69,196 @@ class WidgetCard extends React.Component<Props> {
     return false;
   }
 
+  renderToolbar() {
+    if (!this.props.isEditing) {
+      return null;
+    }
+
+    if (this.props.hideToolbar) {
+      return <ToolbarPanel />;
+    }
+
+    const {onEdit, onDelete, startWidgetDrag} = this.props;
+
+    return (
+      <ToolbarPanel>
+        <IconContainer data-component="icon-container">
+          <StyledIconGrabbable
+            color="gray500"
+            size="md"
+            onMouseDown={event => startWidgetDrag(event)}
+            onTouchStart={event => startWidgetDrag(event)}
+          />
+          <IconClick
+            data-test-id="widget-edit"
+            onClick={() => {
+              onEdit();
+            }}
+          >
+            <IconEdit color="gray500" size="md" />
+          </IconClick>
+          <IconClick
+            data-test-id="widget-delete"
+            onClick={() => {
+              onDelete();
+            }}
+          >
+            <IconDelete color="gray500" size="md" />
+          </IconClick>
+        </IconContainer>
+      </ToolbarPanel>
+    );
+  }
+
+  render() {
+    const {
+      widget,
+      isDragging,
+      api,
+      organization,
+      selection,
+      renderErrorMessage,
+      location,
+      router,
+    } = this.props;
+    return (
+      <ErrorBoundary
+        customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
+      >
+        <StyledPanel isDragging={isDragging}>
+          <WidgetQueries
+            api={api}
+            organization={organization}
+            widget={widget}
+            selection={selection}
+          >
+            {({tableResults, timeseriesResults, errorMessage, loading}) => {
+              return (
+                <React.Fragment>
+                  {typeof renderErrorMessage === 'function'
+                    ? renderErrorMessage(errorMessage)
+                    : null}
+                  <ChartContainer>
+                    <HeaderTitleLegend>{widget.title}</HeaderTitleLegend>
+                    <WidgetCardVisuals
+                      timeseriesResults={timeseriesResults}
+                      tableResults={tableResults}
+                      errorMessage={errorMessage}
+                      loading={loading}
+                      location={location}
+                      widget={widget}
+                      selection={selection}
+                      router={router}
+                    />
+                    {this.renderToolbar()}
+                  </ChartContainer>
+                </React.Fragment>
+              );
+            }}
+          </WidgetQueries>
+        </StyledPanel>
+      </ErrorBoundary>
+    );
+  }
+}
+
+export default withApi(
+  withOrganization(withGlobalSelection(ReactRouter.withRouter(WidgetCard)))
+);
+
+const ErrorCard = styled(Placeholder)`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: ${p => p.theme.alert.error.backgroundLight};
+  border: 1px solid ${p => p.theme.alert.error.border};
+  color: ${p => p.theme.alert.error.textLight};
+  border-radius: ${p => p.theme.borderRadius};
+  margin-bottom: ${space(2)};
+`;
+
+const StyledPanel = styled(Panel, {
+  shouldForwardProp: prop => prop !== 'isDragging',
+})<{
+  isDragging: boolean;
+}>`
+  margin: 0;
+  visibility: ${p => (p.isDragging ? 'hidden' : 'visible')};
+`;
+
+const ToolbarPanel = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+
+  width: 100%;
+  height: 100%;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  background-color: rgba(255, 255, 255, 0.5);
+`;
+
+const IconContainer = styled('div')`
+  display: flex;
+
+  > * + * {
+    margin-left: 50px;
+  }
+`;
+
+const IconClick = styled('div')`
+  &:hover {
+    cursor: pointer;
+  }
+`;
+
+const StyledIconGrabbable = styled(IconGrabbable)`
+  &:hover {
+    cursor: grab;
+  }
+`;
+
+type WidgetCardVisualsProps = Pick<ReactRouter.WithRouterProps, 'router'> &
+  Pick<
+    WidgetQueries['state'],
+    'timeseriesResults' | 'tableResults' | 'errorMessage' | 'loading'
+  > & {
+    location: Location;
+    widget: Widget;
+    selection: GlobalSelection;
+  };
+class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
+  shouldComponentUpdate(nextProps: WidgetCardVisualsProps): boolean {
+    // Widget title changes should not update the WidgetCardVisuals component tree
+    const currentProps = {
+      ...this.props,
+      widget: {
+        ...this.props.widget,
+        title: '',
+      },
+    };
+
+    nextProps = {
+      ...nextProps,
+      widget: {
+        ...nextProps.widget,
+        title: '',
+      },
+    };
+
+    return !isEqual(currentProps, nextProps);
+  }
+
   tableResultComponent({
     loading,
     errorMessage,
     tableResults,
   }: TableResultProps): React.ReactNode {
-    const {location} = this.props;
+    const {location, widget} = this.props;
     if (errorMessage) {
       return (
         <ErrorPanel>
@@ -88,11 +272,13 @@ class WidgetCard extends React.Component<Props> {
       return <Placeholder height="200px" />;
     }
 
-    return tableResults.map(result => {
+    return tableResults.map((result, i) => {
+      const fields = widget.queries[i]?.fields ?? [];
       return (
         <SimpleTableChart
-          key={result.title}
+          key={`table:${result.title}`}
           location={location}
+          fields={fields}
           title={tableResults.length > 1 ? result.title : ''}
           loading={loading}
           metadata={result.meta}
@@ -114,16 +300,9 @@ class WidgetCard extends React.Component<Props> {
     }
   }
 
-  renderVisual({
-    tableResults,
-    timeseriesResults,
-    errorMessage,
-    loading,
-  }: Pick<
-    WidgetQueries['state'],
-    'timeseriesResults' | 'tableResults' | 'errorMessage' | 'loading'
-  >): React.ReactNode {
-    const {widget} = this.props;
+  render() {
+    const {tableResults, timeseriesResults, errorMessage, loading, widget} = this.props;
+
     if (widget.displayType === 'table') {
       return (
         <TransitionChart loading={loading} reloading={loading}>
@@ -227,150 +406,4 @@ class WidgetCard extends React.Component<Props> {
       </ChartZoom>
     );
   }
-
-  renderToolbar() {
-    if (!this.props.isEditing) {
-      return null;
-    }
-
-    if (this.props.hideToolbar) {
-      return <ToolbarPanel />;
-    }
-
-    const {onEdit, onDelete, startWidgetDrag} = this.props;
-
-    return (
-      <ToolbarPanel>
-        <IconContainer data-component="icon-container">
-          <StyledIconGrabbable
-            color="gray500"
-            size="md"
-            onMouseDown={event => startWidgetDrag(event)}
-            onTouchStart={event => startWidgetDrag(event)}
-          />
-          <IconClick
-            data-test-id="widget-edit"
-            onClick={() => {
-              onEdit();
-            }}
-          >
-            <IconEdit color="gray500" size="md" />
-          </IconClick>
-          <IconClick
-            data-test-id="widget-delete"
-            onClick={() => {
-              onDelete();
-            }}
-          >
-            <IconDelete color="gray500" size="md" />
-          </IconClick>
-        </IconContainer>
-      </ToolbarPanel>
-    );
-  }
-
-  render() {
-    const {
-      widget,
-      isDragging,
-      api,
-      organization,
-      selection,
-      renderErrorMessage,
-    } = this.props;
-    return (
-      <ErrorBoundary
-        customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
-      >
-        <StyledPanel isDragging={isDragging}>
-          <WidgetQueries
-            api={api}
-            organization={organization}
-            widget={widget}
-            selection={selection}
-          >
-            {({tableResults, timeseriesResults, errorMessage, loading}) => {
-              return (
-                <React.Fragment>
-                  {typeof renderErrorMessage === 'function'
-                    ? renderErrorMessage(errorMessage)
-                    : null}
-                  <ChartContainer>
-                    <HeaderTitleLegend>{widget.title}</HeaderTitleLegend>
-                    {this.renderVisual({
-                      timeseriesResults,
-                      tableResults,
-                      errorMessage,
-                      loading,
-                    })}
-                    {this.renderToolbar()}
-                  </ChartContainer>
-                </React.Fragment>
-              );
-            }}
-          </WidgetQueries>
-        </StyledPanel>
-      </ErrorBoundary>
-    );
-  }
 }
-
-export default withApi(
-  withOrganization(withGlobalSelection(ReactRouter.withRouter(WidgetCard)))
-);
-
-const ErrorCard = styled(Placeholder)`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: ${p => p.theme.alert.error.backgroundLight};
-  border: 1px solid ${p => p.theme.alert.error.border};
-  color: ${p => p.theme.alert.error.textLight};
-  border-radius: ${p => p.theme.borderRadius};
-  margin-bottom: ${space(2)};
-`;
-
-const StyledPanel = styled(Panel, {
-  shouldForwardProp: prop => prop !== 'isDragging',
-})<{
-  isDragging: boolean;
-}>`
-  margin: 0;
-  visibility: ${p => (p.isDragging ? 'hidden' : 'visible')};
-`;
-
-const ToolbarPanel = styled('div')`
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 1;
-
-  width: 100%;
-  height: 100%;
-
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  background-color: rgba(255, 255, 255, 0.5);
-`;
-
-const IconContainer = styled('div')`
-  display: flex;
-
-  > * + * {
-    margin-left: 50px;
-  }
-`;
-
-const IconClick = styled('div')`
-  &:hover {
-    cursor: pointer;
-  }
-`;
-
-const StyledIconGrabbable = styled(IconGrabbable)`
-  &:hover {
-    cursor: grab;
-  }
-`;

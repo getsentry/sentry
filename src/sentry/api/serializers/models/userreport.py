@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 
 from sentry.api.serializers import register, serialize, Serializer
-from sentry.models import EventUser, UserReport
+from sentry.models import EventUser, Group, UserReport
 from sentry.utils.compat import zip
 
 
@@ -55,20 +55,26 @@ class UserReportWithGroupSerializer(UserReportSerializer):
     def get_attrs(self, item_list, user):
         from sentry.api.serializers import GroupSerializer
 
-        # TODO(dcramer); assert on relations
-        groups = {
-            d["id"]: d
-            for d in serialize(
-                set(i.group for i in item_list if i.group_id),
-                user,
-                GroupSerializer(environment_func=self.environment_func),
-            )
-        }
+        groups = list(
+            Group.objects.filter(id__in=set([i.group_id for i in item_list if i.group_id]))
+        )
+        serialized_groups = {}
+        if groups:
+            serialized_groups = {
+                d["id"]: d
+                for d in serialize(
+                    groups, user, GroupSerializer(environment_func=self.environment_func),
+                )
+            }
 
         attrs = super(UserReportWithGroupSerializer, self).get_attrs(item_list, user)
         for item in item_list:
             attrs[item].update(
-                {"group": groups[six.text_type(item.group_id)] if item.group_id else None}
+                {
+                    "group": serialized_groups[six.text_type(item.group_id)]
+                    if item.group_id
+                    else None
+                }
             )
         return attrs
 
