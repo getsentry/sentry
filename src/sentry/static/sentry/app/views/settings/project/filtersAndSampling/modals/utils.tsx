@@ -30,6 +30,52 @@ export function getMatchFieldDescription(condition: DynamicSamplingConditionOper
   }
 }
 
+<<<<<<< HEAD
+=======
+export const LEGACY_BROWSER_LIST = {
+  ie_pre_9: {
+    icon: 'internet-explorer',
+    title: 'Internet Explorer',
+    description: t('Version 8 and lower'),
+  },
+  ie9: {
+    icon: 'internet-explorer',
+    title: 'Internet Explorer',
+    description: t('Version 9'),
+  },
+  ie10: {
+    icon: 'internet-explorer',
+    title: 'Internet Explorer',
+    description: t('Version 10'),
+  },
+  ie11: {
+    icon: 'internet-explorer',
+    title: 'Internet Explorer',
+    description: t('Version 11'),
+  },
+  safari_pre_6: {
+    icon: 'safari',
+    title: 'Safari',
+    description: t('Version 5 and lower'),
+  },
+  opera_pre_15: {
+    icon: 'opera',
+    title: 'Opera',
+    description: t('Version 14 and lower'),
+  },
+  opera_mini_pre_8: {
+    icon: 'opera',
+    title: 'Opera Mini',
+    description: t('Version 8 and lower'),
+  },
+  android_pre_4: {
+    icon: 'android',
+    title: 'Android',
+    description: t('Version 3 and lower'),
+  },
+};
+
+>>>>>>> ref(dynamic-sampling): Add new error form
 export enum Category {
   RELEASES = 'releases',
   ENVIROMENTS = 'enviroments',
