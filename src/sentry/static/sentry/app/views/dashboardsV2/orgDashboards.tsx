@@ -1,7 +1,7 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
-import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
+import isEqual from 'lodash/isEqual';
 
 import {Client} from 'app/api';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -23,9 +23,9 @@ type OrgDashboardsChildrenProps = {
 
 type Props = {
   api: Client;
-  location: Location;
-  params: Params;
   organization: Organization;
+  params: {orgId: string; dashboardId?: string};
+  location: Location;
   children: (props: OrgDashboardsChildrenProps) => React.ReactNode;
 };
 
@@ -49,6 +49,12 @@ class OrgDashboards extends AsyncComponent<Props, State> {
     dashboards: [],
     selectedDashboard: null,
   };
+
+  componentDidUpdate(prevProps: Props) {
+    if (!isEqual(prevProps.params, this.props.params)) {
+      this.remountComponent();
+    }
+  }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, params} = this.props;
