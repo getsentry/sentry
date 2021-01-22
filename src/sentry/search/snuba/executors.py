@@ -243,7 +243,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         [
             "query",
             "status",
-            "needs_review",
+            "for_review",
             "owner",
             "bookmarked_by",
             "assigned_to",

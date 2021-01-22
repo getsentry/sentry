@@ -403,7 +403,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                 )
             ),
             "active_at": ScalarCondition("active_at"),
-            "needs_review": QCallbackCondition(functools.partial(inbox_filter, projects=projects)),
+            "for_review": QCallbackCondition(functools.partial(inbox_filter, projects=projects)),
             "owner": QCallbackCondition(functools.partial(owner_filter, projects=projects)),
         }
 
