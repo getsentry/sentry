@@ -54,13 +54,13 @@ class GroupUserReport(APITestCase, SnubaTestCase):
         for i, event in enumerate(events):
             reports.append(
                 UserReport.objects.create(
-                    group=group,
-                    project=project,
+                    group_id=group.id,
+                    project_id=project.id,
                     event_id=event.event_id,
                     name="foo%d" % i,
                     email="bar%d@example.com" % i,
                     comments="It Broke!!!",
-                    environment=environment,
+                    environment_id=environment.id,
                 )
             )
         return reports

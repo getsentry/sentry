@@ -26,7 +26,9 @@ class BadPaginationError(Exception):
 
 
 class BasePaginator(object):
-    def __init__(self, queryset, order_by=None, max_limit=MAX_LIMIT, on_results=None):
+    def __init__(
+        self, queryset, order_by=None, max_limit=MAX_LIMIT, on_results=None, post_query_filter=None
+    ):
         if order_by:
             if order_by.startswith("-"):
                 self.key, self.desc = order_by[1:], True
@@ -38,6 +40,7 @@ class BasePaginator(object):
         self.queryset = queryset
         self.max_limit = max_limit
         self.on_results = on_results
+        self.post_query_filter = post_query_filter
 
     def _is_asc(self, is_prev):
         return (self.desc and is_prev) or not (self.desc or is_prev)
@@ -157,7 +160,7 @@ class BasePaginator(object):
         if cursor.is_prev:
             results.reverse()
 
-        return build_cursor(
+        cursor = build_cursor(
             results=results,
             limit=limit,
             hits=hits,
@@ -167,6 +170,14 @@ class BasePaginator(object):
             key=self.get_item_key,
             on_results=self.on_results,
         )
+
+        # Note that this filter is just to remove unwanted rows from the result set.
+        # This will reduce the number of rows returned rather than fill a full page,
+        # and could result in an empty page being returned
+        if self.post_query_filter:
+            cursor.results = self.post_query_filter(cursor.results)
+
+        return cursor
 
     def count_hits(self, max_hits):
         if not max_hits:
