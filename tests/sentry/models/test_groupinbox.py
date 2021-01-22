@@ -12,11 +12,12 @@ class GroupInboxTestCase(TestCase):
         assert GroupInbox.objects.filter(
             group=self.group, reason=GroupInboxReason.NEW.value
         ).exists()
-        assert inbox_in.called
+        assert not inbox_in.called
         add_group_to_inbox(self.group, GroupInboxReason.REGRESSION)
         assert GroupInbox.objects.filter(
             group=self.group, reason=GroupInboxReason.NEW.value
         ).exists()
+        assert inbox_in.called
 
     @patch("sentry.signals.inbox_out.send_robust")
     def test_remove_from_inbox(self, inbox_out):
