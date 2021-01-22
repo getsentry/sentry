@@ -27,6 +27,9 @@ class Migration(migrations.Migration):
     # By default we prefer to run in a transaction, but for migrations where you want
     # to `CREATE INDEX CONCURRENTLY` this needs to be set to False. Typically you'll
     # want to create an index concurrently when adding one to an existing table.
+    # You'll also usually want to set this to `False` if you're writing a data
+    # migration, since we don't want the entire migration to run in one long-running
+    # transaction.
     atomic = True
 
 %(replaces_str)s%(initial_str)s
