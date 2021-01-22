@@ -12,14 +12,22 @@ import Rules from './rules';
 
 type Props = {
   rules: Array<DynamicSamplingRule>;
+  onEditRule: (rule: DynamicSamplingRule) => () => void;
+  onDeleteRule: (rule: DynamicSamplingRule) => () => void;
   onAddRule: () => void;
   platformDocLink?: string;
 };
 
-function RulesPanel({rules, platformDocLink, onAddRule}: Props) {
+function RulesPanel({
+  rules,
+  platformDocLink,
+  onAddRule,
+  onEditRule,
+  onDeleteRule,
+}: Props) {
   return (
     <Panel>
-      <Rules rules={rules} />
+      <Rules rules={rules} onEditRule={onEditRule} onDeleteRule={onDeleteRule} />
       <StyledPanelFooter>
         <ButtonBar gap={1}>
           {platformDocLink && (

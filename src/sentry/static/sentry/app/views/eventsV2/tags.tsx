@@ -6,6 +6,7 @@ import PropTypes from 'prop-types';
 
 import {fetchTagFacets, Tag, TagSegment} from 'app/actionCreators/events';
 import {Client} from 'app/api';
+import ErrorPanel from 'app/components/charts/errorPanel';
 import {SectionHeading} from 'app/components/charts/styles';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Placeholder from 'app/components/placeholder';
@@ -153,16 +154,17 @@ class Tags extends React.Component<Props, State> {
       return this.renderPlaceholders();
     }
     if (error) {
-      return <EmptyStateWarning small />;
+      return (
+        <ErrorPanel height="132px">
+          <IconWarning color="gray300" size="lg" />
+        </ErrorPanel>
+      );
     }
     if (tags.length > 0) {
       return tags.map(tag => this.renderTag(tag));
     } else {
       return (
-        <StyledError>
-          <StyledIconWarning color="gray300" size="lg" />
-          {t('No tags found')}
-        </StyledError>
+        <StyledEmptyStateWarning small>{t('No tags found')}</StyledEmptyStateWarning>
       );
     }
   };
@@ -177,14 +179,9 @@ class Tags extends React.Component<Props, State> {
   }
 }
 
-const StyledError = styled('div')`
-  color: ${p => p.theme.gray300};
-  display: flex;
-  align-items: center;
-`;
-
-const StyledIconWarning = styled(IconWarning)`
-  margin-right: ${space(1)};
+const StyledEmptyStateWarning = styled(EmptyStateWarning)`
+  height: 132px;
+  padding: 54px 15%;
 `;
 
 const StyledPlaceholder = styled(Placeholder)`

@@ -14,8 +14,8 @@ import EventView from 'app/utils/discover/eventView';
 import {getDuration} from 'app/utils/formatters';
 import theme from 'app/utils/theme';
 
-import {DoubleHeaderContainer, HeaderTitleLegend} from '../styles';
-import HistogramQuery from '../transactionVitals/histogramQuery';
+import {DoubleHeaderContainer, HeaderTitleLegend} from '../../styles';
+import HistogramQuery from '../../transactionVitals/histogramQuery';
 
 const NUM_BUCKETS = 50;
 const PRECISION = 0;

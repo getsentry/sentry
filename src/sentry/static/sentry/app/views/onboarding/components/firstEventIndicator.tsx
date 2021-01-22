@@ -88,7 +88,7 @@ StatusWrapper.defaultProps = {
 
 const Waiting = (props: React.ComponentProps<typeof StatusWrapper>) => (
   <StatusWrapper {...props}>
-    <AnimatedText>{t('Waiting to recieve first event to continue')}</AnimatedText>
+    <AnimatedText>{t('Waiting to receive first event to continue')}</AnimatedText>
     <WaitingIndicator />
   </StatusWrapper>
 );

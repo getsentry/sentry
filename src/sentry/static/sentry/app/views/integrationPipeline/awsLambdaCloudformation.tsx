@@ -144,11 +144,11 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
         </StyledStepHeading>
         <GoToAWSWrapper>
           <Button priority="primary" external href={this.cloudformationUrl}>
-            {t('Go to AWS')}
+            {t('Configure AWS')}
           </Button>
         </GoToAWSWrapper>
         <StyledStepHeading step={2}>
-          {t('Enter your account number and region')}
+          {t('Add AWS Account Infomrmation')}
         </StyledStepHeading>
       </InstructionWrapper>
     );
@@ -172,6 +172,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
           onBlur={this.validateAccountNumber}
           error={accountNumberError}
           inline={false}
+          label={t('AWS Account Number')}
         />
         <StyledSelectField
           name="region"
@@ -180,6 +181,8 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
           onChange={this.hanldeChangeRegion}
           options={this.regionOptions}
           allowClear={false}
+          inline={false}
+          label={t('AWS Region')}
         />
         <FooterWithButtons
           docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/"
@@ -197,7 +200,6 @@ const InstructionWrapper = styled('div')`
 `;
 
 const StyledStepHeading = styled(StepHeading)`
-  font-weight: normal;
   font-size: ${p => p.theme.fontSizeLarge};
   margin: 10px 0 0 0;
 `;

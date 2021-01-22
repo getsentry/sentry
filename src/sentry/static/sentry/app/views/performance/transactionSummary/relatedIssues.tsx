@@ -83,10 +83,12 @@ class RelatedIssues extends React.Component<Props> {
     return (
       <Panel>
         <PanelBody>
-          <EmptyStateWarning small withIcon={false}>
-            {tct('No new issues for this transaction for the [timePeriod].', {
-              timePeriod: displayedPeriod,
-            })}
+          <EmptyStateWarning>
+            <p>
+              {tct('No new issues for this transaction for the [timePeriod].', {
+                timePeriod: displayedPeriod,
+              })}
+            </p>
           </EmptyStateWarning>
         </PanelBody>
       </Panel>
