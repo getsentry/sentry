@@ -124,7 +124,7 @@ class WorldMapChart extends React.Component<Props, State> {
     return (
       <BaseChart
         options={{
-          backgroundColor: theme.backgroundSecondary,
+          backgroundColor: theme.background,
           visualMap: [
             VisualMap({
               left: 'right',
