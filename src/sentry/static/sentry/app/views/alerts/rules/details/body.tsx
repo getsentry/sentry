@@ -224,7 +224,7 @@ export default class DetailsBody extends React.Component<Props> {
           <ChartPanel>
             <PanelBody withPadding>
               <ChartHeader>{this.metricPreset?.name ?? t('Custom metric')}</ChartHeader>
-              <Projects orgId={organization.id} slugs={projectSlugs}>
+              <Projects orgId={organization.slug} slugs={projectSlugs}>
                 {({initiallyLoaded, projects}) => {
                   return initiallyLoaded && rule ? (
                     <EventsRequest
