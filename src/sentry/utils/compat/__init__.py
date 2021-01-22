@@ -1,15 +1,7 @@
 from __future__ import absolute_import
 
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle  # NOQA
-
-try:
-    # TODO: remove when we drop Python 2.7 compat
-    import functools32 as functools
-except ImportError:
-    import functools  # NOQA
+import pickle  # NOQA
+import functools  # NOQA
 
 from six.moves import map as _map
 from six.moves import filter as _filter
