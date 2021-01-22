@@ -191,7 +191,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
             {({results, errored, loading, reloading}) => {
               if (errored) {
                 return (
-                  <ErrorPanel>
+                  <ErrorPanel height="580px">
                     <IconWarning color="gray300" size="lg" />
                   </ErrorPanel>
                 );
@@ -205,7 +205,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
                 : [];
 
               return (
-                <TransitionChart loading={loading} reloading={reloading} height="550px">
+                <TransitionChart loading={loading} reloading={reloading} height="580px">
                   <TransparentLoadingMask visible={reloading} />
                   <LineChart {...zoomRenderProps} {...chartOptions} series={series} />
                 </TransitionChart>
