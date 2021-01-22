@@ -2,42 +2,73 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
-import {DynamicSamplingCondition} from 'app/types/dynamicSampling';
+import {
+  DynamicSamplingCondition,
+  DynamicSamplingConditionLogicalNot,
+  DynamicSamplingConditionLogicalOthers,
+  DynamicSamplingConditionOperator,
+  DynamicSamplingConditionOthers,
+} from 'app/types/dynamicSampling';
 
 import {getOperatorLabel} from './utils';
 
 type Props = {
-  conditions: Array<DynamicSamplingCondition>;
+  condition: DynamicSamplingCondition;
 };
 
-function Conditions({conditions}: Props) {
-  function getConvertedValue(value: DynamicSamplingCondition['value']) {
+function Conditions({condition}: Props) {
+  function getConvertedValue(value: Array<string>) {
     if (Array.isArray(value)) {
       return (
-        <Values>
+        <React.Fragment>
           {value.map((v, index) => (
             <React.Fragment key={v}>
               <Value>{v}</Value>
               {index !== value.length - 1 && <Separator>{'\u002C'}</Separator>}
             </React.Fragment>
           ))}
-        </Values>
+        </React.Fragment>
       );
     }
 
     return <Value>{String(value)}</Value>;
   }
 
-  return (
-    <Wrapper>
-      {conditions.map(({operator, value}, index) => (
-        <Condition key={index}>
-          {getOperatorLabel(operator)}
+  switch (condition.operator) {
+    case DynamicSamplingConditionOperator.AND:
+    case DynamicSamplingConditionOperator.OR: {
+      const {inner: conditions} = condition as DynamicSamplingConditionLogicalOthers;
+      return (
+        <Wrapper>
+          {conditions.map(({operator, value}, index) => (
+            <div key={index}>
+              <Label>{getOperatorLabel(operator)}</Label>
+              {getConvertedValue(value)}
+            </div>
+          ))}
+        </Wrapper>
+      );
+    }
+    case DynamicSamplingConditionOperator.NOT: {
+      const {inner} = condition as DynamicSamplingConditionLogicalNot;
+      const {operator, value} = inner;
+      return (
+        <div>
+          <Label>{getOperatorLabel(operator)}</Label>
           {getConvertedValue(value)}
-        </Condition>
-      ))}
-    </Wrapper>
-  );
+        </div>
+      );
+    }
+    default: {
+      const {operator, value} = condition as DynamicSamplingConditionOthers;
+      return (
+        <div>
+          <Label>{getOperatorLabel(operator)}</Label>
+          {getConvertedValue(value)}
+        </div>
+      );
+    }
+  }
 }
 
 export default Conditions;
@@ -47,16 +78,13 @@ const Wrapper = styled('div')`
   grid-gap: ${space(1.5)};
 `;
 
-const Condition = styled(Wrapper)`
-  grid-template-columns: max-content 1fr;
+const Label = styled('span')`
+  margin-right: ${space(1)};
 `;
-
-const Values = styled('div')`
-  display: flex;
-`;
-
-const Value = styled('div')`
+const Value = styled('span')`
   color: ${p => p.theme.gray300};
+  word-break: break-all;
+  white-space: pre-wrap;
 `;
 
 const Separator = styled(Value)`

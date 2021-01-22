@@ -31,8 +31,10 @@ export default Type;
 
 const ErrorLabel = styled('div')`
   color: ${p => p.theme.active};
+  white-space: pre-wrap;
 `;
 
 const TransactionLabel = styled('div')`
   color: ${p => p.theme.linkColor};
+  white-space: pre-wrap;
 `;

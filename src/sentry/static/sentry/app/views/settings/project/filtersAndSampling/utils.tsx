@@ -1,4 +1,6 @@
-export function getPlatformDocLink(platform?: string) {
+import {PlatformKey} from 'app/data/platformCategories';
+
+export function getPlatformDocLink(platform?: PlatformKey) {
   switch (platform) {
     case 'rust':
       return 'https://docs.sentry.io/platforms/rust/configuration/filtering/';
