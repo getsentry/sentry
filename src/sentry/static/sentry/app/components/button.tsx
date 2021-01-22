@@ -221,7 +221,7 @@ const getFontSize = ({size, priority, theme}: StyledButtonProps) => {
 };
 
 const getFontWeight = ({priority, borderless}: StyledButtonProps) =>
-  `font-weight: ${priority === 'link' || borderless ? 400 : 600};`;
+  `font-weight: ${priority === 'link' || borderless ? 'inherit' : 600};`;
 
 const getBoxShadow = (active: boolean) => ({
   priority,
