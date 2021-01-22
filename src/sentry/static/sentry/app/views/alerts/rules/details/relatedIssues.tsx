@@ -8,13 +8,13 @@ import GroupList from 'app/components/issues/groupList';
 import {Panel, PanelBody} from 'app/components/panels';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {OrganizationSummary} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {OrganizationSummary, Project} from 'app/types';
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
 type Props = {
   organization: OrganizationSummary;
   rule: IncidentRule;
+  projects: Project[];
   filter: string;
   statsPeriod?: string;
   start?: string;
@@ -35,7 +35,7 @@ class RelatedIssues extends React.Component<Props> {
   };
 
   render() {
-    const {rule, filter, organization, start, end, statsPeriod} = this.props;
+    const {rule, projects, filter, organization, start, end, statsPeriod} = this.props;
 
     const path = `/organizations/${organization.slug}/issues/`;
     const queryParams = {
@@ -45,6 +45,7 @@ class RelatedIssues extends React.Component<Props> {
       limit: 5,
       sort: 'new',
       query: `${rule.query} ${filter}`,
+      project: projects.map(project => project.id),
     };
     const issueSearch = {
       pathname: `/organizations/${organization.slug}/issues/`,
@@ -55,18 +56,7 @@ class RelatedIssues extends React.Component<Props> {
       <React.Fragment>
         <ControlsWrapper>
           <SectionHeading>{t('Related Issues')}</SectionHeading>
-          <Button
-            data-test-id="issues-open"
-            size="small"
-            to={issueSearch}
-            onClick={() =>
-              trackAnalyticsEvent({
-                eventKey: 'performance_views.summary.open_issues',
-                eventName: 'Performance Views: Open issues from transaction summary',
-                organization_id: parseInt(organization.id, 10),
-              })
-            }
-          >
+          <Button data-test-id="issues-open" size="small" to={issueSearch}>
             {t('Open in Issues')}
           </Button>
         </ControlsWrapper>
@@ -93,6 +83,7 @@ const ControlsWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: ${space(1)};
 `;
 
 const TableWrapper = styled('div')`
