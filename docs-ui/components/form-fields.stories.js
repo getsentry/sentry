@@ -213,6 +213,7 @@ export const _RadioBooleanField = withInfo({
       yesLabel="Yes, I would like to receive updates via email"
       noLabel="No, I'd prefer not to receive these updates"
       help="Help text for making an informed decision"
+      disabled={boolean('disabled', false)}
     />
   </Form>
 ));
