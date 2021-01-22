@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import jwt
-import mock
 import responses
 
 from copy import deepcopy
@@ -9,7 +8,7 @@ from six.moves.urllib.parse import urlencode
 
 from sentry.models import Integration, Identity, IdentityProvider
 from sentry.testutils import APITestCase
-from sentry.utils.compat.mock import patch
+from sentry.utils.compat import mock
 
 from .test_helpers import (
     GENERIC_EVENT,
@@ -44,8 +43,8 @@ class MsTeamsWebhookTest(APITestCase):
         )
 
     @responses.activate
-    @patch("jwt.decode")
-    @patch("time.time")
+    @mock.patch("jwt.decode")
+    @mock.patch("time.time")
     def test_generic_event(self, mock_time, mock_decode):
         mock_time.return_value = 1594839999 + 60
         mock_decode.return_value = DECODED_TOKEN
@@ -77,7 +76,7 @@ class MsTeamsWebhookTest(APITestCase):
         assert resp.status_code == 403
 
     @responses.activate
-    @patch("jwt.decode")
+    @mock.patch("jwt.decode")
     def test_decode_token_fails(self, mock_decode):
         mock_decode.side_effect = jwt.DecodeError("fail")
         resp = self.client.post(
@@ -91,7 +90,7 @@ class MsTeamsWebhookTest(APITestCase):
         assert resp.status_code == 403
 
     @responses.activate
-    @patch("jwt.decode")
+    @mock.patch("jwt.decode")
     def test_iss_does_not_match(self, mock_decode):
         bad_token = DECODED_TOKEN.copy()
         bad_token["iss"] = "bad"
@@ -106,7 +105,7 @@ class MsTeamsWebhookTest(APITestCase):
         assert resp.status_code == 403
 
     @responses.activate
-    @patch("jwt.decode")
+    @mock.patch("jwt.decode")
     def test_service_url_does_not_match(self, mock_decode):
         bad_token = DECODED_TOKEN.copy()
         bad_token["serviceurl"] = "bad"
@@ -121,8 +120,8 @@ class MsTeamsWebhookTest(APITestCase):
         assert resp.status_code == 403
 
     @responses.activate
-    @patch("jwt.decode")
-    @patch("time.time")
+    @mock.patch("jwt.decode")
+    @mock.patch("time.time")
     def test_expired_token(self, mock_time, mock_decode):
         mock_time.return_value = 1594839999 + 6 * 60
         mock_decode.return_value = DECODED_TOKEN
@@ -137,8 +136,8 @@ class MsTeamsWebhookTest(APITestCase):
         assert resp.status_code == 403
 
     @responses.activate
-    @patch("jwt.decode")
-    @patch("time.time")
+    @mock.patch("jwt.decode")
+    @mock.patch("time.time")
     def test_member_added(self, mock_time, mock_decode):
         access_json = {"expires_in": 86399, "access_token": "my_token"}
         responses.add(
@@ -178,8 +177,8 @@ class MsTeamsWebhookTest(APITestCase):
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
 
     @responses.activate
-    @patch("jwt.decode")
-    @patch("time.time")
+    @mock.patch("jwt.decode")
+    @mock.patch("time.time")
     def test_different_member_added(self, mock_time, mock_decode):
         access_json = {"expires_in": 86399, "access_token": "my_token"}
         responses.add(
@@ -208,8 +207,8 @@ class MsTeamsWebhookTest(APITestCase):
         assert resp.status_code == 204
         assert len(responses.calls) == 2
 
-    @patch("jwt.decode")
-    @patch("time.time")
+    @mock.patch("jwt.decode")
+    @mock.patch("time.time")
     def test_member_removed(self, mock_time, mock_decode):
         integration = Integration.objects.create(external_id=team_id, provider="msteams")
         mock_time.return_value = 1594839999 + 60
@@ -224,8 +223,8 @@ class MsTeamsWebhookTest(APITestCase):
         assert resp.status_code == 204
         assert not Integration.objects.filter(id=integration.id)
 
-    @patch("jwt.decode")
-    @patch("time.time")
+    @mock.patch("jwt.decode")
+    @mock.patch("time.time")
     def test_different_member_removed(self, mock_time, mock_decode):
         different_member_removed = deepcopy(EXAMPLE_TEAM_MEMBER_REMOVED)
         different_member_removed["membersRemoved"][0]["id"] = "28:another-id"
@@ -243,8 +242,8 @@ class MsTeamsWebhookTest(APITestCase):
         assert Integration.objects.filter(id=integration.id)
 
     @responses.activate
-    @patch("jwt.decode")
-    @patch("time.time")
+    @mock.patch("jwt.decode")
+    @mock.patch("time.time")
     def test_personal_member_added(self, mock_time, mock_decode):
         access_json = {"expires_in": 86399, "access_token": "my_token"}
         responses.add(
@@ -272,8 +271,8 @@ class MsTeamsWebhookTest(APITestCase):
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
 
     @responses.activate
-    @patch("jwt.decode")
-    @patch("time.time")
+    @mock.patch("jwt.decode")
+    @mock.patch("time.time")
     def test_mentioned(self, mock_time, mock_decode):
         access_json = {"expires_in": 86399, "access_token": "my_token"}
         responses.add(
@@ -303,8 +302,8 @@ class MsTeamsWebhookTest(APITestCase):
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
 
     @responses.activate
-    @patch("jwt.decode")
-    @patch("time.time")
+    @mock.patch("jwt.decode")
+    @mock.patch("time.time")
     def test_different_user_mentioned(self, mock_time, mock_decode):
         mock_time.return_value = 1594839999 + 60
         mock_decode.return_value = DECODED_TOKEN
@@ -323,8 +322,8 @@ class MsTeamsWebhookTest(APITestCase):
         assert len(responses.calls) == 2
 
     @responses.activate
-    @patch("jwt.decode")
-    @patch("time.time")
+    @mock.patch("jwt.decode")
+    @mock.patch("time.time")
     def test_unlink_user(self, mock_time, mock_decode):
         access_json = {"expires_in": 86399, "access_token": "my_token"}
         responses.add(
@@ -354,8 +353,8 @@ class MsTeamsWebhookTest(APITestCase):
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
 
     @responses.activate
-    @patch("jwt.decode")
-    @patch("time.time")
+    @mock.patch("jwt.decode")
+    @mock.patch("time.time")
     def test_help_command(self, mock_time, mock_decode):
         other_command = deepcopy(EXAMPLE_UNLINK_COMMAND)
         other_command["text"] = "Help"
@@ -387,8 +386,8 @@ class MsTeamsWebhookTest(APITestCase):
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
 
     @responses.activate
-    @patch("jwt.decode")
-    @patch("time.time")
+    @mock.patch("jwt.decode")
+    @mock.patch("time.time")
     def test_link_command(self, mock_time, mock_decode):
         other_command = deepcopy(EXAMPLE_UNLINK_COMMAND)
         other_command["text"] = "link"
@@ -422,8 +421,8 @@ class MsTeamsWebhookTest(APITestCase):
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
 
     @responses.activate
-    @patch("jwt.decode")
-    @patch("time.time")
+    @mock.patch("jwt.decode")
+    @mock.patch("time.time")
     def test_link_command_already_linked(self, mock_time, mock_decode):
         other_command = deepcopy(EXAMPLE_UNLINK_COMMAND)
         other_command["text"] = "link"
@@ -459,8 +458,8 @@ class MsTeamsWebhookTest(APITestCase):
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
 
     @responses.activate
-    @patch("jwt.decode")
-    @patch("time.time")
+    @mock.patch("jwt.decode")
+    @mock.patch("time.time")
     def test_other_command(self, mock_time, mock_decode):
         other_command = deepcopy(EXAMPLE_UNLINK_COMMAND)
         other_command["text"] = "other"

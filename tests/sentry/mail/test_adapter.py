@@ -4,7 +4,6 @@ from __future__ import absolute_import
 
 from datetime import datetime
 
-import mock
 import pytz
 from django.contrib.auth.models import AnonymousUser
 from django.core import mail
@@ -38,6 +37,7 @@ from sentry.plugins.base import Notification
 from sentry.rules.processor import RuleFuture
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat import mock
 from sentry.utils.email import MessageBuilder
 
 
