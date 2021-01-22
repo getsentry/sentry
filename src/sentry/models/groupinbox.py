@@ -73,13 +73,15 @@ def add_group_to_inbox(group, reason, reason_details=None):
         },
     )
 
-    inbox_in.send_robust(
-        project=group.project,
-        user=None,
-        group=group,
-        sender="add_group_to_inbox",
-        reason=reason.name.lower(),
-    )
+    # Ignore new issues, too many events
+    if reason is not GroupInboxReason.NEW:
+        inbox_in.send_robust(
+            project=group.project,
+            user=None,
+            group=group,
+            sender="add_group_to_inbox",
+            reason=reason.name.lower(),
+        )
     return group_inbox
 
 
