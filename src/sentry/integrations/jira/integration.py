@@ -339,12 +339,16 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         )
 
     def get_issue(self, issue_id, **kwargs):
+        """
+        Jira installation's implementation IssueSyncMixin's `get_issue`.
+        """
         client = self.get_client()
         issue = client.get_issue(issue_id)
+        fields = issue.get("fields", {})
         return {
             "key": issue_id,
-            "title": issue["fields"]["summary"],
-            "description": issue["fields"].get("description"),
+            "title": fields.get("summary"),
+            "description": fields.get("description"),
         }
 
     def create_comment(self, issue_id, user_id, group_note):
@@ -820,13 +824,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         if not issue_key:
             raise IntegrationError("There was an error creating the issue.")
 
-        issue = client.get_issue(issue_key)
-
-        return {
-            "title": issue["fields"]["summary"],
-            "description": issue["fields"]["description"],
-            "key": issue_key,
-        }
+        # Immediately fetch and return the created issue.
+        return self.get_issue(issue_key)
 
     def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
         """
