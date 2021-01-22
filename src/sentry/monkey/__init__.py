@@ -4,7 +4,7 @@ from .pickle import patch_pickle_loaders
 
 
 def register_scheme(name):
-    from six.moves.urllib import parse as urlparse
+    from urllib import parse as urlparse  # NOQA
 
     uses = urlparse.uses_netloc, urlparse.uses_query, urlparse.uses_relative, urlparse.uses_fragment
     for use in uses:
