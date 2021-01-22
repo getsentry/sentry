@@ -40,12 +40,12 @@ function DoubleAxisDisplay(props: Props) {
     const query = stringifyQueryObject(conditions);
 
     trackAnalyticsEvent({
-      eventKey: 'performance_views.landingv2.display.filterChange',
+      eventKey: 'performance_views.landingv2.display.filter_change',
       eventName: 'Performance Views: Landing v2 Display Filter Change',
       organization_id: parseInt(organization.id, 10),
       field,
-      minValue: parseInt(minValue, 10),
-      maxValue: parseInt(maxValue, 10),
+      min_value: parseInt(minValue, 10),
+      max_value: parseInt(maxValue, 10),
     });
 
     browserHistory.push({

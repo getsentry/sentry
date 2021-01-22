@@ -83,10 +83,10 @@ class LandingContent extends React.Component<Props, State> {
       eventKey: 'performance_views.landingv2.display_change',
       eventName: 'Performance Views: Landing v2 Display Change',
       organization_id: parseInt(organization.id, 10),
-      changeToDisplay: field,
-      defaultDisplay,
-      currentDisplay,
-      isOnDefault: defaultDisplay === currentDisplay,
+      change_to_display: field,
+      default_display: defaultDisplay,
+      current_display: currentDisplay,
+      is_default: defaultDisplay === currentDisplay,
     });
 
     browserHistory.push({
