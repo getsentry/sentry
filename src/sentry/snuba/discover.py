@@ -877,6 +877,11 @@ def find_histogram_params(num_buckets, min_value, max_value, multiplier):
     if start_offset + num_buckets * bucket_size <= scaled_max:
         bucket_size = nice_int(bucket_size + 1)
 
+    # compute the bin for max value and adjust the number of buckets accordingly
+    # to minimize unnecessary empty bins at the tail
+    last_bin = int((scaled_max - start_offset) / bucket_size) * bucket_size + start_offset
+    num_buckets = (last_bin - start_offset) // bucket_size + 1
+
     return HistogramParams(num_buckets, bucket_size, start_offset, multiplier)
 
 
