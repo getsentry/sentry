@@ -131,8 +131,6 @@ def _override_on_full_queue(transport, metric_name):
 
 
 def traces_sampler(sampling_context):
-    if options.get("transaction-events.force-disable-internal-project"):
-        return 0.0
     # Resolve the url, and see if we want to set our own sampling
     if "wsgi_environ" in sampling_context:
         try:
