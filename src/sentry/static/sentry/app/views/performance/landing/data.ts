@@ -1,4 +1,4 @@
-export const FRONTEND_COLUMN_TITLES = [
+export const FRONTEND_PAGELOAD_COLUMN_TITLES = [
   'transaction',
   'project',
   'tpm',
@@ -6,6 +6,17 @@ export const FRONTEND_COLUMN_TITLES = [
   'LCP',
   'FID',
   'CLS',
+  'users',
+  'user misery',
+];
+
+export const FRONTEND_NAVIGATION_COLUMN_TITLES = [
+  'transaction',
+  'project',
+  'tpm',
+  'p50()',
+  'p75()',
+  'p95()',
   'users',
   'user misery',
 ];

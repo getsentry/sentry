@@ -1,6 +1,9 @@
 import {Location} from 'history';
 
-import {Organization} from 'app/types';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
+import {backend, frontend} from 'app/data/platformCategories';
+import {Organization, Project} from 'app/types';
+import EventView from 'app/utils/discover/eventView';
 import {AggregationKey, Column} from 'app/utils/discover/fields';
 import {
   formatAbbreviatedNumber,
@@ -10,7 +13,11 @@ import {
 } from 'app/utils/formatters';
 import {decodeScalar} from 'app/utils/queryString';
 
+import {AxisOption} from '../data';
 import {HistogramData, Rectangle} from '../transactionVitals/types';
+
+export const LEFT_AXIS_QUERY_KEY = 'left';
+export const RIGHT_AXIS_QUERY_KEY = 'right';
 
 type LandingDisplay = {
   label: string;
@@ -18,14 +25,24 @@ type LandingDisplay = {
 };
 
 export enum LandingDisplayField {
-  FRONTEND = 'frontend',
+  ALL = 'all',
+  FRONTEND_PAGELOAD = 'frontend_pageload',
+  FRONTEND_NAVIGATION = 'frontend_navigation',
   BACKEND = 'backend',
 }
 
 export const LANDING_DISPLAYS = [
   {
-    label: 'Frontend',
-    field: LandingDisplayField.FRONTEND,
+    label: 'All',
+    field: LandingDisplayField.ALL,
+  },
+  {
+    label: 'Frontend (Pageload)',
+    field: LandingDisplayField.FRONTEND_PAGELOAD,
+  },
+  {
+    label: 'Frontend (Navigation)',
+    field: LandingDisplayField.FRONTEND_NAVIGATION,
   },
   {
     label: 'Backend',
@@ -33,10 +50,22 @@ export const LANDING_DISPLAYS = [
   },
 ];
 
-export function getCurrentLandingDisplay(location: Location): LandingDisplay {
+export function getCurrentLandingDisplay(
+  location: Location,
+  projects: Project[],
+  eventView?: EventView
+): LandingDisplay {
   const landingField = decodeScalar(location?.query?.landingDisplay);
   const display = LANDING_DISPLAYS.find(({field}) => field === landingField);
-  return display || LANDING_DISPLAYS[0];
+  if (display) {
+    return display;
+  }
+
+  const defaultDisplayField = getDefaultDisplayFieldForPlatform(projects, eventView);
+  const defaultDisplay = LANDING_DISPLAYS.find(
+    ({field}) => field === defaultDisplayField
+  );
+  return defaultDisplay || LANDING_DISPLAYS[0];
 }
 
 export function getChartWidth(
@@ -72,6 +101,44 @@ export function getBackendFunction(
   }
 }
 
+const VITALS_FRONTEND_PLATFORMS: string[] = [...frontend];
+const VITALS_BACKEND_PLATFORMS: string[] = [...backend];
+
+export function getDefaultDisplayFieldForPlatform(
+  projects: Project[],
+  eventView?: EventView
+) {
+  if (!eventView) {
+    return LandingDisplayField.ALL;
+  }
+  const projectIds = eventView.project;
+  if (projectIds.length === 0 || projectIds[0] === ALL_ACCESS_PROJECTS) {
+    return LandingDisplayField.ALL;
+  }
+  const selectedProjects = projects.filter(p => projectIds.includes(parseInt(p.id, 10)));
+  if (selectedProjects.length === 0 || selectedProjects.some(p => !p.platform)) {
+    return LandingDisplayField.ALL;
+  }
+
+  if (
+    selectedProjects.every(project =>
+      VITALS_FRONTEND_PLATFORMS.includes(project.platform as string)
+    )
+  ) {
+    return LandingDisplayField.FRONTEND_PAGELOAD;
+  }
+
+  if (
+    selectedProjects.every(project =>
+      VITALS_BACKEND_PLATFORMS.includes(project.platform as string)
+    )
+  ) {
+    return LandingDisplayField.BACKEND;
+  }
+
+  return LandingDisplayField.ALL;
+}
+
 export const backendCardDetails = {
   p75: {
     title: 'Duration (p75)',
@@ -94,3 +161,18 @@ export const backendCardDetails = {
     formatter: value => formatFloat(value, 4),
   },
 };
+
+export function getDisplayAxes(options: AxisOption[], location: Location) {
+  const leftDefault = options.find(opt => opt.isLeftDefault) || options[0];
+  const rightDefault = options.find(opt => opt.isRightDefault) || options[1];
+
+  const leftAxis =
+    options.find(opt => opt.value === location.query[LEFT_AXIS_QUERY_KEY]) || leftDefault;
+  const rightAxis =
+    options.find(opt => opt.value === location.query[RIGHT_AXIS_QUERY_KEY]) ||
+    rightDefault;
+  return {
+    leftAxis,
+    rightAxis,
+  };
+}

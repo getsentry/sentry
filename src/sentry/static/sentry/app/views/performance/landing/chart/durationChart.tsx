@@ -18,8 +18,8 @@ import {getUtcToLocalDateObject} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
 import withApi from 'app/utils/withApi';
 
-import Chart from '../charts/chart';
-import {DoubleHeaderContainer, HeaderTitleLegend} from '../styles';
+import Chart from '../../charts/chart';
+import {DoubleHeaderContainer, HeaderTitleLegend} from '../../styles';
 
 type Props = {
   api: Client;
