@@ -139,6 +139,16 @@ class FormField extends React.Component<Props> {
      */
     flexibleControlStateSize: PropTypes.bool,
 
+    /**
+     * User-facing field name
+     */
+    label: PropTypes.node,
+
+    /**
+     * Determines the aligment of the label and field
+     */
+    inline: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
+
     // Default value to use for form field if value is not specified in `<Form>` parent
     defaultValue: PropTypes.oneOfType([
       PropTypes.string,
