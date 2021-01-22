@@ -103,7 +103,12 @@ class ActivityEmail(object):
     def get_subject(self):
         group = self.group
 
-        return u"%s - %s" % (group.qualified_short_id, group.title)
+        subject = group.qualified_short_id
+
+        if not self.organization.flags.enhanced_privacy:
+            subject += u" - %s" % group.title
+
+        return subject
 
     def get_subject_with_prefix(self):
         return u"{}{}".format(self._get_subject_prefix(), self.get_subject()).encode("utf-8")
