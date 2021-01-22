@@ -8,8 +8,8 @@ from .link_identity import SlackLinkIdentityView
 from .unlink_identity import SlackUnlinkIdentityView
 
 urlpatterns = [
-    url(r"^action/$", SlackActionEndpoint.as_view()),
-    url(r"^event/$", SlackEventEndpoint.as_view()),
+    url(r"^action/$", SlackActionEndpoint.as_view(), name="sentry-integration-slack-action",),
+    url(r"^event/$", SlackEventEndpoint.as_view(), name="sentry-integration-slack-event",),
     url(
         r"^link-identity/(?P<signed_params>[^\/]+)/$",
         SlackLinkIdentityView.as_view(),
