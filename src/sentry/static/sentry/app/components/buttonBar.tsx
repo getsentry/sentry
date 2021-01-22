@@ -92,6 +92,7 @@ const MergedStyles = () => css`
     }
 
     /* Middle buttons only need one border so we don't get a double line */
+    /* stylelint-disable-next-line no-duplicate-selectors */
     &:not(:last-child):not(:first-child) {
       & + .dropdown,
       & + button,
