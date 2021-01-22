@@ -218,6 +218,8 @@ describe('EventsContainer', function () {
       wrapper.find('TimeRangeSelector HeaderItem').simulate('click');
 
       await wrapper.find('SelectorItem[value="absolute"]').simulate('click');
+      await tick();
+      wrapper.update();
 
       // Oct 1st
       wrapper.find('DayCell').at(0).simulate('mouseUp');

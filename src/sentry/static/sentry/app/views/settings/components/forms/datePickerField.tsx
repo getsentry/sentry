@@ -1,8 +1,4 @@
-import 'react-date-range/dist/styles.css';
-import 'react-date-range/dist/theme/default.css';
-
 import React from 'react';
-import {Calendar} from 'react-date-range';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
@@ -28,6 +24,10 @@ function handleChangeDate(
   close();
 }
 
+const Calendar = React.lazy(
+  () => import(/* webpackChunkName: "Calendar" */ './calendarWrapper')
+);
+
 export default function DatePickerField(props: Props) {
   return (
     <InputField
@@ -50,13 +50,15 @@ export default function DatePickerField(props: Props) {
 
                 {isOpen && (
                   <CalendarMenu {...getMenuProps()}>
-                    <Calendar
-                      disabled={disabled}
-                      date={inputValue}
-                      onChange={date =>
-                        handleChangeDate(onChange, onBlur, date, actions.close)
-                      }
-                    />
+                    <React.Suspense fallback={null}>
+                      <Calendar
+                        disabled={disabled}
+                        date={inputValue}
+                        onChange={date =>
+                          handleChangeDate(onChange, onBlur, date, actions.close)
+                        }
+                      />
+                    </React.Suspense>
                   </CalendarMenu>
                 )}
               </div>
