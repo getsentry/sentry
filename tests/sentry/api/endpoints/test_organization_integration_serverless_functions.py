@@ -21,7 +21,11 @@ class AbstractServerlessTest(APITestCase):
         self.project = self.create_project(organization=self.organization)
         self.integration = Integration.objects.create(
             provider="aws_lambda",
-            metadata={"arn": cloudformation_arn, "aws_external_id": "599817902985"},
+            metadata={
+                "region": "us-east-2",
+                "account_number": "599817902985",
+                "aws_external_id": "599817902985",
+            },
         )
         self.org_integration = self.integration.add_organization(self.organization)
         self.org_integration.config = {"default_project_id": self.project.id}
