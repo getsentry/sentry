@@ -15,6 +15,7 @@ export const DISPLAY_TYPE_CHOICES = [
   {label: t('Bar chart'), value: 'bar'},
   {label: t('Line chart'), value: 'line'},
   {label: t('Table results'), value: 'table'},
+  {label: t('World Map'), value: 'world_map'},
 ];
 
 export const INTERVAL_CHOICES = [

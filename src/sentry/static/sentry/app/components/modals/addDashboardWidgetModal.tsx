@@ -16,6 +16,7 @@ import {PanelAlert} from 'app/components/panels';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, TagCollection} from 'app/types';
+import {isAggregateField} from 'app/utils/discover/fields';
 import Measurements from 'app/utils/measurements/measurements';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -159,6 +160,36 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     this.setState(prevState => {
       const newState = cloneDeep(prevState);
       set(newState, field, value);
+
+      if (field === 'displayType') {
+        if (value === 'table') {
+          return newState;
+        }
+
+        let newQueries = prevState.queries;
+
+        // Filter out non-aggregate fields
+        newQueries = newQueries.map(query => {
+          const fields = query.fields.filter(isAggregateField);
+          return {
+            ...query,
+            fields: fields.length ? fields : ['count()'],
+          };
+        });
+
+        if (value === 'world_map') {
+          // For world map chart, cap fields of the queries to only one field.
+          newQueries = newQueries.map(query => {
+            return {
+              ...query,
+              fields: query.fields.slice(0, 1),
+            };
+          });
+        }
+
+        set(newState, 'queries', newQueries);
+      }
+
       return newState;
     });
   };
