@@ -406,7 +406,7 @@ class StreamGroup extends React.Component<Props, State> {
               {!defined(primaryUserCount) ? (
                 <Placeholder height="18px" />
               ) : (
-                <DropdownMenu isNestedDropdown>
+                <DropdownMenu isNestedDropdown alwaysRenderMenu={false}>
                   {({isOpen, getRootProps, getActorProps, getMenuProps}) => {
                     const topLevelCx = classNames('dropdown', {
                       'anchor-middle': true,

@@ -38,7 +38,11 @@ const IssueListSortOptions = ({onSelect, sort}: Props) => {
   );
 
   return (
-    <DropdownControl buttonProps={{prefix: t('Sort by')}} label={getSortLabel(sortKey)}>
+    <DropdownControl
+      buttonProps={{prefix: t('Sort by')}}
+      label={getSortLabel(sortKey)}
+      alwaysRenderMenu={false}
+    >
       {getMenuItem('priority')}
       {getMenuItem('date')}
       {getMenuItem('new')}
