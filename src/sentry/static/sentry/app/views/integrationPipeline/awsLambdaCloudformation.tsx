@@ -9,8 +9,8 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {uniqueId} from 'app/utils/guid';
 import StepHeading from 'app/views/onboarding/components/stepHeading';
-import FieldErrorReason from 'app/views/settings/components/forms/field/fieldErrorReason';
-import TextareaField from 'app/views/settings/components/forms/textareaField';
+import SelectField from 'app/views/settings/components/forms/selectField';
+import TextField from 'app/views/settings/components/forms/textField';
 
 import FooterWithButtons from './components/footerWithButtons';
 import IconGroup from './components/iconGroup';
@@ -27,26 +27,30 @@ const getAwsExternalId = () => {
   return awsExternalId;
 };
 
-const cloudformationRegex = /arn:aws:cloudformation:\S+:\d+:stack+\/\S+/;
-const testArn = (arn: string) => cloudformationRegex.test(arn);
+const accountNumberRegex = /^\d{12}$/;
+const testAccountNumber = (arn: string) => accountNumberRegex.test(arn);
 
 type Props = {
   baseCloudformationUrl: string;
   templateUrl: string;
   stackName: string;
-  arn?: string;
+  regionList: string[];
+  accountNumber?: string;
+  region?: string;
   error?: string;
 };
 
 type State = {
-  arn?: string;
-  syncError?: string;
+  accountNumber?: string;
+  region?: string;
+  accountNumberError?: string;
   submitting?: boolean;
 };
 
 export default class AwsLambdaCloudformation extends React.Component<Props, State> {
   state: State = {
-    arn: this.props.arn,
+    accountNumber: this.props.accountNumber,
+    region: this.props.region,
   };
 
   componentDidMount() {
@@ -58,11 +62,12 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
   }
 
   get initialData() {
-    const {arn} = this.props;
+    const {region, accountNumber} = this.props;
     const awsExternalId = getAwsExternalId();
     return {
       awsExternalId,
-      arn,
+      region,
+      accountNumber,
     };
   }
 
@@ -79,12 +84,17 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
     return `${baseCloudformationUrl}?${query}`;
   }
 
+  get regionOptions() {
+    return this.props.regionList.map(region => ({value: region, label: region}));
+  }
+
   handleSubmit = (e: React.MouseEvent) => {
     this.setState({submitting: true});
     e.preventDefault();
-    const {arn} = this.state;
+    const {accountNumber, region} = this.state;
     const data = {
-      arn,
+      accountNumber,
+      region,
       awsExternalId: getAwsExternalId(),
     };
     addLoadingMessage(t('Submitting\u2026'));
@@ -98,27 +108,32 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
     window.location.assign(newUrl);
   };
 
-  validateArn = (value: string) => {
-    // validate the ARN matches a cloudformation stack
-    let syncError = '';
+  validateAccountNumber = (value: string) => {
+    // validate the account number
+    let accountNumberError = '';
     if (!value) {
-      syncError = t('ARN required');
-    } else if (!testArn(value)) {
-      syncError = t('Invalid ARN');
+      accountNumberError = t('Account number required');
+    } else if (!testAccountNumber(value)) {
+      accountNumberError = t('Invalid account number');
     }
-    this.setState({syncError});
+    this.setState({accountNumberError});
   };
 
-  handleChangeArn = (arn: string) => {
-    // reset the error if we ever get a valid ARN
-    if (testArn(arn)) {
-      this.setState({syncError: ''});
+  handleChangeArn = (accountNumber: string) => {
+    // reset the error if we ever get a valid account number
+    if (testAccountNumber(accountNumber)) {
+      this.setState({accountNumberError: ''});
     }
-    this.setState({arn});
+    this.setState({accountNumber});
   };
 
-  get arnValid() {
-    return testArn(this.state.arn || '');
+  hanldeChangeRegion = (region: string) => {
+    this.setState({region});
+  };
+
+  get formValid() {
+    const {accountNumber, region} = this.state;
+    return !!region && testAccountNumber(accountNumber || '');
   }
 
   renderInstructions = () => {
@@ -133,14 +148,14 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
           </Button>
         </GoToAWSWrapper>
         <StyledStepHeading step={2}>
-          {t('Enter the ARN Value from AWS')}
+          {t('Enter your account number and region')}
         </StyledStepHeading>
       </InstructionWrapper>
     );
   };
 
   render = () => {
-    const {arn, syncError, submitting} = this.state;
+    const {accountNumber, region, accountNumberError, submitting} = this.state;
     return (
       <div>
         <StyledAlert type="info">
@@ -149,21 +164,28 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
         <IconGroup pluginId="aws_lambda" />
         <InstallSentry>{t('Install Sentry on your AWS Account')}</InstallSentry>
         {this.renderInstructions()}
-        <StyledTextareaField
-          name="arn"
-          placeholder="arn:aws:cloudformation:us-east-2:599817902985:stack/Sentry-Monitoring-Stack-Filter/a3644150-5560-11eb-b6e6-0abd43d40ad8"
-          value={arn}
+        <StyledTextField
+          name="accountNumber"
+          placeholder="599817902985"
+          value={accountNumber}
           onChange={this.handleChangeArn}
-          onBlur={this.validateArn}
-          error={syncError}
+          onBlur={this.validateAccountNumber}
+          error={accountNumberError}
           inline={false}
-          autosize
+        />
+        <StyledSelectField
+          name="region"
+          placeholder="us-east-2"
+          value={region}
+          onChange={this.hanldeChangeRegion}
+          options={this.regionOptions}
+          allowClear={false}
         />
         <FooterWithButtons
           docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/"
           buttonText={t('Next')}
           onClick={this.handleSubmit}
-          disabled={submitting || !this.arnValid}
+          disabled={submitting || !this.formValid}
         />
       </div>
     );
@@ -180,11 +202,13 @@ const StyledStepHeading = styled(StepHeading)`
   margin: 10px 0 0 0;
 `;
 
-const StyledTextareaField = styled(TextareaField)`
+const StyledTextField = styled(TextField)`
   padding: ${space(1)} 65px;
-  ${FieldErrorReason} {
-    right: 67px;
-  }
+  border-bottom: none;
+`;
+
+const StyledSelectField = styled(SelectField)`
+  padding: ${space(1)} 65px;
   border-bottom: none;
 `;
 
