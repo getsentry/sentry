@@ -39,15 +39,14 @@ class AlertRuleDetails extends React.Component<Props, State> {
   fetchData = async () => {
     this.setState({isLoading: true, hasError: false});
     const {
-      api,
       params: {orgId, ruleId},
     } = this.props;
 
     try {
-      const rulePromise = fetchAlertRule(api, orgId, ruleId).then(rule =>
+      const rulePromise = fetchAlertRule(orgId, ruleId).then(rule =>
         this.setState({rule})
       );
-      const incidentsPromise = fetchIncidentsForRule(api, orgId, ruleId).then(incidents =>
+      const incidentsPromise = fetchIncidentsForRule(orgId, ruleId).then(incidents =>
         this.setState({incidents})
       );
       await Promise.all([rulePromise, incidentsPromise]);

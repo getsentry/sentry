@@ -17,20 +17,20 @@ import {
 
 import {Incident, IncidentStats, IncidentStatus} from '../types';
 
-export function fetchAlertRule(
-  api: Client,
-  orgId: string,
-  ruleId: string
-): Promise<IncidentRule> {
-  return api.requestPromise(`/organizations/${orgId}/alert-rules/${ruleId}/`);
+// Use this api for requests that are getting cancelled
+const uncancellableApi = new Client();
+
+export function fetchAlertRule(orgId: string, ruleId: string): Promise<IncidentRule> {
+  return uncancellableApi.requestPromise(
+    `/organizations/${orgId}/alert-rules/${ruleId}/`
+  );
 }
 
 export function fetchIncidentsForRule(
-  api: Client,
   orgId: string,
   alertRule: string
 ): Promise<Incident[]> {
-  return api.requestPromise(`/organizations/${orgId}/incidents/`, {
+  return uncancellableApi.requestPromise(`/organizations/${orgId}/incidents/`, {
     query: {alertRule},
   });
 }
