@@ -12,6 +12,7 @@ from sentry.models import (
     UserAvatar,
     UserOption,
 )
+from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.avatar import get_email_avatar
 from sentry.utils.email import MessageBuilder, group_id_to_email
@@ -133,7 +134,10 @@ class ActivityEmail(object):
         project = self.project
         group = self.group
 
-        headers = {"X-Sentry-Project": project.slug}
+        headers = {
+            "X-Sentry-Project": project.slug,
+            "X-SMTPAPI": json.dumps({"category": self.get_category()}),
+        }
 
         if group:
             headers.update(
@@ -141,7 +145,6 @@ class ActivityEmail(object):
                     "X-Sentry-Logger": group.logger,
                     "X-Sentry-Logger-Level": group.get_level_display(),
                     "X-Sentry-Reply-To": group_id_to_email(group.id),
-                    "category": self.get_category(),
                 }
             )
 
