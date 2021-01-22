@@ -170,8 +170,11 @@ class OrganizationEventsGeoEndpoint(OrganizationEventsV2EndpointBase):
                     request,
                     organization,
                     params["project_id"],
-                    # Expect Discover query output to be at most 250 rows, which corresponds
+                    # Expect Discover query output to be at most 251 rows, which corresponds
                     # to the number of possible two-letter country codes as defined in ISO 3166-1 alpha-2.
-                    data_fn(0, self.get_per_page(request, default_per_page=250, max_per_page=250)),
+                    #
+                    # There are 250 country codes from sentry/src/sentry/static/sentry/app/data/countryCodesMap.tsx
+                    # plus events with no assigned country code.
+                    data_fn(0, self.get_per_page(request, default_per_page=251, max_per_page=251)),
                 )
             )
