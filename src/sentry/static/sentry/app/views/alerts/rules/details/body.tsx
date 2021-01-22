@@ -24,6 +24,7 @@ import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/settings/incidentRules/const
 import {makeDefaultCta} from 'app/views/settings/incidentRules/incidentRulePresets';
 import {
   AlertRuleThresholdType,
+  Dataset,
   IncidentRule,
   TimePeriod,
   TimeWindow,
@@ -32,6 +33,7 @@ import {
 import {DATA_SOURCE_LABELS, getIncidentRuleMetricPreset} from '../../utils';
 
 import MetricChart from './metricChart';
+import RelatedIssues from './relatedIssues';
 
 type Props = {
   api: Client;
@@ -80,9 +82,17 @@ export default class DetailsBody extends React.Component<Props> {
 
   getTimePeriod() {
     const {location} = this.props;
+    const now = moment.utc();
 
     const timePeriod = location.query.period ?? TimePeriod.ONE_DAY;
-    return TIME_OPTIONS.find(item => item.value === timePeriod) ?? TIME_OPTIONS[1];
+    const timeOption =
+      TIME_OPTIONS.find(item => item.value === timePeriod) ?? TIME_OPTIONS[1];
+
+    return {
+      ...timeOption,
+      start: getUtcDateString(moment(now.diff(TIME_WINDOWS[timeOption.value]))),
+      end: getUtcDateString(now),
+    };
   }
 
   handleTimePeriodChange = (value: string) => {
@@ -158,75 +168,69 @@ export default class DetailsBody extends React.Component<Props> {
     );
   }
 
-  renderChartActions() {
+  renderChartActions(projects: Project[]) {
     const {rule, params} = this.props;
     const timePeriod = this.getTimePeriod();
-    const now = moment.utc();
+    const preset = this.metricPreset;
+    const ctaOpts = {
+      orgSlug: params.orgId,
+      projects,
+      rule,
+      start: timePeriod.start,
+      end: timePeriod.end,
+    };
+
+    const {buttonText, ...props} = preset
+      ? preset.makeCtaParams(ctaOpts)
+      : makeDefaultCta(ctaOpts);
 
     return (
       // Currently only one button in panel, hide panel if not available
       <Feature features={['discover-basic']}>
         <ChartActions>
-          <Projects slugs={rule?.projects} orgId={params.orgId}>
-            {({initiallyLoaded, fetching, projects}) => {
-              const preset = this.metricPreset;
-              const ctaOpts = {
-                orgSlug: params.orgId,
-                projects: (initiallyLoaded ? projects : []) as Project[],
-                rule,
-                start: getUtcDateString(moment(now.diff(TIME_WINDOWS[timePeriod.value]))),
-                end: getUtcDateString(now),
-              };
-
-              const {buttonText, ...props} = preset
-                ? preset.makeCtaParams(ctaOpts)
-                : makeDefaultCta(ctaOpts);
-
-              return (
-                <Button
-                  size="small"
-                  priority="primary"
-                  disabled={!rule || fetching || !initiallyLoaded}
-                  {...props}
-                >
-                  {buttonText}
-                </Button>
-              );
-            }}
-          </Projects>
+          <Button size="small" priority="primary" disabled={!rule} {...props}>
+            {buttonText}
+          </Button>
         </ChartActions>
       </Feature>
     );
   }
 
   render() {
-    const {api, rule, organization} = this.props;
+    const {
+      api,
+      rule,
+      organization,
+      params: {orgId},
+    } = this.props;
     const {query, environment, aggregate, projects: projectSlugs} = rule ?? {};
     const timePeriod = this.getTimePeriod();
 
     return (
-      <Layout.Body>
-        <Layout.Main>
-          <StyledDropdownControl
-            buttonProps={{prefix: t('Display')}}
-            label={timePeriod.label}
-          >
-            {TIME_OPTIONS.map(({label, value}) => (
-              <DropdownItem
-                key={value}
-                eventKey={value}
-                onSelect={this.handleTimePeriodChange}
-              >
-                {label}
-              </DropdownItem>
-            ))}
-          </StyledDropdownControl>
-          <ChartPanel>
-            <PanelBody withPadding>
-              <ChartHeader>{this.metricPreset?.name ?? t('Custom metric')}</ChartHeader>
-              <Projects orgId={organization.id} slugs={projectSlugs}>
-                {({initiallyLoaded, projects}) => {
-                  return initiallyLoaded && rule ? (
+      <Projects orgId={orgId} slugs={projectSlugs}>
+        {({initiallyLoaded, projects}) => {
+          return initiallyLoaded && rule ? (
+            <Layout.Body>
+              <Layout.Main>
+                <StyledDropdownControl
+                  buttonProps={{prefix: t('Display')}}
+                  label={timePeriod.label}
+                >
+                  {TIME_OPTIONS.map(({label, value}) => (
+                    <DropdownItem
+                      key={value}
+                      eventKey={value}
+                      onSelect={this.handleTimePeriodChange}
+                    >
+                      {label}
+                    </DropdownItem>
+                  ))}
+                </StyledDropdownControl>
+                <ChartPanel>
+                  <PanelBody withPadding>
+                    <ChartHeader>
+                      {this.metricPreset?.name ?? t('Custom metric')}
+                    </ChartHeader>
                     <EventsRequest
                       api={api}
                       organization={organization}
@@ -248,46 +252,78 @@ export default class DetailsBody extends React.Component<Props> {
                         )
                       }
                     </EventsRequest>
-                  ) : (
-                    <Placeholder height="200px" />
-                  );
-                }}
-              </Projects>
-            </PanelBody>
-            {this.renderChartActions()}
-          </ChartPanel>
-        </Layout.Main>
-        <Layout.Side>
-          <ChartParameters>
-            {tct('Metric: [metric] over [window]', {
-              metric: <code>{rule?.aggregate ?? '\u2026'}</code>,
-              window: (
-                <code>
-                  {rule?.timeWindow ? (
-                    <Duration seconds={rule?.timeWindow * 60} />
-                  ) : (
-                    '\u2026'
-                  )}
-                </code>
-              ),
-            })}
-            {(rule?.query || rule?.dataset) &&
-              tct('Filter: [datasetType] [filter]', {
-                datasetType: rule?.dataset && (
-                  <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>
-                ),
-                filter: rule?.query && <code>{rule.query}</code>,
-              })}
-          </ChartParameters>
-          <SidebarHeading>
-            <span>{t('Alert Rule')}</span>
-          </SidebarHeading>
-          {this.renderRuleDetails()}
-        </Layout.Side>
-      </Layout.Body>
+                  </PanelBody>
+                  {this.renderChartActions(projects as Project[])}
+                </ChartPanel>
+                <DetailWrapper>
+                  <ActivityWrapper>
+                    {rule?.dataset === Dataset.ERRORS && (
+                      <RelatedIssues
+                        organization={organization}
+                        rule={rule}
+                        projects={((projects as Project[]) || []).filter(project =>
+                          rule.projects.includes(project.slug)
+                        )}
+                        start={timePeriod.start}
+                        end={timePeriod.end}
+                        filter={DATASET_EVENT_TYPE_FILTERS[rule.dataset]}
+                      />
+                    )}
+                  </ActivityWrapper>
+                </DetailWrapper>
+              </Layout.Main>
+              <Layout.Side>
+                <ChartParameters>
+                  {tct('Metric: [metric] over [window]', {
+                    metric: <code>{rule?.aggregate ?? '\u2026'}</code>,
+                    window: (
+                      <code>
+                        {rule?.timeWindow ? (
+                          <Duration seconds={rule?.timeWindow * 60} />
+                        ) : (
+                          '\u2026'
+                        )}
+                      </code>
+                    ),
+                  })}
+                  {(rule?.query || rule?.dataset) &&
+                    tct('Filter: [datasetType] [filter]', {
+                      datasetType: rule?.dataset && (
+                        <code>{DATASET_EVENT_TYPE_FILTERS[rule.dataset]}</code>
+                      ),
+                      filter: rule?.query && <code>{rule.query}</code>,
+                    })}
+                </ChartParameters>
+                <SidebarHeading>
+                  <span>{t('Alert Rule')}</span>
+                </SidebarHeading>
+                {this.renderRuleDetails()}
+              </Layout.Side>
+            </Layout.Body>
+          ) : (
+            <Placeholder height="200px" />
+          );
+        }}
+      </Projects>
     );
   }
 }
+
+const DetailWrapper = styled('div')`
+  display: flex;
+  flex: 1;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    flex-direction: column-reverse;
+  }
+`;
+
+const ActivityWrapper = styled('div')`
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: 100%;
+`;
 
 const SidebarHeading = styled(SectionHeading)`
   display: flex;

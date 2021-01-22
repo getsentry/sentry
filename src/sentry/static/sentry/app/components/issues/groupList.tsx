@@ -26,6 +26,7 @@ const defaultProps = {
   canSelectGroups: true,
   withChart: true,
   withPagination: true,
+  useFilteredStats: true,
 };
 
 type Props = {
@@ -172,7 +173,13 @@ class GroupList extends React.Component<Props, State> {
   }
 
   render() {
-    const {canSelectGroups, withChart, renderEmptyMessage, withPagination} = this.props;
+    const {
+      canSelectGroups,
+      withChart,
+      renderEmptyMessage,
+      withPagination,
+      useFilteredStats,
+    } = this.props;
     const {loading, error, groups, memberList, pageLinks} = this.state;
 
     if (loading) {
@@ -215,7 +222,7 @@ class GroupList extends React.Component<Props, State> {
                   canSelect={canSelectGroups}
                   withChart={withChart}
                   memberList={members}
-                  useFilteredStats
+                  useFilteredStats={useFilteredStats}
                 />
               );
             })}
