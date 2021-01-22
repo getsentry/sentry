@@ -108,7 +108,7 @@ class RedisBufferTest(TestCase):
         assert pickle.loads(f) == {"pk": 1, "datetime": now}
         assert pickle.loads(result.pop("e+datetime")) == now
         assert pickle.loads(result.pop("e+foo")) == "bar"
-        assert result == {"i+times_seen": b"1", "m": b"unittest.mock.Mock"}
+        assert result == {"i+times_seen": b"1", "m": b"mock.mock.Mock"}
 
         pending = client.zrange("b:p", 0, -1)
         assert pending == [b"foo"]
@@ -120,7 +120,7 @@ class RedisBufferTest(TestCase):
         assert pickle.loads(f) == {"pk": 1, "datetime": now}
         assert pickle.loads(result.pop("e+datetime")) == now
         assert pickle.loads(result.pop("e+foo")) == "baz"
-        assert result == {"i+times_seen": b"2", "m": b"unittest.mock.Mock"}
+        assert result == {"i+times_seen": b"2", "m": b"mock.mock.Mock"}
 
         pending = client.zrange("b:p", 0, -1)
         assert pending == [b"foo"]
@@ -203,7 +203,7 @@ class RedisBufferTest(TestCase):
             "e+datetime": '["d","1493791566.000000"]',
             "f": '{"pk":["i","1"],"datetime":["d","1493791566.000000"]}',
             "i+times_seen": "1",
-            "m": "unittest.mock.Mock",
+            "m": "mock.mock.Mock",
             "s": "1"
         }
     """
