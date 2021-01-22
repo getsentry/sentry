@@ -24,6 +24,7 @@ import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/settings/incidentRules/const
 import {makeDefaultCta} from 'app/views/settings/incidentRules/incidentRulePresets';
 import {
   AlertRuleThresholdType,
+  Dataset,
   IncidentRule,
   TimePeriod,
   TimeWindow,
@@ -32,6 +33,7 @@ import {
 import {DATA_SOURCE_LABELS, getIncidentRuleMetricPreset} from '../../utils';
 
 import MetricChart from './metricChart';
+import RelatedIssues from './relatedIssues';
 
 type Props = {
   api: Client;
@@ -80,9 +82,17 @@ export default class DetailsBody extends React.Component<Props> {
 
   getTimePeriod() {
     const {location} = this.props;
+    const now = moment.utc();
 
     const timePeriod = location.query.period ?? TimePeriod.ONE_DAY;
-    return TIME_OPTIONS.find(item => item.value === timePeriod) ?? TIME_OPTIONS[1];
+    const timeOption =
+      TIME_OPTIONS.find(item => item.value === timePeriod) ?? TIME_OPTIONS[1];
+
+    return {
+      ...timeOption,
+      start: getUtcDateString(moment(now.diff(TIME_WINDOWS[timeOption.value]))),
+      end: getUtcDateString(now),
+    };
   }
 
   handleTimePeriodChange = (value: string) => {
@@ -161,7 +171,6 @@ export default class DetailsBody extends React.Component<Props> {
   renderChartActions() {
     const {rule, params} = this.props;
     const timePeriod = this.getTimePeriod();
-    const now = moment.utc();
 
     return (
       // Currently only one button in panel, hide panel if not available
@@ -174,8 +183,8 @@ export default class DetailsBody extends React.Component<Props> {
                 orgSlug: params.orgId,
                 projects: (initiallyLoaded ? projects : []) as Project[],
                 rule,
-                start: getUtcDateString(moment(now.diff(TIME_WINDOWS[timePeriod.value]))),
-                end: getUtcDateString(now),
+                start: timePeriod.start,
+                end: timePeriod.end,
               };
 
               const {buttonText, ...props} = preset
@@ -256,6 +265,19 @@ export default class DetailsBody extends React.Component<Props> {
             </PanelBody>
             {this.renderChartActions()}
           </ChartPanel>
+          <DetailWrapper>
+            <ActivityWrapper>
+              {rule?.dataset === Dataset.ERRORS && (
+                <RelatedIssues
+                  organization={organization}
+                  rule={rule}
+                  start={timePeriod.start}
+                  end={timePeriod.end}
+                  filter={DATASET_EVENT_TYPE_FILTERS[rule.dataset]}
+                />
+              )}
+            </ActivityWrapper>
+          </DetailWrapper>
         </Layout.Main>
         <Layout.Side>
           <ChartParameters>
@@ -288,6 +310,22 @@ export default class DetailsBody extends React.Component<Props> {
     );
   }
 }
+
+const DetailWrapper = styled('div')`
+  display: flex;
+  flex: 1;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    flex-direction: column-reverse;
+  }
+`;
+
+const ActivityWrapper = styled('div')`
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: 100%;
+`;
 
 const SidebarHeading = styled(SectionHeading)`
   display: flex;
