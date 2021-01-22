@@ -10,9 +10,8 @@ import {defined} from 'app/utils';
 import NumberField from 'app/views/settings/components/forms/numberField';
 import RadioField from 'app/views/settings/components/forms/radioField';
 
-import {Category} from '../utils';
-
 import ConditionFields from './conditionFields';
+import {Category} from './utils';
 
 enum Transaction {
   ALL = 'all',

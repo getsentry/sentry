@@ -8,7 +8,7 @@ import space from 'app/styles/space';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import TextField from 'app/views/settings/components/forms/textField';
 
-import {Category} from '../utils';
+import {Category} from './utils';
 
 type Condition = {
   category: Category;
