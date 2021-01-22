@@ -56,7 +56,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
         super(SnubaTSDBTest, self).setUp()
 
         self.db = SnubaTSDB()
-        self.now = datetime.utcnow().replace(
+        self.now = (datetime.utcnow() - timedelta(hours=4)).replace(
             hour=0, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
         )
         self.proj1 = self.create_project()
