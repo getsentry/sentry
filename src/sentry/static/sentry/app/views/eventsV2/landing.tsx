@@ -157,10 +157,10 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
       }
     }
 
-    const queryParams = {
+    const queryParams: Location['query'] = {
       cursor,
       query: `version:2 name:"${searchQuery}"`,
-      per_page: perPage,
+      per_page: perPage.toString(),
       sortBy: this.getActiveSort().value,
     };
     if (!cursor) {
