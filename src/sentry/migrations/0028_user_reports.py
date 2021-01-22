@@ -24,7 +24,7 @@ def backfill_user_reports(apps, schema_editor):
     """
     UserReport = apps.get_model("sentry", "UserReport")
 
-    user_reports = UserReport.objects.filter(group__isnull=True, environment__isnull=True)
+    user_reports = UserReport.objects.filter(group_id__isnull=True, environment_id__isnull=True)
 
     for report in RangeQuerySetWrapper(user_reports, step=1000):
         try:
@@ -37,7 +37,7 @@ def backfill_user_reports(apps, schema_editor):
             continue
 
         if event:
-            report.update(group_id=event.group_id, environment=event.get_environment())
+            report.update(group_id=event.group_id, environment_id=event.get_environment().id)
 
 
 class Migration(migrations.Migration):

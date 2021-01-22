@@ -434,8 +434,8 @@ class EventManager(object):
         _tsdb_record_all_metrics(jobs)
 
         if job["group"]:
-            UserReport.objects.filter(project=project, event_id=job["event"].event_id).update(
-                group=job["group"], environment=job["environment"]
+            UserReport.objects.filter(project_id=project.id, event_id=job["event"].event_id).update(
+                group_id=job["group"].id, environment_id=job["environment"].id
             )
 
         with metrics.timer("event_manager.filter_attachments_for_group"):

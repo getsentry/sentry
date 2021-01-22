@@ -203,10 +203,10 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 group.project_id, group.id, environment_ids, limit=100
             )
             if not environment_ids:
-                user_reports = UserReport.objects.filter(group=group)
+                user_reports = UserReport.objects.filter(group_id=group.id)
             else:
                 user_reports = UserReport.objects.filter(
-                    group=group, environment_id__in=environment_ids
+                    group_id=group.id, environment_id__in=environment_ids
                 )
 
             now = timezone.now()

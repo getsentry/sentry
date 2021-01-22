@@ -414,7 +414,9 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         attrs = super(ProjectSummarySerializer, self).get_attrs(item_list, user)
 
         projects_with_user_reports = set(
-            UserReport.objects.filter(project_id__in=item_list).values_list("project", flat=True)
+            UserReport.objects.filter(project_id__in=[item.id for item in item_list]).values_list(
+                "project_id", flat=True
+            )
         )
 
         project_envs = (

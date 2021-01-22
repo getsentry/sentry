@@ -794,8 +794,8 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest, TestCase):
         self.project.teams.first().organization.member_set.create(user=user_foo)
 
         return UserReport.objects.create(
-            project=self.project,
-            group=self.group,
+            project_id=self.project.id,
+            group_id=self.group.id,
             name="Homer Simpson",
             email="homer.simpson@example.com",
         )

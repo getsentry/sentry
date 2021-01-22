@@ -223,7 +223,7 @@ def migrate_events(
     event_id_set = set(event.event_id for event in events)
 
     UserReport.objects.filter(project_id=project.id, event_id__in=event_id_set).update(
-        group=destination_id
+        group_id=destination_id
     )
     EventAttachment.objects.filter(project_id=project.id, event_id__in=event_id_set).update(
         group_id=destination_id

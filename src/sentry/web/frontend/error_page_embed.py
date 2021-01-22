@@ -12,7 +12,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry import eventstore
-from sentry.models import ProjectKey, ProjectOption, UserReport
+from sentry.models import Project, ProjectKey, ProjectOption, UserReport
 from sentry.web.helpers import render_to_response, render_to_string
 from sentry.signals import user_feedback_received
 from sentry.utils import json
@@ -146,14 +146,14 @@ class ErrorPageEmbedView(View):
         if form.is_valid():
             # TODO(dcramer): move this to post to the internal API
             report = form.save(commit=False)
-            report.project = key.project
+            report.project_id = key.project_id
             report.event_id = event_id
 
-            event = eventstore.get_event_by_id(report.project.id, report.event_id)
+            event = eventstore.get_event_by_id(report.project_id, report.event_id)
 
             if event is not None:
-                report.environment = event.get_environment()
-                report.group = event.group
+                report.environment_id = event.get_environment().id
+                report.group_id = event.group_id
 
             try:
                 with transaction.atomic():
@@ -165,7 +165,9 @@ class ErrorPageEmbedView(View):
                 # something wrong with the SDK, but this behavior is
                 # more reasonable than just hard erroring and is more
                 # expected.
-                UserReport.objects.filter(project=report.project, event_id=report.event_id).update(
+                UserReport.objects.filter(
+                    project_id=report.project_id, event_id=report.event_id
+                ).update(
                     name=report.name,
                     email=report.email,
                     comments=report.comments,
@@ -173,10 +175,12 @@ class ErrorPageEmbedView(View):
                 )
 
             else:
-                if report.group:
+                if report.group_id:
                     report.notify()
 
-            user_feedback_received.send(project=report.project, group=report.group, sender=self)
+            user_feedback_received.send(
+                project=Project.objects.get(id=report.project_id), sender=self,
+            )
 
             return self._smart_response(request)
         elif request.method == "POST":
