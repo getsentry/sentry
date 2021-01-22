@@ -77,6 +77,14 @@ class TransactionRuleModal extends React.Component<Props, State> {
   handleDeleteCondition = (index: number) => () => {
     const newConditions = [...this.state.conditions];
     newConditions.splice(index, 1);
+
+    if (!newConditions.length) {
+      this.setState({
+        conditions: newConditions,
+        transactions: Transaction.ALL,
+      });
+      return;
+    }
     this.setState({conditions: newConditions});
   };
 
