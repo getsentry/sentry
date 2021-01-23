@@ -4,7 +4,7 @@ import six
 
 from datetime import datetime
 from django.utils import timezone
-from mock import patch
+from sentry.utils.compat.mock import patch
 from sentry.models import Monitor, MonitorFailure, MonitorType, ScheduleType
 from sentry.testutils import TestCase
 
