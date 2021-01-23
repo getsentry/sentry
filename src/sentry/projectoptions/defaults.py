@@ -1,7 +1,7 @@
 from sentry.projectoptions import register
 
 # latest epoch
-LATEST_EPOCH = 6
+LATEST_EPOCH = 7
 
 # grouping related configs
 #
@@ -38,7 +38,7 @@ register(key="sentry:fingerprinting_rules", default="")
 # The JavaScript loader version that is the project default.  This option
 # is expected to be never set but the epoch defaults are used if no
 # version is set on a project's DSN.
-register(key="sentry:default_loader_version", epoch_defaults={1: "4.x", 2: "5.x"})
+register(key="sentry:default_loader_version", epoch_defaults={1: "4.x", 2: "5.x", 7: "6.x"})
 
 # Default symbol sources.  The ios source does not exist by default and
 # will be skipped later.  The microsoft source exists by default and is

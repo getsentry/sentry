@@ -1,7 +1,7 @@
 import pytz
 
 from six.moves.urllib.parse import urlencode
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format

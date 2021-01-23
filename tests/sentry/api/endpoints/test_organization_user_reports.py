@@ -27,18 +27,18 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
         self.env_2 = self.create_environment(name="dev", project=self.project_1)
 
         self.report_1 = UserReport.objects.create(
-            project=self.project_1,
+            project_id=self.project_1.id,
             event_id="a" * 32,
             name="Foo",
             email="foo@example.com",
             comments="Hello world",
-            group=self.group_1,
-            environment=self.env_1,
+            group_id=self.group_1.id,
+            environment_id=self.env_1.id,
         )
 
         # should not be included due to missing link
         UserReport.objects.create(
-            project=self.project_1,
+            project_id=self.project_1.id,
             event_id="b" * 32,
             name="Bar",
             email="bar@example.com",
@@ -46,22 +46,22 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
         )
 
         self.report_resolved_1 = UserReport.objects.create(
-            project=self.project_1,
+            project_id=self.project_1.id,
             event_id="c" * 32,
             name="Baz",
             email="baz@example.com",
             comments="Hello world",
-            group=self.group_2,
+            group_id=self.group_2.id,
         )
 
         self.report_2 = UserReport.objects.create(
-            project=self.project_2,
+            project_id=self.project_2.id,
             event_id="d" * 32,
             name="Wat",
             email="wat@example.com",
             comments="Hello world",
-            group=self.group_1,
-            environment=self.env_2,
+            group_id=self.group_1.id,
+            environment_id=self.env_2.id,
             date_added=datetime.now() - timedelta(days=7),
         )
 

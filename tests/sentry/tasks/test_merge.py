@@ -176,7 +176,9 @@ class MergeGroupTest(TestCase):
 
         project2 = self.create_project()
         group2 = self.create_group(project2)
-        ur = UserReport.objects.create(project=project1, group=group1, event_id=event1.event_id)
+        ur = UserReport.objects.create(
+            project_id=project1.id, group_id=group1.id, event_id=event1.event_id
+        )
 
         with self.tasks():
             merge_groups([group1.id], group2.id)

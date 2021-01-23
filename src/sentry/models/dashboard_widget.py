@@ -41,12 +41,14 @@ class DashboardWidgetDisplayTypes(TypesClass):
     STACKED_AREA_CHART = 2
     BAR_CHART = 3
     TABLE = 4
+    WORLD_MAP = 5
     TYPES = [
         (LINE_CHART, "line"),
         (AREA_CHART, "area"),
         (STACKED_AREA_CHART, "stacked_area"),
         (BAR_CHART, "bar"),
         (TABLE, "table"),
+        (WORLD_MAP, "world_map"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 

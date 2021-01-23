@@ -30,13 +30,6 @@ def test_hash_values(seed, value, hash):
     assert hash_values([value], seed=seed) == hash
 
 
-def test_hashvalues_python23_strings():
-    if six.PY2:
-        assert hash_values(["test"], seed="seed") == "334e3fd2f66966a5c785d825c5f03494"
-    else:
-        assert hash_values(["test"], seed="seed") == "ce35c0ce0d38976f61a5ca951de74a16"
-
-
 class HashlibTest(TestCase):
     def test_simple(self):
         md5_text("x").hexdigest() == "9dd4e461268c8034f5c8564e155c67a6"

@@ -1,6 +1,6 @@
 import pytz
 
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from django.db.models import F
 from sentry.models import Project

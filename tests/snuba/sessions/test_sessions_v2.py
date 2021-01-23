@@ -169,6 +169,34 @@ def test_massage_simple_timeseries():
     assert actual_result == expected_result
 
 
+def test_massage_exact_timeseries():
+    query = _make_query(
+        "start=2020-12-17T15:12:34Z&end=2020-12-18T11:14:17Z&interval=6h&field=sum(session)"
+    )
+    result_totals = [{"sessions": 4}]
+    result_timeseries = [
+        {"sessions": 2, "bucketed_started": "2020-12-17T12:00:00+00:00"},
+        {"sessions": 2, "bucketed_started": "2020-12-18T06:00:00+00:00"},
+    ]
+
+    expected_result = {
+        "query": "",
+        "intervals": [
+            "2020-12-17T12:00:00Z",
+            "2020-12-17T18:00:00Z",
+            "2020-12-18T00:00:00Z",
+            "2020-12-18T06:00:00Z",
+        ],
+        "groups": [
+            {"by": {}, "series": {"sum(session)": [2, 0, 0, 2]}, "totals": {"sum(session)": 4}}
+        ],
+    }
+
+    actual_result = result_sorted(massage_sessions_result(query, result_totals, result_timeseries))
+
+    assert actual_result == expected_result
+
+
 @freeze_time("2020-12-18T11:14:17.105Z")
 def test_massage_groupby_timeseries():
     query = _make_query("statsPeriod=1d&interval=6h&field=sum(session)&groupBy=release")

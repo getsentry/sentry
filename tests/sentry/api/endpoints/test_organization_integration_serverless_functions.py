@@ -19,7 +19,11 @@ class AbstractServerlessTest(APITestCase):
         self.project = self.create_project(organization=self.organization)
         self.integration = Integration.objects.create(
             provider="aws_lambda",
-            metadata={"arn": cloudformation_arn, "aws_external_id": "599817902985"},
+            metadata={
+                "region": "us-east-2",
+                "account_number": "599817902985",
+                "aws_external_id": "599817902985",
+            },
         )
         self.org_integration = self.integration.add_organization(self.organization)
         self.org_integration.config = {"default_project_id": self.project.id}
@@ -131,7 +135,7 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
             ],
             Environment={
                 "Variables": {
-                    "NODE_OPTIONS": "-r @sentry/serverless/dist/auto",
+                    "NODE_OPTIONS": "-r @sentry/serverless/dist/awslambda-auto",
                     "SENTRY_DSN": self.sentry_dsn,
                     "SENTRY_TRACES_SAMPLE_RATE": "1.0",
                 }
@@ -156,7 +160,7 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
                     ],
                     "Environment": {
                         "Variables": {
-                            "NODE_OPTIONS": "-r @sentry/serverless/dist/auto",
+                            "NODE_OPTIONS": "-r @sentry/serverless/dist/awslambda-auto",
                             "SENTRY_DSN": self.sentry_dsn,
                             "SENTRY_TRACES_SAMPLE_RATE": "1.0",
                             "OTHER": "hi",
@@ -203,7 +207,7 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
                     ],
                     "Environment": {
                         "Variables": {
-                            "NODE_OPTIONS": "-r @sentry/serverless/dist/auto",
+                            "NODE_OPTIONS": "-r @sentry/serverless/dist/awslambda-auto",
                             "SENTRY_DSN": self.sentry_dsn,
                             "SENTRY_TRACES_SAMPLE_RATE": "1.0",
                             "OTHER": "hi",

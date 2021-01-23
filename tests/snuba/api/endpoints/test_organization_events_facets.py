@@ -1,4 +1,4 @@
-import mock
+from __future__ import absolute_import
 
 from pytz import utc
 from datetime import timedelta
@@ -9,6 +9,7 @@ from rest_framework.exceptions import ParseError
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat import mock
 
 
 class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):

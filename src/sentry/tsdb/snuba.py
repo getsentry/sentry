@@ -33,31 +33,38 @@ class SnubaTSDB(BaseTSDB):
     will return empty results for unsupported models.
     """
 
+    # Since transactions are currently (and temporarily) written to Snuba's events storage we need to
+    # include this condition to ensure they are excluded from the query. Once we switch to the
+    # errors storage in Snuba, this can be omitted and transactions will be excluded by default.
+    events_type_condition = ["type", "!=", "transaction"]
+
     # ``non_outcomes_query_settings`` are all the query settings for for non outcomes based TSDB models.
     # Single tenant reads Snuba for these models, and writes to DummyTSDB. It reads and writes to Redis for all the
     # other models.
     non_outcomes_query_settings = {
         TSDBModel.project: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "project_id", None, [["type", "!=", "transaction"]]
+            snuba.Dataset.Events, "project_id", None, [events_type_condition]
         ),
-        TSDBModel.group: SnubaModelQuerySettings(snuba.Dataset.Events, "group_id", None, None),
+        TSDBModel.group: SnubaModelQuerySettings(
+            snuba.Dataset.Events, "group_id", None, [events_type_condition]
+        ),
         TSDBModel.release: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "tags[sentry:release]", None, None
+            snuba.Dataset.Events, "tags[sentry:release]", None, [events_type_condition]
         ),
         TSDBModel.users_affected_by_group: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "group_id", "tags[sentry:user]", None
+            snuba.Dataset.Events, "group_id", "tags[sentry:user]", [events_type_condition]
         ),
         TSDBModel.users_affected_by_project: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "project_id", "tags[sentry:user]", None
+            snuba.Dataset.Events, "project_id", "tags[sentry:user]", [events_type_condition]
         ),
         TSDBModel.frequent_environments_by_group: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "group_id", "environment", None
+            snuba.Dataset.Events, "group_id", "environment", [events_type_condition]
         ),
         TSDBModel.frequent_releases_by_group: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "group_id", "tags[sentry:release]", None
+            snuba.Dataset.Events, "group_id", "tags[sentry:release]", [events_type_condition]
         ),
         TSDBModel.frequent_issues_by_project: SnubaModelQuerySettings(
-            snuba.Dataset.Events, "project_id", "group_id", None
+            snuba.Dataset.Events, "project_id", "group_id", [events_type_condition]
         ),
     }
 

@@ -75,6 +75,7 @@ version_handlers = {
                 "end_delete_tag",
                 "exclude_groups",
                 "tombstone_events",
+                "replace_group",
             ]
         )
     ),

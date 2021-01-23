@@ -12,13 +12,15 @@ logger = logging.getLogger(__name__)
 
 def backfill_file_type(apps, schema_editor):
     """
-    Fill the new EventAttachment.type column with values from EventAttachment.file.type.
+    Fill the new EventAttachment.type column with values from the related File.type.
     """
     EventAttachment = apps.get_model("sentry", "EventAttachment")
-    all_event_attachments = EventAttachment.objects.select_related("file").all()
+    File = apps.get_model("sentry", "File")
+    all_event_attachments = EventAttachment.objects.all()
     for event_attachment in RangeQuerySetWrapper(all_event_attachments, step=1000):
         if event_attachment.type is None:
-            event_attachment.type = event_attachment.file.type
+            file = File.objects.get(event_attachment.file_id)
+            event_attachment.type = file.type
             event_attachment.save(update_fields=["type"])
 
 

@@ -3,7 +3,6 @@
 
 from datetime import datetime
 
-import mock
 import pytz
 from django.contrib.auth.models import AnonymousUser
 from django.core import mail
@@ -37,6 +36,7 @@ from sentry.plugins.base import Notification
 from sentry.rules.processor import RuleFuture
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat import mock
 from sentry.utils.email import MessageBuilder
 
 
@@ -793,8 +793,8 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest, TestCase):
         self.project.teams.first().organization.member_set.create(user=user_foo)
 
         return UserReport.objects.create(
-            project=self.project,
-            group=self.group,
+            project_id=self.project.id,
+            group_id=self.group.id,
             name="Homer Simpson",
             email="homer.simpson@example.com",
         )

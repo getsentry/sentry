@@ -60,6 +60,12 @@ FEATURE_DESCRIPTIONS = [
         """,
         IntegrationFeatures.ISSUE_SYNC,
     ),
+    FeatureDescription(
+        """
+        Automatically create Jira tickets based on Issue Alert conditions.
+        """,
+        IntegrationFeatures.TICKET_RULES,
+    ),
 ]
 
 INSTALL_NOTICE_TEXT = """
@@ -940,7 +946,13 @@ class JiraIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = JiraIntegration
 
-    features = frozenset([IntegrationFeatures.ISSUE_BASIC, IntegrationFeatures.ISSUE_SYNC])
+    features = frozenset(
+        [
+            IntegrationFeatures.ISSUE_BASIC,
+            IntegrationFeatures.ISSUE_SYNC,
+            IntegrationFeatures.TICKET_RULES,
+        ]
+    )
 
     can_add = False
 

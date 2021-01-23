@@ -522,6 +522,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.assemble",
     "sentry.tasks.auth",
     "sentry.tasks.auto_resolve_issues",
+    "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.beacon",
     "sentry.tasks.check_auth",
     "sentry.tasks.check_monitors",
@@ -676,6 +677,11 @@ CELERYBEAT_SCHEDULE = {
     },
     "schedule-auto-resolution": {
         "task": "sentry.tasks.schedule_auto_resolution",
+        "schedule": timedelta(minutes=15),
+        "options": {"expires": 60 * 25},
+    },
+    "auto-remove-inbox": {
+        "task": "sentry.tasks.auto_remove_inbox",
         "schedule": timedelta(minutes=15),
         "options": {"expires": 60 * 25},
     },
@@ -875,7 +881,7 @@ SENTRY_FEATURES = {
     # management integrations)
     "organizations:integrations-incident-management": True,
     # Allow orgs to automatically create Tickets in Issue Alerts
-    "organizations:integrations-ticket-rules": False,
+    "organizations:integrations-ticket-rules": True,
     # Allow orgs to install AzureDevops with limited scopes
     "organizations:integrations-vsts-limited-scopes": False,
     # Allow orgs to use the stacktrace linking feature

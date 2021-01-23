@@ -30,6 +30,10 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
         if envs:
             incidents = incidents.filter(alert_rule__snuba_query__environment__in=envs)
 
+        query_alert_rule = request.GET.get("alertRule")
+        if query_alert_rule is not None:
+            incidents = incidents.filter(alert_rule=query_alert_rule)
+
         query_status = request.GET.get("status")
         if query_status is not None:
             if query_status == "open":

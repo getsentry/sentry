@@ -191,17 +191,7 @@ class RedisTSDB(BaseTSDB):
             if isinstance(key, six.text_type):
                 key = key.encode("utf-8")
 
-            key_repr = repr(key)
-            if six.PY3:
-                # TODO(python3): Once we're fully on py3, we can remove the condition
-                # here and make this the default behaviour.
-                # XXX: Python 3 reprs bytes differently to Python 2. In py2,
-                # `repr("foo")` would produce a bytestring like `"'foo'"`. In Python 3,
-                # we'll end up with a unicode string like `"b'foo'"`. To keep this
-                # compatible between versions, we strip off the `b` from the beginning
-                # of the string and then encode back to bytes so that md5 can hash the
-                # value.
-                key_repr = key_repr[1:].encode("utf-8")
+            key_repr = repr(key)[1:].encode("utf-8")
 
             return md5(key_repr).hexdigest()
 

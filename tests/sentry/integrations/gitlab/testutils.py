@@ -43,7 +43,7 @@ class GitLabTestCase(APITestCase):
             name=name,
             external_id="{}:{}".format(instance, external_id),
             url=url,
-            config={"project_id": external_id},
+            config={"project_id": external_id, "path": "example-repo"},
             provider="integrations:gitlab",
             integration_id=self.integration.id,
         )

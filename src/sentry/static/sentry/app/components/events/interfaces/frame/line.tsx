@@ -174,6 +174,7 @@ export class Line extends React.Component<Props, State> {
 
   scrollToImage = event => {
     event.stopPropagation(); // to prevent collapsing if collapsable
+
     const {instructionAddr, addrMode} = this.props.data;
     if (instructionAddr) {
       DebugMetaActions.updateFilter(
@@ -310,7 +311,10 @@ export class Line extends React.Component<Props, State> {
                 onClick={this.scrollToImage}
                 isClickable={this.shouldShowLinkToImage()}
               >
-                <PackageStatus status={packageStatus} tooltip={t('Image loaded')} />
+                <PackageStatus
+                  status={packageStatus}
+                  tooltip={t('Go to Images Loaded')}
+                />
               </PackageLink>
             </PackageInfo>
             {data.instructionAddr && (

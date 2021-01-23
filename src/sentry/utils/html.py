@@ -1,7 +1,3 @@
-try:
-    from html import escape  # NOQA
-except ImportError:
-    from cgi import escape as _escape  # NOQA
+from __future__ import absolute_import
 
-    def escape(value):
-        return _escape(value, True)
+from html import escape  # noqa

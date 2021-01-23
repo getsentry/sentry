@@ -1,4 +1,6 @@
-from mock import Mock, patch
+from __future__ import absolute_import
+
+from sentry.utils.compat.mock import Mock, patch
 
 from sentry.rules.registry import RuleRegistry
 from sentry.testutils import APITestCase
@@ -23,7 +25,7 @@ class ProjectRuleConfigurationTest(APITestCase):
 
         response = self.get_valid_response(self.organization.slug, project1.slug)
 
-        assert len(response.data["actions"]) == 5
+        assert len(response.data["actions"]) == 7
         assert len(response.data["conditions"]) == 6
         assert len(response.data["filters"]) == 7
 
@@ -91,11 +93,11 @@ class ProjectRuleConfigurationTest(APITestCase):
 
         action_ids = [action["id"] for action in response.data["actions"]]
         assert EMAIL_ACTION in action_ids
-        assert JIRA_ACTION not in action_ids
+        assert JIRA_ACTION in action_ids
 
-    def test_ticket_rules_in_available_actions(self):
-        with self.feature("organizations:integrations-ticket-rules"):
+    def test_ticket_rules_not_in_available_actions(self):
+        with self.feature({"organizations:integrations-ticket-rules": False}):
             response = self.get_valid_response(self.organization.slug, self.project.slug)
             action_ids = [action["id"] for action in response.data["actions"]]
             assert EMAIL_ACTION in action_ids
-            assert JIRA_ACTION in action_ids
+            assert JIRA_ACTION not in action_ids

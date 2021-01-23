@@ -6,7 +6,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.functional import cached_property
 
-from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import BoundedBigIntegerField, Model, sane_repr
 
 
 # Attachment file types that are considered a crash report (PII relevant)
@@ -27,7 +27,7 @@ class EventAttachment(Model):
     project_id = BoundedBigIntegerField()
     group_id = BoundedBigIntegerField(null=True, db_index=True)
     event_id = models.CharField(max_length=32, db_index=True)
-    file = FlexibleForeignKey("sentry.File")
+    file_id = BoundedBigIntegerField(db_index=True)
     type = models.CharField(max_length=64, db_index=True)
     name = models.TextField()
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
@@ -35,19 +35,24 @@ class EventAttachment(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_eventattachment"
-        index_together = (("project_id", "date_added"), ("project_id", "date_added", "file"))
-        unique_together = (("project_id", "event_id", "file"),)
+        index_together = (("project_id", "date_added"), ("project_id", "date_added", "file_id"))
+        unique_together = (("project_id", "event_id", "file_id"),)
 
     __repr__ = sane_repr("event_id", "name", "file_id")
 
     @cached_property
     def mimetype(self):
-        rv = self.file.headers.get("Content-Type")
+        from sentry.models import File
+
+        file = File.objects.get(id=self.file_id)
+        rv = file.headers.get("Content-Type")
         if rv:
             return rv.split(";")[0].strip()
         return mimetypes.guess_type(self.name)[0] or "application/octet-stream"
 
     def delete(self, *args, **kwargs):
+        from sentry.models import File
+
         rv = super(EventAttachment, self).delete(*args, **kwargs)
 
         # Always prune the group cache. Even if there are more crash reports
@@ -56,7 +61,7 @@ class EventAttachment(Model):
         cache.delete(get_crashreport_key(self.group_id))
 
         try:
-            file = self.file
+            file = File.objects.get(id=self.file_id)
         except ObjectDoesNotExist:
             # It's possible that the File itself was deleted
             # before we were deleted when the object is in memory

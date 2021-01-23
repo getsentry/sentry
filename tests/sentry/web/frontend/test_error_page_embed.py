@@ -141,8 +141,8 @@ class ErrorPageEmbedTest(TestCase):
         assert report.email == "jane@example.com"
         assert report.comments == "This is an example!"
         assert report.event_id == self.event_id
-        assert report.project == self.project
-        assert report.group is None
+        assert report.project_id == self.project.id
+        assert report.group_id is None
 
         resp = self.client.post(
             self.path_with_qs,
@@ -157,8 +157,8 @@ class ErrorPageEmbedTest(TestCase):
         assert report.email == "joe@example.com"
         assert report.comments == "haha I updated it!"
         assert report.event_id == self.event_id
-        assert report.project == self.project
-        assert report.group is None
+        assert report.project_id == self.project.id
+        assert report.group_id is None
 
     def test_submission_invalid_event_id(self):
         self.event_id = "x" * 100
@@ -219,7 +219,7 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert UserReport.objects.get(event_id=self.event_id).environment == self.environment
+        assert UserReport.objects.get(event_id=self.event_id).environment_id == self.environment.id
 
     def test_user_report_gets_environment(self):
         self.login_as(user=self.user)
@@ -230,4 +230,4 @@ class ErrorPageEmbedEnvironmentTest(TestCase):
         )
         self.make_event(environment=self.environment.name, event_id=self.event_id)
         assert response.status_code == 200, response.content
-        assert UserReport.objects.get(event_id=self.event_id).environment == self.environment
+        assert UserReport.objects.get(event_id=self.event_id).environment_id == self.environment.id

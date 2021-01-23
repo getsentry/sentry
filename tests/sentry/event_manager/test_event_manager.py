@@ -898,7 +898,7 @@ class EventManagerTest(TestCase):
         event_id = "a" * 32
 
         UserReport.objects.create(
-            project=project,
+            project_id=project.id,
             event_id=event_id,
             name="foo",
             email="bar@example.com",
@@ -909,7 +909,7 @@ class EventManagerTest(TestCase):
             data=make_event(environment=environment.name, event_id=event_id), project_id=project.id
         )
 
-        assert UserReport.objects.get(event_id=event_id).environment == environment
+        assert UserReport.objects.get(event_id=event_id).environment_id == environment.id
 
     def test_default_event_type(self):
         manager = EventManager(make_event(message="foo bar"))

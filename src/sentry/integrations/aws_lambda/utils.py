@@ -8,6 +8,24 @@ SUPPORTED_RUNTIMES = ["nodejs12.x", "nodejs10.x"]
 
 DEFAULT_NUM_RETRIES = 3
 
+ALL_AWS_REGIONS = [
+    "us-east-1",
+    "us-east-2",
+    "us-west-1",
+    "us-west-2",
+    "ap-south-1",
+    "ap-southeast-1",
+    "ap-southeast-2",
+    "ap-northeast-1",
+    "ap-northeast-2",
+    "ca-central-1",
+    "eu-central-1",
+    "eu-west-1",
+    "eu-west-2",
+    "eu-west-3",
+    "sa-east-1",
+]
+
 
 # Taken from: https://gist.github.com/gene1wood/5299969edc4ef21d8efcfea52158dd40
 def parse_arn(arn):
@@ -27,14 +45,6 @@ def parse_arn(arn):
     elif ":" in result["resource"]:
         result["resource_type"], result["resource"] = result["resource"].split(":", 1)
     return result
-
-
-def check_arn_is_valid_cloudformation_stack(arn):
-    try:
-        parsed = parse_arn(arn)
-    except Exception:
-        return False
-    return parsed["service"] == "cloudformation"
 
 
 def _get_aws_node_arn(region):
@@ -129,7 +139,7 @@ def enable_single_lambda(lambda_client, function, sentry_project_dsn, layer_arn,
     env_variables = function.get("Environment", {}).get("Variables", {})
     env_variables.update(
         {
-            "NODE_OPTIONS": "-r @sentry/serverless/dist/auto",
+            "NODE_OPTIONS": "-r @sentry/serverless/dist/awslambda-auto",
             "SENTRY_DSN": sentry_project_dsn,
             "SENTRY_TRACES_SAMPLE_RATE": "1.0",
         }

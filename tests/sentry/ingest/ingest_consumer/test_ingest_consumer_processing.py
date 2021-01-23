@@ -10,7 +10,7 @@ from sentry.ingest.ingest_consumer import (
     process_userreport,
 )
 from sentry.event_manager import EventManager
-from sentry.models import EventAttachment, UserReport, EventUser
+from sentry.models import EventAttachment, EventUser, File, UserReport
 
 
 def get_normalized_event(data, project):
@@ -115,18 +115,17 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
         )
 
     persisted_attachments = list(
-        EventAttachment.objects.filter(project_id=project_id, event_id=event_id).select_related(
-            "file"
-        )
+        EventAttachment.objects.filter(project_id=project_id, event_id=event_id)
     )
 
     if not missing_chunks:
         (attachment,) = persisted_attachments
-        assert attachment.file.type == "custom.attachment"
-        assert attachment.file.headers == {"Content-Type": "text/plain"}
-        file = attachment.file.getfile()
-        assert file.read() == b"Hello World!"
-        assert file.name == "lol.txt"
+        file = File.objects.get(id=attachment.file_id)
+        assert file.type == "custom.attachment"
+        assert file.headers == {"Content-Type": "text/plain"}
+        file_contents = file.getfile()
+        assert file_contents.read() == b"Hello World!"
+        assert file_contents.name == "lol.txt"
     else:
         assert not persisted_attachments
 
@@ -185,22 +184,19 @@ def test_individual_attachments(
         projects={default_project.id: default_project},
     )
 
-    attachments = list(
-        EventAttachment.objects.filter(project_id=project_id, event_id=event_id).select_related(
-            "file"
-        )
-    )
+    attachments = list(EventAttachment.objects.filter(project_id=project_id, event_id=event_id))
 
     if not event_attachments:
         assert not attachments
     else:
         (attachment,) = attachments
-        assert attachment.file.type == "event.attachment"
-        assert attachment.file.headers == {"Content-Type": "application/octet-stream"}
+        file = File.objects.get(id=attachment.file_id)
+        assert file.type == "event.attachment"
+        assert file.headers == {"Content-Type": "application/octet-stream"}
         assert attachment.group_id == group_id
-        file = attachment.file.getfile()
-        assert file.read() == b"".join(chunks)
-        assert file.name == "foo.txt"
+        file_contents = file.getfile()
+        assert file_contents.read() == b"".join(chunks)
+        assert file_contents.name == "foo.txt"
 
 
 @pytest.mark.django_db
@@ -312,10 +308,6 @@ def test_individual_attachments_missing_chunks(default_project, factories, monke
         projects={default_project.id: default_project},
     )
 
-    attachments = list(
-        EventAttachment.objects.filter(project_id=project_id, event_id=event_id).select_related(
-            "file"
-        )
-    )
+    attachments = list(EventAttachment.objects.filter(project_id=project_id, event_id=event_id))
 
     assert not attachments

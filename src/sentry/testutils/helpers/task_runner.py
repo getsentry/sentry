@@ -3,7 +3,7 @@ __all__ = ["TaskRunner"]
 from celery import current_app
 from contextlib import contextmanager
 from django.conf import settings
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 
 @contextmanager

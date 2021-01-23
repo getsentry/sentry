@@ -274,7 +274,7 @@ def post_process_group(
                 with sentry_sdk.start_transaction(
                     op="post_process_group", name="rule_processor_apply", sampled=True
                 ):
-                    safe_execute(callback, event, futures)
+                    safe_execute(callback, event, futures, _with_transaction=False)
 
             try:
                 lock = locks.get(
@@ -333,7 +333,7 @@ def post_process_group(
 
             from sentry import similarity
 
-            safe_execute(similarity.record, event.project, [event])
+            safe_execute(similarity.record, event.project, [event], _with_transaction=False)
 
         if event.group_id:
             # Patch attachments that were ingested on the standalone path.
@@ -416,5 +416,6 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
         event=event,
         group=event.group,
         expected_errors=(PluginError,),
+        _with_transaction=False,
         **kwargs,
     )

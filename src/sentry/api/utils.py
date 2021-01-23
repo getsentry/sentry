@@ -110,6 +110,13 @@ def get_date_range_rollup_from_params(
 
     start, end = get_date_range_from_params(params)
     date_range = end - start
+
+    # round the range up to a multiple of the interval
+    if round_range:
+        date_range = timedelta(
+            seconds=int(interval * math.ceil(date_range.total_seconds() / interval))
+        )
+
     if date_range.total_seconds() / interval > max_points:
         raise InvalidParams(
             "Your interval and date range would create too many results. "
