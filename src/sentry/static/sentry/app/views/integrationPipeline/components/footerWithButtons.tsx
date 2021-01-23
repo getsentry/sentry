@@ -2,26 +2,19 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/actions/button';
-import ButtonBar from 'app/components/buttonBar';
-import {t} from 'app/locale';
 import space from 'app/styles/space';
 
-type Props = {buttonText: string; docsUrl: string} & Pick<
+type Props = {buttonText: string} & Pick<
   React.ComponentProps<typeof Button>,
   'disabled' | 'onClick'
 >;
 
-export default function FooterWithButtons({buttonText, docsUrl, ...rest}: Props) {
+export default function FooterWithButtons({buttonText, ...rest}: Props) {
   return (
     <Footer>
-      <ButtonBar gap={1}>
-        <Button external href={docsUrl} size="xsmall">
-          {t('View Docs')}
-        </Button>
-        <Button priority="primary" type="submit" size="xsmall" {...rest}>
-          {buttonText}
-        </Button>
-      </ButtonBar>
+      <Button priority="primary" type="submit" size="xsmall" {...rest}>
+        {buttonText}
+      </Button>
     </Footer>
   );
 }

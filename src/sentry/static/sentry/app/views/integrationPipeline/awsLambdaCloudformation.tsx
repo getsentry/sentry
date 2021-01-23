@@ -13,7 +13,7 @@ import SelectField from 'app/views/settings/components/forms/selectField';
 import TextField from 'app/views/settings/components/forms/textField';
 
 import FooterWithButtons from './components/footerWithButtons';
-import IconGroup from './components/iconGroup';
+import HeaderWithHelp from './components/headerWithHelp';
 
 // let the browser generate and store the external ID
 // this way the same user always has the same external ID if they restart the pipeline
@@ -158,10 +158,10 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
     const {accountNumber, region, accountNumberError, submitting} = this.state;
     return (
       <div>
+        <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/" />
         <StyledAlert type="info">
           {t('It might take a minute for the CloudFormation stack to be created')}
         </StyledAlert>
-        <IconGroup pluginId="aws_lambda" />
         <InstallSentry>{t('Install Sentry on your AWS Account')}</InstallSentry>
         {this.renderInstructions()}
         <StyledTextField
@@ -185,7 +185,6 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
           label={t('AWS Region')}
         />
         <FooterWithButtons
-          docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/"
           buttonText={t('Next')}
           onClick={this.handleSubmit}
           disabled={submitting || !this.formValid}

@@ -11,7 +11,7 @@ import FormModel from 'app/views/settings/components/forms/model';
 import {JsonFormObject} from 'app/views/settings/components/forms/type';
 
 import FooterWithButtons from './components/footerWithButtons';
-import IconGroup from './components/iconGroup';
+import HeaderWithHelp from './components/headerWithHelp';
 
 type LambdaFunction = {FunctionName: string; Runtime: string};
 
@@ -59,7 +59,6 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props> {
       <Observer>
         {() => (
           <FooterWithButtons
-            docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/"
             buttonText={t('Finish Setup')}
             onClick={this.handleSubmit}
             disabled={this.model.isError || this.model.isSaving}
@@ -84,13 +83,11 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props> {
     };
     return (
       <React.Fragment>
+        <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/" />
         <StyledAlert type="info">
           {t('Currently only supports Node runtimes')}
         </StyledAlert>
-        <Header>
-          <IconGroup pluginId="aws_lambda" />
-          {this.renderWhatWeFound()}
-        </Header>
+        <Header>{this.renderWhatWeFound()}</Header>
         <StyledForm
           initialData={this.initialData}
           skipPreventDefault
