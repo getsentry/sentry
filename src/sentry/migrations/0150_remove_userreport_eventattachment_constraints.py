@@ -102,16 +102,29 @@ class Migration(migrations.Migration):
                     ),
                     preserve_default=False,
                 ),
-                migrations.RemoveField(model_name="eventattachment", name="file",),
+                migrations.RemoveField(
+                    model_name="eventattachment",
+                    name="file",
+                ),
                 migrations.AlterUniqueTogether(
                     name="eventattachment",
                     unique_together=set([("project_id", "event_id", "file_id")]),
                 ),
-                migrations.RemoveField(model_name="userreport", name="environment",),
-                migrations.RemoveField(model_name="userreport", name="group",),
-                migrations.RemoveField(model_name="userreport", name="project",),
+                migrations.RemoveField(
+                    model_name="userreport",
+                    name="environment",
+                ),
+                migrations.RemoveField(
+                    model_name="userreport",
+                    name="group",
+                ),
+                migrations.RemoveField(
+                    model_name="userreport",
+                    name="project",
+                ),
                 migrations.AlterUniqueTogether(
-                    name="userreport", unique_together=set([("project_id", "event_id")]),
+                    name="userreport",
+                    unique_together=set([("project_id", "event_id")]),
                 ),
                 migrations.AlterIndexTogether(
                     name="eventattachment",

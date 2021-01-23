@@ -1,4 +1,4 @@
-import json
+import json  # noqa
 import os
 import six
 
