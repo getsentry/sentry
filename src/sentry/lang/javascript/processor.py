@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from django.utils.encoding import force_text, force_bytes
 
 __all__ = ["JavaScriptStacktraceProcessor"]

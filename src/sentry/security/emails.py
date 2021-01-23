@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from django.utils import timezone
 
 from sentry.utils.email import MessageBuilder

@@ -1,6 +1,3 @@
-from __future__ import absolute_import, print_function
-
-
 from sentry.testutils import TransactionTestCase, RelayStoreHelper
 from sentry.models.projectoption import ProjectOption
 from sentry.utils.safe import set_path

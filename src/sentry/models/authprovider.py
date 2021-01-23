@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from bitfield import BitField
 from django.db import models
 from django.utils import timezone

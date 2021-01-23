@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import logging
 
 from six.moves.urllib.parse import parse_qsl, urlencode

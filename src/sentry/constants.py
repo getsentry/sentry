@@ -2,7 +2,6 @@
 These settings act as the default (base) settings for the Sentry-provided
 web-server
 """
-from __future__ import absolute_import, print_function
 
 import logging
 import os.path

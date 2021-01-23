@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import logging
 import six
 from six.moves.urllib.error import HTTPError as UrllibHTTPError

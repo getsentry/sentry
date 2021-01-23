@@ -1,5 +1,3 @@
-from __future__ import unicode_literals, absolute_import
-
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.utils.functional import lazy

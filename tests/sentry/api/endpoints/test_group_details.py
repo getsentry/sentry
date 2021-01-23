@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from sentry.utils.compat import mock
 import six
 from base64 import b64encode

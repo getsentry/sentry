@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from django.conf.urls import include, url
 
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
