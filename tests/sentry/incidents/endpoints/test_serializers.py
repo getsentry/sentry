@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 
 from exam import fixture
-from mock import patch
+from sentry.utils.compat.mock import patch
 from rest_framework import serializers
 
 from sentry.auth.access import from_user

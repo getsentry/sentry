@@ -1,7 +1,4 @@
-from __future__ import absolute_import
+from mock import *  # NOQA
 
-try:
-    # TODO: remove when we drop Python 2.7 compat
-    from mock import *  # NOQA
-except ImportError:
-    from unittest.mock import *  # NOQA
+# We're still using mock in Python 3.6 because it contains a fix to Python issue37972.
+# We should be able to fully swap it out for stdlib once we're on 3.8.
