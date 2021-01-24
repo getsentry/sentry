@@ -1747,7 +1747,11 @@ urlpatterns = [
                 url(r"^quotas/$", InternalQuotasEndpoint.as_view()),
                 url(r"^queue/tasks/$", InternalQueueTasksEndpoint.as_view()),
                 url(r"^stats/$", InternalStatsEndpoint.as_view()),
-                url(r"^warnings/$", InternalWarningsEndpoint.as_view()),
+                url(
+                    r"^warnings/$",
+                    InternalWarningsEndpoint.as_view(),
+                    name="sentry-api-0-system-warnings",
+                ),
                 url(r"^packages/$", InternalPackagesEndpoint.as_view()),
                 url(r"^environment/$", InternalEnvironmentEndpoint.as_view()),
                 url(r"^mail/$", InternalMailEndpoint.as_view()),

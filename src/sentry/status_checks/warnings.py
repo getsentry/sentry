@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from django.core.urlresolvers import reverse
+
 from .base import Problem, StatusCheck
 
 
@@ -17,6 +19,7 @@ class WarningStatusCheck(StatusCheck):
                         "issues" if len(self.__warning_set) > 1 else "issue",
                     ),
                     severity=Problem.SEVERITY_WARNING,
+                    url=reverse("sentry-api-0-system-warnings"),
                 )
             ]
         else:
