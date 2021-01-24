@@ -143,9 +143,9 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
           {t("Add Sentry's CloudFormation to your AWS")}
         </StyledStepHeading>
         <GoToAWSWrapper>
-          <Button priority="primary" external href={this.cloudformationUrl}>
+          <StyledButton priority="primary" external href={this.cloudformationUrl}>
             {t('Configure AWS')}
-          </Button>
+          </StyledButton>
         </GoToAWSWrapper>
         <StyledStepHeading step={2}>
           {t('Add AWS Account Infomrmation')}
@@ -162,7 +162,6 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
         <StyledAlert type="info">
           {t('It might take a minute for the CloudFormation stack to be created')}
         </StyledAlert>
-        <InstallSentry>{t('Install Sentry on your AWS Account')}</InstallSentry>
         {this.renderInstructions()}
         <StyledTextField
           name="accountNumber"
@@ -200,23 +199,23 @@ const InstructionWrapper = styled('div')`
 
 const StyledStepHeading = styled(StepHeading)`
   font-size: ${p => p.theme.fontSizeLarge};
-  margin: 10px 0 0 0;
+  margin: ${space(2)} 0 0 0;
+`;
+
+const StyledButton = styled(Button)`
+  margin: ${space(2)} 0 0 0;
 `;
 
 const StyledTextField = styled(TextField)`
-  padding: ${space(1)} 65px;
+  padding: ${space(2)} 65px;
   border-bottom: none;
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const StyledSelectField = styled(SelectField)`
   padding: ${space(1)} 65px;
   border-bottom: none;
-`;
-
-const InstallSentry = styled('div')`
-  font-size: ${p => p.theme.headerFontSize};
-  margin: 20px;
-  text-align: center;
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const GoToAWSWrapper = styled('div')`

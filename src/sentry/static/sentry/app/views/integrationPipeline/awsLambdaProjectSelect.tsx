@@ -5,12 +5,11 @@ import * as qs from 'query-string';
 
 import {addLoadingMessage} from 'app/actionCreators/indicator';
 import Alert from 'app/components/alert';
+import List from 'app/components/list';
+import ListItem from 'app/components/list/listItem';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Project} from 'app/types';
-import StepHeading from 'app/views/onboarding/components/stepHeading';
-// import List from 'app/components/list';
-// import ListItem from 'app/components/list/listItem';
 import Form from 'app/views/settings/components/forms/form';
 import FormModel from 'app/views/settings/components/forms/model';
 import SentryProjectSelectorField from 'app/views/settings/components/forms/sentryProjectSelectorField';
@@ -44,21 +43,24 @@ export default class AwsLambdaProjectSelect extends React.Component<Props> {
     return (
       <Wrapper>
         <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/" />
-        <StyledForm model={this.model} hideFooter>
-          <StyledStepHeading step={1}>
-            {t('Select a project for your AWS Lambda Functions')}
-          </StyledStepHeading>
-          <StyledSentryProjectSelectorField
-            label={t('Select a project')}
-            placeholder={t('Select a project')}
-            name="projectId"
-            projects={projects}
-            inline={false}
-          />
-          <StyledAlert type="info">
-            {t('Currently only supports Node runtimes')}
-          </StyledAlert>
-        </StyledForm>
+        <StyledList symbol="colored-numeric">
+          <React.Fragment />
+          <ListItem>
+            <StepHeader>{t('Select a project for your AWS Lambda Functions')}</StepHeader>
+            <StyledForm model={this.model} hideFooter>
+              <StyledSentryProjectSelectorField
+                placeholder={t('Select a project')}
+                name="projectId"
+                projects={projects}
+                inline={false}
+                hasControlState
+                flexibleControlStateSize
+                stacked
+              />
+              <Alert type="info">{t('Currently only supports Node runtimes')}</Alert>
+            </StyledForm>
+          </ListItem>
+        </StyledList>
         <Observer>
           {() => (
             <FooterWithButtons
@@ -75,6 +77,9 @@ export default class AwsLambdaProjectSelect extends React.Component<Props> {
 
 const StyledForm = styled(Form)`
   max-width: 500px;
+`;
+
+const StyledList = styled(List)`
   margin: 100px 50px 50px 50px;
 `;
 
@@ -82,13 +87,11 @@ const Wrapper = styled('div')``;
 
 const StyledSentryProjectSelectorField = styled(SentryProjectSelectorField)`
   border-bottom: 0;
+  padding: ${space(2)} 0 ${space(2)} 0;
 `;
 
-const StyledStepHeading = styled(StepHeading)`
+const StepHeader = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
-  margin: 10px 0 0 0;
-`;
-
-const StyledAlert = styled(Alert)`
-  margin: ${space(2)};
+  font-weight: bold;
+  margin-bottom: 10px;
 `;

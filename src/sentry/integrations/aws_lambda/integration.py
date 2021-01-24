@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import re
 import six
 
 from botocore.exceptions import ClientError
@@ -327,6 +328,7 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
         lambda_functions.sort(key=lambda x: x["FunctionName"].lower())
 
         failures = []
+        success_count = 0
 
         for function in lambda_functions:
             name = function["FunctionName"]
@@ -338,8 +340,18 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
             layer_arn = get_latest_layer_for_function(function)
             try:
                 enable_single_lambda(lambda_client, function, sentry_project_dsn, layer_arn)
+                success_count += 1
             except Exception as e:
-                failures.append(function)
+                err_message = six.text_type(e)
+                match = re.search(
+                    "Layer version arn:aws:lambda:[^:]+:\d+:layer:([^:]+):\d+ does not exist",
+                    err_message,
+                )
+                if match:
+                    err_message = _("Invalid existing layer %s") % match[1]
+                else:
+                    err_message = _("Unkown Error")
+                failures.append({"name": function["FunctionName"], "error": err_message})
                 logger.info(
                     "update_function_configuration.error",
                     extra={
@@ -355,7 +367,9 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
         # otherwise, finish
         if failures:
             return self.render_react_view(
-                request, "awsLambdaFailureDetails", {"lambdaFunctionFailures": failures}
+                request,
+                "awsLambdaFailureDetails",
+                {"lambdaFunctionFailures": failures, "successCount": success_count},
             )
         else:
             return pipeline.finish_pipeline()

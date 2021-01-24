@@ -4,9 +4,8 @@ import styled from '@emotion/styled';
 import Button from 'app/components/actions/button';
 import space from 'app/styles/space';
 
-type Props = {buttonText: string} & Pick<
-  React.ComponentProps<typeof Button>,
-  'disabled' | 'onClick'
+type Props = {buttonText: string} & Partial<
+  Pick<React.ComponentProps<typeof Button>, 'disabled' | 'onClick' | 'href'>
 >;
 
 export default function FooterWithButtons({buttonText, ...rest}: Props) {

@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
 import {addLoadingMessage} from 'app/actionCreators/indicator';
-import Alert from 'app/components/alert';
+import List from 'app/components/list';
+import ListItem from 'app/components/list/listItem';
 import {t} from 'app/locale';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
@@ -52,8 +53,6 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props> {
     );
   };
 
-  handleSubmitSuccess = () => {};
-
   renderFooter = () => {
     return (
       <Observer>
@@ -84,29 +83,34 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props> {
     return (
       <React.Fragment>
         <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/" />
-        <StyledAlert type="info">
-          {t('Currently only supports Node runtimes')}
-        </StyledAlert>
-        <Header>{this.renderWhatWeFound()}</Header>
-        <StyledForm
-          initialData={this.initialData}
-          skipPreventDefault
-          model={model}
-          apiEndpoint="/extensions/aws_lambda/setup/"
-          hideFooter
-          onSubmitSuccess={this.handleSubmitSuccess}
-        >
-          <JsonForm forms={[formFields]} />
-        </StyledForm>
+        <StyledList symbol="colored-numeric">
+          <ListItem>
+            <Header>{this.renderWhatWeFound()}</Header>
+            {t('Decide which functions you would like to enable for Sentry monitoring')}
+            <StyledForm
+              initialData={this.initialData}
+              skipPreventDefault
+              model={model}
+              apiEndpoint="/extensions/aws_lambda/setup/"
+              hideFooter
+            >
+              <JsonForm forms={[formFields]} />
+            </StyledForm>
+          </ListItem>
+          <React.Fragment />
+        </StyledList>
         {this.renderFooter()}
       </React.Fragment>
     );
   };
 }
 
+const StyledList = styled(List)`
+  margin: 100px 50px 50px 50px;
+`;
+
 const StyledForm = styled(Form)`
-  margin: 50px;
-  padding-bottom: 50px;
+  margin-top: 10px;
 `;
 
 const WhatWeFound = styled('div')`
@@ -114,9 +118,6 @@ const WhatWeFound = styled('div')`
 `;
 
 const Header = styled('div')`
-  text-align: center;
-`;
-
-const StyledAlert = styled(Alert)`
-  border-radius: 0;
+  text-align: left;
+  margin-bottom: 10px;
 `;

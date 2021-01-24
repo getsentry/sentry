@@ -11,7 +11,7 @@ export default function HeaderWithHelp({docsUrl}: {docsUrl: string}) {
     <Header>
       <StyledInlineSvg src="logo" />
       <Button external href={docsUrl} size="xsmall">
-        {t('Need Help')}
+        {t('Need Help?')}
       </Button>
     </Header>
   );
