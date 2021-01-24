@@ -1,10 +1,11 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import reduce from 'lodash/reduce';
 import {Observer} from 'mobx-react';
 
-import {addLoadingMessage} from 'app/actionCreators/indicator';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import {t} from 'app/locale';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
@@ -14,15 +15,25 @@ import {JsonFormObject} from 'app/views/settings/components/forms/type';
 import FooterWithButtons from './components/footerWithButtons';
 import HeaderWithHelp from './components/headerWithHelp';
 
+const LAMBDA_COUNT_THRESHOLD = 10;
+
 type LambdaFunction = {FunctionName: string; Runtime: string};
 
 type Props = {
   lambdaFunctions: LambdaFunction[];
 };
 
+type State = {
+  submitting: boolean;
+};
+
 const getLabel = (func: LambdaFunction) => func.FunctionName;
 
-export default class AwsLambdaFunctionSelect extends React.Component<Props> {
+export default class AwsLambdaFunctionSelect extends React.Component<Props, State> {
+  state = {
+    submitting: false,
+  };
+
   model = new FormModel({apiOptions: {baseUrl: window.location.origin}});
 
   get initialData() {
@@ -40,16 +51,35 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props> {
     );
   }
 
+  get enabledCount() {
+    const data = this.model.getTransformedData();
+    return reduce(data, (acc: number, val: boolean) => (val ? acc + 1 : acc), 0);
+  }
+
   handleSubmit = () => {
-    //submitting can take a while...
-    addLoadingMessage(t('Submitting\u2026', {duration: 120 * 1000}));
     this.model.saveForm();
+    this.setState({submitting: true});
   };
 
   renderWhatWeFound = () => {
     const count = this.lambdaFunctions.length;
     return (
       <WhatWeFound>{t('We found %s functions with Node runtimes', count)}</WhatWeFound>
+    );
+  };
+
+  renderLoadingScreeen = () => {
+    const count = this.enabledCount;
+    const text =
+      count > LAMBDA_COUNT_THRESHOLD
+        ? t('This might take a while\u2026', count)
+        : t('This might take a sec\u2026');
+    return (
+      <LoadingWrapper>
+        <StyledLoadingIndicator />
+        <LoadingLine1>{t('Adding Sentry to %s functions', count)}</LoadingLine1>
+        {text}
+      </LoadingWrapper>
     );
   };
 
@@ -67,7 +97,7 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props> {
     );
   };
 
-  render = () => {
+  renderCore = () => {
     const model = this.model;
     const formFields: JsonFormObject = {
       fields: this.lambdaFunctions.map(func => {
@@ -82,7 +112,6 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props> {
     };
     return (
       <React.Fragment>
-        <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/" />
         <StyledList symbol="colored-numeric">
           <ListItem>
             <Header>{this.renderWhatWeFound()}</Header>
@@ -103,6 +132,14 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props> {
       </React.Fragment>
     );
   };
+  render = () => {
+    return (
+      <React.Fragment>
+        <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/" />
+        {this.state.submitting ? this.renderLoadingScreeen() : this.renderCore()}
+      </React.Fragment>
+    );
+  };
 }
 
 const StyledList = styled(List)`
@@ -120,4 +157,18 @@ const WhatWeFound = styled('div')`
 const Header = styled('div')`
   text-align: left;
   margin-bottom: 10px;
+`;
+
+const LoadingWrapper = styled('div')`
+  padding: 50px;
+  text-align: center;
+`;
+
+const LoadingLine1 = styled('div')`
+  font-size: ${p => p.theme.headerFontSize};
+  margin-bottom: 10px;
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  margin: 0;
 `;
