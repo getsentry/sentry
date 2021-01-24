@@ -83,20 +83,6 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
     );
   };
 
-  renderFooter = () => {
-    return (
-      <Observer>
-        {() => (
-          <FooterWithButtons
-            buttonText={t('Finish Setup')}
-            onClick={this.handleSubmit}
-            disabled={this.model.isError || this.model.isSaving}
-          />
-        )}
-      </Observer>
-    );
-  };
-
   renderCore = () => {
     const model = this.model;
     const formFields: JsonFormObject = {
@@ -111,38 +97,46 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
       }),
     };
     return (
-      <React.Fragment>
-        <StyledList symbol="colored-numeric">
-          <ListItem>
-            <Header>{this.renderWhatWeFound()}</Header>
-            {t('Decide which functions you would like to enable for Sentry monitoring')}
-            <StyledForm
-              initialData={this.initialData}
-              skipPreventDefault
-              model={model}
-              apiEndpoint="/extensions/aws_lambda/setup/"
-              hideFooter
-            >
-              <JsonForm forms={[formFields]} />
-            </StyledForm>
-          </ListItem>
-          <React.Fragment />
-        </StyledList>
-        {this.renderFooter()}
-      </React.Fragment>
+      <List symbol="colored-numeric">
+        <ListItem>
+          <Header>{this.renderWhatWeFound()}</Header>
+          {t('Decide which functions you would like to enable for Sentry monitoring')}
+          <StyledForm
+            initialData={this.initialData}
+            skipPreventDefault
+            model={model}
+            apiEndpoint="/extensions/aws_lambda/setup/"
+            hideFooter
+          >
+            <JsonForm forms={[formFields]} />
+          </StyledForm>
+        </ListItem>
+        <React.Fragment />
+      </List>
     );
   };
   render = () => {
     return (
       <React.Fragment>
         <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/" />
-        {this.state.submitting ? this.renderLoadingScreeen() : this.renderCore()}
+        <Wrapper>
+          {this.state.submitting ? this.renderLoadingScreeen() : this.renderCore()}
+        </Wrapper>
+        <Observer>
+          {() => (
+            <FooterWithButtons
+              buttonText={t('Finish Setup')}
+              onClick={this.handleSubmit}
+              disabled={this.model.isError || this.model.isSaving}
+            />
+          )}
+        </Observer>
       </React.Fragment>
     );
   };
 }
 
-const StyledList = styled(List)`
+const Wrapper = styled('div')`
   margin: 100px 50px 50px 50px;
 `;
 
