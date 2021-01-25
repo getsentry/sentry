@@ -21,9 +21,18 @@ export default function Legend(
     type: 'scroll',
     padding: 0,
     formatter,
+    icon: 'circle',
+    itemHeight: 8,
+    itemWidth: 8,
+    itemGap: 12,
+    align: 'left' as const,
     textStyle: {
       color: theme?.textColor,
+      verticalAlign: 'top',
+      fontSize: 11,
+      fontFamily: 'Rubik',
     },
+    inactiveColor: theme?.inactive,
     ...rest,
   };
 }

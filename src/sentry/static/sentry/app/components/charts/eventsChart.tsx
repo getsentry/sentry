@@ -9,6 +9,7 @@ import {Client} from 'app/api';
 import AreaChart from 'app/components/charts/areaChart';
 import BarChart from 'app/components/charts/barChart';
 import ChartZoom, {ZoomRenderProps} from 'app/components/charts/chartZoom';
+import Legend from 'app/components/charts/components/legend';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import LineChart from 'app/components/charts/lineChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
@@ -174,24 +175,14 @@ class Chart extends React.Component<ChartProps, State> {
     }
 
     const legend = showLegend
-      ? {
+      ? Legend({
           right: 16,
           top: 12,
-          icon: 'circle',
-          itemHeight: 8,
-          itemWidth: 8,
-          itemGap: 12,
-          align: 'left' as const,
-          textStyle: {
-            color: theme.textColor,
-            verticalAlign: 'top',
-            fontSize: 11,
-            fontFamily: 'Rubik',
-          },
           data,
           selected: seriesSelection,
+          theme,
           ...(legendOptions ?? {}),
-        }
+        })
       : undefined;
 
     const chartOptions = {
@@ -216,7 +207,7 @@ class Chart extends React.Component<ChartProps, State> {
       },
       yAxis: {
         axisLabel: {
-          color: theme.gray200,
+          color: theme.chartLabel,
           formatter: (value: number) => axisLabelFormatter(value, yAxis),
         },
       },
