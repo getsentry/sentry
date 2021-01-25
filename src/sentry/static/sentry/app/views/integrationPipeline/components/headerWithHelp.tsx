@@ -25,11 +25,12 @@ const Header = styled('div')`
   top: 0;
   z-index: 100;
   padding: ${space(2)};
-  background-color: ${p => p.theme.white};
-  border-bottom: 1px solid ${p => p.theme.gray100};
+  background: ${p => p.theme.background};
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
 `;
 
 const StyledInlineSvg = styled(InlineSvg)`
   width: 130px;
   height: 30px;
+  color: ${p => p.theme.textColor};
 `;

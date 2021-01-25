@@ -145,14 +145,14 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
         <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/" />
         <StyledList symbol="colored-numeric" initialCounterValue={initialStepNumber}>
           <ListItem>
-            <Heading>{t("Add Sentry's CloudFormation to your AWS")}</Heading>
+            <h4>{t("Add Sentry's CloudFormation to your AWS")}</h4>
             <StyledButton priority="primary" external href={this.cloudformationUrl}>
               {t('Configure AWS')}
             </StyledButton>
           </ListItem>
           <ListItem>
-            <Heading>{t('Add AWS Account Information')}</Heading>
-            <StyledTextField
+            <h4>{t('Add AWS Account Information')}</h4>
+            <TextField
               name="accountNumber"
               placeholder="599817902985"
               value={accountNumber}
@@ -163,7 +163,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
               stacked
               label={t('AWS Account Number')}
             />
-            <StyledSelectField
+            <SelectField
               name="region"
               placeholder="us-east-2"
               value={region}
@@ -187,19 +187,8 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
 }
 
 const StyledButton = styled(Button)`
-  margin: ${space(2)} 0 ${space(2)} 0;
+  margin: 0 0 ${space(2)} 0;
 `;
-
-const StyledTextField = styled(TextField)`
-  font-size: ${p => p.theme.fontSizeMedium};
-  padding-top: 10px;
-`;
-
-const StyledSelectField = styled(SelectField)`
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const Heading = styled('div')``;
 
 const StyledList = styled(List)`
   margin: 100px 50px 50px 50px;

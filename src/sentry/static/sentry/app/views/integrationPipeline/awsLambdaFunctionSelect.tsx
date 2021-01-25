@@ -64,9 +64,7 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
 
   renderWhatWeFound = () => {
     const count = this.lambdaFunctions.length;
-    return (
-      <WhatWeFound>{t('We found %s functions with Node runtimes', count)}</WhatWeFound>
-    );
+    return <h4>{t('We found %s functions with Node runtimes', count)}</h4>;
   };
 
   renderLoadingScreeen = () => {
@@ -78,7 +76,7 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
     return (
       <LoadingWrapper>
         <StyledLoadingIndicator />
-        <LoadingLine1>{t('Adding Sentry to %s functions', count)}</LoadingLine1>
+        <h4>{t('Adding Sentry to %s functions', count)}</h4>
         {text}
       </LoadingWrapper>
     );
@@ -146,10 +144,6 @@ const StyledForm = styled(Form)`
   margin-top: 10px;
 `;
 
-const WhatWeFound = styled('div')`
-  font-size: ${p => p.theme.headerFontSize};
-`;
-
 const Header = styled('div')`
   text-align: left;
   margin-bottom: 10px;
@@ -158,11 +152,6 @@ const Header = styled('div')`
 const LoadingWrapper = styled('div')`
   padding: 50px;
   text-align: center;
-`;
-
-const LoadingLine1 = styled('div')`
-  font-size: ${p => p.theme.headerFontSize};
-  margin-bottom: 10px;
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`

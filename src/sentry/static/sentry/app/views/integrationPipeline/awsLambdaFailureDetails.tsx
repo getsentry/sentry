@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Panel} from 'app/components/panels';
+import {Panel, PanelItem} from 'app/components/panels';
 import {IconCheckmark, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 
@@ -23,14 +23,14 @@ export default function AwsLambdaFailureDetails({
     <React.Fragment>
       <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/" />
       <Wrapper>
-        <ItemWrapper>
-          <StyledCheckmark isCircled />
+        <div>
+          <StyledCheckmark isCircled color="green300" />
           <h3>{t('Succesfully updated %s functions', successCount)}</h3>
-        </ItemWrapper>
-        <ItemWrapper>
-          <StyledWarning />
+        </div>
+        <div>
+          <StyledWarning color="red300" />
           <h3>{t('Failed to update %s functions', lambdaFunctionFailures.length)}</h3>
-        </ItemWrapper>
+        </div>
         <StyledPanel>{lambdaFunctionFailures.map(SingleFailure)}</StyledPanel>
       </Wrapper>
       <FooterWithButtons buttonText={t('Finish Setup')} href="?finish_pipeline=1" />
@@ -51,19 +51,13 @@ const Wrapper = styled('div')`
   margin: 100px 50px 50px 50px;
 `;
 
-const StyledRow = styled('div')`
-  padding: 16px;
-  background-color: ${p => p.theme.background};
+const StyledRow = styled(PanelItem)`
   display: flex;
   flex-direction: column;
-  &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
-    border-radius: inherit;
-  }
 `;
 
 const Error = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const StyledPanel = styled(Panel)`
@@ -71,12 +65,9 @@ const StyledPanel = styled(Panel)`
   margin-left: 34px;
 `;
 
-const ItemWrapper = styled('div')``;
-
 const StyledCheckmark = styled(IconCheckmark)`
   float: left;
   margin-right: 10px;
-  color: ${p => p.theme.green300};
   height: 24px;
   width: 24px;
 `;
@@ -84,7 +75,6 @@ const StyledCheckmark = styled(IconCheckmark)`
 const StyledWarning = styled(IconWarning)`
   float: left;
   margin-right: 10px;
-  color: ${p => p.theme.red300};
   height: 24px;
   width: 24px;
 `;

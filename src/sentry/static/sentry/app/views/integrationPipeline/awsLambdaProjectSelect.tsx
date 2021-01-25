@@ -41,12 +41,12 @@ export default class AwsLambdaProjectSelect extends React.Component<Props> {
     const {projects} = this.props;
     // TODO: Add logic if no projects
     return (
-      <Wrapper>
+      <React.Fragment>
         <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/" />
         <StyledList symbol="colored-numeric">
           <React.Fragment />
           <ListItem>
-            <StepHeader>{t('Select a project for your AWS Lambda Functions')}</StepHeader>
+            <h4>{t('Select a project for your AWS Lambdas')}</h4>
             <StyledForm model={this.model} hideFooter>
               <StyledSentryProjectSelectorField
                 placeholder={t('Select a project')}
@@ -70,7 +70,7 @@ export default class AwsLambdaProjectSelect extends React.Component<Props> {
             />
           )}
         </Observer>
-      </Wrapper>
+      </React.Fragment>
     );
   }
 }
@@ -83,15 +83,7 @@ const StyledList = styled(List)`
   margin: 100px 50px 50px 50px;
 `;
 
-const Wrapper = styled('div')``;
-
 const StyledSentryProjectSelectorField = styled(SentryProjectSelectorField)`
   border-bottom: 0;
   padding: ${space(2)} 0 ${space(2)} 0;
-`;
-
-const StepHeader = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: bold;
-  margin-bottom: 10px;
 `;

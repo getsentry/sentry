@@ -27,6 +27,6 @@ const Footer = styled('form')`
   bottom: 0;
   z-index: 100;
   background-color: ${p => p.theme.bodyBackground};
-  border-top: 1px solid ${p => p.theme.gray100};
+  border-top: 1px solid ${p => p.theme.innerBorder};
   padding: ${space(2)};
 `;
