@@ -80,7 +80,6 @@ export const Default = () => (
 
 Default.storyName = 'default';
 Default.parameters = {
-  controls: {hideNoControlsWarning: true},
   docs: {
     description: {
       story: 'On-demand styling for native dom elements',

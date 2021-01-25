@@ -1,7 +1,7 @@
-import PropTypes from 'prop-types';
 import React from 'react';
 import {action} from '@storybook/addon-actions';
 import {withInfo} from '@storybook/addon-info';
+import PropTypes from 'prop-types';
 
 import {Form as LegacyForm, TextField as LegacyTextField} from 'app/components/forms';
 

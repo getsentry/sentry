@@ -1,19 +1,15 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 import {action} from '@storybook/addon-actions';
 
 import {Form as LegacyForm} from 'app/components/forms';
-import SelectField from 'app/components/forms/selectField';
 import SelectCreatableField from 'app/components/forms/selectCreatableField';
+import SelectField from 'app/components/forms/selectField';
 
 export default {
   title: 'Core/Forms/Fields/Old',
 };
 
-export const _SelectField = withInfo({
-  text: 'Select Field',
-  propTablesExclude: [LegacyForm],
-})(() => (
+export const _SelectField = () => (
   <LegacyForm onSubmit={action('onSubmit')}>
     <SelectField
       name="foos"
@@ -33,14 +29,11 @@ export const _SelectField = withInfo({
       multiple
     />
   </LegacyForm>
-));
+);
 
 _SelectField.storyName = 'SelectField';
 
-export const _SelectCreatableField = withInfo({
-  text: 'Select Creatable Field',
-  propTablesExclude: [LegacyForm],
-})(() => (
+export const _SelectCreatableField = () => (
   <LegacyForm onSubmit={action('onSubmit')}>
     <SelectCreatableField
       label="Creatable"
@@ -62,6 +55,6 @@ export const _SelectCreatableField = withInfo({
       ]}
     />
   </LegacyForm>
-));
+);
 
 _SelectCreatableField.storyName = 'SelectCreatableField';

@@ -1,6 +1,5 @@
 import React from 'react';
 import {browserHistory, Route, Router} from 'react-router';
-import {withInfo} from '@storybook/addon-info';
 import PropTypes from 'prop-types';
 
 import StreamGroup from 'app/components/stream/group';
@@ -181,7 +180,7 @@ class LocationContext extends React.Component {
   }
 }
 
-export const Default = withInfo('default')(() => {
+export const Default = () => {
   loadGroups();
   return (
     <LocationContext>
@@ -252,9 +251,9 @@ export const Default = withInfo('default')(() => {
       />
     </LocationContext>
   );
-});
+};
 
-export const WithInbox = withInfo('withInbox')(() => {
+export const WithInbox = () => {
   const inboxOrganization = {
     ...organization,
     features: ['inbox', 'unhandled-issue-flag'],
@@ -329,4 +328,4 @@ export const WithInbox = withInfo('withInbox')(() => {
       />
     </LocationContext>
   );
-});
+};
