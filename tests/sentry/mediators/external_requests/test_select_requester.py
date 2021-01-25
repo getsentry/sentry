@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import responses
 
 from sentry.coreapi import APIError
@@ -33,7 +31,7 @@ class TestSelectRequester(TestCase):
         ]
         responses.add(
             method=responses.GET,
-            url=u"https://example.com/get-issues?installationId={}&projectSlug={}".format(
+            url="https://example.com/get-issues?installationId={}&projectSlug={}".format(
                 self.install.uuid, self.project.slug
             ),
             json=options,
@@ -64,7 +62,7 @@ class TestSelectRequester(TestCase):
         invalid_format = {"value": "12345"}
         responses.add(
             method=responses.GET,
-            url=u"https://example.com/get-issues?installationId={}&projectSlug={}".format(
+            url="https://example.com/get-issues?installationId={}&projectSlug={}".format(
                 self.install.uuid, self.project.slug
             ),
             json=invalid_format,
@@ -85,7 +83,7 @@ class TestSelectRequester(TestCase):
     def test_500_response(self):
         responses.add(
             method=responses.GET,
-            url=u"https://example.com/get-issues?installationId={}&projectSlug={}".format(
+            url="https://example.com/get-issues?installationId={}&projectSlug={}".format(
                 self.install.uuid, self.project.slug
             ),
             body="Something failed",

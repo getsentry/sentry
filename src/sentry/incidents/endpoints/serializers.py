@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 import operator
 from datetime import timedelta
@@ -513,7 +511,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 alert_rule = create_alert_rule(
                     user=self.context.get("user", None),
                     organization=self.context["organization"],
-                    **validated_data
+                    **validated_data,
                 )
                 self._handle_triggers(alert_rule, triggers)
                 return alert_rule

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 
 from base64 import b64encode
@@ -29,7 +27,7 @@ class AuthLoginEndpointTest(APITestCase):
         response = self.client.post(
             self.path,
             HTTP_AUTHORIZATION=b"Basic "
-            + b64encode(u"{}:{}".format(user.username, "admin").encode("utf-8")),
+            + b64encode("{}:{}".format(user.username, "admin").encode("utf-8")),
         )
         assert response.status_code == 200
         assert response.data["id"] == six.text_type(user.id)
@@ -39,7 +37,7 @@ class AuthLoginEndpointTest(APITestCase):
         response = self.client.post(
             self.path,
             HTTP_AUTHORIZATION=b"Basic "
-            + b64encode(u"{}:{}".format(user.username, "foobar").encode("utf-8")),
+            + b64encode("{}:{}".format(user.username, "foobar").encode("utf-8")),
         )
         assert response.status_code == 401
 

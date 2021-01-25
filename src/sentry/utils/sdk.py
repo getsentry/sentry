@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import inspect
 import six
 
@@ -131,6 +129,10 @@ def _override_on_full_queue(transport, metric_name):
 
 
 def traces_sampler(sampling_context):
+    # If there's already a sampling decision, just use that
+    if sampling_context["parent_sampled"] is not None:
+        return sampling_context["parent_sampled"]
+
     # Resolve the url, and see if we want to set our own sampling
     if "wsgi_environ" in sampling_context:
         try:
@@ -228,7 +230,7 @@ def configure_sdk():
             RustInfoIntegration(),
             RedisIntegration(),
         ],
-        **sdk_options
+        **sdk_options,
     )
 
 

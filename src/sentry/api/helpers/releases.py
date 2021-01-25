@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import GroupLink, GroupResolution, Release, ReleaseCommit
 

@@ -43,7 +43,6 @@ export default class DetailsHeader extends React.Component<Props> {
             ]}
           />
           <Controls>
-            {/*  {this.renderStatus()}*/}
             <Button icon={<IconSettings />} label={t('Settings')} to={settingsLink}>
               Settings
             </Button>

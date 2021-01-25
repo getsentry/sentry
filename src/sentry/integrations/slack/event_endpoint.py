@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import re
 import six
 from collections import defaultdict
@@ -168,7 +166,7 @@ class SlackEventEndpoint(Endpoint):
 
     def on_link_shared(self, request, integration, token, data):
         with sentry_sdk.start_transaction(
-            op=u"slack.link_shared", name=u"SlackLinkShared", sampled=1.0
+            op="slack.link_shared", name="SlackLinkShared", sampled=1.0
         ) as span:
             parsed_issues = defaultdict(dict)
             event_id_by_url = {}
