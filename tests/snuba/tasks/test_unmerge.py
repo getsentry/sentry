@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import functools
 import hashlib
 import itertools
@@ -45,7 +43,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             get_fingerprint(
                 self.store_event(data={"message": "Hello world"}, project_id=self.project.id)
             )
-            == hashlib.md5(u"Hello world".encode("utf-8")).hexdigest()
+            == hashlib.md5("Hello world".encode("utf-8")).hexdigest()
         )
 
         assert (
@@ -55,7 +53,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                     project_id=self.project.id,
                 )
             )
-            == hashlib.md5(u"Not hello world".encode("utf-8")).hexdigest()
+            == hashlib.md5("Not hello world".encode("utf-8")).hexdigest()
         )
 
     def test_get_group_creation_attributes(self):
@@ -328,7 +326,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             GroupRelease.objects.filter(group_id=source.id).values_list(
                 "environment", "first_seen", "last_seen"
             )
-        ) == set([(u"production", time_from_now(10), time_from_now(15))])
+        ) == set([("production", time_from_now(10), time_from_now(15))])
 
         assert set(
             [
@@ -337,7 +335,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                     project.id, destination.id, production_environment.id, "color"
                 )
             ]
-        ) == set([(u"red", 4), (u"green", 3), (u"blue", 3)])
+        ) == set([("red", 4), ("green", 3), ("blue", 3)])
 
         destination_event_ids = map(
             lambda event: event.event_id, list(events.values())[0] + list(events.values())[2]

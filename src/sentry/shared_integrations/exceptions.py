@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from bs4 import BeautifulSoup
 from collections import OrderedDict
 from requests.exceptions import RequestException
@@ -53,7 +51,7 @@ class ApiHostError(ApiError):
     @classmethod
     def from_request(cls, request):
         host = urlparse(request.url).netloc
-        return cls(u"Unable to reach host: {}".format(host))
+        return cls("Unable to reach host: {}".format(host))
 
 
 class ApiTimeoutError(ApiError):
@@ -68,7 +66,7 @@ class ApiTimeoutError(ApiError):
     @classmethod
     def from_request(cls, request):
         host = urlparse(request.url).netloc
-        return cls(u"Timed out attempting to reach host: {}".format(host))
+        return cls("Timed out attempting to reach host: {}".format(host))
 
 
 class ApiUnauthorized(ApiError):

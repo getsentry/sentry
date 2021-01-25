@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import atexit
 import logging
 import signal
@@ -75,7 +73,7 @@ def create_batching_kafka_consumer(topic_names, worker, **options):
             "topics": ",".join(sorted(topic_names)),
             "group_id": options.get("group_id"),
         },
-        **options
+        **options,
     )
 
     def handler(signum, frame):

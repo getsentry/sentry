@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from django.views.generic import View
 
 from sentry.auth.providers.dummy import DummyProvider

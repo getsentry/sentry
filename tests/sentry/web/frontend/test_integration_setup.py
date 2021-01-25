@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.integrations.example import ExampleIntegrationProvider, ExampleSetupView
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import IntegrationTestCase

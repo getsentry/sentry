@@ -1,7 +1,6 @@
 """
 These settings act as the default (base) settings for the Sentry-provided web-server
 """
-from __future__ import absolute_import
 
 from django.conf.global_settings import *  # NOQA
 
@@ -605,7 +604,7 @@ CELERY_ROUTES = ("sentry.queue.routers.SplitQueueRouter",)
 def create_partitioned_queues(name):
     exchange = Exchange(name, type="direct")
     for num in range(1):
-        CELERY_QUEUES.append(Queue(u"{0}-{1}".format(name, num), exchange=exchange))
+        CELERY_QUEUES.append(Queue("{0}-{1}".format(name, num), exchange=exchange))
 
 
 create_partitioned_queues("counters")
@@ -1333,7 +1332,10 @@ SENTRY_SCOPE_SETS = (
         ("event:write", "Read and write access to events."),
         ("event:read", "Read access to events."),
     ),
-    (("alerts:write", "Read and write alerts"), ("alerts:read", "Read alerts"),),
+    (
+        ("alerts:write", "Read and write alerts"),
+        ("alerts:read", "Read alerts"),
+    ),
 )
 
 SENTRY_DEFAULT_ROLE = "member"
@@ -1488,7 +1490,7 @@ SENTRY_WATCHERS = (
             "--color",
             "--output-pathinfo",
             "--watch",
-            u"--config={}".format(
+            "--config={}".format(
                 os.path.normpath(
                     os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js")
                 )

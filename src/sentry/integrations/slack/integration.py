@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 
 from collections import namedtuple, defaultdict
@@ -255,7 +253,10 @@ class SlackReAuthIntro(PipelineView):
             pipeline.bind_state("user_id", request.user.id)
 
             try:
-                integration = Integration.objects.get(id=integration_id, provider="slack",)
+                integration = Integration.objects.get(
+                    id=integration_id,
+                    provider="slack",
+                )
             except Integration.DoesNotExist:
                 return pipeline.error(IntegrationError("Could not find Slack integration."))
 
@@ -336,7 +337,10 @@ def _request_channel_info(pipeline):
     integration_id = pipeline.fetch_state("integration_id")
 
     try:
-        integration = Integration.objects.get(id=integration_id, provider="slack",)
+        integration = Integration.objects.get(
+            id=integration_id,
+            provider="slack",
+        )
     except Integration.DoesNotExist:
         raise IntegrationError("Could not find Slack integration.")
 
@@ -375,7 +379,8 @@ def _request_channel_info(pipeline):
 
 def _get_channels_from_rules(organization, integration):
     rules = Rule.objects.filter(
-        project__in=organization.project_set.all(), status=RuleStatus.ACTIVE,
+        project__in=organization.project_set.all(),
+        status=RuleStatus.ACTIVE,
     )
 
     channels = set()

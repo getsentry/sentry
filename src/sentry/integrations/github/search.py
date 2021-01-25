@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from rest_framework.response import Response
 
 from sentry.api.bases.integration import IntegrationEndpoint
@@ -30,7 +28,7 @@ class GitHubSearchEndpoint(IntegrationEndpoint):
 
             try:
                 response = installation.search_issues(
-                    query=(u"repo:%s %s" % (repo, query)).encode("utf-8")
+                    query=("repo:%s %s" % (repo, query)).encode("utf-8")
                 )
             except ApiError as err:
                 if err.code == 403:
