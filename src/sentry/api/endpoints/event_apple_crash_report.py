@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 
 from django.http import HttpResponse, StreamingHttpResponse
@@ -44,7 +42,7 @@ class EventAppleCrashReportEndpoint(ProjectEndpoint):
         response = HttpResponse(apple_crash_report_string, content_type="text/plain")
 
         if request.GET.get("download") is not None:
-            filename = u"{}{}.crash".format(event.event_id, symbolicated and "-symbolicated" or "")
+            filename = "{}{}.crash".format(event.event_id, symbolicated and "-symbolicated" or "")
             response = StreamingHttpResponse(apple_crash_report_string, content_type="text/plain")
             response["Content-Length"] = len(apple_crash_report_string)
             response["Content-Disposition"] = 'attachment; filename="%s"' % filename

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.pipeline import PipelineView
 from sentry.utils.http import absolute_uri
 from sentry.identity.base import Provider

@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from sentry.api.serializers.rest_framework import JSONField
 
 from rest_framework import serializers
@@ -15,7 +14,7 @@ class JSONFieldTest(TestCase):
         data = object()
         serializer = DummySerializer(data={"json_field": data})
         assert serializer.is_valid() is False
-        assert serializer.errors == {"json_field": [u"Value must be valid JSON."]}
+        assert serializer.errors == {"json_field": ["Value must be valid JSON."]}
 
     def test_valid_json(self):
         data = {

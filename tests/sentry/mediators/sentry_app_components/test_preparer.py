@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.utils.compat.mock import patch, call
 
 from sentry.mediators.sentry_app_components import Preparer
@@ -90,6 +88,6 @@ class TestPreparerStacktraceLink(TestCase):
 
         assert self.component.schema[
             "url"
-        ] == u"https://example.com/redirection?installationId={}&projectSlug={}".format(
+        ] == "https://example.com/redirection?installationId={}&projectSlug={}".format(
             self.install.uuid, self.project.slug
         )

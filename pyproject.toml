@@ -3,13 +3,6 @@ requires = ["setuptools>=40.2.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.black]
+# File filtering is taken care of in pre-commit.
 line-length=100
-target-version=['py27']
-include='\.py$'
-exclude='''
-(
-      \.venv/
-    | node_modules/
-    | migrations/
-)
-'''
+target-version=['py36']

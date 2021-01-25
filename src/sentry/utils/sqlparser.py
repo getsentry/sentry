@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sqlparse import engine
 from sqlparse import filters
 from sqlparse import tokens as T

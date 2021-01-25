@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import datetime
 
 import pytz
@@ -44,7 +42,7 @@ class DebugNewReleaseEmailView(View):
 
         release_links = [
             absolute_uri(
-                u"/organizations/{}/releases/{}/?project={}".format(org.slug, release.version, p.id)
+                "/organizations/{}/releases/{}/?project={}".format(org.slug, release.version, p.id)
             )
             for p in projects
         ]

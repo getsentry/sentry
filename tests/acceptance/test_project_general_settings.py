@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.testutils import AcceptanceTestCase
 
 
@@ -15,7 +13,7 @@ class ProjectGeneralSettingsTest(AcceptanceTestCase):
         self.login_as(self.user)
 
     def test_saved_searches(self):
-        path = u"/{}/{}/settings/".format(self.org.slug, self.project.slug)
+        path = "/{}/{}/settings/".format(self.org.slug, self.project.slug)
         self.browser.get(path)
         self.browser.wait_until_not(".loading-indicator")
         self.browser.snapshot("project settings - general settings")
@@ -24,7 +22,7 @@ class ProjectGeneralSettingsTest(AcceptanceTestCase):
         """
         It is only possible to open the menu at mobile widths
         """
-        path = u"/{}/{}/settings/".format(self.org.slug, self.project.slug)
+        path = "/{}/{}/settings/".format(self.org.slug, self.project.slug)
 
         with self.browser.mobile_viewport():
             self.browser.get(path)

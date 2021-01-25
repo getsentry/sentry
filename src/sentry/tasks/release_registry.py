@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 
 from django.conf import settings
@@ -12,8 +10,8 @@ from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
-SDK_INDEX_CACHE_KEY = u"sentry:release-registry-sdk-versions"
-APP_INDEX_CACHE_KEY = u"sentry:release-registry-app-versions"
+SDK_INDEX_CACHE_KEY = "sentry:release-registry-sdk-versions"
+APP_INDEX_CACHE_KEY = "sentry:release-registry-app-versions"
 
 REQUEST_TIMEOUT = 10
 

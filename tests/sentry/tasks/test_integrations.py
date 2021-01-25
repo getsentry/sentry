@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from time import time
 
 from sentry.models import Integration, Identity, IdentityProvider

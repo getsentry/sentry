@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 
 from datetime import datetime
@@ -58,7 +56,7 @@ class OrganizationMemberUnreleasedCommitsTest(APITestCase):
             project=project, repo=repo, date_added=datetime(2015, 1, 3, tzinfo=timezone.utc)
         )
 
-        path = u"/api/0/organizations/{}/members/me/unreleased-commits/".format(org.slug)
+        path = "/api/0/organizations/{}/members/me/unreleased-commits/".format(org.slug)
 
         self.login_as(user)
 

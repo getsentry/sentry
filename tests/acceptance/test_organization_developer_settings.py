@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.testutils import AcceptanceTestCase
 
 
@@ -16,7 +14,7 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
         )
 
         self.login_as(self.user)
-        self.org_developer_settings_path = u"/settings/{}/developer-settings/".format(
+        self.org_developer_settings_path = "/settings/{}/developer-settings/".format(
             self.organization.slug
         )
 
@@ -67,7 +65,7 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
         )
         self.login_as(self.user)
 
-        self.org_developer_settings_path = u"/settings/{}/developer-settings/{}".format(
+        self.org_developer_settings_path = "/settings/{}/developer-settings/{}".format(
             self.org.slug, self.sentry_app.slug
         )
 
@@ -96,7 +94,7 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
 
     def test_remove_tokens_internal_app(self):
         internal_app = self.create_internal_integration(name="Internal App", organization=self.org)
-        url = u"/settings/{}/developer-settings/{}".format(self.org.slug, internal_app.slug)
+        url = "/settings/{}/developer-settings/{}".format(self.org.slug, internal_app.slug)
 
         self.load_page(url)
 
@@ -109,7 +107,7 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
 
     def test_add_tokens_internal_app(self):
         internal_app = self.create_internal_integration(name="Internal App", organization=self.org)
-        url = u"/settings/{}/developer-settings/{}".format(self.org.slug, internal_app.slug)
+        url = "/settings/{}/developer-settings/{}".format(self.org.slug, internal_app.slug)
 
         self.load_page(url)
 

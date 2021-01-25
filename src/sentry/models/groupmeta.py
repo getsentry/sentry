@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import threading
 
 from celery.signals import task_postrun

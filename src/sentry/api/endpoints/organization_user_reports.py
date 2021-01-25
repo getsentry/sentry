@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationUserReportsPermission
@@ -56,5 +54,5 @@ class OrganizationUserReportsEndpoint(OrganizationEndpoint):
             order_by="-date_added",
             on_results=lambda x: serialize(x, request.user, UserReportWithGroupSerializer()),
             paginator_cls=DateTimePaginator,
-            **paginate_kwargs
+            **paginate_kwargs,
         )

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 __all__ = ["timing", "incr"]
 
 import logging
@@ -63,7 +61,7 @@ backend = get_default_backend()
 def _get_key(key):
     prefix = settings.SENTRY_METRICS_PREFIX
     if prefix:
-        return u"{}{}".format(prefix, key)
+        return "{}{}".format(prefix, key)
     return key
 
 
@@ -91,7 +89,7 @@ class InternalMetrics(object):
                 key, instance, tags, amount, sample_rate = q.get()
                 amount = _sampled_value(amount, sample_rate)
                 if instance:
-                    full_key = u"{}.{}".format(key, instance)
+                    full_key = "{}.{}".format(key, instance)
                 else:
                     full_key = key
                 try:

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.conf.urls import url
 
 from social_auth.views import auth, complete

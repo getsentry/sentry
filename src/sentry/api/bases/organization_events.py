@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from contextlib import contextmanager
 import sentry_sdk
 import six
@@ -149,8 +147,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
     def build_cursor_link(self, request, name, cursor):
         # The base API function only uses the last query parameter, but this endpoint
         # needs all the parameters, particularly for the "field" query param.
-        querystring = u"&".join(
-            u"{0}={1}".format(urlquote(query[0]), urlquote(value))
+        querystring = "&".join(
+            "{0}={1}".format(urlquote(query[0]), urlquote(value))
             for query in request.GET.lists()
             if query[0] != "cursor"
             for value in query[1]
@@ -158,7 +156,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         base_url = absolute_uri(urlquote(request.path))
         if querystring:
-            base_url = u"{0}?{1}".format(base_url, querystring)
+            base_url = "{0}?{1}".format(base_url, querystring)
         else:
             base_url = base_url + "?"
 

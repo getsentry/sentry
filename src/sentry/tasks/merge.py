@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 
 from django.db import DataError, IntegrityError, router, transaction
@@ -30,7 +28,7 @@ def merge_groups(
     transaction_id=None,
     recursed=False,
     eventstream_state=None,
-    **kwargs
+    **kwargs,
 ):
     # TODO(mattrobenolt): Write tests for all of this
     from sentry.models import (

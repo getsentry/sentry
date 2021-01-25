@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from six.moves.urllib.parse import urlparse, parse_qs
 from requests.exceptions import HTTPError, SSLError
 

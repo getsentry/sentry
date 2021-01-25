@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.db.models import Max
 from rest_framework import serializers
 
@@ -58,13 +56,13 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
             resolve_field_list(fields, snuba_filter)
             return fields
         except InvalidSearchQuery as err:
-            raise serializers.ValidationError(u"Invalid fields: {}".format(err))
+            raise serializers.ValidationError("Invalid fields: {}".format(err))
 
     def validate_conditions(self, conditions):
         try:
             get_filter(conditions)
         except InvalidSearchQuery as err:
-            raise serializers.ValidationError(u"Invalid conditions: {}".format(err))
+            raise serializers.ValidationError("Invalid conditions: {}".format(err))
         return conditions
 
     def validate(self, data):

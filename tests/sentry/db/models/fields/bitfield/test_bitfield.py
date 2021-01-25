@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import unittest
 import pickle
 
@@ -19,7 +17,7 @@ class BitFieldTestModel(models.Model):
         app_label = "sentry"
 
     flags = BitField(
-        flags=(u"FLAG_0", u"FLAG_1", u"FLAG_2", u"FLAG_3"), default=3, db_column=u"another_name"
+        flags=("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"), default=3, db_column="another_name"
     )
 
 
@@ -302,7 +300,7 @@ class BitFieldTest(TestCase):
         MAX_COUNT = int(math.floor(math.log(BigIntegerField.MAX_BIGINT, 2)))
 
         # Big flags list
-        flags = [u"f" + six.text_type(i) for i in range(100)]
+        flags = ["f" + six.text_type(i) for i in range(100)]
 
         try:
             BitField(flags=flags[:MAX_COUNT])
@@ -337,7 +335,7 @@ class BitFieldTest(TestCase):
     def test_defaults_as_key_names(self):
         class TestModel(models.Model):
             flags = BitField(
-                flags=(u"FLAG_0", u"FLAG_1", u"FLAG_2", u"FLAG_3"), default=(u"FLAG_1", u"FLAG_2")
+                flags=("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"), default=("FLAG_1", "FLAG_2")
             )
 
         field = TestModel._meta.get_field("flags")

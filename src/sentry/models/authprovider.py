@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from bitfield import BitField
 from django.db import models
 from django.utils import timezone
@@ -32,7 +30,7 @@ class AuthProvider(Model):
     default_teams = models.ManyToManyField("sentry.Team", blank=True)
 
     flags = BitField(
-        flags=((u"allow_unlinked", u"Grant access to members who have not linked SSO accounts."),),
+        flags=(("allow_unlinked", "Grant access to members who have not linked SSO accounts."),),
         default=0,
     )
 

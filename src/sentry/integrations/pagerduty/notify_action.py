@@ -1,7 +1,6 @@
 """
 Used for notifying a *specific* plugin
 """
-from __future__ import absolute_import
 
 import six
 from django import forms
@@ -120,7 +119,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                 },
             )
 
-        key = u"pagerduty:{}".format(integration.id)
+        key = "pagerduty:{}".format(integration.id)
         yield self.future(send_notification, key=key)
 
     def get_services(self):

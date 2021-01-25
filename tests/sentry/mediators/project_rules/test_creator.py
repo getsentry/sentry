@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.mediators.project_rules import Creator
 from sentry.models import Rule
 from sentry.testutils import TestCase

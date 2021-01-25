@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import re
 from django.conf.urls import url
 from rest_framework.response import Response

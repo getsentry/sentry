@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.tsdb.redissnuba import selector_func, method_specifications, READ

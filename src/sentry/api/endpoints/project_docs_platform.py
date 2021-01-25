@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 
 from sentry.utils.http import absolute_uri

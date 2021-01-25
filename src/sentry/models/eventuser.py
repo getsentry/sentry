@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from collections import OrderedDict
 from functools import reduce
 from operator import or_
@@ -88,7 +86,7 @@ class EventUser(Model):
         """
         for key, value in self.iter_attributes():
             if value:
-                return u"{}:{}".format(KEYWORD_MAP[key], value)
+                return "{}:{}".format(KEYWORD_MAP[key], value)
 
     def iter_attributes(self):
         """

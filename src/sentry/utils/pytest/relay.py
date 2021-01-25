@@ -1,6 +1,5 @@
 # Fixtures used to interact with a test Relay server
 
-from __future__ import absolute_import
 
 import datetime
 import shutil

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import os
 from django.test.utils import override_settings
 from sentry.testutils import TestCase

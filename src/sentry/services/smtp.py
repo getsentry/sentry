@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import asyncore
 import email
 import logging

@@ -10,7 +10,6 @@ setting, it must be a list of values to request.
 By default account id and token expiration time are stored in extra_data
 field, check OAuthBackend class for details on how to extend it.
 """
-from __future__ import absolute_import
 
 from django.conf import settings
 from six.moves.urllib.error import HTTPError
@@ -25,12 +24,12 @@ from sentry.utils import json
 # GitHub configuration
 GITHUB_BASE_DOMAIN = getattr(settings, "GITHUB_BASE_DOMAIN", "github.com")
 GITHUB_API_DOMAIN = getattr(settings, "GITHUB_API_DOMAIN", "api.github.com")
-GITHUB_AUTHORIZATION_URL = u"https://{0}/login/oauth/authorize".format(GITHUB_BASE_DOMAIN)
-GITHUB_ACCESS_TOKEN_URL = u"https://{0}/login/oauth/access_token".format(GITHUB_BASE_DOMAIN)
-GITHUB_USER_DATA_URL = u"https://{0}/user".format(GITHUB_API_DOMAIN)
+GITHUB_AUTHORIZATION_URL = "https://{0}/login/oauth/authorize".format(GITHUB_BASE_DOMAIN)
+GITHUB_ACCESS_TOKEN_URL = "https://{0}/login/oauth/access_token".format(GITHUB_BASE_DOMAIN)
+GITHUB_USER_DATA_URL = "https://{0}/user".format(GITHUB_API_DOMAIN)
 
 # GitHub organization configuration
-GITHUB_ORGANIZATION_MEMBER_OF_URL = u"https://%s/orgs/{org}/members/{username}" % GITHUB_API_DOMAIN
+GITHUB_ORGANIZATION_MEMBER_OF_URL = "https://%s/orgs/{org}/members/{username}" % GITHUB_API_DOMAIN
 
 
 class GithubBackend(OAuthBackend):

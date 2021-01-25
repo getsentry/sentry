@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 SUBSCRIPTION_WRAPPER_SCHEMA = {
     "type": "object",
     "properties": {"version": {"type": "integer"}, "payload": {"type": "object"}},

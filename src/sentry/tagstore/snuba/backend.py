@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import functools
 import six
 from collections import defaultdict, Iterable, OrderedDict
@@ -60,7 +58,7 @@ def get_project_list(project_id):
 
 class SnubaTagStorage(TagStorage):
     def __get_tag_key(self, project_id, group_id, environment_id, key):
-        tag = u"tags[{}]".format(key)
+        tag = "tags[{}]".format(key)
         filters = {"project_id": get_project_list(project_id)}
         if environment_id:
             filters["environment"] = [environment_id]
@@ -88,7 +86,7 @@ class SnubaTagStorage(TagStorage):
         self, project_id, group_id, environment_id, key, limit=3, raise_on_empty=True, **kwargs
     ):
 
-        tag = u"tags[{}]".format(key)
+        tag = "tags[{}]".format(key)
         filters = {"project_id": get_project_list(project_id)}
         if environment_id:
             filters["environment"] = [environment_id]
@@ -155,7 +153,7 @@ class SnubaTagStorage(TagStorage):
         limit=1000,
         keys=None,
         include_values_seen=True,
-        **kwargs
+        **kwargs,
     ):
         return self.__get_tag_keys_for_projects(
             get_project_list(project_id),
@@ -179,21 +177,21 @@ class SnubaTagStorage(TagStorage):
         keys=None,
         include_values_seen=True,
         use_cache=False,
-        **kwargs
+        **kwargs,
     ):
-        """ Query snuba for tag keys based on projects
+        """Query snuba for tag keys based on projects
 
-            When use_cache is passed, we'll attempt to use the cache. There's an exception if group_id was passed
-            which refines the query enough caching isn't required.
-            The cache key is based on the filters being passed so that different queries don't hit the same cache, with
-            exceptions for start and end dates. Since even a microsecond passing would result in a different caching
-            key, which means always missing the cache.
-            Instead, to keep the cache key the same for a short period we append the duration, and the end time rounded
-            with a certain jitter to the cache key.
-            This jitter is based on the hash of the key before duration/end time is added for consistency per query.
-            The jitter's intent is to avoid a dogpile effect of many queries being invalidated at the same time.
-            This is done by changing the rounding of the end key to a random offset. See snuba.quantize_time for
-            further explanation of how that is done.
+        When use_cache is passed, we'll attempt to use the cache. There's an exception if group_id was passed
+        which refines the query enough caching isn't required.
+        The cache key is based on the filters being passed so that different queries don't hit the same cache, with
+        exceptions for start and end dates. Since even a microsecond passing would result in a different caching
+        key, which means always missing the cache.
+        Instead, to keep the cache key the same for a short period we append the duration, and the end time rounded
+        with a certain jitter to the cache key.
+        This jitter is based on the hash of the key before duration/end time is added for consistency per query.
+        The jitter's intent is to avoid a dogpile effect of many queries being invalidated at the same time.
+        This is done by changing the rounding of the end key to a random offset. See snuba.quantize_time for
+        further explanation of how that is done.
         """
         default_start, default_end = default_start_end_dates()
         if start is None:
@@ -220,9 +218,9 @@ class SnubaTagStorage(TagStorage):
 
         if should_cache:
             filtering_strings = [
-                u"{}={}".format(key, value) for key, value in six.iteritems(filters)
+                "{}={}".format(key, value) for key, value in six.iteritems(filters)
             ]
-            cache_key = u"tagstore.__get_tag_keys:{}".format(
+            cache_key = "tagstore.__get_tag_keys:{}".format(
                 md5_text(*filtering_strings).hexdigest()
             )
             key_hash = hash(cache_key)
@@ -236,7 +234,7 @@ class SnubaTagStorage(TagStorage):
             duration = (end - start).total_seconds()
             # Cause there's rounding to create this cache suffix, we want to update the query end so results match
             end = snuba.quantize_time(end, key_hash)
-            cache_key += u":{}@{}".format(duration, end.isoformat())
+            cache_key += ":{}@{}".format(duration, end.isoformat())
             result = cache.get(cache_key, None)
             if result is not None:
                 metrics.incr("testing.tagstore.cache_tag_key.hit")
@@ -254,7 +252,7 @@ class SnubaTagStorage(TagStorage):
                 limit=limit,
                 orderby="-count",
                 referrer="tagstore.__get_tag_keys",
-                **kwargs
+                **kwargs,
             )
             if should_cache:
                 cache.set(cache_key, result, 300)
@@ -280,7 +278,7 @@ class SnubaTagStorage(TagStorage):
         return results
 
     def __get_tag_value(self, project_id, group_id, environment_id, key, value):
-        tag = u"tags[{}]".format(key)
+        tag = "tags[{}]".format(key)
         filters = {"project_id": get_project_list(project_id)}
         if environment_id:
             filters["environment"] = [environment_id]
@@ -338,7 +336,7 @@ class SnubaTagStorage(TagStorage):
             end,
             include_values_seen=False,
             use_cache=use_cache,
-            **optimize_kwargs
+            **optimize_kwargs,
         )
 
     def get_tag_value(self, project_id, environment_id, key, value):
@@ -365,7 +363,7 @@ class SnubaTagStorage(TagStorage):
             limit=limit,
             keys=keys,
             include_values_seen=False,
-            **kwargs
+            **kwargs,
         )
 
     def get_group_tag_value(self, project_id, group_id, environment_id, key, value):
@@ -380,7 +378,7 @@ class SnubaTagStorage(TagStorage):
         return set(key.top_values)
 
     def get_group_list_tag_value(self, project_ids, group_id_list, environment_ids, key, value):
-        tag = u"tags[{}]".format(key)
+        tag = "tags[{}]".format(key)
         filters = {"project_id": project_ids, "group_id": group_id_list}
         if environment_ids:
             filters["environment"] = environment_ids
@@ -431,7 +429,7 @@ class SnubaTagStorage(TagStorage):
         return {issue: fix_tag_value_data(data) for issue, data in six.iteritems(result)}
 
     def get_group_tag_value_count(self, project_id, group_id, environment_id, key):
-        tag = u"tags[{}]".format(key)
+        tag = "tags[{}]".format(key)
         filters = {"project_id": get_project_list(project_id), "group_id": [group_id]}
         if environment_id:
             filters["environment"] = [environment_id]
@@ -459,7 +457,7 @@ class SnubaTagStorage(TagStorage):
         user=None,
         keys=None,
         value_limit=TOP_VALUES_DEFAULT_LIMIT,
-        **kwargs
+        **kwargs,
     ):
         # Similar to __get_tag_key_and_top_values except we get the top values
         # for all the keys provided. value_limit in this case means the number
@@ -556,7 +554,7 @@ class SnubaTagStorage(TagStorage):
         # this method is already dealing with version strings rather than
         # release ids which would need to be translated by the snuba util.
         tag = "sentry:release"
-        col = u"tags[{}]".format(tag)
+        col = "tags[{}]".format(tag)
         conditions = [[col, "IN", versions], DEFAULT_TYPE_CONDITION]
         aggregations = [
             ["count()", "", "times_seen"],
@@ -776,7 +774,7 @@ class SnubaTagStorage(TagStorage):
                 snuba_name = "tags[%s]" % (key,)
 
             if query:
-                conditions.append([snuba_name, "LIKE", u"%{}%".format(query)])
+                conditions.append([snuba_name, "LIKE", "%{}%".format(query)])
             else:
                 conditions.append([snuba_name, "!=", ""])
 
@@ -909,7 +907,7 @@ class SnubaTagStorage(TagStorage):
         conditions = []
         for tag_name, tag_val in tags.items():
             operator = "IN" if isinstance(tag_val, list) else "="
-            conditions.append([u"tags[{}]".format(tag_name), operator, tag_val])
+            conditions.append(["tags[{}]".format(tag_name), operator, tag_val])
 
         result = snuba.raw_query(
             start=start,

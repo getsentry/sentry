@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 
 from sentry.relay.projectconfig_cache.base import ProjectConfigCache

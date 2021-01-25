@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
 
-from django.db import migrations, models
+from django.db import migrations
 
 
 class Migration(migrations.Migration):
@@ -19,9 +18,8 @@ class Migration(migrations.Migration):
     # - Adding columns to highly active tables, even ones that are NULL.
     is_dangerous = False
 
-
     dependencies = [
-        ('sentry', '0014_delete_sentryappwebhookerror'),
+        ("sentry", "0014_delete_sentryappwebhookerror"),
     ]
 
     operations = [

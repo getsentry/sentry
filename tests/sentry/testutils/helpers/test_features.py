@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry import features
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature

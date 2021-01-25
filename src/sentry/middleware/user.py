@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import inspect
 from datetime import timedelta
 from django.utils import timezone

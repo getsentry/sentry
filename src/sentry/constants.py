@@ -2,7 +2,6 @@
 These settings act as the default (base) settings for the Sentry-provided
 web-server
 """
-from __future__ import absolute_import, print_function
 
 import logging
 import os.path
@@ -26,7 +25,7 @@ def get_all_languages():
             continue
         if "_" in path:
             pre, post = path.split("_", 1)
-            path = u"{}-{}".format(pre, post.lower())
+            path = "{}-{}".format(pre, post.lower())
         results.append(path)
     return results
 
@@ -412,10 +411,10 @@ class ObjectStatus(object):
     @classmethod
     def as_choices(cls):
         return (
-            (cls.ACTIVE, u"active"),
-            (cls.DISABLED, u"disabled"),
-            (cls.PENDING_DELETION, u"pending_deletion"),
-            (cls.DELETION_IN_PROGRESS, u"deletion_in_progress"),
+            (cls.ACTIVE, "active"),
+            (cls.DISABLED, "disabled"),
+            (cls.PENDING_DELETION, "pending_deletion"),
+            (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
         )
 
 

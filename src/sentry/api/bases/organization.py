@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from rest_framework.exceptions import PermissionDenied, ParseError
 from django.core.cache import cache
 
@@ -281,7 +279,7 @@ class OrganizationEndpoint(Endpoint):
                 with configure_scope() as scope:
                     scope.set_tag("query.period", (end - start).total_seconds())
         except InvalidParams as e:
-            raise ParseError(detail=u"Invalid date range: {}".format(e))
+            raise ParseError(detail="Invalid date range: {}".format(e))
 
         try:
             projects = self.get_projects(request, organization, project_ids)

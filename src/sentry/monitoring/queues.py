@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from django.conf import settings
 from django.utils.functional import cached_property
 from six.moves.urllib.parse import urlparse

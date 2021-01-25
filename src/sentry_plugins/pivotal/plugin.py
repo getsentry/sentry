@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import requests
 import six
 
@@ -83,7 +81,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
         ]
 
     def handle_api_error(self, error):
-        msg = u"Error communicating with Pivotal Tracker"
+        msg = "Error communicating with Pivotal Tracker"
         status = 400 if isinstance(error, PluginError) else 502
         return Response({"error_type": "validation", "errors": {"__all__": msg}}, status=status)
 

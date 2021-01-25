@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
 from cryptography.exceptions import InvalidSignature, InvalidKey

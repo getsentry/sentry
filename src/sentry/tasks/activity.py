@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 
 from sentry.utils.safe import safe_execute

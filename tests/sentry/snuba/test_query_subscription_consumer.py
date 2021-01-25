@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import unittest
 from copy import deepcopy
 from datetime import timedelta

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import datetime
 import responses
 import pytest
@@ -175,9 +173,9 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
 
     @responses.activate
     def test_build_repository_config(self):
-        project = u"laurynsentry"
-        repo = u"helloworld"
-        full_repo_name = u"%s/%s" % (project, repo)
+        project = "laurynsentry"
+        repo = "helloworld"
+        full_repo_name = "%s/%s" % (project, repo)
 
         webhook_id = 79
         responses.add(

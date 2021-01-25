@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import click
 import six
 import types
@@ -36,7 +34,7 @@ _DEFAULT_DAEMONS = {
 def _get_daemon(name, *args, **kwargs):
     display_name = name
     if "suffix" in kwargs:
-        display_name = u"{}-{}".format(name, kwargs["suffix"])
+        display_name = "{}-{}".format(name, kwargs["suffix"])
 
     return (display_name, _DEFAULT_DAEMONS[name] + list(args))
 

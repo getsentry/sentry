@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.api.fields.actor import Actor
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.digests.utilities import (

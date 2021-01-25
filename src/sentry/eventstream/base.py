@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 
 from sentry.tasks.post_process import post_process_group

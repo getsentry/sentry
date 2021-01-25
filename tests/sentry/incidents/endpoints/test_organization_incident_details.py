@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from datetime import datetime
 
 from sentry.utils.compat import mock

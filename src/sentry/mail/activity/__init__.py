@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.mail.activity.assigned import AssignedActivityEmail
 from sentry.mail.activity.new_processing_issues import NewProcessingIssuesActivityEmail
 from sentry.mail.activity.note import NoteActivityEmail

@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division
-
 import logging
 import six
 
@@ -63,7 +61,7 @@ def check_auth_identity(auth_identity_id, **kwargs):
     except IdentityNotValid as exc:
         if prev_is_valid:
             logger.warning(
-                u"AuthIdentity(id=%s) notified as not valid: %s",
+                "AuthIdentity(id=%s) notified as not valid: %s",
                 auth_identity_id,
                 six.text_type(exc),
                 exc_info=True,
@@ -76,7 +74,7 @@ def check_auth_identity(auth_identity_id, **kwargs):
         # event
         metrics.incr("auth.identities.refresh_error", skip_internal=False)
         logger.exception(
-            u"AuthIdentity(id=%s) returned an error during validation: %s",
+            "AuthIdentity(id=%s) returned an error during validation: %s",
             auth_identity_id,
             six.text_type(exc),
         )

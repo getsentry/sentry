@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.utils.validators import is_event_id, normalize_event_id
 
 

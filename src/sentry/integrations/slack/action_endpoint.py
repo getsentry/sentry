@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 
 from sentry import analytics
@@ -90,7 +88,7 @@ class SlackActionEndpoint(Endpoint):
         )
 
         return client.put(
-            path=u"/projects/{}/{}/issues/".format(
+            path="/projects/{}/{}/issues/".format(
                 group.project.organization.slug, group.project.slug
             ),
             params={"id": group.id},
@@ -115,7 +113,7 @@ class SlackActionEndpoint(Endpoint):
 
         dialog = {
             "callback_id": callback_id,
-            "title": u"Resolve Issue",
+            "title": "Resolve Issue",
             "submit_label": "Resolve",
             "elements": [RESOLVE_SELECTOR],
         }

@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import os
 from sentry import eventstore, nodestore
 from sentry.eventstore.models import Event

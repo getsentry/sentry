@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry.api.base import Endpoint

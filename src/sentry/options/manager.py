@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import six
 import sys
 import logging
@@ -215,7 +213,7 @@ class OptionsManager(object):
             # the default value would be equivalent to '' if no type / default
             # is specified and we assume six.text_type for safety
             if default_value is None:
-                default_value = u""
+                default_value = ""
 
                 def default():
                     return default_value

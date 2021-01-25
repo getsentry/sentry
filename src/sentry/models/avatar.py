@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 
 from django.utils.encoding import force_bytes

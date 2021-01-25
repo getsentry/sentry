@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import responses
 from six.moves.urllib.parse import urlparse, parse_qsl
 from exam import fixture

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 
 from sentry.models import AuthIdentity, AuthProvider
@@ -23,8 +21,8 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         self.login_as(user)
 
-        path = u"/{}/".format(organization.slug)
-        redirect_uri = u"/auth/login/{}/".format(organization.slug)
+        path = "/{}/".format(organization.slug)
+        redirect_uri = "/auth/login/{}/".format(organization.slug)
 
         # we should be redirecting the user to the authentication form as they
         # haven't verified this specific organization

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 
 from sentry.integrations.client import ApiClient
@@ -34,7 +32,7 @@ class VercelClient(ApiClient):
             # always need to use the team_id as a param for requests
             params = params or {}
             params["teamId"] = self.team_id
-        headers = {"Authorization": u"Bearer {}".format(self.access_token)}
+        headers = {"Authorization": "Bearer {}".format(self.access_token)}
         try:
             return self._request(
                 method, path, headers=headers, data=data, params=params, allow_text=allow_text

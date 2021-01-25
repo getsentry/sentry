@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 
 import six
@@ -38,7 +36,7 @@ def get_oauth_data(payload):
 def get_user_info(access_token, installation_data):
     session = http.build_session()
     resp = session.get(
-        u"{}/api/v4/user".format(installation_data["url"]),
+        "{}/api/v4/user".format(installation_data["url"]),
         headers={"Accept": "application/json", "Authorization": "Bearer %s" % access_token},
         verify=installation_data["verify_ssl"],
     )

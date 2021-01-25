@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.utils.avatar import get_letter_avatar
 
 

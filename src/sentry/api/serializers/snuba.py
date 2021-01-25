@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division
-
 import six
 import itertools
 from functools import reduce, partial

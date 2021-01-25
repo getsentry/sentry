@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 
 from sentry.models import EventAttachment, File
@@ -34,7 +32,7 @@ class EventAttachmentsTest(APITestCase):
             name="hello.png",
         )
 
-        path = u"/api/0/projects/{}/{}/events/{}/attachments/".format(
+        path = "/api/0/projects/{}/{}/events/{}/attachments/".format(
             event1.project.organization.slug, event1.project.slug, event1.event_id
         )
 

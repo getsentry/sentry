@@ -5,7 +5,6 @@ A number of generic default fixtures to use with tests.
 All model-related fixtures defined here require the database, and should imply as much by
 including ``db`` fixture in the function resolution scope.
 """
-from __future__ import absolute_import, print_function, unicode_literals
 
 import io
 import os

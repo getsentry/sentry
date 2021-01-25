@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.conf import settings
 from django.middleware.csrf import get_token as get_csrf_token
 

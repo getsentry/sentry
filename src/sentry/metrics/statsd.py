@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 __all__ = ["StatsdMetricsBackend"]
 
 import statsd
@@ -14,7 +12,7 @@ class StatsdMetricsBackend(MetricsBackend):
 
     def _full_key(self, key, instance=None):
         if instance:
-            return u"{}.{}".format(key, instance)
+            return "{}.{}".format(key, instance)
         return key
 
     def incr(self, key, instance=None, tags=None, amount=1, sample_rate=1):

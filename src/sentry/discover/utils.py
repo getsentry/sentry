@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 
 from sentry.utils.snuba import Dataset, aliased_query, get_snuba_column_name, get_function_index
@@ -132,7 +130,7 @@ def transform_aliases_and_query(**kwargs):
         for field_with_order in orderby:
             field = field_with_order.lstrip("-")
             translated_orderby.append(
-                u"{}{}".format(
+                "{}{}".format(
                     "-" if field_with_order.startswith("-") else "",
                     field if field in derived_columns else get_snuba_column_name(field),
                 )

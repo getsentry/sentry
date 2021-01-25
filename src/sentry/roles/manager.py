@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 
 from collections import OrderedDict
@@ -23,7 +21,7 @@ class Role(object):
         return six.text_type(self.name)
 
     def __repr__(self):
-        return u"<Role: {}>".format(self.id)
+        return "<Role: {}>".format(self.id)
 
     def has_scope(self, scope):
         return scope in self.scopes

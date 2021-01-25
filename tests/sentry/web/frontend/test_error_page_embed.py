@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.core.urlresolvers import reverse
 from django.test import override_settings
 from six.moves.urllib.parse import quote, urlencode

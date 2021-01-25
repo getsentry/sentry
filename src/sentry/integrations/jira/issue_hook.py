@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 import logging
 
 from jwt import ExpiredSignatureError
@@ -54,14 +51,18 @@ class JiraIssueHookView(JiraBaseHook):
 
         # TODO: find more effecient way of getting stats
         def get_serialized_and_stats(stats_period):
-            result = serialize(group, None, StreamGroupSerializer(stats_period=stats_period),)
+            result = serialize(
+                group,
+                None,
+                StreamGroupSerializer(stats_period=stats_period),
+            )
             stats = result["stats"][stats_period]
             return result, reduce(accum, stats, 0)
 
         def get_release_url(release):
             project = group.project
             return absolute_uri(
-                u"/organizations/{}/releases/{}/?project={}".format(
+                "/organizations/{}/releases/{}/?project={}".format(
                     project.organization.slug, quote(release), project.id
                 )
             )

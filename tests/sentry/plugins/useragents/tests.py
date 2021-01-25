@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
 
 from sentry.testutils import TestCase
 from sentry.plugins.sentry_useragents.models import BrowserPlugin, DevicePlugin, OsPlugin

@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from sentry.logging import LoggingFormat
 from sentry.options import (
     FLAG_IMMUTABLE,

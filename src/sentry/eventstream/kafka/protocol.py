@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytz
 import logging
 from datetime import datetime
@@ -55,7 +53,7 @@ def basic_protocol_handler(unsupported_operations):
             logger.debug("Skipping unsupported operation: %s", operation)
             return None
         else:
-            raise UnexpectedOperation(u"Received unexpected operation type: {!r}".format(operation))
+            raise UnexpectedOperation("Received unexpected operation type: {!r}".format(operation))
 
     return handle_message
 

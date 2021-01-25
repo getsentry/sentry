@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 
 from sentry.api.event_search import get_function_alias

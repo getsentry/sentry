@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.models import Integration, Identity, IdentityProvider
 from sentry.integrations import IntegrationInstallation
 from sentry.testutils import TestCase

@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from django.utils.encoding import force_text, force_bytes
 
 __all__ = ["JavaScriptStacktraceProcessor"]
@@ -91,7 +89,7 @@ def trim_line(line, column=0):
     `column`. So it tries to extract 60 characters before and after
     the provided `column` and yield a better context.
     """
-    line = line.strip(u"\n")
+    line = line.strip("\n")
     ll = len(line)
     if ll <= 150:
         return line
@@ -112,10 +110,10 @@ def trim_line(line, column=0):
     line = line[start:end]
     if end < ll:
         # we've snipped from the end
-        line += u" {snip}"
+        line += " {snip}"
     if start > 0:
         # we've snipped from the beginning
-        line = u"{snip} " + line
+        line = "{snip} " + line
     return line
 
 

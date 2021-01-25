@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 
 from sentry.coreapi import APIUnauthorized
@@ -25,7 +23,7 @@ class IssueLinkCreator(Mediator):
 
     def _verify_action(self):
         if self.action not in ["link", "create"]:
-            raise APIUnauthorized(u"Invalid action '{}'".format(self.action))
+            raise APIUnauthorized("Invalid action '{}'".format(self.action))
 
     def _make_external_request(self):
         self.response = external_requests.IssueLinkRequester.run(
@@ -40,7 +38,7 @@ class IssueLinkCreator(Mediator):
     def _format_response_data(self):
         web_url = self.response["webUrl"]
 
-        display_name = u"{}#{}".format(
+        display_name = "{}#{}".format(
             escape(self.response["project"]), escape(self.response["identifier"])
         )
 

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 import inspect
 
@@ -91,8 +89,7 @@ class Strategy(object):
         return func
 
     def get_grouping_component(self, event, variant, config):
-        """Given a specific variant this calculates the grouping component.
-        """
+        """Given a specific variant this calculates the grouping component."""
         args = []
         for iface_path in self.interfaces:
             iface = event.interfaces.get(iface_path)

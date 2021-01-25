@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
 
 import six
 from django.utils.encoding import force_text
@@ -22,7 +21,7 @@ class RedisBufferTest(TestCase):
         assert self.buf._coerce_val(Project(id=1)) == b"1"
 
     def test_coerce_val_handles_unicode(self):
-        assert self.buf._coerce_val(u"\u201d") == u"”".encode("utf-8")
+        assert self.buf._coerce_val("\u201d") == "”".encode("utf-8")
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.redis.process_incr")

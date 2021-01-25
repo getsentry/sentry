@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from django.utils.encoding import force_text, python_2_unicode_compatible
 from datetime import timedelta
 from django.db import models, transaction

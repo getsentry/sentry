@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import itertools
 import logging
 import random
@@ -24,7 +22,7 @@ class RetryException(Exception):
         return force_bytes(self.message, errors="replace")
 
     def __repr__(self):
-        return u"<{}: {!r}>".format(type(self).__name__, self.message)
+        return "<{}: {!r}>".format(type(self).__name__, self.message)
 
 
 class RetryPolicy(object):

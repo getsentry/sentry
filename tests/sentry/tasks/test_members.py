@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from django.core import mail
 
 from sentry.models import InviteStatus, OrganizationMember

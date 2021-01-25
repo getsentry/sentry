@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from django.conf import settings
 from django.db import models
 
@@ -25,11 +23,11 @@ option_scope_error = "this is not a supported use case, scope to project OR orga
 class UserOptionManager(OptionManager):
     def _make_key(self, user, project=None, organization=None):
         if project:
-            metakey = u"%s:%s:project" % (user.pk, project.id)
+            metakey = "%s:%s:project" % (user.pk, project.id)
         elif organization:
-            metakey = u"%s:%s:organization" % (user.pk, organization.id)
+            metakey = "%s:%s:organization" % (user.pk, organization.id)
         else:
-            metakey = u"%s:user" % (user.pk)
+            metakey = "%s:user" % (user.pk)
 
         return super(UserOptionManager, self)._make_key(metakey)
 

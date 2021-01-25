@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import responses
 import six
 
@@ -84,7 +82,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         )
 
         resp = self.client.get(
-            u"{}?{}".format(
+            "{}?{}".format(
                 self.setup_path,
                 urlencode({"code": "oauth-code", "state": authorize_params["state"]}),
             )
@@ -118,8 +116,8 @@ class GitlabIntegrationTest(IntegrationTestCase):
         assert integration.metadata == {
             "instance": "gitlab.example.com",
             "scopes": ["api"],
-            "icon": u"https://gitlab.example.com/uploads/group/avatar/4/foo.jpg",
-            "domain_name": u"gitlab.example.com/cool-group",
+            "icon": "https://gitlab.example.com/uploads/group/avatar/4/foo.jpg",
+            "domain_name": "gitlab.example.com/cool-group",
             "verify_ssl": True,
             "base_url": "https://gitlab.example.com",
             "webhook_secret": "secret-token",
@@ -180,7 +178,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
             responses.GET, "https://gitlab.example.com/api/v4/groups/cool-group", status=404
         )
         resp = self.client.get(
-            u"{}?{}".format(
+            "{}?{}".format(
                 self.setup_path,
                 urlencode({"code": "oauth-code", "state": authorize_params["state"]}),
             )
@@ -205,7 +203,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="Get Sentry / Example Repo",
-            external_id=u"{}:{}".format(instance, external_id),
+            external_id="{}:{}".format(instance, external_id),
             url="https://gitlab.example.com/getsentry/projects/example-repo",
             config={"project_id": external_id, "path": "getsentry/example-repo"},
             provider="integrations:gitlab",
@@ -218,7 +216,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         version = "12345678"
         responses.add(
             responses.HEAD,
-            u"https://gitlab.example.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
+            "https://gitlab.example.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
                 external_id, filepath, version
             ),
         )
@@ -237,7 +235,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="Get Sentry / Example Repo",
-            external_id=u"{}:{}".format(instance, external_id),
+            external_id="{}:{}".format(instance, external_id),
             url="https://gitlab.example.com/getsentry/projects/example-repo",
             config={"project_id": external_id, "path": "getsentry/example-repo"},
             provider="integrations:gitlab",
@@ -250,7 +248,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         version = None
         responses.add(
             responses.HEAD,
-            u"https://gitlab.example.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
+            "https://gitlab.example.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
                 external_id, filepath, ref
             ),
             status=404,
@@ -267,7 +265,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="Get Sentry / Example Repo",
-            external_id=u"{}:{}".format(instance, external_id),
+            external_id="{}:{}".format(instance, external_id),
             url="https://gitlab.example.com/getsentry/projects/example-repo",
             config={"project_id": external_id, "path": "getsentry/example-repo"},
             provider="integrations:gitlab",
@@ -280,14 +278,14 @@ class GitlabIntegrationTest(IntegrationTestCase):
         version = "12345678"
         responses.add(
             responses.HEAD,
-            u"https://gitlab.example.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
+            "https://gitlab.example.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
                 external_id, filepath, version
             ),
             status=404,
         )
         responses.add(
             responses.HEAD,
-            u"https://gitlab.example.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
+            "https://gitlab.example.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
                 external_id, filepath, ref
             ),
         )

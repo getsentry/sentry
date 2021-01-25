@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from exam import fixture
 
 from sentry.api.serializers import serialize

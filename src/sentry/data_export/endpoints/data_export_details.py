@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from django.http import StreamingHttpResponse
@@ -51,5 +49,5 @@ class DataExportDetailsEndpoint(OrganizationEndpoint):
             iter(lambda: raw_file.read(4096), b""), content_type="text/csv"
         )
         response["Content-Length"] = file.size
-        response["Content-Disposition"] = u'attachment; filename="{}"'.format(file.name)
+        response["Content-Disposition"] = 'attachment; filename="{}"'.format(file.name)
         return response

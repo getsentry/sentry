@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
 

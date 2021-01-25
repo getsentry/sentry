@@ -1,6 +1,3 @@
-from __future__ import absolute_import, print_function
-
-
 # TODO(python3): Notes on pickle compatibility between 2 + 3:
 #
 # ## Encoding

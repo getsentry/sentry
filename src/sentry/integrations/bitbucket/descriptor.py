@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.api.base import Endpoint
 from sentry.utils.http import absolute_uri
 

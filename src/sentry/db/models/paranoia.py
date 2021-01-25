@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.db import models
 from django.db.models.query import QuerySet
 from django.utils import timezone

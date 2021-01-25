@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django import VERSION
 
 from sentry.new_migrations.monkey.executor import SentryMigrationExecutor

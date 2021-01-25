@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from sentry.auth.providers.saml2.provider import SAML2Provider, Attributes
 from sentry.auth.providers.saml2.views import make_simple_setup
 from sentry.auth.providers.saml2.forms import URLMetadataForm

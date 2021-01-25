@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from collections import OrderedDict, defaultdict
 from exam import fixture
 from six.moves import reduce

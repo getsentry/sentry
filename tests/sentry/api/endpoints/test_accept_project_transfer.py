@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from uuid import uuid4
 from six.moves.urllib.parse import urlencode
 from django.core.urlresolvers import reverse

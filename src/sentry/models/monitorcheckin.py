@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from django.db import models
 from django.utils import timezone
 
@@ -25,10 +23,10 @@ class CheckInStatus(object):
     @classmethod
     def as_choices(cls):
         return (
-            (cls.UNKNOWN, u"unknown"),
-            (cls.OK, u"ok"),
-            (cls.ERROR, u"error"),
-            (cls.IN_PROGRESS, u"in_progress"),
+            (cls.UNKNOWN, "unknown"),
+            (cls.OK, "ok"),
+            (cls.ERROR, "error"),
+            (cls.IN_PROGRESS, "in_progress"),
         )
 
 

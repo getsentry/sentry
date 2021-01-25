@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 __all__ = ["ReleaseHook"]
 
 from sentry.exceptions import HookValidationError

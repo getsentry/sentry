@@ -9,7 +9,6 @@ In Sentry a user must achieve the following to be treated as a superuser:
   standard auth. This session has a shorter lifespan.
 """
 
-from __future__ import absolute_import
 
 import ipaddress
 import logging
@@ -223,7 +222,7 @@ class Superuser(object):
             if not self.is_active:
                 if self._inactive_reason:
                     logger.warn(
-                        u"superuser.{}".format(self._inactive_reason),
+                        "superuser.{}".format(self._inactive_reason),
                         extra={
                             "ip_address": request.META["REMOTE_ADDR"],
                             "user_id": request.user.id,

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.views.generic import View
 
 from sentry.web.frontend.error_500 import Error500View

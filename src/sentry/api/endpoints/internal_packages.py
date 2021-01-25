@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pkg_resources
 
 from rest_framework.response import Response

@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import six
 
 from django.db import models
@@ -35,7 +33,7 @@ class ArrayField(models.Field):
         setattr(cls, name, Creator(self))
 
     def db_type(self, connection):
-        return u"{}[]".format(self.of.db_type(connection))
+        return "{}[]".format(self.of.db_type(connection))
 
     def get_internal_type(self):
         return "TextField"

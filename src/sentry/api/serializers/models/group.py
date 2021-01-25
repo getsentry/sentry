@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import functools
 import itertools
 from collections import defaultdict
@@ -84,7 +82,11 @@ def merge_list_dictionaries(dict1, dict2):
 
 class GroupSerializerBase(Serializer):
     def __init__(
-        self, collapse=None, expand=None, has_inbox=False, has_workflow_owners=False,
+        self,
+        collapse=None,
+        expand=None,
+        has_inbox=False,
+        has_workflow_owners=False,
     ):
         self.collapse = collapse
         self.expand = expand
@@ -329,7 +331,7 @@ class GroupSerializerBase(Serializer):
         if len(organization_id_list) > 1:
             # this should never happen but if it does we should know about it
             logger.warn(
-                u"Found multiple organizations for groups: %s, with orgs: %s"
+                "Found multiple organizations for groups: %s, with orgs: %s"
                 % ([item.id for item in item_list], organization_id_list)
             )
 
@@ -725,7 +727,7 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
                 model=tsdb.models.group,
                 keys=group_ids,
                 environment_ids=environment and [environment.id],
-                **query_params
+                **query_params,
             )
 
         return stats
@@ -985,7 +987,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             keys=group_ids,
             environment_ids=environment_ids,
             conditions=conditions,
-            **query_params
+            **query_params,
         )
 
     def get_attrs(self, item_list, user):

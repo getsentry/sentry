@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 EXAMPLE_PRIVATE_KEY = """-----BEGIN RSA PRIVATE KEY-----
 MIICWwIBAAKBgQC1cd9t8sA03awggLiX2gjZxyvOVUPJksLly1E662tttTeR3Wm9
 eo6onNeI8HRD+O4wubUp4h4Chc7DtLDmFEPhUZ8Qkwztiifm99Xo3s0nUq4Pygp5

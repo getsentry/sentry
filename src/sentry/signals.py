@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 
 from django.dispatch.dispatcher import NO_RECEIVERS, Signal

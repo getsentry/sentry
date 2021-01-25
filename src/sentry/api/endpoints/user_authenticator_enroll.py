@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.http import HttpResponse
 from rest_framework import serializers, status
 from rest_framework.fields import SkipField
@@ -153,7 +151,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         :auth: required
         """
         if ratelimiter.is_limited(
-            u"auth:authenticator-enroll:{}:{}".format(request.user.id, interface_id),
+            "auth:authenticator-enroll:{}:{}".format(request.user.id, interface_id),
             limit=10,
             window=86400,  # 10 per day should be fine
         ):

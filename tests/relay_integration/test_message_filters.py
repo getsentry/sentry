@@ -1,6 +1,3 @@
-from __future__ import absolute_import, print_function
-
-
 from sentry.testutils import TransactionTestCase, RelayStoreHelper
 from sentry.models.projectoption import ProjectOption
 from sentry.utils.safe import set_path
@@ -18,7 +15,7 @@ class FilterTests(RelayStoreHelper, TransactionTestCase):
 
     def _set_filter_state(self, flt, state):
         ProjectOption.objects.set_value(
-            project=self.project, key=u"filters:{}".format(flt.id), value=state
+            project=self.project, key="filters:{}".format(flt.id), value=state
         )
 
     def test_should_not_filter_simple_messages(self):

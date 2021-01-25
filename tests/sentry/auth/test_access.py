@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.contrib.auth.models import AnonymousUser
 from sentry.utils.compat.mock import Mock
 

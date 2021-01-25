@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from sentry.models import User
 from django.views.generic import View
 

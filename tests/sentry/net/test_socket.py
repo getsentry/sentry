@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 from sentry.utils.compat.mock import patch
 from django.core.exceptions import SuspiciousOperation

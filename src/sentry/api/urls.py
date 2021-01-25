@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from django.conf.urls import include, url
 
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
@@ -427,7 +425,9 @@ urlpatterns = [
                     name="sentry-api-0-relay-publickeys",
                 ),
                 url(
-                    r"^live/$", RelayHealthCheck.as_view(), name="sentry-api-0-relays-healthcheck",
+                    r"^live/$",
+                    RelayHealthCheck.as_view(),
+                    name="sentry-api-0-relays-healthcheck",
                 ),
                 url(
                     r"^(?P<relay_id>[^\/]+)/$",

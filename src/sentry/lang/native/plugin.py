@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.lang.native.processing import (
     process_applecrashreport,
     process_minidump,

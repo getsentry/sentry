@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.utils.compat.mock import patch
 from collections import namedtuple
 

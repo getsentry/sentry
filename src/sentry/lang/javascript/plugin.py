@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from sentry.plugins.base.v2 import Plugin2
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils.safe import get_path

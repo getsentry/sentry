@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
 
-from django.db import migrations, models
+from django.db import migrations
+
 
 def forwards(apps, schema_editor):
     """
@@ -35,11 +35,8 @@ class Migration(migrations.Migration):
     # We are running many updates, so we don't want to be in a transaction.
     atomic = False
 
-
     dependencies = [
         ("sentry", "0018_discoversavedquery_version"),
     ]
 
-    operations = [
-        migrations.RunPython(forwards, migrations.RunPython.noop)
-    ]
+    operations = [migrations.RunPython(forwards, migrations.RunPython.noop)]

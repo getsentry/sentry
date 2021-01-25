@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import inspect
 import six
 
@@ -232,7 +230,7 @@ def configure_sdk():
             RustInfoIntegration(),
             RedisIntegration(),
         ],
-        **sdk_options
+        **sdk_options,
     )
 
 

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import boto3
 
 from sentry import options
@@ -19,7 +17,7 @@ def gen_aws_client(account_number, region, aws_external_id, service_name="lambda
     Returns an aws_lambda_client
     """
 
-    role_arn = u"arn:aws:iam::%s:role/SentryRole" % (account_number)
+    role_arn = "arn:aws:iam::%s:role/SentryRole" % (account_number)
 
     aws_access_key_id = options.get("aws-lambda.access-key-id")
     aws_secret_access_key = options.get("aws-lambda.secret-access-key")
@@ -47,7 +45,7 @@ def gen_aws_client(account_number, region, aws_external_id, service_name="lambda
                     {
                         "Effect": "Allow",
                         "Action": ["lambda:UpdateFunctionConfiguration", "lambda:GetFunction"],
-                        "Resource": u"arn:aws:lambda:{}:{}:function:*".format(
+                        "Resource": "arn:aws:lambda:{}:{}:function:*".format(
                             region, account_number
                         ),
                     },

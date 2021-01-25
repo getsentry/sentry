@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from uuid import uuid4
 
 from django.conf import settings

@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 __all__ = ["IntegrationPipeline"]
 
 from django.db import IntegrityError

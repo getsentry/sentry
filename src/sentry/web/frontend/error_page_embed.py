@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 
 from django import forms
@@ -179,7 +177,8 @@ class ErrorPageEmbedView(View):
                     report.notify()
 
             user_feedback_received.send(
-                project=Project.objects.get(id=report.project_id), sender=self,
+                project=Project.objects.get(id=report.project_id),
+                sender=self,
             )
 
             return self._smart_response(request)

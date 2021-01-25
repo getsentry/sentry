@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import pytest
 from datetime import timedelta
 from django.utils import timezone
@@ -163,7 +161,7 @@ class CreateMonitorCheckInTest(APITestCase):
         with self.feature({"organizations:monitors": True}):
             resp = self.client.post(
                 "/api/0/monitors/{}/checkins/".format(monitor.guid),
-                HTTP_AUTHORIZATION=u"DSN {}".format(project_key.dsn_public),
+                HTTP_AUTHORIZATION="DSN {}".format(project_key.dsn_public),
                 data={"status": "ok"},
             )
 
@@ -190,7 +188,7 @@ class CreateMonitorCheckInTest(APITestCase):
         with self.feature({"organizations:monitors": True}):
             resp = self.client.post(
                 "/api/0/monitors/{}/checkins/".format(monitor.guid),
-                HTTP_AUTHORIZATION=u"DSN {}".format(project_key.dsn_public),
+                HTTP_AUTHORIZATION="DSN {}".format(project_key.dsn_public),
                 data={"status": "ok"},
             )
 

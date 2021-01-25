@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.http import Http404
 
 from sentry.api.bases.integration import IntegrationEndpoint
@@ -25,7 +23,8 @@ class OrganizationIntegrationBaseEndpoint(IntegrationEndpoint):
         """
         try:
             return OrganizationIntegration.objects.get(
-                integration_id=integration_id, organization=organization,
+                integration_id=integration_id,
+                organization=organization,
             )
         except OrganizationIntegration.DoesNotExist:
             raise Http404

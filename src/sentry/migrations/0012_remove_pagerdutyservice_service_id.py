@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
 
-from django.db import migrations, models
+from django.db import migrations
 
 
 class Migration(migrations.Migration):
@@ -20,7 +19,7 @@ class Migration(migrations.Migration):
     is_dangerous = False
 
     dependencies = [
-        ('sentry', '0011_remove_pagerdutyservice_service_id_from_state'),
+        ("sentry", "0011_remove_pagerdutyservice_service_id_from_state"),
     ]
 
     operations = [

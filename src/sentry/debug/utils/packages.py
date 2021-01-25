@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 import sys
 from sentry.utils.compat import map
@@ -66,6 +64,6 @@ def get_all_package_versions():
 
         packages[module_name] = version
 
-    packages["sys"] = u"{0}.{1}.{2}".format(*sys.version_info)
+    packages["sys"] = "{0}.{1}.{2}".format(*sys.version_info)
 
     return packages

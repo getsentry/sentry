@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.core.urlresolvers import reverse
 from django.conf import settings
 
@@ -17,11 +15,11 @@ class AuthenticatorIndex(APITestCase):
                 "devices": [
                     {
                         "binding": {
-                            "publicKey": u"aowekroawker",
-                            "keyHandle": u"aowkeroakewrokaweokrwoer",
-                            "appId": u"https://dev.getsentry.net:8000/auth/2fa/u2fappid.json",
+                            "publicKey": "aowekroawker",
+                            "keyHandle": "aowkeroakewrokaweokrwoer",
+                            "appId": "https://dev.getsentry.net:8000/auth/2fa/u2fappid.json",
                         },
-                        "name": u"Amused Beetle",
+                        "name": "Amused Beetle",
                         "ts": 1512505334,
                     }
                 ]

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from bitfield.types import Bit, BitHandler
 
 from django.db.models.lookups import Exact

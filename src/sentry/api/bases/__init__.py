@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from .group import *  # NOQA
 from .dashboard import *  # NOQA
 from .organization import *  # NOQA

@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from django.core.urlresolvers import reverse
 from structlog import get_logger
 
@@ -56,7 +54,7 @@ def send_invite_request_notification_email(member_id):
         subject="Access request to %s" % (om.organization.name,),
         type="organization.invite-request",
         context=context,
-        **email_args
+        **email_args,
     )
 
     for recipient in recipients:

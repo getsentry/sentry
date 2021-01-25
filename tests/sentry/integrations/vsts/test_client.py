@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import responses
 
 from six.moves.urllib.parse import parse_qs
@@ -37,7 +35,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         assert responses.calls[-2].request.url == "https://app.vssps.visualstudio.com/oauth2/token"
 
         # Then we request the Projects with the new token
-        assert responses.calls[-1].request.url.split("?")[0] == u"{}_apis/projects".format(
+        assert responses.calls[-1].request.url.split("?")[0] == "{}_apis/projects".format(
             self.vsts_base_url.lower()
         )
 
@@ -77,7 +75,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         assert responses.calls[-2].request.url == "https://app.vssps.visualstudio.com/oauth2/token"
 
         # Then we request the Projects with the new token
-        assert responses.calls[-1].request.url.split("?")[0] == u"{}_apis/projects".format(
+        assert responses.calls[-1].request.url.split("?")[0] == "{}_apis/projects".format(
             self.vsts_base_url.lower()
         )
 
@@ -103,7 +101,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         integration = Integration.objects.get(provider="vsts")
         responses.add_callback(
             responses.GET,
-            u"https://{}.visualstudio.com/_apis/projects".format(self.vsts_account_name.lower()),
+            "https://{}.visualstudio.com/_apis/projects".format(self.vsts_account_name.lower()),
             callback=request_callback,
         )
 

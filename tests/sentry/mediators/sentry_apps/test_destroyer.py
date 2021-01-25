@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.db import connection
 from sentry.utils.compat.mock import patch
 import responses

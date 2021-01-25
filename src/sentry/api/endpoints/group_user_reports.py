@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.paginator import DateTimePaginator

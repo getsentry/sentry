@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django import forms
 from django.utils.encoding import force_text
 from django.utils.translation import ugettext_lazy as _
@@ -89,7 +87,7 @@ def process_metadata(form_cls, request, helper):
         error_list = ", ".join(field_errors)
 
         errors = form._errors.setdefault("__all__", ErrorList())
-        errors.append(u"Invalid metadata: {}".format(error_list))
+        errors.append("Invalid metadata: {}".format(error_list))
         return form
 
     helper.bind_state("idp", data)

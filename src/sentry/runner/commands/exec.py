@@ -1,11 +1,9 @@
-from __future__ import absolute_import, print_function
-
 import six
 import sys
 import click
 
 # If this changes, make sure to also update in the `__doc__`
-SCRIPT_TEMPLATE = u"""\
+SCRIPT_TEMPLATE = """\
 %(header)s
 
 try:

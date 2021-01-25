@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 __all__ = ["Feature", "with_feature"]
 
 import six

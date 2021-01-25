@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import posixpath
 
 from sentry.constants import NATIVE_UNKNOWN_STRING

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.utils import timezone
 
 from sentry.models.groupinbox import add_group_to_inbox, GroupInboxReason
@@ -49,7 +47,11 @@ class SignalsTest(TestCase, SnubaTestCase):
     @patch("sentry.analytics.record")
     def test_inbox_in(self, mock_record):
         inbox_in.send(
-            project=self.project, group=self.group, user=None, sender="test_inbox_in", reason="new",
+            project=self.project,
+            group=self.group,
+            user=None,
+            sender="test_inbox_in",
+            reason="new",
         )
         assert mock_record.called
 

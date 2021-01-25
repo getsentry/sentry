@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry import features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.constants import MIGRATED_CONDITIONS, TICKET_ACTIONS

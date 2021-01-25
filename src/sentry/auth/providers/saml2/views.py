@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.auth.view import AuthView
 from sentry.auth.providers.saml2.forms import process_metadata
 

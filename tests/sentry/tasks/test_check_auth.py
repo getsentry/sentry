@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from datetime import timedelta
 from django.utils import timezone
 from sentry.utils.compat.mock import patch

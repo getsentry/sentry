@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 from datetime import timedelta
 
@@ -55,7 +53,7 @@ def apply_dataset_query_conditions(dataset, query, event_types, discover=False):
     else:
         return query
 
-    return u"({}) AND ({})".format(event_type_conditions, query)
+    return "({}) AND ({})".format(event_type_conditions, query)
 
 
 @instrumented_task(
@@ -216,7 +214,8 @@ def _delete_from_snuba(dataset, subscription_id):
 
 
 @instrumented_task(
-    name="sentry.snuba.tasks.subscription_checker", queue="subscriptions",
+    name="sentry.snuba.tasks.subscription_checker",
+    queue="subscriptions",
 )
 def subscription_checker(**kwargs):
     """
@@ -224,7 +223,9 @@ def subscription_checker(**kwargs):
     """
     count = 0
     with sentry_sdk.start_transaction(
-        op="subscription_checker", name="subscription_checker", sampled=False,
+        op="subscription_checker",
+        name="subscription_checker",
+        sampled=False,
     ):
         for subscription in QuerySubscription.objects.filter(
             status__in=(

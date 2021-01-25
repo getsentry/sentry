@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division
-
 import itertools
 from sentry.utils.compat import mock
 import pytz

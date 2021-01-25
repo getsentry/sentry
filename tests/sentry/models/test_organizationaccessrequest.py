@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.core import mail
 
 from sentry.models import OrganizationAccessRequest, OrganizationMember, OrganizationMemberTeam

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.http import Http404
 
 from sentry.api.base import EnvironmentMixin
@@ -37,6 +35,6 @@ class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
         except ExportError:
             raise Http404
 
-        filename = u"{}-{}".format(processor.group.qualified_short_id or processor.group.id, key)
+        filename = "{}-{}".format(processor.group.qualified_short_id or processor.group.id, key)
 
         return self.to_csv_response(processor.get_raw_data(), filename, key=key)

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry import integrations
 from sentry.integrations.vsts_extension import VstsExtensionIntegrationProvider
 from sentry.testutils import TestCase

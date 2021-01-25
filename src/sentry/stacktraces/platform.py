@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 NATIVE_PLATFORMS = frozenset(("objc", "cocoa", "swift", "native", "c"))
 JAVASCRIPT_PLATFORMS = frozenset(("javascript", "node"))
 

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 
 from sentry.plugins.bases.notify import NotifyPlugin
@@ -87,7 +85,7 @@ class VictorOpsPlugin(CorePluginMixin, NotifyPlugin):
                 continue
             interface_list.append((interface.get_title(), body))
 
-        return u"\n\n".join((u"{}\n-----------\n\n{}".format(k, v) for k, v in interface_list))
+        return "\n\n".join(("{}\n-----------\n\n{}".format(k, v) for k, v in interface_list))
 
     def notify_users(self, group, event, fail_silently=False, **kwargs):
         if not self.is_configured(group.project):

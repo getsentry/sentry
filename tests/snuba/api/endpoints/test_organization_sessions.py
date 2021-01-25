@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import datetime
 import pytz
 
@@ -65,7 +63,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                 session_id=uuid4().hex,
                 org_id=project.organization_id,
                 project_id=project.id,
-                **kwargs
+                **kwargs,
             )
 
         self.store_session(make_session(self.project1))

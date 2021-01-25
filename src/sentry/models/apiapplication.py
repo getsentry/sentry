@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import petname
 
 from django.db import models

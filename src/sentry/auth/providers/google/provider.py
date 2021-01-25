@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from sentry import options
 from sentry.auth.provider import MigratingIdentityId
 from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Provider, OAuth2Login

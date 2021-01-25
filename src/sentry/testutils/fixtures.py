@@ -1,5 +1,4 @@
 # coding=utf-8
-from __future__ import absolute_import, print_function, unicode_literals
 
 import six
 
@@ -123,7 +122,7 @@ class Fixtures(object):
             action_match=action_match,
             condition_match=condition_match,
             *args,
-            **kwargs
+            **kwargs,
         )
 
     def create_slack_project_rule(
@@ -137,7 +136,7 @@ class Fixtures(object):
             channel_id=channel_id,
             channel_name=channel_name,
             *args,
-            **kwargs
+            **kwargs,
         )
 
     def create_release(self, project=None, user=None, *args, **kwargs):
@@ -278,7 +277,7 @@ class Fixtures(object):
         target_identifier=None,
         triggered_for_incident=None,
         *args,
-        **kwargs
+        **kwargs,
     ):
         if not alert_rule_trigger:
             alert_rule_trigger = self.create_alert_rule_trigger()

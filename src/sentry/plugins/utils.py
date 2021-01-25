@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.integrations import FeatureDescription, IntegrationFeatures
 

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 
 from sentry.testutils import APITestCase
@@ -14,7 +12,7 @@ class TeamGroupsTrendingTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = u"/api/0/teams/{}/{}/issues/trending/".format(
+        url = "/api/0/teams/{}/{}/issues/trending/".format(
             self.team.organization.slug, self.team.slug
         )
         response = self.client.get(url, format="json")

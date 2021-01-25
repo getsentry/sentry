@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import os
 import click
 
@@ -11,7 +9,7 @@ DEFAULT_SETTINGS_OVERRIDE = "sentry.conf.py"
 def generate_secret_key():
     from django.utils.crypto import get_random_string
 
-    chars = u"abcdefghijklmnopqrstuvwxyz0123456789!@#%^&*(-_=+)"
+    chars = "abcdefghijklmnopqrstuvwxyz0123456789!@#%^&*(-_=+)"
     return get_random_string(50, chars)
 
 

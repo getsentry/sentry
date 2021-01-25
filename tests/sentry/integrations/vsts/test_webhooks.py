@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import responses
 from sentry.utils.compat.mock import patch
 from time import time
@@ -30,7 +28,7 @@ class VstsWebhookWorkItemTest(APITestCase):
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
         self.access_token = "1234567890"
-        self.account_id = u"80ded3e8-3cd3-43b1-9f96-52032624aa3a"
+        self.account_id = "80ded3e8-3cd3-43b1-9f96-52032624aa3a"
         self.instance = "https://instance.visualstudio.com/"
         self.shared_secret = "1234567890"
         self.model = Integration.objects.create(

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 __all__ = ["default_cache"]
 
 from django.conf import settings

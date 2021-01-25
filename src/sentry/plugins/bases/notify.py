@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import logging
 import six
 from six.moves.urllib.error import HTTPError as UrllibHTTPError
@@ -129,7 +127,7 @@ class NotificationPlugin(Plugin):
         if not (
             hasattr(self, "notify_digest") and digests.enabled(project)
         ) and self.__is_rate_limited(group, event):
-            logger = logging.getLogger(u"sentry.plugins.{0}".format(self.get_conf_key()))
+            logger = logging.getLogger("sentry.plugins.{0}".format(self.get_conf_key()))
             logger.info("notification.rate_limited", extra={"project_id": project.id})
             return False
 

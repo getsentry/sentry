@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from exam import fixture
 from sentry.utils.compat.mock import patch
 
@@ -188,7 +186,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
                 self.project.slug,
                 alert_rule.id,
                 status_code=404,
-                **serialized_alert_rule
+                **serialized_alert_rule,
             )
 
     @patch(

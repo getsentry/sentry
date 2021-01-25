@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.utils.http import absolute_uri
 from sentry_plugins.client import ApiClient
 

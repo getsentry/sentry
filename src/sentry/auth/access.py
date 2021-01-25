@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 __all__ = ["from_user", "from_member", "DEFAULT"]
 
 import warnings
