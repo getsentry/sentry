@@ -277,6 +277,7 @@ def post_process_group(
             try:
                 from sentry.app import locks
                 from sentry.utils.locking import UnableToAcquireLock
+
                 lock = locks.get(
                     "w-o:{}-d-l".format(event.group_id),
                     duration=10,
@@ -291,7 +292,8 @@ def post_process_group(
                         cache.set(has_commit_key, org_has_commit, 3600)
 
                     if org_has_commit and features.has(
-                        "organizations:workflow-owners", event.project.organization,
+                        "organizations:workflow-owners",
+                        event.project.organization,
                     ):
                         cache_key = "w-o-i:g-{}".format(group_id)
                         if cache.get(cache_key):
@@ -303,6 +305,7 @@ def post_process_group(
                         else:
                             from sentry.utils.committers import get_frame_paths
                             from sentry.tasks.groupowner import OWNER_CACHE_LIFE
+
                             cache.set(cache_key, True, OWNER_CACHE_LIFE)
                             event_frames = get_frame_paths(event.data)
                             process_suspect_commits.delay(
