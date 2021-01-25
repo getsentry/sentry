@@ -13,7 +13,7 @@ import {GlobalSelection, Organization, ReleaseMeta} from 'app/types';
 import {WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {Theme} from 'app/utils/theme';
-import {getTermHelp} from 'app/views/performance/data';
+import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 import {ChartContainer, HeaderTitleLegend} from 'app/views/performance/styles';
 
 import {ReleaseStatsRequestRenderProps} from '../releaseStatsRequest';
@@ -80,7 +80,7 @@ class ReleaseChartContainer extends React.Component<Props> {
       case YAxis.FAILED_TRANSACTIONS:
         return {
           title: t('Failure Count'),
-          help: getTermHelp(organization, 'failureRate'),
+          help: getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE),
         };
       case YAxis.COUNT_DURATION:
         return {title: t('Slow Duration Count')};

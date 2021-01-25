@@ -2,7 +2,7 @@ import {Location} from 'history';
 
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {backend, frontend} from 'app/data/platformCategories';
-import {Organization, Project} from 'app/types';
+import {LightWeightOrganization, Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {AggregationKey, Column} from 'app/utils/discover/fields';
 import {
@@ -13,7 +13,7 @@ import {
 } from 'app/utils/formatters';
 import {decodeScalar} from 'app/utils/queryString';
 
-import {AxisOption} from '../data';
+import {AxisOption, getTermHelp, PERFORMANCE_TERM} from '../data';
 import {HistogramData, Rectangle} from '../transactionVitals/types';
 
 export const LEFT_AXIS_QUERY_KEY = 'left';
@@ -139,27 +139,29 @@ export function getDefaultDisplayFieldForPlatform(
   return LandingDisplayField.ALL;
 }
 
-export const backendCardDetails = {
-  p75: {
-    title: 'Duration (p75)',
-    tooltip: 'Duration (p75)',
-    formatter: value => getDuration(value / 1000, value >= 1000 ? 3 : 0, true),
-  },
-  tpm: {
-    title: 'Throughput',
-    tooltip: 'Throughput',
-    formatter: formatAbbreviatedNumber,
-  },
-  failure_rate: {
-    title: 'Failure Rate',
-    tooltip: 'Failure Rate',
-    formatter: value => formatPercentage(value, 2),
-  },
-  apdex: {
-    title: 'Apdex',
-    tooltip: 'Apdex',
-    formatter: value => formatFloat(value, 4),
-  },
+export const backendCardDetails = (organization: LightWeightOrganization) => {
+  return {
+    p75: {
+      title: 'Duration (p75)',
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P75),
+      formatter: value => getDuration(value / 1000, value >= 1000 ? 3 : 0, true),
+    },
+    tpm: {
+      title: 'Throughput',
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.THROUGHPUT),
+      formatter: formatAbbreviatedNumber,
+    },
+    failure_rate: {
+      title: 'Failure Rate',
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE),
+      formatter: value => formatPercentage(value, 2),
+    },
+    apdex: {
+      title: 'Apdex',
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
+      formatter: value => formatFloat(value, 4),
+    },
+  };
 };
 
 export function getDisplayAxes(options: AxisOption[], location: Location) {

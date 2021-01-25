@@ -100,7 +100,7 @@ export function HistogramChart(props: Props) {
   };
 
   return (
-    <HistogramContainer>
+    <div>
       <HistogramQuery
         location={location}
         orgSlug={organization.slug}
@@ -117,7 +117,9 @@ export function HistogramChart(props: Props) {
 
           if (loading) {
             return (
-              <LoadingPanel height="250px" data-test-id="histogram-request-loading" />
+              <LoadingPanelContainer>
+                <LoadingPanel data-test-id="histogram-request-loading" />;
+              </LoadingPanelContainer>
             );
           }
 
@@ -183,11 +185,17 @@ export function HistogramChart(props: Props) {
           );
         }}
       </HistogramQuery>
-    </HistogramContainer>
+    </div>
   );
 }
 
-const HistogramContainer = styled('div')``;
+const LoadingPanelContainer = styled('div')`
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
 
 const BarChartContainer = styled('div')`
   padding-top: ${space(1)};

@@ -7,7 +7,6 @@ import {Location} from 'history';
 import {Client} from 'app/api';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import EventsRequest from 'app/components/charts/eventsRequest';
-import LoadingPanel from 'app/components/charts/loadingPanel';
 import {getInterval} from 'app/components/charts/utils';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import QuestionTooltip from 'app/components/questionTooltip';
@@ -89,14 +88,14 @@ function DurationChart(props: Props) {
         }
 
         return (
-          <DurationChartContainer>
+          <div>
             <DoubleHeaderContainer>
               <HeaderTitleLegend>
                 {title}
                 <QuestionTooltip position="top" size="sm" title={titleTooltip} />
               </HeaderTitleLegend>
             </DoubleHeaderContainer>
-            {results ? (
+            {results && (
               <ChartContainer>
                 <Chart
                   height={250}
@@ -114,17 +113,13 @@ function DurationChart(props: Props) {
                   disableMultiAxis
                 />
               </ChartContainer>
-            ) : (
-              <LoadingPanel data-test-id="events-request-loading" />
             )}
-          </DurationChartContainer>
+          </div>
         );
       }}
     </EventsRequest>
   );
 }
-
-const DurationChartContainer = styled('div')``;
 
 const ChartContainer = styled('div')`
   padding-top: ${space(1)};

@@ -27,6 +27,21 @@ export const COLUMN_TITLES = [
   'user misery',
 ];
 
+export enum PERFORMANCE_TERM {
+  APDEX = 'apdex',
+  TPM = 'tpm',
+  THROUGHPUT = 'throughput',
+  FAILURE_RATE = 'failureRate',
+  P50 = 'p50',
+  P75 = 'p75',
+  P95 = 'p95',
+  P99 = 'p99',
+  LCP = 'lcp',
+  USER_MISERY = 'userMisery',
+  STATUS_BREAKDOWN = 'statusBreakdown',
+  DURATION_DISTRIBUTION = 'durationDistribution',
+}
+
 export type TooltipOption = SelectValue<string> & {
   tooltip: string;
 };
@@ -34,32 +49,32 @@ export type TooltipOption = SelectValue<string> & {
 export function getAxisOptions(organization: LightWeightOrganization): TooltipOption[] {
   return [
     {
-      tooltip: getTermHelp(organization, 'apdex'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
       value: `apdex(${organization.apdexThreshold})`,
       label: t('Apdex'),
     },
     {
-      tooltip: getTermHelp(organization, 'tpm'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.TPM),
       value: 'tpm()',
       label: t('Transactions Per Minute'),
     },
     {
-      tooltip: getTermHelp(organization, 'failureRate'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE),
       value: 'failure_rate()',
       label: t('Failure Rate'),
     },
     {
-      tooltip: getTermHelp(organization, 'p50'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P50),
       value: 'p50()',
       label: t('p50 Duration'),
     },
     {
-      tooltip: getTermHelp(organization, 'p95'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P95),
       value: 'p95()',
       label: t('p95 Duration'),
     },
     {
-      tooltip: getTermHelp(organization, 'p99'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P99),
       value: 'p99()',
       label: t('p99 Duration'),
     },
@@ -78,14 +93,14 @@ export function getFrontendAxisOptions(
 ): AxisOption[] {
   return [
     {
-      tooltip: getTermHelp(organization, 'lcp'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.LCP),
       value: `p75(lcp)`,
       label: t('LCP p75'),
       field: 'p75(measurements.lcp)',
       isLeftDefault: true,
     },
     {
-      tooltip: getTermHelp(organization, 'lcp'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.DURATION_DISTRIBUTION),
       value: 'lcp_distribution',
       label: t('LCP Distribution'),
       field: 'measurements.lcp',
@@ -93,7 +108,7 @@ export function getFrontendAxisOptions(
       isRightDefault: true,
     },
     {
-      tooltip: getTermHelp(organization, 'tpm'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.TPM),
       value: 'tpm()',
       label: t('Transactions Per Minute'),
       field: 'tpm()',
@@ -106,26 +121,26 @@ export function getFrontendNavigationAxisOptions(
 ): AxisOption[] {
   return [
     {
-      tooltip: getTermHelp(organization, 'p50'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P50),
       value: `p50()`,
       label: t('Duration p50'),
       field: 'p50(transaction.duration)',
     },
     {
-      tooltip: getTermHelp(organization, 'p75'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P75),
       value: `p75()`,
       label: t('Duration p75'),
       field: 'p75(transaction.duration)',
       isLeftDefault: true,
     },
     {
-      tooltip: getTermHelp(organization, 'p95'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P95),
       value: `p95()`,
       label: t('Duration p95'),
       field: 'p95(transaction.duration)',
     },
     {
-      tooltip: getTermHelp(organization, 'durationDistribution'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.DURATION_DISTRIBUTION),
       value: 'duration_distribution',
       label: t('Duration Distribution'),
       field: 'transaction.duration',
@@ -140,50 +155,50 @@ export function getBackendAxisOptions(
 ): AxisOption[] {
   return [
     {
-      tooltip: getTermHelp(organization, 'p50'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P50),
       value: `p50()`,
       label: t('Duration p50'),
       field: 'p50(transaction.duration)',
     },
     {
-      tooltip: getTermHelp(organization, 'p75'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P75),
       value: `p75()`,
       label: t('Duration p75'),
       field: 'p75(transaction.duration)',
       isLeftDefault: true,
     },
     {
-      tooltip: getTermHelp(organization, 'p95'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P95),
       value: `p95()`,
       label: t('Duration p95'),
       field: 'p95(transaction.duration)',
     },
     {
-      tooltip: getTermHelp(organization, 'p99'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P99),
       value: `p99()`,
       label: t('Duration p99'),
       field: 'p99(transaction.duration)',
     },
     {
-      tooltip: getTermHelp(organization, 'apdex'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
       value: `apdex(${organization.apdexThreshold})`,
       label: t('Apdex'),
       field: `apdex(${organization.apdexThreshold})`,
     },
     {
-      tooltip: getTermHelp(organization, 'tpm'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.TPM),
       value: 'tpm()',
       label: t('Transactions Per Minute'),
       field: 'tpm()',
     },
     {
-      tooltip: getTermHelp(organization, 'failureRate'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE),
       value: 'failure_rate()',
       label: t('Failure Rate'),
       field: 'failure_rate()',
     },
     {
-      tooltip: getTermHelp(organization, 'durationDistribution'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.DURATION_DISTRIBUTION),
       value: 'duration_distribution',
       label: t('Duration Distribution'),
       field: 'transaction.duration',
@@ -195,12 +210,14 @@ export function getBackendAxisOptions(
 
 type TermFormatter = (organization: LightWeightOrganization) => string;
 
-const PERFORMANCE_TERMS: Record<string, TermFormatter> = {
+const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
   apdex: () =>
     t(
       'Apdex is the ratio of both satisfactory and tolerable response times to all response times.'
     ),
   tpm: () => t('TPM is the number of recorded transaction events per minute.'),
+  throughput: () =>
+    t('Throughput is the number of recorded transaction events per minute.'),
   failureRate: () =>
     t(
       'Failure rate is the percentage of recorded transactions that had a known and unsuccessful status.'
