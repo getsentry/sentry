@@ -15,6 +15,7 @@ type Props = {
   onEditRule: (rule: DynamicSamplingRule) => () => void;
   onDeleteRule: (rule: DynamicSamplingRule) => () => void;
   onAddRule: () => void;
+  disabled: boolean;
   platformDocLink?: string;
 };
 
@@ -24,10 +25,16 @@ function RulesPanel({
   onAddRule,
   onEditRule,
   onDeleteRule,
+  disabled,
 }: Props) {
   return (
     <Panel>
-      <Rules rules={rules} onEditRule={onEditRule} onDeleteRule={onDeleteRule} />
+      <Rules
+        rules={rules}
+        onEditRule={onEditRule}
+        onDeleteRule={onDeleteRule}
+        disabled={disabled}
+      />
       <StyledPanelFooter>
         <ButtonBar gap={1}>
           {platformDocLink && (
@@ -35,7 +42,7 @@ function RulesPanel({
               {t('Read the docs')}
             </Button>
           )}
-          <Button priority="primary" onClick={onAddRule}>
+          <Button priority="primary" onClick={onAddRule} disabled={disabled}>
             {t('Add rule')}
           </Button>
         </ButtonBar>

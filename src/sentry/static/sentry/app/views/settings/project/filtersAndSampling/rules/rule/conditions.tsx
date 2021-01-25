@@ -81,10 +81,11 @@ const Wrapper = styled('div')`
 const Label = styled('span')`
   margin-right: ${space(1)};
 `;
+
 const Value = styled('span')`
-  color: ${p => p.theme.gray300};
   word-break: break-all;
   white-space: pre-wrap;
+  color: ${p => p.theme.gray300};
 `;
 
 const Separator = styled(Value)`

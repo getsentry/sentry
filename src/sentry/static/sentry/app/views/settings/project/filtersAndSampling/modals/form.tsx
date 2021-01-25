@@ -127,15 +127,26 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
     return null;
   }
 
+  getCategoryOptions(): Array<[string, string]> {
+    return [['', '']];
+  }
+
   render() {
     const {Header, Body, closeModal, Footer} = this.props as Props;
     const {sampleRate, conditions, transaction} = this.state;
 
     const transactionField = this.geTransactionFieldDescription();
+    const categoryOptions = this.getCategoryOptions();
 
     const submitDisabled =
       !defined(sampleRate) ||
-      (!!conditions.length && !!conditions.find(condition => !condition.match));
+      (!!conditions.length &&
+        !!conditions.find(condition => {
+          if (condition.category !== Category.LEGACY_BROWSERS) {
+            return !condition.match;
+          }
+          return false;
+        }));
 
     return (
       <React.Fragment>
@@ -158,6 +169,7 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
           {transaction !== Transaction.ALL && (
             <ConditionFields
               conditions={conditions}
+              categoryOptions={categoryOptions}
               onAdd={this.handleAddCondition}
               onChange={this.handleChangeCondition}
               onDelete={this.handleDeleteCondition}
@@ -172,8 +184,8 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
             }
             inline={false}
             hideControlState
-            stacked
             showHelpInTooltip
+            stacked
           />
         </Body>
         <Footer>

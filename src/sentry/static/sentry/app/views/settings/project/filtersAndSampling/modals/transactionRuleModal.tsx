@@ -8,6 +8,7 @@ import space from 'app/styles/space';
 import Field from 'app/views/settings/components/forms/field';
 
 import Form from './form';
+import {Category} from './utils';
 
 type Props = Form['props'];
 
@@ -32,6 +33,14 @@ class TransactionRuleModal extends Form<Props, State> {
       label: t('Transaction'),
       help: t('This is a description'),
     };
+  }
+
+  getCategoryOptions() {
+    return [
+      [Category.RELEASES, t('Releases')],
+      [Category.ENVIROMENTS, t('Enviroments')],
+      [Category.USERS, t('Users')],
+    ] as Array<[string, string]>;
   }
 
   getExtraFields() {
