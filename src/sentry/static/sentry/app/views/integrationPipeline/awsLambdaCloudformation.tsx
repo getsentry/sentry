@@ -160,6 +160,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
               onBlur={this.validateAccountNumber}
               error={accountNumberError}
               inline={false}
+              stacked
               label={t('AWS Account Number')}
             />
             <StyledSelectField
@@ -170,6 +171,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
               options={this.regionOptions}
               allowClear={false}
               inline={false}
+              stacked
               label={t('AWS Region')}
             />
           </ListItem>
@@ -191,14 +193,12 @@ const StyledButton = styled(Button)`
 const StyledTextField = styled(TextField)`
   border-bottom: none;
   font-size: ${p => p.theme.fontSizeMedium};
-  padding-left: 0;
+  padding-top: 10px;
 `;
 
 const StyledSelectField = styled(SelectField)`
   border-bottom: none;
   font-size: ${p => p.theme.fontSizeMedium};
-  padding-left: 0;
-  padding-top: 0;
 `;
 
 const Heading = styled('div')``;
