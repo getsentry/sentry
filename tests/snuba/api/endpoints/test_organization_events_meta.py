@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from pytz import utc
 from rest_framework.exceptions import ParseError
 
