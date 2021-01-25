@@ -685,16 +685,18 @@ export type EventOrGroupType =
   | 'default'
   | 'transaction';
 
+export type InboxReasonDetails = {
+  until?: string;
+  count?: number;
+  window?: number;
+  user_count?: number;
+  user_window?: number;
+};
+
 export type InboxDetails = {
   date_added?: string;
   reason?: number;
-  reason_details?: {
-    until?: string;
-    count?: number;
-    window?: number;
-    user_count?: number;
-    user_window?: number;
-  };
+  reason_details: InboxReasonDetails;
 };
 
 export type SuggestedOwnerReason = 'suspectCommit' | 'ownershipRule';
