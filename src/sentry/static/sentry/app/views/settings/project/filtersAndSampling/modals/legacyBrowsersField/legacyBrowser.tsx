@@ -15,18 +15,15 @@ type Props = {
 };
 
 function LegacyBrowser({browser, isEnabled, onToggle}: Props) {
-  const {icon, title, description} = LEGACY_BROWSER_LIST[browser];
+  const {icon, title} = LEGACY_BROWSER_LIST[browser];
   return (
     <React.Fragment>
       <BrowserWrapper>
         <Icon className={`icon-${icon}`} />
-        <Details>
-          <Title>{title}</Title>
-          <Description>{description}</Description>
-        </Details>
+        {title}
       </BrowserWrapper>
       <SwitchWrapper>
-        <Switch isActive={isEnabled} toggle={onToggle} />
+        <Switch size="lg" isActive={isEnabled} toggle={onToggle} />
       </SwitchWrapper>
     </React.Fragment>
   );
@@ -37,8 +34,9 @@ export default LegacyBrowser;
 const BrowserWrapper = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(1)};
+  grid-column-gap: ${space(1)};
   align-items: center;
+  font-size: ${p => p.theme.fontSizeLarge};
 `;
 
 const Icon = styled('div')`
@@ -48,22 +46,6 @@ const Icon = styled('div')`
   background-position: center;
   background-size: 30px 30px;
   flex-shrink: 0;
-`;
-
-const Details = styled('div')`
-  display: flex;
-  flex-direction: column;
-  font-size: ${p => p.theme.fontSizeMedium};
-  line-height: 1;
-`;
-
-const Title = styled('div')`
-  font-weight: 600;
-`;
-
-const Description = styled('div')`
-  color: ${p => p.theme.gray400};
-  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const SwitchWrapper = styled('div')`

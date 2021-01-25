@@ -4,8 +4,6 @@ import styled from '@emotion/styled';
 import BulkController from 'app/components/bulkController';
 import {PanelTable} from 'app/components/panels';
 import Switch from 'app/components/switch';
-import {t} from 'app/locale';
-import space from 'app/styles/space';
 
 import {LEGACY_BROWSER_LIST} from '../utils';
 
@@ -31,16 +29,15 @@ function LegacyBrowsersField({onToggleAll, onToggle}: Props) {
         <StyledPanelTable
           headers={[
             '',
-            <SwitchColumn key="switch">
-              {isAllSelected ? t('Disable All') : t('Enable All')}
-              <Switch
-                isActive={isAllSelected}
-                toggle={() => {
-                  onAllRowsToggle(!isAllSelected);
-                  onToggleAll(!isAllSelected);
-                }}
-              />
-            </SwitchColumn>,
+            <Switch
+              key="switch"
+              size="lg"
+              isActive={isAllSelected}
+              toggle={() => {
+                onAllRowsToggle(!isAllSelected);
+                onToggleAll(!isAllSelected);
+              }}
+            />,
           ]}
         >
           {renderBulkNotice()}
@@ -66,12 +63,5 @@ export default LegacyBrowsersField;
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr max-content;
-`;
-
-const SwitchColumn = styled('div')`
-  display: grid;
-  grid-gap: ${space(1)};
-  grid-template-columns: 1fr max-content;
-  align-items: center;
-  text-transform: capitalize;
+  grid-column: 1 / -2;
 `;
