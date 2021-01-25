@@ -14,11 +14,15 @@ nodestore: 0002_nodestore_no_dictfield
 =======
 nodestore: 0001_initial
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> ref(slack): Migration to remove workspace org integrations
 sentry: 0151_add_world_map_dashboard_widget_type
 =======
 sentry: 0150_remove_slack_workspace_orgintegrations
 >>>>>>> ref(slack): Migration to remove workspace org integrations
+=======
+sentry: 0152_remove_slack_workspace_orgintegrations
+>>>>>>> update migration
 sessions: 0001_initial
 sites: 0002_alter_domain_unique
 social_auth: 0001_initial
