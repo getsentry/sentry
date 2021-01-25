@@ -7,7 +7,6 @@ import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, SavedSearch} from 'app/types';
-import theme from 'app/utils/theme';
 
 import SavedSearchMenu from './savedSearchMenu';
 
@@ -36,11 +35,7 @@ function SavedSearchTab({
       {isActive ? (
         <React.Fragment>
           {savedSearch ? savedSearch.name : t('Custom Search')}{' '}
-          <StyledQueryCount
-            count={queryCount}
-            max={1000}
-            backgroundColor={theme.gray100}
-          />
+          <StyledQueryCount isTag count={queryCount} max={1000} />
         </React.Fragment>
       ) : (
         t('More')

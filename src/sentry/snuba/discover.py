@@ -501,7 +501,7 @@ def top_events_timeseries(
             start=snuba_filter.start,
             end=snuba_filter.end,
             rollup=rollup,
-            orderby="time",
+            orderby=["time"] + snuba_filter.groupby,
             groupby=["time"] + snuba_filter.groupby,
             dataset=Dataset.Discover,
             limit=10000,
