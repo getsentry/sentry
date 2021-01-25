@@ -438,8 +438,8 @@ def parse_query(projects, query, user, environments):
                     results["unassigned"] = True
                 elif value == "assigned":
                     results["unassigned"] = False
-                elif value == "needs_review":
-                    results["needs_review"] = True
+                elif value == "for_review":
+                    results["for_review"] = True
                 elif value == "linked":
                     results["linked"] = True
                 elif value == "unlinked":

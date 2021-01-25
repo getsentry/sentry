@@ -45,7 +45,7 @@ class IssueSearchVisitor(SearchVisitor):
         is_filter_translators = {
             "assigned": (SearchKey("unassigned"), SearchValue(False)),
             "unassigned": (SearchKey("unassigned"), SearchValue(True)),
-            "needs_review": (SearchKey("needs_review"), SearchValue(True)),
+            "for_review": (SearchKey("for_review"), SearchValue(True)),
             "linked": (SearchKey("linked"), SearchValue(True)),
             "unlinked": (SearchKey("linked"), SearchValue(False)),
         }

@@ -5,11 +5,11 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import IssueListHeader from 'app/views/issueList/header';
 
 const queryCounts = {
-  'is:unresolved is:needs_review owner:me_or_none': {
+  'is:unresolved is:for_review owner:me_or_none': {
     count: 22,
     hasMore: false,
   },
-  'is:unresolved is:needs_review': {
+  'is:unresolved is:for_review': {
     count: 1,
     hasMore: false,
   },
@@ -28,7 +28,7 @@ const queryCounts = {
 };
 
 const queryCountsMaxed = {
-  'is:unresolved is:needs_review': {
+  'is:unresolved is:for_review': {
     count: 321,
     hasMore: false,
   },
@@ -52,14 +52,14 @@ describe('IssueListHeader', () => {
     const wrapper = mountWithTheme(
       <IssueListHeader
         organization={organization}
-        query="is:unresolved is:needs_review"
+        query="is:unresolved is:for_review"
         queryCount={0}
         queryCounts={queryCounts}
         projectIds={[]}
         savedSearchList={[]}
       />
     );
-    expect(wrapper.find('.active').text()).toBe('Needs Review 1');
+    expect(wrapper.find('.active').text()).toBe('For Review 1');
   });
 
   it('renders active tab with count when query matches inbox with owners:me_or_none', () => {
@@ -67,14 +67,14 @@ describe('IssueListHeader', () => {
     const wrapper = mountWithTheme(
       <IssueListHeader
         organization={organization}
-        query="is:unresolved is:needs_review owner:me_or_none"
+        query="is:unresolved is:for_review owner:me_or_none"
         queryCount={0}
         queryCounts={queryCounts}
         projectIds={[]}
         savedSearchList={[]}
       />
     );
-    expect(wrapper.find('.active').text()).toBe('Needs Review 22');
+    expect(wrapper.find('.active').text()).toBe('For Review 22');
   });
 
   it('renders reprocessing tab', () => {
@@ -124,8 +124,8 @@ describe('IssueListHeader', () => {
       />
     );
     const tabs = wrapper.find('li');
-    expect(tabs.at(0).text()).toBe('Needs Review 1');
-    expect(tabs.at(1).text()).toBe('All Unresolved 1');
+    expect(tabs.at(0).text()).toBe('All Unresolved 1');
+    expect(tabs.at(1).text()).toBe('For Review 1');
     expect(tabs.at(2).text()).toBe('Ignored ');
   });
 
@@ -141,8 +141,8 @@ describe('IssueListHeader', () => {
       />
     );
     const tabs = wrapper.find('li');
-    expect(tabs.at(0).text()).toBe('Needs Review 321');
-    expect(tabs.at(1).text()).toBe('All Unresolved 99+');
+    expect(tabs.at(0).text()).toBe('All Unresolved 99+');
+    expect(tabs.at(1).text()).toBe('For Review 321');
     expect(tabs.at(2).text()).toBe('Ignored 99+');
   });
 
@@ -158,11 +158,11 @@ describe('IssueListHeader', () => {
     const pathname = '/organizations/org-slug/issues/';
     expect(wrapper.find('Link').at(0).prop('to')).toEqual({
       pathname,
-      query: {query: 'is:unresolved is:needs_review'},
+      query: {query: 'is:unresolved'},
     });
     expect(wrapper.find('Link').at(1).prop('to')).toEqual({
       pathname,
-      query: {query: 'is:unresolved'},
+      query: {query: 'is:unresolved is:for_review'},
     });
   });
 

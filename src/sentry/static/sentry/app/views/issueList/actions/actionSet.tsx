@@ -68,7 +68,7 @@ function ActionSet({
       {hasInbox && (
         <div className="hidden-sm hidden-xs">
           <ReviewAction
-            primary={query === Query.NEEDS_REVIEW || query === Query.NEEDS_REVIEW_OWNER}
+            primary={query === Query.FOR_REVIEW || query === Query.FOR_REVIEW_OWNER}
             disabled={!anySelected}
             onUpdate={onUpdate}
           />
