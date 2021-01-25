@@ -11,6 +11,21 @@ export default {
   },
   argTypes: {
     onReshare: {action: 'onReshare'},
+    loading: {
+      table: {
+        disable: true,
+      },
+    },
+    onToggle: {
+      table: {
+        disable: true,
+      },
+    },
+    isShared: {
+      table: {
+        disable: true,
+      },
+    },
   },
 };
 
@@ -33,16 +48,15 @@ class ShareSimulator extends React.Component {
   }
 }
 
-export const Default = ({shareUrl, onReshare}) => {
+export const Default = ({...args}) => {
   return (
     <ShareSimulator>
       {({isShared, loading, toggleShare}) => (
         <ShareIssue
           loading={loading}
           isShared={isShared}
-          shareUrl={shareUrl}
           onToggle={toggleShare}
-          onReshare={onReshare}
+          {...args}
         />
       )}
     </ShareSimulator>

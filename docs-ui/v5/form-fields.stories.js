@@ -3,7 +3,7 @@ import {action} from '@storybook/addon-actions';
 import {boolean, number} from '@storybook/addon-knobs';
 
 import {Panel} from 'app/components/panels';
-import Switch from 'app/components/switch';
+import Switch from 'app/components/switchButton';
 import NewBooleanField from 'app/views/settings/components/forms/booleanField';
 import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
