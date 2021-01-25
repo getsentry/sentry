@@ -7,6 +7,7 @@ import PropTypes from 'prop-types';
 
 import ExternalLink from 'app/components/links/externalLink';
 import Tooltip from 'app/components/tooltip';
+import mergeRefs from 'app/utils/mergeRefs';
 import {Theme} from 'app/utils/theme';
 
 /**
@@ -29,7 +30,7 @@ type Props = {
   external?: boolean;
   borderless?: boolean;
   label?: string;
-  tooltipProps?: Omit<Tooltip['props'], 'children' | 'title'>;
+  tooltipProps?: Omit<Tooltip['props'], 'children' | 'title' | 'skipWrapper'>;
   onClick?: (e: React.MouseEvent) => void;
   forwardRef?: React.Ref<ButtonElement>;
   name?: string;
@@ -38,7 +39,7 @@ type Props = {
   barId?: string;
 };
 
-type ButtonProps = Omit<React.HTMLProps<ButtonElement>, keyof Props> & Props;
+type ButtonProps = Omit<React.HTMLProps<ButtonElement>, keyof Props | 'ref'> & Props;
 
 type Url = ButtonProps['to'] | ButtonProps['href'];
 
@@ -184,7 +185,7 @@ class BaseButton extends React.Component<ButtonProps, {}> {
     // Doing this instead of using `Tooltip`'s `disabled` prop so that we can minimize snapshot nesting
     if (title) {
       return (
-        <Tooltip {...tooltipProps} title={title}>
+        <Tooltip skipWrapper {...tooltipProps} title={title}>
           {button}
         </Tooltip>
       );
@@ -274,23 +275,30 @@ const getColors = ({priority, disabled, borderless, theme}: StyledButtonProps) =
 };
 
 const StyledButton = styled(
-  ({forwardRef, external, ...props}) => {
-    // Get component to use based on existence of `to` or `href` properties
-    // Can be react-router `Link`, `a`, or `button`
-    if (props.to) {
-      return <Link ref={forwardRef} {...props} />;
-    }
+  React.forwardRef<any, ButtonProps>(
+    ({forwardRef, size: _size, external, to, href, ...props}: Props, forwardRefAlt) => {
+      // XXX: There may be two forwarded refs here, one potentially passed from a
+      // wrapped Tooltip, another from callers of Button.
 
-    if (!props.href) {
-      return <button ref={forwardRef} {...props} />;
-    }
+      const ref = mergeRefs([forwardRef, forwardRefAlt]);
 
-    if (external && props.href) {
-      return <ExternalLink ref={forwardRef} {...props} />;
-    }
+      // Get component to use based on existence of `to` or `href` properties
+      // Can be react-router `Link`, `a`, or `button`
+      if (to) {
+        return <Link ref={ref} to={to} {...props} />;
+      }
 
-    return <a ref={forwardRef} {...props} />;
-  },
+      if (!href) {
+        return <button ref={ref} {...props} />;
+      }
+
+      if (external && href) {
+        return <ExternalLink ref={ref} href={href} {...props} />;
+      }
+
+      return <a ref={ref} {...props} href={href} />;
+    }
+  ),
   {
     shouldForwardProp: prop =>
       prop === 'forwardRef' ||
