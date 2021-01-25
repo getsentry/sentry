@@ -31,13 +31,13 @@ function InboxReason({inbox, fontSize = 'sm'}: Props) {
       ? `More than ${Math.round(count / EVENT_ROUND_LIMIT)}k`
       : `${count}`;
 
-  const getTooltipDescription = ({
+  function getTooltipDescription({
     until,
     count,
     window,
     user_count,
     user_window,
-  }: InboxReasonDetails) => {
+  }: InboxReasonDetails) {
     if (until) {
       // Was ignored until `until` has passed.
       //`until` format: "2021-01-20T03:59:03+00:00"
@@ -69,7 +69,7 @@ function InboxReason({inbox, fontSize = 'sm'}: Props) {
     }
 
     return undefined;
-  };
+  }
 
   function getReasonDetails(): {
     tagType: React.ComponentProps<typeof Tag>['type'];
