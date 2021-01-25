@@ -8,7 +8,7 @@ import AbstractExternalIssueForm from 'app/components/externalIssues/abstractExt
 import ExternalLink from 'app/components/links/externalLink';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {IssueConfigField, IssueConfigFieldChoices, Organization} from 'app/types';
+import {Choices, IssueConfigField, Organization} from 'app/types';
 import {IssueAlertRuleAction} from 'app/types/alerts';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
@@ -22,7 +22,7 @@ type Props = {
   link?: string;
   onSubmitAction: (
     data: {[key: string]: string},
-    fetchedFieldOptionsCache: {[key: string]: IssueConfigFieldChoices}
+    fetchedFieldOptionsCache: {[key: string]: Choices}
   ) => void;
   organization: Organization;
   ticketType?: string;
@@ -30,7 +30,7 @@ type Props = {
 
 type State = {
   issueConfigFieldsCache: IssueConfigField[];
-  fetchedFieldOptionsCache: {[key: string]: IssueConfigFieldChoices};
+  fetchedFieldOptionsCache: {[key: string]: Choices};
 } & AbstractExternalIssueForm['state'];
 
 class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
@@ -40,10 +40,7 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
     return {
       ...super.getDefaultState(),
       fetchedFieldOptionsCache: Object.fromEntries(
-        issueConfigFieldsCache.map(field => [
-          field.name,
-          field.choices as IssueConfigFieldChoices,
-        ])
+        issueConfigFieldsCache.map(field => [field.name, field.choices as Choices])
       ),
       issueConfigFieldsCache,
     };
