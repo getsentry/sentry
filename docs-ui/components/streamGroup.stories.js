@@ -6,7 +6,7 @@ import StreamGroup from 'app/components/stream/group';
 import GroupStore from 'app/stores/groupStore';
 
 export default {
-  title: 'Features/Issues/Stream Group',
+  title: 'Features/Issues/StreamGroup',
 };
 
 const selection = {

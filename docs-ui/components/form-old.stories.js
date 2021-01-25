@@ -1,6 +1,5 @@
 import React from 'react';
 import {action} from '@storybook/addon-actions';
-import {withInfo} from '@storybook/addon-info';
 import PropTypes from 'prop-types';
 
 import {Form as LegacyForm, TextField as LegacyTextField} from 'app/components/forms';
@@ -28,19 +27,24 @@ export default {
   title: 'Core/Forms/Old/Form',
 };
 
-export const Empty = withInfo('Empty form')(() => (
-  <LegacyForm onSubmit={action('submit')} />
-));
+export const Empty = () => <LegacyForm onSubmit={action('submit')} />;
 
 Empty.storyName = 'empty';
 
-export const WithCancel = withInfo(
-  'Adds a "Cancel" button when `onCancel` is defined'
-)(() => <LegacyForm onCancel={action('cancel')} onSubmit={action('submit')} />);
+export const WithCancel = () => (
+  <LegacyForm onCancel={action('cancel')} onSubmit={action('submit')} />
+);
 
 WithCancel.storyName = 'with Cancel';
+WithCancel.parameters = {
+  docs: {
+    description: {
+      story: 'Adds a "Cancel" button when `onCancel` is defined',
+    },
+  },
+};
 
-export const SaveOnBlurAndUndo = withInfo('Saves on blur and has undo')(() => (
+export const SaveOnBlurAndUndo = () => (
   <LegacyForm saveOnBlur allowUndo>
     <LegacyTextField
       name="name"
@@ -51,6 +55,13 @@ export const SaveOnBlurAndUndo = withInfo('Saves on blur and has undo')(() => (
     <LegacyTextField name="slug" label="Short name" placeholder="e.g. api-team" />
     <UndoButton />
   </LegacyForm>
-));
+);
 
 SaveOnBlurAndUndo.storyName = 'save on blur and undo';
+SaveOnBlurAndUndo.parameters = {
+  docs: {
+    description: {
+      story: 'Saves on blur and has undo',
+    },
+  },
+};
