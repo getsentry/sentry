@@ -35,85 +35,87 @@ type Props = {
   onTotalValuesChange: (value: number | null) => void;
 };
 
-class ProjectStabilityChart extends React.Component<Props> {
-  render() {
-    const {theme} = this.props;
+function ProjectStabilityChart({
+  theme,
+  organization,
+  router,
+  selection,
+  api,
+  onTotalValuesChange,
+}: Props) {
+  const {projects, environments, datetime} = selection;
+  const {start, end, period, utc} = datetime;
 
-    const {organization, router, selection, api, onTotalValuesChange} = this.props;
-    const {projects, environments, datetime} = selection;
-    const {start, end, period, utc} = datetime;
-
-    return getDynamicText({
-      value: (
-        <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
-          {zoomRenderProps => (
-            <SessionsRequest api={api} selection={selection} organization={organization}>
-              {({
-                errored,
-                loading,
-                reloading,
-                timeseriesData,
-                previousTimeseriesData,
-                totalSessions,
-              }) => (
-                <ReleaseSeries
-                  utc={utc}
-                  period={period}
-                  start={start}
-                  end={end}
-                  projects={projects}
-                  environments={environments}
-                >
-                  {({releaseSeries}) => {
-                    if (errored) {
-                      return (
-                        <ErrorPanel>
-                          <IconWarning color="gray300" size="lg" />
-                        </ErrorPanel>
-                      );
-                    }
-
-                    if (totalSessions === 0) {
-                      return <ErrorPanel>{t('There are no session data')}</ErrorPanel>;
-                    }
-
-                    onTotalValuesChange(totalSessions);
-
+  return getDynamicText({
+    value: (
+      <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
+        {zoomRenderProps => (
+          <SessionsRequest api={api} selection={selection} organization={organization}>
+            {({
+              errored,
+              loading,
+              reloading,
+              timeseriesData,
+              previousTimeseriesData,
+              totalSessions,
+            }) => (
+              <ReleaseSeries
+                utc={utc}
+                period={period}
+                start={start}
+                end={end}
+                projects={projects}
+                environments={environments}
+              >
+                {({releaseSeries}) => {
+                  if (errored) {
                     return (
-                      <TransitionChart loading={loading} reloading={reloading}>
-                        <TransparentLoadingMask visible={reloading} />
-
-                        <HeaderTitleLegend>
-                          {t('Stability')}
-                          <QuestionTooltip
-                            size="sm"
-                            position="top"
-                            title={getSessionTermDescription(SessionTerm.STABILITY, null)}
-                          />
-                        </HeaderTitleLegend>
-
-                        <Chart
-                          theme={theme}
-                          zoomRenderProps={zoomRenderProps}
-                          reloading={reloading}
-                          timeSeries={timeseriesData}
-                          previousTimeSeries={
-                            previousTimeseriesData ? [previousTimeseriesData] : undefined
-                          }
-                          releaseSeries={releaseSeries}
-                        />
-                      </TransitionChart>
+                      <ErrorPanel>
+                        <IconWarning color="gray300" size="lg" />
+                      </ErrorPanel>
                     );
-                  }}
-                </ReleaseSeries>
-              )}
-            </SessionsRequest>
-          )}
-        </ChartZoom>
-      ),
-      fixed: t('Stability Chart'),
-    });
-  }
+                  }
+
+                  if (totalSessions === 0) {
+                    return <ErrorPanel>{t('There are no session data')}</ErrorPanel>;
+                  }
+
+                  onTotalValuesChange(totalSessions);
+
+                  return (
+                    <TransitionChart loading={loading} reloading={reloading}>
+                      <TransparentLoadingMask visible={reloading} />
+
+                      <HeaderTitleLegend>
+                        {t('Stability')}
+                        <QuestionTooltip
+                          size="sm"
+                          position="top"
+                          title={getSessionTermDescription(SessionTerm.STABILITY, null)}
+                        />
+                      </HeaderTitleLegend>
+
+                      <Chart
+                        theme={theme}
+                        zoomRenderProps={zoomRenderProps}
+                        reloading={reloading}
+                        timeSeries={timeseriesData}
+                        previousTimeSeries={
+                          previousTimeseriesData ? [previousTimeseriesData] : undefined
+                        }
+                        releaseSeries={releaseSeries}
+                      />
+                    </TransitionChart>
+                  );
+                }}
+              </ReleaseSeries>
+            )}
+          </SessionsRequest>
+        )}
+      </ChartZoom>
+    ),
+    fixed: t('Stability Chart'),
+  });
 }
 
 type ChartProps = {
