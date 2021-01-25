@@ -191,13 +191,11 @@ const StyledButton = styled(Button)`
 `;
 
 const StyledTextField = styled(TextField)`
-  border-bottom: none;
   font-size: ${p => p.theme.fontSizeMedium};
   padding-top: 10px;
 `;
 
 const StyledSelectField = styled(SelectField)`
-  border-bottom: none;
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
