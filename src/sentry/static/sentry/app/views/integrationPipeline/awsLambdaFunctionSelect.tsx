@@ -21,6 +21,7 @@ type LambdaFunction = {FunctionName: string; Runtime: string};
 
 type Props = {
   lambdaFunctions: LambdaFunction[];
+  initialStepNumber: number;
 };
 
 type State = {
@@ -84,6 +85,7 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
   };
 
   renderCore = () => {
+    const {initialStepNumber} = this.props;
     const model = this.model;
     const formFields: JsonFormObject = {
       fields: this.lambdaFunctions.map(func => {
@@ -97,7 +99,7 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
       }),
     };
     return (
-      <List symbol="colored-numeric">
+      <List symbol="colored-numeric" initialCounterValue={initialStepNumber}>
         <ListItem>
           <Header>{this.renderWhatWeFound()}</Header>
           {t('Decide which functions you would like to enable for Sentry monitoring')}

@@ -4,11 +4,11 @@ import * as qs from 'query-string';
 
 import {addErrorMessage, addLoadingMessage} from 'app/actionCreators/indicator';
 import Button from 'app/components/actions/button';
-import Alert from 'app/components/alert';
+import List from 'app/components/list';
+import ListItem from 'app/components/list/listItem';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {uniqueId} from 'app/utils/guid';
-import StepHeading from 'app/views/onboarding/components/stepHeading';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import TextField from 'app/views/settings/components/forms/textField';
 
@@ -35,6 +35,7 @@ type Props = {
   templateUrl: string;
   stackName: string;
   regionList: string[];
+  initialStepNumber: number;
   accountNumber?: string;
   region?: string;
   error?: string;
@@ -136,92 +137,72 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
     return !!region && testAccountNumber(accountNumber || '');
   }
 
-  renderInstructions = () => {
-    return (
-      <InstructionWrapper>
-        <StyledStepHeading step={1}>
-          {t("Add Sentry's CloudFormation to your AWS")}
-        </StyledStepHeading>
-        <GoToAWSWrapper>
-          <StyledButton priority="primary" external href={this.cloudformationUrl}>
-            {t('Configure AWS')}
-          </StyledButton>
-        </GoToAWSWrapper>
-        <StyledStepHeading step={2}>
-          {t('Add AWS Account Infomrmation')}
-        </StyledStepHeading>
-      </InstructionWrapper>
-    );
-  };
-
   render = () => {
+    const {initialStepNumber} = this.props;
     const {accountNumber, region, accountNumberError, submitting} = this.state;
     return (
-      <div>
+      <React.Fragment>
         <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/" />
-        <StyledAlert type="info">
-          {t('It might take a minute for the CloudFormation stack to be created')}
-        </StyledAlert>
-        {this.renderInstructions()}
-        <StyledTextField
-          name="accountNumber"
-          placeholder="599817902985"
-          value={accountNumber}
-          onChange={this.handleChangeArn}
-          onBlur={this.validateAccountNumber}
-          error={accountNumberError}
-          inline={false}
-          label={t('AWS Account Number')}
-        />
-        <StyledSelectField
-          name="region"
-          placeholder="us-east-2"
-          value={region}
-          onChange={this.hanldeChangeRegion}
-          options={this.regionOptions}
-          allowClear={false}
-          inline={false}
-          label={t('AWS Region')}
-        />
+        <StyledList symbol="colored-numeric" initialCounterValue={initialStepNumber}>
+          <ListItem>
+            <Heading>{t("Add Sentry's CloudFormation to your AWS")}</Heading>
+            <StyledButton priority="primary" external href={this.cloudformationUrl}>
+              {t('Configure AWS')}
+            </StyledButton>
+          </ListItem>
+          <ListItem>
+            <Heading>{t('Add AWS Account Information')}</Heading>
+            <StyledTextField
+              name="accountNumber"
+              placeholder="599817902985"
+              value={accountNumber}
+              onChange={this.handleChangeArn}
+              onBlur={this.validateAccountNumber}
+              error={accountNumberError}
+              inline={false}
+              label={t('AWS Account Number')}
+            />
+            <StyledSelectField
+              name="region"
+              placeholder="us-east-2"
+              value={region}
+              onChange={this.hanldeChangeRegion}
+              options={this.regionOptions}
+              allowClear={false}
+              inline={false}
+              label={t('AWS Region')}
+            />
+          </ListItem>
+        </StyledList>
         <FooterWithButtons
           buttonText={t('Next')}
           onClick={this.handleSubmit}
           disabled={submitting || !this.formValid}
         />
-      </div>
+      </React.Fragment>
     );
   };
 }
 
-const InstructionWrapper = styled('div')`
-  margin-left: 20px;
-`;
-
-const StyledStepHeading = styled(StepHeading)`
-  font-size: ${p => p.theme.fontSizeLarge};
-  margin: ${space(2)} 0 0 0;
-`;
-
 const StyledButton = styled(Button)`
-  margin: ${space(2)} 0 0 0;
+  margin: ${space(2)} 0 ${space(2)} 0;
 `;
 
 const StyledTextField = styled(TextField)`
-  padding: ${space(2)} 65px;
   border-bottom: none;
   font-size: ${p => p.theme.fontSizeMedium};
+  padding-left: 0;
 `;
 
 const StyledSelectField = styled(SelectField)`
-  padding: ${space(1)} 65px;
   border-bottom: none;
   font-size: ${p => p.theme.fontSizeMedium};
+  padding-left: 0;
+  padding-top: 0;
 `;
 
-const GoToAWSWrapper = styled('div')`
-  margin-left: 46px;
-`;
+const Heading = styled('div')``;
 
-const StyledAlert = styled(Alert)`
-  border-radius: 0;
+const StyledList = styled(List)`
+  margin: 100px 50px 50px 50px;
 `;

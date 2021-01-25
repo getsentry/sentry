@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {Panel} from 'app/components/panels';
-import {IconCheckmark} from 'app/icons';
+import {IconCheckmark, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 
 import FooterWithButtons from './components/footerWithButtons';
@@ -23,9 +23,14 @@ export default function AwsLambdaFailureDetails({
     <React.Fragment>
       <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/" />
       <Wrapper>
-        <IconCheckmark />
-        <h3>{t('Succesfully updated %s functions', successCount)}</h3>
-        <h3>{t('Failed to update %s functions', lambdaFunctionFailures.length)}</h3>
+        <ItemWrapper>
+          <StyledCheckmark isCircled />
+          <h3>{t('Succesfully updated %s functions', successCount)}</h3>
+        </ItemWrapper>
+        <ItemWrapper>
+          <StyledWarning />
+          <h3>{t('Failed to update %s functions', lambdaFunctionFailures.length)}</h3>
+        </ItemWrapper>
         <StyledPanel>{lambdaFunctionFailures.map(SingleFailure)}</StyledPanel>
       </Wrapper>
       <FooterWithButtons buttonText={t('Finish Setup')} href="?finish_pipeline=1" />
@@ -63,4 +68,23 @@ const Error = styled('span')`
 
 const StyledPanel = styled(Panel)`
   overflow: hidden;
+  margin-left: 34px;
+`;
+
+const ItemWrapper = styled('div')``;
+
+const StyledCheckmark = styled(IconCheckmark)`
+  float: left;
+  margin-right: 10px;
+  color: ${p => p.theme.green300};
+  height: 24px;
+  width: 24px;
+`;
+
+const StyledWarning = styled(IconWarning)`
+  float: left;
+  margin-right: 10px;
+  color: ${p => p.theme.red300};
+  height: 24px;
+  width: 24px;
 `;

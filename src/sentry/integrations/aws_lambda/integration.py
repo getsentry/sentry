@@ -225,6 +225,7 @@ class AwsLambdaProjectSelectPipelineView(PipelineView):
 
         # if only one project, automatically use that
         if len(projects) == 1:
+            pipeline.bind_state("skipped_project_select", True)
             pipeline.bind_state("project_id", projects[0].id)
             return pipeline.next_step()
 
@@ -236,6 +237,8 @@ class AwsLambdaProjectSelectPipelineView(PipelineView):
 
 class AwsLambdaCloudFormationPipelineView(PipelineView):
     def dispatch(self, request, pipeline):
+        curr_step = 0 if pipeline.fetch_state("skipped_project_select") else 1
+
         def render_response(error=None):
             template_url = options.get("aws-lambda.cloudformation-url")
             context = {
@@ -246,6 +249,7 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
                 "accountNumber": pipeline.fetch_state("account_number"),
                 "region": pipeline.fetch_state("region"),
                 "error": error,
+                "initialStepNumber": curr_step,
             }
             return self.render_react_view(request, "awsLambdaCloudformation", context)
 
@@ -301,8 +305,12 @@ class AwsLambdaListFunctionsPipelineView(PipelineView):
 
         lambda_functions = get_supported_functions(lambda_client)
 
+        curr_step = 2 if pipeline.fetch_state("skipped_project_select") else 3
+
         return self.render_react_view(
-            request, "awsLambdaFunctionSelect", {"lambdaFunctions": lambda_functions},
+            request,
+            "awsLambdaFunctionSelect",
+            {"lambdaFunctions": lambda_functions, "initialStepNumber": curr_step},
         )
 
 
