@@ -304,7 +304,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
             )
 
             if isinstance(exc, (ConnectTimeout, ReadTimeout)):
-                # If we get a ReadTimeout we don't need to raise an error here.
+                # If we get a ConnectTimeout or ReadTimeout we don't need to raise an error here.
                 # Just log and return.
                 return False
 
