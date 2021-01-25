@@ -166,12 +166,10 @@ class SlackEventEndpoint(Endpoint):
         parsed_issues = defaultdict(dict)
         event_id_by_url = {}
         for item in data["links"]:
-            try:
-                metrics.incr(
-                    "slack.link_shared", sample_rate=1.0,
-                )
-            except Exception as e:
-                logger.error("slack.parse-link-error", extra={"error": six.text_type(e)})
+            metrics.incr(
+                "slack.link_shared",
+                sample_rate=1.0,
+            )
             event_type, instance_id, event_id = self._parse_url(item["url"])
             if not instance_id:
                 continue
