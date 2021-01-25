@@ -35,9 +35,9 @@ def process_suspect_commits(event_id, event_platform, event_frames, group_id, pr
     )
     owner_count = owners.count()
     if owner_count >= PREFERRED_GROUP_OWNERS:
-        owners = owners.filter(
-            date_added__lte=timezone.now() - PREFERRED_GROUP_OWNER_AGE
-        ).order_by("-date_added")
+        owners = owners.filter(date_added__lte=timezone.now() - PREFERRED_GROUP_OWNER_AGE).order_by(
+            "-date_added"
+        )
         if not owners.exists():
             metrics.incr(
                 "sentry.tasks.process_suspect_commits.aborted",
@@ -59,9 +59,7 @@ def process_suspect_commits(event_id, event_platform, event_frames, group_id, pr
                     author_id = committer["author"]["id"]
                     for commit, score in committer["commits"]:
                         if score >= MIN_COMMIT_SCORE:
-                            owner_scores[author_id] = max(
-                                score, owner_scores.get(author_id, 0)
-                            )
+                            owner_scores[author_id] = max(score, owner_scores.get(author_id, 0))
 
             if owner_scores:
                 for owner_id in sorted(owner_scores, reverse=True, key=owner_scores.get)[
