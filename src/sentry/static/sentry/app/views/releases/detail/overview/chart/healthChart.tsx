@@ -210,7 +210,8 @@ class HealthChart extends React.Component<Props> {
       theme,
       tooltip: {
         show: true,
-        formatter: (params): string => {
+        // TODO(ts) tooltip.formatter has incorrect types in echarts 4
+        formatter: (params: any): string => {
           const seriesNameDesc = this.getLegendTooltipDescription(params.name ?? '');
 
           if (!seriesNameDesc) {
