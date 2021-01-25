@@ -40,11 +40,11 @@ const BrowserWrapper = styled('div')`
 `;
 
 const Icon = styled('div')`
-  width: 30px;
-  height: 30px;
+  width: 24px;
+  height: 24px;
   background-repeat: no-repeat;
   background-position: center;
-  background-size: 30px 30px;
+  background-size: 24px 24px;
   flex-shrink: 0;
 `;
 

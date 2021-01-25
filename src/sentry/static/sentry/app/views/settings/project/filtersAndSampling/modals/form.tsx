@@ -140,7 +140,13 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
 
     const submitDisabled =
       !defined(sampleRate) ||
-      (!!conditions.length && !!conditions.find(condition => !condition.match));
+      (!!conditions.length &&
+        !!conditions.find(condition => {
+          if (condition.category !== Category.LEGACY_BROWSERS) {
+            return !condition.match;
+          }
+          return false;
+        }));
 
     return (
       <React.Fragment>
@@ -167,7 +173,6 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
               onAdd={this.handleAddCondition}
               onChange={this.handleChangeCondition}
               onDelete={this.handleDeleteCondition}
-              // showLegacyBrowsersField={Category}
             />
           )}
           <NumberField
@@ -179,8 +184,8 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
             }
             inline={false}
             hideControlState
-            stacked
             showHelpInTooltip
+            stacked
           />
         </Body>
         <Footer>

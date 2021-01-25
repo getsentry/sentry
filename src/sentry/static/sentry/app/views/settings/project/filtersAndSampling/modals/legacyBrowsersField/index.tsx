@@ -9,23 +9,29 @@ import {LEGACY_BROWSER_LIST} from '../utils';
 
 import LegacyBrowser from './legacyBrowser';
 
-type Browser = keyof typeof LEGACY_BROWSER_LIST;
+type Browser = React.ComponentProps<typeof LegacyBrowser>['browser'];
 
 const legacyBrowsers = Object.keys(LEGACY_BROWSER_LIST) as Array<Browser>;
 
 type Props = {
-  onToggleAll: (isAllSelected: boolean) => void;
-  onToggle: (browser: Browser) => void;
+  onChange: (selectedLegacyBrowsers: Array<Browser>) => void;
 };
 
-function LegacyBrowsersField({onToggleAll, onToggle}: Props) {
+function LegacyBrowsersField({onChange}: Props) {
+  function handleChange({
+    selectedIds,
+  }: Parameters<NonNullable<BulkController['props']['onChange']>>[0]) {
+    onChange(selectedIds as Array<Browser>);
+  }
+
   return (
     <BulkController
       pageIds={legacyBrowsers}
       allRowsCount={legacyBrowsers.length}
+      onChange={handleChange}
       columnsCount={0}
     >
-      {({selectedIds, onRowToggle, renderBulkNotice, onAllRowsToggle, isAllSelected}) => (
+      {({selectedIds, onRowToggle, onAllRowsToggle, isAllSelected}) => (
         <StyledPanelTable
           headers={[
             '',
@@ -35,13 +41,10 @@ function LegacyBrowsersField({onToggleAll, onToggle}: Props) {
               isActive={isAllSelected}
               toggle={() => {
                 onAllRowsToggle(!isAllSelected);
-                onToggleAll(!isAllSelected);
               }}
             />,
           ]}
         >
-          {renderBulkNotice()}
-
           {legacyBrowsers.map(legacyBrowser => (
             <LegacyBrowser
               key={legacyBrowser}
@@ -49,7 +52,6 @@ function LegacyBrowsersField({onToggleAll, onToggle}: Props) {
               isEnabled={selectedIds.includes(legacyBrowser)}
               onToggle={() => {
                 onRowToggle(legacyBrowser);
-                onToggle(legacyBrowser);
               }}
             />
           ))}
