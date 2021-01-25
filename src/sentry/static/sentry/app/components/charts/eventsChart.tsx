@@ -38,10 +38,10 @@ type ChartProps = {
   previousTimeseriesData?: Series | null;
   previousSeriesName?: string;
   /**
-   * The default series names are based on the column names. This callback
-   * allows for custom naming of series.
+   * A callback to allow for post-processing of the series data.
+   * Can be used to rename series or even insert a new series.
    */
-  seriesNameTransformer?: (string) => string;
+  seriesTransformer?: (series: Series[]) => Series[];
   showDaily?: boolean;
   interval?: string;
   yAxis: string;
@@ -70,7 +70,7 @@ class Chart extends React.Component<ChartProps, State> {
     previousTimeseriesData: PropTypes.object,
     currentSeriesName: PropTypes.string,
     previousSeriesName: PropTypes.string,
-    seriesNameTransformer: PropTypes.func,
+    seriesTransformer: PropTypes.func,
     showDaily: PropTypes.bool,
     yAxis: PropTypes.string,
     stacked: PropTypes.bool,
@@ -162,7 +162,7 @@ class Chart extends React.Component<ChartProps, State> {
       chartOptions: chartOptionsProp,
       currentSeriesName,
       previousSeriesName,
-      seriesNameTransformer,
+      seriesTransformer,
       colors,
       ...props
     } = this.props;
@@ -194,9 +194,17 @@ class Chart extends React.Component<ChartProps, State> {
         }
       : undefined;
 
+    let series = Array.isArray(releaseSeries)
+      ? [...timeseriesData, ...releaseSeries]
+      : timeseriesData;
+
+    if (seriesTransformer) {
+      series = seriesTransformer(series);
+    }
+
     const chartOptions = {
       colors: timeseriesData.length
-        ? colors?.slice(0, timeseriesData.length) ?? [
+        ? colors?.slice(0, series.length) ?? [
             ...theme.charts.getColorPalette(timeseriesData.length - 2),
           ]
         : undefined,
@@ -224,15 +232,6 @@ class Chart extends React.Component<ChartProps, State> {
     };
 
     const Component = this.getChartComponent();
-    const series = Array.isArray(releaseSeries)
-      ? [...timeseriesData, ...releaseSeries]
-      : timeseriesData;
-
-    if (seriesNameTransformer) {
-      series.forEach(s => {
-        s.seriesName = seriesNameTransformer(s.seriesName);
-      });
-    }
 
     return (
       <Component
@@ -332,7 +331,7 @@ type Props = {
   ChartProps,
   | 'currentSeriesName'
   | 'previousSeriesName'
-  | 'seriesNameTransformer'
+  | 'seriesTransformer'
   | 'showLegend'
   | 'disableableSeries'
   | 'legendOptions'
@@ -368,7 +367,7 @@ class EventsChart extends React.Component<Props> {
     emphasizeReleases: PropTypes.array,
     currentSeriesName: PropTypes.string,
     previousSeriesName: PropTypes.string,
-    seriesNameTransformer: PropTypes.func,
+    seriesTransformer: PropTypes.func,
     topEvents: PropTypes.number,
     field: PropTypes.arrayOf(PropTypes.string),
     showDaily: PropTypes.bool,
@@ -401,7 +400,7 @@ class EventsChart extends React.Component<Props> {
       emphasizeReleases,
       currentSeriesName: currentName,
       previousSeriesName: previousName,
-      seriesNameTransformer,
+      seriesTransformer,
       field,
       interval,
       showDaily,
@@ -460,7 +459,7 @@ class EventsChart extends React.Component<Props> {
             previousTimeseriesData={previousTimeseriesData}
             currentSeriesName={currentSeriesName}
             previousSeriesName={previousSeriesName}
-            seriesNameTransformer={seriesNameTransformer}
+            seriesTransformer={seriesTransformer}
             stacked={typeof topEvents === 'number' && topEvents > 0}
             yAxis={yAxis}
             showDaily={showDaily}
