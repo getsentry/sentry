@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.api.bases import OrganizationIssuesEndpoint
 from sentry.models import Group
 

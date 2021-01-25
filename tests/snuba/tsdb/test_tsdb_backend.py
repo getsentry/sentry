@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from datetime import datetime, timedelta
 import pytz
 import six
@@ -91,12 +89,12 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
                         "baz": "quux",
                         # Switch every 2 hours
                         "environment": [env1, None][(r // 7200) % 3],
-                        "sentry:user": u"id:user{}".format(r // 3300),
+                        "sentry:user": "id:user{}".format(r // 3300),
                     },
                     "user": {
                         # change every 55 min so some hours have 1 user, some have 2
-                        "id": u"user{}".format(r // 3300),
-                        "email": u"user{}@sentry.io".format(r),
+                        "id": "user{}".format(r // 3300),
+                        "email": "user{}@sentry.io".format(r),
                     },
                     "release": six.text_type(r // 3600) * 10,  # 1 per hour,
                 },
@@ -317,13 +315,16 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             self.proj1group1.id: 1  # Only 1 unique user in the first hour
         }
 
-        assert self.db.get_distinct_counts_totals(
-            TSDBModel.users_affected_by_project,
-            [self.proj1.id],
-            self.now,
-            self.now + timedelta(hours=4),
-            rollup=3600,
-        ) == {self.proj1.id: 2}
+        assert (
+            self.db.get_distinct_counts_totals(
+                TSDBModel.users_affected_by_project,
+                [self.proj1.id],
+                self.now,
+                self.now + timedelta(hours=4),
+                rollup=3600,
+            )
+            == {self.proj1.id: 2}
+        )
 
         assert (
             self.db.get_distinct_counts_totals(

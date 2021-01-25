@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 from django.core.urlresolvers import reverse
 
@@ -36,7 +34,7 @@ class TeamProjectsListTest(APITestCase):
         team2 = self.create_team(organization=org, name="bar")
         self.create_project(organization=org, teams=[team2])
 
-        path = u"/api/0/teams/{}/{}/projects/".format(org.slug, team1.slug)
+        path = "/api/0/teams/{}/{}/projects/".format(org.slug, team1.slug)
 
         self.login_as(user=user)
 
@@ -70,7 +68,7 @@ class TeamProjectsCreateTest(APITestCase):
         org = self.create_organization(owner=user)
         team1 = self.create_team(organization=org, name="foo")
 
-        path = u"/api/0/teams/{}/{}/projects/".format(org.slug, team1.slug)
+        path = "/api/0/teams/{}/{}/projects/".format(org.slug, team1.slug)
 
         self.login_as(user=user)
 
@@ -88,7 +86,7 @@ class TeamProjectsCreateTest(APITestCase):
         org = self.create_organization(owner=user)
         team1 = self.create_team(organization=org, name="foo")
 
-        path = u"/api/0/teams/{}/{}/projects/".format(org.slug, team1.slug)
+        path = "/api/0/teams/{}/{}/projects/".format(org.slug, team1.slug)
 
         self.login_as(user=user)
 
@@ -107,7 +105,7 @@ class TeamProjectsCreateTest(APITestCase):
         team1 = self.create_team(organization=org, name="foo")
         self.create_project(organization=org, teams=[team1], slug="test-project")
 
-        path = u"/api/0/teams/{}/{}/projects/".format(org.slug, team1.slug)
+        path = "/api/0/teams/{}/{}/projects/".format(org.slug, team1.slug)
 
         self.login_as(user=user)
 
@@ -120,7 +118,7 @@ class TeamProjectsCreateTest(APITestCase):
         org = self.create_organization(owner=user)
         team1 = self.create_team(organization=org, name="foo")
 
-        path = u"/api/0/teams/{}/{}/projects/".format(org.slug, team1.slug)
+        path = "/api/0/teams/{}/{}/projects/".format(org.slug, team1.slug)
 
         self.login_as(user=user)
 

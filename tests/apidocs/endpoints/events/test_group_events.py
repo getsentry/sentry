@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
 
 from django.test.client import RequestFactory
 
@@ -34,7 +33,7 @@ class ProjectGroupEventBase(APIDocsTestCase):
 class ProjectGroupEventsDocs(ProjectGroupEventBase):
     def setUp(self):
         super(ProjectGroupEventsDocs, self).setUp()
-        self.url = u"/api/0/issues/{}/events/".format(self.group_id)
+        self.url = "/api/0/issues/{}/events/".format(self.group_id)
 
     def test_get(self):
         response = self.client.get(self.url)
@@ -46,7 +45,7 @@ class ProjectGroupEventsDocs(ProjectGroupEventBase):
 class ProjectGroupEventsLatestDocs(ProjectGroupEventBase):
     def setUp(self):
         super(ProjectGroupEventsLatestDocs, self).setUp()
-        self.url = u"/api/0/issues/{}/events/latest/".format(self.group_id)
+        self.url = "/api/0/issues/{}/events/latest/".format(self.group_id)
 
     def test_get(self):
         response = self.client.get(self.url)
@@ -58,7 +57,7 @@ class ProjectGroupEventsLatestDocs(ProjectGroupEventBase):
 class ProjectGroupEventsOldestDocs(ProjectGroupEventBase):
     def setUp(self):
         super(ProjectGroupEventsOldestDocs, self).setUp()
-        self.url = u"/api/0/issues/{}/events/oldest/".format(self.group_id)
+        self.url = "/api/0/issues/{}/events/oldest/".format(self.group_id)
 
     def test_get(self):
         response = self.client.get(self.url)

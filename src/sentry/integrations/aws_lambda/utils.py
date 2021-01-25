@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry import options
 
 from sentry.models import Project, ProjectKey
@@ -50,7 +48,7 @@ def parse_arn(arn):
 
 
 def _get_aws_node_arn(region):
-    return u"arn:aws:lambda:{}:{}:layer:{}:{}".format(
+    return "arn:aws:lambda:{}:{}:layer:{}:{}".format(
         region,
         options.get("aws-lambda.account-number"),
         options.get("aws-lambda.node.layer-name"),
@@ -117,7 +115,10 @@ def get_supported_functions(lambda_client):
     for page in response_iterator:
         functions += page["Functions"]
 
-    return filter(lambda x: x.get("Runtime") in SUPPORTED_RUNTIMES, functions,)
+    return filter(
+        lambda x: x.get("Runtime") in SUPPORTED_RUNTIMES,
+        functions,
+    )
 
 
 def get_dsn_for_project(organization_id, project_id):
@@ -172,7 +173,10 @@ def disable_single_lambda(lambda_client, function, layer_arn):
             del env_variables[env_name]
 
     return update_lambda_with_retries(
-        lambda_client, FunctionName=name, Layers=layers, Environment={"Variables": env_variables},
+        lambda_client,
+        FunctionName=name,
+        Layers=layers,
+        Environment={"Variables": env_variables},
     )
 
 

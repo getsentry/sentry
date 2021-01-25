@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 from hashlib import sha1
 from sentry.utils.compat.mock import patch
@@ -63,7 +61,7 @@ class ResolvedInCommitTest(TestCase):
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
-            message=u"Foo Biz\n\nFixes {}".format(group.qualified_short_id),
+            message="Foo Biz\n\nFixes {}".format(group.qualified_short_id),
         )
 
         self.assertResolvedFromCommit(group, commit)
@@ -82,7 +80,7 @@ class ResolvedInCommitTest(TestCase):
 
         self.assertNotResolvedFromCommit(group, commit)
 
-        commit.message = u"Foo Biz\n\nFixes {}".format(group.qualified_short_id)
+        commit.message = "Foo Biz\n\nFixes {}".format(group.qualified_short_id)
         commit.save()
 
         self.assertResolvedFromCommit(group, commit)
@@ -97,12 +95,12 @@ class ResolvedInCommitTest(TestCase):
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
-            message=u"Foo Biz\n\nFixes {}".format(group.qualified_short_id),
+            message="Foo Biz\n\nFixes {}".format(group.qualified_short_id),
         )
 
         self.assertResolvedFromCommit(group, commit)
 
-        commit.message = u"Foo Bar Biz\n\nFixes {}".format(group.qualified_short_id)
+        commit.message = "Foo Bar Biz\n\nFixes {}".format(group.qualified_short_id)
         commit.save()
 
         self.assertResolvedFromCommit(group, commit)
@@ -117,7 +115,7 @@ class ResolvedInCommitTest(TestCase):
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
-            message=u"Foo Biz\n\nFixes {}".format(group.qualified_short_id),
+            message="Foo Biz\n\nFixes {}".format(group.qualified_short_id),
         )
 
         self.assertResolvedFromCommit(group, commit)
@@ -135,7 +133,7 @@ class ResolvedInCommitTest(TestCase):
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=self.organization.id,
-            message=u"Foo Biz\n\nFixes {}-12F".format(self.project.slug.upper()),
+            message="Foo Biz\n\nFixes {}-12F".format(self.project.slug.upper()),
         )
 
         assert not GroupLink.objects.filter(
@@ -157,7 +155,7 @@ class ResolvedInCommitTest(TestCase):
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             organization_id=group.organization.id,
             repository_id=repo.id,
-            message=u"Foo Biz\n\nFixes {}".format(group.qualified_short_id),
+            message="Foo Biz\n\nFixes {}".format(group.qualified_short_id),
             author=CommitAuthor.objects.create(
                 organization_id=group.organization.id, name=user.name, email=user.email
             ),
@@ -192,7 +190,7 @@ class ResolvedInCommitTest(TestCase):
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             organization_id=group.organization.id,
             repository_id=repo.id,
-            message=u"Foo Biz\n\nFixes {}".format(group.qualified_short_id),
+            message="Foo Biz\n\nFixes {}".format(group.qualified_short_id),
             author=CommitAuthor.objects.create(
                 organization_id=group.organization.id, name=user.name, email=user.email
             ),
