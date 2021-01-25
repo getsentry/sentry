@@ -27,12 +27,18 @@ class ErrorRuleModal extends Form<Props, State> {
 
   getCategoryOptions() {
     // TODO(PRISCILA): Enable the disabled options below as soon as the backend supports
+    // return [
+    //   [Category.RELEASES, t('Releases')],
+    // [Category.BROWSER_EXTENSIONS, t('Browser Extensions')],
+    // [Category.LOCALHOST, t('Localhost')],
+    // [Category.WEB_CRAWLERS, t('Web Crawlers')],
+    // [Category.LEGACY_BROWSERS, t('Legacy Browsers')],
+    // ] as Array<[string, string]>;
+
     return [
       [Category.RELEASES, t('Releases')],
-      // [Category.BROWSER_EXTENSIONS, t('Browser Extensions')],
-      // [Category.LOCALHOST, t('Localhost')],
-      // [Category.WEB_CRAWLERS, t('Web Crawlers')],
-      // [Category.LEGACY_BROWSERS, t('Legacy Browsers')],
+      [Category.ENVIROMENTS, t('Enviroments')],
+      [Category.USERS, t('Users')],
     ] as Array<[string, string]>;
   }
 }
