@@ -132,6 +132,13 @@ def get_project_config(project, full_config=True, project_keys=None):
             "organizationId": project.organization_id,
             "projectId": project.id,  # XXX: Unused by Relay, required by Python store
         }
+    allow_dynamic_sampling = features.has(
+        "organizations:filters-and-sampling", project.organization,
+    )
+    if allow_dynamic_sampling:
+        dynamic_sampling = project.get_option("sentry:dynamic_sampling")
+        if dynamic_sampling is not None:
+            cfg["config"]["dynamicSampling"] = dynamic_sampling
 
     if not full_config:
         # This is all we need for external Relay processors
