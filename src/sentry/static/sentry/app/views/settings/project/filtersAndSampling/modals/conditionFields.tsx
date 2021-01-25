@@ -8,21 +8,18 @@ import space from 'app/styles/space';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import TextField from 'app/views/settings/components/forms/textField';
 
+import LegacyBrowsersField from './legacyBrowsersField';
 import {Category} from './utils';
 
 type Condition = {
   category: Category;
   match: string;
+  legacyBrowsers?: Array<string>;
 };
-
-const categoryOptions = [
-  [Category.RELEASES, t('Releases')],
-  [Category.ENVIROMENTS, t('Enviroments')],
-  [Category.USERS, t('Users')],
-];
 
 type Props = {
   conditions: Array<Condition>;
+  categoryOptions: Array<[string, string]>;
   onAdd: () => void;
   onDelete: (index: number) => () => void;
   onChange: <T extends keyof Condition>(
@@ -32,48 +29,63 @@ type Props = {
   ) => void;
 };
 
-function ConditionFields({conditions, onAdd, onDelete, onChange}: Props) {
+function ConditionFields({
+  conditions,
+  categoryOptions,
+  onAdd,
+  onDelete,
+  onChange,
+}: Props) {
   return (
     <React.Fragment>
       {conditions.map(({match, category}, index) => {
         const displayDescription = index === 0;
+        const showLegacyBrowsers = category === Category.LEGACY_BROWSERS;
         return (
-          <div key={index}>
-            <Fields>
-              <SelectField
-                label={displayDescription && t('Category')}
-                help={displayDescription && t('This is a description')}
-                name="category"
-                choices={categoryOptions}
-                onChange={value => onChange(index, 'category', value)}
-                value={category}
-                inline={false}
-                hideControlState
-                showHelpInTooltip
-                required
-                stacked
+          <Fields key={index}>
+            <SelectField
+              label={displayDescription ? t('Category') : undefined}
+              help={displayDescription ? t('This is a description') : undefined}
+              name="category"
+              value={category}
+              onChange={value => onChange(index, 'category', value)}
+              choices={categoryOptions}
+              inline={false}
+              hideControlState
+              showHelpInTooltip
+              required
+              stacked
+            />
+            <TextField
+              label={displayDescription ? t('Match Conditions') : undefined}
+              help={displayDescription ? t('This is a description') : undefined}
+              placeholder={
+                showLegacyBrowsers ? t('No match condition') : 'ex. 1* or [I3].[0-9].*'
+              }
+              name="match"
+              value={match}
+              onChange={value => onChange(index, 'match', value)}
+              disabled={showLegacyBrowsers}
+              inline={false}
+              hideControlState
+              showHelpInTooltip
+              required
+              stacked
+            />
+            <IconDeleteWrapper onClick={onDelete(index)}>
+              <IconDelete aria-label={t('Delete Condition')} />
+            </IconDeleteWrapper>
+            {showLegacyBrowsers && (
+              <LegacyBrowsersField
+                onChange={value => {
+                  onChange(index, 'legacyBrowsers', value);
+                }}
               />
-              <TextField
-                label={displayDescription && t('Match Conditions')}
-                help={displayDescription && t('This is a description')}
-                placeholder="ex. 1* or [I3].[0-9].*"
-                name="match"
-                inline={false}
-                value={match}
-                onChange={value => onChange(index, 'match', value)}
-                hideControlState
-                showHelpInTooltip
-                required
-                stacked
-              />
-              <IconDeleteWrapper onClick={onDelete(index)}>
-                <IconDelete aria-label={t('Delete Condition')} />
-              </IconDeleteWrapper>
-            </Fields>
-          </div>
+            )}
+          </Fields>
         );
       })}
-      <StyledButton icon={<IconAdd isCircled />} onClick={onAdd}>
+      <StyledButton icon={<IconAdd isCircled />} onClick={onAdd} size="small">
         {t('Add Condition')}
       </StyledButton>
     </React.Fragment>

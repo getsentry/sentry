@@ -12,9 +12,10 @@ type Props = {
   rules: Array<DynamicSamplingRule>;
   onEditRule: (rule: DynamicSamplingRule) => () => void;
   onDeleteRule: (rule: DynamicSamplingRule) => () => void;
+  disabled: boolean;
 };
 
-function Rules({rules, onEditRule, onDeleteRule}: Props) {
+function Rules({rules, onEditRule, onDeleteRule, disabled}: Props) {
   return (
     <StyledPanelTable
       headers={['', t('Event Type'), t('Category'), t('Sampling Rate'), '']}
@@ -27,6 +28,7 @@ function Rules({rules, onEditRule, onDeleteRule}: Props) {
           rule={rule}
           onEditRule={onEditRule(rule)}
           onDeleteRule={onDeleteRule(rule)}
+          disabled={disabled}
         />
       ))}
     </StyledPanelTable>

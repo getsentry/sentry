@@ -34,7 +34,6 @@ const ErrorLabel = styled('div')`
   white-space: pre-wrap;
 `;
 
-const TransactionLabel = styled('div')`
+const TransactionLabel = styled(ErrorLabel)`
   color: ${p => p.theme.linkColor};
-  white-space: pre-wrap;
 `;
