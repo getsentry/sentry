@@ -439,7 +439,7 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
 
   @media (min-width: ${props => props.theme.breakpoints[2]}) and (max-width: ${props =>
       props.theme.breakpoints[3]}) {
-    grid-template-columns: ${p => (p.isFrameAfterLastNonApp ? '180px' : '130px')} 117px 1fr auto;
+    grid-template-columns: ${p => (p.isFrameAfterLastNonApp ? '180px' : '140px')} 117px 1fr auto;
   }
 `;
 

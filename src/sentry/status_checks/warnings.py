@@ -1,3 +1,9 @@
+from __future__ import absolute_import
+
+from urllib.parse import urljoin
+
+from django.core.urlresolvers import reverse
+
 from .base import Problem, StatusCheck
 
 
@@ -15,6 +21,10 @@ class WarningStatusCheck(StatusCheck):
                         "issues" if len(self.__warning_set) > 1 else "issue",
                     ),
                     severity=Problem.SEVERITY_WARNING,
+                    # We need this manual URL building as this page is moved to react
+                    # and only the top-level entrypoint is defined and addressable in
+                    # our backend Django app.
+                    url=urljoin(reverse("sentry-admin-overview"), "status/warnings/"),
                 )
             ]
         else:

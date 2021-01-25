@@ -1,5 +1,4 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router';
 import partition from 'lodash/partition';
 
 import {openModal} from 'app/actionCreators/modal';
@@ -24,11 +23,11 @@ import {modalCss} from './modals/utils';
 import RulesPanel from './rulesPanel';
 import {getPlatformDocLink} from './utils';
 
-type Props = RouteComponentProps<{projectId: string; orgId: string}, {}> &
-  AsyncView['props'] & {
-    project: Project;
-    organization: Organization;
-  };
+type Props = AsyncView['props'] & {
+  project: Project;
+  organization: Organization;
+  hasAccess: boolean;
+};
 
 type State = AsyncView['state'] & {
   transactionRules: DynamicSamplingRules;
@@ -169,9 +168,10 @@ class FiltersAndSampling extends AsyncView<Props, State> {
 
   renderBody() {
     const {errorRules, transactionRules} = this.state;
-    const {project} = this.props;
+    const {project, hasAccess} = this.props;
 
     const platformDocLink = getPlatformDocLink(project.platform as PlatformKey);
+    const disabled = !hasAccess;
 
     return (
       <React.Fragment>
@@ -195,6 +195,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
           onAddRule={this.handleAddErrorRule(platformDocLink)}
           onEditRule={this.handleEditRule}
           onDeleteRule={this.handleDeleteRule}
+          disabled={disabled}
         />
         <TextBlock>
           {t(
@@ -207,6 +208,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
           onAddRule={this.handleAddTransactionRule(platformDocLink)}
           onEditRule={this.handleEditRule}
           onDeleteRule={this.handleDeleteRule}
+          disabled={disabled}
         />
       </React.Fragment>
     );
