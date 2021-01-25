@@ -56,6 +56,87 @@ def clean_newline_inputs(value, case_insensitive=True):
     return result
 
 
+class DynamicSamplingConditionSerializer(serializers.Serializer):
+    def to_representation(self, instance):
+        return instance
+
+    def to_internal_value(self, data):
+        return data
+
+    def validate(self, data):
+        """
+        Conditions are quite heterogeneous so we validate manually
+        This validation needs to evolve with the new types of conditions supported in
+        the dynamic-sampling conditions
+        """
+        if data is None:
+            raise serializers.ValidationError("Invalid dynamic rule condition")
+
+        op = data.get("op")
+
+        if op in ["and", "or", "not"]:
+            inner = data.get("inner")
+            if inner is None:
+                raise serializers.ValidationError(
+                    "Missing inner field from  rule condition '{}' ".format(op)
+                )
+            if op == "not":
+                self.validate(inner)
+            else:
+                for child in inner:
+                    self.validate(child)
+        elif op == "eq":
+            for key in six.iterkeys(data):
+                if key not in ["op", "name", "value", "ignoreCase"]:
+                    raise serializers.ValidationError(
+                        "Invalid filed {} for eq condition".format(key)
+                    )
+            name = data.get("name")
+            if type(name) not in six.string_types:
+                raise serializers.ValidationError(
+                    "Invalid field value {} for name, expected string", format(name)
+                )
+            ignore_case = data.get("ignoreCase", False)
+            if type(ignore_case) != bool:
+                raise serializers.ValidationError(
+                    "Invalid field value {} for ignoreCase, expected bool", format(name)
+                )
+            if data.get("value") is None:
+                raise serializers.ValidationError("Missing field 'value'")
+        elif op == "glob":
+            for key in six.iterkeys(data):
+                if key not in ["op", "name", "value", "ignoreCase"]:
+                    raise serializers.ValidationError(
+                        "Invalid filed {} for eq condition".format(key)
+                    )
+            name = data.get("name")
+            if type(name) not in six.string_types:
+                raise serializers.ValidationError(
+                    "Invalid field value {} for name, expected string", format(name)
+                )
+            if data.get("value") is None:
+                raise serializers.ValidationError("Missing field 'value'")
+        else:
+            raise serializers.ValidationError(
+                "Invalid dynamic rule condition operator:'{}'".format(op)
+            )
+
+        return data
+
+
+class DynamicSamplingRuleSerializer(serializers.Serializer):
+    sampleRate = serializers.FloatField(min_value=0, max_value=1, required=True)
+    type = serializers.ChoiceField(
+        choices=(("trace", "trace"), ("transaction", "transaction"), ("error", "error")),
+        required=True,
+    )
+    condition = DynamicSamplingConditionSerializer()
+
+
+class DynamicSamplingSerializer(serializers.Serializer):
+    rules = serializers.ListSerializer(child=DynamicSamplingRuleSerializer())
+
+
 class ProjectMemberSerializer(serializers.Serializer):
     isBookmarked = serializers.BooleanField()
     isSubscribed = serializers.BooleanField()
@@ -100,6 +181,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     resolveAge = EmptyIntegerField(required=False, allow_null=True)
     platform = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     copy_from_project = serializers.IntegerField(required=False)
+    dynamicSampling = DynamicSamplingSerializer(required=False)
 
     def validate(self, data):
         max_delay = (
@@ -325,6 +407,16 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         result = serializer.validated_data
 
+        allow_dynamic_sampling = features.has(
+            "organizations:filters-and-sampling", project.organization, actor=request.user
+        )
+
+        if not allow_dynamic_sampling and result.get("dynamicSampling"):
+            # trying to set dynamic sampling with feature disabled
+            return Response(
+                {"detail": ["You do not have permission to set dynamic sampling."]}, status=403,
+            )
+
         if not has_project_write:
             # options isn't part of the serializer, but should not be editable by members
             for key in chain(six.iterkeys(ProjectAdminSerializer().fields), ["options"]):
@@ -480,6 +572,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             UserOption.objects.set_value(
                 user=request.user, key="mail:alert", value=0, project=project
             )
+
+        if "dynamicSampling" in result:
+            project.update_option("sentry:dynamic_sampling", result["dynamicSampling"])
 
         # TODO(dcramer): rewrite options to use standard API config
         if has_project_write:

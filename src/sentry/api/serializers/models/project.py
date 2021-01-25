@@ -570,6 +570,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:grouping_enhancements_base",
             "sentry:fingerprinting_rules",
             "sentry:relay_pii_config",
+            "sentry:dynamic_sampling",
             "feedback:branding",
             "digests:mail:minimum_delay",
             "digests:mail:maximum_delay",
@@ -700,7 +701,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
                 "builtinSymbolSources": get_value_with_default("sentry:builtin_symbol_sources"),
                 "symbolSources": attrs["options"].get("sentry:symbol_sources"),
-                "dynamicSampling": projectoptions.get(obj, "sentry:dynamic_sampling"),
+                "dynamicSampling": get_value_with_default("sentry:dynamic_sampling"),
             }
         )
         return data

@@ -33,19 +33,21 @@ from sentry.utils.compat import zip
 
 
 def _dyn_sampling_data():
-    return [
-        {
-            "sampleRate": 0.7,
-            "type": "trace",
-            "condition": {
-                "op": "and",
-                "inner": [
-                    {"op": "eq", "ignoreCase": True, "name": "field1", "value": ["val"]},
-                    {"op": "glob", "name": "field1", "value": ["val"]},
-                ],
-            },
-        }
-    ]
+    return {
+        "rules": [
+            {
+                "sampleRate": 0.7,
+                "type": "trace",
+                "condition": {
+                    "op": "and",
+                    "inner": [
+                        {"op": "eq", "ignoreCase": True, "name": "field1", "value": ["val"]},
+                        {"op": "glob", "name": "field1", "value": ["val"]},
+                    ],
+                },
+            }
+        ]
+    }
 
 
 class ProjectDetailsTest(APITestCase):
