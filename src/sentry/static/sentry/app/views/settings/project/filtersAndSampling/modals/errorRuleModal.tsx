@@ -1,30 +1,21 @@
-import React from 'react';
-
-import {ModalRenderProps} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import {DynamicSamplingRule} from 'app/types/dynamicSampling';
 
-type Props = ModalRenderProps & {
-  organization: Organization;
-  onSubmit: (rule: DynamicSamplingRule) => void;
-  platformDocLink?: string;
-};
+import Form from './form';
 
-type State = {};
+type Props = Form['props'];
 
-class ErrorRuleModal extends React.Component<Props, State> {
-  render() {
-    const {Header, Body, closeModal} = this.props;
+type State = Form['state'];
 
-    return (
-      <React.Fragment>
-        <Header closeButton onHide={closeModal}>
-          {t('Add a custom rule for errors')}
-        </Header>
-        <Body>{null}</Body>
-      </React.Fragment>
-    );
+class ErrorRuleModal extends Form<Props, State> {
+  getModalTitle() {
+    return t('Add a custom rule for errors');
+  }
+
+  geTransactionFieldDescription() {
+    return {
+      label: t('Error'),
+      help: t('This is a description'),
+    };
   }
 }
 

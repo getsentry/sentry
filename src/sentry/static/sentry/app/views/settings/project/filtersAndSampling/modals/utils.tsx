@@ -29,3 +29,13 @@ export function getMatchFieldDescription(condition: DynamicSamplingConditionOper
       return {};
   }
 }
+
+export enum Category {
+  RELEASES = 'releases',
+  ENVIROMENTS = 'enviroments',
+  USERS = 'users',
+  BROWSER_EXTENSIONS = 'browser_extensions',
+  LOCALHOST = 'localhost',
+  WEB_CRAWLERS = 'web_crawlers',
+  LEGACY_BROWSERS = 'legacy_browsers',
+}
