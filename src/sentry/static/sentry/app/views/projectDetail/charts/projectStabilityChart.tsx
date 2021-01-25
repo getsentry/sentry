@@ -46,76 +46,89 @@ function ProjectStabilityChart({
   const {projects, environments, datetime} = selection;
   const {start, end, period, utc} = datetime;
 
-  return getDynamicText({
-    value: (
-      <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
-        {zoomRenderProps => (
-          <SessionsRequest api={api} selection={selection} organization={organization}>
-            {({
-              errored,
-              loading,
-              reloading,
-              timeseriesData,
-              previousTimeseriesData,
-              totalSessions,
-            }) => (
-              <ReleaseSeries
-                utc={utc}
-                period={period}
-                start={start}
-                end={end}
-                projects={projects}
-                environments={environments}
+  return (
+    <React.Fragment>
+      {getDynamicText({
+        value: (
+          <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
+            {zoomRenderProps => (
+              <SessionsRequest
+                api={api}
+                selection={selection}
+                organization={organization}
               >
-                {({releaseSeries}) => {
-                  if (errored) {
-                    return (
-                      <ErrorPanel>
-                        <IconWarning color="gray300" size="lg" />
-                      </ErrorPanel>
-                    );
-                  }
+                {({
+                  errored,
+                  loading,
+                  reloading,
+                  timeseriesData,
+                  previousTimeseriesData,
+                  totalSessions,
+                }) => (
+                  <ReleaseSeries
+                    utc={utc}
+                    period={period}
+                    start={start}
+                    end={end}
+                    projects={projects}
+                    environments={environments}
+                  >
+                    {({releaseSeries}) => {
+                      if (errored) {
+                        return (
+                          <ErrorPanel>
+                            <IconWarning color="gray300" size="lg" />
+                          </ErrorPanel>
+                        );
+                      }
 
-                  if (totalSessions === 0) {
-                    return <ErrorPanel>{t('There are no session data')}</ErrorPanel>;
-                  }
+                      if (totalSessions === 0) {
+                        return <ErrorPanel>{t('There are no session data')}</ErrorPanel>;
+                      }
 
-                  onTotalValuesChange(totalSessions);
+                      onTotalValuesChange(totalSessions);
 
-                  return (
-                    <TransitionChart loading={loading} reloading={reloading}>
-                      <TransparentLoadingMask visible={reloading} />
+                      return (
+                        <TransitionChart loading={loading} reloading={reloading}>
+                          <TransparentLoadingMask visible={reloading} />
 
-                      <HeaderTitleLegend>
-                        {t('Stability')}
-                        <QuestionTooltip
-                          size="sm"
-                          position="top"
-                          title={getSessionTermDescription(SessionTerm.STABILITY, null)}
-                        />
-                      </HeaderTitleLegend>
+                          <HeaderTitleLegend>
+                            {t('Stability')}
+                            <QuestionTooltip
+                              size="sm"
+                              position="top"
+                              title={getSessionTermDescription(
+                                SessionTerm.STABILITY,
+                                null
+                              )}
+                            />
+                          </HeaderTitleLegend>
 
-                      <Chart
-                        theme={theme}
-                        zoomRenderProps={zoomRenderProps}
-                        reloading={reloading}
-                        timeSeries={timeseriesData}
-                        previousTimeSeries={
-                          previousTimeseriesData ? [previousTimeseriesData] : undefined
-                        }
-                        releaseSeries={releaseSeries}
-                      />
-                    </TransitionChart>
-                  );
-                }}
-              </ReleaseSeries>
+                          <Chart
+                            theme={theme}
+                            zoomRenderProps={zoomRenderProps}
+                            reloading={reloading}
+                            timeSeries={timeseriesData}
+                            previousTimeSeries={
+                              previousTimeseriesData
+                                ? [previousTimeseriesData]
+                                : undefined
+                            }
+                            releaseSeries={releaseSeries}
+                          />
+                        </TransitionChart>
+                      );
+                    }}
+                  </ReleaseSeries>
+                )}
+              </SessionsRequest>
             )}
-          </SessionsRequest>
-        )}
-      </ChartZoom>
-    ),
-    fixed: t('Stability Chart'),
-  });
+          </ChartZoom>
+        ),
+        fixed: t('Stability Chart'),
+      })}
+    </React.Fragment>
+  );
 }
 
 type ChartProps = {
