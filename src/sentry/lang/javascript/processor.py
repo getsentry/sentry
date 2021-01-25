@@ -698,11 +698,12 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     if "/~/" in filename:
                         filename = "~/" + abs_path.split("/~/", 1)[-1]
                     else:
-                        webpack_prefixed = WEBPACK_WITH_LIBRARY_PREFIX_RE.search(filename)
+                        WEBPACK_NAMESPACE_PATH_RE = re.compile(r"webpack:\/\/[\w\-_.]+\/([\w\-_.\/]+)")
+                        webpack_with_namespace = WEBPACK_NAMESPACE_PATH_RE.search(filename)
 
                         # https://github.com/getsentry/sentry/issues/20745
-                        if webpack_prefixed:
-                            filename = webpack_prefixed.group(1)
+                        if webpack_with_namespace:
+                            filename = webpack_with_namespace.group(1)
                         else:
                             filename = filename.split("webpack:///", 1)[-1]
 
