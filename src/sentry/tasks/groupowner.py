@@ -38,7 +38,6 @@ def process_suspect_commits(event_id, event_platform, event_frames, group_id, pr
         owners = owners.filter(
             date_added__lte=timezone.now() - PREFERRED_GROUP_OWNER_AGE
         ).order_by("-date_added")
-        
         if not owners.exists():
             metrics.incr(
                 "sentry.tasks.process_suspect_commits.aborted",
