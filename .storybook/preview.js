@@ -2,22 +2,28 @@ import 'focus-visible';
 import React from 'react';
 import {ThemeProvider} from 'emotion-theming';
 
-import {create} from '@storybook/theming/create';
+import {addParameters, addDecorator} from '@storybook/react';
 
-import {
-  addParameters,
-  configure,
-  setAddon,
-  getStorybook,
-  addDecorator,
-} from '@storybook/react';
-import {withInfo} from '@storybook/addon-info';
-import {setOptions} from '@storybook/addon-options';
-
-import theme from '../src/sentry/static/sentry/app/utils/theme';
+import theme, {darkTheme} from '../src/sentry/static/sentry/app/utils/theme';
+import GlobalStyles from '../src/sentry/static/sentry/app/styles/global';
 import '../docs-ui/index.js';
 
-const withTheme = storyFn => <ThemeProvider theme={theme}>{storyFn()}</ThemeProvider>;
+const withTheme = (Story, context) => {
+  const isDark = context.globals.theme === 'dark';
+  const currentTheme = isDark ? darkTheme : theme;
+
+  // Set @storybook/addon-backgrounds current color based on theme
+  // if (context.globals.theme) {
+  //   context.globals.backgrounds = {value: currentTheme.bodyBackground};
+  // }
+
+  return (
+    <ThemeProvider theme={currentTheme}>
+      <GlobalStyles isDark={isDark} theme={currentTheme} />
+      <Story {...context} />
+    </ThemeProvider>
+  );
+};
 
 addDecorator(withTheme);
 
@@ -88,3 +94,46 @@ addParameters({
     storySort: undefined,
   },
 });
+
+export const globalTypes = {
+  theme: {
+    name: 'Theme',
+    description: 'Global theme for components',
+    defaultValue: '',
+    toolbar: {
+      icon: 'circlehollow',
+      // array of plain string values or MenuItem shape (see below)
+      items: [
+        {value: '', icon: 'circlehollow', title: 'default (light)'},
+        {value: 'light', icon: 'circlehollow', title: 'light'},
+        {value: 'dark', icon: 'circle', title: 'dark'},
+      ],
+    },
+  },
+};
+
+export const parameters = {
+  /**
+   * @storybook/addon-backgrounds background is controlled via theme
+   */
+  backgrounds: {
+    grid: {
+      disable: true,
+    },
+    default: 'light',
+    values: [
+      {
+        name: 'white',
+        value: theme.white,
+      },
+      {
+        name: 'light',
+        value: theme.bodyBackground,
+      },
+      {
+        name: 'dark',
+        value: darkTheme.bodyBackground,
+      },
+    ],
+  },
+};

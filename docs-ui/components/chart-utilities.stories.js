@@ -1,20 +1,16 @@
 import React from 'react';
 import {action} from '@storybook/addon-actions';
-import {withInfo} from '@storybook/addon-info';
-import {number, boolean, text} from '@storybook/addon-knobs';
+import {boolean, number, text} from '@storybook/addon-knobs';
 
 import ChartZoom from 'app/components/charts/chartZoom';
 import LineChart from 'app/components/charts/lineChart';
 
 export default {
-  title: 'DataVisualization/Charts/Utilities',
+  title: 'DataVisualization/Charts/Utilities/ChartZoom',
+  component: ChartZoom,
 };
 
-export const _ChartZoom = withInfo(`This is a strongly opinionated component that takes a render prop through "children".
-  It requires the Global Selection Header and will update the date range selector when zooming. It also
-  has specific behavior to control when the component should update, as well as opinions for
-  the time interval to use.
-    `)(() => (
+export const _ChartZoom = () => (
   <div style={{backgroundColor: 'white', padding: 12}}>
     <ChartZoom onZoom={action('ChartZoom.onZoom')}>
       {zoomRenderProps => (
@@ -76,4 +72,15 @@ export const _ChartZoom = withInfo(`This is a strongly opinionated component tha
       )}
     </ChartZoom>
   </div>
-));
+);
+_ChartZoom.storyName = 'ChartZoom';
+_ChartZoom.parameters = {
+  docs: {
+    description: {
+      story: `This is a strongly opinionated component that takes a render prop through "children".
+      It requires the Global Selection Header and will update the date range selector when zooming. It also
+      has specific behavior to control when the component should update, as well as opinions for
+      the time interval to use.`,
+    },
+  },
+};
