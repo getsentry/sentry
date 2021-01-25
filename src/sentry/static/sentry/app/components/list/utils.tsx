@@ -24,7 +24,15 @@ const bulletStyle = (theme: Theme) => css`
   }
 `;
 
-const numericStyle = (theme: Theme, isSolid = false, initialCounterValue = 0) => css`
+type Options = {
+  isSolid?: boolean;
+  initialCounterValue?: number;
+};
+
+const numericStyle = (
+  theme: Theme,
+  {isSolid = false, initialCounterValue = 0}: Options
+) => css`
   ${commonSymbolStyle}
   & > li:before {
     counter-increment: numberedList;
@@ -67,9 +75,9 @@ export function getListSymbolStyle(
 ) {
   switch (symbol) {
     case 'numeric':
-      return numericStyle(theme, undefined, initialCounterValue);
+      return numericStyle(theme, {initialCounterValue});
     case 'colored-numeric':
-      return numericStyle(theme, true, initialCounterValue);
+      return numericStyle(theme, {isSolid: true, initialCounterValue});
     default:
       return bulletStyle(theme);
   }
