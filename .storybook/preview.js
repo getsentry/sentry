@@ -13,9 +13,9 @@ const withTheme = (Story, context) => {
   const currentTheme = isDark ? darkTheme : theme;
 
   // Set @storybook/addon-backgrounds current color based on theme
-  // if (context.globals.theme) {
-  //   context.globals.backgrounds = {value: currentTheme.bodyBackground};
-  // }
+  if (context.globals.theme) {
+    context.globals.backgrounds = {value: currentTheme.bodyBackground};
+  }
 
   return (
     <ThemeProvider theme={currentTheme}>
@@ -99,12 +99,11 @@ export const globalTypes = {
   theme: {
     name: 'Theme',
     description: 'Global theme for components',
-    defaultValue: '',
+    defaultValue: 'light',
     toolbar: {
       icon: 'circlehollow',
       // array of plain string values or MenuItem shape (see below)
       items: [
-        {value: '', icon: 'circlehollow', title: 'default (light)'},
         {value: 'light', icon: 'circlehollow', title: 'light'},
         {value: 'dark', icon: 'circle', title: 'dark'},
       ],
@@ -123,16 +122,12 @@ export const parameters = {
     default: 'light',
     values: [
       {
-        name: 'white',
-        value: theme.white,
-      },
-      {
         name: 'light',
-        value: theme.bodyBackground,
+        value: theme.background,
       },
       {
         name: 'dark',
-        value: darkTheme.bodyBackground,
+        value: darkTheme.background,
       },
     ],
   },
