@@ -277,6 +277,7 @@ def post_process_group(
             try:
                 from sentry.app import locks
                 from sentry.utils.locking import UnableToAcquireLock
+                from sentry.utils.committers import get_frame_paths
 
                 lock = locks.get(
                     "w-o:{}-d-l".format(event.group_id),
@@ -297,16 +298,12 @@ def post_process_group(
                     ):
                         cache_key = "w-o-i:g-{}".format(group_id)
                         if cache.get(cache_key):
-                            # Only process once per OWNER_CACHE_LIFE seconds.
                             metrics.incr(
                                 "sentry.tasks.process_suspect_commits.debounce",
                                 tags={"detail": "w-o-i:g debounce"},
                             )
                         else:
-                            from sentry.utils.committers import get_frame_paths
-                            from sentry.tasks.groupowner import OWNER_CACHE_LIFE
-
-                            cache.set(cache_key, True, OWNER_CACHE_LIFE)
+                            cache.set(cache_key, True, 604800)
                             event_frames = get_frame_paths(event.data)
                             process_suspect_commits.delay(
                                 event_id=event.event_id,
