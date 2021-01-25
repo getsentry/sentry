@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 import pytest
 
@@ -449,7 +447,8 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         results = discover.query(
             selected_columns=["transaction", "count()"],
             query="event.type:transaction AND (timestamp:<{} OR timestamp:>{})".format(
-                iso_format(before_now(seconds=5)), iso_format(before_now(seconds=3)),
+                iso_format(before_now(seconds=5)),
+                iso_format(before_now(seconds=3)),
             ),
             params={"project_id": [self.project.id]},
             orderby="transaction",
@@ -562,8 +561,8 @@ class QueryTransformTest(TestCase):
                     "transform",
                     [
                         ["toString", ["project_id"]],
-                        ["array", [u"'{}'".format(self.project.id)]],
-                        ["array", [u"'{}'".format(self.project.slug)]],
+                        ["array", ["'{}'".format(self.project.id)]],
+                        ["array", ["'{}'".format(self.project.slug)]],
                         "''",
                     ],
                     "project",
@@ -603,8 +602,8 @@ class QueryTransformTest(TestCase):
                     "transform",
                     [
                         ["toString", ["project_id"]],
-                        ["array", [u"'{}'".format(project2.id)]],
-                        ["array", [u"'{}'".format(project2.slug)]],
+                        ["array", ["'{}'".format(project2.id)]],
+                        ["array", ["'{}'".format(project2.slug)]],
                         "''",
                     ],
                     "project",
@@ -644,14 +643,14 @@ class QueryTransformTest(TestCase):
                     "transform",
                     [
                         ["toString", ["project_id"]],
-                        ["array", [u"'{}'".format(project2.id)]],
-                        ["array", [u"'{}'".format(project2.slug)]],
+                        ["array", ["'{}'".format(project2.id)]],
+                        ["array", ["'{}'".format(project2.slug)]],
                         "''",
                     ],
                     "project",
                 ],
             ],
-            aggregations=[[u"quantile(0.99)", "duration", u"p99"]],
+            aggregations=[["quantile(0.99)", "duration", "p99"]],
             filter_keys={"project_id": [project2.id]},
             dataset=Dataset.Discover,
             end=None,
@@ -1665,14 +1664,14 @@ class QueryTransformTest(TestCase):
         assert discover.find_histogram_params(1, 1, None, 100) == (1, 1, 100, 100)
 
         assert discover.find_histogram_params(10, 0, 9, 1) == (10, 1, 0, 1)
-        assert discover.find_histogram_params(10, 0, 10, 1) == (10, 2, 0, 1)
+        assert discover.find_histogram_params(10, 0, 10, 1) == (6, 2, 0, 1)
         assert discover.find_histogram_params(10, 0, 99, 1) == (10, 10, 0, 1)
-        assert discover.find_histogram_params(10, 0, 100, 1) == (10, 11, 0, 1)
-        assert discover.find_histogram_params(5, 10, 19, 10) == (5, 19, 100, 10)
+        assert discover.find_histogram_params(10, 0, 100, 1) == (6, 20, 0, 1)
+        assert discover.find_histogram_params(5, 10, 19, 10) == (5, 20, 100, 10)
         assert discover.find_histogram_params(5, 10, 19.9, 10) == (5, 20, 100, 10)
-        assert discover.find_histogram_params(10, 10, 20, 1) == (10, 2, 10, 1)
-        assert discover.find_histogram_params(10, 10, 20, 10) == (10, 11, 100, 10)
-        assert discover.find_histogram_params(10, 10, 20, 100) == (10, 101, 1000, 100)
+        assert discover.find_histogram_params(10, 10, 20, 1) == (6, 2, 10, 1)
+        assert discover.find_histogram_params(10, 10, 20, 10) == (6, 20, 100, 10)
+        assert discover.find_histogram_params(10, 10, 20, 100) == (9, 120, 1000, 100)
 
     def test_normalize_histogram_results_empty(self):
         results = {

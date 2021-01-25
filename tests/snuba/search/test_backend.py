@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import uuid
 
 from sentry.utils.compat import mock
@@ -164,7 +163,9 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(event.group.organization, self.user)
         self.create_integration_external_issue(
-            group=event.group, integration=integration, key="APP-123",
+            group=event.group,
+            integration=integration,
+            key="APP-123",
         )
         return event.group
 
@@ -221,7 +222,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             sort_by=sort_by,
             date_from=date_from,
             date_to=date_to,
-            **kwargs
+            **kwargs,
         )
 
     def test_query(self):
@@ -1023,7 +1024,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 ["uniq", "group_id", "total"],
             ],
             having=[["last_seen", ">=", Any(int)]],
-            **common_args
+            **common_args,
         )
 
         self.make_query(search_filter_query="foo", sort_by="priority")
@@ -1037,7 +1038,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 ["uniq", "group_id", "total"],
             ],
             having=[],
-            **common_args
+            **common_args,
         )
 
         self.make_query(search_filter_query="times_seen:5 foo", sort_by="freq")
@@ -1046,7 +1047,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             orderby=["-times_seen", "group_id"],
             aggregations=[["count()", "", "times_seen"], ["uniq", "group_id", "total"]],
             having=[["times_seen", "=", 5]],
-            **common_args
+            **common_args,
         )
 
         self.make_query(search_filter_query="foo", sort_by="user")
@@ -1058,7 +1059,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 ["uniq", "tags[sentry:user]", "user_count"],
             ],
             having=[],
-            **common_args
+            **common_args,
         )
 
     def test_pre_and_post_filtering(self):
@@ -1511,7 +1512,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        assert group_b_event_1.get_environment().name == u""  # has no environment
+        assert group_b_event_1.get_environment().name == ""  # has no environment
 
         group_b = group_b_event_1.group
 
@@ -1526,7 +1527,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        assert group_c_event_1.get_environment().name == u""  # has no environment
+        assert group_c_event_1.get_environment().name == ""  # has no environment
 
         group_c = group_c_event_1.group
 

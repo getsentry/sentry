@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 __all__ = [
     "IntegrationInstallation",
     "IntegrationFeatures",
@@ -66,7 +64,7 @@ class IntegrationMetadata(IntegrationMetadata):
         we prefix them with `integration`.
         """
         if f is not None:
-            return u"integrations-{}".format(f)
+            return "integrations-{}".format(f)
 
     def _asdict(self):
         metadata = super(IntegrationMetadata, self)._asdict()
@@ -90,14 +88,16 @@ class IntegrationFeatures(Enum):
     *must* match the suffix of the organization feature flag name.
     """
 
+    ALERT_RULE = "alert-rule"
+    CHAT_UNFURL = "chat-unfurl"
+    COMMITS = "commits"
     INCIDENT_MANAGEMENT = "incident-management"
     ISSUE_BASIC = "issue-basic"
     ISSUE_SYNC = "issue-sync"
-    COMMITS = "commits"
-    CHAT_UNFURL = "chat-unfurl"
-    ALERT_RULE = "alert-rule"
     MOBILE = "mobile"
     SERVERLESS = "serverless"
+    TICKET_RULES = "ticket-rules"
+
     # features currently only existing on plugins:
     DATA_FORWARDING = "data-forwarding"
     SESSION_REPLAY = "session-replay"

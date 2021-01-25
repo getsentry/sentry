@@ -9,7 +9,7 @@ import {IntegrationIssueConfig, IssueConfigField} from 'app/types';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
 import {FieldValue} from 'app/views/settings/components/forms/model';
-import {FormField} from 'app/views/settings/projectAlerts/issueEditor/ruleNode';
+import {FormField} from 'app/views/settings/projectAlerts/issueRuleEditor/ruleNode';
 
 export type ExternalIssueAction = 'create' | 'link';
 
@@ -128,18 +128,23 @@ export default class AbstractExternalIssueForm<
 
   updateFetchedFieldOptionsCache = (
     _field: IssueConfigField,
-    _result: {options: {value: string; label: string}[]}
+    _result: {value: string; label: string}[]
   ): void => {
     // Do nothing.
   };
 
+  /**
+   * Get the list of options for a field via debounced API call. For example,
+   * the list of users that match the input string. The Promise rejects if there
+   * are any errors.
+   */
   getOptions = (field: IssueConfigField, input: string) =>
     new Promise((resolve, reject) => {
       if (!input) {
         const choices =
           (field.choices as Array<[number | string, number | string]>) || [];
         const options = choices.map(([value, label]) => ({value, label}));
-        return resolve({options});
+        return resolve(options);
       }
       return this.debouncedOptionLoad(field, input, (err, result) => {
         if (err) {
@@ -170,7 +175,7 @@ export default class AbstractExternalIssueForm<
       // API endpoints (which the client prefixes)
       try {
         const response = await fetch(url + separator + query);
-        cb(null, {options: response.ok ? await response.json() : []});
+        cb(null, response.ok ? await response.json() : []);
       } catch (err) {
         cb(err);
       }
@@ -249,12 +254,13 @@ export default class AbstractExternalIssueForm<
                   .filter((field: FormField) => field.hasOwnProperty('name'))
                   .map(field => (
                     <FieldFromConfig
-                      key={`${field.name}-${field.default}-${field.required}`}
-                      field={field}
-                      inline={false}
-                      stacked
-                      flexibleControlStateSize
+                      deprecatedSelectControl={false}
                       disabled={this.state.reloading}
+                      field={field}
+                      flexibleControlStateSize
+                      inline={false}
+                      key={`${field.name}-${field.default}-${field.required}`}
+                      stacked
                       {...this.getFieldProps(field)}
                     />
                   ))}

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 
 from collections import defaultdict
@@ -20,7 +18,7 @@ class NewsletterSubscription(object):
         subscribed=False,
         subscribed_date=None,
         unsubscribed_date=None,
-        **kwargs
+        **kwargs,
     ):
         from sentry.models import UserEmail
 

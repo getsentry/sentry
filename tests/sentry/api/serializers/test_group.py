@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
 
 from sentry.utils.compat import mock
 import six
@@ -267,7 +266,9 @@ class GroupSerializerTest(TestCase):
         from sentry.reprocessing2 import start_group_reprocessing
 
         group = self.create_group()
-        start_group_reprocessing(project_id=group.project_id, group_id=group.id)
+        start_group_reprocessing(
+            project_id=group.project_id, group_id=group.id, remaining_events="delete"
+        )
 
         result = serialize(Group.objects.get(id=group.id))
 

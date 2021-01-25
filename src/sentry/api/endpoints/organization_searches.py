@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from rest_framework import serializers
 from rest_framework.response import Response
 from django.db.models import Q
@@ -76,7 +74,7 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
                 query=result["query"],
             ).exists():
                 return Response(
-                    {"detail": u"Query {} already exists".format(result["query"])}, status=400
+                    {"detail": "Query {} already exists".format(result["query"])}, status=400
                 )
 
             saved_search = SavedSearch.objects.create(

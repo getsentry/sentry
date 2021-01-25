@@ -1,12 +1,9 @@
-from __future__ import absolute_import
-
 import math
 import sentry_sdk
 import six
 import logging
 
 from collections import namedtuple
-from math import ceil, floor
 
 from sentry import options
 from sentry.api.event_search import (
@@ -22,6 +19,7 @@ from sentry.api.event_search import (
 from sentry.models import Group
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.compat import filter
+from sentry.utils.math import nice_int
 from sentry.utils.snuba import (
     Dataset,
     get_measurement_name,
@@ -210,9 +208,9 @@ def query(
     """
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
-    else:
-        # We clobber this value throughout this code, so copy the value
-        selected_columns = selected_columns[:]
+
+    # We clobber this value throughout this code, so copy the value
+    selected_columns = selected_columns[:]
 
     with sentry_sdk.start_span(
         op="discover.discover", description="query.filter_transform"
@@ -252,7 +250,7 @@ def query(
         for having_clause in snuba_filter.having:
             # The first element of the having can be an alias, or a nested array of functions. Loop through to make sure
             # any referenced functions are in the aggregations.
-            error_extra = u", and could not be automatically added" if auto_aggregations else u""
+            error_extra = ", and could not be automatically added" if auto_aggregations else ""
             if isinstance(having_clause[0], (list, tuple)):
                 # Functions are of the form [fn, [args]]
                 args_to_check = [[having_clause[0]]]
@@ -273,8 +271,9 @@ def query(
 
                 if len(conditions_not_in_aggregations) > 0:
                     raise InvalidSearchQuery(
-                        u"Aggregate(s) {} used in a condition but are not in the selected columns{}.".format(
-                            ", ".join(conditions_not_in_aggregations), error_extra,
+                        "Aggregate(s) {} used in a condition but are not in the selected columns{}.".format(
+                            ", ".join(conditions_not_in_aggregations),
+                            error_extra,
                         )
                     )
             else:
@@ -283,8 +282,9 @@ def query(
                 )
                 if not found:
                     raise InvalidSearchQuery(
-                        u"Aggregate {} used in a condition but is not a selected column{}.".format(
-                            having_clause[0], error_extra,
+                        "Aggregate {} used in a condition but is not a selected column{}.".format(
+                            having_clause[0],
+                            error_extra,
                         )
                     )
 
@@ -501,7 +501,7 @@ def top_events_timeseries(
             start=snuba_filter.start,
             end=snuba_filter.end,
             rollup=rollup,
-            orderby="time",
+            orderby=["time"] + snuba_filter.groupby,
             groupby=["time"] + snuba_filter.groupby,
             dataset=Dataset.Discover,
             limit=10000,
@@ -684,7 +684,7 @@ def get_facets(query, params, limit=10, referrer=None):
     ) as span:
         span.set_data("tag_count", len(individual_tags))
         for tag_name in individual_tags:
-            tag = u"tags[{}]".format(tag_name)
+            tag = "tags[{}]".format(tag_name)
             tag_values = raw_query(
                 aggregations=[["count", None, "count"]],
                 conditions=snuba_filter.conditions,
@@ -789,7 +789,7 @@ def histogram_query(
             measurement = get_measurement_name(f)
             if measurement is None:
                 raise InvalidSearchQuery(
-                    u"multihistogram expected all measurements, received: {}".format(f)
+                    "multihistogram expected all measurements, received: {}".format(f)
                 )
             measurements.append(measurement)
         conditions.append([key_alias, "IN", measurements])
@@ -834,7 +834,7 @@ def get_histogram_column(fields, key_column, histogram_params):
     """
 
     field = fields[0] if key_column is None else "measurements_value"
-    return u"histogram({}, {:d}, {:d}, {:d})".format(
+    return "histogram({}, {:d}, {:d}, {:d})".format(
         field,
         histogram_params.bucket_size,
         histogram_params.start_offset,
@@ -857,22 +857,30 @@ def find_histogram_params(num_buckets, min_value, max_value, multiplier):
     scaled_max = 0 if max_value is None else multiplier * max_value
 
     # align the first bin with the minimum value
-    start_offset = int(floor(scaled_min))
+    start_offset = int(scaled_min)
 
     # finding the bounds might result in None if there isn't sufficient data
     if min_value is None or max_value is None:
         return HistogramParams(num_buckets, 1, start_offset, multiplier)
 
-    bucket_size = int(ceil((scaled_max - scaled_min) / float(num_buckets)))
+    bucket_size = nice_int((scaled_max - scaled_min) / float(num_buckets))
 
     if bucket_size == 0:
         bucket_size = 1
+
+    # adjust the first bin to a nice value
+    start_offset = int(scaled_min / bucket_size) * bucket_size
 
     # Sometimes the max value lies on the bucket boundary, and since the end
     # of the bucket is exclusive, it gets excluded. To account for that, we
     # increase the width of the buckets to cover the max value.
     if start_offset + num_buckets * bucket_size <= scaled_max:
-        bucket_size += 1
+        bucket_size = nice_int(bucket_size + 1)
+
+    # compute the bin for max value and adjust the number of buckets accordingly
+    # to minimize unnecessary empty bins at the tail
+    last_bin = int((scaled_max - start_offset) / bucket_size) * bucket_size + start_offset
+    num_buckets = (last_bin - start_offset) // bucket_size + 1
 
     return HistogramParams(num_buckets, bucket_size, start_offset, multiplier)
 

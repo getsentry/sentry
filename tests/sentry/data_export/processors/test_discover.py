@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.data_export.base import ExportError
 from sentry.data_export.processors.discover import DiscoverProcessor
 from sentry.testutils import TestCase, SnubaTestCase

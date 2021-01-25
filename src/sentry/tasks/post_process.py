@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import logging
 import sentry_sdk
 
@@ -18,7 +16,7 @@ logger = logging.getLogger("sentry")
 def _get_service_hooks(project_id):
     from sentry.models import ServiceHook
 
-    cache_key = u"servicehooks:1:{}".format(project_id)
+    cache_key = "servicehooks:1:{}".format(project_id)
     result = cache.get(cache_key)
 
     if result is None:
@@ -31,7 +29,7 @@ def _get_service_hooks(project_id):
 def _should_send_error_created_hooks(project):
     from sentry.models import ServiceHook, Organization
 
-    cache_key = u"servicehooks-error-created:1:{}".format(project.id)
+    cache_key = "servicehooks-error-created:1:{}".format(project.id)
     result = cache.get(cache_key)
 
     if result is None:
@@ -65,7 +63,7 @@ def _capture_stats(event, is_new):
         metrics.incr("events.unique", tags=tags, skip_internal=False)
 
     metrics.incr("events.processed", tags=tags, skip_internal=False)
-    metrics.incr(u"events.processed.{platform}".format(platform=platform), skip_internal=False)
+    metrics.incr("events.processed.{platform}".format(platform=platform), skip_internal=False)
     metrics.timing("events.size.data", event.size, tags=tags)
 
     # This is an experiment to understand whether we have, in production,
@@ -192,7 +190,8 @@ def post_process_group(
         data = event_processing_store.get(cache_key)
         if not data:
             logger.info(
-                "post_process.skipped", extra={"cache_key": cache_key, "reason": "missing_cache"},
+                "post_process.skipped",
+                extra={"cache_key": cache_key, "reason": "missing_cache"},
             )
             return
         event = Event(
@@ -276,27 +275,45 @@ def post_process_group(
                     safe_execute(callback, event, futures, _with_transaction=False)
 
             try:
-                has_commit_key = "w-o:{}-h-c".format(event.project.organization_id)
-                org_has_commit = cache.get(has_commit_key)
-                if org_has_commit is None:
-                    org_has_commit = Commit.objects.filter(
-                        organization_id=event.project.organization_id
-                    ).exists()
-                    cache.set(has_commit_key, org_has_commit, 3600)
+                from sentry.app import locks
+                from sentry.utils.locking import UnableToAcquireLock
+                lock = locks.get(
+                    "w-o:{}-d-l".format(event.group_id),
+                    duration=10,
+                )
+                with lock.acquire():
+                    has_commit_key = "w-o:{}-h-c".format(event.project.organization_id)
+                    org_has_commit = cache.get(has_commit_key)
+                    if org_has_commit is None:
+                        org_has_commit = Commit.objects.filter(
+                            organization_id=event.project.organization_id
+                        ).exists()
+                        cache.set(has_commit_key, org_has_commit, 3600)
 
-                if org_has_commit and features.has(
-                    "organizations:workflow-owners", event.project.organization,
-                ):
-                    from sentry.utils.committers import get_frame_paths
-
-                    event_frames = get_frame_paths(event.data)
-                    process_suspect_commits.delay(
-                        event_id=event.event_id,
-                        event_platform=event.platform,
-                        event_frames=event_frames,
-                        group_id=event.group_id,
-                        project_id=event.project_id,
-                    )
+                    if org_has_commit and features.has(
+                        "organizations:workflow-owners", event.project.organization,
+                    ):
+                        cache_key = "w-o-i:g-{}".format(group_id)
+                        if cache.get(cache_key):
+                            # Only process once per OWNER_CACHE_LIFE seconds.
+                            metrics.incr(
+                                "sentry.tasks.process_suspect_commits.debounce",
+                                tags={"detail": "w-o-i:g debounce"},
+                            )
+                        else:
+                            from sentry.utils.committers import get_frame_paths
+                            from sentry.tasks.groupowner import OWNER_CACHE_LIFE
+                            cache.set(cache_key, True, OWNER_CACHE_LIFE)
+                            event_frames = get_frame_paths(event.data)
+                            process_suspect_commits.delay(
+                                event_id=event.event_id,
+                                event_platform=event.platform,
+                                event_frames=event_frames,
+                                group_id=event.group_id,
+                                project_id=event.project_id,
+                            )
+            except UnableToAcquireLock:
+                pass
             except Exception:
                 logger.exception("Failed to process suspect commits")
 
@@ -416,5 +433,5 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
         group=event.group,
         expected_errors=(PluginError,),
         _with_transaction=False,
-        **kwargs
+        **kwargs,
     )

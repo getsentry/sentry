@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import functools
 import itertools
 import logging
@@ -36,7 +34,7 @@ def split_key(key):
 
 
 def unsplit_key(project, target_type, target_identifier):
-    return u"mail:p:{}:{}:{}".format(
+    return "mail:p:{}:{}:{}".format(
         project.id, target_type.value, target_identifier if target_identifier is not None else ""
     )
 

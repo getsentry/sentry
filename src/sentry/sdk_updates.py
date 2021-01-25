@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 from distutils.version import LooseVersion
 from django.conf import settings
