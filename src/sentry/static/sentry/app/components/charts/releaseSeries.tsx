@@ -180,16 +180,25 @@ class ReleaseSeries extends React.Component<Props, State> {
 
   setReleasesWithSeries(releases) {
     const {emphasizeReleases = []} = this.props;
-    const [unemphasizedReleases, emphasizedReleases] = partition(
-      releases,
-      release => !emphasizeReleases.includes(release.version)
-    );
     const releaseSeries: Series[] = [];
-    if (unemphasizedReleases.length) {
-      releaseSeries.push(this.getReleaseSeries(unemphasizedReleases));
-    }
-    if (emphasizedReleases.length) {
-      releaseSeries.push(this.getReleaseSeries(emphasizedReleases, 0.8));
+
+    if (emphasizeReleases.length) {
+      const [unemphasizedReleases, emphasizedReleases] = partition(
+        releases,
+        release => !emphasizeReleases.includes(release.version)
+      );
+      if (unemphasizedReleases.length) {
+        releaseSeries.push(this.getReleaseSeries(unemphasizedReleases, {type: 'dotted'}));
+      }
+      if (emphasizedReleases.length) {
+        releaseSeries.push(
+          this.getReleaseSeries(emphasizedReleases, {
+            opacity: 0.8,
+          })
+        );
+      }
+    } else {
+      releaseSeries.push(this.getReleaseSeries(releases));
     }
 
     this.setState({
@@ -198,7 +207,7 @@ class ReleaseSeries extends React.Component<Props, State> {
     });
   }
 
-  getReleaseSeries = (releases, opacity = 0.3) => {
+  getReleaseSeries = (releases, lineStyle = {}) => {
     const {
       organization,
       router,
@@ -226,8 +235,9 @@ class ReleaseSeries extends React.Component<Props, State> {
       animation: false,
       lineStyle: {
         color: theme.purple300,
-        opacity,
+        opacity: 0.3,
         type: 'solid',
+        ...lineStyle,
       },
       label: {
         show: false,
