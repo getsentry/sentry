@@ -256,6 +256,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               <Input
                 type="text"
                 name="title"
+                maxLength={255}
                 required
                 value={state.title}
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
