@@ -17,7 +17,7 @@ For more details on the payload: http://dev.splunk.com/view/event-collector/SP-C
 import logging
 
 import six
-from requests.exceptions import ReadTimeout
+from requests.exceptions import ConnectTimeout, ReadTimeout
 
 from sentry import http, tagstore
 from sentry.utils import metrics
@@ -303,8 +303,8 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
                 },
             )
 
-            if isinstance(exc, ReadTimeout):
-                # If we get a ReadTimeout we don't need to raise an error here.
+            if isinstance(exc, (ConnectTimeout, ReadTimeout)):
+                # If we get a ConnectTimeout or ReadTimeout we don't need to raise an error here.
                 # Just log and return.
                 return False
 
