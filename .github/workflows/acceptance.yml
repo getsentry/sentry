@@ -76,7 +76,7 @@ jobs:
     timeout-minutes: 20
     strategy:
       matrix:
-        instance: [0, 1, 2]
+        instance: [0, 1, 2, 3]
 
     env:
       VISUAL_SNAPSHOT_ENABLE: 1
