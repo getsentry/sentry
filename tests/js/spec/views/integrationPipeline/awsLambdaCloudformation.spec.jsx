@@ -22,6 +22,7 @@ describe('AwsLambdaCloudformation', () => {
         regionList={['us-east-1', 'us-west-1']}
         accountNumber=""
         region=""
+        initialStepNumber={0}
       />
     );
   });

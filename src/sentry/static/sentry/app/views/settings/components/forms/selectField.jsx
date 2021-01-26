@@ -25,6 +25,7 @@ export default class SelectField extends React.Component {
     escapeMarkup: PropTypes.bool,
     small: PropTypes.bool,
     inFieldLabel: PropTypes.string,
+    stacked: PropTypes.bool,
   };
 
   static defaultProps = {
