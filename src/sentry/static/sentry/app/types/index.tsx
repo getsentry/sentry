@@ -686,11 +686,11 @@ export type EventOrGroupType =
   | 'transaction';
 
 export type InboxReasonDetails = {
-  until?: string;
-  count?: number;
-  window?: number;
-  user_count?: number;
-  user_window?: number;
+  until?: string | null;
+  count?: number | null;
+  window?: number | null;
+  user_count?: number | null;
+  user_window?: number | null;
 };
 
 export type InboxDetails = {
