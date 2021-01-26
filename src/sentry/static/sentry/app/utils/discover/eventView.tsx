@@ -379,7 +379,7 @@ class EventView {
       yAxis: saved.yAxis,
       display: saved.display,
       createdBy: saved.createdBy,
-      additionalConditions: undefined,
+      additionalConditions: new QueryResults([]),
     });
   }
 
