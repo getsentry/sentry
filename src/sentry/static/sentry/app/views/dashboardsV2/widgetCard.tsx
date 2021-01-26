@@ -7,6 +7,7 @@ import isEqual from 'lodash/isEqual';
 import {Client} from 'app/api';
 import BarChart from 'app/components/charts/barChart';
 import ChartZoom from 'app/components/charts/chartZoom';
+import Legend from 'app/components/charts/components/legend';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import LineChart from 'app/components/charts/lineChart';
 import SimpleTableChart from 'app/components/charts/simpleTableChart';
@@ -69,165 +70,6 @@ class WidgetCard extends React.Component<Props> {
     return false;
   }
 
-  tableResultComponent({
-    loading,
-    errorMessage,
-    tableResults,
-  }: TableResultProps): React.ReactNode {
-    const {location} = this.props;
-    if (errorMessage) {
-      return (
-        <ErrorPanel>
-          <IconWarning color="gray500" size="lg" />
-        </ErrorPanel>
-      );
-    }
-
-    if (typeof tableResults === 'undefined' || loading) {
-      // Align height to other charts.
-      return <Placeholder height="200px" />;
-    }
-
-    return tableResults.map(result => {
-      return (
-        <SimpleTableChart
-          key={result.title}
-          location={location}
-          title={tableResults.length > 1 ? result.title : ''}
-          loading={loading}
-          metadata={result.meta}
-          data={result.data}
-        />
-      );
-    });
-  }
-
-  chartComponent(chartProps): React.ReactNode {
-    const {widget} = this.props;
-
-    switch (widget.displayType) {
-      case 'bar':
-        return <BarChart {...chartProps} />;
-      case 'line':
-      default:
-        return <LineChart {...chartProps} />;
-    }
-  }
-
-  renderVisual({
-    tableResults,
-    timeseriesResults,
-    errorMessage,
-    loading,
-  }: Pick<
-    WidgetQueries['state'],
-    'timeseriesResults' | 'tableResults' | 'errorMessage' | 'loading'
-  >): React.ReactNode {
-    const {widget} = this.props;
-    if (widget.displayType === 'table') {
-      return (
-        <TransitionChart loading={loading} reloading={loading}>
-          <TransparentLoadingMask visible={loading} />
-          {this.tableResultComponent({tableResults, loading, errorMessage})}
-        </TransitionChart>
-      );
-    }
-
-    const {location, router, selection} = this.props;
-    const {start, end, period} = selection.datetime;
-
-    const legend = {
-      right: 10,
-      top: 5,
-      icon: 'circle',
-      itemHeight: 8,
-      itemWidth: 8,
-      itemGap: 12,
-      align: 'left',
-      type: 'plain',
-      textStyle: {
-        verticalAlign: 'top',
-        fontSize: 11,
-        fontFamily: 'Rubik',
-      },
-      selected: getSeriesSelection(location),
-      formatter: (seriesName: string) => {
-        const arg = getAggregateArg(seriesName);
-        if (arg !== null) {
-          const slug = getMeasurementSlug(arg);
-          if (slug !== null) {
-            seriesName = slug.toUpperCase();
-          }
-        }
-        return seriesName;
-      },
-    };
-
-    const axisField = widget.queries[0]?.fields?.[0] ?? 'count()';
-    const chartOptions = {
-      grid: {
-        left: '0px',
-        right: '0px',
-        top: '40px',
-        bottom: '10px',
-      },
-      seriesOptions: {
-        showSymbol: false,
-      },
-      tooltip: {
-        trigger: 'axis',
-        valueFormatter: tooltipFormatter,
-      },
-      yAxis: {
-        axisLabel: {
-          color: theme.chartLabel,
-          formatter: (value: number) => axisLabelFormatter(value, axisField),
-        },
-      },
-    };
-
-    return (
-      <ChartZoom router={router} period={period} start={start} end={end}>
-        {zoomRenderProps => {
-          if (errorMessage) {
-            return (
-              <ErrorPanel>
-                <IconWarning color="gray500" size="lg" />
-              </ErrorPanel>
-            );
-          }
-
-          const colors = timeseriesResults
-            ? theme.charts.getColorPalette(timeseriesResults.length - 2)
-            : [];
-
-          // Create a list of series based on the order of the fields,
-          const series = timeseriesResults
-            ? timeseriesResults.map((values, i: number) => ({
-                ...values,
-                color: colors[i],
-              }))
-            : [];
-
-          return (
-            <TransitionChart loading={loading} reloading={loading}>
-              <TransparentLoadingMask visible={loading} />
-              {getDynamicText({
-                value: this.chartComponent({
-                  ...zoomRenderProps,
-                  ...chartOptions,
-                  legend,
-                  series,
-                }),
-                fixed: 'Widget Chart',
-              })}
-            </TransitionChart>
-          );
-        }}
-      </ChartZoom>
-    );
-  }
-
   renderToolbar() {
     if (!this.props.isEditing) {
       return null;
@@ -277,6 +119,8 @@ class WidgetCard extends React.Component<Props> {
       organization,
       selection,
       renderErrorMessage,
+      location,
+      router,
     } = this.props;
     return (
       <ErrorBoundary
@@ -297,12 +141,16 @@ class WidgetCard extends React.Component<Props> {
                     : null}
                   <ChartContainer>
                     <HeaderTitleLegend>{widget.title}</HeaderTitleLegend>
-                    {this.renderVisual({
-                      timeseriesResults,
-                      tableResults,
-                      errorMessage,
-                      loading,
-                    })}
+                    <WidgetCardVisuals
+                      timeseriesResults={timeseriesResults}
+                      tableResults={tableResults}
+                      errorMessage={errorMessage}
+                      loading={loading}
+                      location={location}
+                      widget={widget}
+                      selection={selection}
+                      router={router}
+                    />
                     {this.renderToolbar()}
                   </ChartContainer>
                 </React.Fragment>
@@ -374,3 +222,180 @@ const StyledIconGrabbable = styled(IconGrabbable)`
     cursor: grab;
   }
 `;
+
+type WidgetCardVisualsProps = Pick<ReactRouter.WithRouterProps, 'router'> &
+  Pick<
+    WidgetQueries['state'],
+    'timeseriesResults' | 'tableResults' | 'errorMessage' | 'loading'
+  > & {
+    location: Location;
+    widget: Widget;
+    selection: GlobalSelection;
+  };
+class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
+  shouldComponentUpdate(nextProps: WidgetCardVisualsProps): boolean {
+    // Widget title changes should not update the WidgetCardVisuals component tree
+    const currentProps = {
+      ...this.props,
+      widget: {
+        ...this.props.widget,
+        title: '',
+      },
+    };
+
+    nextProps = {
+      ...nextProps,
+      widget: {
+        ...nextProps.widget,
+        title: '',
+      },
+    };
+
+    return !isEqual(currentProps, nextProps);
+  }
+
+  tableResultComponent({
+    loading,
+    errorMessage,
+    tableResults,
+  }: TableResultProps): React.ReactNode {
+    const {location, widget} = this.props;
+    if (errorMessage) {
+      return (
+        <ErrorPanel>
+          <IconWarning color="gray500" size="lg" />
+        </ErrorPanel>
+      );
+    }
+
+    if (typeof tableResults === 'undefined' || loading) {
+      // Align height to other charts.
+      return <Placeholder height="200px" />;
+    }
+
+    return tableResults.map((result, i) => {
+      const fields = widget.queries[i]?.fields ?? [];
+      return (
+        <SimpleTableChart
+          key={`table:${result.title}`}
+          location={location}
+          fields={fields}
+          title={tableResults.length > 1 ? result.title : ''}
+          loading={loading}
+          metadata={result.meta}
+          data={result.data}
+        />
+      );
+    });
+  }
+
+  chartComponent(chartProps): React.ReactNode {
+    const {widget} = this.props;
+
+    switch (widget.displayType) {
+      case 'bar':
+        return <BarChart {...chartProps} />;
+      case 'line':
+      default:
+        return <LineChart {...chartProps} />;
+    }
+  }
+
+  render() {
+    const {tableResults, timeseriesResults, errorMessage, loading, widget} = this.props;
+
+    if (widget.displayType === 'table') {
+      return (
+        <TransitionChart loading={loading} reloading={loading}>
+          <TransparentLoadingMask visible={loading} />
+          {this.tableResultComponent({tableResults, loading, errorMessage})}
+        </TransitionChart>
+      );
+    }
+
+    const {location, router, selection} = this.props;
+    const {start, end, period} = selection.datetime;
+
+    const legend = Legend({
+      right: 10,
+      top: 5,
+      type: 'plain',
+      selected: getSeriesSelection(location),
+      theme,
+      formatter: (seriesName: string) => {
+        const arg = getAggregateArg(seriesName);
+        if (arg !== null) {
+          const slug = getMeasurementSlug(arg);
+          if (slug !== null) {
+            seriesName = slug.toUpperCase();
+          }
+        }
+        return seriesName;
+      },
+    });
+
+    const axisField = widget.queries[0]?.fields?.[0] ?? 'count()';
+    const chartOptions = {
+      grid: {
+        left: '0px',
+        right: '0px',
+        top: '40px',
+        bottom: '10px',
+      },
+      seriesOptions: {
+        showSymbol: false,
+      },
+      tooltip: {
+        trigger: 'axis',
+        valueFormatter: tooltipFormatter,
+      },
+      yAxis: {
+        axisLabel: {
+          color: theme.chartLabel,
+          formatter: (value: number) => axisLabelFormatter(value, axisField),
+        },
+      },
+    };
+
+    return (
+      <ChartZoom router={router} period={period} start={start} end={end}>
+        {zoomRenderProps => {
+          if (errorMessage) {
+            return (
+              <ErrorPanel>
+                <IconWarning color="gray500" size="lg" />
+              </ErrorPanel>
+            );
+          }
+
+          const colors = timeseriesResults
+            ? theme.charts.getColorPalette(timeseriesResults.length - 2)
+            : [];
+
+          // Create a list of series based on the order of the fields,
+          const series = timeseriesResults
+            ? timeseriesResults.map((values, i: number) => ({
+                ...values,
+                color: colors[i],
+              }))
+            : [];
+
+          return (
+            <TransitionChart loading={loading} reloading={loading}>
+              <TransparentLoadingMask visible={loading} />
+              {getDynamicText({
+                value: this.chartComponent({
+                  ...zoomRenderProps,
+                  ...chartOptions,
+                  legend,
+                  series,
+                }),
+                fixed: 'Widget Chart',
+              })}
+            </TransitionChart>
+          );
+        }}
+      </ChartZoom>
+    );
+  }
+}

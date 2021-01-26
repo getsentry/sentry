@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 import six
 from operator import attrgetter
@@ -61,6 +59,12 @@ FEATURE_DESCRIPTIONS = [
         Synchronize Comments on Sentry Issues directly to the linked Jira ticket.
         """,
         IntegrationFeatures.ISSUE_SYNC,
+    ),
+    FeatureDescription(
+        """
+        Automatically create Jira tickets based on Issue Alert conditions.
+        """,
+        IntegrationFeatures.TICKET_RULES,
     ),
 ]
 
@@ -310,7 +314,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def get_group_description(self, group, event, **kwargs):
         output = [
-            u"Sentry Issue: [{}|{}]".format(
+            "Sentry Issue: [{}|{}]".format(
                 group.qualified_short_id,
                 absolute_uri(group.get_absolute_url(params={"referrer": "jira_integration"})),
             )
@@ -942,7 +946,13 @@ class JiraIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = JiraIntegration
 
-    features = frozenset([IntegrationFeatures.ISSUE_BASIC, IntegrationFeatures.ISSUE_SYNC])
+    features = frozenset(
+        [
+            IntegrationFeatures.ISSUE_BASIC,
+            IntegrationFeatures.ISSUE_SYNC,
+            IntegrationFeatures.TICKET_RULES,
+        ]
+    )
 
     can_add = False
 

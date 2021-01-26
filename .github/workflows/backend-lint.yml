@@ -10,7 +10,7 @@ jobs:
   lint:
     name: backend lint
     runs-on: ubuntu-16.04
-    timeout-minutes: 3
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v2
@@ -42,7 +42,7 @@ jobs:
         id: python-version
         if: steps.changes.outputs.backend == 'true'
         run: |
-          echo "::set-output name=python-version::$(grep "3.6" .python-version)"
+          echo "::set-output name=python-version::$(cat .python-version)"
 
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2

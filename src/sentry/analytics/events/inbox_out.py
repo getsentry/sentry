@@ -1,10 +1,8 @@
-from __future__ import absolute_import
-
 from sentry import analytics
 
 
 class InboxOutEvent(analytics.Event):
-    type = "inbox.inbox_out"
+    type = "inbox.issue_out"
 
     attributes = (
         analytics.Attribute("user_id", type=int, required=False),

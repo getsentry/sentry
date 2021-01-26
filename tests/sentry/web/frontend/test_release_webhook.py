@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import hmac
 
 from django.core.urlresolvers import reverse

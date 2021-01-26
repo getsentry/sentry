@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import logging
 
 from django.db import IntegrityError
@@ -103,7 +101,7 @@ def _remove_2fa_non_compliant_member(member, org, actor=None, actor_key=None, ip
 
         # send invite to setup 2fa
         email_context = {"url": member.get_invite_link(), "organization": org}
-        subject = u"{} {} Mandatory: Enable Two-Factor Authentication".format(
+        subject = "{} {} Mandatory: Enable Two-Factor Authentication".format(
             options.get("mail.subject-prefix"), org.name.capitalize()
         )
         message = MessageBuilder(

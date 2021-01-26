@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from collections import defaultdict
 from enum import Enum
 
@@ -34,8 +32,8 @@ class GroupOwner(Model):
     organization = FlexibleForeignKey("sentry.Organization", db_constraint=False)
     type = models.PositiveSmallIntegerField(
         choices=(
-            (GroupOwnerType.SUSPECT_COMMIT, u"Suspect Commit"),
-            (GroupOwnerType.OWNERSHIP_RULE, u"Ownership Rule"),
+            (GroupOwnerType.SUSPECT_COMMIT, "Suspect Commit"),
+            (GroupOwnerType.OWNERSHIP_RULE, "Ownership Rule"),
         )
     )
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
@@ -53,10 +51,10 @@ class GroupOwner(Model):
 
     def owner_id(self):
         if self.user_id:
-            return u"user:{}".format(self.user_id)
+            return "user:{}".format(self.user_id)
 
         if self.team_id:
-            return u"team:{}".format(self.team_id)
+            return "team:{}".format(self.team_id)
 
         raise NotImplementedError("Unknown Owner")
 

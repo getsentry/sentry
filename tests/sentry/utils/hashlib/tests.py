@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
 
 import pytest
 import six
@@ -31,18 +30,11 @@ def test_hash_values(seed, value, hash):
     assert hash_values([value], seed=seed) == hash
 
 
-def test_hashvalues_python23_strings():
-    if six.PY2:
-        assert hash_values(["test"], seed="seed") == "334e3fd2f66966a5c785d825c5f03494"
-    else:
-        assert hash_values(["test"], seed="seed") == "ce35c0ce0d38976f61a5ca951de74a16"
-
-
 class HashlibTest(TestCase):
     def test_simple(self):
         md5_text("x").hexdigest() == "9dd4e461268c8034f5c8564e155c67a6"
         sha1_text("x").hexdigest() == "11f6ad8ec52a2984abaafd7c3b516503785c2072"
 
     def test_unicode(self):
-        md5_text(u"ü").hexdigest() == "c03410a5204b21cd8229ff754688d743"
-        sha1_text(u"ü").hexdigest() == "94a759fd37735430753c7b6b80684306d80ea16e"
+        md5_text("ü").hexdigest() == "c03410a5204b21cd8229ff754688d743"
+        sha1_text("ü").hexdigest() == "94a759fd37735430753c7b6b80684306d80ea16e"

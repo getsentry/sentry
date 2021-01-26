@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 
 from datetime import timedelta
@@ -27,7 +25,7 @@ class OrganizationIssuesNewTest(APITestCase):
 
         self.login_as(user=user)
 
-        url = u"/api/0/organizations/{}/issues/new/".format(org.slug)
+        url = "/api/0/organizations/{}/issues/new/".format(org.slug)
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert len(response.data) == 2

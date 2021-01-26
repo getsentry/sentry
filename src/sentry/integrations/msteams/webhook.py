@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 import jwt
 import time
@@ -234,7 +232,8 @@ class MsTeamsWebhookEndpoint(Endpoint):
             integration = Integration.objects.get(provider=self.provider, external_id=team_id)
         except Integration.DoesNotExist:
             logger.info(
-                "msteams.uninstall.missing-integration", extra={"team_id": team_id},
+                "msteams.uninstall.missing-integration",
+                extra={"team_id": team_id},
             )
             return self.respond(status=404)
 
@@ -267,25 +266,27 @@ class MsTeamsWebhookEndpoint(Endpoint):
         if action_type == ACTION_TYPE.UNRESOLVE:
             action_data = {"status": "unresolved"}
         elif action_type == ACTION_TYPE.RESOLVE:
-            status = data["resolveInput"]
-            # status might look something like "resolved:inCurrentRelease" or just "resolved"
-            status_data = status.split(":", 1)
-            resolve_type = status_data[-1]
+            status = data.get("resolveInput")
+            if status:
+                # status might look something like "resolved:inCurrentRelease" or just "resolved"
+                status_data = status.split(":", 1)
+                resolve_type = status_data[-1]
 
-            action_data = {"status": "resolved"}
-            if resolve_type == "inNextRelease":
-                action_data.update({"statusDetails": {"inNextRelease": True}})
-            elif resolve_type == "inCurrentRelease":
-                action_data.update({"statusDetails": {"inRelease": "latest"}})
+                action_data = {"status": "resolved"}
+                if resolve_type == "inNextRelease":
+                    action_data.update({"statusDetails": {"inNextRelease": True}})
+                elif resolve_type == "inCurrentRelease":
+                    action_data.update({"statusDetails": {"inRelease": "latest"}})
         elif action_type == ACTION_TYPE.IGNORE:
-            action_data = {"status": "ignored"}
-            ignore_count = int(data["ignoreInput"])
-            if ignore_count > 0:
-                action_data.update({"statusDetails": {"ignoreCount": ignore_count}})
+            ignore_count = data.get("ignoreInput")
+            if ignore_count:
+                action_data = {"status": "ignored"}
+                if int(ignore_count) > 0:
+                    action_data.update({"statusDetails": {"ignoreCount": int(ignore_count)}})
         elif action_type == ACTION_TYPE.ASSIGN:
             assignee = data["assignInput"]
             if assignee == "ME":
-                assignee = u"user:{}".format(user_id)
+                assignee = "user:{}".format(user_id)
             action_data = {"assignedTo": assignee}
         elif action_type == ACTION_TYPE.UNASSIGN:
             action_data = {"assignedTo": ""}
@@ -315,7 +316,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         )
 
         return client.put(
-            path=u"/projects/{}/{}/issues/".format(
+            path="/projects/{}/{}/issues/".format(
                 group.project.organization.slug, group.project.slug
             ),
             params={"id": group.id},

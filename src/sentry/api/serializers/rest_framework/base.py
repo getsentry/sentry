@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 from django.utils.text import re_camel_case
 from rest_framework.fields import empty

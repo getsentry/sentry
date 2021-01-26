@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 from django.utils.translation import ugettext_lazy as _
 from django.db import transaction
 
@@ -182,7 +179,7 @@ class PagerDutyInstallationRedirect(PipelineView):
         setup_url = absolute_uri("/extensions/pagerduty/setup/")
 
         return (
-            u"https://%s.pagerduty.com/install/integration?app_id=%s&redirect_url=%s&version=2"
+            "https://%s.pagerduty.com/install/integration?app_id=%s&redirect_url=%s&version=2"
             % (account_name, app_id, setup_url)
         )
 

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.core import mail
 from sentry.utils.compat.mock import patch
 from social_auth.models import UserSocialAuth

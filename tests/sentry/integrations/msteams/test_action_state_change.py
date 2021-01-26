@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import responses
 import time
 
@@ -59,7 +57,10 @@ class BaseEventTest(APITestCase):
         )
 
         self.project1 = self.create_project(organization=self.org)
-        self.event1 = self.store_event(data={"message": "oh no"}, project_id=self.project1.id,)
+        self.event1 = self.store_event(
+            data={"message": "oh no"},
+            project_id=self.project1.id,
+        )
         self.group1 = self.event1.group
 
     def post_webhook(
@@ -167,6 +168,15 @@ class StatusActionTest(BaseEventTest):
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
+    def test_no_ignore_input(self, verify):
+        resp = self.post_webhook(action_type=ACTION_TYPE.IGNORE, ignore_input="")
+        self.group1 = Group.objects.get(id=self.group1.id)
+
+        assert resp.status_code == 200, resp.content
+        assert self.group1.get_status() == GroupStatus.UNRESOLVED
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     def test_ignore_issue_with_additional_user_auth(self, verify):
         auth_idp = AuthProvider.objects.create(organization=self.org, provider="nobody")
         AuthIdentity.objects.create(auth_provider=auth_idp, user=self.user)
@@ -192,7 +202,7 @@ class StatusActionTest(BaseEventTest):
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     def test_assign_to_team(self, verify):
         resp = self.post_webhook(
-            action_type=ACTION_TYPE.ASSIGN, assign_input=u"team:{}".format(self.team.id)
+            action_type=ACTION_TYPE.ASSIGN, assign_input="team:{}".format(self.team.id)
         )
 
         assert resp.status_code == 200, resp.content
@@ -208,7 +218,7 @@ class StatusActionTest(BaseEventTest):
 
         assert b"Unassign" in responses.calls[0].request.body
         assert (
-            u"Assigned to {}".format(self.user.email).encode("utf-8")
+            "Assigned to {}".format(self.user.email).encode("utf-8")
             in responses.calls[0].request.body
         )
 
@@ -225,7 +235,7 @@ class StatusActionTest(BaseEventTest):
         assert b"Unassign" in responses.calls[0].request.body
         assert "user_conversation_id" in responses.calls[0].request.url
         assert (
-            u"Assigned to {}".format(self.user.email).encode("utf-8")
+            "Assigned to {}".format(self.user.email).encode("utf-8")
             in responses.calls[0].request.body
         )
 
@@ -242,7 +252,7 @@ class StatusActionTest(BaseEventTest):
         assert b"Unassign" in responses.calls[0].request.body
         assert "some_channel_id" in responses.calls[0].request.url
         assert (
-            u"Assigned to {}".format(self.user.email).encode("utf-8")
+            "Assigned to {}".format(self.user.email).encode("utf-8")
             in responses.calls[0].request.body
         )
 
@@ -286,6 +296,16 @@ class StatusActionTest(BaseEventTest):
         assert resp.status_code == 200, resp.content
         assert self.group1.get_status() == GroupStatus.RESOLVED
         assert b"Unresolve" in responses.calls[0].request.body
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
+    def test_no_resolve_input(self, verify):
+        resp = self.post_webhook(action_type=ACTION_TYPE.RESOLVE, resolve_input="")
+        self.group1 = Group.objects.get(id=self.group1.id)
+
+        assert resp.status_code == 200, resp.content
+        assert self.group1.get_status() == GroupStatus.UNRESOLVED
+        assert b"Resolve" in responses.calls[0].request.body
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
