@@ -278,6 +278,7 @@ def post_process_group(
 
             try:
                 from sentry.app import locks
+
                 lock = locks.get(
                     "w-o:{}-d-l".format(event.group_id),
                     duration=10,
