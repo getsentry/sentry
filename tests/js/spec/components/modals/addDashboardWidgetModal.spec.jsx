@@ -34,6 +34,10 @@ async function clickSubmit(wrapper) {
   return tick();
 }
 
+function getDisplayType(wrapper) {
+  return wrapper.find('input[name="displayType"]');
+}
+
 describe('Modals -> AddDashboardWidgetModal', function () {
   const initialData = initializeOrg({
     organization: {
@@ -67,6 +71,10 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      body: {data: [{'event.type': 'error'}], meta: {'event.type': 'string'}},
     });
   });
 
@@ -310,5 +318,100 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     // A new field should be added.
     expect(widget.queries[0].fields).toHaveLength(3);
     expect(widget.queries[0].fields[2]).toEqual('trace');
+  });
+
+  it('uses count() columns if there are no aggregate fields remaining when switching from table to chart', async function () {
+    let widget = undefined;
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: data => (widget = data),
+    });
+    // No delete button as there is only one field.
+    expect(wrapper.find('IconDelete')).toHaveLength(0);
+
+    // Select Table display
+    selectByLabel(wrapper, 'Table results', {name: 'displayType', at: 0, control: true});
+    expect(getDisplayType(wrapper).props().value).toEqual('table');
+
+    // Add field column
+    selectByLabel(wrapper, 'event.type', {name: 'field', at: 0, control: true});
+    let fieldColumn = wrapper.find('input[name="field"]');
+    expect(fieldColumn.props().value).toEqual({
+      kind: 'field',
+      meta: {dataType: 'string', name: 'event.type'},
+    });
+
+    // Select Line chart display
+    selectByLabel(wrapper, 'Line chart', {name: 'displayType', at: 0, control: true});
+    expect(getDisplayType(wrapper).props().value).toEqual('line');
+
+    // Expect event.type field to be converted to count()
+    fieldColumn = wrapper.find('input[name="field"]');
+    expect(fieldColumn.props().value).toEqual({
+      kind: 'function',
+      meta: {name: 'count', parameters: []},
+    });
+
+    await clickSubmit(wrapper);
+
+    expect(widget.queries).toHaveLength(1);
+    expect(widget.queries[0].fields).toEqual(['count()']);
+  });
+
+  it('should filter out non-aggregate fields when switching from table to chart', async function () {
+    let widget = undefined;
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: data => (widget = data),
+    });
+    // No delete button as there is only one field.
+    expect(wrapper.find('IconDelete')).toHaveLength(0);
+
+    // Select Table display
+    selectByLabel(wrapper, 'Table results', {name: 'displayType', at: 0, control: true});
+    expect(getDisplayType(wrapper).props().value).toEqual('table');
+
+    // Click the add button
+    const add = wrapper.find('button[aria-label="Add a Column"]');
+    add.simulate('click');
+    wrapper.update();
+
+    // Add columns
+    selectByLabel(wrapper, 'event.type', {name: 'field', at: 0, control: true});
+    let fieldColumn = wrapper.find('input[name="field"]').at(0);
+    expect(fieldColumn.props().value).toEqual({
+      kind: 'field',
+      meta: {dataType: 'string', name: 'event.type'},
+    });
+
+    selectByLabel(wrapper, 'p95(\u2026)', {name: 'field', at: 1, control: true});
+    fieldColumn = wrapper.find('input[name="field"]').at(1);
+    expect(fieldColumn.props().value).toMatchObject({
+      kind: 'function',
+      meta: {
+        name: 'p95',
+        parameters: [{defaultValue: 'transaction.duration', kind: 'column'}],
+      },
+    });
+
+    // Select Line chart display
+    selectByLabel(wrapper, 'Line chart', {name: 'displayType', at: 0, control: true});
+    expect(getDisplayType(wrapper).props().value).toEqual('line');
+
+    // Expect event.type field to be converted to count()
+    fieldColumn = wrapper.find('input[name="field"]');
+    expect(fieldColumn.length).toEqual(1);
+    expect(fieldColumn.props().value).toMatchObject({
+      kind: 'function',
+      meta: {
+        name: 'p95',
+        parameters: [{defaultValue: 'transaction.duration', kind: 'column'}],
+      },
+    });
+
+    await clickSubmit(wrapper);
+
+    expect(widget.queries).toHaveLength(1);
+    expect(widget.queries[0].fields).toEqual(['p95(transaction.duration)']);
   });
 });

@@ -13,6 +13,7 @@ import {
 import {Widget} from 'app/views/dashboardsV2/types';
 import ColumnEditCollection from 'app/views/eventsV2/table/columnEditCollection';
 import {QueryField} from 'app/views/eventsV2/table/queryField';
+import {FieldValueKind} from 'app/views/eventsV2/table/types';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
 import Field from 'app/views/settings/components/forms/field';
 
@@ -84,6 +85,8 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
     );
   }
 
+  const showAddOverlay = !(displayType === 'world_map' && fields.length === 1);
+
   return (
     <Field
       data-test-id="y-axis"
@@ -100,6 +103,9 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
             fieldValue={explodeField({field})}
             fieldOptions={fieldOptions}
             onChange={value => handleChangeField(value, i)}
+            filterPrimaryOptions={option => {
+              return option.value.kind === FieldValueKind.FUNCTION;
+            }}
           />
           {fields.length > 1 && (
             <Button
@@ -114,9 +120,11 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
         </QueryFieldWrapper>
       ))}
       <div>
-        <Button size="small" onClick={handleAdd} icon={<IconAdd isCircled />}>
-          {t('Add an overlay')}
-        </Button>
+        {showAddOverlay && (
+          <Button size="small" onClick={handleAdd} icon={<IconAdd isCircled />}>
+            {t('Add an overlay')}
+          </Button>
+        )}
       </div>
     </Field>
   );

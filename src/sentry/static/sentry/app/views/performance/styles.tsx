@@ -28,7 +28,7 @@ export const HeaderTitle = styled('div')`
 
 export const HeaderTitleLegend = styled(HeaderTitle)`
   background-color: ${p => p.theme.background};
-  border-radius: ${p => p.theme.borderRadius};
+  border-bottom-right-radius: ${p => p.theme.borderRadius};
   position: absolute;
   z-index: 1;
 `;

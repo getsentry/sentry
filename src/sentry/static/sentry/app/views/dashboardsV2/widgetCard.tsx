@@ -15,6 +15,7 @@ import SimpleTableChart from 'app/components/charts/simpleTableChart';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {getSeriesSelection} from 'app/components/charts/utils';
+import WorldMapChart from 'app/components/charts/worldMapChart';
 import ErrorBoundary from 'app/components/errorBoundary';
 import {Panel} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
@@ -298,6 +299,8 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
         return <BarChart {...chartProps} />;
       case 'area':
         return <AreaChart stacked {...chartProps} />;
+      case 'world_map':
+        return <WorldMapChart {...chartProps} />;
       case 'line':
       default:
         return <LineChart {...chartProps} />;
@@ -316,8 +319,73 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
       );
     }
 
+    if (errorMessage) {
+      return (
+        <ErrorPanel>
+          <IconWarning color="gray500" size="lg" />
+        </ErrorPanel>
+      );
+    }
+
     const {location, router, selection} = this.props;
     const {start, end, period} = selection.datetime;
+
+    if (widget.displayType === 'world_map') {
+      const DEFAULT_GEO_DATA = {
+        title: '',
+        data: [],
+      };
+
+      const processTableResults = () => {
+        if (!tableResults || !tableResults.length) {
+          return DEFAULT_GEO_DATA;
+        }
+
+        const tableResult = tableResults[0];
+
+        const {data, meta} = tableResult;
+
+        if (!data || !data.length || !meta) {
+          return DEFAULT_GEO_DATA;
+        }
+
+        const preAggregate = Object.keys(meta).find(column => {
+          return column !== 'geo.country_code';
+        });
+
+        if (!preAggregate) {
+          return DEFAULT_GEO_DATA;
+        }
+
+        return {
+          title: tableResult.title ?? '',
+          data: data.map(row => {
+            return {name: row['geo.country_code'] ?? '', value: row[preAggregate]};
+          }),
+        };
+      };
+
+      const {data, title} = processTableResults();
+
+      const series = [
+        {
+          seriesName: title,
+          data,
+        },
+      ];
+
+      return (
+        <TransitionChart loading={loading} reloading={loading}>
+          <TransparentLoadingMask visible={loading} />
+          {getDynamicText({
+            value: this.chartComponent({
+              series,
+            }),
+            fixed: 'Widget Chart',
+          })}
+        </TransitionChart>
+      );
+    }
 
     const legend = Legend({
       right: 10,
