@@ -106,7 +106,6 @@ class RegisterForm extends React.Component<Props, State> {
             <TextField
               name="name"
               placeholder={t('Jane Bloggs')}
-              maxlength={30}
               label={t('Name')}
               error={errors.name}
               required
@@ -114,7 +113,6 @@ class RegisterForm extends React.Component<Props, State> {
             <TextField
               name="username"
               placeholder={t('you@example.com')}
-              maxlength={128}
               label={t('Email')}
               error={errors.username}
               required
