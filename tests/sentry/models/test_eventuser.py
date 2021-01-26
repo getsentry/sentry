@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from hashlib import md5
 from sentry.testutils import TestCase
 from sentry.models import EventUser

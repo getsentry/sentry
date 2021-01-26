@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
 
 from django.db import migrations, models
 
@@ -19,15 +18,14 @@ class Migration(migrations.Migration):
     # - Adding columns to highly active tables, even ones that are NULL.
     is_dangerous = False
 
-
     dependencies = [
-        ('sentry', '0005_fix_content_types'),
+        ("sentry", "0005_fix_content_types"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='sentryapp',
-            name='date_published',
+            model_name="sentryapp",
+            name="date_published",
             field=models.DateTimeField(null=True, blank=True),
         ),
     ]

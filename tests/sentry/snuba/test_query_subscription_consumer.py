@@ -1,10 +1,7 @@
-from __future__ import absolute_import
-
 import unittest
 from copy import deepcopy
 from datetime import timedelta
 
-import mock
 import six
 import pytz
 from dateutil.parser import parse as parse_date
@@ -12,7 +9,7 @@ from django.conf import settings
 from exam import fixture, patcher
 
 from sentry.utils import json
-from sentry.utils.compat.mock import Mock
+from sentry.utils.compat import mock
 from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.snuba.query_subscription_consumer import (
     InvalidMessageError,
@@ -52,7 +49,7 @@ class BaseQuerySubscriptionTest(object):
         }
 
     def build_mock_message(self, data, topic=None):
-        message = Mock()
+        message = mock.Mock()
         message.value.return_value = json.dumps(data)
         if topic:
             message.topic.return_value = topic
@@ -93,7 +90,7 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
 
     def test_subscription_registered(self):
         registration_key = "registered_test"
-        mock_callback = Mock()
+        mock_callback = mock.Mock()
         register_subscriber(registration_key)(mock_callback)
         with self.tasks():
             snuba_query = create_snuba_query(

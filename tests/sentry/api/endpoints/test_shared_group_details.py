@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import six
 
 from sentry.testutils import APITestCase
@@ -23,7 +21,7 @@ class SharedGroupDetailsTest(APITestCase):
         share_id = group.get_share_id()
         assert share_id is not None
 
-        url = u"/api/0/shared/issues/{}/".format(share_id)
+        url = "/api/0/shared/issues/{}/".format(share_id)
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -48,7 +46,7 @@ class SharedGroupDetailsTest(APITestCase):
         share_id = group.get_share_id()
         assert share_id is not None
 
-        url = u"/api/0/shared/issues/{}/".format(share_id)
+        url = "/api/0/shared/issues/{}/".format(share_id)
         response = self.client.get(url, format="json")
 
         assert response.status_code == 404
@@ -64,7 +62,7 @@ class SharedGroupDetailsTest(APITestCase):
         share_id = group.get_share_id()
         assert share_id is not None
 
-        url = u"/api/0/shared/issues/{}/".format(share_id)
+        url = "/api/0/shared/issues/{}/".format(share_id)
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content

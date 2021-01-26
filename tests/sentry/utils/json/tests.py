@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
 
 import datetime
 import uuid
@@ -51,4 +50,4 @@ class JSONTest(TestCase):
         self.assertEquals(json.dumps(res), "1")
 
     def test_translation(self):
-        self.assertEquals(json.dumps(_("word")), u'"word"')
+        self.assertEquals(json.dumps(_("word")), '"word"')

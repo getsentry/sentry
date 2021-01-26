@@ -7,6 +7,7 @@ import isEqual from 'lodash/isEqual';
 import {Client} from 'app/api';
 import BarChart from 'app/components/charts/barChart';
 import ChartZoom from 'app/components/charts/chartZoom';
+import Legend from 'app/components/charts/components/legend';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import LineChart from 'app/components/charts/lineChart';
 import SimpleTableChart from 'app/components/charts/simpleTableChart';
@@ -321,21 +322,12 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
     const {location, router, selection} = this.props;
     const {start, end, period} = selection.datetime;
 
-    const legend = {
+    const legend = Legend({
       right: 10,
       top: 5,
-      icon: 'circle',
-      itemHeight: 8,
-      itemWidth: 8,
-      itemGap: 12,
-      align: 'left',
       type: 'plain',
-      textStyle: {
-        verticalAlign: 'top',
-        fontSize: 11,
-        fontFamily: 'Rubik',
-      },
       selected: getSeriesSelection(location),
+      theme,
       formatter: (seriesName: string) => {
         const arg = getAggregateArg(seriesName);
         if (arg !== null) {
@@ -346,7 +338,7 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
         }
         return seriesName;
       },
-    };
+    });
 
     const axisField = widget.queries[0]?.fields?.[0] ?? 'count()';
     const chartOptions = {

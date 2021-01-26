@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 from django.core.exceptions import ValidationError
 from rest_framework import serializers
@@ -73,7 +71,8 @@ class DataExportQuerySerializer(serializers.Serializer):
 
             # validate the query string by trying to parse it
             processor = DiscoverProcessor(
-                discover_query=query_info, organization_id=organization.id,
+                discover_query=query_info,
+                organization_id=organization.id,
             )
             try:
                 get_filter(query_info["query"], processor.params)

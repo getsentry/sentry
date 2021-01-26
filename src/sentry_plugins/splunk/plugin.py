@@ -13,7 +13,6 @@ Note: Managed Splunk Cloud customers can create a HEC token by filing a request 
 For more details on the payload: http://dev.splunk.com/view/event-collector/SP-CAAAE6M
 """
 
-from __future__ import absolute_import
 
 import logging
 
@@ -193,7 +192,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
             elif key in ("csp", "expectct", "expectstable", "hpkp"):
                 props.update(
                     {
-                        u"{}_{}".format(key.rsplit(".", 1)[-1].lower(), k): v
+                        "{}_{}".format(key.rsplit(".", 1)[-1].lower(), k): v
                         for k, v in six.iteritems(value.to_json())
                     }
                 )
@@ -221,7 +220,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
         self.project_source = self.get_option("source", event.project) or "sentry"
 
     def get_rl_key(self, event):
-        return u"{}:{}".format(self.conf_key, md5_text(self.project_token).hexdigest())
+        return "{}:{}".format(self.conf_key, md5_text(self.project_token).hexdigest())
 
     def is_ratelimited(self, event):
         if super(SplunkPlugin, self).is_ratelimited(event):
@@ -268,7 +267,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
                 json=payload,
                 # Splunk cloud instances certifcates dont play nicely
                 verify=False,
-                headers={"Authorization": u"Splunk {}".format(self.project_token)},
+                headers={"Authorization": "Splunk {}".format(self.project_token)},
                 timeout=5,
             )
             if resp.status_code != 200:

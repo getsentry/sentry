@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 from six.moves.urllib.parse import urlencode
 
@@ -27,7 +25,7 @@ class GroupEventAttachmentsTest(APITestCase):
         return self.attachment
 
     def path(self, types=None):
-        path = u"/api/0/issues/%s/attachments/" % (self.group.id,)
+        path = "/api/0/issues/%s/attachments/" % (self.group.id,)
 
         query = [("types", t) for t in types or ()]
         if query:

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import, print_function
 
 import logging
 from sentry.utils.compat import mock
@@ -328,7 +327,9 @@ class EventManagerTest(TestCase):
         repo = self.create_repo(project=group.project)
         for key in ["a", "b", "c"]:
             commit = Commit.objects.create(
-                organization_id=group.project.organization_id, repository_id=repo.id, key=key * 40,
+                organization_id=group.project.organization_id,
+                repository_id=repo.id,
+                key=key * 40,
             )
             GroupLink.objects.create(
                 group_id=group.id,
@@ -727,28 +728,37 @@ class EventManagerTest(TestCase):
             tsdb.models.users_affected_by_group, (event.group.id,), event.datetime, event.datetime
         ) == {event.group.id: 1}
 
-        assert tsdb.get_distinct_counts_totals(
-            tsdb.models.users_affected_by_project,
-            (event.project.id,),
-            event.datetime,
-            event.datetime,
-        ) == {event.project.id: 1}
+        assert (
+            tsdb.get_distinct_counts_totals(
+                tsdb.models.users_affected_by_project,
+                (event.project.id,),
+                event.datetime,
+                event.datetime,
+            )
+            == {event.project.id: 1}
+        )
 
-        assert tsdb.get_distinct_counts_totals(
-            tsdb.models.users_affected_by_group,
-            (event.group.id,),
-            event.datetime,
-            event.datetime,
-            environment_id=environment_id,
-        ) == {event.group.id: 1}
+        assert (
+            tsdb.get_distinct_counts_totals(
+                tsdb.models.users_affected_by_group,
+                (event.group.id,),
+                event.datetime,
+                event.datetime,
+                environment_id=environment_id,
+            )
+            == {event.group.id: 1}
+        )
 
-        assert tsdb.get_distinct_counts_totals(
-            tsdb.models.users_affected_by_project,
-            (event.project.id,),
-            event.datetime,
-            event.datetime,
-            environment_id=environment_id,
-        ) == {event.project.id: 1}
+        assert (
+            tsdb.get_distinct_counts_totals(
+                tsdb.models.users_affected_by_project,
+                (event.project.id,),
+                event.datetime,
+                event.datetime,
+                environment_id=environment_id,
+            )
+            == {event.project.id: 1}
+        )
 
         euser = EventUser.objects.get(project_id=self.project.id, ident="1")
         assert event.get_tag("sentry:user") == euser.tag_value
@@ -784,12 +794,12 @@ class EventManagerTest(TestCase):
         assert euser.ip_address is None
 
     def test_event_user_unicode_identifier(self):
-        manager = EventManager(make_event(**{"user": {"username": u"foô"}}))
+        manager = EventManager(make_event(**{"user": {"username": "foô"}}))
         manager.normalize()
         with self.tasks():
             manager.save(self.project.id)
         euser = EventUser.objects.get(project_id=self.project.id)
-        assert euser.username == u"foô"
+        assert euser.username == "foô"
 
     def test_environment(self):
         manager = EventManager(make_event(**{"environment": "beta"}))
@@ -888,7 +898,7 @@ class EventManagerTest(TestCase):
         event_id = "a" * 32
 
         UserReport.objects.create(
-            project=project,
+            project_id=project.id,
             event_id=event_id,
             name="foo",
             email="bar@example.com",
@@ -899,7 +909,7 @@ class EventManagerTest(TestCase):
             data=make_event(environment=environment.name, event_id=event_id), project_id=project.id
         )
 
-        assert UserReport.objects.get(event_id=event_id).environment == environment
+        assert UserReport.objects.get(event_id=event_id).environment_id == environment.id
 
     def test_default_event_type(self):
         manager = EventManager(make_event(message="foo bar"))

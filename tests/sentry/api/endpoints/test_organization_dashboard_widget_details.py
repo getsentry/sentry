@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.core.urlresolvers import reverse
 from sentry.testutils import OrganizationDashboardWidgetTestCase
 
@@ -19,7 +17,10 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 {"name": "errors", "conditions": "event.type:error", "fields": ["count()"]}
             ],
         }
-        response = self.client.post(self.url(), data=data,)
+        response = self.client.post(
+            self.url(),
+            data=data,
+        )
         assert response.status_code == 200, response.data
 
     def test_valid_widget_permissions(self):
@@ -34,7 +35,10 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 {"name": "errors", "conditions": "event.type: tag:foo", "fields": ["count()"]}
             ],
         }
-        response = self.client.post(self.url(), data=data,)
+        response = self.client.post(
+            self.url(),
+            data=data,
+        )
         assert response.status_code == 400, response.data
         assert "queries" in response.data, response.data
         assert response.data["queries"][0]["conditions"], response.data
@@ -51,7 +55,10 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 {"name": "errors", "conditions": "event.type:error", "fields": ["p95(user)"]}
             ],
         }
-        response = self.client.post(self.url(), data=data,)
+        response = self.client.post(
+            self.url(),
+            data=data,
+        )
         assert response.status_code == 400, response.data
         assert "queries" in response.data, response.data
         assert response.data["queries"][0]["fields"], response.data
@@ -64,6 +71,9 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 {"name": "errors", "conditions": "event.type:error", "fields": ["count()"]}
             ],
         }
-        response = self.client.post(self.url(), data=data,)
+        response = self.client.post(
+            self.url(),
+            data=data,
+        )
         assert response.status_code == 400, response.data
         assert "displayType" in response.data, response.data

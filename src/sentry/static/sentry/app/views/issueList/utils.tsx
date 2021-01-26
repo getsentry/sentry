@@ -2,8 +2,8 @@ import {t} from 'app/locale';
 import {Organization} from 'app/types';
 
 export enum Query {
-  NEEDS_REVIEW = 'is:unresolved is:needs_review',
-  NEEDS_REVIEW_OWNER = 'is:unresolved is:needs_review owner:me_or_none',
+  FOR_REVIEW = 'is:unresolved is:for_review',
+  FOR_REVIEW_OWNER = 'is:unresolved is:for_review owner:me_or_none',
   UNRESOLVED = 'is:unresolved',
   IGNORED = 'is:ignored',
   REPROCESSING = 'is:reprocessing',
@@ -25,30 +25,30 @@ type OverviewTab = {
 export function getTabs(organization: Organization) {
   const tabs: Array<[string, OverviewTab]> = [
     [
-      Query.NEEDS_REVIEW_OWNER,
-      {
-        name: t('Needs Review'),
-        analyticsName: 'needs_review',
-        count: true,
-        enabled: organization.features.includes('inbox-owners-query'),
-      },
-    ],
-    [
-      Query.NEEDS_REVIEW,
-      {
-        name: t('Needs Review'),
-        analyticsName: 'needs_review',
-        count: true,
-        enabled: !organization.features.includes('inbox-owners-query'),
-      },
-    ],
-    [
       Query.UNRESOLVED,
       {
         name: t('All Unresolved'),
         analyticsName: 'unresolved',
         count: true,
         enabled: true,
+      },
+    ],
+    [
+      Query.FOR_REVIEW_OWNER,
+      {
+        name: t('For Review'),
+        analyticsName: 'needs_review',
+        count: true,
+        enabled: organization.features.includes('inbox-owners-query'),
+      },
+    ],
+    [
+      Query.FOR_REVIEW,
+      {
+        name: t('For Review'),
+        analyticsName: 'needs_review',
+        count: true,
+        enabled: !organization.features.includes('inbox-owners-query'),
       },
     ],
     [

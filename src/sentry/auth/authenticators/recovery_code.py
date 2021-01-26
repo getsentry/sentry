@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import hmac
 
 from base64 import b32encode
@@ -68,5 +66,5 @@ class RecoveryCodeInterface(AuthenticatorInterface):
         rv = []
         for idx, code in enumerate(self.get_codes()):
             if not mask & (1 << idx):
-                rv.append(u"%s-%s" % (code[:4], code[4:]))
+                rv.append("%s-%s" % (code[:4], code[4:]))
         return rv

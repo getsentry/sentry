@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, print_function, unicode_literals
 
 from django.conf import settings
 
@@ -578,7 +577,7 @@ class Factories(object):
             event_id=event.event_id,
             file_id=file.id,
             type=file.type,
-            **kwargs
+            **kwargs,
         )
 
     @staticmethod
@@ -591,7 +590,7 @@ class Factories(object):
         file=None,
         cpu_name=None,
         code_id=None,
-        **kwargs
+        **kwargs,
     ):
         if debug_id is None:
             debug_id = six.text_type(uuid4())
@@ -621,7 +620,7 @@ class Factories(object):
             file=file,
             checksum=file.checksum,
             data=data,
-            **kwargs
+            **kwargs,
         )
 
     @staticmethod
@@ -776,13 +775,13 @@ class Factories(object):
     @staticmethod
     def create_userreport(group, project=None, event_id=None, **kwargs):
         return UserReport.objects.create(
-            group=group,
+            group_id=group.id,
             event_id=event_id or "a" * 32,
-            project=project or group.project,
+            project_id=project.id if project is not None else group.project.id,
             name="Jane Bloggs",
             email="jane@example.com",
             comments="the application crashed",
-            **kwargs
+            **kwargs,
         )
 
     @staticmethod
