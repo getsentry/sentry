@@ -141,7 +141,6 @@
     "@storybook/addon-a11y": "^6.1.15",
     "@storybook/addon-actions": "^6.1.15",
     "@storybook/addon-essentials": "^6.1.15",
-    "@storybook/addon-knobs": "^6.1.15",
     "@storybook/addon-storysource": "^6.1.15",
     "@storybook/addons": "^6.1.15",
     "@storybook/react": "^6.1.15",

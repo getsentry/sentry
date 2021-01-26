@@ -1,7 +1,6 @@
 import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
-import {boolean, color, number, text} from '@storybook/addon-knobs';
 
 import ProgressRing from 'app/components/progressRing';
 
@@ -30,32 +29,25 @@ class Ticker extends React.Component {
 
 export default {
   title: 'DataVisualization/Charts/ProgressRing',
+  args: {
+    value: 29,
+    size: 40,
+    minValue: 0,
+    maxValue: 100,
+    barWidth: 3,
+    text: '',
+    animateText: false,
+  },
+  argTypes: {
+    backgroundColor: {control: 'color'},
+    progressColor: {control: 'color'},
+  },
 };
 
-export const Default = () => {
-  const value = number('Value', 29);
-  const size = number('Size', 40);
-  const minValue = number('Min Value', 0);
-  const maxValue = number('Max Value', 100);
-  const barWidth = number('Bar Width', 3);
-  const textValue = text('Text Value', '');
-  const animateText = boolean('Animate Text', false);
-  const backgroundColor = color('Background color');
-  const progressColor = color('Progress color');
-
+export const Default = ({...args}) => {
   return (
     <Grid>
-      <ProgressRing
-        value={value}
-        minValue={minValue}
-        maxValue={maxValue}
-        size={size}
-        barWidth={barWidth}
-        text={textValue}
-        animateText={animateText}
-        backgroundColor={backgroundColor}
-        progressColor={progressColor}
-      />
+      <ProgressRing {...args} />
       <Ticker>
         {({tickNumber}) => (
           <ProgressRing

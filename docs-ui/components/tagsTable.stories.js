@@ -1,5 +1,4 @@
 import React from 'react';
-import {text} from '@storybook/addon-knobs';
 
 import TagsTable from 'app/components/tagsTable';
 
@@ -23,12 +22,15 @@ const event = {
 
 export default {
   title: 'Core/Tables/TagsTable',
+  args: {
+    title: 'title',
+  },
 };
 
-export const Default = () => {
+export const Default = ({title}) => {
   return (
     <TagsTable
-      title={text('title', 'Event Tags')}
+      title={title}
       query="event.type:error"
       event={event}
       generateUrl={tag => `/issues/search?key=${tag.key}&value=${tag.value}`}

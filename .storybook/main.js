@@ -7,7 +7,6 @@ module.exports = {
       name: '@storybook/addon-essentials',
       options: {},
     },
-    '@storybook/addon-knobs',
     '@storybook/addon-a11y',
   ],
 };

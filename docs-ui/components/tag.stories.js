@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {select, text} from '@storybook/addon-knobs';
 
 import Tag from 'app/components/tag';
 import {IconClock, IconDelete, IconFire, IconIssues, IconWarning} from 'app/icons';
@@ -53,30 +52,41 @@ Basic.storyName = 'basic';
 export const WithIcon = ({...args}) => (
   <div>
     <Tag icon={<IconFire />} {...args}>
-      {text('children', 'Error')}
+      Error
     </Tag>{' '}
     <Tag icon={<IconWarning />} {...args}>
-      {text('children', 'Error')}
+      Error
     </Tag>{' '}
     <Tag icon={<IconClock />} {...args}>
-      {text('children', 'Error')}
+      Error
     </Tag>{' '}
     <Tag icon={<IconDelete />} {...args}>
-      {text('children', 'Error')}
+      Error
     </Tag>{' '}
     <Tag icon={<IconIssues />} {...args}>
-      {text('children', 'Error')}
+      Error
     </Tag>
   </div>
 );
 WithIcon.storyName = 'with icon';
 
-export const WithTooltip = () => (
-  <Tag type={select('type', types, 'highlight')} tooltipText="lorem ipsum">
-    {text('children', 'Tooltip')}
+export const WithTooltip = ({type}) => (
+  <Tag type={type} tooltipText="lorem ipsum">
+    children
   </Tag>
 );
 WithTooltip.storyName = 'with tooltip';
+WithTooltip.args = {
+  type: 'highlight',
+};
+WithTooltip.argTypes = {
+  type: {
+    control: {
+      type: 'select',
+      options: types,
+    },
+  },
+};
 
 export const WithDismiss = ({...args}) => <Tag {...args}>Dismissable</Tag>;
 WithDismiss.storyName = 'with dismiss';
@@ -85,13 +95,11 @@ WithDismiss.argTypes = {
 };
 
 export const WithInternalLink = () => (
-  <Tag to="/organizations/sentry/issues/">{text('children', 'Internal link')}</Tag>
+  <Tag to="/organizations/sentry/issues/">Internal link</Tag>
 );
 WithInternalLink.storyName = 'with internal link';
 
-export const WithExternalLink = () => (
-  <Tag href="https://sentry.io/">{text('children', 'External link')}</Tag>
-);
+export const WithExternalLink = () => <Tag href="https://sentry.io/">External link</Tag>;
 WithExternalLink.storyName = 'with external link';
 
 const Wrapper = styled('div')`

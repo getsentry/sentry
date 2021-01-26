@@ -1,5 +1,4 @@
 import React from 'react';
-import {array, boolean, number, text} from '@storybook/addon-knobs';
 
 import TableChart from 'app/components/charts/tableChart';
 
@@ -8,7 +7,7 @@ export default {
   componet: TableChart,
 };
 
-export const _TableChart = () => {
+export const _TableChart = ({...args}) => {
   const ERROR_TYPE_DATA = [
     ['TypeError', 50, 40, 30],
     ['SyntaxError', 40, 30, 20],
@@ -16,32 +15,20 @@ export const _TableChart = () => {
     ['ZeroDivisionError', 20, 10, 0],
   ];
 
-  return (
-    <TableChart
-      data={ERROR_TYPE_DATA}
-      dataStartIndex={number('Data Start Index', 1)}
-      showRowTotal={boolean('Show Row Total', true)}
-      showColumnTotal={boolean('Show Column Total', true)}
-      shadeRowPercentage={boolean('Shade Row %', true)}
-      headers={array('Headers', [
-        text('Column 1', 'Exception Type'),
-        text('Column 2', 'Project 1'),
-        text('Column 3', 'Project 2'),
-        text('Column 4', 'Project 3'),
-      ])}
-      widths={array('Widths', [
-        number('Column 1', null),
-        number('Column 2', 100),
-        number('Column 3', 100),
-        number('Column 4', 100),
-      ])}
-      rowTotalLabel={text('Row Total Label', 'Row Total')}
-      rowTotalWidth={number('Row Total Column Width', 120)}
-    />
-  );
+  return <TableChart data={ERROR_TYPE_DATA} {...args} />;
 };
 
 _TableChart.storyName = 'TableChart';
+_TableChart.args = {
+  dataStartIndex: 1,
+  showRowTotal: true,
+  showColumnTotal: true,
+  shadeRowPercentage: true,
+  rowTotalLabel: 'Row Total',
+  rowTotalWidth: 120,
+  widths: [null, 100, 100, 100],
+  headers: ['Exception Type', 'Project 1', 'Project 2', 'Project 3'],
+};
 _TableChart.parameters = {
   docs: {
     description: {

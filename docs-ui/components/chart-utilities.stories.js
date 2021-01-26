@@ -1,6 +1,5 @@
 import React from 'react';
 import {action} from '@storybook/addon-actions';
-import {boolean, number, text} from '@storybook/addon-knobs';
 
 import ChartZoom from 'app/components/charts/chartZoom';
 import LineChart from 'app/components/charts/lineChart';
@@ -8,9 +7,23 @@ import LineChart from 'app/components/charts/lineChart';
 export default {
   title: 'DataVisualization/Charts/Utilities/ChartZoom',
   component: ChartZoom,
+  args: {
+    height: 300,
+    grid: {
+      top: 40,
+      bottom: 20,
+      left: '10%',
+      right: '10%',
+      containLabel: true,
+    },
+    legend: {
+      data: ['sentry:user', 'environment', 'browser'],
+      type: 'scroll',
+    },
+  },
 };
 
-export const _ChartZoom = () => (
+export const _ChartZoom = ({grid, legend, height}) => (
   <div style={{backgroundColor: 'white', padding: 12}}>
     <ChartZoom onZoom={action('ChartZoom.onZoom')}>
       {zoomRenderProps => (
@@ -20,25 +33,12 @@ export const _ChartZoom = () => (
             truncate: 80,
           }}
           {...zoomRenderProps}
-          legend={{
-            data: [
-              text('Line 1 Legend (match Line 1)', 'sentry:user'),
-              text('Line 2 Legend (match Line 2)', 'environment'),
-              text('Line 3 Legend (match Line 3)', 'browser'),
-            ],
-            type: text('Legend Type', 'scroll'),
-          }}
-          height={number('height', 300)}
-          grid={{
-            top: text('grid:top', 40),
-            bottom: text('grid:bottom', 20),
-            left: text('grid:left', '10%'),
-            right: text('grid:right', '10%'),
-            containLabel: boolean('grid:containLabel', true),
-          }}
+          legend={legend}
+          height={height}
+          grid={grid}
           series={[
             {
-              seriesName: text('Line 1', 'sentry:user'),
+              seriesName: 'sentry:user',
               data: [
                 {value: 18, name: 1531094400000},
                 {value: 31, name: 1531180800000},
@@ -48,7 +48,7 @@ export const _ChartZoom = () => (
               ],
             },
             {
-              seriesName: text('Line 2', 'environment'),
+              seriesName: 'environment',
               data: [
                 {value: 84, name: 1531094400000},
                 {value: 1, name: 1531180800000},
@@ -58,7 +58,7 @@ export const _ChartZoom = () => (
               ],
             },
             {
-              seriesName: text('Line 3', 'browser'),
+              seriesName: 'browser',
               data: [
                 {value: 108, name: 1531094400000},
                 {value: 1, name: 1531180800000},

@@ -1,28 +1,29 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {boolean, number} from '@storybook/addon-knobs';
 
 import PlatformList from 'app/components/platformList';
 import space from 'app/styles/space';
 
 export default {
   title: 'UI/Platform List',
+  component: PlatformList,
 };
 
 const platforms = ['java', 'php', 'javascript', 'cocoa', 'ruby'];
 
-export const _PlatformList = () => (
+export const _PlatformList = ({...args}) => (
   <Wrapper>
-    <PlatformList
-      platforms={platforms}
-      showCounter={boolean('Show Counter', false)}
-      max={number('Max', platforms.length)}
-      size={number('Size', 28)}
-    />
+    <PlatformList {...args} />
   </Wrapper>
 );
 
 _PlatformList.storyName = 'PlatformList';
+_PlatformList.args = {
+  platforms,
+  showCounter: false,
+  max: platforms.length,
+  size: 28,
+};
 
 const Wrapper = styled('div')`
   padding: ${space(3)};

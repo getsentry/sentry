@@ -1,5 +1,4 @@
 import React from 'react';
-import {boolean, color} from '@storybook/addon-knobs';
 
 import ActivityItem from 'app/components/activity/item';
 import ActivityAvatar from 'app/components/activity/item/avatar';
@@ -17,23 +16,24 @@ const user = {
 
 export default {
   title: 'Core/_Activity/Item',
-  component: ActivityItem,
-  subcomponents: {ActivityAvatar, ActivityBubble},
 };
 
-export const DefaultActivityItem = () => (
+export const DefaultActivityItem = ({hideDate}) => (
   <ActivityItem
     author={{type: 'user', user}}
     item={{id: '123'}}
     date={new Date()}
     header={<div>{user.email}</div>}
-    hideDate={boolean('Hide Date', false)}
+    hideDate={hideDate}
   >
     Activity Item
   </ActivityItem>
 );
 
 DefaultActivityItem.storyName = 'default ActivityItem';
+DefaultActivityItem.args = {
+  hideDate: false,
+};
 DefaultActivityItem.parameters = {
   docs: {
     description: {
@@ -43,7 +43,7 @@ DefaultActivityItem.parameters = {
   },
 };
 
-export const WithCustomHeader = () => (
+export const WithCustomHeader = ({hideDate}) => (
   <ActivityItem
     author={{type: 'user', user}}
     item={{id: '123'}}
@@ -51,12 +51,16 @@ export const WithCustomHeader = () => (
     header={() => (
       <div style={{backgroundColor: '#ccc'}}>Custom header (no timestamp)</div>
     )}
+    hideDate={hideDate}
   >
     Activity Item
   </ActivityItem>
 );
 
 WithCustomHeader.storyName = 'with custom Header';
+WithCustomHeader.args = {
+  hideDate: false,
+};
 WithCustomHeader.parameters = {
   docs: {
     description: {
@@ -65,20 +69,23 @@ WithCustomHeader.parameters = {
   },
 };
 
-export const WithFooter = () => (
+export const WithFooter = ({hideDate}) => (
   <ActivityItem
     author={{type: 'user', user}}
     item={{id: '123'}}
     date={new Date()}
-    hideDate={boolean('Hide Date', false)}
     header={<div>{user.email}</div>}
     footer={<div>Footer</div>}
+    hideDate={hideDate}
   >
     Activity Item
   </ActivityItem>
 );
 
 WithFooter.storyName = 'with footer';
+WithFooter.args = {
+  hideDate: false,
+};
 WithFooter.parameters = {
   docs: {
     description: {
@@ -87,19 +94,22 @@ WithFooter.parameters = {
   },
 };
 
-export const SystemActivity = () => (
+export const SystemActivity = ({hideDate}) => (
   <ActivityItem
     author={{type: 'system'}}
     item={{id: '123'}}
     date={new Date()}
     header={<div>Sentry detected something</div>}
-    hideDate={boolean('Hide Date', false)}
+    hideDate={hideDate}
   >
     Sentry did something
   </ActivityItem>
 );
 
 SystemActivity.storyName = 'system activity';
+SystemActivity.args = {
+  hideDate: false,
+};
 SystemActivity.parameters = {
   docs: {
     description: {
@@ -108,11 +118,8 @@ SystemActivity.parameters = {
   },
 };
 
-export const Bubble = () => (
-  <ActivityBubble
-    backgroundColor={color('Background', '#fff')}
-    borderColor={color('Border', 'red')}
-  >
+export const Bubble = ({...args}) => (
+  <ActivityBubble {...args}>
     <div>Activity Bubble</div>
     <div>Activity Bubble</div>
     <div>Activity Bubble</div>
@@ -121,6 +128,14 @@ export const Bubble = () => (
   </ActivityBubble>
 );
 Bubble.component = ActivityBubble;
+Bubble.args = {
+  backgroundColor: '#fff',
+  borderColor: 'red',
+};
+Bubble.argTypes = {
+  backgroundColor: {control: 'color'},
+  borderColor: {control: 'color'},
+};
 Bubble.parameters = {
   docs: {
     description: {
