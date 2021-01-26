@@ -39,6 +39,10 @@ def raiseStatusTrue():
     return True
 
 
+def raiseException():
+    raise Exception
+
+
 RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])
 
 MockResponse = namedtuple(
@@ -46,6 +50,7 @@ MockResponse = namedtuple(
 )
 MockResponseInstance = MockResponse({}, {}, True, 200, raiseStatuseFalse)
 MockFailureResponseInstance = MockResponse({}, {}, False, 400, raiseStatusTrue)
+MockResponse404 = MockResponse({}, {}, False, 404, raiseException)
 MockResponseWithHeadersInstance = MockResponse(
     {"Sentry-Hook-Error": "d5111da2c28645c5889d072017e3445d", "Sentry-Hook-Project": "1"},
     {},
@@ -475,3 +480,18 @@ class TestWebhookRequests(TestCase):
         assert first_request["organization_id"] == self.install.organization.id
         assert first_request["error_id"] == "d5111da2c28645c5889d072017e3445d"
         assert first_request["project_id"] == "1"
+
+    @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponse404)
+    def test_does_not_raise_on_404(self, safe_urlopen):
+        data = {"issue": serialize(self.issue)}
+        send_webhooks(installation=self.install, event="issue.assigned", data=data, actor=self.user)
+
+        requests = self.buffer.get_requests()
+        requests_count = len(requests)
+        first_request = requests[0]
+
+        assert safe_urlopen.called
+        assert requests_count == 1
+        assert first_request["response_code"] == 404
+        assert first_request["event_type"] == "issue.assigned"
+        assert first_request["organization_id"] == self.install.organization.id
