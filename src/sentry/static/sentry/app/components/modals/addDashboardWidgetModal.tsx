@@ -273,7 +273,6 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               required
             >
               <SelectControl
-                deprecatedSelectControl
                 required
                 options={DISPLAY_TYPE_CHOICES.slice()}
                 name="displayType"
