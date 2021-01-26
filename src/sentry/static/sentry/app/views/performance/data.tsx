@@ -303,7 +303,7 @@ function generateGenericPerformanceEventView(
   savedQuery.query = stringifyQueryObject(conditions);
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
-  eventView.addOverrideCondition('event.type', ['transaction']);
+  eventView.additionalConditions.addTagValues('event.type', ['transaction']);
   return eventView;
 }
 
@@ -351,7 +351,8 @@ function generateFrontendPageloadPerformanceEventView(
   savedQuery.query = stringifyQueryObject(conditions);
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
-  eventView.addOverrideCondition('event.type', ['transaction']);
+  eventView.additionalConditions.addTagValues('event.type', ['transaction']);
+  eventView.additionalConditions.addTagValues('transaction.op', ['pageload']);
   return eventView;
 }
 
@@ -399,7 +400,8 @@ function generateFrontendOtherPerformanceEventView(
   savedQuery.query = stringifyQueryObject(conditions);
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
-  eventView.addOverrideCondition('event.type', ['transaction']);
+  eventView.additionalConditions.addTagValues('event.type', ['transaction']);
+  eventView.additionalConditions.addTagValues('!transaction.op', ['pageload']);
   return eventView;
 }
 
@@ -467,7 +469,7 @@ export function generatePerformanceVitalDetailView(
   savedQuery.query = stringifyQueryObject(conditions);
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
-  eventView.addOverrideCondition('event.type', ['transaction']);
-  eventView.addOverrideCondition('has', [vitalName]);
+  eventView.additionalConditions?.addTagValues('event.type', ['transaction']);
+  eventView.additionalConditions?.addTagValues('has', [vitalName]);
   return eventView;
 }

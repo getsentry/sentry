@@ -244,7 +244,7 @@ class EventView {
   display: string | undefined;
   interval: string | undefined;
   createdBy: User | undefined;
-  overrideConditions: QueryResults | undefined; // This allows views to override the query to get specific data. It should not show up in the UI unless explicitly called.
+  additionalConditions: QueryResults; // This allows views to always add additional conditins to the query to get specific data. It should not show up in the UI unless explicitly called.
 
   constructor(props: {
     id: string | undefined;
@@ -261,7 +261,7 @@ class EventView {
     display: string | undefined;
     interval?: string;
     createdBy: User | undefined;
-    overrideConditions: QueryResults | undefined;
+    additionalConditions: QueryResults;
   }) {
     const fields: Field[] = Array.isArray(props.fields) ? props.fields : [];
     let sorts: Sort[] = Array.isArray(props.sorts) ? props.sorts : [];
@@ -292,7 +292,7 @@ class EventView {
     this.display = props.display;
     this.interval = props.interval;
     this.createdBy = props.createdBy;
-    this.overrideConditions = props.overrideConditions;
+    this.additionalConditions = props.additionalConditions ?? new QueryResults([]);
   }
 
   static fromLocation(location: Location): EventView {
@@ -313,7 +313,7 @@ class EventView {
       display: decodeScalar(location.query.display),
       interval: decodeScalar(location.query.interval),
       createdBy: undefined,
-      overrideConditions: undefined,
+      additionalConditions: new QueryResults([]),
     });
   }
 
@@ -379,7 +379,7 @@ class EventView {
       yAxis: saved.yAxis,
       display: saved.display,
       createdBy: saved.createdBy,
-      overrideConditions: undefined,
+      additionalConditions: undefined,
     });
   }
 
@@ -596,7 +596,7 @@ class EventView {
       display: this.display,
       interval: this.interval,
       createdBy: this.createdBy,
-      overrideConditions: this.overrideConditions,
+      additionalConditions: this.additionalConditions,
     });
   }
 
@@ -857,7 +857,7 @@ class EventView {
     const queryParts: string[] = [];
 
     if (this.query) {
-      if (this.overrideConditions) {
+      if (this.additionalConditions) {
         queryParts.push(this.getQueryWithOverrides());
       } else {
         queryParts.push(this.query);
@@ -1093,20 +1093,13 @@ class EventView {
     return DisplayModes.DEFAULT;
   }
 
-  addOverrideCondition(tag: string, tagValues: string[]) {
-    if (!this.overrideConditions) {
-      this.overrideConditions = new QueryResults([]);
-    }
-    this.overrideConditions.setTagValues(tag, tagValues);
-  }
-
   getQueryWithOverrides() {
     const {query} = this;
     const conditions = tokenizeSearch(query);
-    if (!this.overrideConditions) {
+    if (!this.additionalConditions) {
       return query;
     }
-    Object.entries(this.overrideConditions.tagValues).forEach(([tag, tagValues]) => {
+    Object.entries(this.additionalConditions.tagValues).forEach(([tag, tagValues]) => {
       conditions.setTagValues(tag, tagValues);
     });
     return stringifyQueryObject(conditions);

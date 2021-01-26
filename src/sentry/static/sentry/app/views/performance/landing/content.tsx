@@ -160,12 +160,6 @@ class LandingContent extends React.Component<Props, State> {
   renderLandingFrontend = isPageload => {
     const {organization, location, projects, eventView, setError} = this.props;
 
-    if (isPageload) {
-      eventView.addOverrideCondition('transaction.op', ['pageload']);
-    } else {
-      eventView.addOverrideCondition('!transaction.op', ['pageload']);
-    }
-
     const columnTitles = isPageload
       ? FRONTEND_PAGELOAD_COLUMN_TITLES
       : FRONTEND_OTHER_COLUMN_TITLES;
