@@ -210,6 +210,10 @@ const IconContainer = styled('div')`
   > * + * {
     margin-left: 50px;
   }
+
+  svg {
+    background: ${p => p.theme.background};
+  }
 `;
 
 const IconClick = styled('div')`
