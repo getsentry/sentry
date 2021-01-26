@@ -11,6 +11,7 @@ from sentry.utils import metrics
 from sentry.utils.committers import get_event_file_committers
 
 PREFERRED_GROUP_OWNERS = 2
+OWNER_CACHE_LIFE = 604800  # 1 week in seconds
 PREFERRED_GROUP_OWNER_AGE = timedelta(days=7)
 MIN_COMMIT_SCORE = 2
 
@@ -34,9 +35,9 @@ def process_suspect_commits(event_id, event_platform, event_frames, group_id, pr
     )
     owner_count = owners.count()
     if owner_count >= PREFERRED_GROUP_OWNERS:
-        owners = owners.filter(
-            date_added__lte=timezone.now() - PREFERRED_GROUP_OWNER_AGE
-        ).order_by("-date_added")
+        owners = owners.filter(date_added__lte=timezone.now() - PREFERRED_GROUP_OWNER_AGE).order_by(
+            "-date_added"
+        )
         if not owners.exists():
             metrics.incr(
                 "sentry.tasks.process_suspect_commits.aborted",
