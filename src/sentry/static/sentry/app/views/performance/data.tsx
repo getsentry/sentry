@@ -397,9 +397,12 @@ function generateFrontendNavigationPerformanceEventView(
 }
 
 export function generatePerformanceEventView(organization, location, projects) {
-  const display = organization.features.includes('performance-landing-v2')
-    ? getCurrentLandingDisplay(location, projects)
-    : undefined;
+  const eventView = generateGenericPerformanceEventView(organization, location);
+  if (!organization.features.includes('performance-landing-v2')) {
+    return eventView;
+  }
+
+  const display = getCurrentLandingDisplay(location, projects, eventView);
   switch (display?.field) {
     case LandingDisplayField.FRONTEND_PAGELOAD:
       return generateFrontendPageloadPerformanceEventView(organization, location);
@@ -407,7 +410,7 @@ export function generatePerformanceEventView(organization, location, projects) {
       return generateFrontendNavigationPerformanceEventView(organization, location);
     case LandingDisplayField.BACKEND:
     default:
-      return generateGenericPerformanceEventView(organization, location);
+      return eventView;
   }
 }
 
