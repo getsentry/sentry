@@ -167,6 +167,7 @@ class SlackEventEndpoint(Endpoint):
         event_id_by_url = {}
         for item in data["links"]:
             try:
+                # we're logging to Kibana because the Slackbot is filtered in Relay
                 logger.info(
                     "slack.link-shared", extra={"slack_shared_link": parse_link(item["url"])}
                 )
