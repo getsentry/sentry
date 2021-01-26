@@ -30,7 +30,7 @@ import withSentryAppComponents from 'app/utils/withSentryAppComponents';
 import Context from './context';
 import DefaultTitle from './defaultTitle';
 import Symbol, {FunctionNameToggleIcon} from './symbol';
-import {getPlatform, isCsharp} from './utils';
+import {getPlatform, isDotnet} from './utils';
 
 type Props = {
   data: Frame;
@@ -118,7 +118,7 @@ export class Line extends React.Component<Props, State> {
   }
 
   hasAssembly() {
-    return isCsharp(this.getPlatform()) && defined(this.props.data.package);
+    return isDotnet(this.getPlatform()) && defined(this.props.data.package);
   }
 
   isExpandable() {
@@ -199,7 +199,7 @@ export class Line extends React.Component<Props, State> {
       <ToggleContextButtonWrapper>
         <ToggleContextButton
           className="btn-toggle"
-          css={isCsharp(this.getPlatform()) && {display: 'block !important'}} // remove important once we get rid of css files
+          css={isDotnet(this.getPlatform()) && {display: 'block !important'}} // remove important once we get rid of css files
           title={t('Toggle Context')}
           onClick={this.toggleContext}
         >

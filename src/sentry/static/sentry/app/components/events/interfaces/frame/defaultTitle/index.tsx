@@ -13,7 +13,7 @@ import {Frame, Meta, PlatformType} from 'app/types';
 import {defined, isUrl} from 'app/utils';
 
 import FunctionName from '../functionName';
-import {getPlatform, isCsharp, trimPackage} from '../utils';
+import {getPlatform, isDotnet, trimPackage} from '../utils';
 
 import OriginalSourceInfo from './originalSourceInfo';
 
@@ -79,7 +79,7 @@ const DefaultTitle = ({frame, platform}: Props) => {
     const shouldPrioritizeModuleName = framePlatform === 'java';
 
     // we do not want to show path in title on csharp platform
-    const pathName = isCsharp(framePlatform)
+    const pathName = isDotnet(framePlatform)
       ? undefined
       : getPathName(shouldPrioritizeModuleName);
     const enablePathTooltip = defined(frame.absPath) && frame.absPath !== pathName?.value;
@@ -146,7 +146,7 @@ const DefaultTitle = ({frame, platform}: Props) => {
     );
   }
 
-  if (defined(frame.package) && !isCsharp(framePlatform)) {
+  if (defined(frame.package) && !isDotnet(framePlatform)) {
     title.push(
       <span className="within" key="within">
         {` ${t('within')} `}

@@ -93,8 +93,8 @@ const FilePathInfo = styled('div')`
     padding: 2px 5px;
   }
   svg {
-    width: 0.9em;
-    height: 0.9em;
+    width: 11px;
+    height: 11px;
   }
 `;
 
