@@ -1,12 +1,13 @@
 import uuid
 
-from sentry.utils.compat import mock
+import pytest
 import pytz
 from datetime import datetime, timedelta
 from django.utils import timezone
 from hashlib import md5
 
 from sentry import options
+from sentry.api.event_search import InvalidSearchQuery
 from sentry.api.issue_search import convert_query_values, IssueSearchVisitor, parse_search_query
 from sentry.models import (
     Environment,
@@ -18,9 +19,11 @@ from sentry.models import (
     GroupSubscription,
     Integration,
 )
+from sentry.models.groupinbox import add_group_to_inbox, GroupInboxReason
 from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
 from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat import mock
 from sentry.utils.snuba import Dataset, SENTRY_SNUBA_MAP, SnubaError
 
 
@@ -1439,6 +1442,60 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         assert results[:2] == [self.group1, fewer_events_group]
         # These will be arbitrarily ordered since their trend values are all 0
         assert set(results[2:]) == set([self.group2, no_before_group, no_after_group])
+
+    def test_sort_inbox(self):
+        start = self.group1.first_seen - timedelta(days=1)
+        inbox_group_1 = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group1"],
+                "event_id": "2" * 32,
+                "message": "something",
+                "timestamp": iso_format(self.base_datetime),
+            },
+            project_id=self.project.id,
+        ).group
+        inbox_1 = add_group_to_inbox(inbox_group_1, GroupInboxReason.NEW)
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group2"],
+                "event_id": "3" * 32,
+                "message": "something",
+                "timestamp": iso_format(self.base_datetime),
+            },
+            project_id=self.project.id,
+        ).group
+
+        inbox_group_2 = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group3"],
+                "event_id": "4" * 32,
+                "message": "something",
+                "timestamp": iso_format(self.base_datetime),
+            },
+            project_id=self.project.id,
+        ).group
+        inbox_2 = add_group_to_inbox(inbox_group_2, GroupInboxReason.NEW)
+        inbox_2.update(date_added=inbox_1.date_added - timedelta(hours=1))
+
+        results = self.make_query(
+            [self.project],
+            sort_by="inbox",
+            date_from=start,
+            search_filter_query="is:for_review",
+        )
+        assert results.results == [inbox_group_1, inbox_group_2]
+
+    def test_sort_inbox_invalid(self):
+        with pytest.raises(InvalidSearchQuery):
+            self.make_query([self.project], sort_by="inbox")
+
+        with pytest.raises(InvalidSearchQuery):
+            self.make_query(
+                [self.project], sort_by="inbox", search_filter_query="is:for_review abc:no_tags"
+            )
+
+        with pytest.raises(InvalidSearchQuery):
+            self.make_query([self.project], sort_by="inbox", search_filter_query="!is:for_review")
 
     def test_first_release_any_or_no_environments(self):
         # test scenarios for tickets:
