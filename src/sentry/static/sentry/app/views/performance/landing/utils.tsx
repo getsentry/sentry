@@ -2,6 +2,7 @@ import {Location} from 'history';
 
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {backend, frontend} from 'app/data/platformCategories';
+import {t} from 'app/locale';
 import {LightWeightOrganization, Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {AggregationKey, Column} from 'app/utils/discover/fields';
@@ -142,22 +143,22 @@ export function getDefaultDisplayFieldForPlatform(
 export const backendCardDetails = (organization: LightWeightOrganization) => {
   return {
     p75: {
-      title: 'Duration (p75)',
+      title: t('Duration (p75)'),
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.P75),
       formatter: value => getDuration(value / 1000, value >= 1000 ? 3 : 0, true),
     },
     tpm: {
-      title: 'Throughput',
+      title: t('Throughput'),
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.THROUGHPUT),
       formatter: formatAbbreviatedNumber,
     },
     failure_rate: {
-      title: 'Failure Rate',
+      title: t('Failure Rate'),
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE),
       formatter: value => formatPercentage(value, 2),
     },
     apdex: {
-      title: 'Apdex',
+      title: t('Apdex'),
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
       formatter: value => formatFloat(value, 4),
     },
