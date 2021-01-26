@@ -2,12 +2,12 @@ import logging
 import sentry_sdk
 
 from sentry import features
-from sentry.utils.cache import cache
+from sentry.app import locks
 from sentry.exceptions import PluginError
 from sentry.signals import event_processed, issue_unignored
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
-from sentry.utils.committers import get_frame_paths
+from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_project, bind_organization_context
@@ -277,8 +277,6 @@ def post_process_group(
                     safe_execute(callback, event, futures, _with_transaction=False)
 
             try:
-                from sentry.app import locks
-
                 lock = locks.get(
                     "w-o:{}-d-l".format(event.group_id),
                     duration=10,
@@ -303,6 +301,7 @@ def post_process_group(
                                 tags={"detail": "w-o-i:g debounce"},
                             )
                         else:
+                            from sentry.utils.committers import get_frame_paths
                             cache.set(cache_key, True, 604800)  # 1 week in seconds
                             event_frames = get_frame_paths(event.data)
                             process_suspect_commits.delay(
