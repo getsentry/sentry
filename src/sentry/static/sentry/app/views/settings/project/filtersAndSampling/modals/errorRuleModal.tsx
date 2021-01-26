@@ -37,7 +37,7 @@ class ErrorRuleModal extends Form<Props, State> {
 
     return [
       [Category.RELEASES, t('Releases')],
-      [Category.ENVIROMENTS, t('Enviroments')],
+      [Category.ENVIRONMENTS, t('Environments')],
       [Category.USERS, t('Users')],
     ] as Array<[string, string]>;
   }
