@@ -3,14 +3,14 @@ import {browserHistory} from 'react-router';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
-import {ServiceHook} from 'app/types';
+import {Choices, ServiceHook} from 'app/types';
 import ApiForm from 'app/views/settings/components/forms/apiForm';
 import BooleanField from 'app/views/settings/components/forms/booleanField';
 import MultipleCheckbox from 'app/views/settings/components/forms/controls/multipleCheckbox';
 import FormField from 'app/views/settings/components/forms/formField';
 import TextField from 'app/views/settings/components/forms/textField';
 
-const EVENT_CHOICES = ['event.alert', 'event.created'].map(e => [e, e]);
+const EVENT_CHOICES: Choices = ['event.alert', 'event.created'].map(e => [e, e]);
 
 type Props = {
   orgId: string;

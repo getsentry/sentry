@@ -1,6 +1,6 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 import {action} from '@storybook/addon-actions';
+import {withInfo} from '@storybook/addon-info';
 
 import MultipleCheckbox from 'app/views/settings/components/forms/controls/multipleCheckbox';
 
@@ -16,6 +16,7 @@ export const _MultipleCheckbox = withInfo(
       ['foo', 'Foo'],
       ['bar', 'Bar'],
       ['baz', 'Baz'],
+      ['quux', 'Quux'],
     ]}
     value={['bar']}
     onChange={(v, e) => {
