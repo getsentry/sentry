@@ -288,7 +288,8 @@ function generateGenericPerformanceEventView(
 
   const searchQuery = decodeScalar(query.query) || '';
   const conditions = tokenizeSearch(searchQuery);
-  conditions.setTagValues('event.type', ['transaction']);
+
+  // This is not an override condition since we want the duration to appear in the search bar as a default.
   if (!conditions.hasTag('transaction.duration')) {
     conditions.setTagValues('transaction.duration', ['<15m']);
   }
@@ -301,7 +302,9 @@ function generateGenericPerformanceEventView(
   }
   savedQuery.query = stringifyQueryObject(conditions);
 
-  return EventView.fromNewQueryWithLocation(savedQuery, location);
+  const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
+  eventView.addOverrideCondition('event.type', ['transaction']);
+  return eventView;
 }
 
 function generateFrontendPageloadPerformanceEventView(
@@ -338,7 +341,6 @@ function generateFrontendPageloadPerformanceEventView(
 
   const searchQuery = decodeScalar(query.query) || '';
   const conditions = tokenizeSearch(searchQuery);
-  conditions.setTagValues('event.type', ['transaction']);
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
@@ -348,7 +350,9 @@ function generateFrontendPageloadPerformanceEventView(
   }
   savedQuery.query = stringifyQueryObject(conditions);
 
-  return EventView.fromNewQueryWithLocation(savedQuery, location);
+  const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
+  eventView.addOverrideCondition('event.type', ['transaction']);
+  return eventView;
 }
 
 function generateFrontendOtherPerformanceEventView(
@@ -385,7 +389,6 @@ function generateFrontendOtherPerformanceEventView(
 
   const searchQuery = decodeScalar(query.query) || '';
   const conditions = tokenizeSearch(searchQuery);
-  conditions.setTagValues('event.type', ['transaction']);
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
@@ -395,7 +398,9 @@ function generateFrontendOtherPerformanceEventView(
   }
   savedQuery.query = stringifyQueryObject(conditions);
 
-  return EventView.fromNewQueryWithLocation(savedQuery, location);
+  const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
+  eventView.addOverrideCondition('event.type', ['transaction']);
+  return eventView;
 }
 
 export function generatePerformanceEventView(organization, location, projects) {
@@ -453,9 +458,6 @@ export function generatePerformanceVitalDetailView(
   const searchQuery = decodeScalar(query.query) || '';
   const conditions = tokenizeSearch(searchQuery);
 
-  conditions.setTagValues('has', [vitalName]);
-  conditions.setTagValues('event.type', ['transaction']);
-
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
   if (conditions.query.length > 0) {
@@ -464,5 +466,8 @@ export function generatePerformanceVitalDetailView(
   }
   savedQuery.query = stringifyQueryObject(conditions);
 
-  return EventView.fromNewQueryWithLocation(savedQuery, location);
+  const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
+  eventView.addOverrideCondition('event.type', ['transaction']);
+  eventView.addOverrideCondition('has', [vitalName]);
+  return eventView;
 }

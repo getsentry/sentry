@@ -102,7 +102,7 @@ class LandingContent extends React.Component<Props, State> {
     const {organization, location, eventView, projects, handleSearch} = this.props;
 
     const currentLandingDisplay = getCurrentLandingDisplay(location, projects, eventView);
-    const filterString = getTransactionSearchQuery(location);
+    const filterString = getTransactionSearchQuery(location, eventView.query);
 
     return (
       <React.Fragment>
