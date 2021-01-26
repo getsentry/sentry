@@ -103,7 +103,6 @@ class TestGroupOwners(TestCase):
         )
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
 
-    @patch("sentry.tasks.groupowner.OWNER_CACHE_LIFE", 0)
     def test_delete_old_entries(self):
         # As new events come in associated with new owners, we should delete old ones.
         self.set_release_commits(self.user.email)
@@ -242,7 +241,6 @@ class TestGroupOwners(TestCase):
         assert not GroupOwner.objects.filter(group=event_2.group, user=self.user_2).exists()
         assert GroupOwner.objects.filter(group=event_2.group, user=self.user_3).exists()
 
-    @patch("sentry.tasks.groupowner.OWNER_CACHE_LIFE", 0)
     def test_update_existing_entries(self):
         # As new events come in associated with existing owners, we should update the date_added of that owner.
         self.set_release_commits(self.user.email)
@@ -310,7 +308,6 @@ class TestGroupOwners(TestCase):
         )
         assert GroupOwner.objects.filter(group=event_with_no_release.group).count() == 0
 
-    @patch("sentry.tasks.groupowner.OWNER_CACHE_LIFE", 0)
     @patch("sentry.tasks.groupowner.get_event_file_committers")
     def test_keep_highest_score(self, patched_committers):
         self.user2 = self.create_user(email="user2@sentry.io")
