@@ -4,7 +4,6 @@ import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
-import {PlatformIcon} from 'platformicons';
 
 import {openInviteMembersModal} from 'app/actionCreators/modal';
 import {loadDocs} from 'app/actionCreators/projects';
@@ -26,7 +25,7 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
 import FirstEventFooter from './components/firstEventFooter';
-import StepHeading from './components/stepHeading';
+import SetupIntroduction from './components/setupIntroduction';
 import {StepProps} from './types';
 
 /**
@@ -144,23 +143,13 @@ class DocumentationSetup extends React.Component<Props, State> {
 
     const introduction = (
       <React.Fragment>
-        <TitleContainer>
-          <StepHeading step={2}>
-            {t(
-              'Prepare the %s SDK',
-              platforms.find(p => p.id === currentPlatform)?.name ?? ''
-            )}
-          </StepHeading>
-          <motion.div
-            variants={{
-              initial: {opacity: 0, x: 20},
-              animate: {opacity: 1, x: 0},
-              exit: {opacity: 0},
-            }}
-          >
-            <PlatformIcon size={48} format="lg" platform={currentPlatform} />
-          </motion.div>
-        </TitleContainer>
+        <SetupIntroduction
+          stepHeaderText={t(
+            'Prepare the %s SDK',
+            platforms.find(p => p.id === currentPlatform)?.name ?? ''
+          )}
+          platform={currentPlatform}
+        />
         <motion.p
           variants={{
             initial: {opacity: 0},
@@ -224,18 +213,6 @@ class DocumentationSetup extends React.Component<Props, State> {
     );
   }
 }
-
-const TitleContainer = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  grid-gap: ${space(2)};
-  align-items: center;
-  justify-items: end;
-
-  ${StepHeading} {
-    margin-bottom: 0;
-  }
-`;
 
 type AlertType = React.ComponentProps<typeof Alert>['type'];
 

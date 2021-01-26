@@ -3,7 +3,6 @@ import 'prism-sentry/index.css';
 import React from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
-import {PlatformIcon} from 'platformicons';
 
 import {openInviteMembersModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
@@ -13,7 +12,6 @@ import LoadingError from 'app/components/loadingError';
 import {PlatformKey} from 'app/data/platformCategories';
 import platforms from 'app/data/platforms';
 import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
 import {IntegrationProvider, Organization, Project} from 'app/types';
 import {analytics} from 'app/utils/analytics';
 import getDynamicText from 'app/utils/getDynamicText';
@@ -22,7 +20,7 @@ import withOrganization from 'app/utils/withOrganization';
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 
 import FirstEventFooter from './components/firstEventFooter';
-import StepHeading from './components/stepHeading';
+import SetupIntroduction from './components/setupIntroduction';
 import {StepProps} from './types';
 
 type AnalyticsOpts = {
@@ -112,34 +110,31 @@ class IntegrationSetup extends React.Component<Props, State> {
     this.setState({installed: true});
   };
 
+  renderSetupInstructions = () => {
+    const {platform} = this.props;
+    const {loadedPlatform} = this.state;
+    const currentPlatform = loadedPlatform ?? platform ?? 'other';
+    return (
+      <SetupIntroduction
+        stepHeaderText={t(
+          'Automatically instrument %s',
+          platforms.find(p => p.id === currentPlatform)?.name ?? ''
+        )}
+        platform={currentPlatform}
+      />
+    );
+  };
+
   renderIntegrationInstructions() {
-    const {organization, platform} = this.props;
-    const {loadedPlatform, provider} = this.state;
+    const {organization} = this.props;
+    const {provider} = this.state;
     if (!provider) {
       return null;
     }
 
-    const currentPlatform = loadedPlatform ?? platform ?? 'other';
-
     return (
       <React.Fragment>
-        <TitleContainer>
-          <StepHeading step={2}>
-            {t(
-              'Automatically instrument %s',
-              platforms.find(p => p.id === currentPlatform)?.name ?? ''
-            )}
-          </StepHeading>
-          <motion.div
-            variants={{
-              initial: {opacity: 0, x: 20},
-              animate: {opacity: 1, x: 0},
-              exit: {opacity: 0},
-            }}
-          >
-            <PlatformIcon size={48} format="lg" platform={currentPlatform} />
-          </motion.div>
-        </TitleContainer>
+        {this.renderSetupInstructions()}
         <motion.p
           variants={{
             initial: {opacity: 0},
@@ -235,31 +230,14 @@ class IntegrationSetup extends React.Component<Props, State> {
   }
 
   renderPostInstallInstructions() {
-    const {organization, project, platform} = this.props;
-    const {provider, loadedPlatform} = this.state;
+    const {organization, project} = this.props;
+    const {provider} = this.state;
     if (!project || !provider) {
       return null;
     }
-    const currentPlatform = loadedPlatform ?? platform ?? 'other';
     return (
       <React.Fragment>
-        <TitleContainer>
-          <StepHeading step={2}>
-            {t(
-              'Automatically instrument %s',
-              platforms.find(p => p.id === currentPlatform)?.name ?? ''
-            )}
-          </StepHeading>
-          <motion.div
-            variants={{
-              initial: {opacity: 0, x: 20},
-              animate: {opacity: 1, x: 0},
-              exit: {opacity: 0},
-            }}
-          >
-            <PlatformIcon size={48} format="lg" platform={currentPlatform} />
-          </motion.div>
-        </TitleContainer>
+        {this.renderSetupInstructions()}
         {this.renderPostInstallText()}
         <FirstEventFooter
           project={project}
@@ -301,19 +279,6 @@ class IntegrationSetup extends React.Component<Props, State> {
     );
   }
 }
-
-const TitleContainer = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  grid-gap: ${space(2)};
-  align-items: center;
-  justify-items: end;
-
-  ${StepHeading} {
-    margin-bottom: 0;
-  }
-`;
-
 const CodeWrapper = styled('pre')`
   padding: 1em;
   overflow: auto;
