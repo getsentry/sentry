@@ -25,6 +25,7 @@ import {getTermHelp} from '../performance/data';
 import {ChartContainer} from '../performance/styles';
 
 import ProjectBaseEventsChart from './charts/projectBaseEventsChart';
+import ProjectStabilityChart from './charts/projectStabilityChart';
 
 enum DisplayModes {
   APDEX = 'apdex',
@@ -32,10 +33,11 @@ enum DisplayModes {
   TPM = 'tpm',
   ERRORS = 'errors',
   TRANSACTIONS = 'transactions',
+  STABILITY = 'stability',
 }
 
 const DISPLAY_URL_KEY = ['display1', 'display2'];
-const DEFAULT_DISPLAY_MODES = [DisplayModes.APDEX, DisplayModes.FAILURE_RATE];
+const DEFAULT_DISPLAY_MODES = [DisplayModes.STABILITY, DisplayModes.APDEX];
 
 type Props = {
   api: Client;
@@ -130,6 +132,11 @@ class ProjectCharts extends React.Component<Props, State> {
           !hasPerformance,
         tooltip: hasPerformance ? undefined : noPerformanceTooltip,
       },
+      {
+        value: DisplayModes.STABILITY,
+        label: t('Stability'),
+        disabled: this.otherActiveDisplayModes.includes(DisplayModes.STABILITY),
+      },
     ];
   }
 
@@ -137,6 +144,8 @@ class ProjectCharts extends React.Component<Props, State> {
     switch (this.displayMode) {
       case DisplayModes.ERRORS:
         return t('Total Errors');
+      case DisplayModes.STABILITY:
+        return t('Total Sessions');
       case DisplayModes.APDEX:
       case DisplayModes.FAILURE_RATE:
       case DisplayModes.TPM:
@@ -163,7 +172,9 @@ class ProjectCharts extends React.Component<Props, State> {
   };
 
   handleTotalValuesChange = (value: number | null) => {
-    this.setState({totalValues: value});
+    if (value !== this.state.totalValues) {
+      this.setState({totalValues: value});
+    }
   };
 
   render() {
@@ -243,6 +254,14 @@ class ProjectCharts extends React.Component<Props, State> {
               onTotalValuesChange={this.handleTotalValuesChange}
               colors={[theme.gray200, theme.purple200]}
               showDaily
+            />
+          )}
+          {displayMode === DisplayModes.STABILITY && (
+            <ProjectStabilityChart
+              router={router}
+              api={api}
+              organization={organization}
+              onTotalValuesChange={this.handleTotalValuesChange}
             />
           )}
         </ChartContainer>
