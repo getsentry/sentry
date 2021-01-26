@@ -57,7 +57,7 @@ class AlertRuleDetails extends React.Component<Props, State> {
   };
 
   render() {
-    const {rule, hasError} = this.state;
+    const {rule, incidents, hasError} = this.state;
     const {params, organization} = this.props;
 
     return (
@@ -68,7 +68,7 @@ class AlertRuleDetails extends React.Component<Props, State> {
             params={params}
             rule={rule}
           />
-          <DetailsBody {...this.props} rule={rule} />
+          <DetailsBody {...this.props} rule={rule} incidents={incidents} />
         </Feature>
       </React.Fragment>
     );
