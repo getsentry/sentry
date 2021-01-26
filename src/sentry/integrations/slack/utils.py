@@ -23,7 +23,6 @@ from sentry.models import (
     IdentityProvider,
     Integration,
     Organization,
-    OrganizationIntegration,
     Team,
     ReleaseProject,
 )
@@ -500,12 +499,7 @@ def send_incident_alert_notification(action, incident, metric_value):
             organizations=incident.organization,
             status=ObjectStatus.VISIBLE,
         )
-        OrganizationIntegration.objects.get(
-            integration=action.integration_id,
-            organization=incident.organization,
-            status=ObjectStatus.VISIBLE,
-        )
-    except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist):
+    except Integration.DoesNotExist:
         # Integration removed, but rule is still active.
         return
 
