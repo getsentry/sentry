@@ -118,7 +118,7 @@ export function HistogramChart(props: Props) {
           if (loading) {
             return (
               <LoadingPanelContainer>
-                <LoadingPanel data-test-id="histogram-request-loading" />;
+                <LoadingPanel data-test-id="histogram-request-loading" />
               </LoadingPanelContainer>
             );
           }
