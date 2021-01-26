@@ -153,26 +153,43 @@ def get_previous_releases(project, start_version, limit=5):
     rv = cache.get(key)
     if rv is None:
         try:
-            release_dates = (
-                Release.objects.filter(
-                    organization_id=project.organization_id, version=start_version, projects=project
-                )
-                .values("date_released", "date_added")
-                .get()
-            )
+            first_release = Release.objects.filter(
+                organization_id=project.organization_id, version=start_version, projects=project
+            ).get()
         except Release.DoesNotExist:
             rv = []
         else:
-            start_date = release_dates["date_released"] or release_dates["date_added"]
+            start_date = first_release.date_released or first_release.date_added
 
+            # XXX: This query could be very inefficient for projects with a large
+            # number of releases. To work around this, we only check 100 releases
+            # ordered by highest release id, which is generally correlated with
+            # most recent releases for a project. This isn't guaranteed to be correct,
+            # since `date_released` could end up out of order, but should be close
+            # enough for what we need this for with suspect commits.
+            # To make this better, we should denormalize the coalesce of date_released
+            # and date_added onto `ReleaseProject`, which would have benefits for other
+            # similar queries.
             rv = list(
-                Release.objects.filter(projects=project, organization_id=project.organization_id)
-                .extra(
-                    select={"date": "COALESCE(date_released, date_added)"},
-                    where=["COALESCE(date_released, date_added) <= %s"],
-                    params=[start_date],
+                Release.objects.raw(
+                    """
+                        SELECT sr.*
+                        FROM sentry_release as sr
+                        INNER JOIN (
+                            SELECT release_id
+                            FROM sentry_release_project
+                            WHERE project_id = %s
+                            AND sentry_release_project.release_id <= %s
+                            ORDER BY release_id desc
+                            LIMIT 100
+                        ) AS srp ON (sr.id = srp.release_id)
+                        WHERE sr.organization_id = %s
+                        AND coalesce(sr.date_released, sr.date_added) <= %s
+                        ORDER BY coalesce(sr.date_released, sr.date_added) DESC
+                        LIMIT %s;
+                    """,
+                    [project.id, first_release.id, project.organization_id, start_date, limit],
                 )
-                .extra(order_by=["-date"])[:limit]
             )
         cache.set(key, rv, 60)
     return rv

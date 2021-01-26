@@ -66,6 +66,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
                 "region": None,
                 "accountNumber": None,
                 "error": None,
+                "initialStepNumber": 1,
             },
         )
 
@@ -97,6 +98,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
                 "region": region,
                 "accountNumber": account_number,
                 "error": "Please validate the Cloudformation stack was created successfully",
+                "initialStepNumber": 1,
             },
         )
 
@@ -126,7 +128,8 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
                 "lambdaFunctions": [
                     {"FunctionName": "lambdaA", "Runtime": "nodejs12.x"},
                     {"FunctionName": "lambdaB", "Runtime": "nodejs10.x"},
-                ]
+                ],
+                "initialStepNumber": 3,
             },
         )
 
