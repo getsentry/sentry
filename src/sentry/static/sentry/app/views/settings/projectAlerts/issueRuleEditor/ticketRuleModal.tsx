@@ -22,7 +22,7 @@ type Props = {
   link?: string;
   onSubmitAction: (
     data: {[key: string]: string},
-    fetchedFieldOptionsCache: {[key: string]: Choices}
+    fetchedFieldOptionsCache: Record<string, Choices>
   ) => void;
   organization: Organization;
   ticketType?: string;
@@ -30,7 +30,7 @@ type Props = {
 
 type State = {
   issueConfigFieldsCache: IssueConfigField[];
-  fetchedFieldOptionsCache: {[key: string]: Choices};
+  fetchedFieldOptionsCache: Record<string, Choices>
 } & AbstractExternalIssueForm['state'];
 
 class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {

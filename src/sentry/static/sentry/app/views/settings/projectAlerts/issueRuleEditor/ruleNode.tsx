@@ -296,7 +296,7 @@ class RuleNode extends React.Component<Props> {
    */
   updateParent = (
     formData: {[key: string]: string},
-    fetchedFieldOptionsCache: {[key: string]: Choices}
+    fetchedFieldOptionsCache: Record<string, Choices>
   ): void => {
     const {data, index, onPropertyChange} = this.props;
     for (const [name, value] of Object.entries(formData)) {
