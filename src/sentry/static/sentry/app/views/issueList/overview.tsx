@@ -903,7 +903,8 @@ class IssueListOverview extends React.Component<Props, State> {
     const links = parseLinkHeader(pageLinks);
     const query = this.getQuery();
     const queryPageInt = parseInt(location.query.page, 10);
-    const page = isNaN(queryPageInt) ? 0 : queryPageInt;
+    // Cursor must be present for the page number to be used
+    const page = isNaN(queryPageInt) || !location.query.cursor ? 0 : queryPageInt;
     const itemsRemoved = originalCount - queryCount;
     /**
      * As items are removed from the current query, the total count might change.
