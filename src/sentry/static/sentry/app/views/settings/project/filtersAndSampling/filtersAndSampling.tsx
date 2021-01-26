@@ -1,4 +1,5 @@
 import React from 'react';
+import {DragDropContextProps} from 'react-beautiful-dnd';
 import partition from 'lodash/partition';
 
 import {openModal} from 'app/actionCreators/modal';
@@ -21,7 +22,7 @@ import ErrorRuleModal from './modals/errorRuleModal';
 import TransactionRuleModal from './modals/transactionRuleModal';
 import {modalCss} from './modals/utils';
 import RulesPanel from './rulesPanel';
-import {getPlatformDocLink} from './utils';
+import {getPlatformDocLink, reorderList} from './utils';
 
 type Props = AsyncView['props'] & {
   project: Project;
@@ -31,6 +32,7 @@ type Props = AsyncView['props'] & {
 
 type State = AsyncView['state'] & {
   transactionRules: DynamicSamplingRules;
+  errorRules: DynamicSamplingRules;
 };
 
 class FiltersAndSampling extends AsyncView<Props, State> {
@@ -58,6 +60,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
   getRules() {
     const dynamicSampling: DynamicSamplingRules = [
       {
+        id: '0',
         condition: {
           operator: 'globMatch',
           name: 'releases',
@@ -67,6 +70,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
         ty: 'trace',
       },
       {
+        id: '1',
         condition: {
           operator: 'and',
           inner: [
@@ -86,6 +90,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
         ty: 'error',
       },
       {
+        id: '2',
         condition: {
           operator: 'not',
           inner: {
@@ -98,6 +103,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
         ty: 'error',
       },
       {
+        id: '3',
         condition: {
           operator: 'strEqualNoCase',
           name: 'environments',
@@ -166,6 +172,17 @@ class FiltersAndSampling extends AsyncView<Props, State> {
     console.log(rule);
   };
 
+  handleDragEnd = <T extends keyof Pick<State, 'errorRules' | 'transactionRules'>>(
+    type: T
+  ) => (result: Required<Parameters<DragDropContextProps['onDragEnd']>[0]>) => {
+    const {destination, source} = result;
+
+    this.setState(state => ({
+      ...state,
+      [type]: reorderList(state[type], source.index, destination.index),
+    }));
+  };
+
   renderBody() {
     const {errorRules, transactionRules} = this.state;
     const {project, hasAccess} = this.props;
@@ -193,6 +210,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
           rules={errorRules}
           platformDocLink={platformDocLink}
           onAddRule={this.handleAddErrorRule(platformDocLink)}
+          onDragEnd={this.handleDragEnd('errorRules')}
           onEditRule={this.handleEditRule}
           onDeleteRule={this.handleDeleteRule}
           disabled={disabled}
@@ -208,6 +226,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
           onAddRule={this.handleAddTransactionRule(platformDocLink)}
           onEditRule={this.handleEditRule}
           onDeleteRule={this.handleDeleteRule}
+          onDragEnd={this.handleDragEnd('transactionRules')}
           disabled={disabled}
         />
       </React.Fragment>

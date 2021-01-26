@@ -6,35 +6,18 @@ import ButtonBar from 'app/components/buttonBar';
 import {Panel, PanelFooter} from 'app/components/panels';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {DynamicSamplingRule} from 'app/types/dynamicSampling';
 
 import Rules from './rules';
 
-type Props = {
-  rules: Array<DynamicSamplingRule>;
-  onEditRule: (rule: DynamicSamplingRule) => () => void;
-  onDeleteRule: (rule: DynamicSamplingRule) => () => void;
+type Props = React.ComponentProps<typeof Rules> & {
   onAddRule: () => void;
-  disabled: boolean;
   platformDocLink?: string;
 };
 
-function RulesPanel({
-  rules,
-  platformDocLink,
-  onAddRule,
-  onEditRule,
-  onDeleteRule,
-  disabled,
-}: Props) {
+function RulesPanel({platformDocLink, disabled, onAddRule, ...props}: Props) {
   return (
     <Panel>
-      <Rules
-        rules={rules}
-        onEditRule={onEditRule}
-        onDeleteRule={onDeleteRule}
-        disabled={disabled}
-      />
+      <Rules disabled={disabled} {...props} />
       <StyledPanelFooter>
         <ButtonBar gap={1}>
           {platformDocLink && (
@@ -58,4 +41,5 @@ const StyledPanelFooter = styled(PanelFooter)`
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  border: none;
 `;

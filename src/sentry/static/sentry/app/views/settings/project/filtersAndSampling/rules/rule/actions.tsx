@@ -16,7 +16,7 @@ type Props = {
 
 function Actions({disabled, onEditRule, onDeleteRule}: Props) {
   return (
-    <React.Fragment>
+    <Wrapper>
       <StyledButtonbar gap={1}>
         <Button
           label={t('Edit Rule')}
@@ -55,25 +55,25 @@ function Actions({disabled, onEditRule, onDeleteRule}: Props) {
           {t('Delete')}
         </MenuItemActionLink>
       </StyledDropdownLink>
-    </React.Fragment>
+    </Wrapper>
   );
 }
 
 export default Actions;
 
-const StyledButtonbar = styled(ButtonBar)`
-  justify-content: flex-end;
+const Wrapper = styled('div')`
   flex: 1;
-  display: none;
+  display: flex;
+  justify-content: flex-end;
+`;
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    display: flex;
+const StyledButtonbar = styled(ButtonBar)`
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    display: none;
   }
 `;
 
 const StyledDropdownLink = styled(DropdownLink)`
-  display: flex;
-  align-items: center;
   transition: none;
 
   @media (min-width: ${p => p.theme.breakpoints[2]}) {

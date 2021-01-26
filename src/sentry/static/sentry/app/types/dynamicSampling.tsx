@@ -58,6 +58,7 @@ export type DynamicSamplingCondition =
   | DynamicSamplingConditionOthers;
 
 export type DynamicSamplingRule = {
+  id: string;
   /**
    * It is a possibly empty list of conditions to which the rule applies.
    * The conditions are combined using the and operator (so all the conditions must be satisfied for the rule to apply).
