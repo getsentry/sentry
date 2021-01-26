@@ -52,7 +52,7 @@ class JiraIssueHookView(JiraBaseHook):
                 return self.get_response({"issue_not_linked": True})
             scope.set_tag("organization_slug", group.organization.slug)
 
-            # TODO: find more effecient way of getting stats
+            # TODO: find more efficient way of getting stats
             def get_serialized_and_stats(stats_period):
                 result = serialize(
                     group,
@@ -104,7 +104,10 @@ class JiraIssueHookView(JiraBaseHook):
                 "stats_14d": stats_14d,
             }
 
-            logger.info("issue_hook.response", extra=context)
+            logger.info(
+                "issue_hook.response",
+                extra={"type": context["type"], "title_url": context["title_url"]},
+            )
             result = self.get_response(context)
             scope.set_tag("status_code", result.status_code)
             return result
