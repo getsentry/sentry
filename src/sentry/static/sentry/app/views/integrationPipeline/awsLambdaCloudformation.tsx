@@ -42,6 +42,7 @@ type Props = {
 };
 
 type State = {
+  awsExternalId?: string;
   accountNumber?: string;
   region?: string;
   accountNumberError?: string;
@@ -52,6 +53,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
   state: State = {
     accountNumber: this.props.accountNumber,
     region: this.props.region,
+    awsExternalId: getAwsExternalId(),
   };
 
   componentDidMount() {
@@ -64,7 +66,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
 
   get initialData() {
     const {region, accountNumber} = this.props;
-    const awsExternalId = getAwsExternalId();
+    const {awsExternalId} = this.state;
     return {
       awsExternalId,
       region,
@@ -76,7 +78,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
     // generarate the cloudformation URL using the params we get from the server
     // and the external id we generate
     const {baseCloudformationUrl, templateUrl, stackName} = this.props;
-    const awsExternalId = getAwsExternalId();
+    const {awsExternalId} = this.state;
     const query = qs.stringify({
       templateURL: templateUrl,
       stackName,
@@ -132,14 +134,26 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
     this.setState({region});
   };
 
+  handleChangeExternalId = (awsExternalId: string) => {
+    awsExternalId = awsExternalId.trim();
+    window.localStorage.setItem(ID_NAME, awsExternalId);
+    this.setState({awsExternalId});
+  };
+
   get formValid() {
-    const {accountNumber, region} = this.state;
-    return !!region && testAccountNumber(accountNumber || '');
+    const {accountNumber, region, awsExternalId} = this.state;
+    return !!region && testAccountNumber(accountNumber || '') && !!awsExternalId;
   }
 
   render = () => {
     const {initialStepNumber} = this.props;
-    const {accountNumber, region, accountNumberError, submitting} = this.state;
+    const {
+      accountNumber,
+      region,
+      accountNumberError,
+      submitting,
+      awsExternalId,
+    } = this.state;
     return (
       <React.Fragment>
         <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/" />
@@ -173,6 +187,15 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
               inline={false}
               stacked
               label={t('AWS Region')}
+            />
+            <TextField
+              name="awsExternalId"
+              value={awsExternalId}
+              onChange={this.handleChangeExternalId}
+              inline={false}
+              stacked
+              error={awsExternalId ? '' : t('External ID Required')}
+              label={t('External ID')}
             />
           </ListItem>
         </StyledList>
