@@ -1,6 +1,5 @@
 from contextlib import contextmanager
 import sentry_sdk
-import six
 from django.utils.http import urlquote
 from rest_framework.exceptions import APIException, ParseError
 
@@ -36,7 +35,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         try:
             return get_filter(query, params)
         except InvalidSearchQuery as e:
-            raise ParseError(detail=six.text_type(e))
+            raise ParseError(detail=str(e))
 
     def get_snuba_params(self, request, organization, check_global_views=True):
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params"):
@@ -76,7 +75,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         try:
             _filter = get_filter(query, params)
         except InvalidSearchQuery as e:
-            raise ParseError(detail=six.text_type(e))
+            raise ParseError(detail=str(e))
 
         snuba_args = {
             "start": _filter.start,
@@ -108,12 +107,12 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         try:
             yield
         except discover.InvalidSearchQuery as error:
-            message = six.text_type(error)
+            message = str(error)
             sentry_sdk.set_tag("query_error.reason", message)
             raise ParseError(detail=message)
         except snuba.QueryOutsideRetentionError as error:
             sentry_sdk.set_tag("query_error.reason", "QueryOutsideRetentionError")
-            raise ParseError(detail=six.text_type(error))
+            raise ParseError(detail=str(error))
         except snuba.QueryIllegalTypeOfArgument:
             message = "Invalid query. Argument to function is wrong type."
             sentry_sdk.set_tag("query_error.reason", message)
@@ -171,7 +170,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         return LINK_HEADER.format(
             uri=base_url,
-            cursor=six.text_type(cursor),
+            cursor=str(cursor),
             name=name,
             has_results="true" if bool(cursor) else "false",
         )
@@ -276,7 +275,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             # that acts as a placeholder.
             if top_events and isinstance(result, dict):
                 results = {}
-                for key, event_result in six.iteritems(result):
+                for key, event_result in result.items():
                     if len(query_columns) > 1:
                         results[key] = self.serialize_multiple_axis(
                             serializer, event_result, columns, query_columns
