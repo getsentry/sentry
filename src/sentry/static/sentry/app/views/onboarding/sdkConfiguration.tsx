@@ -1,8 +1,8 @@
 import React from 'react';
 import * as qs from 'query-string';
 
+import ProjectSetup from './documentationSetup';
 import IntegrationSetup from './integrationSetup';
-import ProjectSetup from './projectSetup';
 
 const platfromToIntegrationMap = {
   'node-awslambda': 'aws_lambda',
@@ -11,7 +11,7 @@ const platfromToIntegrationMap = {
 type Props = React.ComponentProps<typeof ProjectSetup> &
   Omit<React.ComponentProps<typeof IntegrationSetup>, 'integrationSlug'>;
 
-const ProjectOrIntegrationSetup = (props: Props) => {
+const SdkConfiguration = (props: Props) => {
   const parsed = qs.parse(window.location.search);
   const {platform} = props;
   const integrationSlug = platform && platfromToIntegrationMap[platform];
@@ -22,4 +22,4 @@ const ProjectOrIntegrationSetup = (props: Props) => {
   return <ProjectSetup {...props} />;
 };
 
-export default ProjectOrIntegrationSetup;
+export default SdkConfiguration;

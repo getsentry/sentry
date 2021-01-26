@@ -18,7 +18,7 @@ import withProjects from 'app/utils/withProjects';
 
 import PageCorners from './components/pageCorners';
 import OnboardingPlatform from './platform';
-import OnboardingProjectOrIntegrationSetup from './projectOrIntegrationSetup';
+import SdkConfiguration from './sdkConfiguration';
 import {StepData, StepDescriptor} from './types';
 import OnboardingWelcome from './welcome';
 
@@ -50,7 +50,7 @@ const ONBOARDING_STEPS: StepDescriptor[] = [
   {
     id: 'get-started',
     title: t('Install the Sentry SDK'),
-    Component: OnboardingProjectOrIntegrationSetup,
+    Component: SdkConfiguration,
   },
 ];
 

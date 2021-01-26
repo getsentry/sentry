@@ -9,7 +9,6 @@ import {openInviteMembersModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
 import LoadingError from 'app/components/loadingError';
 import {PlatformKey} from 'app/data/platformCategories';
 import platforms from 'app/data/platforms';
@@ -20,10 +19,9 @@ import {analytics} from 'app/utils/analytics';
 import getDynamicText from 'app/utils/getDynamicText';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
-import CreateSampleEventButton from 'app/views/onboarding/createSampleEventButton';
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 
-import FirstEventIndicator from './components/firstEventIndicator';
+import FirstEventFooter from './components/firstEventFooter';
 import StepHeading from './components/stepHeading';
 import {StepProps} from './types';
 
@@ -263,41 +261,12 @@ class IntegrationSetup extends React.Component<Props, State> {
           </motion.div>
         </TitleContainer>
         {this.renderPostInstallText()}
-        <FirstEventIndicator
-          organization={organization}
+        <FirstEventFooter
           project={project}
-          eventType="error"
-        >
-          {({indicator, firstEventButton}) => (
-            <CTAFooter>
-              <Actions gap={2}>
-                {firstEventButton}
-                <Button
-                  external
-                  href={this.platformDocs}
-                  onClick={this.handleFullDocsClick}
-                >
-                  {t('View full documentation')}
-                </Button>
-              </Actions>
-              {indicator}
-            </CTAFooter>
-          )}
-        </FirstEventIndicator>
-        <CTASecondary>
-          {tct(
-            'Just want to poke around before getting too cozy with the SDK? [sample:View a sample event for this SDK] and finish setup later.',
-            {
-              sample: (
-                <CreateSampleEventButton
-                  project={project ?? undefined}
-                  source="onboarding"
-                  priority="link"
-                />
-              ),
-            }
-          )}
-        </CTASecondary>
+          organization={organization}
+          docsLink={this.platformDocs}
+          docsOnClick={this.handleFullDocsClick}
+        />
       </React.Fragment>
     );
   }
@@ -343,25 +312,6 @@ const TitleContainer = styled('div')`
   ${StepHeading} {
     margin-bottom: 0;
   }
-`;
-
-const CTAFooter = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  margin: ${space(2)} 0;
-  margin-top: ${space(4)};
-`;
-
-const CTASecondary = styled('p')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin: 0;
-  max-width: 500px;
-`;
-
-const Actions = styled(ButtonBar)`
-  display: inline-grid;
-  justify-self: start;
 `;
 
 const CodeWrapper = styled('pre')`
