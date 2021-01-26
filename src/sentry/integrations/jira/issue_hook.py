@@ -13,7 +13,6 @@ from sentry.integrations.atlassian_connect import (
 from sentry.models import ExternalIssue, GroupLink, Group
 from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import configure_scope
-from sentry.web.decorators import transaction_start
 
 from .base_hook import JiraBaseHook
 
@@ -27,7 +26,6 @@ def accum(tot, item):
 class JiraIssueHookView(JiraBaseHook):
     html_file = "sentry/integrations/jira-issue.html"
 
-    @transaction_start("JiraIssueHookView.get")
     def get(self, request, issue_key, *args, **kwargs):
         try:
             integration = get_integration_from_request(request, "jira")
