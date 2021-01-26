@@ -147,6 +147,42 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 (self.project.id, self.session_crashed_release),
             ]
 
+    def test_get_project_releases_by_stability_with_snql(self):
+        # Add an extra session with a different `distinct_id` so that sorting by users
+        # is stable
+        self.store_session(
+            {
+                "session_id": "5e910c1a-6941-460e-9843-24103fb6a63d",
+                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
+                "status": "ok",
+                "seq": 0,
+                "release": self.session_release,
+                "environment": "prod",
+                "retention_days": 90,
+                "org_id": self.project.organization_id,
+                "project_id": self.project.id,
+                "duration": None,
+                "errors": 0,
+                "started": self.session_started,
+                "received": self.received,
+            }
+        )
+
+        for scope in "sessions", "users":
+            data = get_project_releases_by_stability(
+                [self.project.id],
+                offset=0,
+                limit=100,
+                scope=scope,
+                stats_period="24h",
+                snql=True,
+            )
+
+            assert data == [
+                (self.project.id, self.session_release),
+                (self.project.id, self.session_crashed_release),
+            ]
+
     def test_get_release_adoption(self):
         data = get_release_adoption(
             [

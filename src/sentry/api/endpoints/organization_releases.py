@@ -237,6 +237,7 @@ class OrganizationReleasesEndpoint(
                     offset=offset,
                     stats_period=summary_stats_period,
                     limit=limit,
+                    snql=features.has("organization:snql", organization, actor=request.user),
                 ),
                 apply_to_queryset=lambda queryset, rows: queryset.filter(
                     projects__id__in=list(x[0] for x in rows), version__in=list(x[1] for x in rows)

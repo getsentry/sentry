@@ -13,6 +13,7 @@ import time
 import urllib3
 import sentry_sdk
 from sentry_sdk import Hub
+from snuba_sdk.legacy import json_to_snql
 
 from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
@@ -303,6 +304,21 @@ class RetrySkipTimeout(urllib3.Retry):
 
 
 _snuba_pool = connection_from_url(
+    settings.SENTRY_SNUBA,
+    retries=RetrySkipTimeout(
+        total=5,
+        # Our calls to snuba frequently fail due to network issues. We want to
+        # automatically retry most requests. Some of our POSTs and all of our DELETEs
+        # do cause mutations, but we have other things in place to handle duplicate
+        # mutations.
+        method_whitelist={"GET", "POST", "DELETE"},
+    ),
+    timeout=settings.SENTRY_SNUBA_TIMEOUT,
+    maxsize=10,
+)
+_query_thread_pool = ThreadPoolExecutor(max_workers=10)
+
+_snuba_snql_pool = connection_from_url(
     settings.SENTRY_SNUBA,
     retries=RetrySkipTimeout(
         total=5,
@@ -618,6 +634,8 @@ def raw_query(
     rollup=None,
     referrer=None,
     is_grouprelease=False,
+    entity=None,
+    snql=False,
     **kwargs,
 ):
     """
@@ -636,10 +654,10 @@ def raw_query(
         is_grouprelease=is_grouprelease,
         **kwargs,
     )
-    return bulk_raw_query([snuba_params], referrer=referrer)[0]
+    return bulk_raw_query([snuba_params], referrer=referrer, entity=entity, snql=snql)[0]
 
 
-def bulk_raw_query(snuba_param_list, referrer=None):
+def bulk_raw_query(snuba_param_list, referrer=None, entity=None, snql=False):
     headers = {}
     if referrer:
         headers["referer"] = referrer
@@ -661,6 +679,19 @@ def bulk_raw_query(snuba_param_list, referrer=None):
                     span.set_tag("referrer", referrer)
                     for param_key, param_data in six.iteritems(query_params):
                         span.set_data(param_key, param_data)
+
+                    if snql and entity:
+                        try:
+                            return bulk_snql_raw_query(params, headers, referrer, entity)
+                        except Exception as e:
+                            # Fail through to old method in the case of a failure
+                            metrics.incr(
+                                "snuba.snql.failure", tags={"referrer": referrer, "entity": entity}
+                            )
+                            logger.warning(
+                                "snuba.snql.failure", extra={"legacy": body, "exception": str(e)}
+                            )
+
                     return (
                         _snuba_pool.urlopen("POST", "/query", body=body, headers=headers),
                         forward,
@@ -727,6 +758,26 @@ def bulk_raw_query(snuba_param_list, referrer=None):
         results.append(body)
 
     return results
+
+
+def bulk_snql_raw_query(params, headers, referrer, entity):
+    legacy_body, forward, reverse, thread_hub = params
+    with thread_hub.start_span(op="snuba.snql", description="snql-sdk") as span:
+        span.set_tag("referrer", referrer)
+        snql_query = json_to_snql(legacy_body, entity)
+        snql_body = snql_query.snuba()
+        span.set_tag("snql", snql_body)
+
+        if SNUBA_INFO:
+            logger.info("{}.snql: {}".format(referrer, snql_body))
+
+        return (
+            _snuba_snql_pool.urlopen(
+                "POST", f"/{snql_query.dataset}/snql", body=snql_body, headers=headers
+            ),
+            forward,
+            reverse,
+        )
 
 
 def query(

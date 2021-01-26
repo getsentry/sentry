@@ -81,7 +81,7 @@ def check_has_health_data(project_releases):
 
 
 def get_project_releases_by_stability(
-    project_ids, offset, limit, scope, stats_period=None, environments=None
+    project_ids, offset, limit, scope, stats_period=None, environments=None, snql=False
 ):
     """Given some project IDs returns adoption rates that should be updated
     on the postgres tables.
@@ -120,6 +120,8 @@ def get_project_releases_by_stability(
         conditions=conditions,
         filter_keys=filter_keys,
         referrer="sessions.stability-sort",
+        entity="sessions",
+        snql=snql,
     )["data"]:
         rv.append((x["project_id"], x["release"]))
 
