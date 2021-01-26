@@ -30,7 +30,7 @@ type Props = {
 
 type State = {
   issueConfigFieldsCache: IssueConfigField[];
-  fetchedFieldOptionsCache: Record<string, Choices>
+  fetchedFieldOptionsCache: Record<string, Choices>;
 } & AbstractExternalIssueForm['state'];
 
 class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
