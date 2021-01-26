@@ -42,7 +42,7 @@ function InboxReason({inbox, fontSize = 'sm'}: Props) {
       // Was ignored until `until` has passed.
       //`until` format: "2021-01-20T03:59:03+00:00"
       return t('Was ignored until %(window)s', {
-        until: getFormattedDate(until, 'YYYY/MM/DD HH:mm:ss', {local: true}),
+        until: getFormattedDate(until, 'MMM D, YYYY LT', {local: true}),
       });
     }
 
