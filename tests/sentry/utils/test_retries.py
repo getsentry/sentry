@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.utils.compat import mock
 
 from unittest import TestCase
@@ -33,7 +31,7 @@ class TimedRetryPolicyTestCase(TestCase):
         except RetryException as exception:
             assert exception.exception is bomb
         else:
-            self.fail(u"Expected {!r}!".format(RetryException))
+            self.fail("Expected {!r}!".format(RetryException))
 
         assert callable.call_count == 2
 

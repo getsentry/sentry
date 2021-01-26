@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from django.http import HttpResponse
 
 from sentry.auth.provider import Provider, MigratingIdentityId

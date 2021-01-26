@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from bs4 import BeautifulSoup
 import six
 from rest_framework.response import Response

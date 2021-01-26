@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-import mock
 import six
 import uuid
 
@@ -12,7 +9,7 @@ from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
-from sentry.utils.compat import zip
+from sentry.utils.compat import zip, mock
 from sentry.utils.samples import load_data
 
 
@@ -1206,9 +1203,9 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         ]
 
     def test_top_events_none_filter(self):
-        """ When a field is None in one of the top events, make sure we filter by it
+        """When a field is None in one of the top events, make sure we filter by it
 
-            In this case event[4] is a transaction and has no issue
+        In this case event[4] is a transaction and has no issue
         """
         with self.feature(self.enabled_features):
             response = self.client.get(

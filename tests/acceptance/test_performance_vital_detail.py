@@ -1,9 +1,7 @@
-from __future__ import absolute_import
-
 import pytz
 
 from six.moves.urllib.parse import urlencode
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from django.db.models import F
 from sentry.models import Project
@@ -29,8 +27,9 @@ class PerformanceVitalDetailsTest(AcceptanceTestCase, SnubaTestCase):
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.group = self.create_group(project=self.project)
         self.login_as(self.user)
-        self.path = u"/organizations/{}/performance/vitaldetail/?{}".format(
-            self.org.slug, urlencode({"query": "transaction.duration:>0"}),
+        self.path = "/organizations/{}/performance/vitaldetail/?{}".format(
+            self.org.slug,
+            urlencode({"query": "transaction.duration:>0"}),
         )
 
         self.page = BasePage(self.browser)

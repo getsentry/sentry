@@ -1,8 +1,6 @@
-from __future__ import absolute_import
-
 import pytz
 
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from django.db.models import F
 from sentry.models import Project
@@ -28,7 +26,7 @@ class PerformanceOverviewTest(AcceptanceTestCase, SnubaTestCase):
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.group = self.create_group(project=self.project)
         self.login_as(self.user)
-        self.path = u"/organizations/{}/performance/".format(self.org.slug)
+        self.path = "/organizations/{}/performance/".format(self.org.slug)
 
         self.page = BasePage(self.browser)
 

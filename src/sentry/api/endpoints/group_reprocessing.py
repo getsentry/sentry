@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 from sentry import features
 from sentry.api.bases import GroupEndpoint
 from sentry.tasks.reprocessing2 import reprocess_group
@@ -24,7 +21,8 @@ class GroupReprocessingEndpoint(GroupEndpoint):
             "organizations:reprocessing-v2", group.project.organization, actor=request.user
         ):
             return self.respond(
-                {"error": "This project does not have the reprocessing v2 feature"}, status=404,
+                {"error": "This project does not have the reprocessing v2 feature"},
+                status=404,
             )
 
         max_events = request.data.get("maxEvents")

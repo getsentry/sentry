@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 
 from sentry.ownership.grammar import Rule, Matcher, Owner, parse_rules, dump_schema, load_schema
@@ -41,17 +39,20 @@ def test_dump_schema():
 
 
 def test_load_schema():
-    assert load_schema(
-        {
-            "$version": 1,
-            "rules": [
-                {
-                    "matcher": {"type": "path", "pattern": "*.js"},
-                    "owners": [{"type": "team", "identifier": "frontend"}],
-                }
-            ],
-        }
-    ) == [Rule(Matcher("path", "*.js"), [Owner("team", "frontend")])]
+    assert (
+        load_schema(
+            {
+                "$version": 1,
+                "rules": [
+                    {
+                        "matcher": {"type": "path", "pattern": "*.js"},
+                        "owners": [{"type": "team", "identifier": "frontend"}],
+                    }
+                ],
+            }
+        )
+        == [Rule(Matcher("path", "*.js"), [Owner("team", "frontend")])]
+    )
 
 
 def test_matcher_test_url():

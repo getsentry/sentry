@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import itertools
 import logging
 import six
@@ -28,7 +26,7 @@ from sentry.models import (
 from sentry.plugins.base.structs import Notification
 from sentry.plugins.base import plugins
 from sentry.tasks.digests import deliver_digest
-from sentry.utils import metrics
+from sentry.utils import metrics, json
 from sentry.utils.cache import cache
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.email import group_id_to_email, MessageBuilder
@@ -363,7 +361,7 @@ class MailAdapter(object):
             "X-Sentry-Logger-Level": group.get_level_display(),
             "X-Sentry-Project": project.slug,
             "X-Sentry-Reply-To": group_id_to_email(group.id),
-            "category": "issue_alert_email",
+            "X-SMTPAPI": json.dumps({"category": "issue_alert_email"}),
         }
 
         for user_id in self.get_send_to(
@@ -397,7 +395,7 @@ class MailAdapter(object):
             )
 
     def get_digest_subject(self, group, counts, date):
-        return u"{short_id} - {count} new {noun} since {date}".format(
+        return "{short_id} - {count} new {noun} since {date}".format(
             short_id=group.qualified_short_id,
             count=len(counts),
             noun="alert" if len(counts) == 1 else "alerts",
@@ -444,7 +442,7 @@ class MailAdapter(object):
 
             headers = {
                 "X-Sentry-Project": project.slug,
-                "category": "digest_email",
+                "X-SMTPAPI": json.dumps({"category": "digest_email"}),
             }
 
             group = six.next(iter(counts))
@@ -471,7 +469,7 @@ class MailAdapter(object):
         email_cls = emails.get(activity.type)
         if not email_cls:
             logger.debug(
-                u"No email associated with activity type `{}`".format(activity.get_type_display())
+                "No email associated with activity type `{}`".format(activity.get_type_display())
             )
             return
 
@@ -492,17 +490,15 @@ class MailAdapter(object):
 
         context = {
             "project": project,
-            "project_link": absolute_uri(
-                u"/{}/{}/".format(project.organization.slug, project.slug)
-            ),
+            "project_link": absolute_uri("/{}/{}/".format(project.organization.slug, project.slug)),
             "issue_link": absolute_uri(
-                u"/{}/{}/issues/{}/".format(
+                "/{}/{}/issues/{}/".format(
                     project.organization.slug, project.slug, payload["report"]["issue"]["id"]
                 )
             ),
             # TODO(dcramer): we dont have permalinks to feedback yet
             "link": absolute_uri(
-                u"/{}/{}/issues/{}/feedback/".format(
+                "/{}/{}/issues/{}/feedback/".format(
                     project.organization.slug, project.slug, payload["report"]["issue"]["id"]
                 )
             ),
@@ -513,14 +509,14 @@ class MailAdapter(object):
 
         subject_prefix = self._build_subject_prefix(project)
         subject = force_text(
-            u"{}{} - New Feedback from {}".format(
+            "{}{} - New Feedback from {}".format(
                 subject_prefix, group.qualified_short_id, payload["report"]["name"]
             )
         )
 
         headers = {
             "X-Sentry-Project": project.slug,
-            "category": "user_report_email",
+            "X-SMTPAPI": json.dumps({"category": "user_report_email"}),
         }
 
         # TODO(dcramer): this is copypasta'd from activity notifications
