@@ -58,7 +58,7 @@ class IntegrationSetup extends React.Component<Props, State> {
     loadedPlatform: null,
     hasError: false,
     provider: null,
-    installed: true,
+    installed: false,
   };
 
   componentDidMount() {
