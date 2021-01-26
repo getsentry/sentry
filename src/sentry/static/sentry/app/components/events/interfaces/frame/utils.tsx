@@ -62,3 +62,7 @@ export function getFrameHint(frame: Frame) {
 
   return [null, null];
 }
+
+export function isCsharp(platform: string) {
+  return platform === 'csharp';
+}
