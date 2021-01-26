@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import SvgIcon from './svgIcon';
 
 type WrappedProps = {
+  test: string;
   forwardRef: React.Ref<SVGSVGElement>;
 } & Props;
 
@@ -12,8 +13,11 @@ const IconBusinessComponent = function IconBusinessComponent({
   gradient = false,
   withShine = false,
   forwardRef,
+  test,
   ...props
 }: WrappedProps) {
+  // eslint-disable-next-line
+  console.log(test);
   return (
     <SvgIcon {...props} ref={forwardRef}>
       <mask id="icon-power-features-mask">
