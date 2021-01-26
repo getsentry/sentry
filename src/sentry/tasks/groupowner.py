@@ -11,7 +11,6 @@ from sentry.utils import metrics
 from sentry.utils.committers import get_event_file_committers
 
 PREFERRED_GROUP_OWNERS = 2
-OWNER_CACHE_LIFE = 604800  # 1 week in seconds
 PREFERRED_GROUP_OWNER_AGE = timedelta(days=7)
 MIN_COMMIT_SCORE = 2
 
