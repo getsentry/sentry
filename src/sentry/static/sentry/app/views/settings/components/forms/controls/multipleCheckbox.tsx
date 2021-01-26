@@ -1,8 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
-import {Box} from 'reflexbox'; // eslint-disable-line no-restricted-imports
 
+import {Choices} from 'app/types';
 import {defined} from 'app/utils';
 
 const MultipleCheckboxWrapper = styled('div')`
@@ -22,17 +21,19 @@ const CheckboxLabel = styled('span')`
   margin-left: 3px;
 `;
 
-export default class MultipleCheckbox extends React.Component {
-  static propTypes = {
-    value: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, PropTypes.number])),
-    onChange: PropTypes.func,
-    disabled: PropTypes.bool,
-    choices: PropTypes.array.isRequired,
-  };
+type SelectedValue = (string | number)[];
 
-  onChange = (selectedValue, e) => {
+type Props = {
+  value: (string | number)[];
+  choices: Choices;
+  onChange?: (value: SelectedValue, event: React.ChangeEvent<HTMLInputElement>) => void;
+  disabled?: boolean;
+};
+
+export default class MultipleCheckbox extends React.Component<Props> {
+  onChange = (selectedValue: string | number, e: React.ChangeEvent<HTMLInputElement>) => {
     const {value, onChange} = this.props;
-    let newValue;
+    let newValue: SelectedValue = [];
 
     if (typeof onChange !== 'function') {
       return;
@@ -53,7 +54,7 @@ export default class MultipleCheckbox extends React.Component {
     return (
       <MultipleCheckboxWrapper>
         {choices.map(([choiceValue, choiceLabel]) => (
-          <Box key={choiceValue} width={[1, 1 / 2, 1 / 3, 1 / 4]}>
+          <LabelContainer key={choiceValue}>
             <Label>
               <input
                 type="checkbox"
@@ -64,9 +65,23 @@ export default class MultipleCheckbox extends React.Component {
               />
               <CheckboxLabel>{choiceLabel}</CheckboxLabel>
             </Label>
-          </Box>
+          </LabelContainer>
         ))}
       </MultipleCheckboxWrapper>
     );
   }
 }
+
+const LabelContainer = styled('div')`
+  width: 100%;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    width: 50%;
+  }
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    width: 33.333%;
+  }
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    width: 25%;
+  }
+`;

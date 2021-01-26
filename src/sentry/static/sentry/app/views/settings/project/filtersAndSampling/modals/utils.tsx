@@ -20,7 +20,7 @@ export const modalCss = css`
 export function getMatchFieldDescription(condition: DynamicSamplingConditionOperator) {
   switch (condition) {
     case DynamicSamplingConditionOperator.STR_EQUAL_NO_CASE:
-      return {label: t('Match Enviroments'), description: 'this is a description'};
+      return {label: t('Match Environments'), description: 'this is a description'};
     case DynamicSamplingConditionOperator.GLOB_MATCH:
       return {label: t('Match Releases'), description: 'this is a description'};
     case DynamicSamplingConditionOperator.EQUAL:
@@ -67,7 +67,7 @@ export const LEGACY_BROWSER_LIST = {
 
 export enum Category {
   RELEASES = 'releases',
-  ENVIROMENTS = 'enviroments',
+  ENVIRONMENTS = 'environments',
   USERS = 'users',
   BROWSER_EXTENSIONS = 'browser_extensions',
   LOCALHOST = 'localhost',
