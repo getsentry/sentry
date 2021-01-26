@@ -4,8 +4,10 @@ import {Location} from 'history';
 
 import BarChart from 'app/components/charts/barChart';
 import BarChartZoom from 'app/components/charts/barChartZoom';
+import ErrorPanel from 'app/components/charts/errorPanel';
 import LoadingPanel from 'app/components/charts/loadingPanel';
 import QuestionTooltip from 'app/components/questionTooltip';
+import {IconWarning} from 'app/icons/iconWarning';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
@@ -114,6 +116,14 @@ export function HistogramChart(props: Props) {
           const loading = results.isLoading;
           const errored = results.error !== null;
           const chartData = results.histograms?.[field];
+
+          if (errored) {
+            return (
+              <ErrorPanel>
+                <IconWarning color="gray300" size="lg" />
+              </ErrorPanel>
+            );
+          }
 
           if (loading) {
             return (
