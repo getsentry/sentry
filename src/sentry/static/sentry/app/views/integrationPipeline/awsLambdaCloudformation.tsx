@@ -4,16 +4,16 @@ import * as qs from 'query-string';
 
 import {addErrorMessage, addLoadingMessage} from 'app/actionCreators/indicator';
 import Button from 'app/components/actions/button';
-import Alert from 'app/components/alert';
+import List from 'app/components/list';
+import ListItem from 'app/components/list/listItem';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {uniqueId} from 'app/utils/guid';
-import StepHeading from 'app/views/onboarding/components/stepHeading';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import TextField from 'app/views/settings/components/forms/textField';
 
 import FooterWithButtons from './components/footerWithButtons';
-import IconGroup from './components/iconGroup';
+import HeaderWithHelp from './components/headerWithHelp';
 
 // let the browser generate and store the external ID
 // this way the same user always has the same external ID if they restart the pipeline
@@ -35,6 +35,7 @@ type Props = {
   templateUrl: string;
   stackName: string;
   regionList: string[];
+  initialStepNumber: number;
   accountNumber?: string;
   region?: string;
   error?: string;
@@ -136,94 +137,59 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
     return !!region && testAccountNumber(accountNumber || '');
   }
 
-  renderInstructions = () => {
-    return (
-      <InstructionWrapper>
-        <StyledStepHeading step={1}>
-          {t("Add Sentry's CloudFormation to your AWS")}
-        </StyledStepHeading>
-        <GoToAWSWrapper>
-          <Button priority="primary" external href={this.cloudformationUrl}>
-            {t('Configure AWS')}
-          </Button>
-        </GoToAWSWrapper>
-        <StyledStepHeading step={2}>
-          {t('Add AWS Account Infomrmation')}
-        </StyledStepHeading>
-      </InstructionWrapper>
-    );
-  };
-
   render = () => {
+    const {initialStepNumber} = this.props;
     const {accountNumber, region, accountNumberError, submitting} = this.state;
     return (
-      <div>
-        <StyledAlert type="info">
-          {t('It might take a minute for the CloudFormation stack to be created')}
-        </StyledAlert>
-        <IconGroup pluginId="aws_lambda" />
-        <InstallSentry>{t('Install Sentry on your AWS Account')}</InstallSentry>
-        {this.renderInstructions()}
-        <StyledTextField
-          name="accountNumber"
-          placeholder="599817902985"
-          value={accountNumber}
-          onChange={this.handleChangeArn}
-          onBlur={this.validateAccountNumber}
-          error={accountNumberError}
-          inline={false}
-          label={t('AWS Account Number')}
-        />
-        <StyledSelectField
-          name="region"
-          placeholder="us-east-2"
-          value={region}
-          onChange={this.hanldeChangeRegion}
-          options={this.regionOptions}
-          allowClear={false}
-          inline={false}
-          label={t('AWS Region')}
-        />
+      <React.Fragment>
+        <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/" />
+        <StyledList symbol="colored-numeric" initialCounterValue={initialStepNumber}>
+          <ListItem>
+            <h4>{t("Add Sentry's CloudFormation to your AWS")}</h4>
+            <StyledButton priority="primary" external href={this.cloudformationUrl}>
+              {t('Configure AWS')}
+            </StyledButton>
+          </ListItem>
+          <ListItem>
+            <h4>{t('Add AWS Account Information')}</h4>
+            <TextField
+              name="accountNumber"
+              placeholder="599817902985"
+              value={accountNumber}
+              onChange={this.handleChangeArn}
+              onBlur={this.validateAccountNumber}
+              error={accountNumberError}
+              inline={false}
+              stacked
+              label={t('AWS Account Number')}
+            />
+            <SelectField
+              name="region"
+              placeholder="us-east-2"
+              value={region}
+              onChange={this.hanldeChangeRegion}
+              options={this.regionOptions}
+              allowClear={false}
+              inline={false}
+              stacked
+              label={t('AWS Region')}
+            />
+          </ListItem>
+        </StyledList>
         <FooterWithButtons
-          docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/"
           buttonText={t('Next')}
           onClick={this.handleSubmit}
           disabled={submitting || !this.formValid}
         />
-      </div>
+      </React.Fragment>
     );
   };
 }
 
-const InstructionWrapper = styled('div')`
-  margin-left: 20px;
+const StyledButton = styled(Button)`
+  margin: 0 0 ${space(2)} 0;
 `;
 
-const StyledStepHeading = styled(StepHeading)`
-  font-size: ${p => p.theme.fontSizeLarge};
-  margin: 10px 0 0 0;
-`;
-
-const StyledTextField = styled(TextField)`
-  padding: ${space(1)} 65px;
-  border-bottom: none;
-`;
-
-const StyledSelectField = styled(SelectField)`
-  padding: ${space(1)} 65px;
-  border-bottom: none;
-`;
-
-const InstallSentry = styled('div')`
-  font-size: ${p => p.theme.headerFontSize};
-  margin: 20px;
-  text-align: center;
-`;
-
-const GoToAWSWrapper = styled('div')`
-  margin-left: 46px;
-`;
-
-const StyledAlert = styled(Alert)`
-  border-radius: 0;
+const StyledList = styled(List)`
+  margin: 100px 50px 50px 50px;
 `;
