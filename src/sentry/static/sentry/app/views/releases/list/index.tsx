@@ -331,13 +331,14 @@ class ReleasesList extends AsyncView<Props, State> {
 
             <Feature features={['releases-top-charts']} organization={organization}>
               {/* We are only displaying charts if single project is selected */}
-              {selection.projects.length === 1 && !selection.projects.includes(-1) && (
-                <ReleasesStabilityChart
-                  location={location}
-                  organization={organization}
-                  router={router}
-                />
-              )}
+              {selection.projects.length === 1 &&
+                !selection.projects.includes(ALL_ACCESS_PROJECTS) && (
+                  <ReleasesStabilityChart
+                    location={location}
+                    organization={organization}
+                    router={router}
+                  />
+                )}
             </Feature>
 
             <SortAndFilterWrapper>
