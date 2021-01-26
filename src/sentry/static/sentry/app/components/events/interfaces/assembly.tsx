@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
-import {IconReturn} from 'app/icons/iconReturn';
+import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
@@ -18,7 +18,6 @@ interface Props {
 
 const Assembly = ({name, version, culture, publicKeyToken, filePath}: Props) => (
   <AssemblyWrapper>
-    <StyledIconReturn />
     <AssemblyInfo>
       <Caption>Assembly:</Caption>
       {name || '-'}
@@ -39,7 +38,9 @@ const Assembly = ({name, version, culture, publicKeyToken, filePath}: Props) => 
     {filePath && (
       <FilePathInfo>
         <Caption>{t('Path')}:</Caption>
-        <TextCopyInput rtl>{filePath}</TextCopyInput>
+        <Tooltip title={filePath}>
+          <TextCopyInput rtl>{filePath}</TextCopyInput>
+        </Tooltip>
       </FilePathInfo>
     )}
   </AssemblyWrapper>
@@ -61,14 +62,7 @@ const AssemblyWrapper = styled('div')`
   color: ${p => p.theme.textColor};
   text-align: center;
   position: relative;
-  padding: 0 ${space(3)} 0 50px;
-`;
-
-const StyledIconReturn = styled(IconReturn)`
-  transform: scaleX(-1);
-  position: absolute;
-  top: 4px;
-  left: 25px;
+  padding: 0 ${space(3)} 0 ${space(3)};
 `;
 
 const AssemblyInfo = styled('div')`
@@ -86,7 +80,8 @@ const FilePathInfo = styled('div')`
   align-items: center;
   margin-bottom: 5px;
   input {
-    width: 250px;
+    width: 300px;
+    height: 20px;
     padding-top: 0;
     padding-bottom: 0;
     line-height: 1.5;
