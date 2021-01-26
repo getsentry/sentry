@@ -154,7 +154,7 @@ has_filter           = negation? "has" sep (search_key / search_value)
 is_filter            = negation? "is" sep search_value
 tag_filter           = negation? "tags[" search_key "]" sep search_value
 
-aggregate_key        = key space? open_paren space? function_arg* space? closed_paren
+aggregate_key        = key space? open_paren function_arg* closed_paren
 search_key           = key / quoted_key
 search_value         = quoted_value / value
 value                = ~r"[^()\s]*"
@@ -675,6 +675,7 @@ class SearchVisitor(NodeVisitor):
         children = self.flatten(children)
         children = self.remove_optional_nodes(children)
         children = self.remove_space(children)
+
         if len(children) == 3:
             (function_name, open_paren, close_paren) = children
             args = ""

@@ -2023,6 +2023,15 @@ class GetSnubaQueryArgsTest(TestCase):
         result = get_filter("percentile(transaction.duration, 0.75):>100")
         assert result.having == [["percentile_transaction_duration_0_75", ">", 100]]
 
+    def test_function_arguments_with_spaces(self):
+        result = get_filter("percentile(     transaction.duration,     0.75   ):>100")
+        assert result.having == [["percentile_transaction_duration_0_75", ">", 100]]
+
+        result = get_filter(
+            "epm(       ):>100", {"start": before_now(minutes=5), "end": before_now()}
+        )
+        assert result.having == [["epm", ">", 100]]
+
     def test_function_with_float_arguments(self):
         result = get_filter("apdex(300):>0.5")
         assert result.having == [["apdex_300", ">", 0.5]]
