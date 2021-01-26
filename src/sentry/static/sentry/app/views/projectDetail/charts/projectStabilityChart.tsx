@@ -172,7 +172,7 @@ class Chart extends React.Component<ChartProps> {
         color: theme.textColor,
         verticalAlign: 'top',
         fontSize: 11,
-        fontFamily: 'Rubik',
+        fontFamily: theme.text.family,
       },
     };
   }
