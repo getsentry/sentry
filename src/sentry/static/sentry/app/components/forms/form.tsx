@@ -28,11 +28,11 @@ type FormProps = {
   extraButton?: React.ReactNode;
 };
 
-type FormState = {
+type FormClassState = {
   data: any;
   errors: {non_field_errors?: object[]} & object;
   initialData: object;
-  state: typeof FormState[keyof typeof FormState];
+  state: FormState;
 };
 
 export type Context = {
@@ -45,7 +45,7 @@ export type Context = {
 
 class Form<
   Props extends FormProps = FormProps,
-  State extends FormState = FormState
+  State extends FormClassState = FormClassState
 > extends React.Component<Props, State> {
   static propTypes = {
     cancelLabel: PropTypes.string,
