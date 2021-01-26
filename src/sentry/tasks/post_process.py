@@ -2,7 +2,6 @@ import logging
 import sentry_sdk
 
 from sentry import features
-from sentry.app import locks
 from sentry.utils.cache import cache
 from sentry.exceptions import PluginError
 from sentry.signals import event_processed, issue_unignored
@@ -278,6 +277,7 @@ def post_process_group(
                     safe_execute(callback, event, futures, _with_transaction=False)
 
             try:
+                from sentry.app import locks
                 lock = locks.get(
                     "w-o:{}-d-l".format(event.group_id),
                     duration=10,
