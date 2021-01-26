@@ -135,6 +135,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
   };
 
   handleChangeExternalId = (awsExternalId: string) => {
+    awsExternalId = awsExternalId.trim();
     window.localStorage.setItem(ID_NAME, awsExternalId);
     this.setState({awsExternalId});
   };
