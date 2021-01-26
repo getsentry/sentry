@@ -1,8 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import Tag from 'app/components/tag';
 import DateTime from 'app/components/dateTime';
+import Tag from 'app/components/tag';
 import {getRelativeDate} from 'app/components/timeSince';
 import {t, tct} from 'app/locale';
 import {InboxDetails} from 'app/types';
