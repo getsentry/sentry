@@ -91,7 +91,7 @@ type Props = {
   defaultValue?: any; //TODO(TS): Do we need this?
   resetOnError?: boolean;
   /**
-   * Tranform input when a value is set to the model.
+   * Transform input when a value is set to the model.
    */
   transformInput?: (value: any) => any;
   /**
@@ -138,6 +138,16 @@ class FormField extends React.Component<Props> {
      * Hides control state component
      */
     flexibleControlStateSize: PropTypes.bool,
+
+    /**
+     * User-facing field name
+     */
+    label: PropTypes.node,
+
+    /**
+     * Determines the aligment of the label and field
+     */
+    inline: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
 
     // Default value to use for form field if value is not specified in `<Form>` parent
     defaultValue: PropTypes.oneOfType([

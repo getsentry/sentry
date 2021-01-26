@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 
 from datetime import datetime
@@ -7,26 +5,26 @@ from django.utils import timezone
 from sentry_relay import meta_with_chunks
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.eventstore.models import Event
 from sentry.models import EventAttachment, EventError, Release, UserReport
+from sentry.sdk_updates import get_suggested_updates, SdkSetupState
 from sentry.search.utils import convert_user_tag_to_query
+from sentry.utils.compat import zip
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path
-from sentry.sdk_updates import get_suggested_updates, SdkSetupState
-from sentry.eventstore.models import Event
-
 
 CRASH_FILE_TYPES = set(["event.minidump"])
 
 
 def get_crash_files(events):
     event_ids = [x.event_id for x in events if x.platform == "native"]
-    rv = {}
     if event_ids:
-        attachments = EventAttachment.objects.filter(event_id__in=event_ids).select_related("file")
-        for attachment in attachments:
-            if attachment.type in CRASH_FILE_TYPES:
-                rv[attachment.event_id] = attachment
-    return rv
+        return [
+            ea
+            for ea in EventAttachment.objects.filter(event_id__in=event_ids)
+            if ea.type in CRASH_FILE_TYPES
+        ]
+    return []
 
 
 @register(Event)
@@ -163,13 +161,19 @@ class EventSerializer(Serializer):
 
     def _get_user_report(self, user, event):
         try:
-            user_report = UserReport.objects.get(event_id=event.event_id, project=event.project)
+            user_report = UserReport.objects.get(
+                event_id=event.event_id, project_id=event.project_id
+            )
         except UserReport.DoesNotExist:
             user_report = None
         return serialize(user_report, user)
 
     def get_attrs(self, item_list, user, is_public=False):
         crash_files = get_crash_files(item_list)
+        serialized_files = {
+            file.event_id: serialized
+            for file, serialized in zip(crash_files, serialize(crash_files, user=user))
+        }
         results = {}
         for item in item_list:
             # TODO(dcramer): convert to get_api_context
@@ -181,14 +185,12 @@ class EventSerializer(Serializer):
 
             (entries, entries_meta) = self._get_entries(item, user, is_public=is_public)
 
-            crash_file = crash_files.get(item.event_id)
-
             results[item] = {
                 "entries": entries,
                 "user": user_data,
                 "contexts": contexts_data or {},
                 "sdk": sdk_data,
-                "crash_file": serialize(crash_file, user=user),
+                "crash_file": serialized_files.get(item.event_id),
                 "_meta": {
                     "entries": entries_meta,
                     "user": user_meta,
@@ -346,10 +348,11 @@ class SimpleEventSerializer(EventSerializer):
 
     def get_attrs(self, item_list, user):
         crash_files = get_crash_files(item_list)
-        return {
-            event: {"crash_file": serialize(crash_files.get(event.event_id), user=user)}
-            for event in item_list
+        serialized_files = {
+            file.event_id: serialized
+            for file, serialized in zip(crash_files, serialize(crash_files, user=user))
         }
+        return {event: {"crash_file": serialized_files.get(event.event_id)} for event in item_list}
 
     def serialize(self, obj, attrs, user):
         tags = [{"key": key.split("sentry:", 1)[-1], "value": value} for key, value in obj.tags]

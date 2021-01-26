@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.testutils import TestCase
 
 from .util import invalid_schema

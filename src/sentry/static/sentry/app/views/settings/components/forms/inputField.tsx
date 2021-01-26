@@ -20,6 +20,7 @@ export default class InputField extends React.Component<Props> {
   static propTypes = {
     ...FormField.propTypes,
     field: PropTypes.func,
+    value: PropTypes.any,
   };
 
   static defaultProps = {

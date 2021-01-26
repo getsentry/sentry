@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from time import time
 import logging
 import re
@@ -76,6 +74,12 @@ FEATURES = [
         will resolve your linked workitems and vice versa.
         """,
         IntegrationFeatures.ISSUE_SYNC,
+    ),
+    FeatureDescription(
+        """
+        Automatically create Azure DevOps work items based on Issue Alert conditions.
+        """,
+        IntegrationFeatures.TICKET_RULES,
     ),
 ]
 
@@ -314,9 +318,10 @@ class VstsIntegrationProvider(IntegrationProvider):
 
     features = frozenset(
         [
+            IntegrationFeatures.COMMITS,
             IntegrationFeatures.ISSUE_BASIC,
             IntegrationFeatures.ISSUE_SYNC,
-            IntegrationFeatures.COMMITS,
+            IntegrationFeatures.TICKET_RULES,
         ]
     )
 

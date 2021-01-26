@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 
 from sentry.api.event_search import (
@@ -94,8 +92,8 @@ class ParseSearchQueryTest(TestCase):
         )
 
     def test_is_query_inbox(self):
-        assert parse_search_query("is:needs_review") == [
-            SearchFilter(key=SearchKey(name="needs_review"), operator="=", value=SearchValue(True))
+        assert parse_search_query("is:for_review") == [
+            SearchFilter(key=SearchKey(name="for_review"), operator="=", value=SearchValue(True))
         ]
 
     def test_numeric_filter(self):

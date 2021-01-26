@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 __all__ = ("Plugin",)
 
 import logging
@@ -509,7 +507,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
                 self.get_configure_plugin_fields(
                     request=request,  # DEPRECATED: this param should not be used
                     project=project,
-                    **kwargs
+                    **kwargs,
                 )
             )
         self.configure(project, request.data)

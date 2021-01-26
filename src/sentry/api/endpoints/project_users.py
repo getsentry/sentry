@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
@@ -32,7 +30,7 @@ class ProjectUsersEndpoint(ProjectEndpoint):
                 return Response([])
             try:
                 queryset = queryset.filter(
-                    **{u"{}__icontains".format(EventUser.attr_from_keyword(pieces[0])): pieces[1]}
+                    **{"{}__icontains".format(EventUser.attr_from_keyword(pieces[0])): pieces[1]}
                 )
             except KeyError:
                 return Response([])

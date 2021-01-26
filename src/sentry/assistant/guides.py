@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 # Guide Schema
 # id (text, required): unique id
 # required_targets (list): An empty list will cause the guide to be shown regardless

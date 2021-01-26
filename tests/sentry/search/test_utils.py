@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 from sentry.utils.compat import mock
 from datetime import datetime, timedelta
@@ -299,12 +297,12 @@ class ParseQueryTest(TestCase):
         assert result["assigned_to"].id == 0
 
     def test_assigned_valid_team(self):
-        result = self.parse_query(u"assigned:#{}".format(self.team.slug))
+        result = self.parse_query("assigned:#{}".format(self.team.slug))
         assert result["assigned_to"] == self.team
 
     def test_assigned_unassociated_team(self):
         team2 = self.create_team(organization=self.organization)
-        result = self.parse_query(u"assigned:#{}".format(team2.slug))
+        result = self.parse_query("assigned:#{}".format(team2.slug))
         assert isinstance(result["assigned_to"], Team)
         assert result["assigned_to"].id == 0
 
@@ -405,8 +403,8 @@ class ParseQueryTest(TestCase):
         assert result == {"unassigned": False, "tags": {}, "query": ""}
 
     def test_is_inbox(self):
-        result = self.parse_query("is:needs_review")
-        assert result == {"needs_review": True, "tags": {}, "query": ""}
+        result = self.parse_query("is:for_review")
+        assert result == {"for_review": True, "tags": {}, "query": ""}
 
     def test_is_unlinked(self):
         result = self.parse_query("is:unlinked")
@@ -530,12 +528,12 @@ class ParseQueryTest(TestCase):
         assert result["owner"].id == 0
 
     def test_owner_valid_team(self):
-        result = self.parse_query(u"owner:#{}".format(self.team.slug))
+        result = self.parse_query("owner:#{}".format(self.team.slug))
         assert result["owner"] == self.team
 
     def test_owner_unassociated_team(self):
         team2 = self.create_team(organization=self.organization)
-        result = self.parse_query(u"owner:#{}".format(team2.slug))
+        result = self.parse_query("owner:#{}".format(team2.slug))
         assert isinstance(result["owner"], Team)
         assert result["owner"].id == 0
 

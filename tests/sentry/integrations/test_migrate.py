@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.integrations.example import ExampleIntegrationProvider
 from sentry.mediators.plugins import Migrator
 from sentry.models import Integration, Repository

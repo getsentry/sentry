@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 import inspect
 
@@ -341,7 +339,11 @@ class Match(object):
 
     @property
     def text(self):
-        return '%s%s:"%s"' % (self.negated and "!" or "", self.key, self.pattern,)
+        return '%s%s:"%s"' % (
+            self.negated and "!" or "",
+            self.key,
+            self.pattern,
+        )
 
 
 class Rule(object):

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import re
 import six
 from collections import defaultdict
@@ -12,7 +10,7 @@ from sentry.incidents.models import Incident
 from sentry.models import Group, Project
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.web.decorators import transaction_start
-from sentry.utils import json
+from sentry.utils import json, metrics
 
 from .client import SlackClient
 from .requests import SlackEventRequest, SlackRequestError
@@ -168,6 +166,10 @@ class SlackEventEndpoint(Endpoint):
         parsed_issues = defaultdict(dict)
         event_id_by_url = {}
         for item in data["links"]:
+            metrics.incr(
+                "slack.link_shared",
+                sample_rate=1.0,
+            )
             event_type, instance_id, event_id = self._parse_url(item["url"])
             if not instance_id:
                 continue

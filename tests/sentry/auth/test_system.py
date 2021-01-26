@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.auth.system import is_system_auth, SystemToken
 from sentry.testutils import TestCase
 
