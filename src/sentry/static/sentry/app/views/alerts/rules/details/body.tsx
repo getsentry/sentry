@@ -30,6 +30,7 @@ import {
   TimeWindow,
 } from 'app/views/settings/incidentRules/types';
 
+import {Incident} from '../../types';
 import {DATA_SOURCE_LABELS, getIncidentRuleMetricPreset} from '../../utils';
 
 import MetricChart from './metricChart';
@@ -38,6 +39,7 @@ import RelatedIssues from './relatedIssues';
 type Props = {
   api: Client;
   rule?: IncidentRule;
+  incidents?: Incident[];
   organization: Organization;
   location: Location;
 } & RouteComponentProps<{orgId: string}, {}>;
@@ -200,6 +202,7 @@ export default class DetailsBody extends React.Component<Props> {
     const {
       api,
       rule,
+      incidents,
       organization,
       params: {orgId},
     } = this.props;
@@ -238,7 +241,7 @@ export default class DetailsBody extends React.Component<Props> {
                       environment={environment ? [environment] : undefined}
                       project={(projects as Project[]).map(project => Number(project.id))}
                       // TODO(davidenwang): allow interval to be changed for larger time periods
-                      interval="5m"
+                      interval="60s"
                       period={timePeriod.value}
                       yAxis={aggregate}
                       includePrevious={false}
@@ -246,7 +249,7 @@ export default class DetailsBody extends React.Component<Props> {
                     >
                       {({loading, timeseriesData}) =>
                         !loading && timeseriesData ? (
-                          <MetricChart data={timeseriesData} />
+                          <MetricChart data={timeseriesData} incidents={incidents} />
                         ) : (
                           <Placeholder height="200px" />
                         )
