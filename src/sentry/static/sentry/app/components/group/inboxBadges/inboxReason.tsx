@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import Tag from 'app/components/tag';
 import {getRelativeDate} from 'app/components/timeSince';
-import {t} from 'app/locale';
-import {InboxDetails, InboxReasonDetails} from 'app/types';
+import {t, tct} from 'app/locale';
+import {InboxDetails} from 'app/types';
 import {getFormattedDate} from 'app/utils/dates';
 import {getDuration} from 'app/utils/formatters';
 
@@ -25,34 +25,38 @@ const EVENT_ROUND_LIMIT = 1000;
 
 function InboxReason({inbox, fontSize = 'sm'}: Props) {
   const {reason, reason_details, date_added: dateAdded} = inbox;
+  const utc = this.props.utc;
 
   const getCountText = (count: number) =>
     count > EVENT_ROUND_LIMIT
       ? `More than ${Math.round(count / EVENT_ROUND_LIMIT)}k`
       : `${count}`;
 
-  function getTooltipDescription({
-    until,
-    count,
-    window,
-    user_count,
-    user_window,
-  }: InboxReasonDetails) {
+  function getTooltipDescription() {
+    const {until, count, window, user_count, user_window} = reason_details;
     if (until) {
       // Was ignored until `until` has passed.
       //`until` format: "2021-01-20T03:59:03+00:00"
-      return t('Was ignored until %(window)s', {
-        until: getFormattedDate(until, 'MMM D, YYYY LT', {local: true}),
+      return tct('Was ignored until [window]', {
+        window: getFormattedDate(until, 'MMM D, YYYY LT', {
+          local: !utc,
+        }),
       });
     }
 
     if (count) {
-      // Was ignored until `count` events occurred
+      // Was ignored until `count` events occured
       // If `window` is defined, than `count` events occurred in `window` minutes.
       // else `count` events occurred since it was ignored.
-      return t('Was ignored until it occurred %(count)s time(s)%(window)s', {
+      if (window) {
+        return tct('Was ignored until it occured [count] time(s) in [duration]', {
+          count: getCountText(count || 0),
+          duration: getDuration((window || 0) * 60, 0, true),
+        });
+      }
+
+      return tct('Was ignored until it occured [count] time(s)', {
         count: getCountText(count || 0),
-        window: window ? ' in ' + getDuration((window || 0) * 60, 0, true) : '',
       });
     }
 
@@ -60,11 +64,14 @@ function InboxReason({inbox, fontSize = 'sm'}: Props) {
       // Was ignored until `user_count` users were affected
       // If `user_window` is defined, than `user_count` users affected in `user_window` minutes.
       // else `user_count` events occurred since it was ignored.
-      return t('Was ignored until it affected %(user_count)s user(s)%(user_window)s', {
-        user_count: getCountText(user_count || 0),
-        user_window: user_window
-          ? ' in ' + getDuration((user_window || 0) * 60, 0, true)
-          : '',
+      if (user_window) {
+        return t('Was ignored until it affected [count] user(s) in [duration]', {
+          count: getCountText(user_count || 0),
+          duration: getDuration((user_window || 0) * 60, 0, true),
+        });
+      }
+      return t('Was ignored until it affected [count] user(s)', {
+        count: getCountText(user_count || 0),
       });
     }
 
@@ -87,7 +94,7 @@ function InboxReason({inbox, fontSize = 'sm'}: Props) {
             t('Unignored %(relative)s', {
               relative: getRelativeDate(dateAdded, 'ago', true),
             }),
-          tooltipDescription: getTooltipDescription(reason_details),
+          tooltipDescription: getTooltipDescription(),
         };
       case GroupInboxReason.REGRESSION:
         return {
