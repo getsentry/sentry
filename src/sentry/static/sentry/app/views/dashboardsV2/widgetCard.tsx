@@ -5,6 +5,7 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {Client} from 'app/api';
+import AreaChart from 'app/components/charts/areaChart';
 import BarChart from 'app/components/charts/barChart';
 import ChartZoom from 'app/components/charts/chartZoom';
 import Legend from 'app/components/charts/components/legend';
@@ -295,6 +296,8 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
     switch (widget.displayType) {
       case 'bar':
         return <BarChart {...chartProps} />;
+      case 'area':
+        return <AreaChart stacked {...chartProps} />;
       case 'line':
       default:
         return <LineChart {...chartProps} />;
