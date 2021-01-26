@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import SvgIcon from './svgIcon';
 
 type WrappedProps = {
-  test: string;
   forwardRef: React.Ref<SVGSVGElement>;
 } & Props;
 
@@ -53,6 +52,8 @@ const IconBusinessComponent = function IconBusinessComponent({
 };
 
 type Props = {
+  test: string;
+
   /**
    * Renders a pink purple gradient on the icon
    */
