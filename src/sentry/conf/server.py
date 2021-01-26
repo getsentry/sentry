@@ -915,6 +915,8 @@ SENTRY_FEATURES = {
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
+    # Enable the new charts on top of the Releases page
+    "organizations:releases-top-charts": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable basic SSO functionality, providing configurable single sign on

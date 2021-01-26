@@ -82,11 +82,17 @@ function ProjectStabilityChart({
                         );
                       }
 
-                      if (totalSessions === 0) {
-                        return <ErrorPanel>{t('There are no session data')}</ErrorPanel>;
-                      }
-
                       onTotalValuesChange(totalSessions);
+
+                      if (totalSessions === 0) {
+                        return (
+                          <ErrorPanel>
+                            {t(
+                              'There are no sessions in this project for the given timeframe.'
+                            )}
+                          </ErrorPanel>
+                        );
+                      }
 
                       return (
                         <TransitionChart loading={loading} reloading={reloading}>
