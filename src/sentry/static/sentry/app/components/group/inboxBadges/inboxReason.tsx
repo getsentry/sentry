@@ -1,11 +1,11 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import DateTime from 'app/components/dateTime';
 import Tag from 'app/components/tag';
 import {getRelativeDate} from 'app/components/timeSince';
 import {t, tct} from 'app/locale';
 import {InboxDetails} from 'app/types';
-import {getFormattedDate} from 'app/utils/dates';
 import {getDuration} from 'app/utils/formatters';
 
 const GroupInboxReason = {
@@ -25,7 +25,6 @@ const EVENT_ROUND_LIMIT = 1000;
 
 function InboxReason({inbox, fontSize = 'sm'}: Props) {
   const {reason, reason_details, date_added: dateAdded} = inbox;
-  const utc = this.props.utc;
 
   const getCountText = (count: number) =>
     count > EVENT_ROUND_LIMIT
@@ -38,25 +37,23 @@ function InboxReason({inbox, fontSize = 'sm'}: Props) {
       // Was ignored until `until` has passed.
       //`until` format: "2021-01-20T03:59:03+00:00"
       return tct('Was ignored until [window]', {
-        window: getFormattedDate(until, 'MMM D, YYYY LT', {
-          local: !utc,
-        }),
+        window: <DateTime date={until} dateOnly />,
       });
     }
 
     if (count) {
-      // Was ignored until `count` events occured
+      // Was ignored until `count` events occurred
       // If `window` is defined, than `count` events occurred in `window` minutes.
       // else `count` events occurred since it was ignored.
       if (window) {
-        return tct('Was ignored until it occured [count] time(s) in [duration]', {
-          count: getCountText(count || 0),
-          duration: getDuration((window || 0) * 60, 0, true),
+        return tct('Was ignored until it occurred [count] time(s) in [duration]', {
+          count: getCountText(count),
+          duration: getDuration(window * 60, 0, true),
         });
       }
 
-      return tct('Was ignored until it occured [count] time(s)', {
-        count: getCountText(count || 0),
+      return tct('Was ignored until it occurred [count] time(s)', {
+        count: getCountText(count),
       });
     }
 
@@ -66,12 +63,12 @@ function InboxReason({inbox, fontSize = 'sm'}: Props) {
       // else `user_count` events occurred since it was ignored.
       if (user_window) {
         return t('Was ignored until it affected [count] user(s) in [duration]', {
-          count: getCountText(user_count || 0),
-          duration: getDuration((user_window || 0) * 60, 0, true),
+          count: getCountText(user_count),
+          duration: getDuration(user_window * 60, 0, true),
         });
       }
       return t('Was ignored until it affected [count] user(s)', {
-        count: getCountText(user_count || 0),
+        count: getCountText(user_count),
       });
     }
 
@@ -82,7 +79,7 @@ function InboxReason({inbox, fontSize = 'sm'}: Props) {
     tagType: React.ComponentProps<typeof Tag>['type'];
     reasonBadgeText: string;
     tooltipText?: string;
-    tooltipDescription?: string;
+    tooltipDescription?: string | React.ReactNode;
   } {
     switch (reason) {
       case GroupInboxReason.UNIGNORED:
