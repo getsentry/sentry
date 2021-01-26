@@ -8,6 +8,7 @@ from six.moves.urllib.parse import urlparse, urlencode, parse_qs
 
 from sentry import tagstore, features
 from sentry.api.fields.actor import Actor
+from sentry.constants import ObjectStatus
 from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
@@ -22,6 +23,7 @@ from sentry.models import (
     IdentityProvider,
     Integration,
     Organization,
+    OrganizationIntegration,
     Team,
     ReleaseProject,
 )
@@ -490,8 +492,24 @@ def get_channel_id_with_timeout(integration, name, timeout):
 
 
 def send_incident_alert_notification(action, incident, metric_value):
+
+    # Make sure organization integration is still active:
+    try:
+        integration = Integration.objects.get(
+            id=action.integration_id,
+            organizations=incident.organization,
+            status=ObjectStatus.VISIBLE,
+        )
+        OrganizationIntegration.objects.get(
+            integration=action.integration_id,
+            organization=incident.organization,
+            status=ObjectStatus.VISIBLE,
+        )
+    except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist):
+        # Integration removed, but rule is still active.
+        return
+
     channel = action.target_identifier
-    integration = action.integration
     attachment = build_incident_attachment(incident, metric_value)
     payload = {
         "token": integration.metadata["access_token"],
