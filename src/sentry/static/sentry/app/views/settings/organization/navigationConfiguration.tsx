@@ -29,13 +29,6 @@ const organizationNavigation: NavigationSection[] = [
         id: 'security-and-privacy',
       },
       {
-        path: `${pathPrefix}/filters-and-sampling/`,
-        title: t('Filters & Sampling'),
-        show: ({features}) => features!.has('filters-and-sampling'),
-        description: t("Manage an organization's inbound data"),
-        id: 'filters-and-sampling',
-      },
-      {
         path: `${pathPrefix}/teams/`,
         title: t('Teams'),
         description: t("Manage an organization's teams"),

@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import os
 from datetime import timedelta
 from uuid import uuid4
@@ -210,11 +208,11 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
     for model in [models.ApiGrant, models.ApiToken]:
         if not silent:
-            click.echo(u"Removing expired values for {}".format(model.__name__))
+            click.echo("Removing expired values for {}".format(model.__name__))
 
         if is_filtered(model):
             if not silent:
-                click.echo(u">> Skipping {}".format(model.__name__))
+                click.echo(">> Skipping {}".format(model.__name__))
         else:
             queryset = model.objects.filter(
                 expires_at__lt=(timezone.now() - timedelta(days=API_TOKEN_TTL_IN_DAYS))
@@ -266,7 +264,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
         if not silent:
             click.echo(
-                u"Removing {model} for days={days} project={project}".format(
+                "Removing {model} for days={days} project={project}".format(
                     model=model.__name__, days=days, project=project or "*"
                 )
             )
@@ -281,7 +279,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
     for model, dtfield, order_by in DELETES:
         if not silent:
             click.echo(
-                u"Removing {model} for days={days} project={project}".format(
+                "Removing {model} for days={days} project={project}".format(
                     model=model.__name__, days=days, project=project or "*"
                 )
             )

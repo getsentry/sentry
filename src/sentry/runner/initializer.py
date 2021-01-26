@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import click
 import logging
 import os
@@ -257,8 +255,7 @@ def configure_structlog():
     lvl = os.environ.get("SENTRY_LOG_LEVEL")
 
     if lvl:
-        levelNames = logging._levelNames if not six.PY3 else logging._nameToLevel
-        if lvl not in levelNames:
+        if lvl not in logging._nameToLevel:
             raise AttributeError("%s is not a valid logging level." % lvl)
 
     settings.LOGGING["root"].update({"level": lvl or settings.LOGGING["default_level"]})
@@ -290,14 +287,6 @@ def show_big_error(message):
 
 
 def initialize_app(config, skip_service_validation=False):
-    if six.PY2:
-        warning_text = (
-            "You are using Python 2 which is deprecated. "
-            "Sentry 21.1 will be the last version to support Python 2."
-        )
-        warnings.warn(warning_text)
-        show_big_error(warning_text)
-
     settings = config["settings"]
 
     if settings.DEBUG:
@@ -347,7 +336,7 @@ def initialize_app(config, skip_service_validation=False):
 
     for key in settings.CACHES:
         if not hasattr(settings.CACHES[key], "VERSION"):
-            settings.CACHES[key]["VERSION"] = 2 if six.PY3 else 1
+            settings.CACHES[key]["VERSION"] = 2
 
     settings.ASSET_VERSION = get_asset_version(settings)
     settings.STATIC_URL = settings.STATIC_URL.format(version=settings.ASSET_VERSION)
@@ -423,9 +412,7 @@ def setup_services(validate=True):
             except AttributeError as exc:
                 reraise_as(
                     ConfigurationError(
-                        u"{} service failed to call validate()\n{}".format(
-                            service.__name__, six.text_type(exc)
-                        )
+                        f"{service.__name__} service failed to call validate()\n{six.text_type(exc)}"
                     )
                 )
         try:
@@ -434,9 +421,7 @@ def setup_services(validate=True):
             if not hasattr(service, "setup") or not callable(service.setup):
                 reraise_as(
                     ConfigurationError(
-                        u"{} service failed to call setup()\n{}".format(
-                            service.__name__, six.text_type(exc)
-                        )
+                        f"{service.__name__} service failed to call setup()\n{six.text_type(exc)}"
                     )
                 )
             raise

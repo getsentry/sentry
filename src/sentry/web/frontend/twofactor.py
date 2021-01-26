@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 import time
 
@@ -118,7 +116,7 @@ class TwoFactorAuthView(BaseView):
         interface = self.negotiate_interface(request, interfaces)
 
         if request.method == "POST" and ratelimiter.is_limited(
-            u"auth-2fa:user:{}".format(user.id), limit=5, window=60
+            "auth-2fa:user:{}".format(user.id), limit=5, window=60
         ):
             # TODO: Maybe email the account owner or do something to notify someone
             # This would probably be good for them to know.

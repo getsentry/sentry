@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import logging
 import sentry_sdk
 
@@ -20,7 +18,7 @@ logger = logging.getLogger("sentry")
 def _get_service_hooks(project_id):
     from sentry.models import ServiceHook
 
-    cache_key = u"servicehooks:1:{}".format(project_id)
+    cache_key = "servicehooks:1:{}".format(project_id)
     result = cache.get(cache_key)
 
     if result is None:
@@ -33,7 +31,7 @@ def _get_service_hooks(project_id):
 def _should_send_error_created_hooks(project):
     from sentry.models import ServiceHook, Organization
 
-    cache_key = u"servicehooks-error-created:1:{}".format(project.id)
+    cache_key = "servicehooks-error-created:1:{}".format(project.id)
     result = cache.get(cache_key)
 
     if result is None:
@@ -67,7 +65,7 @@ def _capture_stats(event, is_new):
         metrics.incr("events.unique", tags=tags, skip_internal=False)
 
     metrics.incr("events.processed", tags=tags, skip_internal=False)
-    metrics.incr(u"events.processed.{platform}".format(platform=platform), skip_internal=False)
+    metrics.incr("events.processed.{platform}".format(platform=platform), skip_internal=False)
     metrics.timing("events.size.data", event.size, tags=tags)
 
     # This is an experiment to understand whether we have, in production,
@@ -194,7 +192,8 @@ def post_process_group(
         data = event_processing_store.get(cache_key)
         if not data:
             logger.info(
-                "post_process.skipped", extra={"cache_key": cache_key, "reason": "missing_cache"},
+                "post_process.skipped",
+                extra={"cache_key": cache_key, "reason": "missing_cache"},
             )
             return
         event = Event(
@@ -275,10 +274,13 @@ def post_process_group(
                 with sentry_sdk.start_transaction(
                     op="post_process_group", name="rule_processor_apply", sampled=True
                 ):
-                    safe_execute(callback, event, futures)
+                    safe_execute(callback, event, futures, _with_transaction=False)
 
             try:
-                lock = locks.get("w-o:{}-d-l".format(event.group_id), duration=10,)
+                lock = locks.get(
+                    "w-o:{}-d-l".format(event.group_id),
+                    duration=10,
+                )
                 try:
                     with lock.acquire():
                         has_commit_key = "w-o:{}-h-c".format(event.project.organization_id)
@@ -290,7 +292,8 @@ def post_process_group(
                             cache.set(has_commit_key, org_has_commit, 3600)
 
                         if org_has_commit and features.has(
-                            "organizations:workflow-owners", event.project.organization,
+                            "organizations:workflow-owners",
+                            event.project.organization,
                         ):
                             process_suspect_commits(event=event)
                 except UnableToAcquireLock:
@@ -330,7 +333,7 @@ def post_process_group(
 
             from sentry import similarity
 
-            safe_execute(similarity.record, event.project, [event])
+            safe_execute(similarity.record, event.project, [event], _with_transaction=False)
 
         if event.group_id:
             # Patch attachments that were ingested on the standalone path.
@@ -413,5 +416,6 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
         event=event,
         group=event.group,
         expected_errors=(PluginError,),
-        **kwargs
+        _with_transaction=False,
+        **kwargs,
     )

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 import logging
 
@@ -181,7 +179,7 @@ def test_event_id_lowercase():
 
     assert data["event_id"] == "1234abcd" * 4
 
-    manager = EventManager(make_event(event_id=u"1234ABCD" * 4))
+    manager = EventManager(make_event(event_id="1234ABCD" * 4))
     manager.normalize()
     data = manager.get_data()
 

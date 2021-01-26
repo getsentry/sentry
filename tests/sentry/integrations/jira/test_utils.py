@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.integrations.jira.utils import build_user_choice
 from sentry.testutils import TestCase
 from tests.fixtures.integrations.mock_service import StubService

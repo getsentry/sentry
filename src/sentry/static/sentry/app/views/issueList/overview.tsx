@@ -285,10 +285,10 @@ class IssueListOverview extends React.Component<Props, State> {
       organization.features.includes('inbox-tab-default')
     ) {
       if (organization.features.includes('inbox-owners-query')) {
-        return Query.NEEDS_REVIEW_OWNER;
+        return Query.FOR_REVIEW_OWNER;
       }
 
-      return Query.NEEDS_REVIEW;
+      return Query.FOR_REVIEW;
     }
 
     return DEFAULT_QUERY;
@@ -922,9 +922,9 @@ class IssueListOverview extends React.Component<Props, State> {
     // TODO(workflow): When organization:inbox flag is removed add 'inbox' to tagStore
     if (
       organization.features.includes('inbox') &&
-      !tags?.is?.values?.includes('needs_review')
+      !tags?.is?.values?.includes('for_review')
     ) {
-      tags?.is?.values?.push('needs_review');
+      tags?.is?.values?.push('for_review');
     }
 
     const projectIds = selection?.projects?.map(p => p.toString());
@@ -944,6 +944,7 @@ class IssueListOverview extends React.Component<Props, State> {
               <IssueListHeader
                 organization={organization}
                 query={query}
+                queryCount={queryCount}
                 queryCounts={queryCounts}
                 realtimeActive={realtimeActive}
                 onRealtimeChange={this.onRealtimeChange}

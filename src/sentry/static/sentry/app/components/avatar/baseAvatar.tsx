@@ -234,6 +234,7 @@ class BaseAvatar extends React.Component<Props, State> {
       round,
       hasTooltip,
       size,
+      suggested,
       tooltip,
       tooltipOptions,
       forwardedRef,
@@ -255,6 +256,7 @@ class BaseAvatar extends React.Component<Props, State> {
           loaded={this.state.hasLoaded}
           className={classNames('avatar', className)}
           round={!!round}
+          suggested={!!suggested}
           style={{
             ...sizeStyle,
             ...style,
@@ -273,10 +275,16 @@ export default BaseAvatar;
 
 // Note: Avatar will not always be a child of a flex layout, but this seems like a
 // sensible default.
-const StyledBaseAvatar = styled('span')<{round: boolean; loaded: boolean}>`
+const StyledBaseAvatar = styled('span')<{
+  round: boolean;
+  loaded: boolean;
+  suggested: boolean;
+}>`
   flex-shrink: 0;
-  ${p => !p.loaded && 'background-color: rgba(200, 200, 200, 0.1);'};
-  ${p => p.round && 'border-radius: 100%;'};
+  border-radius: ${p => (p.round ? '50%' : '3px')};
+  border: ${p => (p.suggested ? `1px dashed ${p.theme.gray400}` : 'none')};
+  background-color: ${p =>
+    p.loaded ? p.theme.background : 'background-color: rgba(200, 200, 200, 0.1);'};
 `;
 
 const Image = styled('img')<ImageStyleProps>`

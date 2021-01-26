@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.utils.compat import mock
 from selenium.common.exceptions import TimeoutException
 
