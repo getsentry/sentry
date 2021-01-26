@@ -1,12 +1,10 @@
-from __future__ import absolute_import
-
 import six
 import requests
 import pytz
 
 from exam import fixture
 from freezegun import freeze_time
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry.utils import json
 from sentry.api.serializers import serialize
@@ -134,6 +132,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         self.create_member(
             user=self.user, organization=self.organization, role="member", teams=[self.team]
         )
+        self.organization.update_option("sentry:alerts_member_write", False)
         self.login_as(self.user)
         resp = self.get_response(self.organization.slug, self.project.slug)
         assert resp.status_code == 403

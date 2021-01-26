@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import functools
 import sys
 
@@ -34,11 +32,18 @@ class OrganizationStatsTest(APITestCase):
         tsdb.incr(tsdb.models.organization_total_received, org.id, count=3)
 
         url = reverse("sentry-api-0-organization-stats", args=[org.slug])
-        response = self.client.get(u"{}?resolution=1d".format(url))
+        response = self.client.get("{}?resolution=1d".format(url))
 
         assert response.status_code == 200, response.content
         assert response.data[-1][1] == 3, response.data
         assert len(response.data) == 1
+
+    def test_resolution_invalid(self):
+        self.login_as(user=self.user)
+        url = reverse("sentry-api-0-organization-stats", args=[self.organization.slug])
+        response = self.client.get("{}?resolution=lol-nope".format(url))
+
+        assert response.status_code == 400, response.content
 
     def test_id_filtering(self):
         self.login_as(user=self.user)

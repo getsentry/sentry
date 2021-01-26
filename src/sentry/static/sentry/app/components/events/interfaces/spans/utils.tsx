@@ -4,7 +4,7 @@ import set from 'lodash/set';
 import moment from 'moment';
 
 import CHART_PALETTE from 'app/constants/chartPalette';
-import {SentryTransactionEvent} from 'app/types';
+import {EntryType, EventTransaction} from 'app/types/event';
 import {assert} from 'app/types/utils';
 import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
 
@@ -299,40 +299,6 @@ export const pickSpanBarColour = (input: string | undefined): string => {
   ];
 };
 
-export type UserSelectValues = {
-  userSelect: string | null;
-  MozUserSelect: string | null;
-  msUserSelect: string | null;
-  webkitUserSelect: string | null;
-};
-
-export const setBodyUserSelect = (nextValues: UserSelectValues): UserSelectValues => {
-  // NOTE: Vendor prefixes other than `ms` should begin with a capital letter.
-  // ref: https://reactjs.org/docs/dom-elements.html#style
-
-  const previousValues = {
-    userSelect: document.body.style.userSelect,
-    // MozUserSelect is not typed in TS
-    // @ts-expect-error
-    MozUserSelect: document.body.style.MozUserSelect,
-    // msUserSelect is not typed in TS
-    // @ts-expect-error
-    msUserSelect: document.body.style.msUserSelect,
-    webkitUserSelect: document.body.style.webkitUserSelect,
-  };
-
-  document.body.style.userSelect = nextValues.userSelect || '';
-  // MozUserSelect is not typed in TS
-  // @ts-expect-error
-  document.body.style.MozUserSelect = nextValues.MozUserSelect || '';
-  // msUserSelect is not typed in TS
-  // @ts-expect-error
-  document.body.style.msUserSelect = nextValues.msUserSelect || '';
-  document.body.style.webkitUserSelect = nextValues.webkitUserSelect || '';
-
-  return previousValues;
-};
-
 export function generateRootSpan(trace: ParsedTraceType): RawSpanType {
   const rootSpan: RawSpanType = {
     trace_id: trace.traceID,
@@ -422,17 +388,15 @@ export function getSpanParentSpanID(span: ProcessedSpanType): string | undefined
 }
 
 export function getTraceContext(
-  event: Readonly<SentryTransactionEvent>
+  event: Readonly<EventTransaction>
 ): TraceContextType | undefined {
   return event?.contexts?.trace;
 }
 
-export function parseTrace(event: Readonly<SentryTransactionEvent>): ParsedTraceType {
-  const spanEntry: SpanEntry | undefined = event.entries.find(
-    (entry: SpanEntry | any): entry is SpanEntry => {
-      return entry.type === 'spans';
-    }
-  );
+export function parseTrace(event: Readonly<EventTransaction>): ParsedTraceType {
+  const spanEntry = event.entries.find((entry: SpanEntry | any): entry is SpanEntry => {
+    return entry.type === EntryType.SPANS;
+  });
 
   const spans: Array<RawSpanType> = spanEntry?.data ?? [];
 
@@ -601,7 +565,7 @@ export function unwrapTreeDepth(treeDepth: TreeDepthType): number {
   return treeDepth;
 }
 
-export function isEventFromBrowserJavaScriptSDK(event: SentryTransactionEvent): boolean {
+export function isEventFromBrowserJavaScriptSDK(event: EventTransaction): boolean {
   const sdkName = event.sdk?.name;
   if (!sdkName) {
     return false;
@@ -646,9 +610,7 @@ function hasFailedThreshold(marks: Measurements): boolean {
   });
 }
 
-export function getMeasurements(
-  event: SentryTransactionEvent
-): Map<number, VerticalMark> {
+export function getMeasurements(event: EventTransaction): Map<number, VerticalMark> {
   if (!event.measurements) {
     return new Map();
   }

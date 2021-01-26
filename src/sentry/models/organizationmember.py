@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import six
 
 from bitfield import BitField
@@ -17,7 +15,7 @@ from uuid import uuid4
 from six.moves.urllib.parse import urlencode
 
 from sentry import roles
-from sentry.constants import EVENTS_MEMBER_ADMIN_DEFAULT
+from sentry.constants import EVENTS_MEMBER_ADMIN_DEFAULT, ALERTS_MEMBER_WRITE_DEFAULT
 from sentry.db.models import (
     BaseModel,
     BoundedAutoField,
@@ -94,7 +92,7 @@ class OrganizationMember(Model):
     email = models.EmailField(null=True, blank=True, max_length=75)
     role = models.CharField(max_length=32, default=six.text_type(roles.get_default().id))
     flags = BitField(
-        flags=((u"sso:linked", u"sso:linked"), (u"sso:invalid", u"sso:invalid")), default=0
+        flags=(("sso:linked", "sso:linked"), ("sso:invalid", "sso:invalid")), default=0
     )
     token = models.CharField(max_length=64, null=True, blank=True, unique=True)
     date_added = models.DateTimeField(default=timezone.now)
@@ -265,7 +263,7 @@ class OrganizationMember(Model):
 
         email = self.get_email()
 
-        recover_uri = u"{path}?{query}".format(
+        recover_uri = "{path}?{query}".format(
             path=reverse("sentry-account-recover"), query=urlencode({"email": email})
         )
 
@@ -349,11 +347,19 @@ class OrganizationMember(Model):
     def get_scopes(self):
         scopes = roles.get(self.role).scopes
 
-        if self.role == "member" and not self.organization.get_option(
-            "sentry:events_member_admin", EVENTS_MEMBER_ADMIN_DEFAULT
-        ):
-            scopes = frozenset(s for s in scopes if s != "event:admin")
+        disabled_scopes = set()
 
+        if self.role == "member":
+            if not self.organization.get_option(
+                "sentry:events_member_admin", EVENTS_MEMBER_ADMIN_DEFAULT
+            ):
+                disabled_scopes.add("event:admin")
+            if not self.organization.get_option(
+                "sentry:alerts_member_write", ALERTS_MEMBER_WRITE_DEFAULT
+            ):
+                disabled_scopes.add("alerts:write")
+
+        scopes = frozenset(s for s in scopes if s not in disabled_scopes)
         return scopes
 
     @classmethod

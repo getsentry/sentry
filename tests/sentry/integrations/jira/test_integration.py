@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import copy
 import responses
 import six
@@ -64,9 +62,11 @@ class JiraIntegrationTest(APITestCase):
             project_id=self.project.id,
         )
         group = event.group
-
         installation = self.integration.get_installation(self.organization.id)
-
+        search_url = reverse(
+            "sentry-extensions-jira-search",
+            args=[self.organization.slug, self.integration.id],
+        )
         with mock.patch.object(installation, "get_client", get_client):
             assert installation.get_create_issue_config(group, self.user) == [
                 {
@@ -130,18 +130,39 @@ class JiraIntegrationTest(APITestCase):
                     "type": "select",
                 },
                 {
+                    "name": "customfield_10400",
+                    "url": search_url,
+                    "choices": [],
+                    "label": "Epic Link",
+                    "required": False,
+                    "type": "select",
+                },
+                {
+                    "name": "customfield_10500",
+                    "url": search_url,
+                    "choices": [],
+                    "label": "Sprint",
+                    "required": False,
+                    "type": "select",
+                },
+                {
+                    "name": "labels",
                     "default": "",
                     "required": False,
                     "type": "text",
-                    "name": "labels",
                     "label": "Labels",
                 },
                 {
+                    "name": "parent",
+                    "url": search_url,
+                    "choices": [],
+                    "label": "Parent",
+                    "required": False,
+                    "type": "select",
+                },
+                {
                     "name": "reporter",
-                    "url": reverse(
-                        "sentry-extensions-jira-search",
-                        args=[self.organization.slug, self.integration.id],
-                    ),
+                    "url": search_url,
                     "required": True,
                     "choices": [],
                     "label": "Reporter",
@@ -223,7 +244,10 @@ class JiraIntegrationTest(APITestCase):
                 "issuetype",
                 "customfield_10200",
                 "customfield_10300",
+                "customfield_10400",
+                "customfield_10500",
                 "labels",
+                "parent",
                 "reporter",
             ]
 
@@ -238,7 +262,10 @@ class JiraIntegrationTest(APITestCase):
                 "description",
                 "issuetype",
                 "customfield_10300",
+                "customfield_10400",
+                "customfield_10500",
                 "labels",
+                "parent",
                 "reporter",
             ]
 
@@ -412,7 +439,11 @@ class JiraIntegrationTest(APITestCase):
                     "issuetype": "1",
                     "project": "10000",
                 }
-            ) == {"title": "example summary", "description": "example bug report", "key": "APP-123"}
+            ) == {
+                "title": "example summary",
+                "description": "example bug report",
+                "key": "APP-123",
+            }
 
     @responses.activate
     def test_create_issue_labels_and_option(self):

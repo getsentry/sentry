@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
 
 import six
 
-from mock import patch
+from sentry.utils.compat.mock import patch
 from uuid import uuid4
 
 from sentry import tagstore

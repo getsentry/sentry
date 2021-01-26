@@ -138,7 +138,7 @@ class Actions extends React.Component<Props, State> {
     openModal(({closeModal, Header, Body}) => (
       <ReprocessingDialogForm
         group={group}
-        orgSlug={organization.slug}
+        organization={organization}
         project={project}
         closeModal={closeModal}
         Header={Header}

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import copy
 import six
 import pytest
@@ -144,8 +142,8 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
 
         self.login_as(self.user)
-        self.landing_path = u"/organizations/{}/discover/queries/".format(self.org.slug)
-        self.result_path = u"/organizations/{}/discover/results/".format(self.org.slug)
+        self.landing_path = "/organizations/{}/discover/queries/".format(self.org.slug)
+        self.result_path = "/organizations/{}/discover/results/".format(self.org.slug)
 
     def wait_until_loaded(self):
         self.browser.wait_until_not(".loading-indicator")
@@ -452,11 +450,11 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
             # Open the save as drawer
-            self.browser.element('[data-test-id="button-save-as"]').click()
+            self.browser.element('[aria-label="Save as"]').click()
 
             # Fill out name and submit form.
             self.browser.element('input[name="query_name"]').send_keys(query_name)
-            self.browser.element('[data-test-id="button-save-query"]').click()
+            self.browser.element('[aria-label="Save"]').click()
 
             self.browser.wait_until(
                 'div[name="discover2-query-name"][value="{}"]'.format(query_name)

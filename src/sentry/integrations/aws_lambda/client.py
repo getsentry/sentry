@@ -1,34 +1,67 @@
-from __future__ import absolute_import
-
 import boto3
 
 from sentry import options
+from sentry.utils import json
 
-from .utils import parse_arn
+
+class ConfigurationError(Exception):
+    pass
 
 
-def gen_aws_client(arn, aws_external_id, service_name="lambda"):
+def gen_aws_client(account_number, region, aws_external_id, service_name="lambda"):
     """
-    arn - the arn of the cloudformation stack
+    account_number - acccount number in AWS
+    regon - region in AWS
     aws_external_id - the external_id used to assume the role
 
     Returns an aws_lambda_client
     """
-    parsed_arn = parse_arn(arn)
-    account_id = parsed_arn["account"]
-    region = parsed_arn["region"]
 
-    role_arn = u"arn:aws:iam::%s:role/SentryRole" % (account_id)
+    role_arn = "arn:aws:iam::%s:role/SentryRole" % (account_number)
+
+    aws_access_key_id = options.get("aws-lambda.access-key-id")
+    aws_secret_access_key = options.get("aws-lambda.secret-access-key")
+
+    # throw a configuration error if we don't have keys
+    if not aws_access_key_id or not aws_secret_access_key:
+        raise ConfigurationError("AWS access key ID or secret access key not set")
 
     client = boto3.client(
         service_name="sts",
-        aws_access_key_id=options.get("aws-lambda.access-key-id"),
-        aws_secret_access_key=options.get("aws-lambda.secret-access-key"),
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key,
         region_name=options.get("aws-lambda.host-region"),
     )
 
+    # need policy statements for cross account access
     assumed_role_object = client.assume_role(
-        RoleSessionName="Sentry", RoleArn=role_arn, ExternalId=aws_external_id
+        RoleSessionName="Sentry",
+        RoleArn=role_arn,
+        ExternalId=aws_external_id,
+        Policy=json.dumps(
+            {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Action": ["lambda:UpdateFunctionConfiguration", "lambda:GetFunction"],
+                        "Resource": "arn:aws:lambda:{}:{}:function:*".format(
+                            region, account_number
+                        ),
+                    },
+                    {
+                        "Effect": "Allow",
+                        "Action": [
+                            "lambda:ListFunctions",
+                            "lambda:GetLayerVersion",
+                            "iam:PassRole",
+                            "organizations:DescribeAccount",
+                        ],
+                        "Resource": "*",
+                    },
+                ],
+            }
+        ),
     )
 
     credentials = assumed_role_object["Credentials"]

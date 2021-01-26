@@ -13,12 +13,14 @@ type Props = {
   query: string;
   organization: LightWeightOrganization;
   buttonClassName?: string;
+  tooltipClassName?: string;
   iconOnly?: boolean;
   withTooltip?: boolean;
 };
 
 const CreateSavedSearchButton = ({
   buttonClassName,
+  tooltipClassName,
   withTooltip,
   iconOnly,
   organization,
@@ -39,6 +41,7 @@ const CreateSavedSearchButton = ({
       aria-label={t('Add to organization saved searches')}
       icon={<IconAdd size="xs" />}
       className={buttonClassName}
+      tooltipProps={{className: tooltipClassName}}
     >
       {!iconOnly && t('Create Saved Search')}
     </Button>

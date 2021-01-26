@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from __future__ import absolute_import
 
 from sentry.runner import configure
 
@@ -63,7 +62,6 @@ from sentry.models import (
 )
 from sentry.signals import mocks_loaded
 from sentry.similarity import features
-from sentry.snuba.models import QueryAggregations
 from sentry.utils import loremipsum
 from sentry.utils.hashlib import md5_text
 from sentry.utils.samples import create_sample_event as _create_sample_event
@@ -164,7 +162,7 @@ def generate_tombstones(project, user):
         GroupTombstone.objects.create(
             previous_group_id=prev_group_id,
             actor_id=user.id,
-            **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP}
+            **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP},
         )
         prev_group_id += 1
 
@@ -260,7 +258,10 @@ def create_sample_time_series(event, release=None):
             int(count * 1.1),
         )
         tsdb.incr(
-            tsdb.models.project_total_forwarded, project.id, now, int(count * 1.1),
+            tsdb.models.project_total_forwarded,
+            project.id,
+            now,
+            int(count * 1.1),
         )
         tsdb.incr_multi(
             (
@@ -565,6 +566,9 @@ def main(num_events=1, extra_events=False, load_transactions=False):
                     )
 
             if load_transactions:
+                if not project.flags.has_transactions:
+                    project.update(flags=F("flags").bitor(Project.flags.has_transactions))
+
                 for day in range(14):
                     for hour in range(24):
                         timestamp = timezone.now() - timedelta(days=day, hours=hour)

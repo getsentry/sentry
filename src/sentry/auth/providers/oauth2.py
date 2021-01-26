@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import logging
 
 from six.moves.urllib.parse import parse_qsl, urlencode
@@ -54,7 +52,7 @@ class OAuth2Login(AuthView):
         params = self.get_authorize_params(
             state=state, redirect_uri=absolute_uri(helper.get_redirect_url())
         )
-        redirect_uri = u"{}?{}".format(self.get_authorize_url(), urlencode(params))
+        redirect_uri = "{}?{}".format(self.get_authorize_url(), urlencode(params))
 
         helper.bind_state("state", state)
 
@@ -193,7 +191,7 @@ class OAuth2Provider(Provider):
         error = payload.get("error", "unknown_error")
         error_description = payload.get("error_description", "no description available")
 
-        formatted_error = u"HTTP {} ({}): {}".format(req.status_code, error, error_description)
+        formatted_error = "HTTP {} ({}): {}".format(req.status_code, error, error_description)
 
         if req.status_code == 401:
             raise IdentityNotValid(formatted_error)

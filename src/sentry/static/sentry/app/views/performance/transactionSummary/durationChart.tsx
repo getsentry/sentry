@@ -6,6 +6,7 @@ import {Location, Query} from 'history';
 import {Client} from 'app/api';
 import AreaChart from 'app/components/charts/areaChart';
 import ChartZoom from 'app/components/charts/chartZoom';
+import Legend from 'app/components/charts/components/legend';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
@@ -84,21 +85,12 @@ class DurationChart extends React.Component<Props> {
     const end = this.props.end ? getUtcToLocalDateObject(this.props.end) : null;
     const utc = decodeScalar(router.location.query.utc) !== 'false';
 
-    const legend = {
+    const legend = Legend({
       right: 10,
       top: 0,
-      icon: 'circle',
-      itemHeight: 8,
-      itemWidth: 8,
-      itemGap: 12,
-      align: 'left',
-      textStyle: {
-        verticalAlign: 'top',
-        fontSize: 11,
-        fontFamily: 'Rubik',
-      },
       selected: getSeriesSelection(location),
-    };
+      theme,
+    });
 
     const datetimeSelection = {
       start,
@@ -117,7 +109,7 @@ class DurationChart extends React.Component<Props> {
         showSymbol: false,
       },
       tooltip: {
-        trigger: 'axis',
+        trigger: 'axis' as const,
         valueFormatter: tooltipFormatter,
       },
       yAxis: {
@@ -141,12 +133,7 @@ class DurationChart extends React.Component<Props> {
             )}
           />
         </HeaderTitleLegend>
-        <ChartZoom
-          router={router}
-          period={statsPeriod}
-          projects={project}
-          environments={environment}
-        >
+        <ChartZoom router={router} period={statsPeriod}>
           {zoomRenderProps => (
             <EventsRequest
               api={api}
@@ -188,10 +175,6 @@ class DurationChart extends React.Component<Props> {
                       })
                       .reverse()
                   : [];
-
-                // Stack the toolbox under the legend.
-                // so all series names are clickable.
-                zoomRenderProps.toolBox.z = -1;
 
                 return (
                   <ReleaseSeries

@@ -2,14 +2,16 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
-import ApiForm from 'app/components/forms/apiForm';
-import NumberField from 'app/components/forms/numberField';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Group, Organization, Project} from 'app/types';
+import Form from 'app/views/settings/components/forms/form';
+import NumberField from 'app/views/settings/components/forms/numberField';
+import RadioField from 'app/views/settings/components/forms/radioField';
 
 const impacts = [
   tct(
@@ -30,25 +32,28 @@ const impacts = [
   ),
 ];
 
+const remainingEventsChoices: [string, string][] = [
+  ['keep', t('Keep')],
+  ['delete', t('Delete')],
+];
+
 type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'closeModal'> & {
   group: Group;
   project: Project;
-  orgSlug: Organization['slug'];
+  organization: Organization;
 };
 
-function ReprocessingDialogForm({
-  orgSlug,
-  group,
-  project,
-  Header,
-  Body,
-  closeModal,
-}: Props) {
-  const endpoint = `/organizations/${orgSlug}/issues/${group.id}/reprocessing/`;
-  const title = t('Reprocess Events');
+type State = {
+  maxEvents?: number;
+};
 
-  function handleSuccess() {
-    const hasReprocessingV2Feature = !!project.features?.includes('reprocessing-v2');
+class ReprocessingDialogForm extends React.Component<Props, State> {
+  state: State = {maxEvents: undefined};
+
+  handleSuccess = () => {
+    const {group, organization, closeModal} = this.props;
+    const orgSlug = organization.slug;
+    const hasReprocessingV2Feature = !!organization.features?.includes('reprocessing-v2');
 
     if (hasReprocessingV2Feature) {
       closeModal();
@@ -59,46 +64,69 @@ function ReprocessingDialogForm({
     browserHistory.push(
       `/organizations/${orgSlug}/issues/?query=reprocessing.original_issue_id:${group.id}/`
     );
+  };
+
+  handleError() {
+    addErrorMessage(t('Failed to reprocess. Please check your input.'));
   }
 
-  return (
-    <React.Fragment>
-      <Header closeButton>{title}</Header>
-      <Body>
-        <Introduction>
-          {t(
-            'Reprocessing applies any new debug files or grouping configuration to an Issue. Before you give it a try, you should probably consider these impacts:'
-          )}
-        </Introduction>
-        <StyledList symbol="bullet">
-          {impacts.map((impact, index) => (
-            <ListItem key={index}>{impact}</ListItem>
-          ))}
-        </StyledList>
-        <ApiForm
-          apiEndpoint={endpoint}
-          apiMethod="POST"
-          footerClass="modal-footer"
-          onSubmitSuccess={handleSuccess}
-          submitLabel={title}
-          submitLoadingMessage={t('Reprocessing\u2026')}
-          submitErrorMessage={t('Failed to reprocess. Please check your input.')}
-          onCancel={closeModal}
-        >
-          <NumberField
-            name="maxEvents"
-            label={t('Enter the number of events to be reprocessed')}
-            help={tct(
-              'You can limit the number of events reprocessed in this Issue. If you set a limit, we will reprocess your most recent events, [strong:and the rest will be deleted.]',
-              {strong: <strong />}
+  handleMaxEventsChange = (maxEvents: string) => {
+    this.setState({maxEvents: Number(maxEvents) || undefined});
+  };
+
+  render() {
+    const {group, organization, Header, Body, closeModal} = this.props;
+    const {maxEvents} = this.state;
+    const orgSlug = organization.slug;
+    const endpoint = `/organizations/${orgSlug}/issues/${group.id}/reprocessing/`;
+    const title = t('Reprocess Events');
+
+    return (
+      <React.Fragment>
+        <Header closeButton>{title}</Header>
+        <Body>
+          <Introduction>
+            {t(
+              'Reprocessing applies any new debug files or grouping configuration to an Issue. Before you give it a try, you should probably consider these impacts:'
             )}
-            placeholder={t('Reprocess all events')}
-            min={1}
-          />
-        </ApiForm>
-      </Body>
-    </React.Fragment>
-  );
+          </Introduction>
+          <StyledList symbol="bullet">
+            {impacts.map((impact, index) => (
+              <ListItem key={index}>{impact}</ListItem>
+            ))}
+          </StyledList>
+          <Form
+            submitLabel={title}
+            apiEndpoint={endpoint}
+            apiMethod="POST"
+            initialData={{maxEvents: undefined, remainingEvents: 'keep'}}
+            onSubmitSuccess={this.handleSuccess}
+            onSubmitError={this.handleError}
+            onCancel={closeModal}
+            footerClass="modal-footer"
+          >
+            <NumberField
+              name="maxEvents"
+              label={t('Number of events to be reprocessed')}
+              help={t('If you set a limit, we will reprocess your most recent events.')}
+              placeholder={t('Reprocess all events')}
+              onChange={this.handleMaxEventsChange}
+              min={1}
+            />
+
+            <RadioField
+              orientInline
+              label={t('Remaining events')}
+              help={t('What to do with the events that are not reprocessed.')}
+              name="remainingEvents"
+              choices={remainingEventsChoices}
+              disabled={maxEvents === undefined}
+            />
+          </Form>
+        </Body>
+      </React.Fragment>
+    );
+  }
 }
 
 export default ReprocessingDialogForm;

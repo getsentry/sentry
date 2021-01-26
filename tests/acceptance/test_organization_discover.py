@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytz
 from sentry.utils.compat.mock import patch
 
@@ -50,7 +48,7 @@ class OrganizationDiscoverTest(AcceptanceTestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        self.path = u"/organizations/{}/discover/".format(self.org.slug)
+        self.path = "/organizations/{}/discover/".format(self.org.slug)
 
     def test_no_access(self):
         with self.feature(

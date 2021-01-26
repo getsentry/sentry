@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import logging
 import re
 import six
@@ -16,6 +14,7 @@ from time import time
 from sentry.app import locks
 from sentry.db.models import (
     ArrayField,
+    BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     JSONField,
@@ -114,7 +113,10 @@ class Release(Model):
     status = BoundedPositiveIntegerField(
         default=ReleaseStatus.OPEN,
         null=True,
-        choices=((ReleaseStatus.OPEN, _("Open")), (ReleaseStatus.ARCHIVED, _("Archived")),),
+        choices=(
+            (ReleaseStatus.OPEN, _("Open")),
+            (ReleaseStatus.ARCHIVED, _("Archived")),
+        ),
     )
 
     # DEPRECATED
@@ -136,7 +138,7 @@ class Release(Model):
 
     # materialized stats
     commit_count = BoundedPositiveIntegerField(null=True, default=0)
-    last_commit_id = BoundedPositiveIntegerField(null=True)
+    last_commit_id = BoundedBigIntegerField(null=True)
     authors = ArrayField(null=True)
     total_deploys = BoundedPositiveIntegerField(null=True, default=0)
     last_deploy_id = BoundedPositiveIntegerField(null=True)
@@ -177,7 +179,7 @@ class Release(Model):
 
     @classmethod
     def get_lock_key(cls, organization_id, release_id):
-        return u"releasecommits:{}:{}".format(organization_id, release_id)
+        return "releasecommits:{}:{}".format(organization_id, release_id)
 
     @classmethod
     def get(cls, project, version):
@@ -482,7 +484,7 @@ class Release(Model):
                 head_commit_by_repo = {}
                 latest_commit = None
                 for idx, data in enumerate(commit_list):
-                    repo_name = data.get("repository") or u"organization-{}".format(
+                    repo_name = data.get("repository") or "organization-{}".format(
                         self.organization_id
                     )
                     if repo_name not in repos:
@@ -677,7 +679,7 @@ class Release(Model):
                 )
                 group = Group.objects.get(id=group_id)
                 group.update(status=GroupStatus.RESOLVED)
-                remove_group_from_inbox(group)
+                remove_group_from_inbox(group, action="resolved", user=actor)
                 metrics.incr("group.resolved", instance="in_commit", skip_internal=True)
 
             issue_resolved.send_robust(

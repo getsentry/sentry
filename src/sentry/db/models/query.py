@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import itertools
 import six
 
@@ -100,19 +98,19 @@ def create_or_update(model, using=None, **kwargs):
 
 def in_iexact(column, values):
     """Operator to test if any of the given values are (case-insensitive)
-       matching to values in the given column."""
+    matching to values in the given column."""
     from operator import or_
 
-    query = u"{}__iexact".format(column)
+    query = "{}__iexact".format(column)
 
     return reduce(or_, [Q(**{query: v}) for v in values])
 
 
 def in_icontains(column, values):
     """Operator to test if any of the given values are (case-insensitively)
-       contained within values in the given column."""
+    contained within values in the given column."""
     from operator import or_
 
-    query = u"{}__icontains".format(column)
+    query = "{}__icontains".format(column)
 
     return reduce(or_, [Q(**{query: v}) for v in values])

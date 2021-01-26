@@ -1,7 +1,6 @@
 """
 These settings act as the default (base) settings for the Sentry-provided web-server
 """
-from __future__ import absolute_import
 
 from django.conf.global_settings import *  # NOQA
 
@@ -69,6 +68,7 @@ ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
 IS_DEV = ENVIRONMENT == "development"
 
 DEBUG = IS_DEV
+
 MAINTENANCE = False
 
 ADMINS = ()
@@ -522,6 +522,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.assemble",
     "sentry.tasks.auth",
     "sentry.tasks.auto_resolve_issues",
+    "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.beacon",
     "sentry.tasks.check_auth",
     "sentry.tasks.check_monitors",
@@ -603,7 +604,7 @@ CELERY_ROUTES = ("sentry.queue.routers.SplitQueueRouter",)
 def create_partitioned_queues(name):
     exchange = Exchange(name, type="direct")
     for num in range(1):
-        CELERY_QUEUES.append(Queue(u"{0}-{1}".format(name, num), exchange=exchange))
+        CELERY_QUEUES.append(Queue("{0}-{1}".format(name, num), exchange=exchange))
 
 
 create_partitioned_queues("counters")
@@ -676,6 +677,11 @@ CELERYBEAT_SCHEDULE = {
     },
     "schedule-auto-resolution": {
         "task": "sentry.tasks.schedule_auto_resolution",
+        "schedule": timedelta(minutes=15),
+        "options": {"expires": 60 * 25},
+    },
+    "auto-remove-inbox": {
+        "task": "sentry.tasks.auto_remove_inbox",
         "schedule": timedelta(minutes=15),
         "options": {"expires": 60 * 25},
     },
@@ -829,6 +835,8 @@ SENTRY_FEATURES = {
     "organizations:discover": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
+    # Enable Filters & Sampling in the org settings
+    "organizations:filters-and-sampling": False,
     # Enable inline preview of attachments.
     "organizations:event-attachments-viewer": False,
     # Allow organizations to configure built-in symbol sources.
@@ -848,7 +856,7 @@ SENTRY_FEATURES = {
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
     # Lets organizations set a custom title through fingerprinting
-    "organizations:custom-event-title": False,
+    "organizations:custom-event-title": True,
     # Enable rule page.
     "organizations:rule-page": False,
     # Enable incidents feature
@@ -873,13 +881,16 @@ SENTRY_FEATURES = {
     # management integrations)
     "organizations:integrations-incident-management": True,
     # Allow orgs to automatically create Tickets in Issue Alerts
-    "organizations:integrations-ticket-rules": False,
+    "organizations:integrations-ticket-rules": True,
     # Allow orgs to install AzureDevops with limited scopes
     "organizations:integrations-vsts-limited-scopes": False,
     # Allow orgs to use the stacktrace linking feature
     "organizations:integrations-stacktrace-link": False,
     # Enables aws lambda integration
     "organizations:integrations-aws_lambda": False,
+    # Temporary safety measure, turned on for specific orgs only if
+    # absolutely necessary, to be removed shortly
+    "organizations:slack-allow-workspace": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable custom dashboards (dashboards 2)
@@ -933,6 +944,10 @@ SENTRY_FEATURES = {
     "organizations:inbox": False,
     # Set default tab to inbox
     "organizations:inbox-tab-default": False,
+    # Add `owner:me_or_none` to inbox tab query
+    "organizations:inbox-owners-query": False,
+    # Enable the new alert details ux design
+    "organizations:alert-details-redesign": False,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": False,
     # Return unhandled information on the issue level
@@ -964,8 +979,6 @@ SENTRY_FEATURES = {
     "projects:servicehooks": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     "projects:kafka-ingest": False,
-    # Enable "owner"/"suggested assignee" features in ingestion (suspect commit calculation).
-    "projects:workflow-owners-ingestion": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }
@@ -1016,7 +1029,10 @@ SENTRY_FRONTEND_WHITELIST_URLS = None
 # ----
 
 # sample rate for transactions initiated from the frontend
-SENTRY_APM_SAMPLING = 0
+SENTRY_FRONTEND_APM_SAMPLING = 0
+
+# sample rate for transactions in the backend
+SENTRY_BACKEND_APM_SAMPLING = 0
 
 # Sample rate for symbolicate_event task transactions
 SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING = 0
@@ -1316,7 +1332,10 @@ SENTRY_SCOPE_SETS = (
         ("event:write", "Read and write access to events."),
         ("event:read", "Read access to events."),
     ),
-    (("alerts:write", "Read and write alerts"), ("alerts:read", "Read alerts"),),
+    (
+        ("alerts:write", "Read and write alerts"),
+        ("alerts:read", "Read alerts"),
+    ),
 )
 
 SENTRY_DEFAULT_ROLE = "member"
@@ -1341,6 +1360,7 @@ SENTRY_ROLES = (
                 "member:read",
                 "team:read",
                 "alerts:read",
+                "alerts:write",
             ]
         ),
     },
@@ -1366,8 +1386,8 @@ SENTRY_ROLES = (
                 "team:write",
                 "team:admin",
                 "org:integrations",
-                "alerts:write",
                 "alerts:read",
+                "alerts:write",
             ]
         ),
     },
@@ -1394,8 +1414,8 @@ SENTRY_ROLES = (
                 "org:read",
                 "org:write",
                 "org:integrations",
-                "alerts:write",
                 "alerts:read",
+                "alerts:write",
             ]
         ),
     },
@@ -1424,8 +1444,8 @@ SENTRY_ROLES = (
                 "event:read",
                 "event:write",
                 "event:admin",
-                "alerts:write",
                 "alerts:read",
+                "alerts:write",
             ]
         ),
     },
@@ -1470,7 +1490,7 @@ SENTRY_WATCHERS = (
             "--color",
             "--output-pathinfo",
             "--watch",
-            u"--config={}".format(
+            "--config={}".format(
                 os.path.normpath(
                     os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js")
                 )

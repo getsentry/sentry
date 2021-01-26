@@ -22,7 +22,8 @@ import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
 import space from 'app/styles/space';
-import {Event, Frame, Organization, Project} from 'app/types';
+import {Frame, Organization, Project} from 'app/types';
+import {Event} from 'app/types/event';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 import DebugImage from './debugImage';
@@ -408,9 +409,9 @@ class DebugMeta extends React.PureComponent<Props, State> {
 
     return (
       <StyledEventDataSection
-        type="packages"
+        type="images-loaded"
         title={
-          <GuideAnchor target="packages" position="bottom">
+          <GuideAnchor target="images-loaded" position="bottom">
             <h3>{t('Images Loaded')}</h3>
           </GuideAnchor>
         }

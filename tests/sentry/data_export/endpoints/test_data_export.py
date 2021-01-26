@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 from freezegun import freeze_time
 

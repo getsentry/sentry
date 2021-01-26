@@ -10,7 +10,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
       z-index: ${theme.zIndex.sentryErrorEmbed};
     }
 
-    /* TODO(dark): Move this to base.less when ready */
     color: ${theme.textColor};
     background: ${theme.backgroundSecondary};
   }
@@ -64,6 +63,10 @@ const styles = (theme: Theme, isDark: boolean) => css`
         }
         .modal .modal-footer {
           border-top-color: ${theme.border};
+        }
+
+        .saved-search-tab {
+          border-bottom-color: ${theme.active} !important;
         }
 
         .nav-tabs {

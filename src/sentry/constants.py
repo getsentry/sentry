@@ -2,7 +2,6 @@
 These settings act as the default (base) settings for the Sentry-provided
 web-server
 """
-from __future__ import absolute_import, print_function
 
 import logging
 import os.path
@@ -26,7 +25,7 @@ def get_all_languages():
             continue
         if "_" in path:
             pre, post = path.split("_", 1)
-            path = u"{}-{}".format(pre, post.lower())
+            path = "{}-{}".format(pre, post.lower())
         results.append(path)
     return results
 
@@ -412,10 +411,10 @@ class ObjectStatus(object):
     @classmethod
     def as_choices(cls):
         return (
-            (cls.ACTIVE, u"active"),
-            (cls.DISABLED, u"disabled"),
-            (cls.PENDING_DELETION, u"pending_deletion"),
-            (cls.DELETION_IN_PROGRESS, u"deletion_in_progress"),
+            (cls.ACTIVE, "active"),
+            (cls.DISABLED, "disabled"),
+            (cls.PENDING_DELETION, "pending_deletion"),
+            (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
         )
 
 
@@ -546,6 +545,7 @@ APDEX_THRESHOLD_DEFAULT = 300
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True
+ALERTS_MEMBER_WRITE_DEFAULT = True
 
 # Defined at https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
 DataCategory = sentry_relay.DataCategory

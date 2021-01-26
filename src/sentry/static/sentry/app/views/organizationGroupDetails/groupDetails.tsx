@@ -13,7 +13,8 @@ import {t} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import GroupStore from 'app/stores/groupStore';
 import {PageContent} from 'app/styles/organization';
-import {AvatarProject, Event, Group, Organization, Project} from 'app/types';
+import {AvatarProject, Group, Organization, Project} from 'app/types';
+import {Event} from 'app/types/event';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {getMessage, getTitle} from 'app/utils/events';
 import Projects from 'app/utils/projects';
@@ -199,7 +200,7 @@ class GroupDetails extends React.Component<Props, State> {
 
       const projects = organization.projects;
       const projectId = data.project.id;
-      const features = projects.find(proj => proj.id === projectId)?.features ?? [];
+      const features = projects?.find(proj => proj.id === projectId)?.features ?? [];
       // Check for the reprocessing-v2 feature flag
       const hasReprocessingV2Feature = features.includes('reprocessing-v2');
       const reprocessingStatus = getGroupReprocessingStatus(data);
@@ -278,6 +279,7 @@ class GroupDetails extends React.Component<Props, State> {
 
       GroupStore.loadInitialData([data]);
     } catch (err) {
+      Sentry.captureException(err);
       let errorType: Error = null;
       switch (err?.status) {
         case 404:

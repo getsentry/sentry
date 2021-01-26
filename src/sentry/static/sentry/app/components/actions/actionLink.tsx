@@ -9,7 +9,7 @@ type ConfirmableActionProps = React.ComponentProps<typeof ConfirmableAction>;
 
 type Props = Omit<ConfirmableActionProps, 'onConfirm' | 'confirmText' | 'children'> & {
   title: string;
-  onAction: () => void;
+  onAction?: () => void;
   children?: React.ReactNode;
   type?: 'button';
   disabled?: boolean;
@@ -30,26 +30,34 @@ export default function ActionLink({
   shouldConfirm,
   ...props
 }: Props) {
-  return (
-    <ConfirmableAction
-      shouldConfirm={shouldConfirm}
+  const action = (
+    <StyledAction
+      as={type === 'button' ? ActionButton : 'a'}
+      aria-label={title}
+      className={classNames(className, {disabled})}
+      onClick={disabled ? undefined : onAction}
       disabled={disabled}
-      message={message}
-      confirmText={confirmLabel}
-      onConfirm={onAction}
+      {...props}
     >
-      <StyledAction
-        as={type === 'button' ? ActionButton : 'a'}
-        aria-label={title}
-        className={classNames(className, {disabled})}
-        onClick={disabled ? undefined : onAction}
-        disabled={disabled}
-        {...props}
-      >
-        {children}
-      </StyledAction>
-    </ConfirmableAction>
+      {children}
+    </StyledAction>
   );
+
+  if (shouldConfirm && onAction) {
+    return (
+      <ConfirmableAction
+        shouldConfirm={shouldConfirm}
+        disabled={disabled}
+        message={message}
+        confirmText={confirmLabel}
+        onConfirm={onAction}
+      >
+        {action}
+      </ConfirmableAction>
+    );
+  }
+
+  return action;
 }
 
 const StyledAction = styled('a')<{

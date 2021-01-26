@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from cryptography.fernet import Fernet
 
 from unittest import TestCase
@@ -12,7 +10,7 @@ class EncryptionManagerTest(TestCase):
             schemes=(("1", Fernet("J5NxyG0w1OyZEDdEOX0Nyv2upm5H3J35rTEb1jEiVbs=")),)
         )
         value = manager.encrypt("hello world")
-        assert value.startswith(u"{}1$".format(MARKER))
+        assert value.startswith("{}1$".format(MARKER))
         result = manager.decrypt(value)
         assert result == "hello world"
 
@@ -29,7 +27,7 @@ class EncryptionManagerTest(TestCase):
 
         value2 = manager.encrypt("hello world")
         assert value2 != value
-        assert value2.startswith(u"{}2$".format(MARKER))
+        assert value2.startswith("{}2$".format(MARKER))
 
     def test_no_schemes(self):
         manager = EncryptionManager(schemes=())

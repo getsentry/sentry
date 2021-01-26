@@ -6,14 +6,15 @@ import ErrorBoundary from 'app/components/errorBoundary';
 import KeyValueList from 'app/components/events/interfaces/keyValueList/keyValueListV2';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import {t} from 'app/locale';
-import {Meta, RequestEntry} from 'app/types';
+import {Meta} from 'app/types';
+import {EntryRequest} from 'app/types/event';
 import {defined} from 'app/utils';
 
 import getTransformedData from './getTransformedData';
 
 type Props = {
-  data: RequestEntry['data']['data'];
-  inferredContentType: RequestEntry['data']['inferredContentType'];
+  data: EntryRequest['data']['data'];
+  inferredContentType: EntryRequest['data']['inferredContentType'];
   meta?: Meta;
 };
 

@@ -1,6 +1,7 @@
 import React from 'react';
 
-import {Organization, SentryTransactionEvent} from 'app/types';
+import {Organization} from 'app/types';
+import {EventTransaction} from 'app/types/event';
 import {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 
 import SpanBar from './spanBar';
@@ -10,7 +11,7 @@ import {getSpanID, isGapSpan, SpanBoundsType, SpanGeneratedBoundsType} from './u
 type PropType = {
   orgId: string;
   organization: Organization;
-  event: Readonly<SentryTransactionEvent>;
+  event: Readonly<EventTransaction>;
   span: Readonly<ProcessedSpanType>;
   trace: Readonly<ParsedTraceType>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;

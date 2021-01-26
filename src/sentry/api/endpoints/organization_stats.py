@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from rest_framework.response import Response
 
 from sentry import tsdb
@@ -89,7 +87,6 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMix
 
         if stat_model is None:
             raise ValueError("Invalid group: %s, stat: %s" % (group, stat))
-
         data = tsdb.get_range(
             model=stat_model, keys=keys, **self._parse_args(request, **query_kwargs)
         )

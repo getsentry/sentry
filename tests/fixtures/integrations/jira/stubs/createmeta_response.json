@@ -125,6 +125,48 @@
                 {"value": "Feature 2", "id": "10106"}
               ]
             },
+            "customfield_10400": {
+              "operations": [
+                "set"
+              ],
+              "name": "Epic Link",
+              "required": false,
+              "hasDefaultValue": false,
+              "key": "customfield_10400",
+              "schema": {
+                "customId": 10400,
+                "type": "any",
+                "custom": "com.pyxis.greenhopper.jira:gh-epic-link"
+              }
+            },
+            "customfield_10500": {
+              "operations": [
+                "set"
+              ],
+              "name": "Sprint",
+              "required": false,
+              "hasDefaultValue": false,
+              "key": "customfield_10500",
+              "schema": {
+                "items": "json",
+                "customId": 10500,
+                "type": "array",
+                "custom": "com.pyxis.greenhopper.jira:gh-sprint"
+              }
+            },
+            "parent": {
+              "operations": [
+                "set"
+              ],
+              "name": "Parent",
+              "required": false,
+              "hasDefaultValue": false,
+              "key": "parent",
+              "schema": {
+                "type": "issuelink",
+                "system": "parent"
+              }
+            },
             "reporter": {
               "operations": [
                 "set"

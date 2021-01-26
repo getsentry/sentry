@@ -7,7 +7,7 @@ import GlobalModal from 'app/components/globalModal';
 import ProjectLatestReleases from 'app/views/projectDetail/projectLatestReleases';
 
 describe('ProjectDetail > ProjectLatestReleases', function () {
-  let endpointMock;
+  let endpointMock, endpointOlderReleasesMock;
   const {organization, project, router} = initializeOrg();
 
   beforeEach(async function () {
@@ -17,6 +17,10 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
         TestStubs.Release({version: '1.0.0'}),
         TestStubs.Release({version: '1.0.1'}),
       ],
+    });
+    endpointOlderReleasesMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/stats/`,
+      body: [TestStubs.Release({version: '1.0.0'})],
     });
   });
 
@@ -41,6 +45,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
         query: {per_page: 5},
       })
     );
+    expect(endpointOlderReleasesMock).toHaveBeenCalledTimes(0);
 
     expect(wrapper.find('SectionHeading').text()).toBe('Latest Releases');
 
@@ -50,10 +55,9 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
   });
 
   it('shows the empty state', async function () {
-    const only90DaysData = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/releases/`,
-      body: (_, opts) =>
-        opts.query.statsPeriod === '90d' ? [TestStubs.Release({version: '1.0.0'})] : [],
+      body: [],
     });
 
     const wrapper = mountWithTheme(
@@ -68,14 +72,18 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
     await tick();
     wrapper.update();
 
-    expect(only90DaysData).toHaveBeenCalledTimes(2);
+    expect(endpointOlderReleasesMock).toHaveBeenCalledTimes(1);
     expect(wrapper.find('Version').length).toBe(0);
     expect(wrapper.text()).toContain('No releases match the filter.');
   });
 
   it('shows configure releases buttons', async function () {
-    const emptyMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/releases/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/stats/`,
       body: [],
     });
 
@@ -95,13 +103,6 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
     wrapper.update();
 
     expect(wrapper.find('Version').length).toBe(0);
-    expect(emptyMock).toHaveBeenCalledTimes(2);
-    expect(emptyMock).toHaveBeenLastCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        query: {per_page: 1, statsPeriod: '90d'},
-      })
-    );
 
     const docsButton = wrapper.find('Button').at(0);
     const tourButton = wrapper.find('Button').at(1);

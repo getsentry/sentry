@@ -1,21 +1,21 @@
-from __future__ import absolute_import
-
 from datetime import timedelta
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
-from sentry.db.models import BoundedPositiveIntegerField, Model, sane_repr
+from sentry.db.models import BoundedPositiveIntegerField, BoundedBigIntegerField, Model, sane_repr
 
 
 class GroupRelease(Model):
     __core__ = False
 
+    # TODO: Should be BoundedBigIntegerField
     project_id = BoundedPositiveIntegerField(db_index=True)
-    group_id = BoundedPositiveIntegerField()
+    group_id = BoundedBigIntegerField()
+    # TODO: Should be BoundedBigIntegerField
     release_id = BoundedPositiveIntegerField(db_index=True)
-    environment = models.CharField(max_length=64, default=u"")
+    environment = models.CharField(max_length=64, default="")
     first_seen = models.DateTimeField(default=timezone.now)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
 
@@ -28,8 +28,8 @@ class GroupRelease(Model):
 
     @classmethod
     def get_cache_key(cls, group_id, release_id, environment):
-        return u"grouprelease:1:{}:{}".format(
-            group_id, md5_text(u"{}:{}".format(release_id, environment)).hexdigest()
+        return "grouprelease:1:{}:{}".format(
+            group_id, md5_text("{}:{}".format(release_id, environment)).hexdigest()
         )
 
     @classmethod

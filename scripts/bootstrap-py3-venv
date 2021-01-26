@@ -12,8 +12,6 @@
 
 # So just going to sprinkle returns everywhere.
 
-unset SENTRY_PYTHON2
-
 command -v pyenv >/dev/null || {
     echo "You need to install pyenv. https://develop.sentry.dev/environment/#python"
     return 1
@@ -31,12 +29,6 @@ export venv_name="${PWD}/.venv"
 if [[ -f "${venv_name}/bin/activate" ]]; then
     prompt_text="You have an existing virtualenv. This script will OVERWRITE it. Continue (y/N)?"
 
-    # Temporary special case for Python 2 .venv/ -> .venv2/ transition.
-    # Just a more helpful error message.
-    if [[ "$(python -V 2>&1)" = "Python $(grep "2.7" .python-version)" ]]; then
-        prompt_text="You have an existing Python 2 virtualenv. Remove it and replace with a Python 3 virtualenv (y/N)?"
-    fi
-
     echo "$prompt_text"
     read resp
     case "$resp" in
@@ -53,8 +45,7 @@ if ! [[ "$(python3 -V 2>&1)" = "Python $(grep "3.6" .python-version)" ]]; then
 fi
 
 python3 -m pip install -U pip           || { echo "bootstrap failed!"; return 1; }
-python3 -m pip install -U virtualenv    || { echo "bootstrap failed!"; return 1; }
-python3 -m virtualenv "${venv_name}"    || { echo "bootstrap failed!"; return 1; }
+python3 -m venv "${venv_name}"    || { echo "bootstrap failed!"; return 1; }
 source "${venv_name}/bin/activate"      || { echo "bootstrap failed!"; return 1; }
 make setup-git                          || { echo "bootstrap failed!"; return 1; }
 make install-py-dev                     || { echo "bootstrap failed!"; return 1; }

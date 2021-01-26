@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 
 from django.utils.translation import ugettext as _
@@ -19,14 +17,17 @@ from sentry.web.helpers import render_to_string
 
 def react_plugin_config(plugin, project, request):
     response = client.get(
-        u"/projects/{}/{}/plugins/{}/".format(project.organization.slug, project.slug, plugin.slug),
+        "/projects/{}/{}/plugins/{}/".format(project.organization.slug, project.slug, plugin.slug),
         request=request,
     )
+    nonce = ""
+    if hasattr(request, "csp_nonce"):
+        nonce = ' nonce="{}"'.format(request.csp_nonce)
 
     return mark_safe(
         """
     <div id="ref-plugin-config"></div>
-    <script>
+    <script%s>
     $(function(){
         ReactDOM.render(React.createFactory(SentryApp.PluginConfig)({
             project: %s,
@@ -37,6 +38,7 @@ def react_plugin_config(plugin, project, request):
     </script>
     """
         % (
+            nonce,
             json.dumps_htmlsafe(serialize(project, request.user)),
             json.dumps_htmlsafe(serialize(project.organization, request.user)),
             json.dumps_htmlsafe(response.data),

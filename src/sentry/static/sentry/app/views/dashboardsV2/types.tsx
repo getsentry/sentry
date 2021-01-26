@@ -1,4 +1,4 @@
-type DisplayType = 'line' | 'area' | 'stacked_area' | 'bar' | 'table';
+type DisplayType = 'line' | 'area' | 'stacked_area' | 'bar' | 'table' | 'world_map';
 
 export type WidgetQuery = {
   name: string;
@@ -35,4 +35,4 @@ export type DashboardDetails = {
   createdBy: string;
 };
 
-export type DashboardState = 'view' | 'edit' | 'create';
+export type DashboardState = 'view' | 'edit' | 'create' | 'pending_delete';

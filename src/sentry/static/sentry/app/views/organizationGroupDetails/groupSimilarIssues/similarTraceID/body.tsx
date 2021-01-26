@@ -8,7 +8,8 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody} from 'app/components/panels';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
-import {Event, Organization} from 'app/types';
+import {Organization} from 'app/types';
+import {Event} from 'app/types/event';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 

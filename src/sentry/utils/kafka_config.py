@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import six
 from django.conf import settings
 
@@ -13,6 +12,20 @@ SUPPORTED_KAFKA_CONFIGURATION = (
     "sasl.password",
     "security.protocol",
     "socket.timeout.ms",
+    "ssl.ca.location",
+    "ssl.ca.certificate.stores",
+    "ssl.certificate.location",
+    "ssl.certificate.pem",
+    "ssl.cipher.suites",
+    "ssl.crl.location",
+    "ssl.curves.list",
+    "ssl.endpoint.identification.algorithm",
+    "ssl.key.location",
+    "ssl.key.password",
+    "ssl.key.pem",
+    "ssl.keystore.location",
+    "ssl.keystore.password",
+    "ssl.sigalgs.list",
 )
 COMMON_SECTION = "common"
 PRODUCERS_SECTION = "producers"

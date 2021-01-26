@@ -8,7 +8,8 @@ import Tooltip from 'app/components/tooltip';
 import {IconChevron, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, SentryTransactionEvent} from 'app/types';
+import {Organization} from 'app/types';
+import {EventTransaction} from 'app/types/event';
 import {defined, OmitHtmlDivProps} from 'app/utils';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import globalTheme from 'app/utils/theme';
@@ -202,7 +203,7 @@ export const getBackgroundColor = ({
 };
 
 type SpanBarProps = {
-  event: Readonly<SentryTransactionEvent>;
+  event: Readonly<EventTransaction>;
   orgId: string;
   organization: Organization;
   trace: Readonly<ParsedTraceType>;

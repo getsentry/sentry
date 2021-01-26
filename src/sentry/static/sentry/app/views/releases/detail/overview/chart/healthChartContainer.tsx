@@ -67,15 +67,10 @@ class ReleaseChartContainer extends React.Component<Props, State> {
             );
           }
 
-          // Stack the toolbox under the legend.
-          // so all series names are clickable.
-          zoomRenderProps.toolBox.z = -1;
-
           return (
             <TransitionChart loading={loading} reloading={reloading}>
               <TransparentLoadingMask visible={reloading} />
               <HealthChart
-                utc={utc}
                 timeseriesData={chartData}
                 zoomRenderProps={zoomRenderProps}
                 reloading={reloading}

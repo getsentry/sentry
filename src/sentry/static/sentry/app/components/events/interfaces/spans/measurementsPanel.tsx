@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Tooltip from 'app/components/tooltip';
-import {SentryTransactionEvent} from 'app/types';
+import {EventTransaction} from 'app/types/event';
 import {defined} from 'app/utils';
 import {
   LONG_WEB_VITAL_NAMES,
@@ -18,7 +18,7 @@ import {
 } from './utils';
 
 type Props = {
-  event: SentryTransactionEvent;
+  event: EventTransaction;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   dividerPosition: number;
 };

@@ -5,6 +5,7 @@ import {Location} from 'history';
 
 import {Client} from 'app/api';
 import ChartZoom from 'app/components/charts/chartZoom';
+import Legend from 'app/components/charts/components/legend';
 import MarkLine from 'app/components/charts/components/markLine';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import EventsRequest from 'app/components/charts/eventsRequest';
@@ -86,21 +87,12 @@ class VitalChart extends React.Component<Props> {
 
     const yAxis = [`p75(${vitalName})`];
 
-    const legend = {
+    const legend = Legend({
       right: 10,
       top: 0,
-      icon: 'circle',
-      itemHeight: 8,
-      itemWidth: 8,
-      itemGap: 12,
-      align: 'left',
-      textStyle: {
-        verticalAlign: 'top',
-        fontSize: 11,
-        fontFamily: 'Rubik',
-      },
       selected: getSeriesSelection(location),
-    };
+      theme,
+    });
 
     const datetimeSelection = {
       start,
@@ -171,8 +163,8 @@ class VitalChart extends React.Component<Props> {
         showSymbol: false,
       },
       tooltip: {
-        trigger: 'axis',
-        valueFormatter: (value: number, seriesName: string) =>
+        trigger: 'axis' as const,
+        valueFormatter: (value: number, seriesName?: string) =>
           tooltipFormatter(value, vitalName === WebVital.CLS ? seriesName : 'p75()'),
       },
       yAxis: {
@@ -197,12 +189,7 @@ class VitalChart extends React.Component<Props> {
               title={t(`The durations shown should fall under the vital threshold.`)}
             />
           </HeaderTitleLegend>
-          <ChartZoom
-            router={router}
-            period={statsPeriod}
-            projects={project}
-            environments={environment}
-          >
+          <ChartZoom router={router} period={statsPeriod}>
             {zoomRenderProps => (
               <EventsRequest
                 api={api}
@@ -249,10 +236,6 @@ class VitalChart extends React.Component<Props> {
                   const seriesMax = getMaxOfSeries(smoothedSeries);
                   const yAxisMax = Math.max(seriesMax, vitalPoor);
                   chartOptions.yAxis.max = yAxisMax * 1.1;
-
-                  // Stack the toolbox under the legend.
-                  // so all series names are clickable.
-                  zoomRenderProps.toolBox.z = -1;
 
                   return (
                     <ReleaseSeries

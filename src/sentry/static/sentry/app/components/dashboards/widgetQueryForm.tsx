@@ -1,35 +1,31 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
-import set from 'lodash/set';
 
 import {fetchSavedQueries} from 'app/actionCreators/discoverSavedQueries';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
 import SelectControl from 'app/components/forms/selectControl';
-import {IconAdd, IconDelete} from 'app/icons';
+import {IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, SavedQuery, SelectValue} from 'app/types';
-import {
-  explodeField,
-  generateFieldAsString,
-  QueryFieldValue,
-} from 'app/utils/discover/fields';
-import {WidgetQuery} from 'app/views/dashboardsV2/types';
+import {Widget, WidgetQuery} from 'app/views/dashboardsV2/types';
 import SearchBar from 'app/views/events/searchBar';
-import {QueryField} from 'app/views/eventsV2/table/queryField';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
 import Input from 'app/views/settings/components/forms/controls/input';
 import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
 import Field from 'app/views/settings/components/forms/field';
+
+import WidgetQueryFields, {QueryFieldWrapper} from './widgetQueryFields';
 
 type Props = {
   api: Client;
   widgetQuery: WidgetQuery;
   organization: Organization;
   selection: GlobalSelection;
+  displayType: Widget['displayType'];
   fieldOptions: ReturnType<typeof generateFieldOptions>;
   onChange: (widgetQuery: WidgetQuery) => void;
   canRemove: boolean;
@@ -64,37 +60,21 @@ class WidgetQueryForm extends React.Component<Props, State> {
     };
   };
 
-  // Handle new fields being added.
-  handleAddField = (event: React.MouseEvent) => {
-    const {widgetQuery, onChange} = this.props;
-    event.preventDefault();
-
-    const newQuery = {...widgetQuery, fields: [...widgetQuery.fields, '']};
-    onChange(newQuery);
-  };
-
-  // Remove fields from the field list and signal an update.
-  handleRemoveField = (event: React.MouseEvent, fieldIndex: number) => {
-    const {widgetQuery, onChange} = this.props;
-    event.preventDefault();
-
-    const newQuery = cloneDeep(widgetQuery);
-    newQuery.fields.splice(fieldIndex, fieldIndex + 1);
-    onChange(newQuery);
-  };
-
-  handleQueryField = (fieldIndex: number, value: QueryFieldValue) => {
+  handleFieldsChange = (fields: string[]) => {
     const {widgetQuery, onChange} = this.props;
     const newQuery = cloneDeep(widgetQuery);
-    set(newQuery, `fields.${fieldIndex}`, generateFieldAsString(value));
+    newQuery.fields = fields;
     onChange(newQuery);
   };
 
   handleSavedQueryChange = (option: SavedQueryOption) => {
-    const {onChange, widgetQuery} = this.props;
+    const {onChange, displayType, widgetQuery} = this.props;
 
     const newQuery = cloneDeep(widgetQuery);
-    newQuery.fields = [option.query.yAxis ?? 'count()'];
+    newQuery.fields =
+      displayType === 'table'
+        ? [...option.query.fields]
+        : [option.query.yAxis ?? 'count()'];
     newQuery.conditions = option.query.query ?? '';
     newQuery.name = option.query.name;
     onChange(newQuery);
@@ -131,6 +111,7 @@ class WidgetQueryForm extends React.Component<Props, State> {
   render() {
     const {
       canRemove,
+      displayType,
       errors,
       fieldOptions,
       organization,
@@ -141,38 +122,37 @@ class WidgetQueryForm extends React.Component<Props, State> {
 
     return (
       <QueryWrapper>
-        {canRemove && (
-          <RemoveButtonWrapper>
+        <QueryFieldWrapper>
+          <Field
+            data-test-id="source"
+            label="Source"
+            inline={false}
+            flexibleControlStateSize
+            stacked
+            required
+          >
+            <RadioGroup
+              orientInline
+              value={this.state.source}
+              label=""
+              onChange={this.handleSourceChange}
+              choices={[
+                ['new', t('New Query')],
+                ['existing', t('Existing Discover Query')],
+              ]}
+            />
+          </Field>
+          {canRemove && (
             <Button
               data-test-id="remove-query"
-              priority="default"
               size="zero"
               borderless
               onClick={this.props.onRemove}
               icon={<IconDelete />}
               title={t('Remove this query')}
             />
-          </RemoveButtonWrapper>
-        )}
-        <Field
-          data-test-id="source"
-          label="Source"
-          inline={false}
-          flexibleControlStateSize
-          stacked
-          required
-        >
-          <RadioGroup
-            orientInline
-            value={this.state.source}
-            label=""
-            onChange={this.handleSourceChange}
-            choices={[
-              ['new', t('New Query')],
-              ['existing', t('Existing Discover Query')],
-            ]}
-          />
-        </Field>
+          )}
+        </QueryFieldWrapper>
         {source === 'new' && (
           <Field
             data-test-id="new-query"
@@ -241,44 +221,13 @@ class WidgetQueryForm extends React.Component<Props, State> {
             />
           </Field>
         )}
-        <Field
-          data-test-id="y-axis"
-          label="Y-Axis"
-          inline={false}
-          flexibleControlStateSize
-          stacked
-          error={errors?.fields}
-          required
-        >
-          {widgetQuery.fields.map((field, i) => (
-            <QueryFieldWrapper key={`${field}:${i}`}>
-              <QueryField
-                fieldValue={explodeField({field})}
-                fieldOptions={fieldOptions}
-                onChange={value => this.handleQueryField(i, value)}
-              />
-              {widgetQuery.fields.length > 1 && (
-                <Button
-                  size="zero"
-                  borderless
-                  onClick={event => this.handleRemoveField(event, i)}
-                  icon={<IconDelete />}
-                  title={t('Remove this field')}
-                />
-              )}
-            </QueryFieldWrapper>
-          ))}
-          <div>
-            <Button
-              data-test-id="add-field"
-              size="small"
-              onClick={this.handleAddField}
-              icon={<IconAdd isCircled />}
-            >
-              {t('Add an overlay')}
-            </Button>
-          </div>
-        </Field>
+        <WidgetQueryFields
+          displayType={displayType}
+          fieldOptions={fieldOptions}
+          errors={errors}
+          fields={widgetQuery.fields}
+          onChange={this.handleFieldsChange}
+        />
       </QueryWrapper>
     );
   }
@@ -286,23 +235,6 @@ class WidgetQueryForm extends React.Component<Props, State> {
 
 const QueryWrapper = styled('div')`
   padding-bottom: ${space(2)};
-`;
-
-const QueryFieldWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: ${space(1)};
-
-  > * + * {
-    margin-left: ${space(1)};
-  }
-`;
-
-const RemoveButtonWrapper = styled('div')`
-  position: absolute;
-  top: ${space(2)};
-  right: ${space(2)};
 `;
 
 export default WidgetQueryForm;

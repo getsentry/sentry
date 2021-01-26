@@ -3,7 +3,7 @@ import isString from 'lodash/isString';
 import * as qs from 'query-string';
 
 import {FILTER_MASK} from 'app/constants';
-import {RequestEntry} from 'app/types';
+import {EntryRequest} from 'app/types/event';
 import {defined} from 'app/utils';
 
 import {DebugImage} from './debugMeta/types';
@@ -13,7 +13,7 @@ export function escapeQuotes(v: string) {
 }
 
 // TODO(dcramer): support cookies
-export function getCurlCommand(data: RequestEntry['data']) {
+export function getCurlCommand(data: EntryRequest['data']) {
   let result = 'curl';
 
   if (defined(data.method) && data.method !== 'GET') {
@@ -85,7 +85,7 @@ export function stringifyQueryList(query: string | [key: string, value: string][
   return qs.stringify(queryObj);
 }
 
-export function getFullUrl(data: RequestEntry['data']): string | undefined {
+export function getFullUrl(data: EntryRequest['data']): string | undefined {
   let fullUrl = data?.url;
   if (!fullUrl) {
     return fullUrl;
@@ -147,8 +147,8 @@ export function formatAddress(address: number, imageAddressLength: number | unde
   return `0x${address.toString(16).padStart(imageAddressLength ?? 0, '0')}`;
 }
 
-export function parseAddress(address: string | null) {
-  if (address === null) {
+export function parseAddress(address?: string | null) {
+  if (!address) {
     return 0;
   }
 

@@ -110,7 +110,9 @@ class QueryField extends React.Component<Props> {
           if (field === null) {
             fieldValue.function[i + 1] = param.defaultValue || '';
           } else if (
-            (field.kind === FieldValueKind.FIELD || field.kind === FieldValueKind.TAG) &&
+            (field.kind === FieldValueKind.FIELD ||
+              field.kind === FieldValueKind.TAG ||
+              field.kind === FieldValueKind.MEASUREMENT) &&
             validateColumnTypes(param.columnTypes as ValidateColumnTypes, field)
           ) {
             // New function accepts current field.
@@ -120,8 +122,7 @@ class QueryField extends React.Component<Props> {
             fieldValue.function[i + 1] = param.defaultValue || '';
             fieldValue.function[i + 2] = undefined;
           }
-        }
-        if (param.kind === 'value') {
+        } else if (param.kind === 'value') {
           fieldValue.function[i + 1] = param.defaultValue || '';
         }
       });
@@ -568,6 +569,7 @@ const BlankSpace = styled('div')`
   justify-content: center;
 
   &:after {
+    font-size: ${p => p.theme.fontSizeMedium};
     content: '${t('No parameter')}';
     color: ${p => p.theme.gray300};
   }

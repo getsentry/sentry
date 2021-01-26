@@ -4,6 +4,7 @@ import {WithRouterProps} from 'react-router/lib/withRouter';
 
 import {Client} from 'app/api';
 import ChartZoom from 'app/components/charts/chartZoom';
+import Legend from 'app/components/charts/components/legend';
 import LineChart from 'app/components/charts/lineChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 import TransitionChart from 'app/components/charts/transitionChart';
@@ -22,7 +23,6 @@ import {YAxis} from 'app/views/releases/detail/overview/chart/releaseChartContro
 import {NormalizedTrendsTransaction, TrendChangeType, TrendsStats} from './types';
 import {
   getCurrentTrendFunction,
-  getIntervalRatio,
   getUnselectedSeries,
   transformEventStatsSmoothed,
   trendToColor,
@@ -64,16 +64,17 @@ function transformEventStats(data: EventsStatsData, seriesName?: string): Series
 }
 
 function getLegend(trendFunction: string) {
-  const legend = {
+  const legend = Legend({
     right: 10,
     top: 0,
     itemGap: 12,
-    align: 'left',
+    align: 'left' as const,
     textStyle: {
       verticalAlign: 'top',
       fontSize: 11,
       fontFamily: 'Rubik',
     },
+    theme,
     data: [
       {
         name: 'Baseline',
@@ -89,7 +90,7 @@ function getLegend(trendFunction: string) {
         icon: 'line',
       },
     ],
-  };
+  });
   return legend;
 }
 
@@ -152,7 +153,7 @@ function getIntervalLine(
   };
 
   const seriesDiff = seriesEnd - seriesStart;
-  const seriesLine = seriesDiff * (intervalRatio || 0.5) + seriesStart;
+  const seriesLine = seriesDiff * intervalRatio + seriesStart;
 
   previousPeriod.markLine.data = [
     [
@@ -256,7 +257,6 @@ class Chart extends React.Component<Props> {
     const end = props.end ? getUtcToLocalDateObject(props.end) : null;
     const utc = decodeScalar(router.location.query.utc) !== 'false';
 
-    const intervalRatio = getIntervalRatio(router.location);
     const seriesSelection = (
       decodeList(location.query[getUnselectedSeries(trendChangeType)]) ?? []
     ).reduce((selection, metric) => {
@@ -312,12 +312,7 @@ class Chart extends React.Component<Props> {
     };
 
     return (
-      <ChartZoom
-        router={router}
-        period={statsPeriod}
-        projects={project}
-        environments={environment}
-      >
+      <ChartZoom router={router} period={statsPeriod}>
         {zoomRenderProps => {
           const smoothedSeries = smoothedResults
             ? smoothedResults.map(values => {
@@ -331,11 +326,7 @@ class Chart extends React.Component<Props> {
               })
             : [];
 
-          const intervalSeries = getIntervalLine(
-            smoothedResults || [],
-            intervalRatio,
-            transaction
-          );
+          const intervalSeries = getIntervalLine(smoothedResults || [], 0.5, transaction);
 
           return (
             <ReleaseSeries

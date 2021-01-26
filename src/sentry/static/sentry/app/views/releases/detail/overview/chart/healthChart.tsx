@@ -4,6 +4,8 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import AreaChart from 'app/components/charts/areaChart';
+import {ZoomRenderProps} from 'app/components/charts/chartZoom';
+import Legend from 'app/components/charts/components/legend';
 import LineChart from 'app/components/charts/lineChart';
 import StackedAreaChart from 'app/components/charts/stackedAreaChart';
 import {getSeriesSelection} from 'app/components/charts/utils';
@@ -12,6 +14,7 @@ import QuestionTooltip from 'app/components/questionTooltip';
 import {PlatformKey} from 'app/data/platformCategories';
 import {Series} from 'app/types/echarts';
 import {defined} from 'app/utils';
+import {getUtcDateString} from 'app/utils/dates';
 import {axisDuration} from 'app/utils/discover/charts';
 import {getExactDuration} from 'app/utils/formatters';
 import {decodeList} from 'app/utils/queryString';
@@ -28,9 +31,8 @@ import {YAxis} from './releaseChartControls';
 
 type Props = {
   reloading: boolean;
-  utc: boolean | null;
   timeseriesData: Series[];
-  zoomRenderProps: any;
+  zoomRenderProps: ZoomRenderProps;
   yAxis: YAxis;
   location: Location;
   platform: PlatformKey;
@@ -149,8 +151,8 @@ class HealthChart extends React.Component<Props> {
       }
 
       return {
-        min: zoomRenderProps.start,
-        max: zoomRenderProps.end,
+        min: getUtcDateString(zoomRenderProps.start),
+        max: getUtcDateString(zoomRenderProps.end),
       };
     }
 
@@ -196,34 +198,21 @@ class HealthChart extends React.Component<Props> {
   }
 
   render() {
-    const {utc, timeseriesData, zoomRenderProps, location, title, help} = this.props;
+    const {timeseriesData, zoomRenderProps, location, title, help} = this.props;
 
     const Chart = this.getChart();
 
-    const legend = {
+    const legend = Legend({
       right: 10,
       top: 0,
-      icon: 'circle',
-      itemHeight: 8,
-      itemWidth: 8,
-      itemGap: 12,
-      align: 'left',
-      textStyle: {
-        verticalAlign: 'top',
-        fontSize: 11,
-        fontFamily: 'Rubik',
-      },
       data: timeseriesData.map(d => d.seriesName).reverse(),
       selected: getSeriesSelection(location),
+      theme,
       tooltip: {
         show: true,
-        formatter: (params: {
-          $vars: string[];
-          componentType: string;
-          legendIndex: number;
-          name: string;
-        }): string => {
-          const seriesNameDesc = this.getLegendTooltipDescription(params.name);
+        // TODO(ts) tooltip.formatter has incorrect types in echarts 4
+        formatter: (params: any): string => {
+          const seriesNameDesc = this.getLegendTooltipDescription(params.name ?? '');
 
           if (!seriesNameDesc) {
             return '';
@@ -232,7 +221,7 @@ class HealthChart extends React.Component<Props> {
           return ['<div class="tooltip-description">', seriesNameDesc, '</div>'].join('');
         },
       },
-    };
+    });
 
     return (
       <React.Fragment>
@@ -243,7 +232,6 @@ class HealthChart extends React.Component<Props> {
 
         <Chart
           legend={legend}
-          utc={utc}
           {...zoomRenderProps}
           series={timeseriesData}
           isGroupedByDate

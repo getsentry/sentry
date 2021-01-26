@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.utils.compat import mock
 from selenium.common.exceptions import TimeoutException
 
@@ -53,9 +51,5 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         assert project.platform == "node"
 
         self.browser.click('[data-test-id="onboarding-getting-started-invite-members"]')
-        self.browser.wait_until('[name="email"]')
+        self.browser.wait_until(".modal-dialog")
         self.browser.snapshot(name="onboarding - invite members")
-
-        self.browser.click('[data-test-id="onboarding-getting-started-learn-more"]')
-        self.browser.wait_until_not('[name="email"]')
-        self.browser.snapshot(name="onboarding - learn more")

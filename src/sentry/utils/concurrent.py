@@ -1,9 +1,5 @@
-from __future__ import absolute_import
-
 import logging
-import sys
 import threading
-import six
 import collections
 import functools
 
@@ -28,10 +24,7 @@ def execute(function, daemon=True):
         try:
             result = function()
         except Exception as e:
-            if six.PY3:
-                future.set_exception(e)
-            else:
-                future.set_exception_info(*sys.exc_info()[1:])
+            future.set_exception(e)
         else:
             future.set_result(result)
 
@@ -108,24 +101,10 @@ class TimedFuture(Future):
             self.__timing[1] = time()
             return super(TimedFuture, self).set_result(*args, **kwargs)
 
-    # XXX: In python2 land we use pythonfutures library, which implements the
-    # set_exception_info method, we want to override that here instead of
-    # set_exception if we can.
-    if six.PY3:
-
-        def set_exception(self, *args, **kwargs):
-            with self._condition:
-                self.__timing[1] = time()
-                return super(TimedFuture, self).set_exception(*args, **kwargs)
-
-    else:
-
-        def set_exception_info(self, *args, **kwargs):
-            # XXX: This makes the potentially unsafe assumption that
-            # ``set_exception`` will always continue to call this function.
-            with self._condition:
-                self.__timing[1] = time()
-                return super(TimedFuture, self).set_exception_info(*args, **kwargs)
+    def set_exception(self, *args, **kwargs):
+        with self._condition:
+            self.__timing[1] = time()
+            return super(TimedFuture, self).set_exception(*args, **kwargs)
 
 
 class Executor(object):
@@ -173,10 +152,7 @@ class SynchronousExecutor(Executor):
         try:
             result = callable()
         except Exception as e:
-            if six.PY3:
-                future.set_exception(e)
-            else:
-                future.set_exception_info(*sys.exc_info()[1:])
+            future.set_exception(e)
         else:
             future.set_result(result)
         return future
@@ -209,10 +185,7 @@ class ThreadedExecutor(Executor):
             try:
                 result = function()
             except Exception as e:
-                if six.PY3:
-                    future.set_exception(e)
-                else:
-                    future.set_exception_info(*sys.exc_info()[1:])
+                future.set_exception(e)
             else:
                 future.set_result(result)
             queue.task_done()

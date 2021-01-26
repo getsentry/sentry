@@ -1,6 +1,7 @@
+import {Breadcrumb, BreadcrumbLevelType} from 'app/types/breadcrumbs';
+
 import convertCrumbType from './convertCrumbType';
 import getCrumbDetails from './getCrumbDetails';
-import {Breadcrumb, BreadcrumbLevelType} from './types';
 
 const transformCrumbs = (breadcrumbs: Array<Breadcrumb>) =>
   breadcrumbs.map((breadcrumb, index) => {

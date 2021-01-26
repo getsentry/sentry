@@ -73,19 +73,21 @@ const tagStoreConfig: Reflux.StoreDefinition & TagStoreInterface = {
 
   getIssueAttributes() {
     // TODO(mitsuhiko): what do we do with translations here?
+    const isSuggestions = [
+      'resolved',
+      'unresolved',
+      'ignored',
+      'assigned',
+      'unassigned',
+      'linked',
+      'unlinked',
+    ];
     return {
       is: {
         key: 'is',
         name: 'Status',
-        values: [
-          'resolved',
-          'unresolved',
-          'ignored',
-          'assigned',
-          'unassigned',
-          'linked',
-          'unlinked',
-        ],
+        values: isSuggestions,
+        maxSuggestedValues: isSuggestions.length,
         predefined: true,
       },
       has: {

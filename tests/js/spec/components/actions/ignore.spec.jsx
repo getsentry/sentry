@@ -1,7 +1,7 @@
 import React from 'react';
-import $ from 'jquery';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {mountGlobalModal} from 'sentry-test/modal';
 
 import IgnoreActions from 'app/components/actions/ignore';
 
@@ -75,19 +75,20 @@ describe('IgnoreActions', function () {
 
     beforeEach(function () {
       component = mountWithTheme(
-        <IgnoreActions onUpdate={spy} shouldConfirm confirmMessage="Yoooooo" />,
+        <IgnoreActions onUpdate={spy} shouldConfirm confirmMessage="confirm me" />,
         routerContext
       );
       button = component.find('button[aria-label="Ignore"]');
     });
 
-    it('displays confirmation modal with message provided', function () {
+    it('displays confirmation modal with message provided', async function () {
       button.simulate('click');
 
-      const modal = $(document.body).find('.modal');
-      expect(modal.text()).toContain('Yoooooo');
+      const modal = await mountGlobalModal();
+
+      expect(modal.text()).toContain('confirm me');
       expect(spy).not.toHaveBeenCalled();
-      $(document.body).find('.modal button:contains("Ignore")').click();
+      modal.find('Button[priority="primary"]').simulate('click');
 
       expect(spy).toHaveBeenCalled();
     });

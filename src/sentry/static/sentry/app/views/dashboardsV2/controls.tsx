@@ -4,9 +4,11 @@ import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import Confirm from 'app/components/confirm';
 import SelectControl from 'app/components/forms/selectControl';
 import {IconAdd, IconEdit} from 'app/icons';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {Organization} from 'app/types';
 
 import {DashboardDetails, DashboardListItem, DashboardState} from './types';
@@ -53,20 +55,19 @@ class Controls extends React.Component<Props> {
       </Button>
     );
 
-    if (dashboardState === 'edit') {
+    if (['edit', 'pending_delete'].includes(dashboardState)) {
       return (
         <ButtonBar gap={1} key="edit-controls">
           {cancelButton}
-          <Button
-            data-test-id="dashboard-delete"
-            onClick={e => {
-              e.preventDefault();
-              onDelete();
-            }}
+          <Confirm
             priority="danger"
+            message={t('Are you sure you want to delete this dashboard?')}
+            onConfirm={onDelete}
           >
-            {t('Delete')}
-          </Button>
+            <Button data-test-id="dashboard-delete" priority="danger">
+              {t('Delete')}
+            </Button>
+          </Confirm>
           <Button
             data-test-id="dashboard-commit"
             onClick={e => {
@@ -75,7 +76,7 @@ class Controls extends React.Component<Props> {
             }}
             priority="primary"
           >
-            {t('Finish Editing')}
+            {t('Save and Finish')}
           </Button>
         </ButtonBar>
       );
@@ -92,9 +93,8 @@ class Controls extends React.Component<Props> {
               onCommit();
             }}
             priority="primary"
-            icon={<IconAdd size="xs" isCircled />}
           >
-            {t('Create Dashboard')}
+            {t('Save and Finish')}
           </Button>
         </ButtonBar>
       );
@@ -118,7 +118,7 @@ class Controls extends React.Component<Props> {
     }
 
     return (
-      <ButtonBar gap={1} key="controls">
+      <StyledButtonBar gap={1} key="controls">
         <DashboardSelect>
           <SelectControl
             key="select"
@@ -137,27 +137,27 @@ class Controls extends React.Component<Props> {
           />
         </DashboardSelect>
         <Button
-          data-test-id="dashboard-edit"
-          onClick={e => {
-            e.preventDefault();
-            onEdit();
-          }}
-          icon={<IconEdit size="xs" />}
-        >
-          {t('Edit')}
-        </Button>
-        <Button
           data-test-id="dashboard-create"
           onClick={e => {
             e.preventDefault();
             onCreate();
           }}
-          priority="primary"
           icon={<IconAdd size="xs" isCircled />}
         >
           {t('Create Dashboard')}
         </Button>
-      </ButtonBar>
+        <Button
+          data-test-id="dashboard-edit"
+          onClick={e => {
+            e.preventDefault();
+            onEdit();
+          }}
+          priority="primary"
+          icon={<IconEdit size="xs" />}
+        >
+          {t('Edit Dashboard')}
+        </Button>
+      </StyledButtonBar>
     );
   }
 }
@@ -165,6 +165,14 @@ class Controls extends React.Component<Props> {
 const DashboardSelect = styled('div')`
   min-width: 200px;
   font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const StyledButtonBar = styled(ButtonBar)`
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-auto-flow: row;
+    grid-row-gap: ${space(1)};
+    width: 100%;
+  }
 `;
 
 export default Controls;

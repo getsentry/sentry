@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import math
 
 from sentry.utils.compat.mock import Mock

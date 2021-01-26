@@ -20,7 +20,8 @@ import {t} from 'app/locale';
 import {DebugMetaActions} from 'app/stores/debugMetaStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Event, Frame, Organization, PlatformType, SentryAppComponent} from 'app/types';
+import {Frame, Organization, PlatformType, SentryAppComponent} from 'app/types';
+import {Event} from 'app/types/event';
 import {defined, objectIsEmpty} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withOrganization from 'app/utils/withOrganization';
@@ -173,13 +174,14 @@ export class Line extends React.Component<Props, State> {
 
   scrollToImage = event => {
     event.stopPropagation(); // to prevent collapsing if collapsable
+
     const {instructionAddr, addrMode} = this.props.data;
     if (instructionAddr) {
       DebugMetaActions.updateFilter(
         makeFilter(instructionAddr, addrMode, this.props.image)
       );
     }
-    scrollToElement('#packages');
+    scrollToElement('#images-loaded');
   };
 
   preventCollapse = evt => {
@@ -309,7 +311,10 @@ export class Line extends React.Component<Props, State> {
                 onClick={this.scrollToImage}
                 isClickable={this.shouldShowLinkToImage()}
               >
-                <PackageStatus status={packageStatus} tooltip={t('Image loaded')} />
+                <PackageStatus
+                  status={packageStatus}
+                  tooltip={t('Go to Images Loaded')}
+                />
               </PackageLink>
             </PackageInfo>
             {data.instructionAddr && (
@@ -434,7 +439,7 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
 
   @media (min-width: ${props => props.theme.breakpoints[2]}) and (max-width: ${props =>
       props.theme.breakpoints[3]}) {
-    grid-template-columns: ${p => (p.isFrameAfterLastNonApp ? '180px' : '130px')} 117px 1fr auto;
+    grid-template-columns: ${p => (p.isFrameAfterLastNonApp ? '180px' : '140px')} 117px 1fr auto;
   }
 `;
 

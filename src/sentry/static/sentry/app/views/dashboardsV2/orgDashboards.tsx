@@ -1,7 +1,7 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
-import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
+import isEqual from 'lodash/isEqual';
 
 import {Client} from 'app/api';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -23,9 +23,9 @@ type OrgDashboardsChildrenProps = {
 
 type Props = {
   api: Client;
-  location: Location;
-  params: Params;
   organization: Organization;
+  params: {orgId: string; dashboardId?: string};
+  location: Location;
   children: (props: OrgDashboardsChildrenProps) => React.ReactNode;
 };
 
@@ -50,6 +50,12 @@ class OrgDashboards extends AsyncComponent<Props, State> {
     selectedDashboard: null,
   };
 
+  componentDidUpdate(prevProps: Props) {
+    if (!isEqual(prevProps.params, this.props.params)) {
+      this.remountComponent();
+    }
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, params} = this.props;
     const url = `/organizations/${organization.slug}/dashboards/`;
@@ -69,7 +75,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
   }
 
   onRequestSuccess({stateKey, data}) {
-    const {params, organization} = this.props;
+    const {params, organization, location} = this.props;
     if (params.dashboardId || stateKey === 'selectedDashboard') {
       return;
     }
@@ -78,7 +84,12 @@ class OrgDashboards extends AsyncComponent<Props, State> {
     // we can redirect to the first dashboard in the list.
     const dashboardId = data.length ? data[0].id : 'default-overview';
     const url = `/organizations/${organization.slug}/dashboards/${dashboardId}/`;
-    browserHistory.replace({pathname: url});
+    browserHistory.replace({
+      pathname: url,
+      query: {
+        ...location.query,
+      },
+    });
   }
 
   renderBody() {

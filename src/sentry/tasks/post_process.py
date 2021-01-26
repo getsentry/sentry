@@ -1,11 +1,10 @@
-from __future__ import absolute_import, print_function
-
 import logging
 import sentry_sdk
 
-
 from sentry import features
+from sentry.app import locks
 from sentry.utils.cache import cache
+from sentry.utils.locking import UnableToAcquireLock
 from sentry.exceptions import PluginError
 from sentry.signals import event_processed, issue_unignored
 from sentry.tasks.base import instrumented_task
@@ -19,7 +18,7 @@ logger = logging.getLogger("sentry")
 def _get_service_hooks(project_id):
     from sentry.models import ServiceHook
 
-    cache_key = u"servicehooks:1:{}".format(project_id)
+    cache_key = "servicehooks:1:{}".format(project_id)
     result = cache.get(cache_key)
 
     if result is None:
@@ -32,7 +31,7 @@ def _get_service_hooks(project_id):
 def _should_send_error_created_hooks(project):
     from sentry.models import ServiceHook, Organization
 
-    cache_key = u"servicehooks-error-created:1:{}".format(project.id)
+    cache_key = "servicehooks-error-created:1:{}".format(project.id)
     result = cache.get(cache_key)
 
     if result is None:
@@ -66,7 +65,7 @@ def _capture_stats(event, is_new):
         metrics.incr("events.unique", tags=tags, skip_internal=False)
 
     metrics.incr("events.processed", tags=tags, skip_internal=False)
-    metrics.incr(u"events.processed.{platform}".format(platform=platform), skip_internal=False)
+    metrics.incr("events.processed.{platform}".format(platform=platform), skip_internal=False)
     metrics.timing("events.size.data", event.size, tags=tags)
 
     # This is an experiment to understand whether we have, in production,
@@ -82,7 +81,7 @@ def handle_owner_assignment(project, group, event):
     from sentry.models import GroupAssignee, ProjectOwnership
 
     with metrics.timer("post_process.handle_owner_assignment"):
-        owners_ingestion = features.has("projects:workflow-owners-ingestion", event.project)
+        owners_ingestion = features.has("organizations:workflow-owners", event.project.organization)
 
         # Is the issue already assigned to a team or user?
         key = "assignee_exists:1:%s" % group.id
@@ -119,43 +118,45 @@ def handle_group_owners(project, group, owners):
     from sentry.models.team import Team
     from sentry.models.user import User
 
-    current_group_owners = GroupOwner.objects.filter(
-        group=group, type=GroupOwnerType.OWNERSHIP_RULE.value
-    )
-    new_owners = {(type(owner), owner.id) for owner in owners}
-    # Owners already in the database that we'll keep
-    keeping_owners = set()
-    for owner in current_group_owners:
-        lookup_key = (Team, owner.team_id) if owner.team_id is not None else (User, owner.user_id)
-        if lookup_key not in new_owners:
-            owner.delete()
-        else:
-            keeping_owners.add(lookup_key)
-
-    new_group_owners = []
-
-    for key in new_owners:
-        if key not in keeping_owners:
-            owner_type, owner_id = key
-            user_id = None
-            team_id = None
-            if owner_type is User:
-                user_id = owner_id
-            if owner_type is Team:
-                team_id = owner_id
-            new_group_owners.append(
-                GroupOwner(
-                    group=group,
-                    type=GroupOwnerType.OWNERSHIP_RULE.value,
-                    user_id=user_id,
-                    team_id=team_id,
-                    project=project,
-                    organization=project.organization,
-                )
+    with metrics.timer("post_process.handle_group_owners"):
+        current_group_owners = GroupOwner.objects.filter(
+            group=group, type=GroupOwnerType.OWNERSHIP_RULE.value
+        )
+        new_owners = {(type(owner), owner.id) for owner in owners}
+        # Owners already in the database that we'll keep
+        keeping_owners = set()
+        for owner in current_group_owners:
+            lookup_key = (
+                (Team, owner.team_id) if owner.team_id is not None else (User, owner.user_id)
             )
+            if lookup_key not in new_owners:
+                owner.delete()
+            else:
+                keeping_owners.add(lookup_key)
 
-    if new_group_owners:
-        GroupOwner.objects.bulk_create(new_group_owners)
+        new_group_owners = []
+
+        for key in new_owners:
+            if key not in keeping_owners:
+                owner_type, owner_id = key
+                user_id = None
+                team_id = None
+                if owner_type is User:
+                    user_id = owner_id
+                if owner_type is Team:
+                    team_id = owner_id
+                new_group_owners.append(
+                    GroupOwner(
+                        group=group,
+                        type=GroupOwnerType.OWNERSHIP_RULE.value,
+                        user_id=user_id,
+                        team_id=team_id,
+                        project=project,
+                        organization=project.organization,
+                    )
+                )
+        if new_group_owners:
+            GroupOwner.objects.bulk_create(new_group_owners)
 
 
 def update_existing_attachments(event):
@@ -191,7 +192,8 @@ def post_process_group(
         data = event_processing_store.get(cache_key)
         if not data:
             logger.info(
-                "post_process.skipped", extra={"cache_key": cache_key, "reason": "missing_cache"},
+                "post_process.skipped",
+                extra={"cache_key": cache_key, "reason": "missing_cache"},
             )
             return
         event = Event(
@@ -242,6 +244,10 @@ def post_process_group(
 
         _capture_stats(event, is_new)
 
+        from sentry.reprocessing2 import spawn_capture_nodestore_stats
+
+        spawn_capture_nodestore_stats(cache_key, event.project_id, event.event_id)
+
         if event.group_id and is_reprocessed and is_new:
             add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
 
@@ -268,24 +274,30 @@ def post_process_group(
                 with sentry_sdk.start_transaction(
                     op="post_process_group", name="rule_processor_apply", sampled=True
                 ):
-                    safe_execute(callback, event, futures)
-
-            has_commit_key = "workflow-owners-ingestion:org-{}-has-commits".format(
-                event.project.organization_id
-            )
+                    safe_execute(callback, event, futures, _with_transaction=False)
 
             try:
-                org_has_commit = cache.get(has_commit_key)
-                if org_has_commit is None:
-                    org_has_commit = Commit.objects.filter(
-                        organization_id=event.project.organization_id
-                    ).exists()
-                    cache.set(has_commit_key, org_has_commit, 3600)
+                lock = locks.get(
+                    "w-o:{}-d-l".format(event.group_id),
+                    duration=10,
+                )
+                try:
+                    with lock.acquire():
+                        has_commit_key = "w-o:{}-h-c".format(event.project.organization_id)
+                        org_has_commit = cache.get(has_commit_key)
+                        if org_has_commit is None:
+                            org_has_commit = Commit.objects.filter(
+                                organization_id=event.project.organization_id
+                            ).exists()
+                            cache.set(has_commit_key, org_has_commit, 3600)
 
-                if org_has_commit and features.has(
-                    "projects:workflow-owners-ingestion", event.project,
-                ):
-                    process_suspect_commits(event=event)
+                        if org_has_commit and features.has(
+                            "organizations:workflow-owners",
+                            event.project.organization,
+                        ):
+                            process_suspect_commits(event=event)
+                except UnableToAcquireLock:
+                    pass
             except Exception:
                 logger.exception("Failed to process suspect commits")
 
@@ -321,7 +333,7 @@ def post_process_group(
 
             from sentry import similarity
 
-            safe_execute(similarity.record, event.project, [event])
+            safe_execute(similarity.record, event.project, [event], _with_transaction=False)
 
         if event.group_id:
             # Patch attachments that were ingested on the standalone path.
@@ -404,5 +416,6 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
         event=event,
         group=event.group,
         expected_errors=(PluginError,),
-        **kwargs
+        _with_transaction=False,
+        **kwargs,
     )

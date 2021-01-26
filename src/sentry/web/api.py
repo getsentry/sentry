@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from django.http import HttpResponse
 from django.views.decorators.cache import cache_control
 from django.views.generic.base import View as BaseView

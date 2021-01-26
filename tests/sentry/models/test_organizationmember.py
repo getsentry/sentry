@@ -1,6 +1,5 @@
 # coding: utf-8
 
-from __future__ import absolute_import
 
 from datetime import timedelta
 from django.core import mail
@@ -190,7 +189,9 @@ class OrganizationMemberTest(TestCase):
     def test_scopes_with_member_admin_config(self):
         organization = self.create_organization()
         member = OrganizationMember.objects.create(
-            organization=organization, role="member", email="test@example.com",
+            organization=organization,
+            role="member",
+            email="test@example.com",
         )
 
         assert "event:admin" in member.get_scopes()
@@ -202,3 +203,29 @@ class OrganizationMemberTest(TestCase):
         organization.update_option("sentry:events_member_admin", False)
 
         assert "event:admin" not in member.get_scopes()
+
+    def test_scopes_with_member_alert_write(self):
+        organization = self.create_organization()
+        member = OrganizationMember.objects.create(
+            organization=organization,
+            role="member",
+            email="test@example.com",
+        )
+        admin = OrganizationMember.objects.create(
+            organization=organization,
+            role="admin",
+            email="admin@example.com",
+        )
+
+        assert "alerts:write" in member.get_scopes()
+        assert "alerts:write" in admin.get_scopes()
+
+        organization.update_option("sentry:alerts_member_write", True)
+
+        assert "alerts:write" in member.get_scopes()
+        assert "alerts:write" in admin.get_scopes()
+
+        organization.update_option("sentry:alerts_member_write", False)
+
+        assert "alerts:write" not in member.get_scopes()
+        assert "alerts:write" in admin.get_scopes()

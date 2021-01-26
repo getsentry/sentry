@@ -18,12 +18,6 @@ const message = (
   </React.Fragment>
 );
 
-class RemoveConfirm extends React.Component<Props> {
-  static defaultProps = Confirm.defaultProps;
-
-  render() {
-    return <Confirm {...this.props} message={message} />;
-  }
-}
+const RemoveConfirm = (props: Props) => <Confirm {...props} message={message} />;
 
 export default RemoveConfirm;

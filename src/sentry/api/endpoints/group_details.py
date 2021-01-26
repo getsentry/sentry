@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from datetime import timedelta
 import functools
 import logging
@@ -138,7 +136,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             )
         }
         serialized_releases = serialize(
-            [releases.get(version) for version in versions], request.user,
+            [releases.get(version) for version in versions],
+            request.user,
         )
         # Default to a dictionary if the release object wasn't found and not serialized
         return [
@@ -203,10 +202,10 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 group.project_id, group.id, environment_ids, limit=100
             )
             if not environment_ids:
-                user_reports = UserReport.objects.filter(group=group)
+                user_reports = UserReport.objects.filter(group_id=group.id)
             else:
                 user_reports = UserReport.objects.filter(
-                    group=group, environment_id__in=environment_ids
+                    group_id=group.id, environment_id__in=environment_ids
                 )
 
             now = timezone.now()
@@ -253,13 +252,25 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 }
             )
 
-            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 200})
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": 200, "detail": "group_details:get:response"},
+            )
             return Response(data)
         except snuba.RateLimitExceeded:
-            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 429})
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": 429, "detail": "group_details:get:snuba.RateLimitExceeded"},
+            )
             raise
         except Exception:
-            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": 500, "detail": "group_details:get:Exception"},
+            )
             raise
 
     @rate_limit_endpoint(limit=10, window=1)
@@ -298,7 +309,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             # TODO(dcramer): we need to implement assignedTo in the bulk mutation
             # endpoint
             response = client.put(
-                path=u"/projects/{}/{}/issues/".format(
+                path="/projects/{}/{}/issues/".format(
                     group.project.organization.slug, group.project.slug
                 ),
                 params={"id": group.id},
@@ -328,19 +339,31 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 ),
             )
             metrics.incr(
-                "group.update.http_response", sample_rate=1.0, tags={"status": response.status_code}
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": response.status_code, "detail": "group_details:put:response"},
             )
             return Response(serialized, status=response.status_code)
         except client.ApiError as e:
             metrics.incr(
-                "group.update.http_response", sample_rate=1.0, tags={"status": e.status_code}
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": e.status_code, "detail": "group_details:put:client.ApiError"},
             )
             return Response(e.body, status=e.status_code)
         except snuba.RateLimitExceeded:
-            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 429})
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": 429, "detail": "group_details:put:snuba.RateLimitExceeded"},
+            )
             raise
         except Exception:
-            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": 500, "detail": "group_details:put:Exception"},
+            )
             raise
 
     @rate_limit_endpoint(limit=10, window=1)
@@ -382,11 +405,23 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     group=group, user=request.user, delete_type="delete", sender=self.__class__
                 )
 
-            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 200})
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": 200, "detail": "group_details:delete:Reponse"},
+            )
             return Response(status=202)
         except snuba.RateLimitExceeded:
-            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 429})
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": 429, "detail": "group_details:delete:snuba.RateLimitExceeded"},
+            )
             raise
         except Exception:
-            metrics.incr("group.update.http_response", sample_rate=1.0, tags={"status": 500})
+            metrics.incr(
+                "group.update.http_response",
+                sample_rate=1.0,
+                tags={"status": 500, "detail": "group_details:delete:Exception"},
+            )
             raise

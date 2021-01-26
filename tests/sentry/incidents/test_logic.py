@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 import pytz
 import responses
@@ -84,6 +82,7 @@ from sentry.testutils import TestCase, BaseIncidentsTest
 from sentry.models import PagerDutyService
 
 from sentry.testutils.helpers.datetime import iso_format, before_now
+from sentry.testutils.helpers import with_feature
 from sentry.utils import json
 from sentry.utils.compat.mock import patch
 from sentry.utils.samples import load_data
@@ -564,7 +563,9 @@ class CreateIncidentSnapshotTest(TestCase, BaseIncidentsTest):
         assert start == datetime.utcnow().replace(tzinfo=pytz.utc) - timedelta(days=90)
         assert end == incident.date_closed.replace(tzinfo=pytz.utc) + timedelta(minutes=time_window)
 
-        incident.update(date_closed=datetime.utcnow() - timedelta(days=95),)
+        incident.update(
+            date_closed=datetime.utcnow() - timedelta(days=95),
+        )
 
         start, end = calculate_incident_time_range(incident)
         assert start == datetime.utcnow().replace(tzinfo=pytz.utc) - timedelta(days=90)
@@ -1260,6 +1261,42 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
     @responses.activate
     def test_slack(self):
         integration = Integration.objects.create(
+            external_id="2",
+            provider="slack",
+            metadata={
+                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+        type = AlertRuleTriggerAction.Type.SLACK
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        channel_name = "#some_channel"
+        channel_id = "s_c"
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.list",
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {"ok": "true", "channels": [{"name": channel_name[1:], "id": channel_id}]}
+            ),
+        )
+
+        action = create_alert_rule_trigger_action(
+            self.trigger, type, target_type, target_identifier=channel_name, integration=integration
+        )
+        assert action.alert_rule_trigger == self.trigger
+        assert action.type == type.value
+        assert action.target_type == target_type.value
+        assert action.target_identifier == channel_id
+        assert action.target_display == channel_name
+        assert action.integration == integration
+
+    @responses.activate
+    @with_feature("organizations:slack-allow-workspace")
+    def test_slack_workspace(self):
+        integration = Integration.objects.create(
             external_id="1",
             provider="slack",
             metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
@@ -1288,6 +1325,37 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         assert action.target_identifier == channel_id
         assert action.target_display == channel_name
         assert action.integration == integration
+
+    @responses.activate
+    def test_slack_workspace_deprecated_error(self):
+        integration = Integration.objects.create(
+            external_id="1",
+            provider="slack",
+            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+        )
+        integration.add_organization(self.organization, self.user)
+        type = AlertRuleTriggerAction.Type.SLACK
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        channel_name = "#some_channel"
+        channel_id = "s_c"
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/channels.list",
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {"ok": "true", "channels": [{"name": channel_name[1:], "id": channel_id}]}
+            ),
+        )
+
+        with self.assertRaises(InvalidTriggerActionError):
+            create_alert_rule_trigger_action(
+                self.trigger,
+                type,
+                target_type,
+                target_identifier=channel_name,
+                integration=integration,
+            )
 
     def test_slack_not_existing(self):
         integration = Integration.objects.create(
@@ -1388,7 +1456,9 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
 
     def test_pagerduty_not_existing(self):
         integration = Integration.objects.create(
-            provider="pagerduty", name="Example PagerDuty", external_id="example-pagerduty",
+            provider="pagerduty",
+            name="Example PagerDuty",
+            external_id="example-pagerduty",
         )
         integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.PAGERDUTY
@@ -1428,6 +1498,42 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
 
     @responses.activate
     def test_slack(self):
+        integration = Integration.objects.create(
+            external_id="1",
+            provider="slack",
+            metadata={
+                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+        type = AlertRuleTriggerAction.Type.SLACK
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+        channel_name = "#some_channel"
+        channel_id = "s_c"
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.list",
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {"ok": "true", "channels": [{"name": channel_name[1:], "id": channel_id}]}
+            ),
+        )
+
+        action = update_alert_rule_trigger_action(
+            self.action, type, target_type, target_identifier=channel_name, integration=integration
+        )
+        assert action.alert_rule_trigger == self.trigger
+        assert action.type == type.value
+        assert action.target_type == target_type.value
+        assert action.target_identifier == channel_id
+        assert action.target_display == channel_name
+        assert action.integration == integration
+
+    @responses.activate
+    @with_feature("organizations:slack-allow-workspace")
+    def test_slack_workspace(self):
         integration = Integration.objects.create(
             external_id="1",
             provider="slack",
@@ -1558,7 +1664,9 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
 
     def test_pagerduty_not_existing(self):
         integration = Integration.objects.create(
-            provider="pagerduty", name="Example PagerDuty", external_id="example-pagerduty",
+            provider="pagerduty",
+            name="Example PagerDuty",
+            external_id="example-pagerduty",
         )
         integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.PAGERDUTY
@@ -1701,7 +1809,9 @@ class TriggerActionTest(TestCase):
     def test_rule_updated(self):
         incident = self.create_incident(alert_rule=self.rule)
         IncidentTrigger.objects.create(
-            incident=incident, alert_rule_trigger=self.trigger, status=TriggerStatus.ACTIVE.value,
+            incident=incident,
+            alert_rule_trigger=self.trigger,
+            status=TriggerStatus.ACTIVE.value,
         )
 
         with self.tasks(), self.capture_on_commit_callbacks(execute=True):
@@ -1709,12 +1819,14 @@ class TriggerActionTest(TestCase):
 
         out = mail.outbox[0]
         assert out.to == [self.user.email]
-        assert out.subject == u"[Resolved] {} - {}".format(incident.title, self.project.slug)
+        assert out.subject == "[Resolved] {} - {}".format(incident.title, self.project.slug)
 
     def test_manual_resolve(self):
         incident = self.create_incident(alert_rule=self.rule)
         IncidentTrigger.objects.create(
-            incident=incident, alert_rule_trigger=self.trigger, status=TriggerStatus.ACTIVE.value,
+            incident=incident,
+            alert_rule_trigger=self.trigger,
+            status=TriggerStatus.ACTIVE.value,
         )
 
         with self.tasks(), self.capture_on_commit_callbacks(execute=True):
@@ -1727,7 +1839,7 @@ class TriggerActionTest(TestCase):
         assert len(mail.outbox) == 1
         out = mail.outbox[0]
         assert out.to == [self.user.email]
-        assert out.subject == u"[Resolved] {} - {}".format(incident.title, self.project.slug)
+        assert out.subject == "[Resolved] {} - {}".format(incident.title, self.project.slug)
 
 
 class TestDeduplicateTriggerActions(unittest.TestCase):

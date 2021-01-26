@@ -1,17 +1,10 @@
-from __future__ import absolute_import
-
 import logging
 
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.integrations.jira.utils import transform_jira_choices_to_strings
 from sentry.models.integration import Integration
-from sentry.rules.actions.base import (
-    TicketEventAction,
-    IntegrationNotifyServiceForm,
-    INTEGRATION_KEY,
-)
+from sentry.rules.actions.base import TicketEventAction
 from sentry.utils.http import absolute_uri
 from sentry.web.decorators import transaction_start
 
@@ -20,23 +13,11 @@ logger = logging.getLogger("sentry.rules")
 
 
 class JiraCreateTicketAction(TicketEventAction):
-    form_cls = IntegrationNotifyServiceForm
-    label = u"""Create a Jira issue in {integration} with these """
+    label = "Create a Jira issue in {integration} with these "
     ticket_type = "a Jira issue"
     link = "https://docs.sentry.io/product/integrations/jira/#issue-sync"
     provider = "jira"
-    issue_key_path = "key"
-    integration_key = INTEGRATION_KEY
-
-    def render_label(self):
-        # Make a copy of data.
-        kwargs = transform_jira_choices_to_strings(self.form_fields, self.data)
-
-        # Replace with "removed" if the integration was uninstalled.
-        kwargs.update({self.integration_key: self.get_integration_name()})
-
-        # Only add values when they exist.
-        return self.label.format(**kwargs)
+    integration_key = "integration"
 
     def clean(self):
         cleaned_data = super(JiraCreateTicketAction, self).clean()
@@ -46,12 +27,16 @@ class JiraCreateTicketAction(TicketEventAction):
             Integration.objects.get(id=integration)
         except Integration.DoesNotExist:
             raise forms.ValidationError(
-                _("Jira integration is a required field.",), code="invalid",
+                _(
+                    "Jira integration is a required field.",
+                ),
+                code="invalid",
             )
 
     def generate_footer(self, rule_url):
-        return u"This ticket was automatically created by Sentry via [{}|{}]".format(
-            self.rule.label, absolute_uri(rule_url),
+        return "This ticket was automatically created by Sentry via [{}|{}]".format(
+            self.rule.label,
+            absolute_uri(rule_url),
         )
 
     def fix_data_for_issue(self):
