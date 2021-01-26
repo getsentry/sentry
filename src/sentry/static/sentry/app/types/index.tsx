@@ -1948,3 +1948,13 @@ export type ServerlessFunction = {
  * File storage service options for debug files
  */
 export type DebugFileSource = 'http' | 's3' | 'gcs';
+
+export type SessionApiResponse = {
+  query: string;
+  intervals: string[];
+  groups: {
+    by: Record<string, string>;
+    totals: Record<string, number>;
+    series: Record<string, number[]>;
+  }[];
+};
