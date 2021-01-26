@@ -107,10 +107,17 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
     def handle_query_errors(self):
         try:
             yield
-        except (discover.InvalidSearchQuery, snuba.QueryOutsideRetentionError) as error:
+        except discover.InvalidSearchQuery as error:
+            message = six.text_type(error)
+            sentry_sdk.set_tag("query_error.reason", message)
+            raise ParseError(detail=message)
+        except snuba.QueryOutsideRetentionError as error:
+            sentry_sdk.set_tag("query_error.reason", "QueryOutsideRetentionError")
             raise ParseError(detail=six.text_type(error))
         except snuba.QueryIllegalTypeOfArgument:
-            raise ParseError(detail="Invalid query. Argument to function is wrong type.")
+            message = "Invalid query. Argument to function is wrong type."
+            sentry_sdk.set_tag("query_error.reason", message)
+            raise ParseError(detail=message)
         except snuba.SnubaError as error:
             message = "Internal error. Please try again."
             if isinstance(
@@ -122,10 +129,12 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                     snuba.QueryTooManySimultaneous,
                 ),
             ):
+                sentry_sdk.set_tag("query_error.reason", "Timeout")
                 raise ParseError(
                     detail="Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
                 )
             elif isinstance(error, (snuba.UnqualifiedQueryError)):
+                sentry_sdk.set_tag("query_error.reason", error.message)
                 raise ParseError(detail=error.message)
             elif isinstance(
                 error,
