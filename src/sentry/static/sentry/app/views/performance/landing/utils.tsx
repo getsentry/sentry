@@ -28,7 +28,7 @@ type LandingDisplay = {
 export enum LandingDisplayField {
   ALL = 'all',
   FRONTEND_PAGELOAD = 'frontend_pageload',
-  FRONTEND_NAVIGATION = 'frontend_navigation',
+  FRONTEND_OTHER = 'frontend_other',
   BACKEND = 'backend',
 }
 
@@ -42,8 +42,8 @@ export const LANDING_DISPLAYS = [
     field: LandingDisplayField.FRONTEND_PAGELOAD,
   },
   {
-    label: 'Frontend (Navigation)',
-    field: LandingDisplayField.FRONTEND_NAVIGATION,
+    label: 'Frontend (Other)',
+    field: LandingDisplayField.FRONTEND_OTHER,
   },
   {
     label: 'Backend',

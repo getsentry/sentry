@@ -23,13 +23,17 @@ import Charts from '../charts/index';
 import {
   getBackendAxisOptions,
   getFrontendAxisOptions,
-  getFrontendNavigationAxisOptions,
+  getFrontendOtherAxisOptions,
 } from '../data';
 import Table from '../table';
 import {getTransactionSearchQuery} from '../utils';
 
 import DoubleAxisDisplay from './display/doubleAxisDisplay';
-import {FRONTEND_NAVIGATION_COLUMN_TITLES, FRONTEND_PAGELOAD_COLUMN_TITLES} from './data';
+import {
+  BACKEND_COLUMN_TITLES,
+  FRONTEND_OTHER_COLUMN_TITLES,
+  FRONTEND_PAGELOAD_COLUMN_TITLES,
+} from './data';
 import {
   getCurrentLandingDisplay,
   getDefaultDisplayFieldForPlatform,
@@ -149,7 +153,7 @@ class LandingContent extends React.Component<Props, State> {
         return this.renderLandingAll(summaryConditions);
       case LandingDisplayField.FRONTEND_PAGELOAD:
         return this.renderLandingFrontend(summaryConditions, true);
-      case LandingDisplayField.FRONTEND_NAVIGATION:
+      case LandingDisplayField.FRONTEND_OTHER:
         return this.renderLandingFrontend(summaryConditions, false);
       case LandingDisplayField.BACKEND:
         return this.renderLandingBackend(summaryConditions);
@@ -161,13 +165,16 @@ class LandingContent extends React.Component<Props, State> {
   renderLandingFrontend = (summaryConditions, isPageload) => {
     const {organization, location, projects, eventView, setError} = this.props;
 
-    const op = isPageload ? 'pageload' : 'navigation';
-
     const frontendView = eventView.clone();
     const conditions = tokenizeSearch(frontendView.query);
     const newConditions = new QueryResults([]); // Add conditions just to include in summary as transaction.op you want to likely keep
-    conditions.setTagValues('transaction.op', [op]);
-    newConditions.setTagValues('transaction.op', [op]);
+    if (isPageload) {
+      conditions.setTagValues('transaction.op', ['pageload']);
+      newConditions.setTagValues('transaction.op', ['pageload']);
+    } else {
+      conditions.setTagValues('!transaction.op', ['pageload']);
+      newConditions.setTagValues('!transaction.op', ['pageload']);
+    }
 
     frontendView.query = stringifyQueryObject(conditions);
     const frontendSummaryConditions = [
@@ -177,11 +184,11 @@ class LandingContent extends React.Component<Props, State> {
 
     const columnTitles = isPageload
       ? FRONTEND_PAGELOAD_COLUMN_TITLES
-      : FRONTEND_NAVIGATION_COLUMN_TITLES;
+      : FRONTEND_OTHER_COLUMN_TITLES;
 
     const axisOptions = isPageload
       ? getFrontendAxisOptions(organization)
-      : getFrontendNavigationAxisOptions(organization);
+      : getFrontendOtherAxisOptions(organization);
     const {leftAxis, rightAxis} = getDisplayAxes(axisOptions, location);
 
     return (
@@ -221,6 +228,8 @@ class LandingContent extends React.Component<Props, State> {
     const axisOptions = getBackendAxisOptions(organization);
     const {leftAxis, rightAxis} = getDisplayAxes(axisOptions, location);
 
+    const columnTitles = BACKEND_COLUMN_TITLES;
+
     return (
       <React.Fragment>
         <BackendCards
@@ -243,6 +252,7 @@ class LandingContent extends React.Component<Props, State> {
           location={location}
           setError={setError}
           summaryConditions={summaryConditions}
+          columnTitles={columnTitles}
         />
       </React.Fragment>
     );

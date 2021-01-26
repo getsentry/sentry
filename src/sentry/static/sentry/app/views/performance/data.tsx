@@ -116,7 +116,7 @@ export function getFrontendAxisOptions(
   ];
 }
 
-export function getFrontendNavigationAxisOptions(
+export function getFrontendOtherAxisOptions(
   organization: LightWeightOrganization
 ): AxisOption[] {
   return [
@@ -268,6 +268,7 @@ function generateGenericPerformanceEventView(
     fields: [
       'key_transaction',
       'transaction',
+      'transaction.op',
       'project',
       'tpm()',
       'p50()',
@@ -350,7 +351,7 @@ function generateFrontendPageloadPerformanceEventView(
   return EventView.fromNewQueryWithLocation(savedQuery, location);
 }
 
-function generateFrontendNavigationPerformanceEventView(
+function generateFrontendOtherPerformanceEventView(
   organization: LightWeightOrganization,
   location: Location
 ): EventView {
@@ -365,6 +366,7 @@ function generateFrontendNavigationPerformanceEventView(
     fields: [
       'key_transaction',
       'transaction',
+      'transaction.op',
       'project',
       'tpm()',
       'p50(transaction.duration)',
@@ -406,8 +408,8 @@ export function generatePerformanceEventView(organization, location, projects) {
   switch (display?.field) {
     case LandingDisplayField.FRONTEND_PAGELOAD:
       return generateFrontendPageloadPerformanceEventView(organization, location);
-    case LandingDisplayField.FRONTEND_NAVIGATION:
-      return generateFrontendNavigationPerformanceEventView(organization, location);
+    case LandingDisplayField.FRONTEND_OTHER:
+      return generateFrontendOtherPerformanceEventView(organization, location);
     case LandingDisplayField.BACKEND:
     default:
       return eventView;
