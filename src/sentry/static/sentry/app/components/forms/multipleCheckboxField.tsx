@@ -5,13 +5,14 @@ import PropTypes from 'prop-types';
 import FormField from 'app/components/forms/formField';
 import Tooltip from 'app/components/tooltip';
 import {IconQuestion} from 'app/icons';
+import {Choices} from 'app/types';
 import {defined} from 'app/utils';
 
 type Value = string | number | boolean;
 
 type Props = {
   hideLabelDivider?: boolean;
-  choices: Array<[number | string, number | string]>;
+  choices: Choices;
 } & FormField['props'];
 
 type State = FormField['state'] & {
