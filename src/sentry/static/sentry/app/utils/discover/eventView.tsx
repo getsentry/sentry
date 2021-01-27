@@ -1095,10 +1095,10 @@ class EventView {
 
   getQueryWithOverrides() {
     const {query} = this;
-    const conditions = tokenizeSearch(query);
     if (!this.additionalConditions) {
       return query;
     }
+    const conditions = tokenizeSearch(query);
     Object.entries(this.additionalConditions.tagValues).forEach(([tag, tagValues]) => {
       conditions.setTagValues(tag, tagValues);
     });
