@@ -20,10 +20,10 @@ from sentry.utils import json
 from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 from sentry.tasks.post_process import post_process_group
 from sentry.api.serializers import serialize
+from sentry.shared_integrations.exceptions import ApiError, IgnorableSentryAppError
 from sentry.tasks.sentry_apps import (
     send_alert_event,
     notify_sentry_app,
-    process_resource_change,
     process_resource_change_bound,
     installation_webhook,
     workflow_notification,
@@ -46,14 +46,15 @@ def raiseException():
 RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])
 
 MockResponse = namedtuple(
-    "MockResponse", ["headers", "content", "ok", "status_code", "raise_for_status"]
+    "MockResponse", ["headers", "content", "text", "ok", "status_code", "raise_for_status"]
 )
-MockResponseInstance = MockResponse({}, {}, True, 200, raiseStatuseFalse)
-MockFailureResponseInstance = MockResponse({}, {}, False, 400, raiseStatusTrue)
-MockResponse404 = MockResponse({}, {}, False, 404, raiseException)
+MockResponseInstance = MockResponse({}, {}, "", True, 200, raiseStatuseFalse)
+MockFailureResponseInstance = MockResponse({}, {}, "", False, 400, raiseStatusTrue)
+MockResponse404 = MockResponse({}, {}, "", False, 404, raiseException)
 MockResponseWithHeadersInstance = MockResponse(
     {"Sentry-Hook-Error": "d5111da2c28645c5889d072017e3445d", "Sentry-Hook-Project": "1"},
     {},
+    "",
     False,
     400,
     raiseStatusTrue,
@@ -214,7 +215,7 @@ class TestProcessResourceChange(TestCase):
         assert faux(safe_urlopen).kwargs_contain("headers.Sentry-Hook-Signature")
 
     def test_does_not_process_disallowed_event(self, safe_urlopen):
-        process_resource_change("delete", "Group", self.create_group().id)
+        process_resource_change_bound("delete", "Group", self.create_group().id)
         assert len(safe_urlopen.mock_calls) == 0
 
     def test_does_not_process_sentry_apps_without_issue_webhooks(self, safe_urlopen):
@@ -224,7 +225,7 @@ class TestProcessResourceChange(TestCase):
         # DOES NOT subscribe to Issue events
         self.create_sentry_app_installation(organization=self.organization)
 
-        process_resource_change("created", "Group", self.create_group().id)
+        process_resource_change_bound("created", "Group", self.create_group().id)
 
         assert len(safe_urlopen.mock_calls) == 0
 
@@ -406,6 +407,7 @@ class TestWebhookRequests(TestCase):
             organization=self.project.organization,
             events=["issue.resolved", "issue.ignored", "issue.assigned"],
         )
+        self.sentry_app.update(status=SentryAppStatus.PUBLISHED)
 
         self.install = self.create_sentry_app_installation(
             organization=self.project.organization, slug=self.sentry_app.slug
@@ -417,7 +419,11 @@ class TestWebhookRequests(TestCase):
     @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockFailureResponseInstance)
     def test_saves_error_if_webhook_request_fails(self, safe_urlopen):
         data = {"issue": serialize(self.issue)}
-        send_webhooks(installation=self.install, event="issue.assigned", data=data, actor=self.user)
+
+        with self.assertRaises(ApiError):
+            send_webhooks(
+                installation=self.install, event="issue.assigned", data=data, actor=self.user
+            )
 
         requests = self.buffer.get_requests()
         requests_count = len(requests)
@@ -447,7 +453,7 @@ class TestWebhookRequests(TestCase):
     @patch("sentry.tasks.sentry_apps.safe_urlopen", side_effect=Timeout)
     def test_saves_error_for_request_timeout(self, safe_urlopen):
         data = {"issue": serialize(self.issue)}
-        self.sentry_app.update(status=SentryAppStatus.PUBLISHED)
+        # self.sentry_app.update(status=SentryAppStatus.PUBLISHED)
         # we don't log errors for unpublished and internal apps
         with self.assertRaises(Timeout):
             send_webhooks(
@@ -467,7 +473,10 @@ class TestWebhookRequests(TestCase):
     @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseWithHeadersInstance)
     def test_saves_error_event_id_if_in_header(self, safe_urlopen):
         data = {"issue": serialize(self.issue)}
-        send_webhooks(installation=self.install, event="issue.assigned", data=data, actor=self.user)
+        with self.assertRaises(ApiError):
+            send_webhooks(
+                installation=self.install, event="issue.assigned", data=data, actor=self.user
+            )
 
         requests = self.buffer.get_requests()
         requests_count = len(requests)
@@ -482,9 +491,31 @@ class TestWebhookRequests(TestCase):
         assert first_request["project_id"] == "1"
 
     @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponse404)
-    def test_does_not_raise_on_404(self, safe_urlopen):
+    def test_raises_ignorable_error_for_unpublished_apps(self, safe_urlopen):
         data = {"issue": serialize(self.issue)}
-        send_webhooks(installation=self.install, event="issue.assigned", data=data, actor=self.user)
+        self.sentry_app.update(status=SentryAppStatus.INTERNAL)
+        with self.assertRaises(IgnorableSentryAppError):
+            send_webhooks(
+                installation=self.install, event="issue.assigned", data=data, actor=self.user
+            )
+
+        requests = self.buffer.get_requests()
+        requests_count = len(requests)
+        first_request = requests[0]
+
+        assert safe_urlopen.called
+        assert requests_count == 1
+        assert first_request["response_code"] == 404
+        assert first_request["event_type"] == "issue.assigned"
+
+    @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponse404)
+    def test_raises_ignorable_error_for_internal_apps(self, safe_urlopen):
+        data = {"issue": serialize(self.issue)}
+        self.sentry_app.update(status=SentryAppStatus.UNPUBLISHED)
+        with self.assertRaises(IgnorableSentryAppError):
+            send_webhooks(
+                installation=self.install, event="issue.assigned", data=data, actor=self.user
+            )
 
         requests = self.buffer.get_requests()
         requests_count = len(requests)
