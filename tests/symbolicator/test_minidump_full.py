@@ -24,8 +24,7 @@ from tests.symbolicator import get_fixture_path, insta_snapshot_stacktrace_data
 @pytest.mark.snuba
 class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.fixture(autouse=True)
-    def initialize(self, live_server, reset_snuba, settings):
-        self.settings = settings
+    def initialize(self, live_server, reset_snuba):
         self.project.update_option("sentry:builtin_symbol_sources", [])
         new_prefix = live_server.url
 

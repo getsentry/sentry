@@ -21,7 +21,7 @@ from sentry.utils.cache import cache_key_for_event
 
 
 @pytest.fixture(autouse=True)
-def reprocessing_feature(monkeypatch, settings):
+def reprocessing_feature(monkeypatch):
     monkeypatch.setattr("sentry.tasks.reprocessing2.GROUP_REPROCESSING_CHUNK_SIZE", 1)
 
     with Feature({"organizations:reprocessing-v2": True}):
