@@ -18,7 +18,7 @@ import NotAvailable from '../notAvailable';
 import {getFileName} from '../utils';
 
 import Candidates from './candidates';
-import {INTERNAL_SOURCE} from './utils';
+import {INTERNAL_SOURCE, INTERNAL_SOURCE_LOCATION} from './utils';
 
 type Candidates = Image['candidates'];
 
@@ -88,9 +88,14 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
       return candidates;
     }
 
+    const imageCandidates = candidates.map(candidate => ({
+      ...candidate,
+      location: candidate.location?.split(INTERNAL_SOURCE_LOCATION)[1],
+    }));
+
     // Check for unapplied debug files
     const candidateLocations = new Set(
-      candidates.map(candidate => candidate.location).filter(location => !!location)
+      imageCandidates.map(({location}) => location).filter(location => !!location)
     );
 
     const unAppliedDebugFiles = debugFiles
@@ -99,7 +104,7 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
         download: {
           status: CandidateDownloadStatus.UNAPPLIED,
         },
-        location: debugFile.id,
+        location: `${INTERNAL_SOURCE_LOCATION}${debugFile.id}`,
         source: INTERNAL_SOURCE,
         source_name: debugFile.objectName,
       }));
@@ -107,7 +112,7 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
     // Check for deleted debug files
     const debugFileIds = new Set(debugFiles.map(debugFile => debugFile.id));
 
-    const convertedCandidates = candidates.map(candidate => {
+    const convertedCandidates = imageCandidates.map(candidate => {
       if (
         candidate.source === INTERNAL_SOURCE &&
         candidate.location &&
@@ -117,6 +122,7 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
         return {
           ...candidate,
           download: {
+            ...candidate.download,
             status: CandidateDownloadStatus.DELETED,
           },
         };

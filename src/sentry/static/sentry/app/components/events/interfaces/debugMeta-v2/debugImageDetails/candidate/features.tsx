@@ -18,7 +18,10 @@ type Props = {
 };
 
 function Features({download}: Props) {
-  if (download.status !== CandidateDownloadStatus.OK) {
+  if (
+    download.status !== CandidateDownloadStatus.OK &&
+    download.status !== CandidateDownloadStatus.DELETED
+  ) {
     return <NotAvailable />;
   }
 

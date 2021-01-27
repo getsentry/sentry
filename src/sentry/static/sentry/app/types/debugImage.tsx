@@ -44,13 +44,15 @@ type CandidateDownloadOkStatus = {
   details?: string;
 };
 
-type CandidateDownloadNotFoundStatus = {
-  status: CandidateDownloadStatus.NOT_FOUND;
+type CandidateDownloadDeletedStatus = {
+  status: CandidateDownloadStatus.DELETED;
+  features: CandidateFeatures;
   details?: string;
 };
 
-type CandidateDownloadDeletedStatus = {
-  status: CandidateDownloadStatus.DELETED;
+type CandidateDownloadNotFoundStatus = {
+  status: CandidateDownloadStatus.NOT_FOUND;
+  details?: string;
 };
 
 type CandidateDownloadUnAppliedStatus = {
