@@ -1478,10 +1478,10 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         inbox_2.update(date_added=inbox_1.date_added - timedelta(hours=1))
 
         results = self.make_query(
-            [self.project],
+            [self.project, self.create_project()],
             sort_by="inbox",
             date_from=start,
-            search_filter_query="is:for_review",
+            search_filter_query="is:unresolved is:for_review",
         )
         assert results.results == [inbox_group_1, inbox_group_2]
 

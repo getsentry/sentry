@@ -351,7 +351,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 tables=["sentry_groupinbox"],
                 where=[
                     "sentry_groupinbox.group_id = sentry_groupedmessage.id",
+                    "sentry_groupinbox.project_id in %s",
                 ],
+                params=(tuple(p.id for p in projects),),
             ).order_by("-inbox_date")
             paginator = DateTimePaginator(group_queryset, "-inbox_date", **paginator_options)
             return paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
