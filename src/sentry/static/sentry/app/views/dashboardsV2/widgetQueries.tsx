@@ -119,6 +119,7 @@ class WidgetQueries extends React.Component<Props, State> {
       !isEqual(widget.displayType, prevProps.widget.displayType) ||
       !isEqual(widget.interval, prevProps.widget.interval) ||
       !isEqual(widget.queries, prevProps.widget.queries) ||
+      !isEqual(widget.displayType, prevProps.widget.displayType) ||
       !isEqual(selection, prevProps.selection)
     ) {
       this.fetchData();
@@ -169,6 +170,48 @@ class WidgetQueries extends React.Component<Props, State> {
 
           completed++;
           this.setState(prevState => {
+            return {
+              ...prevState,
+              tableResults,
+              loading: completed === promises.length ? false : true,
+            };
+          });
+        } catch (err) {
+          const errorMessage =
+            err?.responseJSON?.detail || t('An unknown error occurred.');
+          this.setState({errorMessage});
+        }
+      });
+    } else if (widget.displayType === 'world_map') {
+      this.setState({tableResults: []});
+      const promises = widget.queries.map(query => {
+        const eventView = EventView.fromSavedQuery({
+          id: undefined,
+          name: query.name,
+          version: 2,
+          fields: [...query.fields],
+          query: query.conditions,
+          projects,
+          start: start ? getUtcDateString(start) : undefined,
+          end: end ? getUtcDateString(end) : undefined,
+        });
+        const url = `/organizations/${organization.slug}/events-geo/`;
+        return doDiscoverQuery<TableData>(api, url, {
+          ...eventView.generateQueryStringObject(),
+        });
+      });
+
+      let completed = 0;
+      promises.forEach(async (promise, i) => {
+        try {
+          const [data] = await promise;
+          // Cast so we can add the title.
+          const tableData = data as TableDataWithTitle;
+          tableData.title = widget.queries[i]?.name ?? '';
+
+          completed++;
+          this.setState(prevState => {
+            const tableResults = [...(prevState.tableResults ?? []), tableData];
             return {
               ...prevState,
               tableResults,

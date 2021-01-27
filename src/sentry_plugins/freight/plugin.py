@@ -1,12 +1,10 @@
-from __future__ import absolute_import
-
 import sentry
 from sentry.utils import json
 from sentry.plugins.bases import ReleaseTrackingPlugin
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 
 
-DOC_HTML = u"""
+DOC_HTML = """
 <p>Configure a Freight notification with the given webhook url.</p>
 <pre class="clippy">{{
     "type": "sentry",

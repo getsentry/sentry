@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import responses
 
 from rest_framework.serializers import ValidationError
@@ -141,7 +139,9 @@ class VercelIntegrationTest(IntegrationTestCase):
     @responses.activate
     def test_use_existing_installation(self):
         sentry_app = self.create_internal_integration(
-            webhook_url=None, name="Vercel Internal Integration", organization=self.organization,
+            webhook_url=None,
+            name="Vercel Internal Integration",
+            organization=self.organization,
         )
         sentry_app_installation = SentryAppInstallation.objects.get(sentry_app=sentry_app)
         SentryAppInstallationForProvider.objects.create(
@@ -196,7 +196,9 @@ class VercelIntegrationTest(IntegrationTestCase):
 
         for i, name in enumerate(secret_names):
             responses.add(
-                responses.POST, "https://api.vercel.com/v2/now/secrets", json={"uid": "sec_%s" % i},
+                responses.POST,
+                "https://api.vercel.com/v2/now/secrets",
+                json={"uid": "sec_%s" % i},
             )
         # mock get envs for all
         responses.add(
@@ -318,7 +320,9 @@ class VercelIntegrationTest(IntegrationTestCase):
 
         for i, name in enumerate(secret_names):
             responses.add(
-                responses.POST, "https://api.vercel.com/v2/now/secrets", json={"uid": "sec_%s" % i},
+                responses.POST,
+                "https://api.vercel.com/v2/now/secrets",
+                json={"uid": "sec_%s" % i},
             )
         for i, env_var_name in enumerate(env_var_names):
             responses.add(

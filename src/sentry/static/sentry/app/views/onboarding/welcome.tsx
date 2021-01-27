@@ -8,6 +8,7 @@ import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {analytics} from 'app/utils/analytics';
+import testableTransition from 'app/utils/testableTransition';
 import withOrganization from 'app/utils/withOrganization';
 
 import FallingError from './components/fallingError';
@@ -37,7 +38,7 @@ const fadeAway: MotionProps = {
     animate: {opacity: 1, filter: 'blur(0px)'},
     exit: {opacity: 0, filter: 'blur(1px)'},
   },
-  transition: {duration: 0.8},
+  transition: testableTransition({duration: 0.8}),
 };
 
 class OnboardingWelcome extends React.Component<Props> {
@@ -134,9 +135,9 @@ const Wrapper = styled(motion.div)`
 
 Wrapper.defaultProps = {
   variants: {exit: {x: 0}},
-  transition: {
+  transition: testableTransition({
     staggerChildren: 0.2,
-  },
+  }),
 };
 
 export default withOrganization(OnboardingWelcome);

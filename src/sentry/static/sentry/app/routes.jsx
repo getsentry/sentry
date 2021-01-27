@@ -1443,7 +1443,7 @@ function routes() {
             />
 
             <Route
-              path="rules/details/:alertId/"
+              path="rules/details/:ruleId/"
               name="Alert Rule Details"
               component={errorHandler(LazyLoad)}
               componentPromise={() =>

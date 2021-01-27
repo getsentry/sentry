@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import mmh3
 from sentry.utils.compat import map
 

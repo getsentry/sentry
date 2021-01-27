@@ -30,7 +30,7 @@ import withSentryAppComponents from 'app/utils/withSentryAppComponents';
 import Context from './context';
 import DefaultTitle from './defaultTitle';
 import Symbol, {FunctionNameToggleIcon} from './symbol';
-import {getPlatform} from './utils';
+import {getPlatform, isDotnet} from './utils';
 
 type Props = {
   data: Frame;
@@ -118,7 +118,7 @@ export class Line extends React.Component<Props, State> {
   }
 
   hasAssembly() {
-    return this.getPlatform() === 'csharp' && defined(this.props.data.package);
+    return isDotnet(this.getPlatform()) && defined(this.props.data.package);
   }
 
   isExpandable() {
@@ -174,6 +174,7 @@ export class Line extends React.Component<Props, State> {
 
   scrollToImage = event => {
     event.stopPropagation(); // to prevent collapsing if collapsable
+
     const {instructionAddr, addrMode} = this.props.data;
     if (instructionAddr) {
       DebugMetaActions.updateFilter(
@@ -198,7 +199,7 @@ export class Line extends React.Component<Props, State> {
       <ToggleContextButtonWrapper>
         <ToggleContextButton
           className="btn-toggle"
-          css={this.getPlatform() === 'csharp' && {display: 'block !important'}} // remove important once we get rid of css files
+          css={isDotnet(this.getPlatform()) && {display: 'block !important'}} // remove important once we get rid of css files
           title={t('Toggle Context')}
           onClick={this.toggleContext}
         >
@@ -310,7 +311,10 @@ export class Line extends React.Component<Props, State> {
                 onClick={this.scrollToImage}
                 isClickable={this.shouldShowLinkToImage()}
               >
-                <PackageStatus status={packageStatus} tooltip={t('Image loaded')} />
+                <PackageStatus
+                  status={packageStatus}
+                  tooltip={t('Go to Images Loaded')}
+                />
               </PackageLink>
             </PackageInfo>
             {data.instructionAddr && (
@@ -435,7 +439,7 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
 
   @media (min-width: ${props => props.theme.breakpoints[2]}) and (max-width: ${props =>
       props.theme.breakpoints[3]}) {
-    grid-template-columns: ${p => (p.isFrameAfterLastNonApp ? '180px' : '130px')} 117px 1fr auto;
+    grid-template-columns: ${p => (p.isFrameAfterLastNonApp ? '180px' : '140px')} 117px 1fr auto;
   }
 `;
 

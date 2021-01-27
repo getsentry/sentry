@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
 
 from django.test.client import RequestFactory
 from django.utils import timezone
@@ -14,10 +13,13 @@ class ProjectUserFeedbackDocs(APIDocsTestCase):
         group = self.create_group(project=self.project, message="Foo bar")
         self.event_id = event.event_id
         self.create_userreport(
-            date_added=timezone.now(), group=group, project=self.project, event_id=self.event_id,
+            date_added=timezone.now(),
+            group=group,
+            project=self.project,
+            event_id=self.event_id,
         )
 
-        self.url = u"/api/0/projects/{}/{}/user-feedback/".format(
+        self.url = "/api/0/projects/{}/{}/user-feedback/".format(
             self.organization.slug, self.project.slug
         )
 

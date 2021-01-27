@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.grouping.utils import hash_from_values
 
 

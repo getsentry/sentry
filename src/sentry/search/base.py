@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.utils.services import Service
 
 ANY = object()
@@ -23,6 +21,6 @@ class SearchBackend(Service):
         cursor=None,
         count_hits=False,
         paginator_options=None,
-        **parameters
+        **parameters,
     ):
         raise NotImplementedError

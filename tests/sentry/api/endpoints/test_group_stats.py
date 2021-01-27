@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry import tsdb
 from sentry.testutils import APITestCase
 
@@ -11,7 +9,7 @@ class GroupStatsTest(APITestCase):
         group1 = self.create_group()
         group2 = self.create_group()
 
-        url = u"/api/0/issues/{}/stats/".format(group1.id)
+        url = "/api/0/issues/{}/stats/".format(group1.id)
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content

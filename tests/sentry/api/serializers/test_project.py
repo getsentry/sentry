@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
 
 from datetime import timedelta
 
@@ -285,14 +284,14 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         assert result["hasUserReports"] is False
 
         UserReport.objects.create(
-            project=self.project,
+            project_id=self.project.id,
             event_id="1",
             name="foo",
             email="bar@example.com",
             comments="It broke!",
         )
         UserReport.objects.create(
-            project=self.project,
+            project_id=self.project.id,
             event_id="2",
             name="foo",
             email="bar@example.com",

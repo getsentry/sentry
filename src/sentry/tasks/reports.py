@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import bisect
 import functools
 import logging
@@ -408,7 +406,7 @@ class RedisReportBackend(ReportBackend):
         self.namespace = namespace
 
     def __make_key(self, timestamp, duration, organization):
-        return u"{}:{}:{}:{}:{}".format(
+        return "{}:{}:{}:{}:{}".format(
             self.namespace, self.version, organization.id, int(timestamp), int(duration)
         )
 
@@ -528,7 +526,7 @@ def build_message(timestamp, duration, organization, user, reports):
 
     duration_spec = durations[duration]
     message = MessageBuilder(
-        subject=u"{} Report for {}: {} - {}".format(
+        subject="{} Report for {}: {} - {}".format(
             duration_spec.adjective.title(),
             organization.name,
             date_format(start),
@@ -545,7 +543,7 @@ def build_message(timestamp, duration, organization, user, reports):
             "report": to_context(organization, interval, reports),
             "user": user,
         },
-        headers={"category": "organization_report_email"},
+        headers={"X-SMTPAPI": json.dumps({"category": "organization_report_email"})},
     )
 
     message.add_users((user.id,))
