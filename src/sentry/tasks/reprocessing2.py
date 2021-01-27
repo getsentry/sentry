@@ -115,8 +115,6 @@ def handle_remaining_events(project_id, new_group_id, event_ids, remaining_event
     See doccomment in sentry.reprocessing2.
     """
 
-    from sentry.reprocessing2 import delete_unprocessed_events
-
     assert remaining_events in ("delete", "keep")
 
     if remaining_events == "delete":
@@ -128,8 +126,6 @@ def handle_remaining_events(project_id, new_group_id, event_ids, remaining_event
         # Remove from nodestore
         node_ids = [Event.generate_node_id(project_id, event_id) for event_id in event_ids]
         nodestore.delete_multi(node_ids)
-
-        delete_unprocessed_events(project_id, event_ids)
 
         # Tell Snuba to delete the event data.
         eventstream.tombstone_events_unsafe(project_id, event_ids)
@@ -192,7 +188,7 @@ def finish_reprocessing(project_id, group_id):
 
 
 def _json_size(*json_blobs):
-    from sentry.nodestore.bigtable.backend import json_dumps
+    from sentry.nodestore.base import json_dumps
 
     bytestring = b"\n".join(json_dumps(data).encode("utf8") for data in json_blobs)
     cctx = zstandard.ZstdCompressor()
