@@ -76,11 +76,11 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
 class DashboardWidgetSerializer(CamelSnakeSerializer):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
-    title = serializers.CharField(required=False)
+    title = serializers.CharField(required=False, max_length=255)
     display_type = serializers.ChoiceField(
         choices=DashboardWidgetDisplayTypes.as_text_choices(), required=False
     )
-    interval = serializers.CharField(required=False)
+    interval = serializers.CharField(required=False, max_length=10)
     queries = DashboardWidgetQuerySerializer(many=True, required=False)
 
     def validate_display_type(self, display_type):
