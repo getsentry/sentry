@@ -12,6 +12,7 @@ import localStorage from 'app/utils/localStorage';
 type Props = {
   reprocessActivity: GroupActivityReprocess;
   groupCount: number;
+  groupId: string;
   orgSlug: Organization['slug'];
   className?: string;
 };
@@ -37,34 +38,48 @@ class ReprocessedBox extends React.Component<Props, State> {
     this.setState({isBannerHidden: true});
   };
 
-  render() {
-    const {orgSlug, reprocessActivity, groupCount, className} = this.props;
+  renderMessage() {
+    const {orgSlug, reprocessActivity, groupCount, groupId} = this.props;
     const {data} = reprocessActivity;
-    const {eventCount, oldGroupId} = data;
+    const {eventCount, oldGroupId, newGroupId} = data;
 
-    if (this.state.isBannerHidden) {
+    const reprocessedEventsRoute = `/organizations/${orgSlug}/issues/?query=reprocessing.original_issue_id:${oldGroupId}`;
+
+    if (groupCount === 0) {
+      return tct('All events in this issue were moved during reprocessing. [link]', {
+        link: (
+          <Link to={reprocessedEventsRoute}>
+            {tn('See %s new event', 'See %s new events', eventCount)}
+          </Link>
+        ),
+      });
+    }
+
+    return tct('Events in this issue were successfully reprocessed. [link]', {
+      link: (
+        <Link to={reprocessedEventsRoute}>
+          {newGroupId === Number(groupId)
+            ? tn('See %s reprocessed event', 'See %s reprocessed events', eventCount)
+            : tn('See %s new event', 'See %s new events', eventCount)}
+        </Link>
+      ),
+    });
+  }
+
+  render() {
+    const {isBannerHidden} = this.state;
+
+    if (isBannerHidden) {
       return null;
     }
 
-    const link = (
-      <Link
-        to={`/organizations/${orgSlug}/issues/?query=reprocessing.original_issue_id:${oldGroupId}`}
-      >
-        {tn('See %s new event', 'See %s new events', eventCount)}
-      </Link>
-    );
+    const {className} = this.props;
 
     return (
       <BannerContainer priority="success" className={className}>
         <StyledBannerSummary>
           <IconCheckmark color="green300" isCircled />
-          <span>
-            {groupCount === 0
-              ? tct('All events in this issue were moved during reprocessing. [link]', {
-                  link,
-                })
-              : tct('Events in this issue were successfully reprocessed. [link]', {link})}
-          </span>
+          <span>{this.renderMessage()}</span>
           <StyledIconClose
             color="green300"
             aria-label={t('Dismiss')}
