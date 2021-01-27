@@ -396,7 +396,7 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
             value: this.chartComponent({
               series,
             }),
-            fixed: 'Widget Chart',
+            fixed: <Placeholder height="200px" testId="skeleton-ui" />,
           })}
         </TransitionChart>
       );
@@ -476,7 +476,7 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
                   legend,
                   series,
                 }),
-                fixed: 'Widget Chart',
+                fixed: <Placeholder height="200px" testId="skeleton-ui" />,
               })}
             </TransitionChart>
           );
