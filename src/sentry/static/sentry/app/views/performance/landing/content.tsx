@@ -61,6 +61,8 @@ class LandingContent extends React.Component<Props, State> {
     });
   }
 
+  _haveTrackedLandingV2?: boolean;
+
   getSummaryConditions(query: string) {
     const parsed = tokenizeSearch(query);
     parsed.query = [];
@@ -100,6 +102,15 @@ class LandingContent extends React.Component<Props, State> {
 
   renderLandingV2() {
     const {organization, location, eventView, projects, handleSearch} = this.props;
+
+    if (!this._haveTrackedLandingV2) {
+      trackAnalyticsEvent({
+        eventKey: 'performance_views.landingv2.new_landing',
+        eventName: 'Performance Views: Landing V2 New Landing',
+        organization_id: parseInt(organization.id, 10),
+      });
+      this._haveTrackedLandingV2 = true;
+    }
 
     const currentLandingDisplay = getCurrentLandingDisplay(location, projects, eventView);
     const filterString = getTransactionSearchQuery(location);
