@@ -1,5 +1,4 @@
 import pickle  # NOQA
-import functools  # NOQA
 
 from six.moves import map as _map
 from six.moves import filter as _filter
