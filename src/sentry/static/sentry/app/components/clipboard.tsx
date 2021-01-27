@@ -3,19 +3,16 @@ import copy from 'copy-text-to-clipboard';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 
-type DefaultProps = {
-  successMessage: string;
-  errorMessage: string;
-  hideMessages: boolean;
-};
-
 type Props = {
   children: React.ReactElement<{onClick: () => void}>;
   value: string;
+  successMessage?: string;
+  errorMessage?: string;
+  hideMessages?: boolean;
   hideUnsupported?: boolean;
   onSuccess?: () => void;
   onError?: () => void;
-} & DefaultProps;
+};
 
 /**
  * copy-text-to-clipboard relies on `document.execCommand('copy')`
@@ -27,11 +24,11 @@ function isSupported() {
 
 function Clipboard({
   children,
-  successMessage,
-  errorMessage,
-  hideMessages,
-  hideUnsupported,
   value,
+  successMessage = 'Copied to clipboard',
+  errorMessage = 'Error copying to clipboard',
+  hideMessages = false,
+  hideUnsupported,
   onSuccess,
   onError,
 }: Props) {
@@ -63,11 +60,5 @@ function Clipboard({
     onClick: () => handleClick(),
   });
 }
-
-Clipboard.defaultProps = {
-  hideMessages: false,
-  successMessage: 'Copied to clipboard',
-  errorMessage: 'Error copying to clipboard',
-};
 
 export default Clipboard;
