@@ -1,6 +1,5 @@
 from contextlib import contextmanager
 import sentry_sdk
-import six
 from django.utils.http import urlquote
 from rest_framework.exceptions import APIException, ParseError
 
@@ -36,7 +35,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         try:
             return get_filter(query, params)
         except InvalidSearchQuery as e:
-            raise ParseError(detail=six.text_type(e))
+            raise ParseError(detail=str(e))
 
     def get_snuba_params(self, request, organization, check_global_views=True):
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params"):
@@ -76,7 +75,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         try:
             _filter = get_filter(query, params)
         except InvalidSearchQuery as e:
-            raise ParseError(detail=six.text_type(e))
+            raise ParseError(detail=str(e))
 
         snuba_args = {
             "start": _filter.start,
@@ -107,10 +106,17 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
     def handle_query_errors(self):
         try:
             yield
-        except (discover.InvalidSearchQuery, snuba.QueryOutsideRetentionError) as error:
-            raise ParseError(detail=six.text_type(error))
+        except discover.InvalidSearchQuery as error:
+            message = str(error)
+            sentry_sdk.set_tag("query.error_reason", message)
+            raise ParseError(detail=message)
+        except snuba.QueryOutsideRetentionError as error:
+            sentry_sdk.set_tag("query.error_reason", "QueryOutsideRetentionError")
+            raise ParseError(detail=str(error))
         except snuba.QueryIllegalTypeOfArgument:
-            raise ParseError(detail="Invalid query. Argument to function is wrong type.")
+            message = "Invalid query. Argument to function is wrong type."
+            sentry_sdk.set_tag("query.error_reason", message)
+            raise ParseError(detail=message)
         except snuba.SnubaError as error:
             message = "Internal error. Please try again."
             if isinstance(
@@ -122,11 +128,13 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                     snuba.QueryTooManySimultaneous,
                 ),
             ):
+                sentry_sdk.set_tag("query.error_reason", "Timeout")
                 raise ParseError(
                     detail="Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
                 )
             elif isinstance(error, (snuba.UnqualifiedQueryError)):
-                raise ParseError(detail=error.message)
+                sentry_sdk.set_tag("query.error_reason", str(error))
+                raise ParseError(detail=str(error))
             elif isinstance(
                 error,
                 (
@@ -162,7 +170,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         return LINK_HEADER.format(
             uri=base_url,
-            cursor=six.text_type(cursor),
+            cursor=str(cursor),
             name=name,
             has_results="true" if bool(cursor) else "false",
         )
@@ -268,7 +276,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             # that acts as a placeholder.
             if top_events > 0 and isinstance(result, dict):
                 results = {}
-                for key, event_result in six.iteritems(result):
+                for key, event_result in result.items():
                     if len(query_columns) > 1:
                         results[key] = self.serialize_multiple_axis(
                             serializer, event_result, columns, query_columns
