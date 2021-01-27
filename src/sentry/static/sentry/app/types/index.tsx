@@ -361,6 +361,13 @@ export type SDKUpdatesSuggestion =
   | UpdateSdkSuggestion
   | ChangeSdkSuggestion;
 
+export type ProjectSdkUpdates = {
+  projectId: string;
+  sdkName: string;
+  sdkVersion: string;
+  suggestions: SDKUpdatesSuggestion[];
+};
+
 export type EventsStatsData = [number, {count: number}[]][];
 
 // API response format for a single series

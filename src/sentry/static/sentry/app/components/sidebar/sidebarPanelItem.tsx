@@ -2,6 +2,8 @@ import React from 'react';
 import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
+import space from 'app/styles/space';
+
 import {t} from '../../locale';
 import ExternalLink from '../links/externalLink';
 
@@ -12,9 +14,18 @@ type Props = {
   message?: React.ReactNode;
   link?: string;
   cta?: string;
+  children?: React.ReactNode;
 };
 
-const SidebarPanelItem = ({hasSeen, title, image, message, link, cta}: Props) => (
+const SidebarPanelItem = ({
+  hasSeen,
+  title,
+  image,
+  message,
+  link,
+  cta,
+  children,
+}: Props) => (
   <SidebarPanelItemRoot>
     {title && <Title hasSeen={hasSeen}>{title}</Title>}
     {image && (
@@ -23,6 +34,8 @@ const SidebarPanelItem = ({hasSeen, title, image, message, link, cta}: Props) =>
       </ImageBox>
     )}
     {message && <Message>{message}</Message>}
+
+    {children}
 
     {link && (
       <Text>
@@ -59,8 +72,8 @@ const ImageBox = styled('div')`
 `;
 
 const Title = styled('div')<Pick<Props, 'hasSeen'>>`
-  font-size: 15px;
-  margin-bottom: 5px;
+  font-size: ${p => p.theme.fontSizeLarge};
+  margin-bottom: ${space(1.5)};
   color: ${p => p.theme.textColor};
   ${p => !p.hasSeen && 'font-weight: 600;'};
 
