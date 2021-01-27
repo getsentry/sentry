@@ -60,6 +60,8 @@ function IssueListHeader({
     ? tabs
     : tabs.filter(([tab]) => tab !== Query.REPROCESSING);
   const savedSearchTabActive = !visibleTabs.some(([tabQuery]) => tabQuery === query);
+  // Remove cursor and page when switching tabs
+  const {cursor: _, page: __, ...queryParms} = router?.location?.query ?? {};
 
   function handleSelectProject(settingsPage: string) {
     return function (event: React.MouseEvent) {
@@ -121,7 +123,7 @@ function IssueListHeader({
             <li key={tabQuery} className={query === tabQuery ? 'active' : ''}>
               <Link
                 to={{
-                  query: {...router?.location?.query, query: tabQuery},
+                  query: {...queryParms, query: tabQuery},
                   pathname: `/organizations/${organization.slug}/issues/`,
                 }}
               >
