@@ -333,34 +333,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 # When its a simple django-only search, we count_hits like normal
                 return paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
 
-        # This search is specific to Inbox. If we're using inbox sort and only querying
-        # postgres then we can use this sort method. Otherwise if we need to go to Snuba,
-        # fail.
-        if (
-            sort_by == "inbox"
-            and get_search_filter(search_filters, "for_review", "=")
-            # This handles tags and date parameters for search filters.
-            and not [
-                sf
-                for sf in search_filters
-                if sf.key.name not in self.postgres_only_fields.union(["date"])
-            ]
-        ):
-            group_queryset = group_queryset.extra(
-                select={"inbox_date": "sentry_groupinbox.date_added"},
-                tables=["sentry_groupinbox"],
-                where=[
-                    "sentry_groupinbox.group_id = sentry_groupedmessage.id",
-                    "sentry_groupinbox.project_id in %s",
-                ],
-                params=(tuple(p.id for p in projects),),
-            ).order_by("-inbox_date")
-            paginator = DateTimePaginator(group_queryset, "-inbox_date", **paginator_options)
-            return paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
-
-        if sort_by == "inbox":
-            raise InvalidSearchQuery(f"Sort key '{sort_by}' only supported for inbox search")
-
         # TODO: Presumably we only want to search back to the project's max
         # retention date, which may be closer than 90 days in the past, but
         # apparently `retention_window_start` can be None(?), so we need a
@@ -384,6 +356,36 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # in the future we should find a way to notify the user that their search
             # is invalid.
             return self.empty_result
+
+        # This search is specific to Inbox. If we're using inbox sort and only querying
+        # postgres then we can use this sort method. Otherwise if we need to go to Snuba,
+        # fail.
+        if (
+            sort_by == "inbox"
+            and get_search_filter(search_filters, "for_review", "=")
+            # This handles tags and date parameters for search filters.
+            and not [
+                sf
+                for sf in search_filters
+                if sf.key.name not in self.postgres_only_fields.union(["date"])
+            ]
+        ):
+            group_queryset = group_queryset.filter(last_seen__gte=start, last_seen__lte=end)
+            group_queryset = group_queryset.extra(
+                select={"inbox_date": "sentry_groupinbox.date_added"},
+                tables=["sentry_groupinbox"],
+                where=[
+                    "sentry_groupinbox.group_id = sentry_groupedmessage.id",
+                    "sentry_groupinbox.project_id in %s",
+                    "sentry_groupinbox.date_added BETWEEN %s AND %s",
+                ],
+                params=(tuple(p.id for p in projects), start, end),
+            ).order_by("-inbox_date")
+            paginator = DateTimePaginator(group_queryset, "-inbox_date", **paginator_options)
+            return paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
+
+        if sort_by == "inbox":
+            raise InvalidSearchQuery(f"Sort key '{sort_by}' only supported for inbox search")
 
         # Here we check if all the django filters reduce the set of groups down
         # to something that we can send down to Snuba in a `group_id IN (...)`
