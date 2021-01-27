@@ -13,11 +13,11 @@ type Props = {
   score?: React.ReactNode;
   help?: React.ReactNode;
   trend?: React.ReactNode;
-  trendDirection?: 'good' | 'bad';
+  trendStatus?: 'good' | 'bad';
   className?: string;
 };
 
-function ScoreCard({title, score, help, trend, trendDirection, className}: Props) {
+function ScoreCard({title, score, help, trend, trendStatus, className}: Props) {
   return (
     <StyledPanel className={className}>
       <HeaderTitle>
@@ -27,14 +27,14 @@ function ScoreCard({title, score, help, trend, trendDirection, className}: Props
 
       <ScoreWrapper>
         <Score>{score ?? '\u2014'}</Score>
-        {defined(trend) && <Trend trendDirection={trendDirection}>{trend}</Trend>}
+        {defined(trend) && <Trend trendStatus={trendStatus}>{trend}</Trend>}
       </ScoreWrapper>
     </StyledPanel>
   );
 }
 
 function getTrendColor(p: TrendProps & {theme: Theme}) {
-  switch (p.trendDirection) {
+  switch (p.trendStatus) {
     case 'good':
       return p.theme.green300;
     case 'bad':
@@ -70,7 +70,7 @@ const Score = styled('span')`
   margin-top: ${space(1)};
 `;
 
-type TrendProps = {trendDirection: Props['trendDirection']};
+type TrendProps = {trendStatus: Props['trendStatus']};
 
 const Trend = styled('span')<TrendProps>`
   color: ${getTrendColor};

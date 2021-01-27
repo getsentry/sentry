@@ -147,7 +147,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
     return this.score - previousScore;
   }
 
-  get trendDirection(): React.ComponentProps<typeof ScoreCard>['trendDirection'] {
+  get trendStatus(): React.ComponentProps<typeof ScoreCard>['trendStatus'] {
     if (!this.trend) {
       return undefined;
     }
@@ -234,7 +234,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
         help={this.cardHelp}
         score={this.renderScore()}
         trend={this.renderTrend()}
-        trendDirection={this.trendDirection}
+        trendStatus={this.trendStatus}
       />
     );
   }
