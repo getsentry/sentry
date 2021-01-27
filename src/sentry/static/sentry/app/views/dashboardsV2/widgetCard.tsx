@@ -234,6 +234,11 @@ const WidgetTitle = styled(HeaderTitle)`
   width: 100%;
 `;
 
+const StyledSimpleTableChart = styled(SimpleTableChart)`
+  /* align with other card charts */
+  height: 190px;
+`;
+
 type WidgetCardVisualsProps = Pick<ReactRouter.WithRouterProps, 'router'> &
   Pick<
     WidgetQueries['state'],
@@ -288,7 +293,7 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
     return tableResults.map((result, i) => {
       const fields = widget.queries[i]?.fields ?? [];
       return (
-        <SimpleTableChart
+        <StyledSimpleTableChart
           key={`table:${result.title}`}
           location={location}
           fields={fields}

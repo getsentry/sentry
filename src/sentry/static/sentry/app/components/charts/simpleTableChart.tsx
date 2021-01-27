@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import PanelTable from 'app/components/panels/panelTable';
+import PanelTable, {PanelTableHeader} from 'app/components/panels/panelTable';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
@@ -19,6 +19,7 @@ type Props = {
   title: string;
   metadata: TableData['meta'];
   data: TableData['data'];
+  className?: string;
 };
 
 class SimpleTableChart extends React.Component<Props> {
@@ -38,13 +39,14 @@ class SimpleTableChart extends React.Component<Props> {
   }
 
   render() {
-    const {loading, fields, metadata, data, title} = this.props;
+    const {className, loading, fields, metadata, data, title} = this.props;
     const meta = metadata ?? {};
     const columns = decodeColumnOrder(fields.map(field => ({field})));
     return (
       <React.Fragment>
         {title && <h4>{title}</h4>}
         <StyledPanelTable
+          className={className}
           isLoading={loading}
           headers={columns.map((column, index) => {
             const align = fieldAlignment(column.name, column.type, meta);
@@ -68,10 +70,10 @@ const StyledPanelTable = styled(PanelTable)`
   border-right: 0;
   border-bottom: 0;
 
-  /* align height with charts */
-  height: 190px;
-  overflow: scroll;
   margin: ${space(1)} 0 0;
+  ${/* sc-selector */ PanelTableHeader} {
+    height: min-content;
+  }
 `;
 
 type HeadCellProps = {
