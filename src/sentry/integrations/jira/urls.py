@@ -26,5 +26,9 @@ urlpatterns = [
         name="sentry-extensions-jira-search",
     ),
     url(r"^configure/$", JiraExtensionConfigurationView.as_view()),
-    url(r"^issue/(?P<issue_key>[^\/]+)/$", JiraIssueHookView.as_view()),
+    url(
+        r"^issue/(?P<issue_key>[^\/]+)/$",
+        JiraIssueHookView.as_view(),
+        name="sentry-extensions-jira-issue-hook",
+    ),
 ]
