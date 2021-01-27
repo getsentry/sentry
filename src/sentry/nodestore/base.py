@@ -167,11 +167,12 @@ class NodeStorage(local, Service):
         else:
             uncached_ids = id_list
 
-        bytes_items = self._get_bytes_multi(uncached_ids)
-
-        items = {id: self._decode(value, subkey=subkey) for id, value in six.iteritems(bytes_items)}
+        items = {
+            id: self._decode(value, subkey=subkey)
+            for id, value in six.iteritems(self._get_bytes_multi(uncached_ids))
+        }
         if subkey is None:
-            self._set_cache_items(bytes_items)
+            self._set_cache_items(items)
             items.update(cache_items)
         return items
 
@@ -223,6 +224,7 @@ class NodeStorage(local, Service):
         cache_item = data.get(None)
         bytes_data = self._encode(data)
         self._set_bytes(id, bytes_data, ttl=ttl)
+        # set cache only after encoding and write to nodestore has succeeded
         self._set_cache_item(id, cache_item)
 
     def cleanup(self, cutoff_timestamp):
