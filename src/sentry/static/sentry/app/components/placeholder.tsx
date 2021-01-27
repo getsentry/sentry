@@ -9,6 +9,7 @@ const defaultProps = {
   bottomGutter: 0 as Parameters<typeof space>[0],
   width: '100%',
   height: '60px',
+  testId: 'loading-placeholder',
 };
 
 type DefaultProps = Readonly<typeof defaultProps>;
@@ -17,12 +18,12 @@ type Props = {
   className?: string;
   children?: React.ReactNode;
   error?: React.ReactNode;
+  testId?: string;
 } & Partial<DefaultProps>;
 
-const Placeholder = styled((props: Props) => {
-  const {className, children, error} = props;
+const Placeholder = styled(({className, children, error, testId}: Props) => {
   return (
-    <div data-test-id="loading-placeholder" className={className}>
+    <div data-test-id={testId} className={className}>
       {error || children}
     </div>
   );
