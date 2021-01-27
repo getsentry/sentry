@@ -106,6 +106,23 @@ class PostProcessGroupTest(TestCase):
         )
         assert event_processing_store.get(cache_key) is None
 
+    def test_processing_cache_cleared_with_commits(self):
+        # Regression test to guard against suspect commit calculations breaking the
+        # cache
+        event = self.store_event(data={}, project_id=self.project.id)
+        cache_key = write_event_to_cache(event)
+
+        with self.feature("organizations:workflow-owners"):
+            self.create_commit(repo=self.create_repo())
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                cache_key=cache_key,
+                group_id=event.group_id,
+            )
+        assert event_processing_store.get(cache_key) is None
+
     @patch("sentry.rules.processor.RuleProcessor")
     def test_rule_processor_backwards_compat(self, mock_processor):
         event = self.store_event(data={}, project_id=self.project.id)
