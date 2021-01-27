@@ -2564,6 +2564,21 @@ class ResolveFieldListTest(unittest.TestCase):
                 "percentile_range_1",
             ]
         ]
+        # Test a non duration field
+        fields = [
+            "percentile_range(measurements.lcp, 0.5, greater, 2020-05-03T06:48:57) as avg_range_1"
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "quantileIf(0.50)",
+                [
+                    "measurements.lcp",
+                    ["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]],
+                ],
+                "avg_range_1",
+            ]
+        ]
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile_range(transaction.duration, 0.5, greater, tomorrow)"]
@@ -2583,6 +2598,20 @@ class ResolveFieldListTest(unittest.TestCase):
                 "avgIf",
                 [
                     "transaction.duration",
+                    ["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]],
+                ],
+                "avg_range_1",
+            ]
+        ]
+
+        # Test a non duration field
+        fields = ["avg_range(measurements.lcp, greater, 2020-05-03T06:48:57) as avg_range_1"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "avgIf",
+                [
+                    "measurements.lcp",
                     ["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]],
                 ],
                 "avg_range_1",
