@@ -144,7 +144,12 @@ class BitbucketServer(ApiClient):
     def get_commits(self, project, repo, from_hash, to_hash, limit=1000):
         logger.info(
             "load.commits",
-            extra={"bitbucket_repo": repo, "bitbucket_project": project, "bitbucket_from_hash": from_hash, "bitbucket_to_hash": to_hash},
+            extra={
+                "bitbucket_repo": repo,
+                "bitbucket_project": project,
+                "bitbucket_from_hash": from_hash,
+                "bitbucket_to_hash": to_hash,
+            },
         )
 
         return self._get_values(
@@ -161,7 +166,12 @@ class BitbucketServer(ApiClient):
 
     def get_commit_filechanges(self, project, repo, commit, limit=1000):
         logger.info(
-            "load.filechanges", extra={"bitbucket_repo": repo, "bitbucket_project": project, "bitbucket_commit": commit}
+            "load.filechanges",
+            extra={
+                "bitbucket_repo": repo,
+                "bitbucket_project": project,
+                "bitbucket_commit": commit,
+            },
         )
 
         return self._get_values(
@@ -185,7 +195,11 @@ class BitbucketServer(ApiClient):
 
         logger.info(
             "load.paginated_uri",
-            extra={"bitbucket_uri": uri, "bitbucket_max_pages": max_pages, "bitbucket_params": params},
+            extra={
+                "bitbucket_uri": uri,
+                "bitbucket_max_pages": max_pages,
+                "bitbucket_params": params,
+            },
         )
 
         for i in range(max_pages):
@@ -211,6 +225,10 @@ class BitbucketServer(ApiClient):
 
         logger.warn(
             "load.paginated_uri.max_pages",
-            extra={"bitbucket_uri": uri, "bitbucket_params": params, "bitbucket_max_pages": max_pages},
+            extra={
+                "bitbucket_uri": uri,
+                "bitbucket_params": params,
+                "bitbucket_max_pages": max_pages,
+            },
         )
         return values
