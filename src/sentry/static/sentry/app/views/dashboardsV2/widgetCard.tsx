@@ -230,13 +230,16 @@ const StyledIconGrabbable = styled(IconGrabbable)`
 `;
 
 const WidgetTitle = styled(HeaderTitle)`
-  padding: ${space(1)} ${space(2)} 0;
+  padding: ${space(1)} ${space(2)};
   width: 100%;
+`;
+const ChartWrapper = styled('div')`
+  padding: 0 ${space(2)} ${space(2)};
 `;
 
 const StyledSimpleTableChart = styled(SimpleTableChart)`
   /* align with other card charts */
-  height: 190px;
+  height: 216px;
 `;
 
 type WidgetCardVisualsProps = Pick<ReactRouter.WithRouterProps, 'router'> &
@@ -392,19 +395,21 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
       return (
         <TransitionChart loading={loading} reloading={loading}>
           <TransparentLoadingMask visible={loading} />
-          {getDynamicText({
-            value: this.chartComponent({
-              series,
-            }),
-            fixed: <Placeholder height="200px" testId="skeleton-ui" />,
-          })}
+          <ChartWrapper>
+            {getDynamicText({
+              value: this.chartComponent({
+                series,
+              }),
+              fixed: <Placeholder height="200px" testId="skeleton-ui" />,
+            })}
+          </ChartWrapper>
         </TransitionChart>
       );
     }
 
     const legend = Legend({
-      right: 10,
-      top: 5,
+      right: 0,
+      top: 3,
       type: 'plain',
       selected: getSeriesSelection(location),
       theme,
@@ -423,10 +428,10 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
     const axisField = widget.queries[0]?.fields?.[0] ?? 'count()';
     const chartOptions = {
       grid: {
-        left: space(3),
-        right: space(3),
-        top: space(2),
-        bottom: space(3),
+        left: 0,
+        right: 0,
+        top: space(3),
+        bottom: 0,
       },
       seriesOptions: {
         showSymbol: false,
@@ -469,15 +474,17 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
           return (
             <TransitionChart loading={loading} reloading={loading}>
               <TransparentLoadingMask visible={loading} />
-              {getDynamicText({
-                value: this.chartComponent({
-                  ...zoomRenderProps,
-                  ...chartOptions,
-                  legend,
-                  series,
-                }),
-                fixed: <Placeholder height="200px" testId="skeleton-ui" />,
-              })}
+              <ChartWrapper>
+                {getDynamicText({
+                  value: this.chartComponent({
+                    ...zoomRenderProps,
+                    ...chartOptions,
+                    legend,
+                    series,
+                  }),
+                  fixed: <Placeholder height="200px" testId="skeleton-ui" />,
+                })}
+              </ChartWrapper>
             </TransitionChart>
           );
         }}
