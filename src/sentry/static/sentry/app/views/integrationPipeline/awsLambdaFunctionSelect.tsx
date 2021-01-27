@@ -6,7 +6,7 @@ import {Observer} from 'mobx-react';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import {t} from 'app/locale';
+import {t, tn} from 'app/locale';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import FormModel from 'app/views/settings/components/forms/model';
@@ -64,7 +64,15 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
 
   renderWhatWeFound = () => {
     const count = this.lambdaFunctions.length;
-    return <h4>{t('We found %s functions with Node runtimes', count)}</h4>;
+    return (
+      <h4>
+        {tn(
+          'We found %s function with a Node runtime',
+          'We found %s functions with Node runtimes',
+          count
+        )}
+      </h4>
+    );
   };
 
   renderLoadingScreeen = () => {
