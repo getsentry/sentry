@@ -296,6 +296,30 @@ class SlackWorkspaceActionHandlerTest(FireTest, TestCase):
         self.run_fire_test()
 
     @with_feature("organizations:slack-allow-workspace")
+    def test_fire_metric_alert_with_missing_integration(self):
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
+        integration = Integration.objects.create(
+            external_id="1",
+            provider="slack",
+            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+        )
+        action = AlertRuleTriggerAction.objects.create(
+            alert_rule_trigger=self.create_alert_rule_trigger(),
+            type=AlertRuleTriggerAction.Type.SLACK.value,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC.value,
+            target_identifier="some_id",
+            target_display="#hello",
+            integration=integration,
+            sentry_app=None,
+        )
+        integration.delete()
+        handler = SlackActionHandler(action, incident, self.project)
+        metric_value = 1000
+        with self.tasks():
+            handler.fire(metric_value)
+
+    @with_feature("organizations:slack-allow-workspace")
     def test_resolve_metric_alert(self):
         self.run_fire_test("resolve")
 
