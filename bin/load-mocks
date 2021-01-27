@@ -619,12 +619,12 @@ def main(num_events=1, extra_events=False, load_transactions=False):
                     project_id=project.id,
                     event_id=event1.event_id,
                     name="example-logfile.txt",
-                    file=File.objects.get_or_create(
+                    file_id=File.objects.get_or_create(
                         name="example-logfile.txt",
                         type="text/plain",
                         checksum="abcde" * 8,
                         size=13043,
-                    )[0],
+                    )[0].id,
                 )
 
                 event2 = create_sample_event(
@@ -696,9 +696,9 @@ def main(num_events=1, extra_events=False, load_transactions=False):
 
             if event3:
                 UserReport.objects.create(
-                    project=project,
+                    project_id=project.id,
                     event_id=event3.event_id,
-                    group=event3.group,
+                    group_id=event3.group.id,
                     name="Jane Bloggs",
                     email="jane@example.com",
                     comments=make_sentence(),
