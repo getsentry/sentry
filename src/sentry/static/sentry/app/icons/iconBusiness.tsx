@@ -52,7 +52,7 @@ const IconBusinessComponent = function IconBusinessComponent({
 };
 
 type Props = {
-  test: string;
+  test: boolean;
 
   /**
    * Renders a pink purple gradient on the icon
