@@ -6,6 +6,8 @@ from sentry.utils.json import dumps
 from google.auth.exceptions import GoogleAuthError
 from google.cloud import pubsub_v1
 
+from sentry_sdk import capture_message
+
 from .base import Analytics
 
 logger = logging.getLogger(__name__)
@@ -35,4 +37,5 @@ class PubSubAnalytics(Analytics):
 
     def record_event(self, event):
         if self.publisher is not None:
+            capture_message("hi i am staging and i am going to publish analytics")
             self.publisher.publish(self.topic, data=dumps(event.serialize()).encode("utf-8"))
