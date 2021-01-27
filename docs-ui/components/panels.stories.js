@@ -75,10 +75,7 @@ export const _PanelTable = withInfo({
       <div>Panel Item</div>
     </PanelTable>
 
-    <PanelTable
-      // eslint-disable-next-line react/jsx-key
-      headers={['Short', 'Longer heading name', '']}
-    >
+    <PanelTable headers={['Short', 'Longer heading name', '']}>
       <div>One Row</div>
       <div>One Row</div>
       <div>One Row</div>
