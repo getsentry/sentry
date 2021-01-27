@@ -23,15 +23,14 @@ class Migration(migrations.Migration):
     # want to create an index concurrently when adding one to an existing table.
     atomic = True
 
-
     dependencies = [
-        ('nodestore', '0001_initial'),
+        ("nodestore", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='node',
-            name='data',
+            model_name="node",
+            name="data",
             field=models.TextField(),
         ),
     ]
