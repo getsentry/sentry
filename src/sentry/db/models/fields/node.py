@@ -135,6 +135,10 @@ class NodeData(collections.MutableMapping):
     def save(self, subkeys=None):
         """
         Write current data back to nodestore.
+
+        :param subkeys: Additional JSON payloads to attach to nodestore value,
+            currently only {"unprocessed": {...}} is added for reprocessing.
+            See documentation of nodestore.
         """
 
         # We never loaded any data for reading or writing, so there

@@ -30,6 +30,40 @@ _NODESTORE_CACHE_VERSION = 2
 
 
 class NodeStorage(local, Service):
+    """
+    Nodestore is a key-value store that is used to store event payloads. It comes in two flavors:
+
+    * Django backend, which is just KV-store implemented on top of postgres.
+    * Bigtable backend
+
+    Keys (ids) in nodestore are strings, and values (nodes) are
+    JSON-serializable objects. Nodestore additionally has the concept of
+    subkeys, which are additional JSON payloads that should be stored together
+    with the same "main" value. Internally those values are concatenated and
+    compressed as one bytestream which makes them compress very well. This:
+
+    >>> nodestore.set("key1", "my key")
+    >>> nodestore.set("key1.1", "my key 2")
+    >>> nodestore.get("key1")
+    "my key"
+    >>> nodestore.get("key1.1")
+    "my key 2"
+
+    ...very likely takes more space than:
+
+    >>> nodestore.set_subkeys("key1", {None: "my key", "1": "my key 2"})
+    >>> nodestore.get("key1")
+    "my key"
+    >>> nodestore.get("key1", subkey="1")
+    "my key 2"
+
+    ...simply because compressing "my key<SEPARATOR>my key 2" yields better
+    compression ratio than compressing each key individually.
+
+    This is used in reprocessing to store a snapshot of the event from multiple
+    stages of the pipeline.
+    """
+
     __all__ = (
         "delete",
         "delete_multi",
@@ -40,11 +74,6 @@ class NodeStorage(local, Service):
         "cleanup",
         "validate",
         "bootstrap",
-        "_get_cache_item",
-        "_get_cache_items",
-        "_set_cache_item",
-        "_delete_cache_item",
-        "_delete_cache_items",
     )
 
     def delete(self, id):
@@ -101,6 +130,7 @@ class NodeStorage(local, Service):
 
         bytes_data = self._get_bytes(id)
         rv = self._decode(bytes_data, subkey=subkey)
+        # set cache item only after we know decoding did not fail
         self._set_cache_item(id, bytes_data)
         return rv
 
@@ -162,17 +192,24 @@ class NodeStorage(local, Service):
 
     def set(self, id, data, ttl=None):
         """
+        Set value for `id`. Note that this deletes existing subkeys for `id` as
+        well, use `set_subkeys` to write a value + subkeys.
+
         >>> nodestore.set('key1', {'foo': 'bar'})
         """
         return self.set_subkeys(id, {None: data}, ttl=ttl)
 
     def set_subkeys(self, id, data, ttl=None):
         """
+        Set value for `id` and its subkeys.
+
         >>> nodestore.set_subkeys('key1', {
         ...    None: {'foo': 'bar'},
         ...    "reprocessing": {'foo': 'bam'},
         ... })
 
+        >>> nodestore.get('key1')
+        {'foo': 'bar'}
         >>> nodestore.get('key1', subkey='reprocessing')
         {'foo': 'bam'}
         """
