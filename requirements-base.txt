@@ -12,9 +12,6 @@ django-sudo>=3.0.0,<4.0.0
 Django>=1.11,<1.12
 djangorestframework==3.6.4
 email-reply-parser>=0.5.0,<0.6.0
-enum34>=1.1.6,<1.2.0 ; python_version < "3.4"
-functools32>=3.2.3,<3.3 ; python_version < "3.2"
-futures>=3.2.0,<4.0.0 ; python_version < "3.2"
 google-api-core==1.14.3
 google-auth==1.6.3
 google-cloud-core==0.29.1
@@ -22,7 +19,6 @@ google-cloud-bigtable==0.32.2
 google-cloud-pubsub==0.35.4
 google-cloud-storage==1.13.3
 googleapis-common-protos==1.6.0
-ipaddress>=1.0.16,<1.1.0 ; python_version < "3.3"
 jsonschema==3.2.0
 lxml>=4.6.1,<4.7.0
 maxminddb==1.5.4
@@ -35,7 +31,7 @@ Pillow>=6.2.2,<7.0.0
 progressbar2>=3.32,<3.33
 psycopg2-binary>=2.7.0,<2.9.0
 PyJWT>=1.5.0,<1.6.0
-pyrsistent==0.16.0 # TODO(py3): 0.17.0 requires python3, see https://github.com/tobgu/pyrsistent/issues/205
+pyrsistent==0.17.3
 python-dateutil>=2.0.0,<3.0.0
 python-memcached>=1.53,<2.0.0
 python3-saml>=1.4.0,<1.5
@@ -66,24 +62,7 @@ urllib3==1.24.2
 uwsgi>2.0.0,<2.1.0
 zstandard>=0.14.1,<=0.15
 
-# msgpack>=1.0.0 correctly encodes / decodes byte types in python3 as the
-# msgpack bin type. It could NOT do this in python 2. However, 1.0 also drops
-# support for python 2, so we must use a conditional here.
-#
-# XXX: compatibility note
-#
-# If we were serializing byte data in python 2 (which would encode it as the
-# msgpack str type) using msgpack<1.0 and deserializing in python 3 using
-# msgpack>=1.0, we would result in our byte data being decoded as strings.
-#
-# We DO NOT have to deal with this, as we currently do not encode byte data in
-# python.
-#
-# We DO encode byte data in relay, but it will be correctly encoded as the
-# msgpack bin type. Both versions of msgpack will decode this to the native
-# 'byte' type (bytes in python3, str in python2).
-msgpack>=0.6.1,<0.7.0; python_version < '3.0'
-msgpack>=1.0.0,<1.1.0; python_version >= '3.0'
+msgpack>=1.0.0,<1.1.0
 
 billiard==3.6.3
 kombu==4.6.11
@@ -105,5 +84,7 @@ setproctitle>=1.1.7,<1.2.0
 phabricator>=0.6.0,<0.8
 
 # test dependencies, but unable to move to requirements-test until sentry.utils.pytest and similar are moved to tests/
-mock==3.0.5 ; python_version < "3.3"
 selenium==3.141.0
+# We're still using mock in Python 3.6 because it contains a fix to Python issue37972.
+# We should be able to fully swap it out for stdlib once we're on 3.8.
+mock==4.0.3

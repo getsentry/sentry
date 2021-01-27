@@ -66,36 +66,129 @@ export function getAxisOptions(organization: LightWeightOrganization): TooltipOp
   ];
 }
 
+export type AxisOption = TooltipOption & {
+  field: string;
+  isDistribution?: boolean;
+  isLeftDefault?: boolean;
+  isRightDefault?: boolean;
+};
+
 export function getFrontendAxisOptions(
   organization: LightWeightOrganization
-): TooltipOption[] {
+): AxisOption[] {
   return [
     {
       tooltip: getTermHelp(organization, 'lcp'),
       value: `p75(lcp)`,
       label: t('LCP p75'),
+      field: 'p75(measurements.lcp)',
+      isLeftDefault: true,
     },
     {
       tooltip: getTermHelp(organization, 'lcp'),
       value: 'lcp_distribution',
       label: t('LCP Distribution'),
+      field: 'measurements.lcp',
+      isDistribution: true,
+      isRightDefault: true,
+    },
+    {
+      tooltip: getTermHelp(organization, 'tpm'),
+      value: 'tpm()',
+      label: t('Transactions Per Minute'),
+      field: 'tpm()',
+    },
+  ];
+}
+
+export function getFrontendNavigationAxisOptions(
+  organization: LightWeightOrganization
+): AxisOption[] {
+  return [
+    {
+      tooltip: getTermHelp(organization, 'p50'),
+      value: `p50()`,
+      label: t('Duration p50'),
+      field: 'p50(transaction.duration)',
+    },
+    {
+      tooltip: getTermHelp(organization, 'p75'),
+      value: `p75()`,
+      label: t('Duration p75'),
+      field: 'p75(transaction.duration)',
+      isLeftDefault: true,
+    },
+    {
+      tooltip: getTermHelp(organization, 'p95'),
+      value: `p95()`,
+      label: t('Duration p95'),
+      field: 'p95(transaction.duration)',
+    },
+    {
+      tooltip: getTermHelp(organization, 'durationDistribution'),
+      value: 'duration_distribution',
+      label: t('Duration Distribution'),
+      field: 'transaction.duration',
+      isDistribution: true,
+      isRightDefault: true,
     },
   ];
 }
 
 export function getBackendAxisOptions(
   organization: LightWeightOrganization
-): TooltipOption[] {
+): AxisOption[] {
   return [
+    {
+      tooltip: getTermHelp(organization, 'p50'),
+      value: `p50()`,
+      label: t('Duration p50'),
+      field: 'p50(transaction.duration)',
+    },
     {
       tooltip: getTermHelp(organization, 'p75'),
       value: `p75()`,
       label: t('Duration p75'),
+      field: 'p75(transaction.duration)',
+      isLeftDefault: true,
+    },
+    {
+      tooltip: getTermHelp(organization, 'p95'),
+      value: `p95()`,
+      label: t('Duration p95'),
+      field: 'p95(transaction.duration)',
+    },
+    {
+      tooltip: getTermHelp(organization, 'p99'),
+      value: `p99()`,
+      label: t('Duration p99'),
+      field: 'p99(transaction.duration)',
+    },
+    {
+      tooltip: getTermHelp(organization, 'apdex'),
+      value: `apdex(${organization.apdexThreshold})`,
+      label: t('Apdex'),
+      field: `apdex(${organization.apdexThreshold})`,
+    },
+    {
+      tooltip: getTermHelp(organization, 'tpm'),
+      value: 'tpm()',
+      label: t('Transactions Per Minute'),
+      field: 'tpm()',
+    },
+    {
+      tooltip: getTermHelp(organization, 'failureRate'),
+      value: 'failure_rate()',
+      label: t('Failure Rate'),
+      field: 'failure_rate()',
     },
     {
       tooltip: getTermHelp(organization, 'durationDistribution'),
       value: 'duration_distribution',
       label: t('Duration Distribution'),
+      field: 'transaction.duration',
+      isDistribution: true,
+      isRightDefault: true,
     },
   ];
 }
@@ -193,7 +286,7 @@ function generateGenericPerformanceEventView(
   return EventView.fromNewQueryWithLocation(savedQuery, location);
 }
 
-function generateFrontendPerformanceEventView(
+function generateFrontendPageloadPerformanceEventView(
   organization: LightWeightOrganization,
   location: Location
 ): EventView {
@@ -240,16 +333,67 @@ function generateFrontendPerformanceEventView(
   return EventView.fromNewQueryWithLocation(savedQuery, location);
 }
 
-export function generatePerformanceEventView(organization, location) {
-  const display = organization.features.includes('performance-landing-v2')
-    ? getCurrentLandingDisplay(location)
-    : undefined;
+function generateFrontendNavigationPerformanceEventView(
+  organization: LightWeightOrganization,
+  location: Location
+): EventView {
+  const {query} = location;
+
+  const hasStartAndEnd = query.start && query.end;
+  const savedQuery: NewQuery = {
+    id: undefined,
+    name: t('Performance'),
+    query: 'event.type:transaction',
+    projects: [],
+    fields: [
+      'key_transaction',
+      'transaction',
+      'project',
+      'tpm()',
+      'p50(transaction.duration)',
+      'p75(transaction.duration)',
+      'p95(transaction.duration)',
+      'count_unique(user)',
+      `user_misery(${organization.apdexThreshold})`,
+    ],
+    version: 2,
+  };
+
+  if (!query.statsPeriod && !hasStartAndEnd) {
+    savedQuery.range = DEFAULT_STATS_PERIOD;
+  }
+  savedQuery.orderby = decodeScalar(query.sort) || '-tpm';
+
+  const searchQuery = decodeScalar(query.query) || '';
+  const conditions = tokenizeSearch(searchQuery);
+  conditions.setTagValues('event.type', ['transaction']);
+
+  // If there is a bare text search, we want to treat it as a search
+  // on the transaction name.
+  if (conditions.query.length > 0) {
+    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`]);
+    conditions.query = [];
+  }
+  savedQuery.query = stringifyQueryObject(conditions);
+
+  return EventView.fromNewQueryWithLocation(savedQuery, location);
+}
+
+export function generatePerformanceEventView(organization, location, projects) {
+  const eventView = generateGenericPerformanceEventView(organization, location);
+  if (!organization.features.includes('performance-landing-v2')) {
+    return eventView;
+  }
+
+  const display = getCurrentLandingDisplay(location, projects, eventView);
   switch (display?.field) {
-    case LandingDisplayField.FRONTEND:
-      return generateFrontendPerformanceEventView(organization, location);
+    case LandingDisplayField.FRONTEND_PAGELOAD:
+      return generateFrontendPageloadPerformanceEventView(organization, location);
+    case LandingDisplayField.FRONTEND_NAVIGATION:
+      return generateFrontendNavigationPerformanceEventView(organization, location);
     case LandingDisplayField.BACKEND:
     default:
-      return generateGenericPerformanceEventView(organization, location);
+      return eventView;
   }
 }
 

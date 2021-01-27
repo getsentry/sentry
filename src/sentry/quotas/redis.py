@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import functools
 import six
 
@@ -58,7 +56,7 @@ class RedisQuota(Quota):
             local_key = "%s:%s" % (quota.id, quota.scope_id or organization_id)
 
         interval = quota.window
-        return u"{}:{}:{}".format(self.namespace, local_key, int((timestamp - shift) // interval))
+        return "{}:{}:{}".format(self.namespace, local_key, int((timestamp - shift) // interval))
 
     def get_quotas(self, project, key=None, keys=None):
         if key:
@@ -151,7 +149,7 @@ class RedisQuota(Quota):
         return [get_value_for_result(*r) for r in results]
 
     def get_refunded_quota_key(self, key):
-        return u"r:{}".format(key)
+        return "r:{}".format(key)
 
     def refund(self, project, key=None, timestamp=None, category=None, quantity=None):
         if timestamp is None:

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django import forms
 from django.conf import settings
 from django.conf.urls import url
@@ -40,7 +38,7 @@ class OptionAdmin(admin.ModelAdmin):
     search_fields = ("key",)
 
     def value_repr(self, instance):
-        return u'<pre style="display:inline-block;white-space:pre-wrap;">{}</pre>'.format(
+        return '<pre style="display:inline-block;white-space:pre-wrap;">{}</pre>'.format(
             escape(saferepr(instance.value))
         )
 

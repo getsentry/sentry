@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
 
 from django.db import migrations, models
 
@@ -19,9 +18,8 @@ class Migration(migrations.Migration):
     # - Adding columns to highly active tables, even ones that are NULL.
     is_dangerous = False
 
-
     dependencies = [
-        ('sentry', '0017_incident_aggregation'),
+        ("sentry", "0017_incident_aggregation"),
     ]
 
     """
@@ -32,8 +30,8 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.AddField(
-            model_name='discoversavedquery',
-            name='version',
+            model_name="discoversavedquery",
+            name="version",
             field=models.IntegerField(null=True),
         ),
     ]

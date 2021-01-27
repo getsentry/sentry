@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry import tsdb
 from sentry.models import ServiceHook
 from sentry.testutils import APITestCase
@@ -12,7 +10,7 @@ class ProjectServiceHookStatsTest(APITestCase):
             project_id=project.id, actor_id=self.user.id, url="http://example.com"
         )[0]
         self.login_as(user=self.user)
-        path = u"/api/0/projects/{}/{}/hooks/{}/stats/".format(
+        path = "/api/0/projects/{}/{}/hooks/{}/stats/".format(
             project.organization.slug, project.slug, hook.guid
         )
 

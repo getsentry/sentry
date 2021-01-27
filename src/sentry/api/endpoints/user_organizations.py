@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.db.models import Q
 
 from sentry.api.bases.user import UserEndpoint

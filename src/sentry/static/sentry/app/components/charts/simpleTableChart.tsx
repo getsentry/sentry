@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import PanelTable from 'app/components/panels/panelTable';
+import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
@@ -14,6 +15,7 @@ type Props = {
   organization: Organization;
   location: Location;
   loading: boolean;
+  fields: string[];
   title: string;
   metadata: TableData['meta'];
   data: TableData['data'];
@@ -36,13 +38,13 @@ class SimpleTableChart extends React.Component<Props> {
   }
 
   render() {
-    const {loading, metadata, data, title} = this.props;
+    const {loading, fields, metadata, data, title} = this.props;
     const meta = metadata ?? {};
-    const columns = decodeColumnOrder(Object.keys(meta).map(col => ({field: col})));
+    const columns = decodeColumnOrder(fields.map(field => ({field})));
     return (
-      <TableWrapper>
+      <React.Fragment>
         {title && <h4>{title}</h4>}
-        <PanelTable
+        <StyledPanelTable
           isLoading={loading}
           headers={columns.map((column, index) => {
             const align = fieldAlignment(column.name, column.type, meta);
@@ -54,18 +56,22 @@ class SimpleTableChart extends React.Component<Props> {
           })}
         >
           {data.map((row, index) => this.renderRow(index, row, meta, columns))}
-        </PanelTable>
-      </TableWrapper>
+        </StyledPanelTable>
+      </React.Fragment>
     );
   }
 }
-const TableWrapper = styled('div')`
-  /* align height with charts */
-  height: 170px;
-  overflow-y: scroll;
 
-  /* Space away from where the widget title is */
-  margin-top: 30px;
+const StyledPanelTable = styled(PanelTable)`
+  border-radius: 0;
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+
+  /* align height with charts */
+  height: 190px;
+  overflow: scroll;
+  margin: ${space(1)} 0 0;
 `;
 
 type HeadCellProps = {

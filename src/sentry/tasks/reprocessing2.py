@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import time
 import logging
 import six
@@ -68,7 +66,9 @@ def reprocess_group(
     for event in events:
         if max_events is None or max_events > 0:
             reprocess_event.delay(
-                project_id=project_id, event_id=event.event_id, start_time=start_time,
+                project_id=project_id,
+                event_id=event.event_id,
+                start_time=start_time,
             )
             if max_events is not None:
                 max_events -= 1

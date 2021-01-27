@@ -10,6 +10,7 @@ export enum SessionTerm {
   HEALTHY = 'healthy',
   ERRORED = 'errored',
   UNHANDLED = 'unhandled',
+  STABILITY = 'stability',
 }
 
 export const sessionTerm = {
@@ -28,6 +29,7 @@ export const commonTermsDescription = {
   [SessionTerm.CRASHES]: t('Number of sessions with a crashed state'),
   [SessionTerm.CRASH_FREE_USERS]: t('Number of unique users with non-crashed sessions'),
   [SessionTerm.CRASH_FREE_SESSIONS]: t('Number of non-crashed sessions'),
+  [SessionTerm.STABILITY]: t('Stability is the percentage of crash free sessions.'),
 };
 
 // This should never be used directly (except in tests)

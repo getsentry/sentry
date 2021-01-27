@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.utils.compat.mock import patch
 
 from django.core.urlresolvers import reverse
@@ -19,7 +17,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         self.mock_uuid = mock_uuid
 
     def assert_rename_pending_delete(self, response, repo, external_id=None):
-        assert response.data["status"] == u"pending_deletion"
+        assert response.data["status"] == "pending_deletion"
         assert response.data["name"] == "example"  # name displayed matches what the user expects
 
         assert repo.status == ObjectStatus.PENDING_DELETION

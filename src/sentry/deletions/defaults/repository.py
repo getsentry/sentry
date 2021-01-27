@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from sentry.signals import pending_delete
 
 from ..base import ModelDeletionTask, ModelRelation

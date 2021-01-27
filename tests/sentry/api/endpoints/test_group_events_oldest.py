@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -42,7 +40,7 @@ class GroupEventsOldestEndpointTest(APITestCase, SnubaTestCase):
         )
 
     def test_get_simple(self):
-        url = u"/api/0/issues/{}/events/oldest/".format(self.event_a.group.id)
+        url = "/api/0/issues/{}/events/oldest/".format(self.event_a.group.id)
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -51,7 +49,7 @@ class GroupEventsOldestEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["nextEventID"] == six.text_type(self.event_b.event_id)
 
     def test_get_with_environment(self):
-        url = u"/api/0/issues/{}/events/oldest/".format(self.event_a.group.id)
+        url = "/api/0/issues/{}/events/oldest/".format(self.event_a.group.id)
         response = self.client.get(url, format="json", data={"environment": ["production"]})
 
         assert response.status_code == 200, response.content

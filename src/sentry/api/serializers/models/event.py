@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 
 from datetime import datetime
@@ -163,7 +161,9 @@ class EventSerializer(Serializer):
 
     def _get_user_report(self, user, event):
         try:
-            user_report = UserReport.objects.get(event_id=event.event_id, project=event.project)
+            user_report = UserReport.objects.get(
+                event_id=event.event_id, project_id=event.project_id
+            )
         except UserReport.DoesNotExist:
             user_report = None
         return serialize(user_report, user)

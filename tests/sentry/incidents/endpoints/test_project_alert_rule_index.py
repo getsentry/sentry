@@ -1,12 +1,10 @@
-from __future__ import absolute_import
-
 import six
 import requests
 import pytz
 
 from exam import fixture
 from freezegun import freeze_time
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry.utils import json
 from sentry.api.serializers import serialize

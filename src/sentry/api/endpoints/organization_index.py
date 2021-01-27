@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 
 from django.conf import settings
@@ -187,7 +185,7 @@ class OrganizationIndexEndpoint(Endpoint):
 
         limit = options.get("api.rate-limit.org-create")
         if limit and ratelimiter.is_limited(
-            u"org-create:{}".format(request.user.id), limit=limit, window=3600
+            "org-create:{}".format(request.user.id), limit=limit, window=3600
         ):
             return Response(
                 {"detail": "You are attempting to create too many organizations too quickly."},
