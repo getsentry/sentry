@@ -22,7 +22,6 @@ def _identity(x):
     return x
 
 
-implements_to_string = _identity
 implements_iterator = _identity
 implements_bool = _identity
 

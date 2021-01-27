@@ -1,7 +1,5 @@
 import six
 
-from sentry.utils.compat import implements_to_string
-
 
 def sort_by_severity(problems):
     """\
@@ -10,7 +8,6 @@ def sort_by_severity(problems):
     return sorted(problems, key=lambda i: (-Problem.SEVERITY_LEVELS[i.severity], i.message))
 
 
-@implements_to_string
 class Problem(object):
 
     # Used for issues that may render the system inoperable or have effects on
