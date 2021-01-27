@@ -121,12 +121,11 @@ def test_tags_with_spaces():
     assert data["tags"] == [["foo-bar", "baz bar"]]
 
 
-@pytest.mark.skip("Broken because of sentry-relay 0.8.2")
 def test_tags_out_of_bounds():
     data = validate_and_normalize(
         {"message": "foo", "tags": {"f" * 33: "value", "foo": "v" * 201, "bar": "value"}}
     )
-    assert data["tags"] == [["bar", "value"], None, None]
+    assert data["tags"] == [["bar", "value"], [None, "value"], ["foo", None]]
     assert len(data["errors"]) == 2
 
 
