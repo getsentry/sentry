@@ -97,9 +97,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         """ Construct the columns needed to calculate high confidence trends """
         trend_column = self.trend_columns.get(baseline_function)
         if trend_column is None:
-            raise ParseError(
-                detail="{} is not a supported trend function".format(baseline_function)
-            )
+            raise ParseError(detail=f"{baseline_function} is not a supported trend function")
 
         count_column = self.trend_columns["count_range"]
         percentage_column = self.trend_columns["percentage"]
@@ -183,7 +181,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                 try:
                     middle = parse_datetime_string(middle_date)
                 except InvalidQuery:
-                    raise ParseError(detail="{} is not a valid date format".format(middle_date))
+                    raise ParseError(detail=f"{middle_date} is not a valid date format")
                 if middle <= params["start"] or middle >= params["end"]:
                     raise ParseError(
                         detail="The middle date should be within the duration of the query"
@@ -196,7 +194,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
 
         trend_type = request.GET.get("trendType", REGRESSION)
         if trend_type not in TREND_TYPES:
-            raise ParseError(detail="{} is not a supported trend type".format(trend_type))
+            raise ParseError(detail=f"{trend_type} is not a supported trend type")
 
         params["aliases"] = self.get_function_aliases(trend_type)
 

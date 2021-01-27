@@ -34,7 +34,7 @@ class OrganizationEventsTrendsBase(APITestCase, SnubaTestCase):
                 self.day_ago + timedelta(hours=1, minutes=30 + i, seconds=second[i])
             )
             data["measurements"]["lcp"]["value"] = second[i] * 1000
-            data["user"] = {"email": "foo{}@example.com".format(i)}
+            data["user"] = {"email": f"foo{i}@example.com"}
             self.store_event(data, project_id=self.project.id)
 
         self.expected_data = {
@@ -225,7 +225,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
                         "end": iso_format(self.day_ago + timedelta(hours=2)),
                         "start": iso_format(self.day_ago),
                         "field": ["project", "transaction"],
-                        "query": "event.type:transaction {}".format(query_data[0]),
+                        "query": f"event.type:transaction {query_data[0]}",
                         "trendType": query_data[1],
                         # Use p99 since it has the most significant change
                         "trendFunction": "p99()",
@@ -254,7 +254,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
                         "end": iso_format(self.day_ago + timedelta(hours=2)),
                         "start": iso_format(self.day_ago),
                         "field": ["project", "transaction"],
-                        "query": "event.type:transaction {}".format(query_data[0]),
+                        "query": f"event.type:transaction {query_data[0]}",
                         "trendType": query_data[1],
                         # Use p99 since it has the most significant change
                         "trendFunction": "p99()",
@@ -418,7 +418,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         )
         self.assert_event(events["data"][0])
 
-        stats = result_stats["{},{}".format(self.project.slug, self.prototype["transaction"])]
+        stats = result_stats[f"{self.project.slug},{self.prototype['transaction']}"]
         assert [attrs for time, attrs in stats["data"]] == [
             [{"count": 2000}],
             [{"count": 2000}],
@@ -455,7 +455,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         )
         self.assert_event(events["data"][0])
 
-        stats = result_stats["{},{}".format(self.project.slug, self.prototype["transaction"])]
+        stats = result_stats[f"{self.project.slug},{self.prototype['transaction']}"]
         assert [attrs for time, attrs in stats["data"]] == [
             [{"count": 2000}],
             [{"count": 2000}],
@@ -492,7 +492,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         )
         self.assert_event(events["data"][0])
 
-        stats = result_stats["{},{}".format(self.project.slug, self.prototype["transaction"])]
+        stats = result_stats[f"{self.project.slug},{self.prototype['transaction']}"]
         assert [attrs for time, attrs in stats["data"]] == [
             [{"count": 2000}],
             [{"count": 6000}],
@@ -529,7 +529,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         )
         self.assert_event(events["data"][0])
 
-        stats = result_stats["{},{}".format(self.project.slug, self.prototype["transaction"])]
+        stats = result_stats[f"{self.project.slug},{self.prototype['transaction']}"]
         assert [attrs for time, attrs in stats["data"]] == [
             [{"count": 2000}],
             [{"count": 9200}],
@@ -566,7 +566,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         )
         self.assert_event(events["data"][0])
 
-        stats = result_stats["{},{}".format(self.project.slug, self.prototype["transaction"])]
+        stats = result_stats[f"{self.project.slug},{self.prototype['transaction']}"]
         assert [attrs for time, attrs in stats["data"]] == [
             [{"count": 2000}],
             [{"count": 9840}],
@@ -603,7 +603,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         )
         self.assert_event(events["data"][0])
 
-        stats = result_stats["{},{}".format(self.project.slug, self.prototype["transaction"])]
+        stats = result_stats[f"{self.project.slug},{self.prototype['transaction']}"]
         assert [attrs for time, attrs in stats["data"]] == [
             [{"count": 2000}],
             [{"count": 4000}],
@@ -643,7 +643,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         )
         self.assert_event(events["data"][0])
 
-        stats = result_stats["{},{}".format(self.project.slug, self.prototype["transaction"])]
+        stats = result_stats[f"{self.project.slug},{self.prototype['transaction']}"]
         assert [attrs for time, attrs in stats["data"]] == [
             [{"count": 2000}],
             [{"count": 4000}],
@@ -745,7 +745,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
         )
         self.assert_event(events["data"][0])
 
-        stats = result_stats["{},{}".format(self.project.slug, self.prototype["transaction"])]
+        stats = result_stats[f"{self.project.slug},{self.prototype['transaction']}"]
         assert [attrs for time, attrs in stats["data"]] == [
             [{"count": 0}],
             [{"count": 0}],
@@ -777,9 +777,9 @@ class OrganizationEventsTrendsPagingTest(APITestCase, SnubaTestCase):
                     self.day_ago + timedelta(hours=j, minutes=30, seconds=2)
                 )
                 if i < 5:
-                    data["transaction"] = "transaction_1{}".format(i)
+                    data["transaction"] = f"transaction_1{i}"
                 else:
-                    data["transaction"] = "transaction_2{}".format(i)
+                    data["transaction"] = f"transaction_2{i}"
                 self.store_event(data, project_id=self.project.id)
 
     def _parse_links(self, header):
