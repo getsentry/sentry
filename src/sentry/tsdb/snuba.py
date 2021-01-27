@@ -278,6 +278,13 @@ class SnubaTSDB(BaseTSDB):
             conditions += deepcopy(model_query_settings.conditions)
             # copy because we modify the conditions in snuba.query
 
+        orderby = []
+        if group_on_time:
+            orderby.append("-time")
+
+        if group_on_model and model_group is not None:
+            orderby.append(model_group)
+
         if keys:
             result = snuba.query(
                 dataset=model_query_settings.dataset,
@@ -289,6 +296,7 @@ class SnubaTSDB(BaseTSDB):
                 aggregations=aggregations,
                 rollup=rollup,
                 limit=limit,
+                orderby=orderby,
                 referrer="tsdb-modelid:{}".format(model.value),
                 is_grouprelease=(model == TSDBModel.frequent_releases_by_group),
             )
