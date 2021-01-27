@@ -45,8 +45,11 @@ function getTrendColor(p: TrendProps & {theme: Theme}) {
 }
 
 const StyledPanel = styled(Panel)`
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   padding: ${space(2)} ${space(3)};
-  min-height: 100px;
+  min-height: 96px;
 `;
 
 const HeaderTitle = styled('div')`
@@ -54,6 +57,7 @@ const HeaderTitle = styled('div')`
   grid-auto-flow: column;
   grid-gap: ${space(1)};
   align-items: center;
+  width: fit-content;
 `;
 
 const Title = styled('div')`
@@ -67,7 +71,6 @@ const ScoreWrapper = styled('div')`
 
 const Score = styled('span')`
   font-size: 32px;
-  margin-top: ${space(1)};
 `;
 
 type TrendProps = {trendStatus: Props['trendStatus']};
