@@ -125,7 +125,7 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
   }
 
   get cardTitle() {
-    return t('Apdex Score');
+    return t('Apdex');
   }
 
   get cardHelp() {
@@ -162,12 +162,12 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
     return null;
   }
 
-  get trendStyle(): React.ComponentProps<typeof ScoreCard>['trendStyle'] {
+  get trendDirection(): React.ComponentProps<typeof ScoreCard>['trendDirection'] {
     if (!this.trend) {
       return undefined;
     }
 
-    return this.trend > 0 ? 'bad' : 'good';
+    return this.trend > 0 ? 'down' : 'up';
   }
 
   renderLoading() {
@@ -210,7 +210,7 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
         help={this.cardHelp}
         score={this.renderScore()}
         trend={this.renderTrend()}
-        trendStyle={this.trendStyle}
+        trendDirection={this.trendDirection}
       />
     );
   }

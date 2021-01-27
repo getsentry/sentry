@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {Panel, PanelBody} from 'app/components/panels';
+import {Panel} from 'app/components/panels';
 import QuestionTooltip from 'app/components/questionTooltip';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -13,62 +13,51 @@ type Props = {
   score?: React.ReactNode;
   help?: React.ReactNode;
   trend?: React.ReactNode;
-  trendStyle?: 'good' | 'bad';
+  trendDirection?: 'up' | 'down';
   className?: string;
 };
 
-function ScoreCard({title, score, help, trend, trendStyle, className}: Props) {
+function ScoreCard({title, score, help, trend, trendDirection, className}: Props) {
   return (
     <StyledPanel className={className}>
-      <PanelBody withPadding>
-        <TitleWrapper>
-          <Title>{title}</Title>
+      <HeaderTitle>
+        <Title>{title}</Title>
+        {help && <QuestionTooltip title={help} size="sm" position="top" />}
+      </HeaderTitle>
 
-          {help && <StyledQuestionTooltip title={help} size="sm" position="top" />}
-        </TitleWrapper>
-
-        <ScoreWrapper>
-          <Score>{score ?? '\u2014'}</Score>
-
-          {defined(trend) && <Trend trendStyle={trendStyle}>{trend}</Trend>}
-        </ScoreWrapper>
-      </PanelBody>
+      <ScoreWrapper>
+        <Score>{score ?? '\u2014'}</Score>
+        {defined(trend) && <Trend trendDirection={trendDirection}>{trend}</Trend>}
+      </ScoreWrapper>
     </StyledPanel>
   );
 }
 
 function getTrendColor(p: TrendProps & {theme: Theme}) {
-  switch (p.trendStyle) {
-    case 'good':
+  switch (p.trendDirection) {
+    case 'up':
       return p.theme.green300;
-    case 'bad':
+    case 'down':
       return p.theme.red300;
     default:
-      return p.theme.blue300;
+      return p.theme.gray300;
   }
 }
 
 const StyledPanel = styled(Panel)`
-  margin-bottom: 0;
-  min-height: 105px;
+  padding: ${space(2)} ${space(3)};
+  min-height: 100px;
 `;
 
-const TitleWrapper = styled('div')`
-  display: flex;
+const HeaderTitle = styled('div')`
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1)};
   align-items: center;
-  margin-bottom: ${space(2)};
 `;
 
-const Title = styled('h3')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: 400;
-  margin-bottom: 0 !important;
+const Title = styled('div')`
   ${overflowEllipsis};
-  width: auto;
-`;
-
-const StyledQuestionTooltip = styled(QuestionTooltip)`
-  margin-left: ${space(1)};
 `;
 
 const ScoreWrapper = styled('div')`
@@ -77,13 +66,13 @@ const ScoreWrapper = styled('div')`
 `;
 
 const Score = styled('span')`
-  font-size: 36px;
+  font-size: 32px;
+  margin-top: ${space(1)};
 `;
 
-type TrendProps = {trendStyle: Props['trendStyle']};
+type TrendProps = {trendDirection: Props['trendDirection']};
 
 const Trend = styled('span')<TrendProps>`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
   color: ${getTrendColor};
   margin-left: ${space(1)};
   ${overflowEllipsis};

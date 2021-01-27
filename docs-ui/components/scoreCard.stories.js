@@ -16,14 +16,14 @@ export const Default = () => (
       help={t('First score is used to ...')}
       score="94.1%"
       trend="+13.5%"
-      trendStyle="good"
+      trendDirection="up"
     />
     <ScoreCard
       title={t('Velocity Score')}
       help={t('Velocity score is used to ...')}
       score="16"
       trend="-2 releases / 2 wks"
-      trendStyle="bad"
+      trendDirection="down"
     />
     <ScoreCard
       title={t('Other Score')}
