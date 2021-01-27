@@ -241,7 +241,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         [
             "query",
             "status",
-            "needs_review",
+            "for_review",
             "owner",
             "bookmarked_by",
             "assigned_to",
@@ -303,6 +303,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
         if not end:
             end = now + ALLOWED_FUTURE_DELTA
+
+            metrics.incr("snuba.search.postgres_only")
 
             # This search is for some time window that ends with "now",
             # so if the requested sort is `date` (`last_seen`) and there
