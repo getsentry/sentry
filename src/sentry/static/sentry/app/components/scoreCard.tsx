@@ -46,7 +46,7 @@ function getTrendColor(p: TrendProps & {theme: Theme}) {
 
 const StyledPanel = styled(Panel)`
   padding: ${space(2)} ${space(3)};
-  min-height: 100px;
+  min-height: 105px;
 `;
 
 const HeaderTitle = styled('div')`
