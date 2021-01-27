@@ -533,6 +533,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.digests",
     "sentry.tasks.email",
     "sentry.tasks.files",
+    "sentry.tasks.groupowner",
     "sentry.tasks.integrations",
     "sentry.tasks.members",
     "sentry.tasks.merge",
@@ -579,6 +580,9 @@ CELERY_QUEUES = [
     Queue("events.reprocess_events", routing_key="events.reprocess_events"),
     Queue("events.save_event", routing_key="events.save_event"),
     Queue("files.delete", routing_key="files.delete"),
+    Queue(
+        "group_owners.process_suspect_commits", routing_key="group_owners.process_suspect_commits"
+    ),
     Queue("incidents", routing_key="incidents"),
     Queue("incident_snapshots", routing_key="incident_snapshots"),
     Queue("integrations", routing_key="integrations"),
@@ -920,6 +924,8 @@ SENTRY_FEATURES = {
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
+    # Enable the new charts on top of the Releases page
+    "organizations:releases-top-charts": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable basic SSO functionality, providing configurable single sign on

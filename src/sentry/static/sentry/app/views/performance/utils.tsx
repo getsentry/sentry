@@ -59,7 +59,7 @@ export function addRoutePerformanceContext(selection: GlobalSelection) {
   );
   const seconds = Math.floor(days * 86400);
 
-  transaction?.setTag('statsPeriod', seconds.toString());
+  transaction?.setTag('query.period', seconds.toString());
 }
 
 export function getTransactionName(location: Location): string | undefined {

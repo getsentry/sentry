@@ -211,6 +211,10 @@ const IconContainer = styled('div')`
   > * + * {
     margin-left: 50px;
   }
+
+  svg {
+    background: ${p => p.theme.background};
+  }
 `;
 
 const IconClick = styled('div')`
@@ -228,6 +232,11 @@ const StyledIconGrabbable = styled(IconGrabbable)`
 const WidgetTitle = styled(HeaderTitle)`
   padding: ${space(1)} ${space(2)} 0;
   width: 100%;
+`;
+
+const StyledSimpleTableChart = styled(SimpleTableChart)`
+  /* align with other card charts */
+  height: 190px;
 `;
 
 type WidgetCardVisualsProps = Pick<ReactRouter.WithRouterProps, 'router'> &
@@ -284,7 +293,7 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
     return tableResults.map((result, i) => {
       const fields = widget.queries[i]?.fields ?? [];
       return (
-        <SimpleTableChart
+        <StyledSimpleTableChart
           key={`table:${result.title}`}
           location={location}
           fields={fields}
@@ -387,7 +396,7 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
             value: this.chartComponent({
               series,
             }),
-            fixed: 'Widget Chart',
+            fixed: <Placeholder height="200px" testId="skeleton-ui" />,
           })}
         </TransitionChart>
       );
@@ -467,7 +476,7 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
                   legend,
                   series,
                 }),
-                fixed: 'Widget Chart',
+                fixed: <Placeholder height="200px" testId="skeleton-ui" />,
               })}
             </TransitionChart>
           );

@@ -12,7 +12,7 @@ import {TableData} from 'app/utils/discover/discoverQuery';
 import {getAggregateAlias} from 'app/utils/discover/fields';
 import {formatAbbreviatedNumber} from 'app/utils/formatters';
 import {getPeriod} from 'app/utils/getPeriod';
-import {getTermHelp} from 'app/views/performance/data';
+import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 
 import MissingPerformanceButtons from '../missingFeatureButtons/missingPerformanceButtons';
 import {shouldFetchPreviousPeriod} from '../utils';
@@ -129,7 +129,7 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
   }
 
   get cardHelp() {
-    return getTermHelp(this.props.organization, 'apdex');
+    return getTermHelp(this.props.organization, PERFORMANCE_TERM.APDEX);
   }
 
   get currentApdex() {

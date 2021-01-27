@@ -3,12 +3,12 @@ import sentry_sdk
 
 from sentry import features
 from sentry.app import locks
-from sentry.utils.cache import cache
-from sentry.utils.locking import UnableToAcquireLock
 from sentry.exceptions import PluginError
 from sentry.signals import event_processed, issue_unignored
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
+from sentry.utils.cache import cache
+from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_project, bind_organization_context
 
@@ -281,23 +281,39 @@ def post_process_group(
                     "w-o:{}-d-l".format(event.group_id),
                     duration=10,
                 )
-                try:
-                    with lock.acquire():
-                        has_commit_key = "w-o:{}-h-c".format(event.project.organization_id)
-                        org_has_commit = cache.get(has_commit_key)
-                        if org_has_commit is None:
-                            org_has_commit = Commit.objects.filter(
-                                organization_id=event.project.organization_id
-                            ).exists()
-                            cache.set(has_commit_key, org_has_commit, 3600)
+                with lock.acquire():
+                    has_commit_key = "w-o:{}-h-c".format(event.project.organization_id)
+                    org_has_commit = cache.get(has_commit_key)
+                    if org_has_commit is None:
+                        org_has_commit = Commit.objects.filter(
+                            organization_id=event.project.organization_id
+                        ).exists()
+                        cache.set(has_commit_key, org_has_commit, 3600)
 
-                        if org_has_commit and features.has(
-                            "organizations:workflow-owners",
-                            event.project.organization,
-                        ):
-                            process_suspect_commits(event=event)
-                except UnableToAcquireLock:
-                    pass
+                    if org_has_commit and features.has(
+                        "organizations:workflow-owners",
+                        event.project.organization,
+                    ):
+                        group_cache_key = "w-o-i:g-{}".format(event.group_id)
+                        if cache.get(group_cache_key):
+                            metrics.incr(
+                                "sentry.tasks.process_suspect_commits.debounce",
+                                tags={"detail": "w-o-i:g debounce"},
+                            )
+                        else:
+                            from sentry.utils.committers import get_frame_paths
+
+                            cache.set(group_cache_key, True, 604800)  # 1 week in seconds
+                            event_frames = get_frame_paths(event.data)
+                            process_suspect_commits.delay(
+                                event_id=event.event_id,
+                                event_platform=event.platform,
+                                event_frames=event_frames,
+                                group_id=event.group_id,
+                                project_id=event.project_id,
+                            )
+            except UnableToAcquireLock:
+                pass
             except Exception:
                 logger.exception("Failed to process suspect commits")
 
