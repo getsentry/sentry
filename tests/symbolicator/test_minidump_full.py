@@ -24,7 +24,8 @@ from tests.symbolicator import get_fixture_path, insta_snapshot_stacktrace_data
 @pytest.mark.snuba
 class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.fixture(autouse=True)
-    def initialize(self, live_server, reset_snuba):
+    def initialize(self, live_server, reset_snuba, settings):
+        self.settings = settings
         self.project.update_option("sentry:builtin_symbol_sources", [])
         new_prefix = live_server.url
 
@@ -138,6 +139,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
 
     def test_reprocessing(self):
         self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
+        self.settings.REPROCESSING_ENABLED_PLATFORMS = ["native"]
 
         with self.feature(
             {"organizations:event-attachments": True, "organizations:reprocessing-v2": True}

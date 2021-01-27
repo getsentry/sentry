@@ -85,7 +85,7 @@ import six
 
 from django.conf import settings
 
-from sentry import nodestore, features, eventstore, models
+from sentry import nodestore, eventstore, models
 from sentry.eventstore.models import Event
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.utils import snuba
@@ -111,9 +111,6 @@ def _generate_unprocessed_event_node_id(project_id, event_id):
 def _should_save_payload(project, data):
     platform = data.get("platform")
     if platform and platform in settings.REPROCESSING_ENABLED_PLATFORMS:
-        return True
-
-    if features.has("organizations:reprocessing-v2", project.organization, actor=None):
         return True
 
     return False

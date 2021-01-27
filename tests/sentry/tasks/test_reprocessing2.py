@@ -21,7 +21,8 @@ from sentry.utils.cache import cache_key_for_event
 
 
 @pytest.fixture(autouse=True)
-def reprocessing_feature(monkeypatch):
+def reprocessing_feature(monkeypatch, settings):
+    settings.REPROCESSING_ENABLED_PLATFORMS = ["native"]
     monkeypatch.setattr("sentry.tasks.reprocessing2.GROUP_REPROCESSING_CHUNK_SIZE", 1)
 
     with Feature({"organizations:reprocessing-v2": True}):
@@ -31,6 +32,7 @@ def reprocessing_feature(monkeypatch):
 @pytest.fixture
 def process_and_save(default_project, task_runner):
     def inner(data, seconds_ago=1):
+        data.setdefault("platform", "native")
         data.setdefault("timestamp", iso_format(before_now(seconds=seconds_ago)))
         mgr = EventManager(data=data, project=default_project)
         mgr.normalize()
