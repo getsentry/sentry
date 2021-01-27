@@ -66,7 +66,7 @@ class ApiKey(Model):
 
     __repr__ = sane_repr("organization_id", "key")
 
-    def __unicode__(self):
+    def __str__(self):
         return six.text_type(self.key)
 
     @classmethod

@@ -100,7 +100,7 @@ class ProjectKey(Model):
 
     __repr__ = sane_repr("project_id", "public_key")
 
-    def __unicode__(self):
+    def __str__(self):
         return six.text_type(self.public_key)
 
     @classmethod

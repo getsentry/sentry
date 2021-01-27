@@ -17,7 +17,7 @@ class Role(object):
     def __str__(self):
         return self.name.encode("utf-8")
 
-    def __unicode__(self):
+    def __str__(self):
         return six.text_type(self.name)
 
     def __repr__(self):
