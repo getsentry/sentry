@@ -221,7 +221,7 @@ class TrendChart extends React.Component<Props> {
                               series={[...series, ...smoothedSeries, ...releaseSeries]}
                             />
                           ),
-                          fixed: <Placeholder height="200px" />,
+                          fixed: <Placeholder height="200px" testId="skeleton-ui" />,
                         })}
                       </TransitionChart>
                     )}

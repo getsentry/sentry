@@ -90,7 +90,7 @@ class ResultsChart extends React.Component<ResultsChartProps> {
               confirmedQuery={confirmedQuery}
             />
           ),
-          fixed: <Placeholder height="200px" />,
+          fixed: <Placeholder height="200px" testId="skeleton-ui" />,
         })}
       </React.Fragment>
     );

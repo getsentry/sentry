@@ -115,7 +115,7 @@ class Container extends React.Component<Props> {
                         utc={utc === 'true'}
                       />
                     ),
-                    fixed: <Placeholder height="200px" />,
+                    fixed: <Placeholder height="200px" testId="skeleton-ui" />,
                   })
                 ) : (
                   <LoadingPanel data-test-id="events-request-loading" />
