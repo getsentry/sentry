@@ -6,7 +6,6 @@
  */
 
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import QuestionTooltip from 'app/components/questionTooltip';
 import ControlState from 'app/views/settings/components/forms/field/controlState';
@@ -16,135 +15,92 @@ import FieldErrorReason from 'app/views/settings/components/forms/field/fieldErr
 import FieldHelp from 'app/views/settings/components/forms/field/fieldHelp';
 import FieldLabel from 'app/views/settings/components/forms/field/fieldLabel';
 import FieldRequiredBadge from 'app/views/settings/components/forms/field/fieldRequiredBadge';
-import FieldWrapper, {
-  Props as FieldWrapperProps,
-} from 'app/views/settings/components/forms/field/fieldWrapper';
+import FieldWrapper from 'app/views/settings/components/forms/field/fieldWrapper';
 
 import FieldQuestion from './fieldQuestion';
 
-type ChildrenFunction = (props) => React.ReactNode;
+type InheritedFieldWrapperProps = Pick<
+  React.ComponentProps<typeof FieldWrapper>,
+  'inline' | 'stacked' | 'highlighted' | 'hasControlState'
+>;
 
-type Props = {
-  alignRight?: boolean;
-  required?: boolean;
-  visible?: boolean | ((props) => boolean);
-  disabled?: boolean | ((props) => boolean);
-  disabledReason?: string;
-  flexibleControlStateSize?: boolean;
-  label?: React.ReactNode;
-  hideLabel?: boolean;
-  help?: React.ReactNode | React.ReactElement | Function;
-  showHelpInTooltip?: boolean;
-  id?: string;
-  children?: React.ReactNode | ChildrenFunction;
-  controlClassName?: string;
-  style?: object;
-  error?: string;
-  validate?: Function; //TODO(TS): Do we need this?
-  className?: string; //Needed for styled components
-} & Omit<
-  FieldControl['props'],
-  'disabled' | 'inline' | 'className' | 'help' | 'errorState'
-> &
-  FieldWrapperProps &
-  Omit<ControlState['props'], 'error'>;
+type InheritedFieldControlProps = Omit<
+  React.ComponentProps<typeof FieldControl>,
+  'children' | 'disabled' | 'className' | 'help' | 'errorState'
+>;
 
-class Field extends React.Component<Props> {
-  static propTypes = {
-    /**
-     * Aligns Control to the right
-     */
-    alignRight: PropTypes.bool,
+type InheritedControlStateProps = Omit<
+  React.ComponentProps<typeof ControlState>,
+  'children' | 'error'
+>;
 
-    /**
-     * Is "highlighted", i.e. after a search
-     */
-    highlighted: PropTypes.bool,
-
+type Props = InheritedFieldControlProps &
+  InheritedFieldWrapperProps &
+  InheritedControlStateProps & {
     /**
      * Show "required" indicator
      */
-    required: PropTypes.bool,
-
+    required?: boolean;
     /**
      * Should field be visible
      */
-    visible: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
-
+    visible?: boolean | ((props: Props) => boolean);
     /**
      * Should field be disabled?
      */
-    disabled: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
-
-    /**
-     * Reason why field is disabled (displays in tooltip)
-     */
-    disabledReason: PropTypes.string,
-
-    /**
-     * Displays the help element in the tooltip
-     */
-    showHelpInTooltip: PropTypes.bool,
-
-    /**
-     * Error message
-     */
-    error: PropTypes.string,
-
-    /**
-     * Hide ControlState component
-     */
-    flexibleControlStateSize: PropTypes.bool,
-
+    disabled?: boolean | ((props: Props) => boolean);
     /**
      * User-facing field name
      */
-    label: PropTypes.node,
-
+    label?: React.ReactNode;
+    /**
+     * Should the label be rendered for the field?
+     */
+    hideLabel?: boolean;
     /**
      * Help or description of the field
      */
-    help: PropTypes.oneOfType([PropTypes.node, PropTypes.element, PropTypes.func]),
-
+    help?: React.ReactNode | React.ReactElement | ((props: Props) => React.ReactNode);
     /**
-     * Should Control be inline with Label
+     * Displays the help element in the tooltip
      */
-    inline: PropTypes.bool,
-
-    /**
-     * Should the field display in a stacked manner (no borders + reduced padding
-     */
-    stacked: PropTypes.bool,
-
+    showHelpInTooltip?: boolean;
     /**
      * The control's `id` property
      */
-    id: PropTypes.string,
-
+    id?: string;
     /**
-     * Field is in saving state
+     * Additional inline styles for the field
      */
-    isSaving: PropTypes.bool,
-
+    style?: React.CSSProperties;
     /**
-     * Field has finished saving state
+     * The classname of the field
      */
-    isSaved: PropTypes.bool,
-
+    className?: string;
     /**
-     * The Control component
+     * The classname of the field control
      */
-    children: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
-
+    controlClassName?: string;
     /**
-     * Class name for inner control
+     * Error message to display for the field
      */
-    controlClassName: PropTypes.string,
-
-    /** Inline style */
-    style: PropTypes.object,
+    error?: string;
+    validate?: Function; //TODO(TS): Do we need this?
+    /**
+     * The control to render. May be given a function to render with resolved
+     * props.
+     */
+    children?: React.ReactNode | ((props: ChildRenderProps) => React.ReactNode);
   };
 
+type ChildRenderProps = Omit<Props, 'className' | 'disabled'> & {
+  help: React.ReactNode;
+  errorState: React.ReactNode | null;
+  controlState: React.ReactNode;
+  disabled?: boolean;
+};
+
+class Field extends React.Component<Props> {
   static defaultProps = {
     alignRight: false,
     inline: true,
@@ -201,12 +157,8 @@ class Field extends React.Component<Props> {
     };
 
     // See comments in prop types
-    if (typeof children === 'function') {
-      //need to cast b/c TS claims children is not otherwise callable
-      Control = (children as ChildrenFunction)({
-        ...otherProps,
-        ...controlProps,
-      });
+    if (children instanceof Function) {
+      Control = children({...otherProps, ...controlProps});
     } else {
       Control = <FieldControl {...controlProps}>{children}</FieldControl>;
     }
