@@ -98,14 +98,21 @@ class NodeStorage(local, Service):
         if value is None:
             return None
 
+        # Those keys should be statically known identifiers in the app, such as
+        # "unprocessed_event". There is really no reason to allow anything but
+        # ASCII here.
+        subkey = subkey.encode("ascii")
+
         lines_iter = iter(value.splitlines())
         try:
             if subkey is not None:
                 next(lines_iter)
 
                 for line in lines_iter:
-                    if line.strip() == subkey.encode("utf8"):
+                    if line.strip() == subkey:
                         break
+
+                    next(lines_iter)
 
             return json_loads(next(lines_iter))
         except StopIteration:
