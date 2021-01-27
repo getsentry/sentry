@@ -85,7 +85,7 @@ import six
 
 from django.conf import settings
 
-from sentry import nodestore, eventstore, models
+from sentry import nodestore, eventstore, models, options
 from sentry.eventstore.models import Event
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.utils import snuba
@@ -132,6 +132,9 @@ def backup_unprocessed_event(project, data):
     Backup unprocessed event payload into redis. Only call if event should be
     able to be reprocessed.
     """
+
+    if options.get("store.reprocessing-force-disable"):
+        return
 
     event_processing_store.store(dict(data), unprocessed=True)
 

@@ -283,3 +283,6 @@ register("mocks.jira", default=False)
 
 # Record statistics about event payloads and their compressability
 register("store.nodestore-stats-sample-rate", default=0.0)  # unused
+
+# Killswitch to stop storing any reprocessing payloads.
+register("store.reprocessing-force-disable", default=False)
