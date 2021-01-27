@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import bisect
 import functools
 import math
@@ -192,7 +190,7 @@ class BasePaginator(object):
         except EmptyResultSet:
             return 0
         cursor = connections[self.queryset.db].cursor()
-        cursor.execute(u"SELECT COUNT(*) FROM ({}) as t".format(h_sql), h_params)
+        cursor.execute("SELECT COUNT(*) FROM ({}) as t".format(h_sql), h_params)
         return cursor.fetchone()[0]
 
 
@@ -509,7 +507,7 @@ class CombinedQuerysetIntermediary(object):
 
 
 class CombinedQuerysetPaginator(object):
-    """ This paginator can be used to paginate between multiple querysets.
+    """This paginator can be used to paginate between multiple querysets.
     It needs to be passed a list of CombinedQuerysetIntermediary. Each CombinedQuerysetIntermediary must be populated with a queryset and an order_by key
         i.e. intermediaries = [
                 CombinedQuerysetIntermediary(AlertRule.objects.all(), "name")
@@ -607,7 +605,8 @@ class CombinedQuerysetPaginator(object):
             return ((key_value, type(item).__name__),)
 
         combined_querysets.sort(
-            key=_sort_combined_querysets, reverse=not asc,
+            key=_sort_combined_querysets,
+            reverse=not asc,
         )
 
         return combined_querysets

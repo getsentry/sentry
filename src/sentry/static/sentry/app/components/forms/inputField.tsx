@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import FormField from 'app/components/forms/formField';
 
@@ -18,11 +17,6 @@ class InputField<
   Props extends InputFieldProps = InputFieldProps,
   State extends FormField['state'] = FormField['state']
 > extends FormField<Props, State> {
-  static propTypes = {
-    ...FormField.propTypes,
-    placeholder: PropTypes.string,
-  };
-
   getField() {
     return (
       <input

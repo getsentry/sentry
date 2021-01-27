@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 import pytest
 
@@ -449,7 +447,8 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         results = discover.query(
             selected_columns=["transaction", "count()"],
             query="event.type:transaction AND (timestamp:<{} OR timestamp:>{})".format(
-                iso_format(before_now(seconds=5)), iso_format(before_now(seconds=3)),
+                iso_format(before_now(seconds=5)),
+                iso_format(before_now(seconds=3)),
             ),
             params={"project_id": [self.project.id]},
             orderby="transaction",
@@ -562,8 +561,8 @@ class QueryTransformTest(TestCase):
                     "transform",
                     [
                         ["toString", ["project_id"]],
-                        ["array", [u"'{}'".format(self.project.id)]],
-                        ["array", [u"'{}'".format(self.project.slug)]],
+                        ["array", ["'{}'".format(self.project.id)]],
+                        ["array", ["'{}'".format(self.project.slug)]],
                         "''",
                     ],
                     "project",
@@ -603,8 +602,8 @@ class QueryTransformTest(TestCase):
                     "transform",
                     [
                         ["toString", ["project_id"]],
-                        ["array", [u"'{}'".format(project2.id)]],
-                        ["array", [u"'{}'".format(project2.slug)]],
+                        ["array", ["'{}'".format(project2.id)]],
+                        ["array", ["'{}'".format(project2.slug)]],
                         "''",
                     ],
                     "project",
@@ -644,14 +643,14 @@ class QueryTransformTest(TestCase):
                     "transform",
                     [
                         ["toString", ["project_id"]],
-                        ["array", [u"'{}'".format(project2.id)]],
-                        ["array", [u"'{}'".format(project2.slug)]],
+                        ["array", ["'{}'".format(project2.id)]],
+                        ["array", ["'{}'".format(project2.slug)]],
                         "''",
                     ],
                     "project",
                 ],
             ],
-            aggregations=[[u"quantile(0.99)", "duration", u"p99"]],
+            aggregations=[["quantile(0.99)", "duration", "p99"]],
             filter_keys={"project_id": [project2.id]},
             dataset=Dataset.Discover,
             end=None,

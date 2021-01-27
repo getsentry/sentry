@@ -1,6 +1,5 @@
-from __future__ import absolute_import
-
 import logging
+import re
 import six
 
 from botocore.exceptions import ClientError
@@ -156,7 +155,8 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
             layers[sentry_layer_index] = layer_arn
 
         self.client.update_function_configuration(
-            FunctionName=target, Layers=layers,
+            FunctionName=target,
+            Layers=layers,
         )
         return self.get_serialized_lambda_function(target)
 
@@ -187,9 +187,9 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
         )
         account = org_client.describe_account(AccountId=account_number)["Account"]
 
-        integration_name = u"{} {}".format(account["Name"], region)
+        integration_name = "{} {}".format(account["Name"], region)
 
-        external_id = u"{}-{}".format(account_number, region)
+        external_id = "{}-{}".format(account_number, region)
 
         integration = {
             "name": integration_name,
@@ -224,6 +224,7 @@ class AwsLambdaProjectSelectPipelineView(PipelineView):
 
         # if only one project, automatically use that
         if len(projects) == 1:
+            pipeline.bind_state("skipped_project_select", True)
             pipeline.bind_state("project_id", projects[0].id)
             return pipeline.next_step()
 
@@ -235,6 +236,8 @@ class AwsLambdaProjectSelectPipelineView(PipelineView):
 
 class AwsLambdaCloudFormationPipelineView(PipelineView):
     def dispatch(self, request, pipeline):
+        curr_step = 0 if pipeline.fetch_state("skipped_project_select") else 1
+
         def render_response(error=None):
             template_url = options.get("aws-lambda.cloudformation-url")
             context = {
@@ -245,6 +248,7 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
                 "accountNumber": pipeline.fetch_state("account_number"),
                 "region": pipeline.fetch_state("region"),
                 "error": error,
+                "initialStepNumber": curr_step,
             }
             return self.render_react_view(request, "awsLambdaCloudformation", context)
 
@@ -300,8 +304,12 @@ class AwsLambdaListFunctionsPipelineView(PipelineView):
 
         lambda_functions = get_supported_functions(lambda_client)
 
+        curr_step = 2 if pipeline.fetch_state("skipped_project_select") else 3
+
         return self.render_react_view(
-            request, "awsLambdaFunctionSelect", {"lambdaFunctions": lambda_functions},
+            request,
+            "awsLambdaFunctionSelect",
+            {"lambdaFunctions": lambda_functions, "initialStepNumber": curr_step},
         )
 
 
@@ -327,6 +335,7 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
         lambda_functions.sort(key=lambda x: x["FunctionName"].lower())
 
         failures = []
+        success_count = 0
 
         for function in lambda_functions:
             name = function["FunctionName"]
@@ -338,8 +347,18 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
             layer_arn = get_latest_layer_for_function(function)
             try:
                 enable_single_lambda(lambda_client, function, sentry_project_dsn, layer_arn)
+                success_count += 1
             except Exception as e:
-                failures.append(function)
+                err_message = six.text_type(e)
+                match = re.search(
+                    "Layer version arn:aws:lambda:[^:]+:\d+:layer:([^:]+):\d+ does not exist",
+                    err_message,
+                )
+                if match:
+                    err_message = _("Invalid existing layer %s") % match[1]
+                else:
+                    err_message = _("Unkown Error")
+                failures.append({"name": function["FunctionName"], "error": err_message})
                 logger.info(
                     "update_function_configuration.error",
                     extra={
@@ -355,7 +374,9 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
         # otherwise, finish
         if failures:
             return self.render_react_view(
-                request, "awsLambdaFailureDetails", {"lambdaFunctionFailures": failures}
+                request,
+                "awsLambdaFailureDetails",
+                {"lambdaFunctionFailures": failures, "successCount": success_count},
             )
         else:
             return pipeline.finish_pipeline()

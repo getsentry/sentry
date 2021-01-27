@@ -1,6 +1,5 @@
 import React from 'react';
 import omit from 'lodash/omit';
-import PropTypes from 'prop-types';
 
 import Input from 'app/views/settings/components/forms/controls/input';
 import FormField from 'app/views/settings/components/forms/formField';
@@ -17,12 +16,6 @@ type Props = {
 export type onEvent = (value, event?: React.FormEvent<HTMLInputElement>) => void;
 
 export default class InputField extends React.Component<Props> {
-  static propTypes = {
-    ...FormField.propTypes,
-    field: PropTypes.func,
-    value: PropTypes.any,
-  };
-
   static defaultProps = {
     field: ({
       onChange,

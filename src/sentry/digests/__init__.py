@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from collections import namedtuple
 from django.conf import settings
 
@@ -28,4 +26,4 @@ OPTIONS = frozenset(("increment_delay", "maximum_delay", "minimum_delay"))
 
 def get_option_key(plugin, option):
     assert option in OPTIONS
-    return u"digests:{}:{}".format(plugin, option)
+    return "digests:{}:{}".format(plugin, option)

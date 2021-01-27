@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.relay.projectconfig_debounce_cache.base import ProjectConfigDebounceCache
 from sentry.utils.redis import get_dynamic_cluster_from_options, validate_dynamic_cluster
 

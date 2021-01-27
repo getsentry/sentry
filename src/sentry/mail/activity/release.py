@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from collections import defaultdict
 from itertools import chain
 
@@ -199,7 +197,7 @@ class ReleaseActivityEmail(ActivityEmail):
             "deploy": self.deploy,
             "environment": self.environment,
             "setup_repo_link": absolute_uri(
-                u"/organizations/{}/repos/".format(self.organization.slug)
+                "/organizations/{}/repos/".format(self.organization.slug)
             ),
         }
 
@@ -217,7 +215,7 @@ class ReleaseActivityEmail(ActivityEmail):
 
         release_links = [
             absolute_uri(
-                u"/organizations/{}/releases/{}/?project={}".format(
+                "/organizations/{}/releases/{}/?project={}".format(
                     self.organization.slug, self.release.version, p.id
                 )
             )
@@ -231,7 +229,7 @@ class ReleaseActivityEmail(ActivityEmail):
         }
 
     def get_subject(self):
-        return u"Deployed version {} to {}".format(self.release.version, self.environment)
+        return "Deployed version {} to {}".format(self.release.version, self.environment)
 
     def get_template(self):
         return "sentry/emails/activity/release.txt"

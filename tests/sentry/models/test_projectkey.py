@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.models import ProjectKey, ProjectKeyStatus
 from sentry.testutils import TestCase
 

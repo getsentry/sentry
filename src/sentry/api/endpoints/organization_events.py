@@ -1,10 +1,10 @@
-from __future__ import absolute_import
-
 import logging
 
 from functools import partial
 from rest_framework.response import Response
+from rest_framework.exceptions import ParseError
 
+from sentry import features
 from sentry.api.bases import (
     OrganizationEventsEndpointBase,
     OrganizationEventsV2EndpointBase,
@@ -13,6 +13,7 @@ from sentry.api.bases import (
 from sentry.api.helpers.events import get_direct_hit_response
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, serialize, SimpleEventSerializer
+from sentry.api.event_search import is_function
 from sentry import eventstore
 from sentry.snuba import discover
 from sentry.models.project import Project
@@ -126,3 +127,52 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
                         request, organization, params["project_id"], results
                     ),
                 )
+
+
+class OrganizationEventsGeoEndpoint(OrganizationEventsV2EndpointBase):
+    def has_feature(self, request, organization):
+        return features.has("organizations:dashboards-v2", organization, actor=request.user)
+
+    def get(self, request, organization):
+        if not self.has_feature(request, organization):
+            return Response(status=404)
+
+        try:
+            params = self.get_snuba_params(request, organization)
+        except NoProjects:
+            return Response([])
+
+        maybe_aggregate = request.GET.get("field")
+
+        if not maybe_aggregate:
+            raise ParseError(detail="No column selected")
+
+        if not is_function(maybe_aggregate):
+            raise ParseError(detail="Functions may only be given")
+
+        def data_fn(offset, limit):
+            return discover.query(
+                selected_columns=["geo.country_code", maybe_aggregate],
+                query=request.GET.get("query"),
+                params=params,
+                offset=offset,
+                limit=limit,
+                referrer=request.GET.get("referrer", "api.organization-events-geo"),
+                use_aggregate_conditions=True,
+            )
+
+        with self.handle_query_errors():
+            # We don't need pagination, so we don't include the cursor headers
+            return Response(
+                self.handle_results_with_meta(
+                    request,
+                    organization,
+                    params["project_id"],
+                    # Expect Discover query output to be at most 251 rows, which corresponds
+                    # to the number of possible two-letter country codes as defined in ISO 3166-1 alpha-2.
+                    #
+                    # There are 250 country codes from sentry/src/sentry/static/sentry/app/data/countryCodesMap.tsx
+                    # plus events with no assigned country code.
+                    data_fn(0, self.get_per_page(request, default_per_page=251, max_per_page=251)),
+                )
+            )
