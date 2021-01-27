@@ -5,7 +5,9 @@ SUPPORTED_KAFKA_CONFIGURATION = (
     # Check https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md
     # for the full list of available options
     "bootstrap.servers",
+    "client.id",
     "compression.type",
+    "group.id",
     "message.max.bytes",
     "sasl.mechanism",
     "sasl.username",
