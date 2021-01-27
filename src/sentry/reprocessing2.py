@@ -85,7 +85,7 @@ import six
 
 from django.conf import settings
 
-from sentry import nodestore, features, eventstore, options, models
+from sentry import nodestore, features, eventstore, models
 from sentry.eventstore.models import Event
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.utils import snuba
@@ -94,7 +94,6 @@ from sentry.utils.safe import set_path, get_path
 from sentry.utils.redis import redis_clusters
 from sentry.eventstore.processing import event_processing_store
 from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
-from sentry.eventstore.processing.base import _get_unprocessed_key
 
 logger = logging.getLogger("sentry.reprocessing")
 
@@ -109,14 +108,22 @@ def _generate_unprocessed_event_node_id(project_id, event_id):
     return hashlib.md5("{}:{}:unprocessed".format(project_id, event_id).encode("utf-8")).hexdigest()
 
 
+def _should_save_payload(project, data):
+    platform = data.get("platform")
+    if platform and platform in settings.REPROCESSING_ENABLED_PLATFORMS:
+        return True
+
+    if features.has("organizations:reprocessing-v2", project.organization, actor=None):
+        return True
+
+    return False
+
+
 def save_unprocessed_event(project, event_id):
     """
     Move event from event_processing_store into nodestore. Only call if event
     has outcome=accepted.
     """
-    if not features.has("organizations:reprocessing-v2", project.organization, actor=None):
-        return
-
     with sentry_sdk.start_span(
         op="sentry.reprocessing2.save_unprocessed_event.get_unprocessed_event"
     ):
@@ -131,42 +138,13 @@ def save_unprocessed_event(project, event_id):
         nodestore.set(node_id, data)
 
 
-def _should_capture_nodestore_stats(event_id):
-    """
-    Computes a sample rate consistent per-event ID.
-
-    event IDs are assumed to be random, so this is like random sampling but
-    gives the same value for the same event ID.
-    """
-
-    try:
-        assert event_id
-        rate = options.get("store.nodestore-stats-sample-rate") or 0
-        return (int(event_id, 16) % 10000) < (rate * 10000)
-    except Exception:
-        logger.exception("nodestore-stats.error")
-        return False
-
-
-def spawn_capture_nodestore_stats(cache_key, project_id, event_id):
-    if not _should_capture_nodestore_stats(event_id):
-        event_processing_store.delete_by_key(_get_unprocessed_key(cache_key))
-        return
-
-    from sentry.tasks.reprocessing2 import capture_nodestore_stats
-
-    capture_nodestore_stats.delay(cache_key=cache_key, project_id=project_id, event_id=event_id)
-
-
 def backup_unprocessed_event(project, data):
     """
     Backup unprocessed event payload into redis. Only call if event should be
     able to be reprocessed.
     """
 
-    if features.has(
-        "organizations:reprocessing-v2", project.organization, actor=None
-    ) or _should_capture_nodestore_stats(data.get("event_id")):
+    if _should_save_payload(project, data):
         event_processing_store.store(dict(data), unprocessed=True)
 
 
