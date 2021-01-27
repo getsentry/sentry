@@ -154,6 +154,7 @@ class WidgetQueries extends React.Component<Props, State> {
         return doDiscoverQuery<TableData>(api, url, {
           ...eventView.generateQueryStringObject(),
           per_page: 5,
+          referrer: 'api.dashboards.tablewidget',
         });
       });
 
@@ -198,6 +199,7 @@ class WidgetQueries extends React.Component<Props, State> {
         const url = `/organizations/${organization.slug}/events-geo/`;
         return doDiscoverQuery<TableData>(api, url, {
           ...eventView.generateQueryStringObject(),
+          referrer: 'api.dashboards.worldmapwidget',
         });
       });
 
@@ -245,6 +247,7 @@ class WidgetQueries extends React.Component<Props, State> {
           query: query.conditions,
           yAxis: query.fields,
           includePrevious: false,
+          referrer: 'api.dashboards.timeserieswidget',
         };
         return doEventsRequest(api, requestData);
       });
