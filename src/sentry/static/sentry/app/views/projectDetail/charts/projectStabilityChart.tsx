@@ -87,9 +87,7 @@ function ProjectStabilityChart({
                       if (totalSessions === 0) {
                         return (
                           <ErrorPanel>
-                            {t(
-                              'There are no sessions in this project for the given timeframe.'
-                            )}
+                            {t('No session data')}
                           </ErrorPanel>
                         );
                       }
