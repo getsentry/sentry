@@ -10,6 +10,7 @@ import QuestionTooltip from 'app/components/questionTooltip';
 import {PlatformKey} from 'app/data/platformCategories';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization, ReleaseMeta} from 'app/types';
+import {Series} from 'app/types/echarts';
 import {WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {Theme} from 'app/utils/theme';
@@ -92,16 +93,58 @@ class ReleaseChartContainer extends React.Component<Props> {
     }
   }
 
-  seriesNameTransformer(name: string): string {
-    switch (name) {
-      case 'current':
-        return t('This Release');
-      case 'others':
-        return t('Other Releases');
-      default:
-        return name;
-    }
+  cloneSeriesAsZero(series: Series): Series {
+    return {
+      ...series,
+      data: series.data.map(point => ({
+        ...point,
+        value: 0,
+      })),
+    };
   }
+
+  /**
+   * The top events endpoint used to generate these series is not guaranteed to return a series
+   * for both the current release and the other releases. This happens when there is insufficient
+   * data. In these cases, the endpoint will return a single zerofilled series for the current
+   * release.
+   *
+   * This is problematic as we want to show both series even if one is empty. To deal with this,
+   * we clone the non empty series (to preserve the timestamps) with value 0 (to represent the
+   * lack of data).
+   */
+  seriesTransformer = (series: Series[]): Series[] => {
+    let current: Series | null = null;
+    let others: Series | null = null;
+    const allSeries: Series[] = [];
+    series.forEach(s => {
+      if (s.seriesName === 'current' || s.seriesName === t('This Release')) {
+        current = s;
+      } else if (s.seriesName === 'others' || s.seriesName === t('Other Releases')) {
+        others = s;
+      } else {
+        allSeries.push(s);
+      }
+    });
+
+    if (current !== null && others === null) {
+      others = this.cloneSeriesAsZero(current);
+    } else if (current === null && others !== null) {
+      current = this.cloneSeriesAsZero(others);
+    }
+
+    if (others !== null) {
+      others.seriesName = t('Other Releases');
+      allSeries.unshift(others);
+    }
+
+    if (current !== null) {
+      current.seriesName = t('This Release');
+      allSeries.unshift(current);
+    }
+
+    return allSeries;
+  };
 
   renderStackedChart() {
     const {
@@ -160,7 +203,7 @@ class ReleaseChartContainer extends React.Component<Props> {
         // This seems a little strange but is intentional as EventsChart
         // uses the previousSeriesName as the secondary series name
         previousSeriesName={t('Other Releases')}
-        seriesNameTransformer={this.seriesNameTransformer}
+        seriesTransformer={this.seriesTransformer}
         disableableSeries={[t('This Release'), t('Other Releases')]}
         colors={colors}
         preserveReleaseQueryParams
