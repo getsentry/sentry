@@ -294,8 +294,8 @@ def post_process_group(
                         "organizations:workflow-owners",
                         event.project.organization,
                     ):
-                        cache_key = "w-o-i:g-{}".format(event.group_id)
-                        if cache.get(cache_key):
+                        group_cache_key = "w-o-i:g-{}".format(event.group_id)
+                        if cache.get(group_cache_key):
                             metrics.incr(
                                 "sentry.tasks.process_suspect_commits.debounce",
                                 tags={"detail": "w-o-i:g debounce"},
@@ -303,7 +303,7 @@ def post_process_group(
                         else:
                             from sentry.utils.committers import get_frame_paths
 
-                            cache.set(cache_key, True, 604800)  # 1 week in seconds
+                            cache.set(group_cache_key, True, 604800)  # 1 week in seconds
                             event_frames = get_frame_paths(event.data)
                             process_suspect_commits.delay(
                                 event_id=event.event_id,
