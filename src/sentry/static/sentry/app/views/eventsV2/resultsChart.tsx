@@ -8,6 +8,7 @@ import {Client} from 'app/api';
 import EventsChart from 'app/components/charts/eventsChart';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel} from 'app/components/panels';
+import Placeholder from 'app/components/placeholder';
 import {Organization} from 'app/types';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
@@ -89,7 +90,7 @@ class ResultsChart extends React.Component<ResultsChartProps> {
               confirmedQuery={confirmedQuery}
             />
           ),
-          fixed: 'events chart',
+          fixed: <Placeholder height="200px" />,
         })}
       </React.Fragment>
     );
