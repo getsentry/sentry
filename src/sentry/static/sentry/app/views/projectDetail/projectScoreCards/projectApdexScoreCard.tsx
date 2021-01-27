@@ -167,7 +167,7 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
       return undefined;
     }
 
-    return this.trend > 0 ? 'up' : 'down';
+    return this.trend > 0 ? 'good' : 'bad';
   }
 
   renderLoading() {

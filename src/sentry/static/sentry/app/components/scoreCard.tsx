@@ -13,7 +13,7 @@ type Props = {
   score?: React.ReactNode;
   help?: React.ReactNode;
   trend?: React.ReactNode;
-  trendDirection?: 'up' | 'down';
+  trendDirection?: 'good' | 'bad';
   className?: string;
 };
 
@@ -35,9 +35,9 @@ function ScoreCard({title, score, help, trend, trendDirection, className}: Props
 
 function getTrendColor(p: TrendProps & {theme: Theme}) {
   switch (p.trendDirection) {
-    case 'up':
+    case 'good':
       return p.theme.green300;
-    case 'down':
+    case 'bad':
       return p.theme.red300;
     default:
       return p.theme.gray300;
