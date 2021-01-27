@@ -26,15 +26,24 @@ class Migration(migrations.Migration):
     # transaction.
     atomic = True
 
-
     dependencies = [
-        ('sentry', '0152_remove_slack_workspace_orgintegrations'),
+        ("sentry", "0152_remove_slack_workspace_orgintegrations"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='dashboardwidget',
-            name='display_type',
-            field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(choices=[(0, 'line'), (1, 'area'), (2, 'stacked_area'), (3, 'bar'), (4, 'table'), (5, 'world_map'), (6, 'big_number')]),
+            model_name="dashboardwidget",
+            name="display_type",
+            field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(
+                choices=[
+                    (0, "line"),
+                    (1, "area"),
+                    (2, "stacked_area"),
+                    (3, "bar"),
+                    (4, "table"),
+                    (5, "world_map"),
+                    (6, "big_number"),
+                ]
+            ),
         ),
     ]
