@@ -26,8 +26,6 @@ json_dumps = json.JSONEncoder(
 
 json_loads = json._default_decoder.decode
 
-_NODESTORE_CACHE_VERSION = 2
-
 
 class NodeStorage(local, Service):
     """
@@ -133,12 +131,13 @@ class NodeStorage(local, Service):
         if subkey is None:
             item_from_cache = self._get_cache_item(id)
             if item_from_cache:
-                return self._decode(item_from_cache, subkey=subkey)
+                return item_from_cache
 
         bytes_data = self._get_bytes(id)
         rv = self._decode(bytes_data, subkey=subkey)
-        # set cache item only after we know decoding did not fail
-        self._set_cache_item(id, bytes_data)
+        if subkey is None:
+            # set cache item only after we know decoding did not fail
+            self._set_cache_item(id, rv)
         return rv
 
     def _get_bytes_multi(self, id_list):
@@ -159,20 +158,21 @@ class NodeStorage(local, Service):
             "key2": {"message": "hello world"}
         }
         """
-        cache_items = {
-            id: self._decode(value, subkey=subkey)
-            for id, value in six.iteritems(self._get_cache_items(id_list))
-        }
-        if len(cache_items) == len(id_list):
-            return cache_items
+        if subkey is None:
+            cache_items = self._get_cache_items(id_list)
+            if len(cache_items) == len(id_list):
+                return cache_items
 
-        uncached_ids = [id for id in id_list if id not in cache_items]
+            uncached_ids = [id for id in id_list if id not in cache_items]
+        else:
+            uncached_ids = id_list
 
         bytes_items = self._get_bytes_multi(uncached_ids)
 
         items = {id: self._decode(value, subkey=subkey) for id, value in six.iteritems(bytes_items)}
-        self._set_cache_items(bytes_items)
-        items.update(cache_items)
+        if subkey is None:
+            self._set_cache_items(bytes_items)
+            items.update(cache_items)
         return items
 
     def _encode(self, data):
@@ -220,9 +220,10 @@ class NodeStorage(local, Service):
         >>> nodestore.get('key1', subkey='reprocessing')
         {'foo': 'bam'}
         """
+        cache_item = data.get(None)
         bytes_data = self._encode(data)
         self._set_bytes(id, bytes_data, ttl=ttl)
-        self._set_cache_item(id, bytes_data)
+        self._set_cache_item(id, cache_item)
 
     def cleanup(self, cutoff_timestamp):
         raise NotImplementedError
@@ -232,28 +233,28 @@ class NodeStorage(local, Service):
 
     def _get_cache_item(self, id):
         if self.cache:
-            return self.cache.get(id, version=_NODESTORE_CACHE_VERSION)
+            return self.cache.get(id)
 
     def _get_cache_items(self, id_list):
         if self.cache:
-            return self.cache.get_many(id_list, version=_NODESTORE_CACHE_VERSION)
+            return self.cache.get_many(id_list)
         return {}
 
     def _set_cache_item(self, id, data):
         if self.cache and data:
-            self.cache.set(id, data, version=_NODESTORE_CACHE_VERSION)
+            self.cache.set(id, data)
 
     def _set_cache_items(self, items):
         if self.cache:
-            self.cache.set_many(items, version=_NODESTORE_CACHE_VERSION)
+            self.cache.set_many(items)
 
     def _delete_cache_item(self, id):
         if self.cache:
-            self.cache.delete(id, version=_NODESTORE_CACHE_VERSION)
+            self.cache.delete(id)
 
     def _delete_cache_items(self, id_list):
         if self.cache:
-            self.cache.delete_many([id for id in id_list], version=_NODESTORE_CACHE_VERSION)
+            self.cache.delete_many([id for id in id_list])
 
     @memoize
     def cache(self):
