@@ -304,6 +304,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         if not end:
             end = now + ALLOWED_FUTURE_DELTA
 
+            metrics.incr("snuba.search.postgres_only")
+
             # This search is for some time window that ends with "now",
             # so if the requested sort is `date` (`last_seen`) and there
             # are no other Snuba-based search predicates, we can simply

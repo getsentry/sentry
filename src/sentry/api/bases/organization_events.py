@@ -212,7 +212,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         request,
         organization,
         get_event_stats,
-        top_events=False,
+        top_events=0,
         query_column="count()",
         params=None,
         query=None,
@@ -241,6 +241,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                         "Your interval and date range would create too many results. "
                         "Use a larger interval, or a smaller date range."
                     ),
+                    top_events=top_events,
                 )
                 # Backwards compatibility for incidents which uses the old
                 # column aliases as it straddles both versions of events/discover.
@@ -262,10 +263,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         serializer = SnubaTSResultSerializer(organization, None, request.user)
 
         with sentry_sdk.start_span(op="discover.endpoint", description="base.stats_serialization"):
-            # When top_events mode is True, result can be a SnubaTSResult in the event that
+            # When the request is for top_events, result can be a SnubaTSResult in the event that
             # there were no top events found. In this case, result contains a zerofilled series
             # that acts as a placeholder.
-            if top_events and isinstance(result, dict):
+            if top_events > 0 and isinstance(result, dict):
                 results = {}
                 for key, event_result in six.iteritems(result):
                     if len(query_columns) > 1:
