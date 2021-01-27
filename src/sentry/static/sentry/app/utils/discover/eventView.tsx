@@ -858,7 +858,7 @@ class EventView {
 
     if (this.query) {
       if (this.additionalConditions) {
-        queryParts.push(this.getQueryWithOverrides());
+        queryParts.push(this.getQueryWithAdditionalConditions());
       } else {
         queryParts.push(this.query);
       }
@@ -945,7 +945,7 @@ class EventView {
         field: [...new Set(fields)],
         sort,
         per_page: DEFAULT_PER_PAGE,
-        query: this.getQueryWithOverrides(),
+        query: this.getQueryWithAdditionalConditions(),
       }
     ) as EventQuery & LocationQuery;
 
@@ -1093,14 +1093,14 @@ class EventView {
     return DisplayModes.DEFAULT;
   }
 
-  getQueryWithOverrides() {
+  getQueryWithAdditionalConditions() {
     const {query} = this;
     if (!this.additionalConditions) {
       return query;
     }
     const conditions = tokenizeSearch(query);
     Object.entries(this.additionalConditions.tagValues).forEach(([tag, tagValues]) => {
-      conditions.setTagValues(tag, tagValues);
+      conditions.addTagValues(tag, tagValues);
     });
     return stringifyQueryObject(conditions);
   }

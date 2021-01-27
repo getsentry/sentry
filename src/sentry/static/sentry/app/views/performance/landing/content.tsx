@@ -204,7 +204,7 @@ class LandingContent extends React.Component<Props, State> {
           organization={organization}
           location={location}
           setError={setError}
-          summaryConditions={eventView.getQueryWithOverrides()}
+          summaryConditions={eventView.getQueryWithAdditionalConditions()}
           columnTitles={columnTitles}
         />
       </React.Fragment>
@@ -240,7 +240,7 @@ class LandingContent extends React.Component<Props, State> {
           organization={organization}
           location={location}
           setError={setError}
-          summaryConditions={eventView.getQueryWithOverrides()}
+          summaryConditions={eventView.getQueryWithAdditionalConditions()}
           columnTitles={columnTitles}
         />
       </React.Fragment>
@@ -264,7 +264,7 @@ class LandingContent extends React.Component<Props, State> {
           organization={organization}
           location={location}
           setError={setError}
-          summaryConditions={eventView.getQueryWithOverrides()}
+          summaryConditions={eventView.getQueryWithAdditionalConditions()}
         />
       </React.Fragment>
     );
