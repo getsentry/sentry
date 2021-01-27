@@ -4,8 +4,10 @@ import {Location} from 'history';
 
 import BarChart from 'app/components/charts/barChart';
 import BarChartZoom from 'app/components/charts/barChartZoom';
+import ErrorPanel from 'app/components/charts/errorPanel';
 import LoadingPanel from 'app/components/charts/loadingPanel';
 import QuestionTooltip from 'app/components/questionTooltip';
+import {IconWarning} from 'app/icons/iconWarning';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
@@ -100,7 +102,7 @@ export function HistogramChart(props: Props) {
   };
 
   return (
-    <HistogramContainer>
+    <div>
       <HistogramQuery
         location={location}
         orgSlug={organization.slug}
@@ -115,9 +117,19 @@ export function HistogramChart(props: Props) {
           const errored = results.error !== null;
           const chartData = results.histograms?.[field];
 
+          if (errored) {
+            return (
+              <ErrorPanel>
+                <IconWarning color="gray300" size="lg" />
+              </ErrorPanel>
+            );
+          }
+
           if (loading) {
             return (
-              <LoadingPanel height="250px" data-test-id="histogram-request-loading" />
+              <LoadingPanelContainer>
+                <LoadingPanel data-test-id="histogram-request-loading" />
+              </LoadingPanelContainer>
             );
           }
 
@@ -183,11 +195,17 @@ export function HistogramChart(props: Props) {
           );
         }}
       </HistogramQuery>
-    </HistogramContainer>
+    </div>
   );
 }
 
-const HistogramContainer = styled('div')``;
+const LoadingPanelContainer = styled('div')`
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
 
 const BarChartContainer = styled('div')`
   padding-top: ${space(1)};

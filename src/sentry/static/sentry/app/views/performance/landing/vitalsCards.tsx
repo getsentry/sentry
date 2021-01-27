@@ -187,7 +187,9 @@ function _BackendCards(props: BackendCardsProps) {
             return (
               <VitalsContainer>
                 {fields.map(([name, fn, data]) => {
-                  const {title, tooltip, formatter} = backendCardDetails[name];
+                  const {title, tooltip, formatter} = backendCardDetails(organization)[
+                    name
+                  ];
                   const alias = getAggregateAlias(fn);
                   const rawValue = tableData?.data?.[0]?.[alias];
                   const value =
