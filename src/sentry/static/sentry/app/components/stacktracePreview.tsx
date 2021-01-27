@@ -15,6 +15,9 @@ import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 
+import findBestThread from './events/interfaces/threads/threadSelector/findBestThread';
+import getThreadStacktrace from './events/interfaces/threads/threadSelector/getThreadStacktrace';
+
 type Props = {
   issueId: string;
   organization: Organization;
@@ -61,8 +64,45 @@ class StacktracePreview extends React.Component<Props, State> {
     event.preventDefault();
   };
 
-  renderHovercardBody(stacktrace: StacktraceType) {
+  getStacktrace(): StacktraceType | undefined {
+    const {event} = this.state;
+
+    if (!event) {
+      return undefined;
+    }
+
+    const exceptionsWithStacktrace =
+      event.entries
+        .find(e => e.type === 'exception')
+        ?.data?.values.filter(({stacktrace}) => defined(stacktrace)) ?? [];
+
+    const exceptionStacktrace = isStacktraceNewestFirst()
+      ? exceptionsWithStacktrace[exceptionsWithStacktrace.length - 1]?.stacktrace
+      : exceptionsWithStacktrace[0]?.stacktrace;
+
+    if (exceptionStacktrace) {
+      return exceptionStacktrace;
+    }
+
+    const threads = event.entries.find(e => e.type === 'threads')?.data?.values ?? [];
+    const bestThread = findBestThread(threads);
+
+    if (!bestThread) {
+      return undefined;
+    }
+
+    const bestThreadStacktrace = getThreadStacktrace(bestThread, event, false);
+
+    if (bestThreadStacktrace) {
+      return bestThreadStacktrace;
+    }
+
+    return undefined;
+  }
+
+  renderHovercardBody() {
     const {event, loading, loadingVisible} = this.state;
+    const stacktrace = this.getStacktrace();
 
     if (loading && loadingVisible) {
       return (
@@ -113,15 +153,6 @@ class StacktracePreview extends React.Component<Props, State> {
   render() {
     const {children, organization, disablePreview} = this.props;
 
-    const exceptionsWithStacktrace =
-      this.state.event?.entries
-        .find(e => e.type === 'exception')
-        ?.data?.values.filter(({stacktrace}) => defined(stacktrace)) ?? [];
-
-    const stacktrace = isStacktraceNewestFirst()
-      ? exceptionsWithStacktrace[exceptionsWithStacktrace.length - 1]?.stacktrace
-      : exceptionsWithStacktrace[0]?.stacktrace;
-
     if (!organization.features.includes('stacktrace-hover-preview') || disablePreview) {
       return children;
     }
@@ -129,7 +160,7 @@ class StacktracePreview extends React.Component<Props, State> {
     return (
       <span onMouseEnter={this.fetchData}>
         <StyledHovercard
-          body={this.renderHovercardBody(stacktrace)}
+          body={this.renderHovercardBody()}
           position="right"
           modifiers={{
             flip: {

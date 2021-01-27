@@ -11,6 +11,7 @@ import {Thread} from 'app/types/events';
 import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 import {defined} from 'app/utils';
 
+import findBestThread from './threadSelector/findBestThread';
 import getThreadException from './threadSelector/getThreadException';
 import getThreadStacktrace from './threadSelector/getThreadStacktrace';
 import Content from './content';
@@ -39,16 +40,6 @@ type State = {
 function getIntendedStackView(thread: Thread, event: Event) {
   const stacktrace = getThreadStacktrace(thread, event, false);
   return stacktrace && stacktrace.hasSystemFrames ? STACK_VIEW.APP : STACK_VIEW.FULL;
-}
-
-function findBestThread(threads: Array<Thread>) {
-  // Search the entire threads list for a crashed thread with stack
-  // trace.
-  return (
-    threads.find(thread => thread.crashed) ||
-    threads.find(thread => thread.stacktrace) ||
-    threads[0]
-  );
 }
 
 class Threads extends React.Component<Props, State> {
