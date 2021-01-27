@@ -15,6 +15,8 @@ import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 
+export const STACKTRACE_PREVIEW_TOOLTIP_DELAY = 1000;
+
 type Props = {
   issueId: string;
   organization: Organization;
@@ -164,6 +166,12 @@ const StyledHovercard = styled(Hovercard)`
     margin-bottom: 0;
     border: 0;
     box-shadow: none;
+  }
+
+  .loading .loading-indicator {
+    // Overriding the .less file - for default 64px loader we have the width of border set to 6px
+    // For 48px we therefore need 4.5px to keep the same thickness ratio
+    border-width: 4.5px;
   }
 
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
