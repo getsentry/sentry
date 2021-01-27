@@ -533,6 +533,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.digests",
     "sentry.tasks.email",
     "sentry.tasks.files",
+    "sentry.tasks.groupowner",
     "sentry.tasks.integrations",
     "sentry.tasks.members",
     "sentry.tasks.merge",
