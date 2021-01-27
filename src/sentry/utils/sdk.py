@@ -25,6 +25,7 @@ UNSAFE_FILES = (
 # URLs that should always be sampled
 SAMPLED_URL_NAMES = {
     "sentry-api-0-organization-releases",
+    "sentry-extensions-jira-issue-hook",
 }
 
 UNSAFE_TAG = "_unsafe"

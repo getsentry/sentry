@@ -13,7 +13,7 @@ import {Frame, Meta, PlatformType} from 'app/types';
 import {defined, isUrl} from 'app/utils';
 
 import FunctionName from '../functionName';
-import {getPlatform, trimPackage} from '../utils';
+import {getPlatform, isDotnet, trimPackage} from '../utils';
 
 import OriginalSourceInfo from './originalSourceInfo';
 
@@ -76,10 +76,12 @@ const DefaultTitle = ({frame, platform}: Props) => {
   // localized correctly
   if (defined(frame.filename || frame.module)) {
     // prioritize module name for Java as filename is often only basename
-    const shouldPrioritizeModuleName =
-      framePlatform === 'java' || framePlatform === 'csharp';
+    const shouldPrioritizeModuleName = framePlatform === 'java';
 
-    const pathName = getPathName(shouldPrioritizeModuleName);
+    // we do not want to show path in title on csharp platform
+    const pathName = isDotnet(framePlatform)
+      ? undefined
+      : getPathName(shouldPrioritizeModuleName);
     const enablePathTooltip = defined(frame.absPath) && frame.absPath !== pathName?.value;
 
     if (pathName) {
@@ -97,7 +99,7 @@ const DefaultTitle = ({frame, platform}: Props) => {
 
     // in case we prioritized the module name but we also have a filename info
     // we want to show a litle (?) icon that on hover shows the actual filename
-    if (shouldPrioritizeModuleName && frame.filename && framePlatform !== 'csharp') {
+    if (shouldPrioritizeModuleName && frame.filename) {
       title.push(
         <Tooltip key={frame.filename} title={frame.filename}>
           <a className="in-at real-filename">
@@ -115,7 +117,7 @@ const DefaultTitle = ({frame, platform}: Props) => {
       );
     }
 
-    if (defined(frame.function) || defined(frame.rawFunction)) {
+    if ((defined(frame.function) || defined(frame.rawFunction)) && defined(pathName)) {
       title.push(
         <span className="in-at" key="in">
           {` ${t('in')} `}
@@ -144,7 +146,7 @@ const DefaultTitle = ({frame, platform}: Props) => {
     );
   }
 
-  if (defined(frame.package) && framePlatform !== 'csharp') {
+  if (defined(frame.package) && !isDotnet(framePlatform)) {
     title.push(
       <span className="within" key="within">
         {` ${t('within')} `}
