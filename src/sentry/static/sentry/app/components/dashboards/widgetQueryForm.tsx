@@ -11,6 +11,7 @@ import {IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, SavedQuery, SelectValue} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {Widget, WidgetQuery} from 'app/views/dashboardsV2/types';
 import SearchBar from 'app/views/events/searchBar';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
@@ -99,6 +100,12 @@ class WidgetQueryForm extends React.Component<Props, State> {
   };
 
   handleSourceChange = (value: string) => {
+    trackAnalyticsEvent({
+      eventKey: 'dashboards2.widget.change_source',
+      eventName: 'Dashboards2: Widget change source',
+      organization_id: parseInt(this.props.organization.id, 10),
+      source: value,
+    });
     this.setState(prevState => {
       return {
         ...prevState,

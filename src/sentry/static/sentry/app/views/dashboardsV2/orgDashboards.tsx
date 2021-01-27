@@ -11,6 +11,7 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import {Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 
 import {DashboardDetails, DashboardListItem} from './types';
 
@@ -63,6 +64,12 @@ class OrgDashboards extends AsyncComponent<Props, State> {
 
     if (params.dashboardId) {
       endpoints.push(['selectedDashboard', `${url}${params.dashboardId}/`]);
+      trackAnalyticsEvent({
+        eventKey: 'dashboards2.view',
+        eventName: 'Dashboards2: View dashboard',
+        organization_id: parseInt(this.props.organization.id, 10),
+        dashboard_id: params.dashboardId,
+      });
     }
 
     return endpoints;
