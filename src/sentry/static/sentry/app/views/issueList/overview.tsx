@@ -93,6 +93,9 @@ type State = {
   realtimeActive: boolean;
   pageLinks: string;
   queryCount: number;
+  /**
+   * Counts for each inbox tab
+   */
   queryCounts: QueryCounts;
   queryMaxCount: number;
   /** Used to figure out if items have been removed when changing pages */
@@ -915,10 +918,15 @@ class IssueListOverview extends React.Component<Props, State> {
       page * MAX_ITEMS + groupIds.length - itemsRemoved,
       groupIds.length
     );
-    const pageCount =
-      possibleCount > queryCount || (!links?.next?.results && links?.previous?.results)
-        ? queryCount
-        : possibleCount;
+
+    let pageCount = possibleCount > queryCount ? queryCount : possibleCount;
+    if (!links?.next?.results || this.allResultsVisible()) {
+      // Is on last available page
+      pageCount = queryCount;
+    } else if (!links?.previous?.results) {
+      // Is on first available page
+      pageCount = groupIds.length;
+    }
 
     // TODO(workflow): When organization:inbox flag is removed add 'inbox' to tagStore
     if (
