@@ -62,3 +62,8 @@ export function getFrameHint(frame: Frame) {
 
   return [null, null];
 }
+
+export function isDotnet(platform: string) {
+  // csharp platform represents .NET and can be F#, VB or any language targeting CLS (the Common Language Specification)
+  return platform === 'csharp';
+}

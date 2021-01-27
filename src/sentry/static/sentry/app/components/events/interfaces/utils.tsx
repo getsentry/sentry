@@ -1,10 +1,14 @@
 import * as Sentry from '@sentry/react';
+import compact from 'lodash/compact';
 import isString from 'lodash/isString';
+import uniq from 'lodash/uniq';
 import * as qs from 'query-string';
 
 import {FILTER_MASK} from 'app/constants';
+import {Frame, PlatformType} from 'app/types';
 import {EntryRequest} from 'app/types/event';
 import {defined} from 'app/utils';
+import {fileExtensionToPlatform, getFileExtension} from 'app/utils/fileExtension';
 
 import {DebugImage} from './debugMeta/types';
 
@@ -188,4 +192,18 @@ export function parseAssembly(assembly: string | null) {
   }
 
   return {name, version, culture, publicKeyToken};
+}
+
+export function stackTracePlatformIcon(platform: PlatformType, frames: Frame[]) {
+  const fileExtensions = uniq(
+    compact(frames.map(frame => getFileExtension(frame.filename ?? '')))
+  );
+
+  if (fileExtensions.length === 1) {
+    const newPlatform = fileExtensionToPlatform(fileExtensions[0]);
+
+    return newPlatform ?? platform;
+  }
+
+  return platform;
 }
