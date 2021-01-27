@@ -18,14 +18,6 @@ def zip(*a):
     return list(_zip(*a))
 
 
-def _identity(x):
-    return x
-
-
-implements_iterator = _identity
-implements_bool = _identity
-
-
 from binascii import crc32 as _crc32
 
 
