@@ -149,7 +149,6 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, pr
         return
 
     if should_process(data):
-        reprocessing2.backup_unprocessed_event(project=project, data=original_data)
         submit_process(
             project,
             from_reprocessing,

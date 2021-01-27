@@ -139,7 +139,6 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
 
     def test_reprocessing(self):
         self.project.update_option("sentry:store_crash_reports", STORE_CRASH_REPORTS_ALL)
-        self.settings.REPROCESSING_ENABLED_PLATFORMS = ["native"]
 
         with self.feature(
             {"organizations:event-attachments": True, "organizations:reprocessing-v2": True}

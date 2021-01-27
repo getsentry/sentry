@@ -108,14 +108,6 @@ def _generate_unprocessed_event_node_id(project_id, event_id):
     return hashlib.md5("{}:{}:unprocessed".format(project_id, event_id).encode("utf-8")).hexdigest()
 
 
-def _should_save_payload(project, data):
-    platform = data.get("platform")
-    if platform and platform in settings.REPROCESSING_ENABLED_PLATFORMS:
-        return True
-
-    return False
-
-
 def save_unprocessed_event(project, event_id):
     """
     Move event from event_processing_store into nodestore. Only call if event
@@ -141,8 +133,7 @@ def backup_unprocessed_event(project, data):
     able to be reprocessed.
     """
 
-    if _should_save_payload(project, data):
-        event_processing_store.store(dict(data), unprocessed=True)
+    event_processing_store.store(dict(data), unprocessed=True)
 
 
 def reprocess_event(project_id, event_id, start_time):
