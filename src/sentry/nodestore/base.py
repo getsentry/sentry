@@ -185,7 +185,7 @@ class NodeStorage(local, Service):
         """
         lines = [json_dumps(data.pop(None)).encode("utf8")]
         for key, value in six.iteritems(data):
-            lines.append(key.encode("utf8"))
+            lines.append(key.encode("ascii"))
             lines.append(json_dumps(value).encode("utf8"))
 
         return b"\n".join(lines)
