@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 
 from pytz import utc
@@ -1954,7 +1952,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         query = {
             "field": ["event.type", "last_seen()", "latest_event()"],
-            "query": u"event.type:transaction last_seen():>1990-12-01T00:00:00",
+            "query": "event.type:transaction last_seen():>1990-12-01T00:00:00",
         }
         response = self.do_request(query, features=features)
         assert response.status_code == 200, response.content
@@ -2057,7 +2055,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         query = {
             "field": ["event.type", "latest_event()"],
-            "query": u"event.type:transaction",
+            "query": "event.type:transaction",
             "sort": "latest_event",
         }
         response = self.do_request(query, features=features)

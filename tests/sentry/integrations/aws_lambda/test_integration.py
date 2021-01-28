@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 from botocore.exceptions import ClientError
 from django.http import HttpResponse
 from six.moves.urllib.parse import urlencode
@@ -22,7 +19,7 @@ from sentry.pipeline import PipelineView
 
 arn = (
     "arn:aws:cloudformation:us-east-2:599817902985:stack/"
-    "Sentry-Monitoring-Stack-Filter/e42083d0-3e3f-11eb-b66a-0ac9b5db7f30"
+    "Sentry-Monitoring-Stack/e42083d0-3e3f-11eb-b66a-0ac9b5db7f30"
 )
 
 account_number = "599817902985"
@@ -64,11 +61,12 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
             {
                 "baseCloudformationUrl": "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review",
                 "templateUrl": "https://example.com/file.json",
-                "stackName": "Sentry-Monitoring-Stack-Filter",
+                "stackName": "Sentry-Monitoring-Stack",
                 "regionList": ALL_AWS_REGIONS,
                 "region": None,
                 "accountNumber": None,
                 "error": None,
+                "initialStepNumber": 1,
             },
         )
 
@@ -95,11 +93,12 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
             {
                 "baseCloudformationUrl": "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review",
                 "templateUrl": "https://example.com/file.json",
-                "stackName": "Sentry-Monitoring-Stack-Filter",
+                "stackName": "Sentry-Monitoring-Stack",
                 "regionList": ALL_AWS_REGIONS,
                 "region": region,
                 "accountNumber": account_number,
                 "error": "Please validate the Cloudformation stack was created successfully",
+                "initialStepNumber": 1,
             },
         )
 
@@ -129,7 +128,8 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
                 "lambdaFunctions": [
                     {"FunctionName": "lambdaA", "Runtime": "nodejs12.x"},
                     {"FunctionName": "lambdaB", "Runtime": "nodejs10.x"},
-                ]
+                ],
+                "initialStepNumber": 3,
             },
         )
 

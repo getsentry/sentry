@@ -8,28 +8,31 @@ import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
-import {
-  QueryResults,
-  stringifyQueryObject,
-  tokenizeSearch,
-} from 'app/utils/tokenizeSearch';
+import {decodeScalar} from 'app/utils/queryString';
+import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import SearchBar from 'app/views/events/searchBar';
 
 import Charts from '../charts/index';
 import {
   getBackendAxisOptions,
   getFrontendAxisOptions,
-  getFrontendNavigationAxisOptions,
+  getFrontendOtherAxisOptions,
 } from '../data';
 import Table from '../table';
 import {getTransactionSearchQuery} from '../utils';
 
 import DoubleAxisDisplay from './display/doubleAxisDisplay';
-import {FRONTEND_NAVIGATION_COLUMN_TITLES, FRONTEND_PAGELOAD_COLUMN_TITLES} from './data';
+import {
+  BACKEND_COLUMN_TITLES,
+  FRONTEND_OTHER_COLUMN_TITLES,
+  FRONTEND_PAGELOAD_COLUMN_TITLES,
+} from './data';
 import {
   getCurrentLandingDisplay,
+  getDefaultDisplayFieldForPlatform,
   getDisplayAxes,
   LANDING_DISPLAYS,
   LandingDisplayField,
@@ -49,6 +52,17 @@ type Props = {
 
 type State = {};
 class LandingContent extends React.Component<Props, State> {
+  componentDidMount() {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.landingv2.content',
+      eventName: 'Performance Views: Landing V2 Content',
+      organization_id: parseInt(organization.id, 10),
+    });
+  }
+
+  _haveTrackedLandingV2?: boolean;
+
   getSummaryConditions(query: string) {
     const parsed = tokenizeSearch(query);
     parsed.query = [];
@@ -57,12 +71,25 @@ class LandingContent extends React.Component<Props, State> {
   }
 
   handleLandingDisplayChange = (field: string) => {
-    const {location} = this.props;
+    const {location, organization, eventView, projects} = this.props;
 
     const newQuery = {...location.query};
 
     delete newQuery[LEFT_AXIS_QUERY_KEY];
     delete newQuery[RIGHT_AXIS_QUERY_KEY];
+
+    const defaultDisplay = getDefaultDisplayFieldForPlatform(projects, eventView);
+    const currentDisplay = decodeScalar(location.query.landingDisplay);
+
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.landingv2.display_change',
+      eventName: 'Performance Views: Landing v2 Display Change',
+      organization_id: parseInt(organization.id, 10),
+      change_to_display: field,
+      default_display: defaultDisplay,
+      current_display: currentDisplay,
+      is_default: defaultDisplay === currentDisplay,
+    });
 
     browserHistory.push({
       pathname: location.pathname,
@@ -76,9 +103,17 @@ class LandingContent extends React.Component<Props, State> {
   renderLandingV2() {
     const {organization, location, eventView, projects, handleSearch} = this.props;
 
+    if (!this._haveTrackedLandingV2) {
+      trackAnalyticsEvent({
+        eventKey: 'performance_views.landingv2.new_landing',
+        eventName: 'Performance Views: Landing V2 New Landing',
+        organization_id: parseInt(organization.id, 10),
+      });
+      this._haveTrackedLandingV2 = true;
+    }
+
     const currentLandingDisplay = getCurrentLandingDisplay(location, projects, eventView);
-    const filterString = getTransactionSearchQuery(location);
-    const summaryConditions = this.getSummaryConditions(filterString);
+    const filterString = getTransactionSearchQuery(location, eventView.query);
 
     return (
       <React.Fragment>
@@ -113,64 +148,50 @@ class LandingContent extends React.Component<Props, State> {
             </DropdownControl>
           </ProjectTypeDropdown>
         </SearchContainer>
-        {this.renderSelectedDisplay(currentLandingDisplay.field, summaryConditions)}
+        {this.renderSelectedDisplay(currentLandingDisplay.field)}
       </React.Fragment>
     );
   }
 
-  renderSelectedDisplay(display, summaryConditions) {
+  renderSelectedDisplay(display) {
     switch (display) {
       case LandingDisplayField.ALL:
-        return this.renderLandingAll(summaryConditions);
+        return this.renderLandingAll();
       case LandingDisplayField.FRONTEND_PAGELOAD:
-        return this.renderLandingFrontend(summaryConditions, true);
-      case LandingDisplayField.FRONTEND_NAVIGATION:
-        return this.renderLandingFrontend(summaryConditions, false);
+        return this.renderLandingFrontend(true);
+      case LandingDisplayField.FRONTEND_OTHER:
+        return this.renderLandingFrontend(false);
       case LandingDisplayField.BACKEND:
-        return this.renderLandingBackend(summaryConditions);
+        return this.renderLandingBackend();
       default:
         throw new Error(`Unknown display: ${display}`);
     }
   }
 
-  renderLandingFrontend = (summaryConditions, isPageload) => {
+  renderLandingFrontend = isPageload => {
     const {organization, location, projects, eventView, setError} = this.props;
-
-    const op = isPageload ? 'pageload' : 'navigation';
-
-    const frontendView = eventView.clone();
-    const conditions = tokenizeSearch(frontendView.query);
-    const newConditions = new QueryResults([]); // Add conditions just to include in summary as transaction.op you want to likely keep
-    conditions.setTagValues('transaction.op', [op]);
-    newConditions.setTagValues('transaction.op', [op]);
-
-    frontendView.query = stringifyQueryObject(conditions);
-    const frontendSummaryConditions = [
-      summaryConditions,
-      stringifyQueryObject(newConditions),
-    ].join(' ');
 
     const columnTitles = isPageload
       ? FRONTEND_PAGELOAD_COLUMN_TITLES
-      : FRONTEND_NAVIGATION_COLUMN_TITLES;
+      : FRONTEND_OTHER_COLUMN_TITLES;
 
     const axisOptions = isPageload
       ? getFrontendAxisOptions(organization)
-      : getFrontendNavigationAxisOptions(organization);
+      : getFrontendOtherAxisOptions(organization);
     const {leftAxis, rightAxis} = getDisplayAxes(axisOptions, location);
 
     return (
       <React.Fragment>
         {isPageload && (
           <FrontendCards
-            eventView={frontendView}
+            eventView={eventView}
             organization={organization}
             location={location}
             projects={projects}
           />
         )}
         <DoubleAxisDisplay
-          eventView={frontendView}
+          eventView={eventView}
           organization={organization}
           location={location}
           axisOptions={axisOptions}
@@ -178,23 +199,25 @@ class LandingContent extends React.Component<Props, State> {
           rightAxis={rightAxis}
         />
         <Table
-          eventView={frontendView}
+          eventView={eventView}
           projects={projects}
           organization={organization}
           location={location}
           setError={setError}
-          summaryConditions={frontendSummaryConditions}
+          summaryConditions={eventView.getQueryWithAdditionalConditions()}
           columnTitles={columnTitles}
         />
       </React.Fragment>
     );
   };
 
-  renderLandingBackend = summaryConditions => {
+  renderLandingBackend = () => {
     const {organization, location, projects, eventView, setError} = this.props;
 
     const axisOptions = getBackendAxisOptions(organization);
     const {leftAxis, rightAxis} = getDisplayAxes(axisOptions, location);
+
+    const columnTitles = BACKEND_COLUMN_TITLES;
 
     return (
       <React.Fragment>
@@ -217,13 +240,14 @@ class LandingContent extends React.Component<Props, State> {
           organization={organization}
           location={location}
           setError={setError}
-          summaryConditions={summaryConditions}
+          summaryConditions={eventView.getQueryWithAdditionalConditions()}
+          columnTitles={columnTitles}
         />
       </React.Fragment>
     );
   };
 
-  renderLandingAll = summaryConditions => {
+  renderLandingAll = () => {
     const {organization, location, router, projects, eventView, setError} = this.props;
 
     return (
@@ -240,7 +264,7 @@ class LandingContent extends React.Component<Props, State> {
           organization={organization}
           location={location}
           setError={setError}
-          summaryConditions={summaryConditions}
+          summaryConditions={eventView.getQueryWithAdditionalConditions()}
         />
       </React.Fragment>
     );

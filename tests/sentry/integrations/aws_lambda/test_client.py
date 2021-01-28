@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import boto3
 
 from sentry.integrations.aws_lambda.client import gen_aws_client
@@ -60,7 +58,6 @@ class AwsLambdaClientTest(TestCase):
                             "Action": [
                                 "lambda:ListFunctions",
                                 "lambda:GetLayerVersion",
-                                "iam:PassRole",
                                 "organizations:DescribeAccount",
                             ],
                             "Resource": "*",

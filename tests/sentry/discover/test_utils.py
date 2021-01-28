@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.discover.utils import transform_aliases_and_query

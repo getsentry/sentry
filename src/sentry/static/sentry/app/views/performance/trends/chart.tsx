@@ -4,6 +4,7 @@ import {WithRouterProps} from 'react-router/lib/withRouter';
 
 import {Client} from 'app/api';
 import ChartZoom from 'app/components/charts/chartZoom';
+import Legend from 'app/components/charts/components/legend';
 import LineChart from 'app/components/charts/lineChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 import TransitionChart from 'app/components/charts/transitionChart';
@@ -63,7 +64,7 @@ function transformEventStats(data: EventsStatsData, seriesName?: string): Series
 }
 
 function getLegend(trendFunction: string) {
-  const legend = {
+  const legend = Legend({
     right: 10,
     top: 0,
     itemGap: 12,
@@ -73,6 +74,7 @@ function getLegend(trendFunction: string) {
       fontSize: 11,
       fontFamily: 'Rubik',
     },
+    theme,
     data: [
       {
         name: 'Baseline',
@@ -88,7 +90,7 @@ function getLegend(trendFunction: string) {
         icon: 'line',
       },
     ],
-  };
+  });
   return legend;
 }
 
@@ -255,8 +257,8 @@ class Chart extends React.Component<Props> {
     const end = props.end ? getUtcToLocalDateObject(props.end) : null;
     const utc = decodeScalar(router.location.query.utc) !== 'false';
 
-    const seriesSelection = (
-      decodeList(location.query[getUnselectedSeries(trendChangeType)]) ?? []
+    const seriesSelection = decodeList(
+      location.query[getUnselectedSeries(trendChangeType)]
     ).reduce((selection, metric) => {
       selection[metric] = false;
       return selection;

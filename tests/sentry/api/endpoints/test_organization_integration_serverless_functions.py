@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.models import Integration, ProjectKey
 from sentry.integrations.aws_lambda.integration import AwsLambdaIntegration
 from sentry.testutils import APITestCase
@@ -9,7 +7,7 @@ from sentry.testutils.helpers.faux import Mock
 
 cloudformation_arn = (
     "arn:aws:cloudformation:us-east-2:599817902985:stack/"
-    "Sentry-Monitoring-Stack-Filter/e42083d0-3e3f-11eb-b66a-0ac9b5db7f30"
+    "Sentry-Monitoring-Stack/e42083d0-3e3f-11eb-b66a-0ac9b5db7f30"
 )
 
 

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.models import Group
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now

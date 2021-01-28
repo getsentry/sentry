@@ -7,15 +7,17 @@ import {Location} from 'history';
 import {Client} from 'app/api';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import EventsRequest from 'app/components/charts/eventsRequest';
-import LoadingPanel from 'app/components/charts/loadingPanel';
+import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {getInterval} from 'app/components/charts/utils';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
+import getDynamicText from 'app/utils/getDynamicText';
 import withApi from 'app/utils/withApi';
 
 import Chart from '../../charts/chart';
@@ -78,8 +80,15 @@ function DurationChart(props: Props) {
       includePrevious={false}
       yAxis={[field]}
     >
-      {({loading, reloading, errored, timeseriesData}) => {
-        const results = timeseriesData;
+      {({loading, reloading, errored, timeseriesData: results}) => {
+        const series = results
+          ? results.map(({...rest}) => {
+              return {
+                ...rest,
+                seriesName: props.field,
+              };
+            })
+          : [];
         if (errored) {
           return (
             <ErrorPanel>
@@ -89,45 +98,52 @@ function DurationChart(props: Props) {
         }
 
         return (
-          <DurationChartContainer>
+          <div>
             <DoubleHeaderContainer>
               <HeaderTitleLegend>
                 {title}
                 <QuestionTooltip position="top" size="sm" title={titleTooltip} />
               </HeaderTitleLegend>
             </DoubleHeaderContainer>
-            {results ? (
+            {results && (
               <ChartContainer>
-                <Chart
-                  height={250}
-                  data={results}
-                  loading={loading || reloading}
-                  router={router}
-                  statsPeriod={globalSelection.datetime.period}
-                  utc={utc === 'true'}
-                  grid={{
-                    left: space(3),
-                    right: space(3),
-                    top: space(3),
-                    bottom: space(1.5),
-                  }}
-                  disableMultiAxis
-                />
+                <MaskContainer>
+                  <TransparentLoadingMask visible={loading} />
+                  {getDynamicText({
+                    value: (
+                      <Chart
+                        height={250}
+                        data={series}
+                        loading={loading || reloading}
+                        router={router}
+                        statsPeriod={globalSelection.datetime.period}
+                        utc={utc === 'true'}
+                        grid={{
+                          left: space(3),
+                          right: space(3),
+                          top: space(3),
+                          bottom: loading || reloading ? space(4) : space(1.5),
+                        }}
+                        disableMultiAxis
+                      />
+                    ),
+                    fixed: <Placeholder height="250px" testId="skeleton-ui" />,
+                  })}
+                </MaskContainer>
               </ChartContainer>
-            ) : (
-              <LoadingPanel data-test-id="events-request-loading" />
             )}
-          </DurationChartContainer>
+          </div>
         );
       }}
     </EventsRequest>
   );
 }
 
-const DurationChartContainer = styled('div')``;
-
 const ChartContainer = styled('div')`
   padding-top: ${space(1)};
+`;
+const MaskContainer = styled('div')`
+  position: relative;
 `;
 
 export default withRouter(withApi(DurationChart));

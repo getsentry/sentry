@@ -6,24 +6,18 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 import ScoreCard from 'app/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
-import {GlobalSelection, Organization} from 'app/types';
+import {GlobalSelection, Organization, SessionApiResponse} from 'app/types';
 import {defined, percent} from 'app/utils';
 import {formatAbbreviatedNumber} from 'app/utils/formatters';
 import {getPeriod} from 'app/utils/getPeriod';
 import {displayCrashFreePercent, getCrashFreePercent} from 'app/views/releases/utils';
+import {
+  getSessionTermDescription,
+  SessionTerm,
+} from 'app/views/releases/utils/sessionTerm';
 
 import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButtons';
 import {shouldFetchPreviousPeriod} from '../utils';
-
-type SessionApiResponse = {
-  query: string;
-  intervals: string[];
-  groups: {
-    by: Record<string, string>;
-    totals: Record<string, number>;
-    series: Record<string, number[]>;
-  }[];
-};
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
@@ -132,7 +126,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
   }
 
   get cardHelp() {
-    return t('Stability score is the percentage of crash free sessions.');
+    return getSessionTermDescription(SessionTerm.STABILITY, null);
   }
 
   get score() {
@@ -153,7 +147,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
     return this.score - previousScore;
   }
 
-  get trendStyle(): React.ComponentProps<typeof ScoreCard>['trendStyle'] {
+  get trendStatus(): React.ComponentProps<typeof ScoreCard>['trendStatus'] {
     if (!this.trend) {
       return undefined;
     }
@@ -240,7 +234,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
         help={this.cardHelp}
         score={this.renderScore()}
         trend={this.renderTrend()}
-        trendStyle={this.trendStyle}
+        trendStatus={this.trendStatus}
       />
     );
   }

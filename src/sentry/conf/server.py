@@ -1,7 +1,6 @@
 """
 These settings act as the default (base) settings for the Sentry-provided web-server
 """
-from __future__ import absolute_import
 
 from django.conf.global_settings import *  # NOQA
 
@@ -534,6 +533,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.digests",
     "sentry.tasks.email",
     "sentry.tasks.files",
+    "sentry.tasks.groupowner",
     "sentry.tasks.integrations",
     "sentry.tasks.members",
     "sentry.tasks.merge",
@@ -580,6 +580,9 @@ CELERY_QUEUES = [
     Queue("events.reprocess_events", routing_key="events.reprocess_events"),
     Queue("events.save_event", routing_key="events.save_event"),
     Queue("files.delete", routing_key="files.delete"),
+    Queue(
+        "group_owners.process_suspect_commits", routing_key="group_owners.process_suspect_commits"
+    ),
     Queue("incidents", routing_key="incidents"),
     Queue("incident_snapshots", routing_key="incident_snapshots"),
     Queue("integrations", routing_key="integrations"),
@@ -605,7 +608,7 @@ CELERY_ROUTES = ("sentry.queue.routers.SplitQueueRouter",)
 def create_partitioned_queues(name):
     exchange = Exchange(name, type="direct")
     for num in range(1):
-        CELERY_QUEUES.append(Queue(u"{0}-{1}".format(name, num), exchange=exchange))
+        CELERY_QUEUES.append(Queue("{0}-{1}".format(name, num), exchange=exchange))
 
 
 create_partitioned_queues("counters")
@@ -921,6 +924,8 @@ SENTRY_FEATURES = {
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
+    # Enable the new charts on top of the Releases page
+    "organizations:releases-top-charts": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable basic SSO functionality, providing configurable single sign on
@@ -1333,7 +1338,10 @@ SENTRY_SCOPE_SETS = (
         ("event:write", "Read and write access to events."),
         ("event:read", "Read access to events."),
     ),
-    (("alerts:write", "Read and write alerts"), ("alerts:read", "Read alerts"),),
+    (
+        ("alerts:write", "Read and write alerts"),
+        ("alerts:read", "Read alerts"),
+    ),
 )
 
 SENTRY_DEFAULT_ROLE = "member"
@@ -1488,7 +1496,7 @@ SENTRY_WATCHERS = (
             "--color",
             "--output-pathinfo",
             "--watch",
-            u"--config={}".format(
+            "--config={}".format(
                 os.path.normpath(
                     os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "webpack.config.js")
                 )

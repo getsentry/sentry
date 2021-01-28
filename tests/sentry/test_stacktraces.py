@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 
 from sentry.grouping.api import get_default_grouping_config_dict, load_grouping_config

@@ -15,7 +15,7 @@ import space from 'app/styles/space';
 import {GlobalSelection, Organization, Release, ReleaseProject} from 'app/types';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import {getAggregateAlias} from 'app/utils/discover/fields';
-import {getTermHelp} from 'app/views/performance/data';
+import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 import {
   getSessionTermDescription,
   SessionTerm,
@@ -83,7 +83,7 @@ function ReleaseStats({organization, release, project, location, selection}: Pro
           {t('Apdex')}
           <QuestionTooltip
             position="top"
-            title={getTermHelp(organization, 'apdex')}
+            title={getTermHelp(organization, PERFORMANCE_TERM.APDEX)}
             size="sm"
           />
         </SectionHeading>

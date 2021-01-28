@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import responses
 
 import pytest
@@ -62,7 +60,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         }
 
         resp = self.client.get(
-            u"{}?{}".format(self.setup_path, urlencode({"config": json.dumps(config)}))
+            "{}?{}".format(self.setup_path, urlencode({"config": json.dumps(config)}))
         )
 
         self.assertDialogSuccess(resp)
@@ -91,7 +89,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         }
 
         resp = self.client.get(
-            u"{}?{}".format(self.setup_path, urlencode({"config": json.dumps(config)}))
+            "{}?{}".format(self.setup_path, urlencode({"config": json.dumps(config)}))
         )
 
         self.assertDialogSuccess(resp)

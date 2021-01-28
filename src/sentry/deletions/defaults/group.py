@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import os
 from sentry import eventstore, nodestore
 from sentry.eventstore.models import Event
@@ -82,10 +80,6 @@ class EventDataDeletionTask(BaseDeletionTask):
         # Remove from nodestore
         node_ids = [Event.generate_node_id(self.project_id, event.event_id) for event in events]
         nodestore.delete_multi(node_ids)
-
-        from sentry.reprocessing2 import delete_unprocessed_events
-
-        delete_unprocessed_events(self.project_id, [event.event_id for event in events])
 
         # Remove EventAttachment and UserReport *again* as those may not have a
         # group ID, therefore there may be dangling ones after "regular" model

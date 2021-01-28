@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import six
 from django.db import models
 from django.utils import timezone
@@ -44,6 +42,7 @@ class DashboardWidgetDisplayTypes(TypesClass):
     BAR_CHART = 3
     TABLE = 4
     WORLD_MAP = 5
+    BIG_NUMBER = 6
     TYPES = [
         (LINE_CHART, "line"),
         (AREA_CHART, "area"),
@@ -51,6 +50,7 @@ class DashboardWidgetDisplayTypes(TypesClass):
         (BAR_CHART, "bar"),
         (TABLE, "table"),
         (WORLD_MAP, "world_map"),
+        (BIG_NUMBER, "big_number"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 

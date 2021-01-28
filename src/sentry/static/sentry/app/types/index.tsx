@@ -1498,6 +1498,9 @@ export type SavedQueryState = {
   isLoading: boolean;
 };
 
+/**
+ * The option format used by react-select based components
+ */
 export type SelectValue<T> = {
   label: string;
   value: T;
@@ -1505,7 +1508,10 @@ export type SelectValue<T> = {
   tooltip?: string;
 };
 
-export type IssueConfigFieldChoices = [number | string, number | string][];
+/**
+ * The 'other' option format used by checkboxes, radios and more.
+ */
+export type Choices = [value: string | number, label: string | number][];
 
 /**
  * The issue config form fields we get are basically the form fields we use in
@@ -1515,7 +1521,7 @@ export type IssueConfigFieldChoices = [number | string, number | string][];
 export type IssueConfigField = Field & {
   name: string;
   default?: string | number;
-  choices?: IssueConfigFieldChoices;
+  choices?: Choices;
   url?: string;
   multiple?: boolean;
 };
@@ -1944,3 +1950,13 @@ export type ServerlessFunction = {
  * File storage service options for debug files
  */
 export type DebugFileSource = 'http' | 's3' | 'gcs';
+
+export type SessionApiResponse = {
+  query: string;
+  intervals: string[];
+  groups: {
+    by: Record<string, string>;
+    totals: Record<string, number>;
+    series: Record<string, number[]>;
+  }[];
+};

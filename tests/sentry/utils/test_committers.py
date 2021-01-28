@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import unittest
 
 from datetime import timedelta
@@ -12,7 +10,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.committers import (
     _get_commit_file_changes,
-    _get_frame_paths,
+    get_frame_paths,
     _match_commits_path,
     get_serialized_event_file_committers,
     get_previous_releases,
@@ -113,19 +111,19 @@ class GetFramePathsTestCase(unittest.TestCase):
 
     def test_data_in_stacktrace_frames(self):
         self.event.data = {"stacktrace": {"frames": ["data"]}}
-        assert ["data"] == _get_frame_paths(self.event)
+        assert ["data"] == get_frame_paths(self.event.data)
 
     def test_data_in_exception_values(self):
         self.event.data = {"exception": {"values": [{"stacktrace": {"frames": ["data"]}}]}}
-        assert ["data"] == _get_frame_paths(self.event)
+        assert ["data"] == get_frame_paths(self.event.data)
 
     def test_data_does_not_match(self):
         self.event.data = {"this does not": "match"}
-        assert [] == _get_frame_paths(self.event)
+        assert [] == get_frame_paths(self.event.data)
 
     def test_no_stacktrace_in_exception_values(self):
         self.event.data = {"exception": {"values": [{"this does not": "match"}]}}
-        assert [] == _get_frame_paths(self.event)
+        assert [] == get_frame_paths(self.event.data)
 
 
 class GetCommitFileChangesTestCase(CommitTestCase):

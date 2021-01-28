@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import jwt
 import responses
 
@@ -35,11 +33,13 @@ class MsTeamsWebhookTest(APITestCase):
 
         responses.add(
             responses.GET,
-            u"https://login.botframework.com/v1/.well-known/openidconfiguration",
+            "https://login.botframework.com/v1/.well-known/openidconfiguration",
             json=OPEN_ID_CONFIG,
         )
         responses.add(
-            responses.GET, OPEN_ID_CONFIG["jwks_uri"], json=WELL_KNOWN_KEYS,
+            responses.GET,
+            OPEN_ID_CONFIG["jwks_uri"],
+            json=WELL_KNOWN_KEYS,
         )
 
     @responses.activate
@@ -52,7 +52,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=GENERIC_EVENT,
             format="json",
-            HTTP_AUTHORIZATION=u"Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
         )
 
         assert resp.status_code == 204
@@ -62,15 +62,19 @@ class MsTeamsWebhookTest(APITestCase):
         )
         assert (
             responses.calls[0].request.url
-            == u"https://login.botframework.com/v1/.well-known/openidconfiguration"
+            == "https://login.botframework.com/v1/.well-known/openidconfiguration"
         )
         assert (
-            responses.calls[1].request.url == u"https://login.botframework.com/v1/.well-known/keys"
+            responses.calls[1].request.url == "https://login.botframework.com/v1/.well-known/keys"
         )
 
     @responses.activate
     def test_post_empty_token(self):
-        resp = self.client.post(path=webhook_url, data=EXAMPLE_TEAM_MEMBER_ADDED, format="json",)
+        resp = self.client.post(
+            path=webhook_url,
+            data=EXAMPLE_TEAM_MEMBER_ADDED,
+            format="json",
+        )
 
         assert resp.data["detail"] == "Authorization header required"
         assert resp.status_code == 403
@@ -83,7 +87,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=EXAMPLE_TEAM_MEMBER_ADDED,
             format="json",
-            HTTP_AUTHORIZATION=u"Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
         )
 
         assert resp.data["detail"] == "Could not decode JWT token"
@@ -99,7 +103,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=EXAMPLE_TEAM_MEMBER_ADDED,
             format="json",
-            HTTP_AUTHORIZATION=u"Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
         )
         assert resp.data["detail"] == "The field iss does not match"
         assert resp.status_code == 403
@@ -114,7 +118,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=EXAMPLE_TEAM_MEMBER_ADDED,
             format="json",
-            HTTP_AUTHORIZATION=u"Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
         )
         assert resp.data["detail"] == "The field serviceUrl does not match"
         assert resp.status_code == 403
@@ -129,7 +133,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=EXAMPLE_TEAM_MEMBER_ADDED,
             format="json",
-            HTTP_AUTHORIZATION=u"Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
         )
 
         assert resp.data["detail"] == "Token is expired"
@@ -142,12 +146,12 @@ class MsTeamsWebhookTest(APITestCase):
         access_json = {"expires_in": 86399, "access_token": "my_token"}
         responses.add(
             responses.POST,
-            u"https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
+            "https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
             json=access_json,
         )
         responses.add(
             responses.POST,
-            u"https://smba.trafficmanager.net/amer/v3/conversations/%s/activities" % team_id,
+            "https://smba.trafficmanager.net/amer/v3/conversations/%s/activities" % team_id,
             json={},
         )
 
@@ -157,7 +161,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=EXAMPLE_TEAM_MEMBER_ADDED,
             format="json",
-            HTTP_AUTHORIZATION=u"Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
         )
 
         assert resp.status_code == 201
@@ -183,12 +187,12 @@ class MsTeamsWebhookTest(APITestCase):
         access_json = {"expires_in": 86399, "access_token": "my_token"}
         responses.add(
             responses.POST,
-            u"https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
+            "https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
             json=access_json,
         )
         responses.add(
             responses.POST,
-            u"https://smba.trafficmanager.net/amer/v3/conversations/%s/activities" % team_id,
+            "https://smba.trafficmanager.net/amer/v3/conversations/%s/activities" % team_id,
             json={},
         )
 
@@ -201,7 +205,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=different_member_added,
             format="json",
-            HTTP_AUTHORIZATION=u"Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
         )
 
         assert resp.status_code == 204
@@ -217,7 +221,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=EXAMPLE_TEAM_MEMBER_REMOVED,
             format="json",
-            HTTP_AUTHORIZATION=u"Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
         )
 
         assert resp.status_code == 204
@@ -235,7 +239,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=different_member_removed,
             format="json",
-            HTTP_AUTHORIZATION=u"Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
         )
 
         assert resp.status_code == 204
@@ -248,12 +252,12 @@ class MsTeamsWebhookTest(APITestCase):
         access_json = {"expires_in": 86399, "access_token": "my_token"}
         responses.add(
             responses.POST,
-            u"https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
+            "https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
             json=access_json,
         )
         responses.add(
             responses.POST,
-            u"https://smba.trafficmanager.net/amer/v3/conversations/%s/activities"
+            "https://smba.trafficmanager.net/amer/v3/conversations/%s/activities"
             % EXAMPLE_PERSONAL_MEMBER_ADDED["conversation"]["id"],
             json={},
         )
@@ -263,7 +267,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=EXAMPLE_PERSONAL_MEMBER_ADDED,
             format="json",
-            HTTP_AUTHORIZATION=u"Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
         )
 
         assert resp.status_code == 204
@@ -277,12 +281,12 @@ class MsTeamsWebhookTest(APITestCase):
         access_json = {"expires_in": 86399, "access_token": "my_token"}
         responses.add(
             responses.POST,
-            u"https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
+            "https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
             json=access_json,
         )
         responses.add(
             responses.POST,
-            u"https://smba.trafficmanager.net/amer/v3/conversations/%s/activities"
+            "https://smba.trafficmanager.net/amer/v3/conversations/%s/activities"
             % EXAMPLE_PERSONAL_MEMBER_ADDED["conversation"]["id"],
             json={},
         )
@@ -292,7 +296,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=EXAMPLE_MENTIONED,
             format="json",
-            HTTP_AUTHORIZATION=u"Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
         )
 
         assert resp.status_code == 204
@@ -315,7 +319,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=different_user_mentioned,
             format="json",
-            HTTP_AUTHORIZATION=u"Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
         )
 
         assert resp.status_code == 204
@@ -328,12 +332,12 @@ class MsTeamsWebhookTest(APITestCase):
         access_json = {"expires_in": 86399, "access_token": "my_token"}
         responses.add(
             responses.POST,
-            u"https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
+            "https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
             json=access_json,
         )
         responses.add(
             responses.POST,
-            u"https://smba.trafficmanager.net/amer/v3/conversations/%s/activities"
+            "https://smba.trafficmanager.net/amer/v3/conversations/%s/activities"
             % EXAMPLE_UNLINK_COMMAND["conversation"]["id"],
             json={},
         )
@@ -343,7 +347,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=EXAMPLE_UNLINK_COMMAND,
             format="json",
-            HTTP_AUTHORIZATION=u"Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
         )
 
         assert resp.status_code == 204
@@ -361,12 +365,12 @@ class MsTeamsWebhookTest(APITestCase):
         access_json = {"expires_in": 86399, "access_token": "my_token"}
         responses.add(
             responses.POST,
-            u"https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
+            "https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
             json=access_json,
         )
         responses.add(
             responses.POST,
-            u"https://smba.trafficmanager.net/amer/v3/conversations/%s/activities"
+            "https://smba.trafficmanager.net/amer/v3/conversations/%s/activities"
             % other_command["conversation"]["id"],
             json={},
         )
@@ -376,7 +380,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=other_command,
             format="json",
-            HTTP_AUTHORIZATION=u"Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
         )
 
         assert resp.status_code == 204
@@ -394,12 +398,12 @@ class MsTeamsWebhookTest(APITestCase):
         access_json = {"expires_in": 86399, "access_token": "my_token"}
         responses.add(
             responses.POST,
-            u"https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
+            "https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
             json=access_json,
         )
         responses.add(
             responses.POST,
-            u"https://smba.trafficmanager.net/amer/v3/conversations/%s/activities"
+            "https://smba.trafficmanager.net/amer/v3/conversations/%s/activities"
             % other_command["conversation"]["id"],
             json={},
         )
@@ -409,14 +413,13 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=other_command,
             format="json",
-            HTTP_AUTHORIZATION=u"Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
         )
 
         assert resp.status_code == 204
-        assert "Your Microsoft Teams identity will be linked to your Sentry account" in responses.calls[
-            3
-        ].request.body.decode(
-            "utf-8"
+        assert (
+            "Your Microsoft Teams identity will be linked to your Sentry account"
+            in responses.calls[3].request.body.decode("utf-8")
         )
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
 
@@ -431,12 +434,12 @@ class MsTeamsWebhookTest(APITestCase):
         access_json = {"expires_in": 86399, "access_token": "my_token"}
         responses.add(
             responses.POST,
-            u"https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
+            "https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
             json=access_json,
         )
         responses.add(
             responses.POST,
-            u"https://smba.trafficmanager.net/amer/v3/conversations/%s/activities"
+            "https://smba.trafficmanager.net/amer/v3/conversations/%s/activities"
             % other_command["conversation"]["id"],
             json={},
         )
@@ -446,14 +449,13 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=other_command,
             format="json",
-            HTTP_AUTHORIZATION=u"Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
         )
 
         assert resp.status_code == 204
-        assert "Your Microsoft Teams identity is already linked to a Sentry account" in responses.calls[
-            3
-        ].request.body.decode(
-            "utf-8"
+        assert (
+            "Your Microsoft Teams identity is already linked to a Sentry account"
+            in responses.calls[3].request.body.decode("utf-8")
         )
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
 
@@ -466,12 +468,12 @@ class MsTeamsWebhookTest(APITestCase):
         access_json = {"expires_in": 86399, "access_token": "my_token"}
         responses.add(
             responses.POST,
-            u"https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
+            "https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
             json=access_json,
         )
         responses.add(
             responses.POST,
-            u"https://smba.trafficmanager.net/amer/v3/conversations/%s/activities"
+            "https://smba.trafficmanager.net/amer/v3/conversations/%s/activities"
             % other_command["conversation"]["id"],
             json={},
         )
@@ -481,7 +483,7 @@ class MsTeamsWebhookTest(APITestCase):
             path=webhook_url,
             data=other_command,
             format="json",
-            HTTP_AUTHORIZATION=u"Bearer %s" % TOKEN,
+            HTTP_AUTHORIZATION="Bearer %s" % TOKEN,
         )
 
         assert resp.status_code == 204

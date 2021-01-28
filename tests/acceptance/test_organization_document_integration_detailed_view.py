@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.testutils import AcceptanceTestCase
 
 
@@ -13,7 +11,7 @@ class OrganizationDocumentIntegrationDetailView(AcceptanceTestCase):
         self.login_as(self.user)
 
     def load_page(self, slug):
-        url = u"/settings/{}/document-integrations/{}/".format(self.organization.slug, slug)
+        url = "/settings/{}/document-integrations/{}/".format(self.organization.slug, slug)
         self.browser.get(url)
         self.browser.wait_until_not(".loading-indicator")
 

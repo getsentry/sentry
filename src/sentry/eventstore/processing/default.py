@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.cache import default_cache
 
 from .base import BaseEventProcessingStore

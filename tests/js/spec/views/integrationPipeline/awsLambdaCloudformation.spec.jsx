@@ -18,10 +18,11 @@ describe('AwsLambdaCloudformation', () => {
       <AwsLambdaCloudformation
         baseCloudformationUrl="https://console.aws.amazon.com/cloudformation/home#/stacks/create/review"
         templateUrl="https://example.com/file.json"
-        stackName="Sentry-Monitoring-Stack-Filter"
+        stackName="Sentry-Monitoring-Stack"
         regionList={['us-east-1', 'us-west-1']}
         accountNumber=""
         region=""
+        initialStepNumber={0}
       />
     );
   });

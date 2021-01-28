@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from sentry.utils.cache import cache_key_for_event
 
 DEFAULT_TIMEOUT = 60 * 60 * 24
@@ -39,9 +38,8 @@ class BaseEventProcessingStore(object):
 
     def delete_by_key(self, key):
         self.inner.delete(key)
+        self.inner.delete(_get_unprocessed_key(key))
 
-    def delete(self, event, unprocessed=False):
+    def delete(self, event):
         key = cache_key_for_event(event)
-        if unprocessed:
-            key = _get_unprocessed_key(key)
         self.delete_by_key(key)

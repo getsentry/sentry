@@ -6,6 +6,7 @@ import {Location} from 'history';
 import {Panel} from 'app/components/panels';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
@@ -30,12 +31,22 @@ function DoubleAxisDisplay(props: Props) {
 
   const onFilterChange = (field: string) => (minValue, maxValue) => {
     const filterString = getTransactionSearchQuery(location);
+
     const conditions = tokenizeSearch(filterString);
     conditions.setTagValues(field, [
       `>=${Math.round(minValue)}`,
       `<${Math.round(maxValue)}`,
     ]);
     const query = stringifyQueryObject(conditions);
+
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.landingv2.display.filter_change',
+      eventName: 'Performance Views: Landing v2 Display Filter Change',
+      organization_id: parseInt(organization.id, 10),
+      field,
+      min_value: parseInt(minValue, 10),
+      max_value: parseInt(maxValue, 10),
+    });
 
     browserHistory.push({
       pathname: location.pathname,
@@ -77,6 +88,8 @@ const DoubleChartContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-gap: ${space(3)};
+  background-color: ${p => p.theme.background};
+  min-height: 282px;
 `;
 
 const Footer = withApi(_Footer);

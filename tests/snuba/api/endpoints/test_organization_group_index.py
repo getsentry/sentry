@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 from datetime import timedelta
 from dateutil.parser import parse as parse_datetime
@@ -88,9 +86,42 @@ class GroupListTest(APITestCase, SnubaTestCase):
         group = event.group
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(sort_by="trend", query="is:unresolved")
+        response = self.get_valid_response(sort="trend", query="is:unresolved")
         assert len(response.data) == 1
         assert response.data[0]["id"] == six.text_type(group.id)
+
+    def test_sort_by_inbox(self):
+        group_1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        ).group
+        inbox_1 = add_group_to_inbox(group_1, GroupInboxReason.NEW)
+        group_2 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        ).group
+        inbox_2 = add_group_to_inbox(group_2, GroupInboxReason.NEW)
+        inbox_2.update(date_added=inbox_1.date_added - timedelta(hours=1))
+
+        self.login_as(user=self.user)
+        response = self.get_valid_response(sort="inbox", query="is:for_review", limit=1)
+        print([rd["id"] for rd in response.data])
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == six.text_type(group_1.id)
+
+        header_links = parse_link_header(response["Link"])
+        cursor = [link for link in header_links.values() if link["rel"] == "next"][0]["cursor"]
+        response = self.get_response(sort="inbox", cursor=cursor, query="is:for_review", limit=1)
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == six.text_type(group_2.id)
 
     def test_trace_search(self):
         event = self.store_event(
@@ -698,7 +729,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
             self.login_as(user=self.user)
             response = self.get_response(
-                sort_by="date", limit=10, query="is:unresolved is:needs_review", expand=["inbox"]
+                sort_by="date", limit=10, query="is:unresolved is:for_review", expand=["inbox"]
             )
             assert response.status_code == 200
             assert len(response.data) == 1
@@ -895,10 +926,10 @@ class GroupListTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
-        query = u"server:example.com"
-        query += u" status:unresolved"
-        query += u" active_at:" + iso_format(before_now(seconds=350))
-        query += u" first_seen:" + iso_format(before_now(seconds=500))
+        query = "server:example.com"
+        query += " status:unresolved"
+        query += " active_at:" + iso_format(before_now(seconds=350))
+        query += " first_seen:" + iso_format(before_now(seconds=500))
 
         self.login_as(user=self.user)
         response = self.get_response(sort_by="date", limit=10, query=query)
@@ -916,7 +947,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 project_id=self.project.id,
             )
             add_group_to_inbox(event.group, GroupInboxReason.NEW)
-            query = u"status:unresolved"
+            query = "status:unresolved"
             self.login_as(user=self.user)
             response = self.get_response(sort_by="date", limit=10, query=query, expand=["inbox"])
 
@@ -951,7 +982,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 project_id=self.project.id,
             )
             add_group_to_inbox(event.group, GroupInboxReason.NEW)
-            query = u"status:unresolved"
+            query = "status:unresolved"
             self.login_as(user=self.user)
             response = self.get_response(sort_by="date", limit=10, query=query, expand="inbox")
             assert response.status_code == 200
@@ -967,7 +998,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
                 project_id=self.project.id,
             )
-            query = u"status:unresolved"
+            query = "status:unresolved"
             self.login_as(user=self.user)
             # Test with no owner
             response = self.get_response(sort_by="date", limit=10, query=query, expand="owners")
@@ -2004,7 +2035,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group.project.add_team(team)
 
         response = self.get_valid_response(
-            qs_params={"id": group.id}, assignedTo=u"team:{}".format(team.id)
+            qs_params={"id": group.id}, assignedTo="team:{}".format(team.id)
         )
         assert response.data["assignedTo"]["id"] == six.text_type(team.id)
         assert response.data["assignedTo"]["type"] == "team"

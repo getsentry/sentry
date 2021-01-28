@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import status, serializers
 
@@ -114,7 +112,8 @@ class OrganizationIntegrationRepositoryProjectPathConfigEndpoint(
         org_integration = self.get_organization_integration(organization, integration_id)
 
         serializer = RepositoryProjectPathConfigSerializer(
-            context={"organization_integration": org_integration}, data=request.data,
+            context={"organization_integration": org_integration},
+            data=request.data,
         )
         if serializer.is_valid():
             repository_project_path_config = serializer.save()
