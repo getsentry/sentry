@@ -27,14 +27,16 @@ class JiraIssueHookView(JiraBaseHook):
     html_file = "sentry/integrations/jira-issue.html"
 
     def get(self, request, issue_key, *args, **kwargs):
-        try:
-            integration = get_integration_from_request(request, "jira")
-        except AtlassianConnectValidationError:
-            return self.get_response({"error_message": "Unable to verify installation."})
-        except ExpiredSignatureError:
-            return self.get_response({"refresh_required": True})
-
         with configure_scope() as scope:
+            try:
+                integration = get_integration_from_request(request, "jira")
+            except AtlassianConnectValidationError:
+                scope.set_tag("failure", "AtlassianConnectValidationError")
+                return self.get_response({"error_message": "Unable to verify installation."})
+            except ExpiredSignatureError:
+                scope.set_tag("failure", "ExpiredSignatureError")
+                return self.get_response({"refresh_required": True})
+
             try:
                 external_issue = ExternalIssue.objects.get(
                     integration_id=integration.id, key=issue_key
@@ -48,7 +50,8 @@ class JiraIssueHookView(JiraBaseHook):
                 if not group_link:
                     raise GroupLink.DoesNotExist()
                 group = Group.objects.get(id=group_link.group_id)
-            except (ExternalIssue.DoesNotExist, GroupLink.DoesNotExist, Group.DoesNotExist):
+            except (ExternalIssue.DoesNotExist, GroupLink.DoesNotExist, Group.DoesNotExist) as e:
+                scope.set_tag("failure", e)
                 return self.get_response({"issue_not_linked": True})
             scope.set_tag("organization.slug", group.organization.slug)
 
