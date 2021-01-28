@@ -7,14 +7,17 @@ import {Location} from 'history';
 import {Client} from 'app/api';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import EventsRequest from 'app/components/charts/eventsRequest';
+import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {getInterval} from 'app/components/charts/utils';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
+import getDynamicText from 'app/utils/getDynamicText';
 import withApi from 'app/utils/withApi';
 
 import Chart from '../../charts/chart';
@@ -97,21 +100,29 @@ function DurationChart(props: Props) {
             </DoubleHeaderContainer>
             {results && (
               <ChartContainer>
-                <Chart
-                  height={250}
-                  data={results}
-                  loading={loading || reloading}
-                  router={router}
-                  statsPeriod={globalSelection.datetime.period}
-                  utc={utc === 'true'}
-                  grid={{
-                    left: space(3),
-                    right: space(3),
-                    top: space(3),
-                    bottom: space(1.5),
-                  }}
-                  disableMultiAxis
-                />
+                <MaskContainer>
+                  <TransparentLoadingMask visible={loading} />
+                  {getDynamicText({
+                    value: (
+                      <Chart
+                        height={250}
+                        data={results}
+                        loading={loading || reloading}
+                        router={router}
+                        statsPeriod={globalSelection.datetime.period}
+                        utc={utc === 'true'}
+                        grid={{
+                          left: space(3),
+                          right: space(3),
+                          top: space(3),
+                          bottom: loading || reloading ? space(4) : space(1.5),
+                        }}
+                        disableMultiAxis
+                      />
+                    ),
+                    fixed: <Placeholder height="250px" testId="skeleton-ui" />,
+                  })}
+                </MaskContainer>
               </ChartContainer>
             )}
           </div>
@@ -123,6 +134,9 @@ function DurationChart(props: Props) {
 
 const ChartContainer = styled('div')`
   padding-top: ${space(1)};
+`;
+const MaskContainer = styled('div')`
+  position: relative;
 `;
 
 export default withRouter(withApi(DurationChart));
