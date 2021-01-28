@@ -25,6 +25,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
+import {getFieldFormatter} from 'app/utils/discover/fieldRenderers';
 import {getAggregateArg, getMeasurementSlug} from 'app/utils/discover/fields';
 import getDynamicText from 'app/utils/getDynamicText';
 import theme from 'app/utils/theme';
@@ -320,6 +321,42 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
     });
   }
 
+  bigNumberComponent({
+    loading,
+    errorMessage,
+    tableResults,
+  }: TableResultProps): React.ReactNode {
+    if (errorMessage) {
+      return (
+        <ErrorPanel>
+          <IconWarning color="gray500" size="lg" />
+        </ErrorPanel>
+      );
+    }
+
+    if (typeof tableResults === 'undefined' || loading) {
+      return <BigNumber>{'\u2014'}</BigNumber>;
+    }
+
+    return tableResults.map(result => {
+      const tableMeta = result.meta ?? {};
+      const fields = Object.keys(tableMeta ?? {});
+
+      const field = fields[0];
+
+      if (!field || !result.data.length) {
+        return <BigNumber key={`big_number:${result.title}`}>{'\u2014'}</BigNumber>;
+      }
+
+      const dataRow = result.data[0];
+      const fieldRenderer = getFieldFormatter(field, tableMeta);
+
+      const rendered = fieldRenderer(dataRow);
+
+      return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
+    });
+  }
+
   chartComponent(chartProps): React.ReactNode {
     const {widget} = this.props;
 
@@ -344,6 +381,15 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
         <TransitionChart loading={loading} reloading={loading}>
           <LoadingScreen loading={loading} />
           {this.tableResultComponent({tableResults, loading, errorMessage})}
+        </TransitionChart>
+      );
+    }
+
+    if (widget.displayType === 'big_number') {
+      return (
+        <TransitionChart loading={loading} reloading={loading}>
+          <TransparentLoadingMask visible={loading} />
+          {this.bigNumberComponent({tableResults, loading, errorMessage})}
         </TransitionChart>
       );
     }
@@ -523,3 +569,12 @@ const LoadingScreen = ({loading}: {loading: boolean}) => {
     </StyledTransparentLoadingMask>
   );
 };
+
+const BigNumber = styled('div')`
+  font-size: 32px;
+  margin-top: ${space(1)};
+  padding: ${space(1)} ${space(2)} ${space(2)};
+  * {
+    text-align: left !important;
+  }
+`;
