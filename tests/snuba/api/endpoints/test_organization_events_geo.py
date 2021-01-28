@@ -80,17 +80,25 @@ class OrganizationEventsGeoEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(query)
         assert response.status_code == 200, response.data
-        assert len(response.data["data"]) == 2
-        assert response.data["data"] == [
-            {"count": 1, "geo.country_code": None},
-            {"count": 1, "geo.country_code": "CA"},
-        ]
+        assert len(response.data["data"]) == 1
+        assert response.data["data"] == [{"count": 1, "geo.country_code": "CA"}]
         # Expect no pagination
         assert "Link" not in response
 
     def test_only_use_last_field(self):
         self.store_event(
-            data={"event_id": "a" * 32, "environment": "staging", "timestamp": self.min_ago},
+            data={
+                "event_id": "a" * 32,
+                "environment": "staging",
+                "timestamp": self.min_ago,
+                "user": {
+                    "email": "foo@example.com",
+                    "id": "123",
+                    "ip_address": "127.0.0.1",
+                    "username": "foo",
+                    "geo": {"country_code": "CA", "region": "Canada"},
+                },
+            },
             project_id=self.project.id,
         )
 
@@ -103,6 +111,4 @@ class OrganizationEventsGeoEndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(query)
         assert response.status_code == 200, response.data
         assert len(response.data["data"]) == 1
-        assert response.data["data"] == [
-            {"count": 1, "geo.country_code": None},
-        ]
+        assert response.data["data"] == [{"count": 1, "geo.country_code": "CA"}]

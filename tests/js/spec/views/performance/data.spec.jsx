@@ -12,7 +12,7 @@ describe('generatePerformanceEventView()', function () {
     expect(result.name).toEqual('Performance');
     expect(result.fields.length).toBeGreaterThanOrEqual(7);
     expect(result.query).toEqual('transaction.duration:<15m');
-    expect(result.getQueryWithOverrides()).toEqual(
+    expect(result.getQueryWithAdditionalConditions()).toEqual(
       'transaction.duration:<15m event.type:transaction'
     );
     expect(result.sorts).toEqual([{kind: 'desc', field: 'tpm'}]);
@@ -60,7 +60,7 @@ describe('generatePerformanceEventView()', function () {
       },
     });
     expect(result.query).toEqual(expect.stringContaining('transaction:*things.update*'));
-    expect(result.getQueryWithOverrides()).toEqual(
+    expect(result.getQueryWithAdditionalConditions()).toEqual(
       expect.stringContaining('event.type:transaction')
     );
   });
@@ -72,7 +72,7 @@ describe('generatePerformanceEventView()', function () {
       },
     });
     expect(result.query).toEqual(expect.stringContaining('transaction:*things.update*'));
-    expect(result.getQueryWithOverrides()).toEqual(
+    expect(result.getQueryWithAdditionalConditions()).toEqual(
       expect.stringContaining('event.type:transaction')
     );
     expect(result.query).toEqual(expect.not.stringContaining('transaction:thing.gone'));
@@ -86,7 +86,7 @@ describe('generatePerformanceEventView()', function () {
     });
     expect(result.query).toEqual(expect.stringContaining('key:value'));
     expect(result.query).toEqual(expect.stringContaining('tag:value'));
-    expect(result.getQueryWithOverrides()).toEqual(
+    expect(result.getQueryWithAdditionalConditions()).toEqual(
       expect.stringContaining('event.type:transaction')
     );
   });

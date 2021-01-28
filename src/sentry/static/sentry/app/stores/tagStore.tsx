@@ -175,4 +175,6 @@ const tagStoreConfig: Reflux.StoreDefinition & TagStoreInterface = {
 
 type TagStore = Reflux.Store & TagStoreInterface;
 
-export default Reflux.createStore(tagStoreConfig) as TagStore;
+const TagStore = Reflux.createStore(tagStoreConfig) as TagStore;
+
+export default TagStore;

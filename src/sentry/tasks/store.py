@@ -22,7 +22,6 @@ from sentry.utils.dates import to_datetime
 from sentry.utils.sdk import set_current_project
 from sentry.models import ProjectOption, Activity, Project, Organization
 from sentry.eventstore.processing import event_processing_store
-from sentry.eventstore.processing.base import _get_unprocessed_key
 
 error_logger = logging.getLogger("sentry.errors.events")
 info_logger = logging.getLogger("sentry.store")
@@ -149,7 +148,6 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, pr
         return
 
     if should_process(data):
-        reprocessing2.backup_unprocessed_event(project=project, data=original_data)
         submit_process(
             project,
             from_reprocessing,
@@ -709,6 +707,7 @@ def create_failed_event(
             data=issue["data"],
         )
     event_processing_store.delete_by_key(cache_key)
+    event_processing_store.delete_by_key(cache_key)
 
     return True
 
@@ -787,7 +786,6 @@ def _do_save_event(
             if cache_key:
                 with metrics.timer("tasks.store.do_save_event.delete_cache"):
                     event_processing_store.delete_by_key(cache_key)
-                    event_processing_store.delete_by_key(_get_unprocessed_key(cache_key))
 
         finally:
             reprocessing2.mark_event_reprocessed(data)

@@ -377,9 +377,11 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
 
         return {
           title: tableResult.title ?? '',
-          data: data.map(row => {
-            return {name: row['geo.country_code'] ?? '', value: row[preAggregate]};
-          }),
+          data: data
+            .filter(row => row['geo.country_code'])
+            .map(row => {
+              return {name: row['geo.country_code'], value: row[preAggregate]};
+            }),
         };
       };
 
