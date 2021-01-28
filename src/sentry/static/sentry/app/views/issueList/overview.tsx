@@ -931,19 +931,14 @@ class IssueListOverview extends React.Component<Props, State> {
     const queryPageInt = parseInt(location.query.page, 10);
     // Cursor must be present for the page number to be used
     const page = isNaN(queryPageInt) || !location.query.cursor ? 0 : queryPageInt;
-    /**
-     * As items are removed from the current query, the total count might change.
-     * When you remove items from page 1 and get to the last page the totals will no longer
-     * match
-     */
-    const possibleCount = Math.max(page * MAX_ITEMS + groupIds.length, groupIds.length);
+    const pageBasedCount = page * MAX_ITEMS + groupIds.length;
 
-    let pageCount = possibleCount > queryCount ? queryCount : possibleCount;
+    let pageCount = pageBasedCount > queryCount ? queryCount : pageBasedCount;
     if (!links?.next?.results || this.allResultsVisible()) {
-      // Is on last available page
+      // On last available page
       pageCount = queryCount;
     } else if (!links?.previous?.results) {
-      // Is on first available page
+      // On first available page
       pageCount = groupIds.length;
     }
 
