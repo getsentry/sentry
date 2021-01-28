@@ -102,4 +102,6 @@ const storeConfig: AlertStoreInterface & Internals = {
 
 type AlertStore = Reflux.Store & AlertStoreInterface;
 
-export default Reflux.createStore(storeConfig) as AlertStore;
+const AlertStore = Reflux.createStore(storeConfig) as AlertStore;
+
+export default AlertStore;

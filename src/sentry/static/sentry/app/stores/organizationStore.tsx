@@ -123,4 +123,6 @@ const storeConfig: Reflux.StoreDefinition & OrganizationStoreInterface = {
 
 type OrganizationStore = Reflux.Store & OrganizationStoreInterface;
 
-export default Reflux.createStore(storeConfig) as OrganizationStore;
+const OrganizationStore = Reflux.createStore(storeConfig) as OrganizationStore;
+
+export default OrganizationStore;

@@ -120,4 +120,6 @@ const storeConfig: Reflux.StoreDefinition & SelectedGroupStoreInterface & Intern
 
 type SelectedGroupStore = Reflux.Store & SelectedGroupStoreInterface;
 
-export default Reflux.createStore(storeConfig) as SelectedGroupStore;
+const SelectedGroupStore = Reflux.createStore(storeConfig) as SelectedGroupStore;
+
+export default SelectedGroupStore;

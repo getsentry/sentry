@@ -547,4 +547,6 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
   },
 };
 
-export default Reflux.createStore(storeConfig) as GroupingStore;
+const GroupingStore = Reflux.createStore(storeConfig) as GroupingStore;
+
+export default GroupingStore;

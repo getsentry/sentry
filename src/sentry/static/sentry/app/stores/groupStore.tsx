@@ -493,4 +493,6 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupStoreInterface = {
   },
 };
 
-export default Reflux.createStore(storeConfig) as GroupStore;
+const GroupStore = Reflux.createStore(storeConfig) as GroupStore;
+
+export default GroupStore;

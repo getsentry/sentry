@@ -69,4 +69,6 @@ const memberListStoreConfig: Reflux.StoreDefinition & MemberListStoreInterface =
 
 type MemberListStore = Reflux.Store & MemberListStoreInterface;
 
-export default Reflux.createStore(memberListStoreConfig) as MemberListStore;
+const MemberListStore = Reflux.createStore(memberListStoreConfig) as MemberListStore;
+
+export default MemberListStore;
