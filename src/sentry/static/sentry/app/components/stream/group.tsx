@@ -74,6 +74,7 @@ type Props = {
   query?: string;
   hasGuideAnchor?: boolean;
   memberList?: User[];
+  onMarkReviewed?: (itemIds: string[]) => void;
   // TODO(ts): higher order functions break defaultprops export types
 } & Partial<typeof defaultProps>;
 
@@ -275,6 +276,7 @@ class StreamGroup extends React.Component<Props, State> {
       selection,
       organization,
       displayReprocessingLayout,
+      onMarkReviewed,
     } = this.props;
 
     const {period, start, end} = selection.datetime || {};
@@ -477,6 +479,7 @@ class StreamGroup extends React.Component<Props, State> {
                   group={data}
                   orgId={organization.slug}
                   selection={selection}
+                  onMarkReviewed={onMarkReviewed}
                   query={query}
                 />
               </ActionsWrapper>

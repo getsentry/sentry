@@ -22,14 +22,19 @@ type Props = {
   group: Group;
   selection: GlobalSelection;
   query?: string;
+  onMarkReviewed?: (itemIds: string[]) => void;
 };
 
 class GroupRowActions extends React.Component<Props> {
   handleUpdate = (data?: any, event?: React.MouseEvent) => {
     event?.stopPropagation();
-    const {api, group, orgId, query, selection} = this.props;
+    const {api, group, orgId, query, selection, onMarkReviewed} = this.props;
 
     addLoadingMessage(t('Saving changes\u2026'));
+
+    if (data.inbox === false) {
+      onMarkReviewed?.([group.id]);
+    }
 
     api.bulkUpdate(
       {

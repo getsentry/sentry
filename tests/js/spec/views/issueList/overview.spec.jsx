@@ -1,6 +1,7 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 import cloneDeep from 'lodash/cloneDeep';
+import range from 'lodash/range';
 
 import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -9,6 +10,7 @@ import ErrorRobot from 'app/components/errorRobot';
 import StreamGroup from 'app/components/stream/group';
 import GroupStore from 'app/stores/groupStore';
 import TagStore from 'app/stores/tagStore';
+import * as parseLinkHeader from 'app/utils/parseLinkHeader';
 import IssueListWithStores, {IssueListOverview} from 'app/views/issueList/overview';
 
 // Mock <IssueListSidebar> and <IssueListActions>
@@ -1643,10 +1645,143 @@ describe('IssueList', function () {
   });
 
   describe('with inbox feature', function () {
+    const parseLinkHeaderSpy = jest.spyOn(parseLinkHeader, 'default');
     it('renders inbox layout', function () {
       organization.features = ['inbox'];
       wrapper = mountWithTheme(<IssueListOverview {...props} />);
       expect(wrapper.find('IssueListHeader').exists()).toBeTruthy();
+    });
+
+    it('displays a count that represents the current page', function () {
+      organization.features = ['inbox'];
+      parseLinkHeaderSpy.mockReturnValue({
+        next: {
+          results: true,
+        },
+        previous: {
+          results: false,
+        },
+      });
+      props = {
+        ...props,
+        location: {
+          query: {
+            cursor: 'some cursor',
+            page: 0,
+          },
+        },
+      };
+      wrapper = mountWithTheme(<IssueListOverview {...props} />);
+      wrapper.setState({
+        groupIds: range(0, 25).map(String),
+        queryCount: 500,
+        queryMaxCount: 1000,
+      });
+
+      const paginationWrapper = wrapper.find('PaginationWrapper');
+      expect(paginationWrapper.text()).toBe('Showing 25 of 500 issues');
+
+      parseLinkHeaderSpy.mockReturnValue({
+        next: {
+          results: true,
+        },
+        previous: {
+          results: true,
+        },
+      });
+      wrapper.setProps({
+        location: {
+          query: {
+            cursor: 'some cursor',
+            page: 1,
+          },
+        },
+      });
+      expect(paginationWrapper.text()).toBe('Showing 50 of 500 issues');
+      expect(wrapper.find('IssueListHeader').exists()).toBeTruthy();
+    });
+
+    it('displays a count that makes sense based on the current page', function () {
+      organization.features = ['inbox'];
+      parseLinkHeaderSpy.mockReturnValue({
+        next: {
+          // Is at last page according to the cursor
+          results: false,
+        },
+        previous: {
+          results: true,
+        },
+      });
+      props = {
+        ...props,
+        location: {
+          query: {
+            cursor: 'some cursor',
+            page: 3,
+          },
+        },
+      };
+      wrapper = mountWithTheme(<IssueListOverview {...props} />);
+      wrapper.setState({
+        groupIds: range(0, 25).map(String),
+        queryCount: 500,
+        queryMaxCount: 1000,
+      });
+
+      const paginationWrapper = wrapper.find('PaginationWrapper');
+      expect(paginationWrapper.text()).toBe('Showing 500 of 500 issues');
+
+      parseLinkHeaderSpy.mockReturnValue({
+        next: {
+          results: true,
+        },
+        previous: {
+          // Is at first page according to cursor
+          results: false,
+        },
+      });
+      wrapper.setProps({
+        location: {
+          query: {
+            cursor: 'some cursor',
+            page: 2,
+          },
+        },
+      });
+      expect(paginationWrapper.text()).toBe('Showing 25 of 500 issues');
+      expect(wrapper.find('IssueListHeader').exists()).toBeTruthy();
+    });
+
+    it('displays a count based on items removed', function () {
+      organization.features = ['inbox'];
+      parseLinkHeaderSpy.mockReturnValue({
+        next: {
+          results: true,
+        },
+        previous: {
+          results: true,
+        },
+      });
+      props = {
+        ...props,
+        location: {
+          query: {
+            cursor: 'some cursor',
+            page: 1,
+          },
+        },
+      };
+      wrapper = mountWithTheme(<IssueListOverview {...props} />);
+      wrapper.setState({
+        groupIds: range(0, 25).map(String),
+        queryCount: 75,
+        itemsRemoved: 1,
+        queryMaxCount: 1000,
+      });
+
+      const paginationWrapper = wrapper.find('PaginationWrapper');
+      // 2nd page subtracts the one removed
+      expect(paginationWrapper.text()).toBe('Showing 49 of 74 issues');
     });
   });
 });
