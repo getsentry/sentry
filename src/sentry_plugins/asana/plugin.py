@@ -207,8 +207,12 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
         try:
             workspaces = client.get_workspaces()
         except HTTPError as e:
-            if e.response.status_code == 400:
+            if (
+                e.response.status_code == 400
+                and e.response.url == "https://app.asana.com/-/oauth_token"
+            ):
                 raise PluginIdentityRequired(ERR_BEARER_EXPIRED)
+            raise
         workspace_choices = self.get_workspace_choices(workspaces)
         workspace = self.get_option("workspace", kwargs["project"])
         # check to make sure the current user has access to the workspace
