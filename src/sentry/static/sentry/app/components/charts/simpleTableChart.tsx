@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import PanelTable, {PanelTableHeader} from 'app/components/panels/panelTable';
-import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
@@ -70,7 +69,7 @@ const StyledPanelTable = styled(PanelTable)`
   border-right: 0;
   border-bottom: 0;
 
-  margin: ${space(1)} 0 0;
+  margin: 0;
   ${/* sc-selector */ PanelTableHeader} {
     height: min-content;
   }
