@@ -157,7 +157,7 @@ class Chart extends React.Component<Props> {
     };
 
     if (loading) {
-      return <AreaChart series={[]} {...areaChartProps} />;
+      return <AreaChart height={height} series={[]} {...areaChartProps} />;
     }
     const series = data.map((values, i: number) => ({
       ...values,
