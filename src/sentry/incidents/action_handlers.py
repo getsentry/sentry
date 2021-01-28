@@ -21,9 +21,10 @@ from sentry.utils.http import absolute_uri
 class ActionHandler(object):
     status_display = {TriggerStatus.ACTIVE: "Fired", TriggerStatus.RESOLVED: "Resolved"}
 
-    def __init__(self, action, incident, project):
+    def __init__(self, action, incident, trigger, project):
         self.action = action
         self.incident = incident
+        self.trigger
         self.project = project
 
     @abc.abstractmethod
@@ -34,6 +35,12 @@ class ActionHandler(object):
     def resolve(self, metric_value):
         pass
 
+class DefaultActionHandler(ActionHandler):
+    def fire(self, metric_value):
+        self.send_alert(metric_value)
+
+    def resolve(self, metric_value):
+        self.send_alert(metric_value)
 
 @AlertRuleTriggerAction.register_type(
     "email",
@@ -62,7 +69,8 @@ class EmailActionHandler(ActionHandler):
         # elif self.action.target_type == AlertRuleTriggerAction.TargetType.SPECIFIC.value:
         #     emails = [target]
         return targets
-
+    
+    # TODO: Refactor this class structure so that this doesn't need trigger/metric_value
     def fire(self, metric_value):
         self.email_users(TriggerStatus.ACTIVE)
 
@@ -96,18 +104,12 @@ class EmailActionHandler(ActionHandler):
     [AlertRuleTriggerAction.TargetType.SPECIFIC],
     integration_provider="slack",
 )
-class SlackActionHandler(ActionHandler):
-    def fire(self, metric_value):
-        self.send_alert(metric_value)
-
-    def resolve(self, metric_value):
-        self.send_alert(metric_value)
-
+class SlackActionHandler(DefaultActionHandler):
     def send_alert(self, metric_value):
         from sentry.integrations.slack.utils import send_incident_alert_notification
 
         # TODO: We should include more information about the trigger/severity etc.
-        send_incident_alert_notification(self.action, self.incident, metric_value)
+        send_incident_alert_notification(self.action, self.incident, self.trigger, metric_value)
 
 
 @AlertRuleTriggerAction.register_type(
@@ -116,13 +118,7 @@ class SlackActionHandler(ActionHandler):
     [AlertRuleTriggerAction.TargetType.SPECIFIC],
     integration_provider="msteams",
 )
-class MsTeamsActionHandler(ActionHandler):
-    def fire(self, metric_value):
-        self.send_alert(metric_value)
-
-    def resolve(self, metric_value):
-        self.send_alert(metric_value)
-
+class MsTeamsActionHandler(DefaultActionHandler):
     def send_alert(self, metric_value):
         from sentry.integrations.msteams.utils import send_incident_alert_notification
 
@@ -135,13 +131,7 @@ class MsTeamsActionHandler(ActionHandler):
     [AlertRuleTriggerAction.TargetType.SPECIFIC],
     integration_provider="pagerduty",
 )
-class PagerDutyActionHandler(ActionHandler):
-    def fire(self, metric_value):
-        self.send_alert(metric_value)
-
-    def resolve(self, metric_value):
-        self.send_alert(metric_value)
-
+class PagerDutyActionHandler(DefaultActionHandler):
     def send_alert(self, metric_value):
         from sentry.integrations.pagerduty.utils import send_incident_alert_notification
 
@@ -153,13 +143,7 @@ class PagerDutyActionHandler(ActionHandler):
     AlertRuleTriggerAction.Type.SENTRY_APP,
     [AlertRuleTriggerAction.TargetType.SENTRY_APP],
 )
-class SentryAppActionHandler(ActionHandler):
-    def fire(self, metric_value):
-        self.send_alert(metric_value)
-
-    def resolve(self, metric_value):
-        self.send_alert(metric_value)
-
+class SentryAppActionHandler(DefaultActionHandler):
     def send_alert(self, metric_value):
         from sentry.rules.actions.notify_event_service import send_incident_alert_notification
 

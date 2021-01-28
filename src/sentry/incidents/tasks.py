@@ -7,6 +7,7 @@ from six.moves.urllib.parse import urlencode
 
 from sentry.auth.access import from_user
 from sentry.incidents.models import (
+    AlertRuleTrigger,
     AlertRuleTriggerAction,
     AlertRuleStatus,
     Incident,
@@ -125,7 +126,7 @@ def handle_snuba_query_update(subscription_update, subscription):
     default_retry_delay=60,
     max_retries=5,
 )
-def handle_trigger_action(action_id, incident_id, project_id, method, metric_value=None, **kwargs):
+def handle_trigger_action(action_id, trigger_id, incident_id, project_id, method, metric_value=None, **kwargs):
     try:
         action = AlertRuleTriggerAction.objects.select_related(
             "alert_rule_trigger", "alert_rule_trigger__alert_rule"
@@ -133,6 +134,13 @@ def handle_trigger_action(action_id, incident_id, project_id, method, metric_val
     except AlertRuleTriggerAction.DoesNotExist:
         metrics.incr("incidents.alert_rules.action.skipping_missing_action")
         return
+    
+    try:
+        trigger = AlertRuleTrigger.objects.get(id=trigger_id)
+    except AlertRuleTrigger.DoesNotExist:
+        metrics.incr("incidents.alert_rules.action.skipping_missing_incident")
+        return
+
     try:
         incident = Incident.objects.select_related("organization").get(id=incident_id)
     except Incident.DoesNotExist:
@@ -150,7 +158,7 @@ def handle_trigger_action(action_id, incident_id, project_id, method, metric_val
             AlertRuleTriggerAction.Type(action.type).name.lower(), method
         )
     )
-    getattr(action, method)(incident, project, metric_value=metric_value)
+    getattr(action, method)(incident, trigger, project, metric_value=metric_value)
 
 
 @instrumented_task(

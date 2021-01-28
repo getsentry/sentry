@@ -342,9 +342,23 @@ class SubscriptionProcessor(object):
             return incident_trigger
 
     def handle_trigger_actions(self, incident_triggers, metric_value):
-        # These will all be for the same incident and status, so just grab the first one
+        
+        # Only ever one resolve trigger, and if method is resolve there is only one trigger
         incident_trigger = incident_triggers[0]
+        
+        if method == "fire":
+            incident_trigger = None
+            for incident_trigger in incident_triggers:
+                trigger = incident_trigger.alert_rule_trigger
+                if trigger.label == CRITICAL_TRIGGER_LABEL:
+                    incident_trigger = trigger
+                    break
+                elif trigger.label == WARNING_TRIGGER_LABEL:
+                    incident_trigger = trigger
+                    
+        # All triggers will all be for the same incident and status, so doesn't matter which we grabbed
         method = "fire" if incident_trigger.status == TriggerStatus.ACTIVE.value else "resolve"
+        
         actions = deduplicate_trigger_actions(
             list(
                 AlertRuleTriggerAction.objects.filter(
@@ -352,12 +366,13 @@ class SubscriptionProcessor(object):
                 ).select_related("alert_rule_trigger")
             )
         )
-
+        # TODO: can just pass trigger and get incident from trigger in handle_trigger_action
         for action in actions:
             transaction.on_commit(
                 handle_trigger_action.s(
                     action_id=action.id,
                     incident_id=incident_trigger.incident_id,
+                    trigger_id=incident_trigger.id, 
                     project_id=self.subscription.project_id,
                     metric_value=metric_value,
                     method=method,
