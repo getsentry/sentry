@@ -81,16 +81,12 @@ class BasePaginator(object):
                 col_query, col_params = quote_name(self.key), []
             col_params.append(value)
 
-            if asc:
-                queryset = queryset.extra(
-                    where=["%s.%s >= %%s" % (queryset.model._meta.db_table, col_query)],
-                    params=col_params,
-                )
-            else:
-                queryset = queryset.extra(
-                    where=["%s.%s <= %%s" % (queryset.model._meta.db_table, col_query)],
-                    params=col_params,
-                )
+            col = col_query if "." in col_query else f"{queryset.model._meta.db_table}.{col_query}"
+            operator = ">=" if asc else "<="
+            queryset = queryset.extra(
+                where=[f"{col} {operator} %s"],
+                params=col_params,
+            )
 
         return queryset
 
