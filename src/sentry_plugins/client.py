@@ -39,6 +39,7 @@ class AuthApiClient(ApiClient):
     def _request(self, method, path, **kwargs):
         headers = kwargs.setdefault("headers", {})
         headers.setdefault("Accept", "application/json, application/xml")
+
         # TODO(dcramer): we could proactively refresh the token if we knew
         # about expires
         kwargs = self.ensure_auth(**kwargs)
