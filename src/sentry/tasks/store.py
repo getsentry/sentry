@@ -225,6 +225,8 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
 
     from_reprocessing = symbolicate_task is symbolicate_event_from_reprocessing
 
+    symbolication_start_time = time()
+
     with sentry_sdk.start_span(op="tasks.store.symbolicate_event.symbolication") as span:
         span.set_data("symbolicaton_function", symbolication_function.__name__)
         with metrics.timer(
@@ -246,17 +248,15 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
                     break
                 except RetrySymbolication as e:
                     if (
-                        start_time
-                        and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT
-                    ):
+                        time() - symbolication_start_time
+                    ) > settings.SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT:
                         error_logger.warning(
                             "symbolicate.slow",
                             extra={"project_id": project_id, "event_id": event_id},
                         )
                     if (
-                        start_time
-                        and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT
-                    ):
+                        time() - symbolication_start_time
+                    ) > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
                         # Do not drop event but actually continue with rest of pipeline
                         # (persisting unsymbolicated event)
                         metrics.incr(
