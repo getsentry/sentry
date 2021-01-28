@@ -18,9 +18,9 @@ class AwsLambdaClientTest(TestCase):
         mock_client = Mock()
         mock_get_client.return_value = mock_client
         credentials = {
-            "AccessKeyId": "my_access_key_id",
-            "SecretAccessKey": "my_secret_access_key",
-            "SessionToken": "my_session_token",
+            "AccessKeyId": "role_key_id",
+            "SecretAccessKey": "role_access_key",
+            "SessionToken": "role_session_token",
         }
         mock_client.assume_role = MagicMock(return_value={"Credentials": credentials})
 
@@ -31,16 +31,17 @@ class AwsLambdaClientTest(TestCase):
 
         assert "expected_output" == gen_aws_client(account_number, region, aws_external_id)
 
-        mock_get_client.assert_called_once_with(
+        mock_get_client.assert_called_with(
             service_name="sts",
-            aws_access_key_id="aws-key-id",
-            aws_secret_access_key="aws-secret-access-key",
+            aws_access_key_id="role_key_id",
+            aws_secret_access_key="role_access_key",
+            aws_session_token="role_session_token",
             region_name="us-east-2",
         )
 
         role_arn = "arn:aws:iam::599817902985:role/SentryRole"
 
-        mock_client.assume_role.assert_called_once_with(
+        mock_client.assume_role.assert_called_with(
             RoleSessionName="Sentry",
             RoleArn=role_arn,
             ExternalId=aws_external_id,
@@ -58,7 +59,6 @@ class AwsLambdaClientTest(TestCase):
                             "Action": [
                                 "lambda:ListFunctions",
                                 "lambda:GetLayerVersion",
-                                "iam:PassRole",
                                 "organizations:DescribeAccount",
                             ],
                             "Resource": "*",

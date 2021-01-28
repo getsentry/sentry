@@ -17,8 +17,6 @@ def gen_aws_client(account_number, region, aws_external_id, service_name="lambda
     Returns an aws_lambda_client
     """
 
-    role_arn = "arn:aws:iam::%s:role/SentryRole" % (account_number)
-
     aws_access_key_id = options.get("aws-lambda.access-key-id")
     aws_secret_access_key = options.get("aws-lambda.secret-access-key")
 
@@ -26,18 +24,42 @@ def gen_aws_client(account_number, region, aws_external_id, service_name="lambda
     if not aws_access_key_id or not aws_secret_access_key:
         raise ConfigurationError("AWS access key ID or secret access key not set")
 
-    client = boto3.client(
+    # start with the credentials of the Sentry user
+    starting_client = boto3.client(
         service_name="sts",
         aws_access_key_id=aws_access_key_id,
         aws_secret_access_key=aws_secret_access_key,
         region_name=options.get("aws-lambda.host-region"),
     )
 
-    # need policy statements for cross account access
+    # the account where the user exists with the credentials used above
+    host_account_number = options.get("aws-lambda.account-number")
+    role_in_host = f"arn:aws:iam::{host_account_number}:role/sentry-lambda-role"
+
+    # assume the starting role in our host account
+    starting_role = starting_client.assume_role(
+        RoleSessionName="Sentry",
+        RoleArn=role_in_host,
+    )
+    assumed_role_creds = starting_role["Credentials"]
+
+    # now use the credentials from the role we assumed to create another STS client
+    client = boto3.client(
+        service_name="sts",
+        aws_access_key_id=assumed_role_creds["AccessKeyId"],
+        aws_secret_access_key=assumed_role_creds["SecretAccessKey"],
+        aws_session_token=assumed_role_creds["SessionToken"],
+        region_name=options.get("aws-lambda.host-region"),
+    )
+
+    role_in_client = f"arn:aws:iam::{account_number}:role/SentryRole"
+
+    # assume the role in the client account
     assumed_role_object = client.assume_role(
         RoleSessionName="Sentry",
-        RoleArn=role_arn,
+        RoleArn=role_in_client,
         ExternalId=aws_external_id,
+        # need policy statements for cross account access
         Policy=json.dumps(
             {
                 "Version": "2012-10-17",
@@ -54,7 +76,6 @@ def gen_aws_client(account_number, region, aws_external_id, service_name="lambda
                         "Action": [
                             "lambda:ListFunctions",
                             "lambda:GetLayerVersion",
-                            "iam:PassRole",
                             "organizations:DescribeAccount",
                         ],
                         "Resource": "*",
