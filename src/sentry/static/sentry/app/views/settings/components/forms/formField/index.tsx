@@ -27,7 +27,7 @@ import {FieldValue} from '../type';
  */
 const getValueFromEvent = (valueOrEvent?: FieldValue | MouseEvent, e?: MouseEvent) => {
   const event = e || valueOrEvent;
-  const value = defined(e) ? valueOrEvent : event && event.target && event.target.value;
+  const value = defined(e) ? valueOrEvent : event?.target?.value;
 
   return {value, event};
 };
