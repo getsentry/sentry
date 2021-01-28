@@ -218,7 +218,7 @@ class LatencyChart extends React.Component<Props, State> {
           numBuckets={NUM_BUCKETS}
           fields={['transaction.duration']}
           min={min}
-          dataFilter="all"
+          dataFilter="exclude_outliers"
         >
           {({histograms, isLoading, error}) => {
             if (isLoading) {
