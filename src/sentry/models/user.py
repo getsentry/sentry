@@ -334,6 +334,7 @@ class User(BaseModel, AbstractBaseUser):
 # HACK(dcramer): last_login needs nullable for Django 1.8
 User._meta.get_field("last_login").null = True
 
+
 # When a user logs out, we want to always log them out of all
 # sessions and refresh their nonce.
 @receiver(user_logged_out, sender=User)

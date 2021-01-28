@@ -59,7 +59,7 @@ class BuildAssetsCommand(BaseBuildCommand):
             version = None
             build = None
         else:
-            log.info("pulled version information from 'sentry' module".format(sentry.__file__))
+            log.info("pulled version information from 'sentry' module")
             version = self.distribution.get_version()
             build = sentry.__build__
         finally:
