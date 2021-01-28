@@ -98,8 +98,8 @@ def send_alert_event(event, rule, sentry_app_id):
 
     extra = {
         "sentry_app_id": sentry_app_id,
-        "project": project.slug,
-        "organization": organization.slug,
+        "project_slug": project.slug,
+        "organization_slug": organization.slug,
         "rule": rule,
     }
 
