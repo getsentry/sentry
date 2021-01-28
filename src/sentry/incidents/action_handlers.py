@@ -69,7 +69,7 @@ class EmailActionHandler(ActionHandler):
         # elif self.action.target_type == AlertRuleTriggerAction.TargetType.SPECIFIC.value:
         #     emails = [target]
         return targets
-    
+
     # TODO: Refactor this class structure so that this doesn't need trigger/metric_value
     def fire(self, metric_value):
         self.email_users(TriggerStatus.ACTIVE)

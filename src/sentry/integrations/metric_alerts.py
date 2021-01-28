@@ -11,10 +11,11 @@ QUERY_AGGREGATION_DISPLAY = {
     "count_unique(tags[sentry:user])": "users affected",
 }
 
-
-def incident_attachment_info(incident, metric_value=None):
+# TODO: Fix all the places that call this function.
+def incident_attachment_info(incident, trigger, metric_value=None):
     logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
     alert_rule = incident.alert_rule
+    # TODO: Get status from trigger label (?)
     status = INCIDENT_STATUS[IncidentStatus(incident.status)]
 
     agg_text = QUERY_AGGREGATION_DISPLAY.get(

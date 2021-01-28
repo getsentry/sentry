@@ -134,7 +134,7 @@ def handle_trigger_action(action_id, trigger_id, incident_id, project_id, method
     except AlertRuleTriggerAction.DoesNotExist:
         metrics.incr("incidents.alert_rules.action.skipping_missing_action")
         return
-    
+
     try:
         trigger = AlertRuleTrigger.objects.get(id=trigger_id)
     except AlertRuleTrigger.DoesNotExist:
