@@ -136,12 +136,13 @@ export default class AbstractExternalIssueForm<
     field: IssueConfigField,
     result: {value: string; label: string}[]
   ): void => {
-    const fetchedFieldOptionsCache = result.map(obj => [obj.value, obj.label]);
-    this.setState(prevState => {
-      const newState = cloneDeep(prevState);
-      set(newState, `fetchedFieldOptionsCache[${field.name}]`, fetchedFieldOptionsCache);
-      return newState;
-    });
+    const fetchedFieldOptionsCache = cloneDeep(this.state.fetchedFieldOptionsCache);
+    set(
+      fetchedFieldOptionsCache,
+      field.name,
+      result.map(obj => [obj.value, obj.label])
+    );
+    this.setState({fetchedFieldOptionsCache});
   };
 
   /**
