@@ -10,12 +10,12 @@ MARKER = "\xef\xbb\xbf"
 _marker_length = len(MARKER)
 
 
-class EncryptionManager(object):
+class EncryptionManager:
     def __init__(self, schemes=()):
         for key, value in schemes:
-            if not isinstance(key, six.string_types):
+            if not isinstance(key, str):
                 raise ValueError(
-                    "Encryption scheme type must be a string. Value was: {!r}".format(value)
+                    f"Encryption scheme type must be a string. Value was: {value!r}"
                 )
             if not hasattr(value, "encrypt") or not hasattr(value, "decrypt"):
                 raise ValueError(
@@ -57,7 +57,7 @@ class EncryptionManager(object):
         try:
             scheme = self.schemes[enc_method]
         except KeyError:
-            raise ValueError("Unknown encryption scheme: {!r}".format(enc_method))
+            raise ValueError(f"Unknown encryption scheme: {enc_method!r}")
         return force_text(scheme.decrypt(enc_data))
 
 

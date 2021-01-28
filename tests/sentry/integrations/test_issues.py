@@ -133,7 +133,7 @@ class IssueDefaultTest(TestCase):
 
     def test_get_repository_choices_default_repo(self):
         self.installation.org_integration.config = {
-            "project_issue_defaults": {six.text_type(self.group.project_id): {"repo": "user/repo2"}}
+            "project_issue_defaults": {str(self.group.project_id): {"repo": "user/repo2"}}
         }
         self.installation.org_integration.save()
         self.installation.get_repositories = lambda: [
@@ -210,7 +210,7 @@ class IssueDefaultTest(TestCase):
         link = self.installation.get_issue_url(self.external_issue.key)
 
         assert self.installation.get_annotations_for_group_list([self.group]) == {
-            self.group.id: ['<a href="%s">%s</a>' % (link, label)]
+            self.group.id: [f'<a href="{link}">{label}</a>']
         }
 
         integration = Integration.objects.create(provider="example", external_id="4444")

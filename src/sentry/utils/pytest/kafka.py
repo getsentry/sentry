@@ -28,7 +28,7 @@ class _KafkaAdminWrapper:
         self.test_name = request.node.name
 
         kafka_config = {}
-        for key, val in six.iteritems(settings.KAFKA_CLUSTERS["default"]["common"]):
+        for key, val in settings.KAFKA_CLUSTERS["default"]["common"].items():
             kafka_config[key] = val
 
         self.admin_client = AdminClient(kafka_config)
@@ -124,7 +124,7 @@ def scope_consumers():
 
     yield all_consumers
 
-    for consumer_name, consumer in six.iteritems(all_consumers):
+    for consumer_name, consumer in all_consumers.items():
         if consumer is not None:
             try:
                 # stop the consumer

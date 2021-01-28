@@ -35,7 +35,7 @@ class IssueTrackingPlugin(Plugin):
 
     def _get_group_body(self, request, group, event, **kwargs):
         result = []
-        for interface in six.itervalues(event.interfaces):
+        for interface in event.interfaces.values():
             output = safe_execute(interface.to_string, event, _with_transaction=False)
             if output:
                 result.append(output)

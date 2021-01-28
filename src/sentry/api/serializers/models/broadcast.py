@@ -22,7 +22,7 @@ class BroadcastSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "message": obj.message,
             "title": obj.title,
             "link": obj.link,
@@ -36,7 +36,7 @@ class BroadcastSerializer(Serializer):
 
 class AdminBroadcastSerializer(BroadcastSerializer):
     def get_attrs(self, item_list, user):
-        attrs = super(AdminBroadcastSerializer, self).get_attrs(item_list, user)
+        attrs = super().get_attrs(item_list, user)
         counts = dict(
             BroadcastSeen.objects.filter(broadcast__in=item_list)
             .values("broadcast")
@@ -50,6 +50,6 @@ class AdminBroadcastSerializer(BroadcastSerializer):
         return attrs
 
     def serialize(self, obj, attrs, user):
-        context = super(AdminBroadcastSerializer, self).serialize(obj, attrs, user)
+        context = super().serialize(obj, attrs, user)
         context["userCount"] = attrs["user_count"]
         return context

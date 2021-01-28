@@ -148,12 +148,12 @@ def assemble_download(
                 new_bytes_written = store_export_chunk_as_blob(data_export, bytes_written, tf)
                 bytes_written += new_bytes_written
         except ExportError as error:
-            return data_export.email_failure(message=six.text_type(error))
+            return data_export.email_failure(message=str(error))
         except Exception as error:
-            metrics.incr("dataexport.error", tags={"error": six.text_type(error)}, sample_rate=1.0)
+            metrics.incr("dataexport.error", tags={"error": str(error)}, sample_rate=1.0)
             logger.error(
                 "dataexport.error: %s",
-                six.text_type(error),
+                str(error),
                 extra={"query": data_export.payload, "org": data_export.organization_id},
             )
             capture_exception(error)
@@ -163,7 +163,7 @@ def assemble_download(
             except MaxRetriesExceededError:
                 metrics.incr(
                     "dataexport.end",
-                    tags={"success": False, "error": six.text_type(error)},
+                    tags={"success": False, "error": str(error)},
                     sample_rate=1.0,
                 )
                 return data_export.email_failure(message="Internal processing failure")
@@ -205,8 +205,8 @@ def get_processor(data_export, environment_id):
             )
         return processor
     except ExportError as error:
-        metrics.incr("dataexport.error", tags={"error": six.text_type(error)}, sample_rate=1.0)
-        logger.info("dataexport.error: {}".format(six.text_type(error)))
+        metrics.incr("dataexport.error", tags={"error": str(error)}, sample_rate=1.0)
+        logger.info("dataexport.error: {}".format(str(error)))
         capture_exception(error)
         raise
 
@@ -219,8 +219,8 @@ def process_rows(processor, data_export, batch_size, offset):
             rows = process_discover(processor, batch_size, offset)
         return rows
     except ExportError as error:
-        metrics.incr("dataexport.error", tags={"error": six.text_type(error)}, sample_rate=1.0)
-        logger.info("dataexport.error: {}".format(six.text_type(error)))
+        metrics.incr("dataexport.error", tags={"error": str(error)}, sample_rate=1.0)
+        logger.info("dataexport.error: {}".format(str(error)))
         capture_exception(error)
         raise
 
@@ -325,15 +325,15 @@ def merge_export_blobs(data_export_id, **kwargs):
                 logger.info("dataexport.end", extra={"data_export_id": data_export_id})
                 metrics.incr("dataexport.end", tags={"success": True}, sample_rate=1.0)
         except Exception as error:
-            metrics.incr("dataexport.error", tags={"error": six.text_type(error)}, sample_rate=1.0)
+            metrics.incr("dataexport.error", tags={"error": str(error)}, sample_rate=1.0)
             metrics.incr(
                 "dataexport.end",
-                tags={"success": False, "error": six.text_type(error)},
+                tags={"success": False, "error": str(error)},
                 sample_rate=1.0,
             )
             logger.error(
                 "dataexport.error: %s",
-                six.text_type(error),
+                str(error),
                 extra={"query": data_export.payload, "org": data_export.organization_id},
             )
             capture_exception(error)

@@ -28,12 +28,12 @@ def funcs():
             seconds=random.randint(0, timestamp_max)
         )
         try:
-            raise six.next(exceptions)
+            raise next(exceptions)
         except Exception:
-            email = six.next(emails)
+            email = next(emails)
             return client.captureException(
                 data={
-                    "logger": six.next(loggers),
+                    "logger": next(loggers),
                     "site": "web",
                     "user": {"id": email, "email": email},
                 },

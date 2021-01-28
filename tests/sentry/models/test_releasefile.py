@@ -44,8 +44,8 @@ class ReleaseFileCacheTest(TestCase):
 
         expected_path = os.path.join(
             options.get("releasefile.cache-path"),
-            six.text_type(self.organization.id),
-            six.text_type(file.id),
+            str(self.organization.id),
+            str(file.id),
         )
 
         # Set the threshold to zero to force caching on the file system
@@ -66,8 +66,8 @@ class ReleaseFileCacheTest(TestCase):
 
         expected_path = os.path.join(
             options.get("releasefile.cache-path"),
-            six.text_type(self.organization.id),
-            six.text_type(file.id),
+            str(self.organization.id),
+            str(file.id),
         )
 
         # Set the threshold larger than the file size to force streaming

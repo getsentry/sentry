@@ -23,7 +23,7 @@ class VercelClient(ApiClient):
     DELETE_ENV_VAR_URL = "/v4/projects/%s/env/%s"
 
     def __init__(self, access_token, team_id=None):
-        super(VercelClient, self).__init__()
+        super().__init__()
         self.access_token = access_token
         self.team_id = team_id
 
@@ -32,7 +32,7 @@ class VercelClient(ApiClient):
             # always need to use the team_id as a param for requests
             params = params or {}
             params["teamId"] = self.team_id
-        headers = {"Authorization": "Bearer {}".format(self.access_token)}
+        headers = {"Authorization": f"Bearer {self.access_token}"}
         try:
             return self._request(
                 method, path, headers=headers, data=data, params=params, allow_text=allow_text

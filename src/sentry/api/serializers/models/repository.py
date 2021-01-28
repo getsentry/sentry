@@ -10,7 +10,7 @@ class RepositorySerializer(Serializer):
         external_slug = None
         integration_id = None
         if obj.integration_id:
-            integration_id = six.text_type(obj.integration_id)
+            integration_id = str(obj.integration_id)
         if obj.provider:
             repo_provider = obj.get_provider()
             provider = {"id": obj.provider, "name": repo_provider.name}
@@ -19,7 +19,7 @@ class RepositorySerializer(Serializer):
             provider = {"id": "unknown", "name": "Unknown Provider"}
 
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "name": obj.config.get("pending_deletion_name", obj.name),
             "url": obj.url,
             "provider": provider,

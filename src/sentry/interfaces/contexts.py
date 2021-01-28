@@ -20,7 +20,7 @@ class _IndexFormatter(string.Formatter):
 
 
 def format_index_expr(format_string, data):
-    return six.text_type(_IndexFormatter().vformat(six.text_type(format_string), (), data).strip())
+    return str(_IndexFormatter().vformat(str(format_string), (), data).strip())
 
 
 def contexttype(cls):
@@ -28,14 +28,14 @@ def contexttype(cls):
     return cls
 
 
-class ContextType(object):
+class ContextType:
     indexed_fields = None
     type = None
 
     def __init__(self, alias, data):
         self.alias = alias
         ctx_data = {}
-        for key, value in six.iteritems(data):
+        for key, value in data.items():
             # we use simple checks here, rather than ' in set()' to avoid
             # issues with maps/lists
             if value is not None and value != "":
@@ -50,7 +50,7 @@ class ContextType(object):
     @classmethod
     def values_for_data(cls, data):
         rv = []
-        for context in six.itervalues(data.get("contexts") or {}):
+        for context in (data.get("contexts") or {}).values():
             if context and context.get("type") == cls.type:
                 rv.append(context)
         return rv
@@ -67,7 +67,7 @@ class ContextType(object):
 
     def iter_tags(self):
         if self.indexed_fields:
-            for field, f_string in six.iteritems(self.indexed_fields):
+            for field, f_string in self.indexed_fields.items():
                 try:
                     value = format_index_expr(f_string, self.data)
                 except KeyError:
@@ -76,7 +76,7 @@ class ContextType(object):
                     if not field:
                         yield (self.alias, value)
                     else:
-                        yield ("%s.%s" % (self.alias, field), value)
+                        yield (f"{self.alias}.{field}", value)
 
 
 # TODO(dcramer): contexts need to document/describe expected (optional) fields
@@ -147,7 +147,7 @@ class Contexts(Interface):
     @classmethod
     def to_python(cls, data):
         rv = {}
-        for alias, value in six.iteritems(data):
+        for alias, value in data.items():
             # XXX(markus): The `None`-case should be handled in the UI and
             # other consumers of this interface
             if value is not None:
@@ -161,15 +161,14 @@ class Contexts(Interface):
         return ctx_cls(alias, data)
 
     def iter_contexts(self):
-        return six.itervalues(self._data)
+        return self._data.values()
 
     def to_json(self):
         rv = {}
-        for alias, inst in six.iteritems(self._data):
+        for alias, inst in self._data.items():
             rv[alias] = inst.to_json()
         return rv
 
     def iter_tags(self):
         for inst in self.iter_contexts():
-            for tag in inst.iter_tags():
-                yield tag
+            yield from inst.iter_tags()

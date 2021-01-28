@@ -154,11 +154,11 @@ class GetSentryAppRequestsTest(SentryAppRequestsTest):
         )
 
         url = reverse("sentry-api-0-sentry-app-requests", args=[self.published_app.slug])
-        response1 = self.client.get("{}?eventType=issue.created".format(url), format="json")
+        response1 = self.client.get(f"{url}?eventType=issue.created", format="json")
         assert response1.status_code == 200
         assert len(response1.data) == 0
 
-        response2 = self.client.get("{}?eventType=issue.assigned".format(url), format="json")
+        response2 = self.client.get(f"{url}?eventType=issue.assigned", format="json")
         assert response2.status_code == 200
         assert len(response2.data) == 1
 
@@ -166,7 +166,7 @@ class GetSentryAppRequestsTest(SentryAppRequestsTest):
         self.login_as(user=self.user)
 
         url = reverse("sentry-api-0-sentry-app-requests", args=[self.published_app.slug])
-        response = self.client.get("{}?eventType=invalid_type".format(url), format="json")
+        response = self.client.get(f"{url}?eventType=invalid_type", format="json")
 
         assert response.status_code == 400
 
@@ -187,7 +187,7 @@ class GetSentryAppRequestsTest(SentryAppRequestsTest):
         )
 
         url = reverse("sentry-api-0-sentry-app-requests", args=[self.published_app.slug])
-        errors_only_response = self.client.get("{}?errorsOnly=true".format(url), format="json")
+        errors_only_response = self.client.get(f"{url}?errorsOnly=true", format="json")
         assert errors_only_response.status_code == 200
         assert len(errors_only_response.data) == 1
 

@@ -20,7 +20,7 @@ class TeamPermission(OrganizationPermission):
     }
 
     def has_object_permission(self, request, view, team):
-        result = super(TeamPermission, self).has_object_permission(request, view, team.organization)
+        result = super().has_object_permission(request, view, team.organization)
         if not result:
             return result
 

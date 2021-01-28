@@ -55,9 +55,9 @@ class UpdateOrganizationAccessRequestTest(APITestCase):
 
         # There are requests to two diff teams, make sure we only get the one user is team admin for
         assert len(resp.data) == 1
-        assert resp.data[0]["member"]["id"] == six.text_type(other_member.id)
-        assert resp.data[0]["member"]["id"] == six.text_type(request_1.member_id)
-        assert resp.data[0]["team"]["id"] == six.text_type(request_1.team_id)
+        assert resp.data[0]["member"]["id"] == str(other_member.id)
+        assert resp.data[0]["member"]["id"] == str(request_1.member_id)
+        assert resp.data[0]["team"]["id"] == str(request_1.team_id)
 
     def test_member_empty_results(self):
         self.login_as(user=self.user)

@@ -34,7 +34,7 @@ def better_default_encoder(o):
     elif isinstance(o, (set, frozenset)):
         return list(o)
     elif isinstance(o, decimal.Decimal):
-        return six.text_type(o)
+        return str(o)
     elif isinstance(o, Enum):
         return o.value
     elif isinstance(o, BitHandler):
@@ -60,7 +60,7 @@ class JSONEncoderForHTML(JSONEncoder):
             return "".join(chunks)
 
     def iterencode(self, o, _one_shot=False):
-        chunks = super(JSONEncoderForHTML, self).iterencode(o, _one_shot)
+        chunks = super().iterencode(o, _one_shot)
         for chunk in chunks:
             chunk = chunk.replace("&", "\\u0026")
             chunk = chunk.replace("<", "\\u003c")
@@ -132,4 +132,4 @@ def prune_empty_keys(obj):
     # example would be `event.logentry.formatted`, where `{}` means "this
     # message has no params" and `None` means "this message is already
     # formatted".
-    return dict((k, v) for k, v in six.iteritems(obj) if v is not None)
+    return {k: v for k, v in obj.items() if v is not None}

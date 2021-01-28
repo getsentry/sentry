@@ -125,7 +125,7 @@ def _merge_image(raw_image, complete_image, sdk_info, data):
 
     # Set image data from symbolicator as symbolicator might know more
     # than the SDK, especially for minidumps
-    for k, v in six.iteritems(complete_image):
+    for k, v in complete_image.items():
         if k in IMAGE_STATUS_FIELDS:
             statuses.add(v)
         if not (v is None or (v == "unknown" and k in ("arch", "type"))):
@@ -196,11 +196,11 @@ def _merge_full_response(data, response):
     # Extract the crash reason and infos
     data_exception = get_path(data, "exception", "values", 0)
     if response.get("assertion"):
-        data_exception["value"] = "Assertion Error: %s" % (response["assertion"],)
+        data_exception["value"] = "Assertion Error: {}".format(response["assertion"])
     elif response.get("crash_details"):
         data_exception["value"] = response["crash_details"]
     elif response.get("crash_reason"):
-        data_exception["value"] = "Fatal Error: %s" % (response["crash_reason"],)
+        data_exception["value"] = "Fatal Error: {}".format(response["crash_reason"])
     else:
         # We're merging a full response, so there was no initial payload
         # submitted. Assuming that this still contains the placeholder, remove
@@ -314,9 +314,9 @@ def get_frames_for_symbolication(frames, data, modules):
             idx = None
 
             if modules_by_debug_id is None:
-                modules_by_debug_id = dict(
-                    (x.get("debug_id"), idx) for idx, x in enumerate(modules)
-                )
+                modules_by_debug_id = {
+                    x.get("debug_id"): idx for idx, x in enumerate(modules)
+                }
             try:
                 idx = modules_by_debug_id.get(normalize_debug_id(arg))
             except ParseDebugIdError:

@@ -51,7 +51,7 @@ def run_post_migration(
             "attachments": json.dumps([attachment]),
         }
         headers = {
-            "Authorization": "Bearer %s" % (six.text_type(integration.metadata["old_access_token"]))
+            "Authorization": "Bearer %s" % (str(integration.metadata["old_access_token"]))
         }
         try:
             client.post("/chat.postMessage", data=payload, headers=headers, timeout=5, json=True)
@@ -60,7 +60,7 @@ def run_post_migration(
             logger.error(
                 "slack.post_migration.response_error",
                 extra={
-                    "error": six.text_type(e),
+                    "error": str(e),
                     "channel_id": channel_id,
                     "channel_name": channel_name,
                     "integration_id": integration_id,

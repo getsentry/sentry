@@ -15,7 +15,7 @@ class AbstractServerlessTest(APITestCase):
     endpoint = "sentry-api-0-organization-integration-serverless-functions"
 
     def setUp(self):
-        super(AbstractServerlessTest, self).setUp()
+        super().setUp()
         self.project = self.create_project(organization=self.organization)
         self.integration = Integration.objects.create(
             provider="aws_lambda",
@@ -31,7 +31,7 @@ class AbstractServerlessTest(APITestCase):
         self.login_as(self.user)
 
     def get_response(self, **kwargs):
-        return super(AbstractServerlessTest, self).get_response(
+        return super().get_response(
             self.organization.slug, self.integration.id, **kwargs
         )
 

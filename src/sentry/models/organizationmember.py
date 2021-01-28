@@ -90,7 +90,7 @@ class OrganizationMember(Model):
         settings.AUTH_USER_MODEL, null=True, blank=True, related_name="sentry_orgmember_set"
     )
     email = models.EmailField(null=True, blank=True, max_length=75)
-    role = models.CharField(max_length=32, default=six.text_type(roles.get_default().id))
+    role = models.CharField(max_length=32, default=str(roles.get_default().id))
     flags = BitField(
         flags=(("sso:linked", "sso:linked"), ("sso:invalid", "sso:invalid")), default=0
     )
@@ -136,7 +136,7 @@ class OrganizationMember(Model):
         assert self.user_id or self.email, "Must set user or email"
         if self.token and not self.token_expires_at:
             self.refresh_expires_at()
-        super(OrganizationMember, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def set_user(self, user):
         self.user = user
@@ -195,7 +195,7 @@ class OrganizationMember(Model):
     @property
     def legacy_token(self):
         checksum = md5()
-        checksum.update(six.text_type(self.organization_id).encode("utf-8"))
+        checksum.update(str(self.organization_id).encode("utf-8"))
         checksum.update(self.get_email().encode("utf-8"))
         checksum.update(force_bytes(settings.SECRET_KEY))
         return checksum.hexdigest()
@@ -249,7 +249,7 @@ class OrganizationMember(Model):
         }
 
         msg = MessageBuilder(
-            subject="Action Required for %s" % (self.organization.name,),
+            subject=f"Action Required for {self.organization.name}",
             template="sentry/emails/auth-link-identity.txt",
             html_template="sentry/emails/auth-link-identity.html",
             type="organization.auth_link",
@@ -285,7 +285,7 @@ class OrganizationMember(Model):
             context["set_password_url"] = password_hash.get_absolute_url(mode="set_password")
 
         msg = MessageBuilder(
-            subject="Action Required for %s" % (self.organization.name,),
+            subject=f"Action Required for {self.organization.name}",
             template="sentry/emails/auth-sso-disabled.txt",
             html_template="sentry/emails/auth-sso-disabled.html",
             type="organization.auth_sso_disabled",

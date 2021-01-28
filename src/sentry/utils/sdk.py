@@ -105,7 +105,7 @@ def get_project_key():
             extra={
                 "project_id": settings.SENTRY_PROJECT,
                 "project_key": settings.SENTRY_PROJECT_KEY,
-                "error_message": six.text_type(exc),
+                "error_message": str(exc),
             },
         )
     if key is None:
@@ -235,7 +235,7 @@ def configure_sdk():
     )
 
 
-class RavenShim(object):
+class RavenShim:
     """Wrapper around sentry-sdk in case people are writing their own
     integrations that rely on this being here."""
 

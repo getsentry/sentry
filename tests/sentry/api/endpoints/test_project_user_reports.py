@@ -11,7 +11,7 @@ from sentry.utils.compat import map
 
 class ProjectUserReportListTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(ProjectUserReportListTest, self).setUp()
+        super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
         self.environment = self.create_environment(project=self.project, name="production")
         self.event = self.store_event(
@@ -83,21 +83,21 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
             group_id=group2.id,
         )
 
-        url = "/api/0/projects/{}/{}/user-feedback/".format(project.organization.slug, project.slug)
+        url = f"/api/0/projects/{project.organization.slug}/{project.slug}/user-feedback/"
 
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert sorted(map(lambda x: x["id"], response.data)) == sorted([six.text_type(report_1.id)])
+        assert sorted(map(lambda x: x["id"], response.data)) == sorted([str(report_1.id)])
 
     def test_cannot_access_with_dsn_auth(self):
         project = self.create_project()
         project_key = self.create_project_key(project=project)
 
-        url = "/api/0/projects/{}/{}/user-feedback/".format(project.organization.slug, project.slug)
+        url = f"/api/0/projects/{project.organization.slug}/{project.slug}/user-feedback/"
 
-        response = self.client.get(url, HTTP_AUTHORIZATION="DSN {}".format(project_key.dsn_public))
+        response = self.client.get(url, HTTP_AUTHORIZATION=f"DSN {project_key.dsn_public}")
 
         assert response.status_code == 401, response.content
 
@@ -115,13 +115,13 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
             group_id=group.id,
         )
 
-        url = "/api/0/projects/{}/{}/user-feedback/".format(project.organization.slug, project.slug)
+        url = f"/api/0/projects/{project.organization.slug}/{project.slug}/user-feedback/"
 
-        response = self.client.get("{}?status=".format(url), format="json")
+        response = self.client.get(f"{url}?status=", format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert sorted(map(lambda x: x["id"], response.data)) == sorted([six.text_type(report_1.id)])
+        assert sorted(map(lambda x: x["id"], response.data)) == sorted([str(report_1.id)])
 
     def test_environments(self):
         self.login_as(user=self.user)
@@ -147,7 +147,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert set([report["eventID"] for report in response.data]) == set(["a" * 32, "b" * 32])
+        assert {report["eventID"] for report in response.data} == {"a" * 32, "b" * 32}
 
         # Invalid environment
         response = self.client.get(base_url + "?environment=invalid_env")
@@ -157,7 +157,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
 
 class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(CreateProjectUserReportTest, self).setUp()
+        super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
         self.hour_ago = iso_format(before_now(minutes=60))
 
@@ -210,7 +210,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
 
         response = self.client.post(
             url,
-            HTTP_AUTHORIZATION="DSN {}".format(project_key.dsn_public),
+            HTTP_AUTHORIZATION=f"DSN {project_key.dsn_public}",
             data={
                 "event_id": self.event.event_id,
                 "email": "foo@example.com",
@@ -233,7 +233,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
 
         response = self.client.post(
             url,
-            HTTP_AUTHORIZATION="DSN {}".format(project_key.dsn_public),
+            HTTP_AUTHORIZATION=f"DSN {project_key.dsn_public}",
             data={
                 "event_id": uuid4().hex,
                 "email": "foo@example.com",

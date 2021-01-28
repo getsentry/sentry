@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from django.test.client import RequestFactory
 
 from tests.apidocs.util import APIDocsTestCase
@@ -11,7 +8,7 @@ class ProjectGroupHashesDocs(APIDocsTestCase):
         self.create_event("a")
         event = self.create_event("b")
 
-        self.url = "/api/0/issues/{}/hashes/".format(event.group_id)
+        self.url = f"/api/0/issues/{event.group_id}/hashes/"
 
         self.login_as(user=self.user)
 

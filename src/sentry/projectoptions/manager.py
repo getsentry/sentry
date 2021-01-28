@@ -6,7 +6,7 @@ from datetime import datetime
 from pytz import utc
 
 
-class WellKnownProjectOption(object):
+class WellKnownProjectOption:
     def __init__(self, key, default=None, epoch_defaults=None):
         self.key = key
         self.default = default
@@ -26,7 +26,7 @@ class WellKnownProjectOption(object):
         return self.default
 
 
-class ProjectOptionsManager(object):
+class ProjectOptionsManager:
     """Project options used to be implemented in a relatively ad-hoc manner
     in the past.  The project manager still uses the functionality of the
     project model and just dispatches to it.
@@ -87,4 +87,4 @@ class ProjectOptionsManager(object):
         """
         Return an iterator for all keys in the registry.
         """
-        return six.itervalues(self.registry)
+        return self.registry.values()

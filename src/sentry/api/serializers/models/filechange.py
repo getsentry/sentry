@@ -24,7 +24,7 @@ class CommitFileChangeSerializer(Serializer):
         for item in item_list:
             commit = commits_by_id[item.commit_id]
             result[item] = {
-                "user": users_by_author.get(six.text_type(commit.author_id), {})
+                "user": users_by_author.get(str(commit.author_id), {})
                 if commit.author_id
                 else {},
                 "message": commit.message,
@@ -35,7 +35,7 @@ class CommitFileChangeSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "orgId": obj.organization_id,
             "author": attrs.get("user", {}),
             "commitMessage": attrs.get("message", ""),

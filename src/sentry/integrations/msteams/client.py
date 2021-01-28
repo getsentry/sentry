@@ -21,7 +21,7 @@ class MsTeamsAbstractClient(ApiClient):
     MEMBER_URL = "/v3/conversations/%s/pagedmembers"
 
     def request(self, method, path, data=None, params=None):
-        headers = {"Authorization": "Bearer {}".format(self.access_token)}
+        headers = {"Authorization": f"Bearer {self.access_token}"}
         return self._request(method, path, headers=headers, data=data, params=params)
 
     def get_team_info(self, team_id):
@@ -72,7 +72,7 @@ class MsTeamsAbstractClient(ApiClient):
 # It will not handle token refreshing
 class MsTeamsPreInstallClient(MsTeamsAbstractClient):
     def __init__(self, access_token, service_url):
-        super(MsTeamsPreInstallClient, self).__init__()
+        super().__init__()
         self.access_token = access_token
         self.base_url = service_url.rstrip("/")
 
@@ -80,7 +80,7 @@ class MsTeamsPreInstallClient(MsTeamsAbstractClient):
 # MsTeamsClient is used with an existing integration object and handles token refreshing
 class MsTeamsClient(MsTeamsAbstractClient):
     def __init__(self, integration):
-        super(MsTeamsClient, self).__init__()
+        super().__init__()
         self.integration = integration
 
     @property
@@ -113,7 +113,7 @@ class OAuthMsTeamsClient(ApiClient):
     TOKEN_URL = "/oauth2/v2.0/token"
 
     def __init__(self, client_id, client_secret):
-        super(OAuthMsTeamsClient, self).__init__()
+        super().__init__()
         self.client_id = client_id
         self.client_secret = client_secret
 

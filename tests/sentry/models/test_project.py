@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 import six
 
 from sentry.models import (
@@ -204,7 +201,7 @@ class ProjectTest(TestCase):
 
 class CopyProjectSettingsTest(TestCase):
     def setUp(self):
-        super(CopyProjectSettingsTest, self).setUp()
+        super().setUp()
         self.login_as(user=self.user)
 
         self.options_dict = {
@@ -213,7 +210,7 @@ class CopyProjectSettingsTest(TestCase):
             "sentry:scrub_defaults": False,
         }
         self.other_project = self.create_project()
-        for key, value in six.iteritems(self.options_dict):
+        for key, value in self.options_dict.items():
             self.other_project.update_option(key=key, value=value)
 
         self.teams = [self.create_team(), self.create_team(), self.create_team()]
@@ -241,7 +238,7 @@ class CopyProjectSettingsTest(TestCase):
         self.assert_settings_copied(self.other_project)
 
     def assert_settings_copied(self, project):
-        for key, value in six.iteritems(self.options_dict):
+        for key, value in self.options_dict.items():
             assert project.get_option(key) == value
 
         project_teams = ProjectTeam.objects.filter(project_id=project.id, team__in=self.teams)
@@ -261,7 +258,7 @@ class CopyProjectSettingsTest(TestCase):
             assert rule.label == other_rule.label
 
     def assert_settings_not_copied(self, project, teams=()):
-        for key in six.iterkeys(self.options_dict):
+        for key in self.options_dict.keys():
             assert project.get_option(key) is None
 
         project_teams = ProjectTeam.objects.filter(project_id=project.id, team__in=teams)

@@ -83,17 +83,17 @@ class RedisBackend(Backend):
         # too early.
         self.ttl = options.pop("ttl", 60 * 60)
 
-        super(RedisBackend, self).__init__(**options)
+        super().__init__(**options)
 
     def validate(self):
         logger.debug("Validating Redis version...")
         check_cluster_versions(self.cluster, Version((2, 8, 9)), label="Digests")
 
     def _get_connection(self, key):
-        return self.cluster.get_local_client_for_key("{}:t:{}".format(self.namespace, key))
+        return self.cluster.get_local_client_for_key(f"{self.namespace}:t:{key}")
 
     def _get_timeline_lock(self, key, duration):
-        lock_key = "{}:t:{}".format(self.namespace, key)
+        lock_key = f"{self.namespace}:t:{key}"
         return self.locks.get(lock_key, duration=duration, routing_key=lock_key)
 
     def add(self, key, record, increment_delay=None, maximum_delay=None, timestamp=None):
@@ -198,8 +198,8 @@ class RedisBackend(Backend):
                     ],
                 )
             except ResponseError as e:
-                if "err(invalid_state):" in six.text_type(e):
-                    six.raise_from(InvalidState("Timeline is not in the ready state."), e)
+                if "err(invalid_state):" in str(e):
+                    raise InvalidState("Timeline is not in the ready state.") from e
                 else:
                     raise
 

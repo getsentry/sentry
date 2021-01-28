@@ -313,11 +313,11 @@ class JiraServerIntegrationProvider(IntegrationProvider):
         except ApiError as err:
             logger.info(
                 "jira-server.webhook.failed",
-                extra={"error": six.text_type(err), "external_id": external_id},
+                extra={"error": str(err), "external_id": external_id},
             )
             try:
                 details = next(x for x in err.json["messages"][0].values())
             except (KeyError, TypeError, StopIteration):
                 details = ""
-            message = "Could not create issue webhook in Jira. {}".format(details)
+            message = f"Could not create issue webhook in Jira. {details}"
             raise IntegrationError(message)

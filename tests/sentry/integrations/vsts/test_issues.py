@@ -412,7 +412,7 @@ class VstsIssueSyncTest(VstsIssueBase):
 
 class VstsIssueFormTest(VstsIssueBase):
     def setUp(self):
-        super(VstsIssueFormTest, self).setUp()
+        super().setUp()
         responses.add(
             responses.GET,
             "https://fabrikam-fiber-inc.visualstudio.com/_apis/projects",
@@ -435,7 +435,7 @@ class VstsIssueFormTest(VstsIssueBase):
 
     def update_issue_defaults(self, defaults):
         self.integration.org_integration.config = {
-            "project_issue_defaults": {six.text_type(self.group.project_id): defaults}
+            "project_issue_defaults": {str(self.group.project_id): defaults}
         }
         self.integration.org_integration.save()
 

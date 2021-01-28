@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 import pytz
 import six
 
@@ -33,7 +30,7 @@ from sentry.utils.compat.mock import patch
 
 class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(GroupSerializerSnubaTest, self).setUp()
+        super().setUp()
         self.min_ago = before_now(minutes=1)
         self.day_ago = before_now(days=1)
         self.week_ago = before_now(days=7)
@@ -42,7 +39,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         group = self.create_group()
         result = serialize(group, self.user, serializer=GroupSerializerSnuba())
         assert "http://" in result["permalink"]
-        assert "{}/issues/{}".format(group.organization.slug, group.id) in result["permalink"]
+        assert f"{group.organization.slug}/issues/{group.id}" in result["permalink"]
 
     def test_permalink_outside_org(self):
         outside_user = self.create_user()
@@ -86,7 +83,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
 
         result = serialize(group, user, serializer=GroupSerializerSnuba())
         assert result["status"] == "ignored"
-        assert result["statusDetails"]["actor"]["id"] == six.text_type(user.id)
+        assert result["statusDetails"]["actor"]["id"] == str(user.id)
 
     def test_resolved_in_next_release(self):
         release = self.create_release(project=self.project, version="a")
@@ -122,7 +119,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
 
         result = serialize(group, user, serializer=GroupSerializerSnuba())
         assert result["status"] == "resolved"
-        assert result["statusDetails"]["actor"]["id"] == six.text_type(user.id)
+        assert result["statusDetails"]["actor"]["id"] == str(user.id)
 
     def test_resolved_in_commit(self):
         repo = self.create_repo(project=self.project)
@@ -300,7 +297,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
             )
 
         # Assert all events are in the same group
-        (group_id,) = set(e.group.id for e in events)
+        (group_id,) = {e.group.id for e in events}
 
         group = Group.objects.get(id=group_id)
         group.times_seen = 3

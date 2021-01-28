@@ -69,7 +69,7 @@ def complete(request, backend, *args, **kwargs):
     try:
         user = auth_complete(request, backend, request.user, *args, **kwargs)
     except AuthException as exc:
-        messages.add_message(request, messages.ERROR, six.text_type(exc))
+        messages.add_message(request, messages.ERROR, str(exc))
         user = None
     else:
         messages.add_message(

@@ -9,7 +9,7 @@ class PushoverClient(ApiClient):
     def __init__(self, userkey=None, apikey=None):
         self.userkey = userkey
         self.apikey = apikey
-        super(PushoverClient, self).__init__()
+        super().__init__()
 
     def request(self, method, path, data):
         # see https://pushover.net/api

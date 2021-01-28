@@ -28,8 +28,8 @@ class ProjectSearchListTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert response.data[0]["id"] == six.text_type(search1.id)
-        assert response.data[1]["id"] == six.text_type(search2.id)
+        assert response.data[0]["id"] == str(search1.id)
+        assert response.data[1]["id"] == str(search2.id)
 
     def test_user_searches_visible__before_and_after_project_write_permissions(self):
         user = self.create_user()
@@ -55,7 +55,7 @@ class ProjectSearchListTest(APITestCase):
         resp = self.client.get(url, format="json")
         assert resp.status_code == 200, resp.content
         assert len(resp.data) == 1
-        assert resp.data[0]["id"] == six.text_type(search1.id)
+        assert resp.data[0]["id"] == str(search1.id)
 
         # update permissions
         member.role = "manager"
@@ -71,8 +71,8 @@ class ProjectSearchListTest(APITestCase):
         resp = self.client.get(url, format="json")
         assert resp.status_code == 200, resp.content
         assert len(resp.data) == 2
-        assert resp.data[0]["id"] == six.text_type(search1.id)
-        assert resp.data[1]["id"] == six.text_type(search2.id)
+        assert resp.data[0]["id"] == str(search1.id)
+        assert resp.data[1]["id"] == str(search2.id)
 
 
 class ProjectSearchCreateTest(APITestCase):

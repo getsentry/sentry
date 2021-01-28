@@ -19,18 +19,18 @@ post_save.connect(
 
 
 def _get_task_name(task):
-    return task.name or "{0}.{1}".format(task.__module__, task.__name__)
+    return task.name or f"{task.__module__}.{task.__name__}"
 
 
 def record_task_signal(signal, name, **options):
     def handler(sender, **kwargs):
-        if not isinstance(sender, six.string_types):
+        if not isinstance(sender, str):
             sender = _get_task_name(sender)
         options["skip_internal"] = options.get("skip_internal", False)
-        metrics.incr("jobs.{0}".format(name), instance=sender, **options)
-        metrics.incr("jobs.all.{0}".format(name), skip_internal=False)
+        metrics.incr(f"jobs.{name}", instance=sender, **options)
+        metrics.incr(f"jobs.all.{name}", skip_internal=False)
 
-    signal.connect(handler, weak=False, dispatch_uid="sentry.stats.tasks.{0}".format(name))
+    signal.connect(handler, weak=False, dispatch_uid=f"sentry.stats.tasks.{name}")
 
 
 # TODO: https://github.com/getsentry/sentry/issues/2495

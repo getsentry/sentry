@@ -128,7 +128,7 @@ class SlackIntegrationProvider(IntegrationProvider):
         try:
             resp = client.get("/team.info", params=payload)
         except ApiError as e:
-            logger.error("slack.team-info.response-error", extra={"error": six.text_type(e)})
+            logger.error("slack.team-info.response-error", extra={"error": str(e)})
             raise IntegrationError("Could not retrieve Slack team information.")
 
         return resp["team"]
@@ -187,7 +187,7 @@ class SlackIntegrationProvider(IntegrationProvider):
         return integration
 
     def create_audit_log_entry(self, integration, organization, request, action, extra=None):
-        super(SlackIntegrationProvider, self).create_audit_log_entry(
+        super().create_audit_log_entry(
             integration, organization, request, action
         )
 
@@ -280,7 +280,7 @@ class SlackReAuthIntro(PipelineView):
             return render_to_response(
                 template="sentry/integrations/slack-reauth-introduction.html",
                 context={
-                    "next_url": "%s%s" % (absolute_uri("/extensions/slack/setup/"), next_param),
+                    "next_url": "{}{}".format(absolute_uri("/extensions/slack/setup/"), next_param),
                     "workspace": integration.name,
                     "extra_orgs": extra_orgs,
                 },
@@ -323,7 +323,7 @@ class SlackReAuthChannels(PipelineView):
         return render_to_response(
             template="sentry/integrations/slack-reauth-details.html",
             context={
-                "next_url": "%s%s" % (absolute_uri("/extensions/slack/setup/"), next_url_param),
+                "next_url": "{}{}".format(absolute_uri("/extensions/slack/setup/"), next_url_param),
                 "private": channels["private"],
                 "no_permission": channels["no_permission"],
                 "not_found": channels["channel_not_found"],
@@ -359,7 +359,7 @@ def _request_channel_info(pipeline):
             logger.info(
                 "slack.request_channel_info.response-error",
                 extra={
-                    "error": six.text_type(e),
+                    "error": str(e),
                     "channel": channel["id"],
                     "integration_id": integration.id,
                 },
@@ -388,7 +388,7 @@ def _get_channels_from_rules(organization, integration):
         # try and see if its used for slack
         for rule_action in rule.data["actions"]:
             rule_integration_id = rule_action.get("workspace")
-            if rule_integration_id and rule_integration_id == six.text_type(integration.id):
+            if rule_integration_id and rule_integration_id == str(integration.id):
 
                 channel_id = rule_action.get("channel_id")
                 channel_name = rule_action["channel"]

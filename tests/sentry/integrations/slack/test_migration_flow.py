@@ -22,7 +22,7 @@ class SlackMigrationTest(IntegrationTestCase):
     provider = SlackIntegrationProvider
 
     def setUp(self):
-        super(SlackMigrationTest, self).setUp()
+        super().setUp()
         self.team = self.create_team(
             organization=self.organization, name="Go Team", members=[self.user]
         )
@@ -40,14 +40,14 @@ class SlackMigrationTest(IntegrationTestCase):
         )
         self.rule = self.create_slack_project_rule(
             project=self.project,
-            integration_id=six.text_type(self.integration.id),
+            integration_id=str(self.integration.id),
             channel_id="XXXXX",
         )
-        self.init_path_verification_results = "%s%s" % (
+        self.init_path_verification_results = "{}{}".format(
             self.setup_path,
             "?show_verification_results",
         )
-        self.init_path_channels = "%s%s" % (self.setup_path, "?start_migration")
+        self.init_path_channels = "{}{}".format(self.setup_path, "?start_migration")
 
     def assert_setup_flow(
         self,
@@ -89,7 +89,7 @@ class SlackMigrationTest(IntegrationTestCase):
         assert params.get("user_scope") == ["links:read"]
         # once we've asserted on it, switch to a singular values to make life
         # easier
-        authorize_params = {k: v[0] for k, v in six.iteritems(params)}
+        authorize_params = {k: v[0] for k, v in params.items()}
 
         access_json = {
             "ok": True,
@@ -214,7 +214,7 @@ class SlackMigrationTest(IntegrationTestCase):
     def test_get_channels_from_rules(self):
         new_rule = self.create_slack_project_rule(
             project=self.project,
-            integration_id=six.text_type(self.integration.id),
+            integration_id=str(self.integration.id),
             channel_name="#something",
         )
         # test that we don't error out if channel_id isn't saved

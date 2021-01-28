@@ -13,7 +13,7 @@ from sentry.exceptions import RestrictedIPAddress
 
 
 DISALLOWED_IPS = frozenset(
-    ipaddress.ip_network(six.text_type(i), strict=False) for i in settings.SENTRY_DISALLOWED_IPS
+    ipaddress.ip_network(str(i), strict=False) for i in settings.SENTRY_DISALLOWED_IPS
 )
 
 
@@ -127,7 +127,7 @@ def safe_create_connection(
             # suspicious.
             if host == ip:
                 raise RestrictedIPAddress("(%s) matches the URL blacklist" % ip)
-            raise RestrictedIPAddress("(%s/%s) matches the URL blacklist" % (host, ip))
+            raise RestrictedIPAddress(f"({host}/{ip}) matches the URL blacklist")
 
         sock = None
         try:
@@ -143,7 +143,7 @@ def safe_create_connection(
             sock.connect(sa)
             return sock
 
-        except socket.error as e:
+        except OSError as e:
             err = e
             if sock is not None:
                 sock.close()
@@ -152,7 +152,7 @@ def safe_create_connection(
     if err is not None:
         raise err
 
-    raise socket.error("getaddrinfo returns an empty list")
+    raise OSError("getaddrinfo returns an empty list")
 
 
 def safe_socket_connect(address, timeout=30, ssl=False):

@@ -47,14 +47,14 @@ class GroupOwner(Model):
     def save(self, *args, **kwargs):
         keys = list(filter(None, [self.user_id, self.team_id]))
         assert len(keys) == 1, "Must have team or user, not both"
-        super(GroupOwner, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def owner_id(self):
         if self.user_id:
-            return "user:{}".format(self.user_id)
+            return f"user:{self.user_id}"
 
         if self.team_id:
-            return "team:{}".format(self.team_id)
+            return f"team:{self.team_id}"
 
         raise NotImplementedError("Unknown Owner")
 

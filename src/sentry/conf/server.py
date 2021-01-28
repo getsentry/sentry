@@ -608,7 +608,7 @@ CELERY_ROUTES = ("sentry.queue.routers.SplitQueueRouter",)
 def create_partitioned_queues(name):
     exchange = Exchange(name, type="direct")
     for num in range(1):
-        CELERY_QUEUES.append(Queue("{0}-{1}".format(name, num), exchange=exchange))
+        CELERY_QUEUES.append(Queue(f"{name}-{num}", exchange=exchange))
 
 
 create_partitioned_queues("counters")
@@ -1284,8 +1284,7 @@ SENTRY_CACHE_MAX_VALUE_SIZE = None
 # 'name' in SENTRY_MANAGED_USER_FIELDS.
 SENTRY_MANAGED_USER_FIELDS = ()
 
-SENTRY_SCOPES = set(
-    [
+SENTRY_SCOPES = {
         "org:read",
         "org:write",
         "org:admin",
@@ -1305,8 +1304,7 @@ SENTRY_SCOPES = set(
         "event:admin",
         "alerts:write",
         "alerts:read",
-    ]
-)
+}
 
 SENTRY_SCOPE_SETS = (
     (
@@ -1353,8 +1351,7 @@ SENTRY_ROLES = (
         "id": "member",
         "name": "Member",
         "desc": "Members can view and act on events, as well as view most other data within the organization.",
-        "scopes": set(
-            [
+        "scopes": {
                 "event:read",
                 "event:write",
                 "event:admin",
@@ -1365,8 +1362,7 @@ SENTRY_ROLES = (
                 "team:read",
                 "alerts:read",
                 "alerts:write",
-            ]
-        ),
+        },
     },
     {
         "id": "admin",
@@ -1375,8 +1371,7 @@ SENTRY_ROLES = (
         "as well as remove teams and projects which they already hold membership on (or all teams, "
         "if open membership is on). Additionally, they can manage memberships of teams that they are members "
         "of.",
-        "scopes": set(
-            [
+        "scopes": {
                 "event:read",
                 "event:write",
                 "event:admin",
@@ -1392,16 +1387,14 @@ SENTRY_ROLES = (
                 "org:integrations",
                 "alerts:read",
                 "alerts:write",
-            ]
-        ),
+        },
     },
     {
         "id": "manager",
         "name": "Manager",
         "desc": "Gains admin access on all teams as well as the ability to add and remove members.",
         "is_global": True,
-        "scopes": set(
-            [
+        "scopes": {
                 "event:read",
                 "event:write",
                 "event:admin",
@@ -1420,8 +1413,7 @@ SENTRY_ROLES = (
                 "org:integrations",
                 "alerts:read",
                 "alerts:write",
-            ]
-        ),
+        },
     },
     {
         "id": "owner",
@@ -1429,8 +1421,7 @@ SENTRY_ROLES = (
         "desc": "Unrestricted access to the organization, its data, and its settings. Can add, modify, and delete "
         "projects and members, as well as make billing and plan changes.",
         "is_global": True,
-        "scopes": set(
-            [
+        "scopes": {
                 "org:read",
                 "org:write",
                 "org:admin",
@@ -1450,8 +1441,7 @@ SENTRY_ROLES = (
                 "event:admin",
                 "alerts:read",
                 "alerts:write",
-            ]
-        ),
+        },
     },
 )
 

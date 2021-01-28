@@ -25,7 +25,7 @@ class GroupEventAttachmentsTest(APITestCase):
         return self.attachment
 
     def path(self, types=None):
-        path = "/api/0/issues/%s/attachments/" % (self.group.id,)
+        path = f"/api/0/issues/{self.group.id}/attachments/"
 
         query = [("types", t) for t in types or ()]
         if query:
@@ -43,7 +43,7 @@ class GroupEventAttachmentsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(attachment.id)
+        assert response.data[0]["id"] == str(attachment.id)
 
     def test_filter(self):
         self.login_as(user=self.user)
@@ -56,7 +56,7 @@ class GroupEventAttachmentsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(attachment2.id)
+        assert response.data[0]["id"] == str(attachment2.id)
 
     def test_without_feature(self):
         self.login_as(user=self.user)

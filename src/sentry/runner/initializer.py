@@ -30,7 +30,7 @@ def register_plugins(settings, raise_on_plugin_load_failure=False):
             import traceback
 
             click.echo(
-                "Failed to load plugin %r:\n%s" % (ep.name, traceback.format_exc()), err=True
+                f"Failed to load plugin {ep.name!r}:\n{traceback.format_exc()}", err=True
             )
             if raise_on_plugin_load_failure:
                 raise
@@ -50,7 +50,7 @@ def register_plugins(settings, raise_on_plugin_load_failure=False):
             import traceback
 
             click.echo(
-                "Failed to load integration %r:\n%s" % (integration_path, traceback.format_exc()),
+                f"Failed to load integration {integration_path!r}:\n{traceback.format_exc()}",
                 err=True,
             )
         else:
@@ -108,7 +108,7 @@ def get_asset_version(settings):
     try:
         with open(path) as fp:
             return fp.read().strip()
-    except IOError:
+    except OSError:
         from time import time
 
         return int(time())
@@ -163,13 +163,13 @@ def bootstrap_options(settings, config=None):
         try:
             with open(config, "rb") as fp:
                 options = safe_load(fp)
-        except IOError:
+        except OSError:
             # Gracefully fail if yaml file doesn't exist
             pass
         except (AttributeError, ParserError, ScannerError) as e:
             from .importer import ConfigurationError
 
-            raise ConfigurationError("Malformed config.yml file: %s" % six.text_type(e))
+            raise ConfigurationError("Malformed config.yml file: %s" % str(e))
 
         # Empty options file, so fail gracefully
         if options is None:
@@ -183,21 +183,21 @@ def bootstrap_options(settings, config=None):
     from sentry.conf.server import DEAD
 
     # First move options from settings into options
-    for k, v in six.iteritems(options_mapper):
+    for k, v in options_mapper.items():
         if getattr(settings, v, DEAD) is not DEAD and k not in options:
             warnings.warn(DeprecatedSettingWarning(options_mapper[k], "SENTRY_OPTIONS['%s']" % k))
             options[k] = getattr(settings, v)
 
     # Stuff everything else into SENTRY_OPTIONS
     # these will be validated later after bootstrapping
-    for k, v in six.iteritems(options):
+    for k, v in options.items():
         settings.SENTRY_OPTIONS[k] = v
 
     # Now go back through all of SENTRY_OPTIONS and promote
     # back into settings. This catches the case when values are defined
     # only in SENTRY_OPTIONS and no config.yml file
     for o in (settings.SENTRY_DEFAULT_OPTIONS, settings.SENTRY_OPTIONS):
-        for k, v in six.iteritems(o):
+        for k, v in o.items():
             if k in options_mapper:
                 # Map the mail.backend aliases to something Django understands
                 if k == "mail.backend":
@@ -271,18 +271,18 @@ def configure_structlog():
 
 
 def show_big_error(message):
-    if isinstance(message, six.string_types):
+    if isinstance(message, str):
         lines = message.strip().splitlines()
     else:
         lines = message
     maxline = max(map(len, lines))
     click.echo("", err=True)
-    click.secho("!!!%s!!!" % ("!" * min(maxline, 80),), err=True, fg="red")
+    click.secho("!!!{}!!!".format("!" * min(maxline, 80)), err=True, fg="red")
     click.secho("!! %s !!" % "".center(maxline), err=True, fg="red")
     for line in lines:
         click.secho("!! %s !!" % line.center(maxline), err=True, fg="red")
     click.secho("!! %s !!" % "".center(maxline), err=True, fg="red")
-    click.secho("!!!%s!!!" % ("!" * min(maxline, 80),), err=True, fg="red")
+    click.secho("!!!{}!!!".format("!" * min(maxline, 80)), err=True, fg="red")
     click.echo("", err=True)
 
 

@@ -270,21 +270,21 @@ class UserNotificationFineTuningTest(APITestCase):
 
         assert set(
             UserOption.objects.get(user=self.user, key="reports:disabled-organizations").value
-        ) == set([self.org.id, self.org2.id])
+        ) == {self.org.id, self.org2.id}
 
         update = {}
         update[self.org.id] = 1
         resp = self.client.put(url, data=update)
         assert set(
             UserOption.objects.get(user=self.user, key="reports:disabled-organizations").value
-        ) == set([self.org2.id])
+        ) == {self.org2.id}
 
         update = {}
         update[self.org.id] = 0
         resp = self.client.put(url, data=update)
         assert set(
             UserOption.objects.get(user=self.user, key="reports:disabled-organizations").value
-        ) == set([self.org.id, self.org2.id])
+        ) == {self.org.id, self.org2.id}
 
     def test_enable_weekly_reports_from_default_setting(self):
         url = reverse(
@@ -301,7 +301,7 @@ class UserNotificationFineTuningTest(APITestCase):
 
         assert set(
             UserOption.objects.get(user=self.user, key="reports:disabled-organizations").value
-        ) == set([])
+        ) == set()
 
         # can disable
         update = {}
@@ -309,7 +309,7 @@ class UserNotificationFineTuningTest(APITestCase):
         resp = self.client.put(url, data=update)
         assert set(
             UserOption.objects.get(user=self.user, key="reports:disabled-organizations").value
-        ) == set([self.org.id])
+        ) == {self.org.id}
 
         # re-enable
         update = {}
@@ -317,7 +317,7 @@ class UserNotificationFineTuningTest(APITestCase):
         resp = self.client.put(url, data=update)
         assert set(
             UserOption.objects.get(user=self.user, key="reports:disabled-organizations").value
-        ) == set([])
+        ) == set()
 
     def test_permissions(self):
         new_user = self.create_user(email="b@example.com")

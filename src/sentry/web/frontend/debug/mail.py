@@ -48,7 +48,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_random(request):
-    seed = request.GET.get("seed", six.text_type(time.time()))
+    seed = request.GET.get("seed", str(time.time()))
     return Random(seed)
 
 
@@ -120,7 +120,7 @@ def add_unsubscribe_link(context):
 
 
 # TODO(dcramer): use https://github.com/disqus/django-mailviews
-class MailPreview(object):
+class MailPreview:
     def __init__(self, html_template, text_template, context=None, subject=None):
         self.html_template = html_template
         self.text_template = text_template
@@ -145,7 +145,7 @@ class MailPreview(object):
         )
 
 
-class ActivityMailPreview(object):
+class ActivityMailPreview:
     def __init__(self, request, activity):
         self.request = request
         self.email = emails.get(activity.type)(activity)
@@ -245,7 +245,7 @@ def alert(request):
     # XXX: this interface_list code needs to be the same as in
     #      src/sentry/mail/adapter.py
     interface_list = []
-    for interface in six.itervalues(event.interfaces):
+    for interface in event.interfaces.values():
         body = interface.to_email_html(event)
         if not body:
             continue
@@ -310,7 +310,7 @@ def digest(request):
     project = Project(id=1, slug="example", name="Example Project", organization=org)
 
     rules = {
-        i: Rule(id=i, project=project, label="Rule #%s" % (i,))
+        i: Rule(id=i, project=project, label=f"Rule #{i}")
         for i in range(1, random.randint(2, 4))
     }
 

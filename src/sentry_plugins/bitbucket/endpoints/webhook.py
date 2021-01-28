@@ -32,7 +32,7 @@ BITBUCKET_IP_RANGES = (
 BITBUCKET_IPS = ["34.198.203.127", "34.198.178.64", "34.198.32.85"]
 
 
-class Webhook(object):
+class Webhook:
     def __call__(self, organization, event):
         raise NotImplementedError
 
@@ -59,7 +59,7 @@ class PushEventWebhook(Webhook):
             repo = Repository.objects.get(
                 organization_id=organization.id,
                 provider="bitbucket",
-                external_id=six.text_type(event["repository"]["uuid"]),
+                external_id=str(event["repository"]["uuid"]),
             )
         except Repository.DoesNotExist:
             raise Http404()
@@ -116,7 +116,7 @@ class BitbucketWebhookEndpoint(View):
         if request.method != "POST":
             return HttpResponse(status=405)
 
-        return super(BitbucketWebhookEndpoint, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     def post(self, request, organization_id):
         try:
@@ -127,7 +127,7 @@ class BitbucketWebhookEndpoint(View):
             )
             return HttpResponse(status=400)
 
-        body = six.binary_type(request.body)
+        body = bytes(request.body)
         if not body:
             logger.error(
                 "bitbucket.webhook.missing-body", extra={"organization_id": organization.id}
@@ -145,7 +145,7 @@ class BitbucketWebhookEndpoint(View):
         if not handler:
             return HttpResponse(status=204)
 
-        address_string = six.text_type(request.META["REMOTE_ADDR"])
+        address_string = str(request.META["REMOTE_ADDR"])
         ip = ipaddress.ip_address(address_string)
         valid_ip = False
         for ip_range in BITBUCKET_IP_RANGES:

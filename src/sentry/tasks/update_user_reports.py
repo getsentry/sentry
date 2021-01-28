@@ -29,7 +29,7 @@ def update_user_reports(**kwargs):
     updated_reports = 0
     samples = None
 
-    for project_id, reports in six.iteritems(project_map):
+    for project_id, reports in project_map.items():
         event_ids = [r.event_id for r in reports]
         report_by_event = {r.event_id: r for r in reports}
         snuba_filter = eventstore.Filter(

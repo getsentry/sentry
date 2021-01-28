@@ -12,7 +12,7 @@ from sentry.testutils import APITestCase
 
 class OrganizationIntegrationDetailsTest(APITestCase):
     def setUp(self):
-        super(OrganizationIntegrationDetailsTest, self).setUp()
+        super().setUp()
 
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user, name="baz")
@@ -42,7 +42,7 @@ class OrganizationIntegrationDetailsTest(APITestCase):
         response = self.client.get(self.path, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(self.integration.id)
+        assert response.data["id"] == str(self.integration.id)
 
     def test_removal(self):
         with self.tasks():

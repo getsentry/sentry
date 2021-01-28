@@ -22,25 +22,25 @@ class AuditLogEntrySerializer(Serializer):
         users = {
             d["id"]: d
             for d in serialize(
-                set(i.actor for i in item_list if i.actor_id)
-                | set(i.target_user for i in item_list if i.target_user_id),
+                {i.actor for i in item_list if i.actor_id}
+                | {i.target_user for i in item_list if i.target_user_id},
                 user,
             )
         }
 
         return {
             item: {
-                "actor": users[six.text_type(item.actor_id)]
+                "actor": users[str(item.actor_id)]
                 if item.actor_id
                 else {"name": item.get_actor_name()},
-                "targetUser": users.get(six.text_type(item.target_user_id)) or item.target_user_id,
+                "targetUser": users.get(str(item.target_user_id)) or item.target_user_id,
             }
             for item in item_list
         }
 
     def serialize(self, obj, attrs, user):
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "actor": attrs["actor"],
             "event": obj.get_event_display(),
             "ipAddress": obj.ip_address,

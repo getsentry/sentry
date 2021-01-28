@@ -14,7 +14,7 @@ from sentry.db.models import (
 )
 
 
-class OnboardingTask(object):
+class OnboardingTask:
     FIRST_PROJECT = 1
     FIRST_EVENT = 2
     INVITE_MEMBER = 3
@@ -28,7 +28,7 @@ class OnboardingTask(object):
     FIRST_TRANSACTION = 11
 
 
-class OnboardingTaskStatus(object):
+class OnboardingTaskStatus:
     COMPLETE = 1
     PENDING = 2
     SKIPPED = 3
@@ -54,7 +54,7 @@ class OnboardingTaskStatus(object):
 
 class OrganizationOnboardingTaskManager(BaseManager):
     def record(self, organization_id, task, **kwargs):
-        cache_key = "organizationonboardingtask:%s:%s" % (organization_id, task)
+        cache_key = f"organizationonboardingtask:{organization_id}:{task}"
         if cache.get(cache_key) is None:
             try:
                 with transaction.atomic():
@@ -139,8 +139,8 @@ class OrganizationOnboardingTask(Model):
     user = FlexibleForeignKey(
         settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL
     )  # user that completed
-    task = BoundedPositiveIntegerField(choices=[(k, six.text_type(v)) for k, v in TASK_CHOICES])
-    status = BoundedPositiveIntegerField(choices=[(k, six.text_type(v)) for k, v in STATUS_CHOICES])
+    task = BoundedPositiveIntegerField(choices=[(k, str(v)) for k, v in TASK_CHOICES])
+    status = BoundedPositiveIntegerField(choices=[(k, str(v)) for k, v in STATUS_CHOICES])
     completion_seen = models.DateTimeField(null=True)
     date_completed = models.DateTimeField(default=timezone.now)
     project = FlexibleForeignKey("sentry.Project", db_constraint=False, null=True)

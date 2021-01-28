@@ -169,7 +169,7 @@ class ScoreClause(Func):
         # times_seen is likely an F-object that needs the value extracted
         if hasattr(self.times_seen, "rhs"):
             self.times_seen = self.times_seen.rhs.value
-        super(ScoreClause, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def __int__(self):
         # Calculate the score manually when coercing to an int.
@@ -189,7 +189,7 @@ class ScoreClause(Func):
         return (sql, [])
 
 
-class EventManager(object):
+class EventManager:
     """
     Handles normalization in both the store endpoint and the save task. The
     intention is to swap this class out with a reimplementation in Rust.
@@ -253,9 +253,9 @@ class EventManager(object):
             project_id=self._project.id if self._project else project_id,
             client_ip=self._client_ip,
             client=self._auth.client if self._auth else None,
-            key_id=six.text_type(self._key.id) if self._key else None,
+            key_id=str(self._key.id) if self._key else None,
             grouping_config=self._grouping_config,
-            protocol_version=six.text_type(self.version) if self.version is not None else None,
+            protocol_version=str(self.version) if self.version is not None else None,
             is_renormalize=self._is_renormalize,
             remove_other=self._remove_other,
             normalize_user_agent=True,
@@ -445,7 +445,7 @@ class EventManager(object):
         _materialize_event_metrics(jobs)
 
         for attachment in attachments:
-            key = "bytes.stored.%s" % (attachment.type,)
+            key = f"bytes.stored.{attachment.type}"
             old_bytes = job["event_metrics"].get(key) or 0
             job["event_metrics"][key] = old_bytes + attachment.size
 
@@ -579,7 +579,7 @@ def _get_or_create_release_many(jobs, projects):
         if old_datetime is None or new_datetime > old_datetime:
             release_date_added[release_key] = new_datetime
 
-    for (project_id, version), jobs_to_update in six.iteritems(jobs_with_releases):
+    for (project_id, version), jobs_to_update in jobs_with_releases.items():
         release = Release.get_or_create(
             project=projects[project_id],
             version=version,
@@ -619,7 +619,7 @@ def _get_event_user_many(jobs, projects):
 def _derive_plugin_tags_many(jobs, projects):
     # XXX: We ought to inline or remove this one for sure
     plugins_for_projects = {
-        p.id: plugins.for_project(p, version=None) for p in six.itervalues(projects)
+        p.id: plugins.for_project(p, version=None) for p in projects.values()
     }
 
     for job in jobs:
@@ -638,7 +638,7 @@ def _derive_interface_tags_many(jobs):
     # XXX: We ought to inline or remove this one for sure
     for job in jobs:
         data = job["data"]
-        for path, iface in six.iteritems(job["event"].interfaces):
+        for path, iface in job["event"].interfaces.items():
             for k, v in iface.iter_tags():
                 set_tag(data, k, v)
 
@@ -833,7 +833,7 @@ def _get_event_user_impl(project, data, metrics_tags):
 
     if ip_address:
         try:
-            ipaddress.ip_address(six.text_type(ip_address))
+            ipaddress.ip_address(str(ip_address))
         except ValueError:
             ip_address = None
 
@@ -849,7 +849,7 @@ def _get_event_user_impl(project, data, metrics_tags):
     if not euser.hash:
         return
 
-    cache_key = "euserid:1:{}:{}".format(project.id, euser.hash)
+    cache_key = f"euserid:1:{project.id}:{euser.hash}"
     euser_id = cache.get(cache_key)
     if euser_id is None:
         metrics_tags["cache_hit"] = "false"
@@ -1398,7 +1398,7 @@ def _materialize_event_metrics(jobs):
 
         for metric_name in ("flag.processing.error", "flag.processing.fatal"):
             if event_metrics.get(metric_name):
-                metrics.incr("event_manager.save.event_metrics.%s" % (metric_name,))
+                metrics.incr(f"event_manager.save.event_metrics.{metric_name}")
 
         job["event_metrics"] = event_metrics
 
@@ -1406,7 +1406,7 @@ def _materialize_event_metrics(jobs):
 @metrics.wraps("event_manager.save_transaction_events")
 def save_transaction_events(jobs, projects):
     with metrics.timer("event_manager.save_transactions.collect_organization_ids"):
-        organization_ids = set(project.organization_id for project in six.itervalues(projects))
+        organization_ids = {project.organization_id for project in projects.values()}
 
     with metrics.timer("event_manager.save_transactions.fetch_organizations"):
         organizations = {
@@ -1414,7 +1414,7 @@ def save_transaction_events(jobs, projects):
         }
 
     with metrics.timer("event_manager.save_transactions.set_organization_cache"):
-        for project in six.itervalues(projects):
+        for project in projects.values():
             try:
                 project._organization_cache = organizations[project.organization_id]
             except KeyError:

@@ -132,9 +132,9 @@ class ErrorPageEmbedView(View):
 
         # customization options
         options = DEFAULT_OPTIONS.copy()
-        for name in six.iterkeys(options):
+        for name in options.keys():
             if name in request.GET:
-                options[name] = six.text_type(request.GET[name])
+                options[name] = str(request.GET[name])
 
         # TODO(dcramer): since we cant use a csrf cookie we should at the very
         # least sign the request / add some kind of nonce
@@ -213,9 +213,9 @@ class ErrorPageEmbedView(View):
             "template": mark_safe("*/" + json.dumps(template) + ";/*"),
             "strings": json.dumps_htmlsafe(
                 {
-                    "generic_error": six.text_type(options["errorGeneric"]),
-                    "form_error": six.text_type(options["errorFormEntry"]),
-                    "sent_message": six.text_type(options["successMessage"]),
+                    "generic_error": str(options["errorGeneric"]),
+                    "form_error": str(options["errorFormEntry"]),
+                    "sent_message": str(options["successMessage"]),
                 }
             ),
         }

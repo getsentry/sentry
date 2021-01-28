@@ -16,16 +16,16 @@ from sentry.models.sentryapp import REQUIRED_EVENT_PERMISSIONS
 
 class Updater(Mediator):
     sentry_app = Param("sentry.models.SentryApp")
-    name = Param(six.string_types, required=False)
-    status = Param(six.string_types, required=False)
+    name = Param((str,), required=False)
+    status = Param((str,), required=False)
     scopes = Param(Iterable, required=False)
     events = Param(Iterable, required=False)
-    webhook_url = Param(six.string_types, required=False)
-    redirect_url = Param(six.string_types, required=False)
+    webhook_url = Param((str,), required=False)
+    redirect_url = Param((str,), required=False)
     is_alertable = Param(bool, required=False)
     verify_install = Param(bool, required=False)
     schema = Param(dict, required=False)
-    overview = Param(six.string_types, required=False)
+    overview = Param((str,), required=False)
     allowed_origins = Param(Iterable, required=False)
     user = Param("sentry.models.User")
 
@@ -84,7 +84,7 @@ class Updater(Mediator):
         for event in self.events:
             needed_scope = REQUIRED_EVENT_PERMISSIONS[event]
             if needed_scope not in self.sentry_app.scope_list:
-                raise APIError("{} webhooks require the {} permission.".format(event, needed_scope))
+                raise APIError(f"{event} webhooks require the {needed_scope} permission.")
 
         from sentry.mediators.service_hooks.creator import expand_events
 

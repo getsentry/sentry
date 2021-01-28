@@ -10,7 +10,7 @@ from sentry.tasks.sentry_apps import installation_webhook
 
 class Creator(Mediator):
     organization = Param("sentry.models.Organization")
-    slug = Param(six.string_types)
+    slug = Param((str,))
     user = Param("sentry.models.User")
     request = Param("rest_framework.request.Request", required=False)
     notify = Param(bool, default=True)

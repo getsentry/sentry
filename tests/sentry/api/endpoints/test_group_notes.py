@@ -26,11 +26,11 @@ class GroupNoteTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = "/api/0/issues/{}/comments/".format(group.id)
+        url = f"/api/0/issues/{group.id}/comments/"
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(activity.id)
+        assert response.data[0]["id"] == str(activity.id)
 
 
 class GroupNoteCreateTest(APITestCase):
@@ -39,7 +39,7 @@ class GroupNoteCreateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = "/api/0/issues/{}/comments/".format(group.id)
+        url = f"/api/0/issues/{group.id}/comments/"
 
         response = self.client.post(url, format="json")
         assert response.status_code == 400
@@ -69,7 +69,7 @@ class GroupNoteCreateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = "/api/0/issues/{}/comments/".format(group.id)
+        url = f"/api/0/issues/{group.id}/comments/"
 
         # mentioning a member that does not exist returns 400
         response = self.client.post(
@@ -79,7 +79,7 @@ class GroupNoteCreateTest(APITestCase):
         )
         assert response.status_code == 400, response.content
 
-        user_id = six.text_type(self.user.id)
+        user_id = str(self.user.id)
 
         # mentioning a member in the correct team returns 201
         response = self.client.post(
@@ -89,7 +89,7 @@ class GroupNoteCreateTest(APITestCase):
         )
         assert response.status_code == 201, response.content
 
-        user_id = six.text_type(user.id)
+        user_id = str(user.id)
 
         # mentioning a member that exists but NOT in the team returns
         # validation error
@@ -116,7 +116,7 @@ class GroupNoteCreateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = "/api/0/issues/{}/comments/".format(group.id)
+        url = f"/api/0/issues/{group.id}/comments/"
 
         # mentioning a team that does not exist returns 400
         response = self.client.post(
@@ -183,7 +183,7 @@ class GroupNoteCreateTest(APITestCase):
         self.user.save()
         self.login_as(user=self.user)
 
-        url = "/api/0/issues/{}/comments/".format(group.id)
+        url = f"/api/0/issues/{group.id}/comments/"
 
         with self.feature({"organizations:integrations-issue-sync": True}):
             with self.tasks():

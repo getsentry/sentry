@@ -20,7 +20,7 @@ class OAuth2Login(AuthView):
     scope = ""
 
     def __init__(self, authorize_url=None, client_id=None, scope=None, *args, **kwargs):
-        super(OAuth2Login, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         if authorize_url is not None:
             self.authorize_url = authorize_url
         if client_id is not None:
@@ -65,7 +65,7 @@ class OAuth2Callback(AuthView):
     client_secret = None
 
     def __init__(self, access_token_url=None, client_id=None, client_secret=None, *args, **kwargs):
-        super(OAuth2Callback, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         if access_token_url is not None:
             self.access_token_url = access_token_url
         if client_id is not None:
@@ -191,7 +191,7 @@ class OAuth2Provider(Provider):
         error = payload.get("error", "unknown_error")
         error_description = payload.get("error_description", "no description available")
 
-        formatted_error = "HTTP {} ({}): {}".format(req.status_code, error, error_description)
+        formatted_error = f"HTTP {req.status_code} ({error}): {error_description}"
 
         if req.status_code == 401:
             raise IdentityNotValid(formatted_error)

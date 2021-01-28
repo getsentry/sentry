@@ -6,7 +6,7 @@ from django.utils import timezone
 from .base import Newsletter
 
 
-class NewsletterSubscription(object):
+class NewsletterSubscription:
     def __init__(
         self,
         user,
@@ -85,7 +85,7 @@ class DummyNewsletter(Newsletter):
         return self._enabled
 
     def get_subscriptions(self, user):
-        return {"subscriptions": list(six.itervalues(self._subscriptions.get(user) or {}))}
+        return {"subscriptions": list((self._subscriptions.get(user) or {}).values())}
 
     def update_subscription(self, user, list_id=None, create=False, **kwargs):
         if not list_id:

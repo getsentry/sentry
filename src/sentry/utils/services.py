@@ -24,7 +24,7 @@ def raises(exceptions):
     return decorator
 
 
-class Service(object):
+class Service:
     __all__ = ()
 
     def validate(self):
@@ -55,7 +55,7 @@ class LazyServiceWrapper(LazyObject):
     """
 
     def __init__(self, backend_base, backend_path, options, dangerous=(), metrics_path=None):
-        super(LazyServiceWrapper, self).__init__()
+        super().__init__()
         self.__dict__.update(
             {
                 "_backend": backend_path,
@@ -108,13 +108,13 @@ class LazyServiceWrapper(LazyObject):
 def resolve_callable(value):
     if callable(value):
         return value
-    elif isinstance(value, six.string_types):
+    elif isinstance(value, str):
         return import_string(value)
     else:
         raise TypeError("Expected callable or string")
 
 
-class Context(object):
+class Context:
     def __init__(self, request, backends):
         self.request = request
         self.backends = backends

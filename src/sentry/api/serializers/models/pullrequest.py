@@ -11,7 +11,7 @@ def get_users_for_pull_requests(item_list, user=None):
     )
 
     if authors:
-        org_ids = set(item.organization_id for item in item_list)
+        org_ids = {item.organization_id for item in item_list}
         if len(org_ids) == 1:
             return get_users_for_authors(organization_id=org_ids.pop(), authors=authors, user=user)
     return {}
@@ -27,14 +27,14 @@ class PullRequestSerializer(Serializer):
 
         result = {}
         for item in item_list:
-            repository_id = six.text_type(item.repository_id)
+            repository_id = str(item.repository_id)
             external_url = ""
             if item.repository_id in repository_map:
                 external_url = self._external_url(repository_map[item.repository_id], item)
             result[item] = {
                 "repository": serialized_repos.get(repository_id, {}),
                 "external_url": external_url,
-                "user": users_by_author.get(six.text_type(item.author_id), {})
+                "user": users_by_author.get(str(item.author_id), {})
                 if item.author_id
                 else {},
             }

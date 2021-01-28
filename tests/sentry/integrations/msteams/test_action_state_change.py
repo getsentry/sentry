@@ -27,7 +27,7 @@ from sentry.integrations.msteams.link_identity import build_linking_url
 
 class BaseEventTest(APITestCase):
     def setUp(self):
-        super(BaseEventTest, self).setUp()
+        super().setUp()
         self.user = self.create_user(is_superuser=False)
         owner = self.create_user()
         self.org = self.create_organization(owner=owner)
@@ -202,7 +202,7 @@ class StatusActionTest(BaseEventTest):
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     def test_assign_to_team(self, verify):
         resp = self.post_webhook(
-            action_type=ACTION_TYPE.ASSIGN, assign_input="team:{}".format(self.team.id)
+            action_type=ACTION_TYPE.ASSIGN, assign_input=f"team:{self.team.id}"
         )
 
         assert resp.status_code == 200, resp.content
@@ -218,7 +218,7 @@ class StatusActionTest(BaseEventTest):
 
         assert b"Unassign" in responses.calls[0].request.body
         assert (
-            "Assigned to {}".format(self.user.email).encode("utf-8")
+            f"Assigned to {self.user.email}".encode("utf-8")
             in responses.calls[0].request.body
         )
 
@@ -235,7 +235,7 @@ class StatusActionTest(BaseEventTest):
         assert b"Unassign" in responses.calls[0].request.body
         assert "user_conversation_id" in responses.calls[0].request.url
         assert (
-            "Assigned to {}".format(self.user.email).encode("utf-8")
+            f"Assigned to {self.user.email}".encode("utf-8")
             in responses.calls[0].request.body
         )
 
@@ -252,7 +252,7 @@ class StatusActionTest(BaseEventTest):
         assert b"Unassign" in responses.calls[0].request.body
         assert "some_channel_id" in responses.calls[0].request.url
         assert (
-            "Assigned to {}".format(self.user.email).encode("utf-8")
+            f"Assigned to {self.user.email}".encode("utf-8")
             in responses.calls[0].request.body
         )
 

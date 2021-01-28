@@ -55,9 +55,9 @@ def track_outcome(
     if quantity is None:
         quantity = 1
 
-    assert isinstance(org_id, six.integer_types)
-    assert isinstance(project_id, six.integer_types)
-    assert isinstance(key_id, (type(None), six.integer_types))
+    assert isinstance(org_id, int)
+    assert isinstance(project_id, int)
+    assert isinstance(key_id, (type(None), (int,)))
     assert isinstance(outcome, Outcome)
     assert isinstance(timestamp, (type(None), datetime))
     assert isinstance(category, (type(None), DataCategory))

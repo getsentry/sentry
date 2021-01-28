@@ -15,13 +15,13 @@ class ApiError(Exception):
         self.body = body
 
     def __str__(self):
-        return "status={} body={}".format(self.status_code, self.body)
+        return f"status={self.status_code} body={self.body}"
 
     def __repr__(self):
-        return "<ApiError: {}>".format(self)
+        return f"<ApiError: {self}>"
 
 
-class ApiClient(object):
+class ApiClient:
     prefix = "/api/0"
 
     ApiError = ApiError

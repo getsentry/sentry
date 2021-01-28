@@ -13,7 +13,7 @@ def get_users_for_commits(item_list, user=None):
     )
 
     if authors:
-        org_ids = set(item.organization_id for item in item_list)
+        org_ids = {item.organization_id for item in item_list}
         if len(org_ids) == 1:
             return get_users_for_authors(organization_id=org_ids.pop(), authors=authors, user=user)
     return {}
@@ -43,8 +43,8 @@ class CommitSerializer(Serializer):
         result = {}
         for item in item_list:
             result[item] = {
-                "repository": repository_objs.get(six.text_type(item.repository_id), {}),
-                "user": users_by_author.get(six.text_type(item.author_id), {})
+                "repository": repository_objs.get(str(item.repository_id), {}),
+                "user": users_by_author.get(str(item.author_id), {})
                 if item.author_id
                 else {},
             }
@@ -69,7 +69,7 @@ class CommitWithReleaseSerializer(CommitSerializer):
     def get_attrs(self, item_list, user):
         from sentry.models import ReleaseCommit
 
-        attrs = super(CommitWithReleaseSerializer, self).get_attrs(item_list, user)
+        attrs = super().get_attrs(item_list, user)
         releases_by_commit = defaultdict(list)
         queryset = ReleaseCommit.objects.filter(commit__in=item_list).select_related("release")[
             :1000
@@ -81,7 +81,7 @@ class CommitWithReleaseSerializer(CommitSerializer):
         return attrs
 
     def serialize(self, obj, attrs, user):
-        data = super(CommitWithReleaseSerializer, self).serialize(obj, attrs, user)
+        data = super().serialize(obj, attrs, user)
         data["releases"] = [
             {
                 "version": r.version,

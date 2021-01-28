@@ -41,6 +41,11 @@ repos:
     - id: trailing-whitespace
       exclude_types: [svg]
     - id: debug-statements
+-   repo: https://github.com/asottile/pyupgrade
+    rev: v2.7.4
+    hooks:
+    -   id: pyupgrade
+        args: ['--py36-plus']
 # -   repo: git://github.com/getsentry/pre-commit-hooks
 #     rev: f3237d2d65af81d435c49dee3593dc8f03d23c2d
 #     hooks:

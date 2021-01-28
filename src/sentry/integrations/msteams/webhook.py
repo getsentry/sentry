@@ -142,7 +142,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
     @csrf_exempt
     def dispatch(self, request, *args, **kwargs):
-        return super(MsTeamsWebhookEndpoint, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     @transaction_start("MsTeamsWebhookEndpoint")
     def post(self, request):
@@ -286,7 +286,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         elif action_type == ACTION_TYPE.ASSIGN:
             assignee = data["assignInput"]
             if assignee == "ME":
-                assignee = "user:{}".format(user_id)
+                assignee = f"user:{user_id}"
             action_data = {"assignedTo": assignee}
         elif action_type == ACTION_TYPE.UNASSIGN:
             action_data = {"assignedTo": ""}

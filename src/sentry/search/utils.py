@@ -24,9 +24,9 @@ def get_user_tag(projects, key, value):
             project_id__in=[p.id for p in projects], **{lookup: value}
         )[0]
     except (KeyError, IndexError):
-        return "{}:{}".format(key, value)
+        return f"{key}:{value}"
     except DataError:
-        raise InvalidQuery("malformed '{}:' query '{}'.".format(key, value))
+        raise InvalidQuery(f"malformed '{key}:' query '{value}'.")
     return euser.tag_value
 
 
@@ -42,7 +42,7 @@ def parse_duration(value, interval):
     try:
         value = float(value)
     except ValueError:
-        raise InvalidQuery("{} is not a valid duration value".format(value))
+        raise InvalidQuery(f"{value} is not a valid duration value")
 
     if interval == "ms":
         delta = timedelta(milliseconds=value)
@@ -70,7 +70,7 @@ def parse_percentage(value):
     try:
         value = float(value)
     except ValueError:
-        raise InvalidQuery("{} is not a valid percentage value".format(value))
+        raise InvalidQuery(f"{value} is not a valid percentage value")
 
     return value / 100
 
@@ -79,10 +79,10 @@ def parse_datetime_range(value):
     try:
         flag, count, interval = value[0], int(value[1:-1]), value[-1]
     except (ValueError, TypeError, IndexError):
-        raise InvalidQuery("{} is not a valid datetime query".format(value))
+        raise InvalidQuery(f"{value} is not a valid datetime query")
 
     if flag not in ("+", "-"):
-        raise InvalidQuery("{} is not a valid datetime query".format(value))
+        raise InvalidQuery(f"{value} is not a valid datetime query")
 
     if interval == "h":
         delta = timedelta(hours=count)
@@ -93,7 +93,7 @@ def parse_datetime_range(value):
     elif interval == "m":
         delta = timedelta(minutes=count)
     else:
-        raise InvalidQuery("{} is not a valid datetime query".format(value))
+        raise InvalidQuery(f"{value} is not a valid datetime query")
 
     if flag == "-":
         return ((timezone.now() - delta, True), None)
@@ -128,7 +128,7 @@ def parse_datetime_string(value):
     except ValueError:
         pass
 
-    raise InvalidQuery("{} is not a valid ISO8601 date query".format(value))
+    raise InvalidQuery(f"{value} is not a valid ISO8601 date query")
 
 
 def parse_datetime_comparison(value):
@@ -141,7 +141,7 @@ def parse_datetime_comparison(value):
     if value[:1] == "<":
         return (None, (parse_datetime_string(value[1:]), False))
 
-    raise InvalidQuery("{} is not a valid datetime query".format(value))
+    raise InvalidQuery(f"{value} is not a valid datetime query")
 
 
 def parse_datetime_value(value):
@@ -177,7 +177,7 @@ def parse_datetime_value(value):
             pass
 
     if result is None:
-        raise InvalidQuery("{} is not a valid datetime query".format(value))
+        raise InvalidQuery(f"{value} is not a valid datetime query")
 
     return ((result - timedelta(minutes=5), True), (result + timedelta(minutes=6), False))
 
@@ -197,11 +197,11 @@ def get_date_params(value, from_field, to_field):
     if date_from is not None:
         date_from_value, date_from_inclusive = date_from
         result.update(
-            {from_field: date_from_value, "{}_inclusive".format(from_field): date_from_inclusive}
+            {from_field: date_from_value, f"{from_field}_inclusive": date_from_inclusive}
         )
     if date_to is not None:
         date_to_value, date_to_inclusive = date_to
-        result.update({to_field: date_to_value, "{}_inclusive".format(to_field): date_to_inclusive})
+        result.update({to_field: date_to_value, f"{to_field}_inclusive": date_to_inclusive})
     return result
 
 
@@ -275,29 +275,29 @@ numeric_modifiers = [
     (
         ">=",
         lambda field, value: {
-            "{}_lower".format(field): value,
-            "{}_lower_inclusive".format(field): True,
+            f"{field}_lower": value,
+            f"{field}_lower_inclusive": True,
         },
     ),
     (
         "<=",
         lambda field, value: {
-            "{}_upper".format(field): value,
-            "{}_upper_inclusive".format(field): True,
+            f"{field}_upper": value,
+            f"{field}_upper_inclusive": True,
         },
     ),
     (
         ">",
         lambda field, value: {
-            "{}_lower".format(field): value,
-            "{}_lower_inclusive".format(field): False,
+            f"{field}_lower": value,
+            f"{field}_lower_inclusive": False,
         },
     ),
     (
         "<",
         lambda field, value: {
-            "{}_upper".format(field): value,
-            "{}_upper_inclusive".format(field): False,
+            f"{field}_upper": value,
+            f"{field}_upper_inclusive": False,
         },
     ),
 ]
@@ -311,7 +311,7 @@ def get_numeric_field_value(field, raw_value, type=int):
         else:
             return {field: type(raw_value)}
     except ValueError:
-        msg = '"{}" could not be converted to a number.'.format(raw_value)
+        msg = f'"{raw_value}" could not be converted to a number.'
         raise InvalidQuery(msg)
 
 
@@ -429,7 +429,7 @@ def parse_query(projects, query, user, environments):
     tokens = tokenize_query(query)
 
     results = {"tags": {}, "query": []}
-    for key, token_list in six.iteritems(tokens):
+    for key, token_list in tokens.items():
         for value in token_list:
             if key == "query":
                 results["query"].append(value)
@@ -448,7 +448,7 @@ def parse_query(projects, query, user, environments):
                     try:
                         results["status"] = STATUS_QUERY_CHOICES[value]
                     except KeyError:
-                        raise InvalidQuery("'is:' had unknown status code '{}'.".format(value))
+                        raise InvalidQuery(f"'is:' had unknown status code '{value}'.")
             elif key == "assigned":
                 results["assigned_to"] = parse_actor_value(projects, value, user)
             elif key == "owner":
@@ -505,4 +505,4 @@ def convert_user_tag_to_query(key, value):
     if key == "user" and ":" in value:
         sub_key, value = value.split(":", 1)
         if KEYWORD_MAP.get_key(sub_key, None):
-            return 'user.%s:"%s"' % (sub_key, value.replace('"', '\\"'))
+            return 'user.{}:"{}"'.format(sub_key, value.replace('"', '\\"'))

@@ -14,7 +14,7 @@ def client():
 @responses.activate
 def test_request_sends_access_token(client):
     responses.add(
-        responses.GET, "https://{0}/".format(API_DOMAIN), json={"status": "SUCCESS"}, status=200
+        responses.GET, f"https://{API_DOMAIN}/", json={"status": "SUCCESS"}, status=200
     )
     client._request("/")
 

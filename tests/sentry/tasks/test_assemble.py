@@ -30,13 +30,13 @@ class BaseAssembleTest(TestCase):
 
 class AssembleDifTest(BaseAssembleTest):
     def test_wrong_dif(self):
-        content1 = "foo".encode("utf-8")
+        content1 = b"foo"
         fileobj1 = ContentFile(content1)
 
-        content2 = "bar".encode("utf-8")
+        content2 = b"bar"
         fileobj2 = ContentFile(content2)
 
-        content3 = "baz".encode("utf-8")
+        content3 = b"baz"
         fileobj3 = ContentFile(content3)
 
         total_checksum = sha1(content2 + content1 + content3).hexdigest()
@@ -180,7 +180,7 @@ class AssembleDifTest(BaseAssembleTest):
 
 class AssembleArtifactsTest(BaseAssembleTest):
     def setUp(self):
-        super(AssembleArtifactsTest, self).setUp()
+        super().setUp()
         self.release = self.create_release(version="my-unique-release.1")
 
     def test_artifacts(self):

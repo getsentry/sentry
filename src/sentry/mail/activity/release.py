@@ -31,7 +31,7 @@ from sentry.utils.compat import zip
 
 class ReleaseActivityEmail(ActivityEmail):
     def __init__(self, activity):
-        super(ReleaseActivityEmail, self).__init__(activity)
+        super().__init__(activity)
         self.organization = self.project.organization
         self.user_id_team_lookup = None
         self.email_list = {}
@@ -66,7 +66,7 @@ class ReleaseActivityEmail(ActivityEmail):
                 ).values_list("id", "name")
             }
 
-            self.email_list = set([c.author.email for c in self.commit_list if c.author])
+            self.email_list = {c.author.email for c in self.commit_list if c.author}
             if self.email_list:
                 users = {
                     ue.email: ue.user
@@ -76,7 +76,7 @@ class ReleaseActivityEmail(ActivityEmail):
                         user__sentry_orgmember_set__organization=self.organization,
                     ).select_related("user")
                 }
-                self.user_ids = {u.id for u in six.itervalues(users)}
+                self.user_ids = {u.id for u in users.values()}
 
             else:
                 users = {}
@@ -165,7 +165,7 @@ class ReleaseActivityEmail(ActivityEmail):
         }
 
         # merge the two type of participants
-        return dict(chain(six.iteritems(participants_committed), six.iteritems(participants_opted)))
+        return dict(chain(participants_committed.items(), participants_opted.items()))
 
     def get_users_by_teams(self):
         if not self.user_id_team_lookup:
@@ -197,7 +197,7 @@ class ReleaseActivityEmail(ActivityEmail):
             "deploy": self.deploy,
             "environment": self.environment,
             "setup_repo_link": absolute_uri(
-                "/organizations/{}/repos/".format(self.organization.slug)
+                f"/organizations/{self.organization.slug}/repos/"
             ),
         }
 
@@ -229,7 +229,7 @@ class ReleaseActivityEmail(ActivityEmail):
         }
 
     def get_subject(self):
-        return "Deployed version {} to {}".format(self.release.version, self.environment)
+        return f"Deployed version {self.release.version} to {self.environment}"
 
     def get_template(self):
         return "sentry/emails/activity/release.txt"

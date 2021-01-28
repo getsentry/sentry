@@ -10,7 +10,7 @@ FEATURE_NAMES = [
 
 class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     def setUp(self):
-        super(OrganizationDashboardsAcceptanceTest, self).setUp()
+        super().setUp()
         min_ago = iso_format(before_now(minutes=1))
         self.default_path = "/organizations/{}/dashboards/default-overview/".format(
             self.organization.slug

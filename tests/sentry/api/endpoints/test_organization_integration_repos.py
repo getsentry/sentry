@@ -5,7 +5,7 @@ from sentry.testutils import APITestCase
 
 class OrganizationIntegrationReposTest(APITestCase):
     def setUp(self):
-        super(OrganizationIntegrationReposTest, self).setUp()
+        super().setUp()
 
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user, name="baz")

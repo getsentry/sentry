@@ -39,7 +39,7 @@ class InvalidSchemaError(InvalidMessageError):
     pass
 
 
-class QuerySubscriptionConsumer(object):
+class QuerySubscriptionConsumer:
     """
     A Kafka consumer that processes query subscription update messages. Each message has
     a related subscription id and the latest values related to the subscribed query.
@@ -120,8 +120,8 @@ class QuerySubscriptionConsumer(object):
             logger.info(
                 "query-subscription-consumer.on_assign",
                 extra={
-                    "offsets": six.text_type(self.offsets),
-                    "partitions": six.text_type(partitions),
+                    "offsets": str(self.offsets),
+                    "partitions": str(partitions),
                 },
             )
 
@@ -133,8 +133,8 @@ class QuerySubscriptionConsumer(object):
             logger.info(
                 "query-subscription-consumer.on_revoke",
                 extra={
-                    "offsets": six.text_type(self.offsets),
-                    "partitions": six.text_type(partitions),
+                    "offsets": str(self.offsets),
+                    "partitions": str(partitions),
                 },
             )
 
@@ -181,7 +181,7 @@ class QuerySubscriptionConsumer(object):
     def commit_offsets(self, partitions=None):
         logger.info(
             "query-subscription-consumer.commit_offsets",
-            extra={"offsets": six.text_type(self.offsets), "partitions": six.text_type(partitions)},
+            extra={"offsets": str(self.offsets), "partitions": str(partitions)},
         )
 
         if self.offsets and self.consumer:

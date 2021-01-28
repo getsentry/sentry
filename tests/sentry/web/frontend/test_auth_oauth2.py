@@ -45,7 +45,7 @@ class AuthOAuth2Test(AuthProviderTestCase):
         self.auth_provider = AuthProvider.objects.create(
             provider=self.provider_name, organization=self.org
         )
-        super(AuthOAuth2Test, self).setUp()
+        super().setUp()
 
     @fixture
     def login_path(self):
@@ -75,7 +75,7 @@ class AuthOAuth2Test(AuthProviderTestCase):
         urlopen.return_value = MockResponse(headers, json.dumps(auth_data))
 
         query = urlencode({"code": "1234", "state": state})
-        resp = self.client.get("{}?{}".format(self.sso_path, query), **kwargs)
+        resp = self.client.get(f"{self.sso_path}?{query}", **kwargs)
 
         if expect_success:
             assert resp.status_code == 200
@@ -101,7 +101,7 @@ class AuthOAuth2Test(AuthProviderTestCase):
 
         messages = list(auth_resp.context["messages"])
         assert len(messages) == 1
-        assert six.text_type(messages[0]).startswith("Authentication error")
+        assert str(messages[0]).startswith("Authentication error")
 
     def test_response_errors(self):
         auth_data = {"error_description": "Mock failure"}
@@ -111,7 +111,7 @@ class AuthOAuth2Test(AuthProviderTestCase):
 
         messages = list(auth_resp.context["messages"])
         assert len(messages) == 1
-        assert six.text_type(messages[0]) == "Authentication error: Mock failure"
+        assert str(messages[0]) == "Authentication error: Mock failure"
 
         auth_data = {"error": "its broke yo"}
 
@@ -120,4 +120,4 @@ class AuthOAuth2Test(AuthProviderTestCase):
 
         messages = list(auth_resp.context["messages"])
         assert len(messages) == 1
-        assert six.text_type(messages[0]).startswith("Authentication error")
+        assert str(messages[0]).startswith("Authentication error")

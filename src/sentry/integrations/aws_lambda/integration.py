@@ -63,7 +63,7 @@ metadata = IntegrationMetadata(
 
 class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
     def __init__(self, *args, **kwargs):
-        super(AwsLambdaIntegration, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._client = None
 
     @property
@@ -188,7 +188,7 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
 
         integration_name = "{} {}".format(account["Name"], region)
 
-        external_id = "{}-{}".format(account_number, region)
+        external_id = f"{account_number}-{region}"
 
         integration = {
             "name": integration_name,
@@ -277,7 +277,7 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
             except Exception as e:
                 logger.error(
                     "AwsLambdaCloudFormationPipelineView.unexpected_error",
-                    extra={"error": six.text_type(e)},
+                    extra={"error": str(e)},
                 )
                 return render_response(_("Unkown errror"))
 
@@ -348,9 +348,9 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
                 enable_single_lambda(lambda_client, function, sentry_project_dsn, layer_arn)
                 success_count += 1
             except Exception as e:
-                err_message = six.text_type(e)
+                err_message = str(e)
                 match = re.search(
-                    "Layer version arn:aws:lambda:[^:]+:\d+:layer:([^:]+):\d+ does not exist",
+                    r"Layer version arn:aws:lambda:[^:]+:\d+:layer:([^:]+):\d+ does not exist",
                     err_message,
                 )
                 if match:
@@ -365,7 +365,7 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
                         "lambda_name": name,
                         "account_number": account_number,
                         "region": region,
-                        "error": six.text_type(e),
+                        "error": str(e),
                     },
                 )
 

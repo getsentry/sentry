@@ -269,7 +269,7 @@ def migrate_repo(repo_id, integration_id, organization_id):
             )
 
         repo.integration_id = integration_id
-        repo.provider = "integrations:%s" % (integration.provider,)
+        repo.provider = f"integrations:{integration.provider}"
         # check against disabled specifically -- don't want to accidentally un-delete repos
         original_status = repo.status
         if repo.status == ObjectStatus.DISABLED:
@@ -347,7 +347,7 @@ def vsts_subscription_check(integration_id, organization_id, **kwargs):
             extra={
                 "integration_id": integration_id,
                 "organization_id": organization_id,
-                "error": six.text_type(e),
+                "error": str(e),
             },
         )
         subscription = None
@@ -369,7 +369,7 @@ def vsts_subscription_check(integration_id, organization_id, **kwargs):
                         "integration_id": integration_id,
                         "organization_id": organization_id,
                         "subscription_id": subscription_id,
-                        "error": six.text_type(e),
+                        "error": str(e),
                     },
                 )
 
@@ -384,7 +384,7 @@ def vsts_subscription_check(integration_id, organization_id, **kwargs):
                 extra={
                     "integration_id": integration_id,
                     "organization_id": organization_id,
-                    "error": six.text_type(e),
+                    "error": str(e),
                 },
             )
         else:

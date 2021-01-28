@@ -109,7 +109,7 @@ class IncidentManager(BaseManager):
             else:
                 identifier += 1
 
-            return super(IncidentManager, self).create(
+            return super().create(
                 organization=organization, identifier=identifier, **kwargs
             )
 
@@ -301,7 +301,7 @@ class AlertRuleManager(BaseManager):
 
     def get_queryset(self):
         return (
-            super(AlertRuleManager, self)
+            super()
             .get_queryset()
             .exclude(status=AlertRuleStatus.SNAPSHOT.value)
         )
@@ -594,7 +594,7 @@ class AlertRuleTriggerAction(Model):
         if type in self._type_registrations:
             return self._type_registrations[type].handler(self, incident, project)
         else:
-            metrics.incr("alert_rule_trigger.unhandled_type.{}".format(self.type))
+            metrics.incr(f"alert_rule_trigger.unhandled_type.{self.type}")
 
     def fire(self, incident, project, metric_value):
         handler = self.build_handler(incident, project)

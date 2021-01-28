@@ -23,11 +23,11 @@ def consolidate_events(raw_events):
     Consolidate a list of raw event types ('issue.created', etc) into a list of
     rolled up events ('issue', etc).
     """
-    return set(
+    return {
         name
-        for (name, rolled_up_events) in six.iteritems(EVENT_EXPANSION)
+        for (name, rolled_up_events) in EVENT_EXPANSION.items()
         if any(set(raw_events) & set(rolled_up_events))
-    )
+    }
 
 
 class Creator(Mediator):
@@ -36,7 +36,7 @@ class Creator(Mediator):
     organization = Param("sentry.models.Organization")
     projects = Param(Iterable)
     events = Param(Iterable)
-    url = Param(six.string_types)
+    url = Param((str,))
 
     def call(self):
         self.hook = self._create_service_hook()

@@ -97,10 +97,10 @@ SOURCES_SCHEMA = {
 
 
 def _task_id_cache_key_for_event(project_id, event_id):
-    return "symbolicator:{1}:{0}".format(project_id, event_id)
+    return f"symbolicator:{event_id}:{project_id}"
 
 
-class Symbolicator(object):
+class Symbolicator:
     def __init__(self, project, event_id):
         symbolicator_options = options.get("symbolicator.options")
         base_url = symbolicator_options["url"].rstrip("/")
@@ -115,8 +115,8 @@ class Symbolicator(object):
 
         self.sess = SymbolicatorSession(
             url=base_url,
-            project_id=six.text_type(project.id),
-            event_id=six.text_type(event_id),
+            project_id=str(project.id),
+            event_id=str(event_id),
             timeout=settings.SYMBOLICATOR_POLL_TIMEOUT,
             sources=get_sources_for_project(project),
             options=get_options_for_project(project),
@@ -284,7 +284,7 @@ def get_internal_source(project):
             ).replace("127.0.0.1", "host.docker.internal")
 
     assert internal_url_prefix
-    sentry_source_url = "%s%s" % (
+    sentry_source_url = "{}{}".format(
         internal_url_prefix.rstrip("/"),
         reverse(
             "sentry-api-0-dsym-files",
@@ -319,7 +319,7 @@ def parse_sources(config):
     try:
         sources = json.loads(config)
     except BaseException as e:
-        raise InvalidSourcesError(six.text_type(e))
+        raise InvalidSourcesError(str(e))
 
     try:
         jsonschema.validate(sources, SOURCES_SCHEMA)
@@ -331,7 +331,7 @@ def parse_sources(config):
         if is_internal_source_id(source["id"]):
             raise InvalidSourcesError('Source ids must not start with "sentry:"')
         if source["id"] in ids:
-            raise InvalidSourcesError("Duplicate source id: %s" % (source["id"],))
+            raise InvalidSourcesError("Duplicate source id: {}".format(source["id"]))
         ids.add(source["id"])
 
     return sources
@@ -384,15 +384,14 @@ def get_sources_for_project(project):
             other_source = settings.SENTRY_BUILTIN_SOURCES.get(key)
             if other_source:
                 if other_source.get("type") == "alias":
-                    for item in resolve_alias(other_source):
-                        yield item
+                    yield from resolve_alias(other_source)
                 else:
                     yield other_source
 
     # Add builtin sources last to ensure that custom sources have precedence
     # over our defaults.
     builtin_sources = project.get_option("sentry:builtin_symbol_sources")
-    for key, source in six.iteritems(settings.SENTRY_BUILTIN_SOURCES):
+    for key, source in settings.SENTRY_BUILTIN_SOURCES.items():
         if key not in builtin_sources:
             continue
 
@@ -407,7 +406,7 @@ def get_sources_for_project(project):
     return sources
 
 
-class SymbolicatorSession(object):
+class SymbolicatorSession:
     def __init__(
         self, url=None, sources=None, project_id=None, event_id=None, timeout=None, options=None
     ):
@@ -496,7 +495,7 @@ class SymbolicatorSession(object):
                     json = {"status": "failed", "message": "internal server error"}
 
                 return self._process_response(json)
-            except (IOError, RequestException) as e:
+            except (OSError, RequestException) as e:
                 metrics.incr(
                     "events.symbolicator.request_error",
                     tags={
@@ -550,7 +549,7 @@ class SymbolicatorSession(object):
         )
 
     def query_task(self, task_id):
-        task_url = "requests/%s" % (task_id,)
+        task_url = f"requests/{task_id}"
 
         params = {
             "timeout": 0,  # Only wait when creating, but not when querying tasks

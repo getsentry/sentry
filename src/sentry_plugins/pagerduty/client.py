@@ -12,7 +12,7 @@ class PagerDutyClient(ApiClient):
 
     def __init__(self, service_key=None):
         self.service_key = service_key
-        super(PagerDutyClient, self).__init__()
+        super().__init__()
 
     def build_url(self, path):
         return INTEGRATION_API_URL

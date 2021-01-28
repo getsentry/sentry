@@ -8,7 +8,7 @@ from sentry.utils.cache import cache
 
 
 def get_project_release_cache_key(project_id):
-    return "project:{}:latest_release".format(project_id)
+    return f"project:{project_id}:latest_release"
 
 
 # clear the cache given a Release object

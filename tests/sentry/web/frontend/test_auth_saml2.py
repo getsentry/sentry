@@ -71,13 +71,13 @@ class AuthSAML2Test(AuthProviderTestCase):
 
         settings.SENTRY_OPTIONS.update({"system.url-prefix": "http://testserver.com"})
 
-        super(AuthSAML2Test, self).setUp()
+        super().setUp()
 
     def tearDown(self):
         # restore url-prefix config
         settings.SENTRY_OPTIONS.update({"system.url-prefix": self.url_prefix})
 
-        super(AuthSAML2Test, self).tearDown()
+        super().tearDown()
 
     @fixture
     def login_path(self):
@@ -141,7 +141,7 @@ class AuthSAML2Test(AuthProviderTestCase):
 
         auth = self.accept_auth(follow=True)
 
-        messages = map(lambda m: six.text_type(m), auth.context["messages"])
+        messages = map(lambda m: str(m), auth.context["messages"])
 
         assert len(messages) == 2
         assert messages[0] == "You have successfully linked your account to your SSO provider."
@@ -165,7 +165,7 @@ class AuthSAML2Test(AuthProviderTestCase):
 
         assert auth.status_code == 200
 
-        messages = map(lambda m: six.text_type(m), auth.context["messages"])
+        messages = map(lambda m: str(m), auth.context["messages"])
         assert len(messages) == 1
         assert messages[0] == "The organization does not exist or does not have SAML SSO enabled."
 

@@ -10,7 +10,7 @@ def _import_all():
         "configurations",
     ]
     for module in strategy_modules:
-        __import__("%s.%s" % (__name__, module))
+        __import__(f"{__name__}.{module}")
 
 
 _import_all()

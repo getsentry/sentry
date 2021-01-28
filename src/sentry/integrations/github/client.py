@@ -17,24 +17,24 @@ class GitHubClientMixin(ApiClient):
         # return api request that fetches last ~30 commits
         # see https://developer.github.com/v3/repos/commits/#list-commits-on-a-repository
         # using end_sha as parameter
-        return self.get_cached("/repos/{}/commits".format(repo), params={"sha": end_sha})
+        return self.get_cached(f"/repos/{repo}/commits", params={"sha": end_sha})
 
     def compare_commits(self, repo, start_sha, end_sha):
         # see https://developer.github.com/v3/repos/commits/#compare-two-commits
         # where start sha is oldest and end is most recent
-        return self.get_cached("/repos/{}/compare/{}...{}".format(repo, start_sha, end_sha))
+        return self.get_cached(f"/repos/{repo}/compare/{start_sha}...{end_sha}")
 
     def repo_hooks(self, repo):
-        return self.get("/repos/{}/hooks".format(repo))
+        return self.get(f"/repos/{repo}/hooks")
 
     def get_commits(self, repo):
-        return self.get("/repos/{}/commits".format(repo))
+        return self.get(f"/repos/{repo}/commits")
 
     def get_commit(self, repo, sha):
-        return self.get_cached("/repos/{}/commits/{}".format(repo, sha))
+        return self.get_cached(f"/repos/{repo}/commits/{sha}")
 
     def get_repo(self, repo):
-        return self.get("/repos/{}".format(repo))
+        return self.get(f"/repos/{repo}")
 
     def get_repositories(self):
         repositories = self.get("/installation/repositories", params={"per_page": 100})
@@ -45,27 +45,27 @@ class GitHubClientMixin(ApiClient):
         return self.get("/search/repositories", params={"q": query})
 
     def get_assignees(self, repo):
-        return self.get("/repos/{}/assignees".format(repo))
+        return self.get(f"/repos/{repo}/assignees")
 
     def get_issues(self, repo):
-        return self.get("/repos/{}/issues".format(repo))
+        return self.get(f"/repos/{repo}/issues")
 
     def search_issues(self, query):
         return self.get("/search/issues", params={"q": query})
 
     def get_issue(self, repo, number):
-        return self.get("/repos/{}/issues/{}".format(repo, number))
+        return self.get(f"/repos/{repo}/issues/{number}")
 
     def create_issue(self, repo, data):
-        endpoint = "/repos/{}/issues".format(repo)
+        endpoint = f"/repos/{repo}/issues"
         return self.post(endpoint, data=data)
 
     def create_comment(self, repo, issue_id, data):
-        endpoint = "/repos/{}/issues/{}/comments".format(repo, issue_id)
+        endpoint = f"/repos/{repo}/issues/{issue_id}/comments"
         return self.post(endpoint, data=data)
 
     def get_user(self, gh_username):
-        return self.get("/users/{}".format(gh_username))
+        return self.get(f"/users/{gh_username}")
 
     def request(self, method, path, headers=None, data=None, params=None):
         if headers is None:
@@ -102,7 +102,7 @@ class GitHubClientMixin(ApiClient):
 
     def create_token(self):
         return self.post(
-            "/app/installations/{}/access_tokens".format(self.integration.external_id),
+            f"/app/installations/{self.integration.external_id}/access_tokens",
             headers={
                 "Authorization": b"Bearer %s" % self.get_jwt(),
                 # TODO(jess): remove this whenever it's out of preview
@@ -113,11 +113,11 @@ class GitHubClientMixin(ApiClient):
     def check_file(self, repo, path, version):
         repo_name = repo.name
         return self.head_cached(
-            path="/repos/{}/contents/{}".format(repo_name, path), params={"ref": version}
+            path=f"/repos/{repo_name}/contents/{path}", params={"ref": version}
         )
 
 
 class GitHubAppsClient(GitHubClientMixin):
     def __init__(self, integration):
         self.integration = integration
-        super(GitHubAppsClient, self).__init__()
+        super().__init__()

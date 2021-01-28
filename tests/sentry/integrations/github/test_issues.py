@@ -256,7 +256,7 @@ class GitHubIssueBasicTest(TestCase):
         org_integration = self.integration.org_integration
         org_integration.config = {
             "project_issue_defaults": {
-                six.text_type(group.project_id): {"repo": "getsentry/sentry"}
+                str(group.project_id): {"repo": "getsentry/sentry"}
             }
         }
         org_integration.save()
@@ -292,7 +292,7 @@ class GitHubIssueBasicTest(TestCase):
         org_integration = self.integration.org_integration
         org_integration.config = {
             "project_issue_defaults": {
-                six.text_type(group.project_id): {"repo": "getsentry/sentry"}
+                str(group.project_id): {"repo": "getsentry/sentry"}
             }
         }
         org_integration.save()

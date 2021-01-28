@@ -12,7 +12,7 @@ class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
 
     def convert_args(self, request, sentry_app_slug, api_token, *args, **kwargs):
         # get the sentry_app from the SentryAppBaseEndpoint class
-        (args, kwargs) = super(SentryInternalAppTokenDetailsEndpoint, self).convert_args(
+        (args, kwargs) = super().convert_args(
             request, sentry_app_slug, *args, **kwargs
         )
 

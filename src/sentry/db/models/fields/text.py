@@ -19,7 +19,7 @@ from django.db import models
 __all__ = ("CharField", "EmailField")
 
 
-class TextType(object):
+class TextType:
     def db_type(self, connection):
         return "text"
 

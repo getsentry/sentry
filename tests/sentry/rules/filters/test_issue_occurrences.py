@@ -10,7 +10,7 @@ class IssueOccurrencesTest(RuleTestCase):
     def test_compares_correctly(self):
         event = self.get_event()
         value = 10
-        data = {"value": six.text_type(value)}
+        data = {"value": str(value)}
 
         rule = self.get_rule(data=data)
 

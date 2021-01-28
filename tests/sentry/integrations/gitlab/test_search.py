@@ -12,7 +12,7 @@ class GitlabSearchTest(GitLabTestCase):
     provider = "gitlab"
 
     def setUp(self):
-        super(GitlabSearchTest, self).setUp()
+        super().setUp()
         self.url = reverse(
             "sentry-extensions-gitlab-search",
             kwargs={

@@ -12,16 +12,16 @@ from sentry.mediators.sentry_app_installation_tokens import (
 
 
 class InternalCreator(Mediator):
-    name = Param(six.string_types)
+    name = Param((str,))
     organization = Param("sentry.models.Organization")
     scopes = Param(Iterable, default=lambda self: [])
     events = Param(Iterable, default=lambda self: [])
-    webhook_url = Param(six.string_types, required=False)
-    redirect_url = Param(six.string_types, required=False)
+    webhook_url = Param((str,), required=False)
+    redirect_url = Param((str,), required=False)
     is_alertable = Param(bool, default=False)
     schema = Param(dict, default=lambda self: {})
-    overview = Param(six.string_types, required=False)
-    author = Param(six.string_types, required=False)
+    overview = Param((str,), required=False)
+    author = Param((str,), required=False)
     allowed_origins = Param(Iterable, default=lambda self: [])
     request = Param("rest_framework.request.Request", required=False)
     user = Param("sentry.models.User")

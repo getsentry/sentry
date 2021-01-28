@@ -34,7 +34,7 @@ def reraise_as(new_exception_or_type):
     new_exception.__cause__ = e_value
 
     try:
-        six.reraise(new_type, new_exception, e_traceback)
+        raise new_exception.with_traceback(e_traceback)
     finally:
         del e_traceback
 
@@ -57,7 +57,7 @@ def validate_dependency(settings, dependency_type, dependency, package):
     try:
         import_string(package)
     except ImportError:
-        msg = ConfigurationError.get_error_message("%s %s" % (dependency_type, dependency), package)
+        msg = ConfigurationError.get_error_message(f"{dependency_type} {dependency}", package)
         reraise_as(ConfigurationError(msg))
 
 

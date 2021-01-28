@@ -1,7 +1,7 @@
 from structlog import get_logger
 
 
-class LoggingFormat(object):
+class LoggingFormat:
     HUMAN = "human"
     MACHINE = "machine"
 

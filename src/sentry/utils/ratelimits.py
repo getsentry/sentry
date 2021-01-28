@@ -29,7 +29,7 @@ def for_organization_member_invite(organization, email, user=None, auth=None, co
         ratelimiter.is_limited(
             "members:invite-by-user:{}".format(
                 md5_text(
-                    user.id if user and user.is_authenticated() else six.text_type(auth)
+                    user.id if user and user.is_authenticated() else str(auth)
                 ).hexdigest()
             ),
             **config["members:invite-by-user"],

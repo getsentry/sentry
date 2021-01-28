@@ -26,7 +26,7 @@ def _get_name_from_email(email):
 class FetchUser(AuthView):
     def __init__(self, org=None, *args, **kwargs):
         self.org = org
-        super(FetchUser, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def handle(self, request, helper):
         client = GitHubClient(helper.fetch_state("data")["access_token"])
@@ -104,7 +104,7 @@ class SelectOrganizationForm(forms.Form):
     org = forms.ChoiceField(label="Organization")
 
     def __init__(self, org_list, *args, **kwargs):
-        super(SelectOrganizationForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.fields["org"].choices = [(o["id"], o["login"]) for o in org_list]
         self.fields["org"].widget.choices = self.fields["org"].choices
@@ -112,7 +112,7 @@ class SelectOrganizationForm(forms.Form):
 
 class SelectOrganization(AuthView):
     def __init__(self, *args, **kwargs):
-        super(SelectOrganization, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def handle(self, request, helper):
         client = GitHubClient(helper.fetch_state("data")["access_token"])
@@ -121,7 +121,7 @@ class SelectOrganization(AuthView):
         form = SelectOrganizationForm(org_list, request.POST or None)
         if form.is_valid():
             org_id = form.cleaned_data["org"]
-            org = [o for o in org_list if org_id == six.text_type(o["id"])][0]
+            org = [o for o in org_list if org_id == str(o["id"])][0]
             helper.bind_state("org", org)
             return helper.next_step()
 

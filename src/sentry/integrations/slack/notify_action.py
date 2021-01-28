@@ -40,7 +40,7 @@ class SlackNotifyServiceForm(forms.Form):
         workspace_list = [(i.id, i.name) for i in kwargs.pop("integrations")]
         self.channel_transformer = kwargs.pop("channel_transformer")
 
-        super(SlackNotifyServiceForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         if workspace_list:
             self.fields["workspace"].initial = workspace_list[0][0]
@@ -67,7 +67,7 @@ class SlackNotifyServiceForm(forms.Form):
             channel_prefix = self.data["channel"][0] if self.data["channel"][0] == "@" else "#"
             channel_id = self.data["input_channel_id"]
 
-        cleaned_data = super(SlackNotifyServiceForm, self).clean()
+        cleaned_data = super().clean()
 
         workspace = cleaned_data.get("workspace")
         try:
@@ -148,7 +148,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
     integration_key = "workspace"
 
     def __init__(self, *args, **kwargs):
-        super(SlackNotifyServiceAction, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.form_fields = {
             "workspace": {
                 "type": "choice",
@@ -206,14 +206,14 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     self.logger.info(
                         "rule.fail.slack_post",
                         extra={
-                            "error": six.text_type(e),
+                            "error": str(e),
                             "project_id": event.project_id,
                             "event_id": event.event_id,
                             "channel_name": self.get_option("channel"),
                         },
                     )
 
-        key = "slack:{}:{}".format(integration.id, channel)
+        key = f"slack:{integration.id}:{channel}"
 
         metrics.incr("notifications.sent", instance="slack.notification", skip_internal=False)
         yield self.future(send_notification, key=key)

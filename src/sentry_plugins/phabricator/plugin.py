@@ -99,7 +99,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
         ]
 
     def get_new_issue_fields(self, request, group, event, **kwargs):
-        fields = super(PhabricatorPlugin, self).get_new_issue_fields(
+        fields = super().get_new_issue_fields(
             request, group, event, **kwargs
         )
         return fields + [
@@ -148,7 +148,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
         ]
 
     def get_group_urls(self):
-        return super(PhabricatorPlugin, self).get_group_urls() + [
+        return super().get_group_urls() + [
             url(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
@@ -174,11 +174,11 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
             try:
                 api.user.whoami()
             except phabricator.APIError as e:
-                raise PluginError("%s %s" % (e.code, e))
+                raise PluginError(f"{e.code} {e}")
             except HTTPException as e:
-                raise PluginError("Unable to reach Phabricator host: %s" % (e,))
+                raise PluginError(f"Unable to reach Phabricator host: {e}")
             except Exception as e:
-                raise PluginError("Unhandled error from Phabricator: %s" % (e,))
+                raise PluginError(f"Unhandled error from Phabricator: {e}")
         return config
 
     def is_configured(self, request, project, **kwargs):
@@ -226,13 +226,13 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
         api = self.get_api(group.project)
         try:
             data = api.maniphest.createtask(
-                title=six.text_type(form_data["title"]),
-                description=six.text_type(form_data["description"]),
+                title=str(form_data["title"]),
+                description=str(form_data["description"]),
                 ownerPHID=form_data.get("assignee"),
                 projectPHIDs=form_data.get("tags"),
             )
         except phabricator.APIError as e:
-            raise PluginError("%s %s" % (e.code, e))
+            raise PluginError(f"{e.code} {e}")
         except HTTPException as e:
             raise PluginError("Unable to reach Phabricator host: %s" % e)
 

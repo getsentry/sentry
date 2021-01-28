@@ -105,7 +105,7 @@ GROUP_MODELS_TO_MIGRATE = DIRECT_GROUP_RELATED_MODELS + (models.Activity,)
 
 
 def _generate_unprocessed_event_node_id(project_id, event_id):
-    return hashlib.md5("{}:{}:unprocessed".format(project_id, event_id).encode("utf-8")).hexdigest()
+    return hashlib.md5(f"{project_id}:{event_id}:unprocessed".encode("utf-8")).hexdigest()
 
 
 def save_unprocessed_event(project, event_id):
@@ -254,11 +254,11 @@ def _get_sync_redis_client():
 
 
 def _get_sync_counter_key(group_id):
-    return "re2:count:{}".format(group_id)
+    return f"re2:count:{group_id}"
 
 
 def _get_info_reprocessed_key(group_id):
-    return "re2:info:{}".format(group_id)
+    return f"re2:info:{group_id}"
 
 
 def mark_event_reprocessed(data):
@@ -345,7 +345,7 @@ def start_group_reprocessing(
     new_activity = models.Activity.objects.create(
         type=models.Activity.REPROCESS,
         project=new_group.project,
-        ident=six.text_type(group_id),
+        ident=str(group_id),
         group_id=group_id,
         user_id=acting_user_id,
         data={"eventCount": event_count, "oldGroupId": group_id, "newGroupId": new_group.id},

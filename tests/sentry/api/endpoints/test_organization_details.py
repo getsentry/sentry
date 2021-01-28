@@ -48,7 +48,7 @@ class OrganizationDetailsTest(APITestCase):
         response = self.client.get(url, format="json")
         assert response.data["onboardingTasks"] == []
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(org.id)
+        assert response.data["id"] == str(org.id)
         assert response.data["role"] == "owner"
         assert len(response.data["teams"]) == 0
         assert len(response.data["projects"]) == 0
@@ -108,7 +108,7 @@ class OrganizationDetailsTest(APITestCase):
         url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
         self.login_as(user=user)
 
-        response = self.client.get("{}?detailed=0".format(url), format="json")
+        response = self.client.get(f"{url}?detailed=0", format="json")
 
         assert "projects" not in response.data
         assert "teams" not in response.data
@@ -134,7 +134,7 @@ class OrganizationDetailsTest(APITestCase):
         response = self.client.get(url, format="json")
         assert response.data["onboardingTasks"] == []
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(org.id)
+        assert response.data["id"] == str(org.id)
 
         project = self.create_project(organization=org)
         project_created.send(project=project, user=self.user, sender=type(project))
@@ -691,7 +691,7 @@ class OrganizationDeleteTest(APITestCase):
     @patch("sentry.api.endpoints.organization_details.uuid4")
     @patch("sentry.api.endpoints.organization_details.delete_organization")
     def test_can_remove_as_owner(self, mock_delete_organization, mock_uuid4):
-        class uuid(object):
+        class uuid:
             hex = "abc123"
 
         mock_uuid4.return_value = uuid
@@ -728,7 +728,7 @@ class OrganizationDeleteTest(APITestCase):
 
         # Make sure we've emailed all owners
         assert len(mail.outbox) == len(owners)
-        owner_emails = set(o.email for o in owners)
+        owner_emails = {o.email for o in owners}
         for msg in mail.outbox:
             assert "Deletion" in msg.subject
             assert len(msg.to) == 1

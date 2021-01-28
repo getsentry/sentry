@@ -35,7 +35,7 @@ def safe_extract_zip(f, path, strip_toplevel=True):
     """
     close = False
     if not isinstance(f, zipfile.ZipFile):
-        close = isinstance(f, six.string_types)
+        close = isinstance(f, str)
         zf = zipfile.ZipFile(f, "r")
     else:
         zf = f

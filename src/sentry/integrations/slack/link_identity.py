@@ -73,7 +73,7 @@ class SlackLinkIdentityView(BaseView):
         try:
             client.post(params["response_url"], data=payload, json=True)
         except ApiError as e:
-            message = six.text_type(e)
+            message = str(e)
             # If the user took their time to link their slack account, we may no
             # longer be able to respond, and we're not guaranteed able to post into
             # the channel. Ignore Expired url errors.

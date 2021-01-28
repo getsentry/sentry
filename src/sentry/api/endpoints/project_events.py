@@ -30,7 +30,7 @@ class ProjectEventsEndpoint(ProjectEndpoint):
         conditions = []
         if query:
             conditions.append(
-                [["positionCaseInsensitive", ["message", "'%s'" % (query,)]], "!=", 0]
+                [["positionCaseInsensitive", ["message", f"'{query}'"]], "!=", 0]
             )
 
         full = request.GET.get("full", False)

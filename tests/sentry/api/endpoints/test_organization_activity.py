@@ -19,8 +19,8 @@ class OrganizationActivityTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = "/api/0/organizations/{}/activity/".format(org.slug)
+        url = f"/api/0/organizations/{org.slug}/activity/"
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(activity.id)
+        assert response.data[0]["id"] == str(activity.id)

@@ -41,13 +41,12 @@ CallbackFuture = namedtuple("CallbackFuture", ["callback", "kwargs", "key"])
 
 class RuleDescriptor(type):
     def __new__(cls, *args, **kwargs):
-        new_cls = super(RuleDescriptor, cls).__new__(cls, *args, **kwargs)
-        new_cls.id = "%s.%s" % (new_cls.__module__, new_cls.__name__)
+        new_cls = super().__new__(cls, *args, **kwargs)
+        new_cls.id = f"{new_cls.__module__}.{new_cls.__name__}"
         return new_cls
 
 
-@six.add_metaclass(RuleDescriptor)
-class RuleBase(object):
+class RuleBase(metaclass=RuleDescriptor):
     label = None
     form_cls = None
 
@@ -87,7 +86,7 @@ class RuleBase(object):
         return CallbackFuture(callback=callback, key=key, kwargs=kwargs)
 
 
-class EventState(object):
+class EventState:
     def __init__(self, is_new, is_regression, is_new_group_environment, has_reappeared):
         self.is_new = is_new
         self.is_regression = is_regression

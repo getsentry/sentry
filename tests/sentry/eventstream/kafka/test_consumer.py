@@ -27,7 +27,7 @@ def create_topic(partitions=1, replication_factor=1):
         "--zookeeper",
         os.environ["SENTRY_ZOOKEEPER_HOSTS"],
     ]
-    topic = "test-{}".format(uuid.uuid1().hex)
+    topic = f"test-{uuid.uuid1().hex}"
     subprocess.check_call(
         command
         + [
@@ -35,9 +35,9 @@ def create_topic(partitions=1, replication_factor=1):
             "--topic",
             topic,
             "--partitions",
-            "{}".format(partitions),
+            f"{partitions}",
             "--replication-factor",
-            "{}".format(replication_factor),
+            f"{replication_factor}",
         ]
     )
     try:
@@ -47,7 +47,7 @@ def create_topic(partitions=1, replication_factor=1):
 
 
 def test_consumer_start_from_partition_start(requires_kafka):
-    synchronize_commit_group = "consumer-{}".format(uuid.uuid1().hex)
+    synchronize_commit_group = f"consumer-{uuid.uuid1().hex}"
 
     messages_delivered = defaultdict(list)
 
@@ -66,14 +66,14 @@ def test_consumer_start_from_partition_start(requires_kafka):
 
         # Produce some messages into the topic.
         for i in range(3):
-            producer.produce(topic, "{}".format(i).encode("utf8"))
+            producer.produce(topic, f"{i}".encode("utf8"))
 
         assert producer.flush(5) == 0, "producer did not successfully flush queue"
 
         # Create the synchronized consumer.
         consumer = SynchronizedConsumer(
             cluster_name="default",
-            consumer_group="consumer-{}".format(uuid.uuid1().hex),
+            consumer_group=f"consumer-{uuid.uuid1().hex}",
             commit_log_topic=commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
             initial_offset_reset="earliest",
@@ -94,7 +94,7 @@ def test_consumer_start_from_partition_start(requires_kafka):
                 break
 
         assert len(assignments_received) == 1, "expected to receive partition assignment"
-        assert set((i.topic, i.partition) for i in assignments_received[0]) == set([(topic, 0)])
+        assert {(i.topic, i.partition) for i in assignments_received[0]} == {(topic, 0)}
 
         # TODO: Make sure that all partitions remain paused.
 
@@ -133,8 +133,8 @@ def test_consumer_start_from_partition_start(requires_kafka):
 
 
 def test_consumer_start_from_committed_offset(requires_kafka):
-    consumer_group = "consumer-{}".format(uuid.uuid1().hex)
-    synchronize_commit_group = "consumer-{}".format(uuid.uuid1().hex)
+    consumer_group = f"consumer-{uuid.uuid1().hex}"
+    synchronize_commit_group = f"consumer-{uuid.uuid1().hex}"
 
     messages_delivered = defaultdict(list)
 
@@ -153,7 +153,7 @@ def test_consumer_start_from_committed_offset(requires_kafka):
 
         # Produce some messages into the topic.
         for i in range(3):
-            producer.produce(topic, "{}".format(i).encode("utf8"))
+            producer.produce(topic, f"{i}".encode("utf8"))
 
         assert producer.flush(5) == 0, "producer did not successfully flush queue"
 
@@ -185,7 +185,7 @@ def test_consumer_start_from_committed_offset(requires_kafka):
                 break
 
         assert len(assignments_received) == 1, "expected to receive partition assignment"
-        assert set((i.topic, i.partition) for i in assignments_received[0]) == set([(topic, 0)])
+        assert {(i.topic, i.partition) for i in assignments_received[0]} == {(topic, 0)}
 
         # TODO: Make sure that all partitions are paused on assignment.
 
@@ -234,8 +234,8 @@ def test_consumer_start_from_committed_offset(requires_kafka):
 
 
 def test_consumer_rebalance_from_partition_start(requires_kafka):
-    consumer_group = "consumer-{}".format(uuid.uuid1().hex)
-    synchronize_commit_group = "consumer-{}".format(uuid.uuid1().hex)
+    consumer_group = f"consumer-{uuid.uuid1().hex}"
+    synchronize_commit_group = f"consumer-{uuid.uuid1().hex}"
 
     messages_delivered = defaultdict(list)
 
@@ -254,7 +254,7 @@ def test_consumer_rebalance_from_partition_start(requires_kafka):
 
         # Produce some messages into the topic.
         for i in range(4):
-            producer.produce(topic, "{}".format(i).encode("utf8"), partition=i % 2)
+            producer.produce(topic, f"{i}".encode("utf8"), partition=i % 2)
 
         assert producer.flush(5) == 0, "producer did not successfully flush queue"
 
@@ -282,9 +282,9 @@ def test_consumer_rebalance_from_partition_start(requires_kafka):
         assert (
             len(assignments_received[consumer_a]) == 1
         ), "expected to receive partition assignment"
-        assert set((i.topic, i.partition) for i in assignments_received[consumer_a][0]) == set(
-            [(topic, 0), (topic, 1)]
-        )
+        assert {(i.topic, i.partition) for i in assignments_received[consumer_a][0]} == {
+            (topic, 0), (topic, 1)
+        }
 
         assignments_received[consumer_a].pop()
         consumer_b = SynchronizedConsumer(
@@ -316,7 +316,7 @@ def test_consumer_rebalance_from_partition_start(requires_kafka):
             i = assignments_received[consumer][0][0]
             assignments[(i.topic, i.partition)] = consumer
 
-        assert set(assignments.keys()) == set([(topic, 0), (topic, 1)])
+        assert set(assignments.keys()) == {(topic, 0), (topic, 1)}
 
         for expected_message in messages_delivered[topic]:
             consumer = assignments[(expected_message.topic(), expected_message.partition())]
@@ -354,8 +354,8 @@ def test_consumer_rebalance_from_partition_start(requires_kafka):
 
 
 def test_consumer_rebalance_from_committed_offset(requires_kafka):
-    consumer_group = "consumer-{}".format(uuid.uuid1().hex)
-    synchronize_commit_group = "consumer-{}".format(uuid.uuid1().hex)
+    consumer_group = f"consumer-{uuid.uuid1().hex}"
+    synchronize_commit_group = f"consumer-{uuid.uuid1().hex}"
 
     messages_delivered = defaultdict(list)
 
@@ -374,7 +374,7 @@ def test_consumer_rebalance_from_committed_offset(requires_kafka):
 
         # Produce some messages into the topic.
         for i in range(4):
-            producer.produce(topic, "{}".format(i).encode("utf8"), partition=i % 2)
+            producer.produce(topic, f"{i}".encode("utf8"), partition=i % 2)
 
         assert producer.flush(5) == 0, "producer did not successfully flush queue"
 
@@ -412,9 +412,9 @@ def test_consumer_rebalance_from_committed_offset(requires_kafka):
         assert (
             len(assignments_received[consumer_a]) == 1
         ), "expected to receive partition assignment"
-        assert set((i.topic, i.partition) for i in assignments_received[consumer_a][0]) == set(
-            [(topic, 0), (topic, 1)]
-        )
+        assert {(i.topic, i.partition) for i in assignments_received[consumer_a][0]} == {
+            (topic, 0), (topic, 1)
+        }
 
         assignments_received[consumer_a].pop()
 
@@ -447,7 +447,7 @@ def test_consumer_rebalance_from_committed_offset(requires_kafka):
             i = assignments_received[consumer][0][0]
             assignments[(i.topic, i.partition)] = consumer
 
-        assert set(assignments.keys()) == set([(topic, 0), (topic, 1)])
+        assert set(assignments.keys()) == {(topic, 0), (topic, 1)}
 
         for expected_message in messages_delivered[topic][2:]:
             consumer = assignments[(expected_message.topic(), expected_message.partition())]
@@ -521,8 +521,8 @@ def collect_messages_received(count):
     run=False,
 )
 def test_consumer_rebalance_from_uncommitted_offset(requires_kafka):
-    consumer_group = "consumer-{}".format(uuid.uuid1().hex)
-    synchronize_commit_group = "consumer-{}".format(uuid.uuid1().hex)
+    consumer_group = f"consumer-{uuid.uuid1().hex}"
+    synchronize_commit_group = f"consumer-{uuid.uuid1().hex}"
 
     messages_delivered = defaultdict(list)
 
@@ -541,7 +541,7 @@ def test_consumer_rebalance_from_uncommitted_offset(requires_kafka):
 
         # Produce some messages into the topic.
         for i in range(4):
-            producer.produce(topic, "{}".format(i).encode("utf8"), partition=i % 2)
+            producer.produce(topic, f"{i}".encode("utf8"), partition=i % 2)
 
         assert producer.flush(5) == 0, "producer did not successfully flush queue"
 
@@ -551,7 +551,7 @@ def test_consumer_rebalance_from_uncommitted_offset(requires_kafka):
         }.items():
             producer.produce(
                 commit_log_topic,
-                key="{}:{}:{}".format(topic, partition, synchronize_commit_group).encode("utf8"),
+                key=f"{topic}:{partition}:{synchronize_commit_group}".encode("utf8"),
                 value="{}".format(offset + 1).encode("utf8"),
             )
 
@@ -580,9 +580,9 @@ def test_consumer_rebalance_from_uncommitted_offset(requires_kafka):
         assert (
             len(assignments_received[consumer_a]) == 1
         ), "expected to receive partition assignment"
-        assert set((i.topic, i.partition) for i in assignments_received[consumer_a][0]) == set(
-            [(topic, 0), (topic, 1)]
-        )
+        assert {(i.topic, i.partition) for i in assignments_received[consumer_a][0]} == {
+            (topic, 0), (topic, 1)
+        }
         assignments_received[consumer_a].pop()
 
         message = consumer_a.poll(1)

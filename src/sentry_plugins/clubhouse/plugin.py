@@ -40,7 +40,7 @@ class ClubhousePlugin(CorePluginMixin, IssuePlugin2):
     issue_fields = frozenset(["id", "title", "url"])
 
     def get_group_urls(self):
-        return super(ClubhousePlugin, self).get_group_urls() + [
+        return super().get_group_urls() + [
             url(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
@@ -99,7 +99,7 @@ class ClubhousePlugin(CorePluginMixin, IssuePlugin2):
         try:
             config["project"] = int(config["project"])
         except ValueError as exc:
-            self.logger.exception(six.text_type(exc))
+            self.logger.exception(str(exc))
             raise PluginError(
                 "Invalid Project ID. "
                 "Project IDs are numbers-only, and can be found on the Project's page"
@@ -150,13 +150,13 @@ class ClubhousePlugin(CorePluginMixin, IssuePlugin2):
         # Should it switch the search mechanism from search_stories(text) to get_story(id)?
         try:
             response = client.search_stories(
-                query=("project:%s %s" % (project, query)).encode("utf-8")
+                query=(f"project:{project} {query}").encode("utf-8")
             )
         except Exception as e:
             return self.handle_api_error(e)
 
         issues = [
-            {"text": "(#%s) %s" % (i["id"], i["name"]), "id": i["id"]}
+            {"text": "(#{}) {}".format(i["id"], i["name"]), "id": i["id"]}
             for i in response.get("data", [])
         ]
 

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from django.conf import settings
 
 import io
@@ -221,7 +219,7 @@ def _patch_artifact_manifest(path, org, release, project=None):
 
 
 # TODO(dcramer): consider moving to something more scaleable like factoryboy
-class Factories(object):
+class Factories:
     @staticmethod
     def create_organization(name=None, owner=None, **kwargs):
         if not name:
@@ -258,7 +256,7 @@ class Factories(object):
         if not kwargs.get("name"):
             kwargs["name"] = petname.Generate(2, " ", letters=10).title()
         if not kwargs.get("slug"):
-            kwargs["slug"] = slugify(six.text_type(kwargs["name"]))
+            kwargs["slug"] = slugify(str(kwargs["name"]))
         members = kwargs.pop("members", None)
 
         team = Team.objects.create(organization=organization, **kwargs)
@@ -285,7 +283,7 @@ class Factories(object):
         if not kwargs.get("name"):
             kwargs["name"] = petname.Generate(2, " ", letters=10).title()
         if not kwargs.get("slug"):
-            kwargs["slug"] = slugify(six.text_type(kwargs["name"]))
+            kwargs["slug"] = slugify(str(kwargs["name"]))
         if not organization and teams:
             organization = teams[0].organization
 
@@ -379,7 +377,7 @@ class Factories(object):
         # add commits
         if user:
             author = Factories.create_commit_author(project=project, user=user)
-            repo = Factories.create_repo(project, name="organization-{}".format(project.slug))
+            repo = Factories.create_repo(project, name=f"organization-{project.slug}")
             commit = Factories.create_commit(
                 project=project,
                 repo=repo,
@@ -390,7 +388,7 @@ class Factories(object):
             )
 
             release.update(
-                authors=[six.text_type(author.id)], commit_count=1, last_commit_id=commit.id
+                authors=[str(author.id)], commit_count=1, last_commit_id=commit.id
             )
 
         return release
@@ -479,7 +477,7 @@ class Factories(object):
     def create_commit_author(organization_id=None, project=None, user=None):
         return CommitAuthor.objects.get_or_create(
             organization_id=organization_id or project.organization_id,
-            email=user.email if user else "{}@example.com".format(make_word()),
+            email=user.email if user else f"{make_word()}@example.com",
             defaults={"name": user.name if user else make_word()},
         )[0]
 
@@ -593,7 +591,7 @@ class Factories(object):
         **kwargs,
     ):
         if debug_id is None:
-            debug_id = six.text_type(uuid4())
+            debug_id = str(uuid4())
 
         if object_name is None:
             object_name = "%s.dSYM" % debug_id

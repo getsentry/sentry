@@ -30,12 +30,12 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
     # Test data setup in ``VstsIntegrationTestCase``
 
     def setUp(self):
-        super(VstsIntegrationProviderTest, self).setUp()
+        super().setUp()
         register_mock_plugins()
 
     def tearDown(self):
         unregister_mock_plugins()
-        super(VstsIntegrationProviderTest, self).tearDown()
+        super().tearDown()
 
     def test_basic_flow(self):
         self.assert_installation()
@@ -73,7 +73,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         accessible_repo = Repository.objects.create(
             organization_id=self.organization.id,
             name=self.project_a["name"],
-            url="{}/_git/{}".format(self.vsts_base_url, self.repo_name),
+            url=f"{self.vsts_base_url}/_git/{self.repo_name}",
             provider="visualstudio",
             external_id=self.repo_id,
             config={"name": self.project_a["name"], "project": self.project_a["name"]},
@@ -278,7 +278,7 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
 
         with pytest.raises(IntegrationError) as err:
             integration.build_integration(state)
-        assert "sufficient account access to create webhooks" in six.text_type(err)
+        assert "sufficient account access to create webhooks" in str(err)
 
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
     def test_create_subscription_unauthorized(self, mock_get_scopes):
@@ -313,7 +313,7 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
 
         with pytest.raises(IntegrationError) as err:
             integration.build_integration(state)
-        assert "sufficient account access to create webhooks" in six.text_type(err)
+        assert "sufficient account access to create webhooks" in str(err)
 
 
 class VstsIntegrationTest(VstsIntegrationTestCase):

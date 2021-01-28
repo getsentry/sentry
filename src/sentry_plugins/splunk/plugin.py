@@ -44,7 +44,7 @@ class SplunkError(Exception):
         self.status_code = status_code
         self.code = code
         self.text = text
-        super(SplunkError, self).__init__(text)
+        super().__init__(text)
 
     @classmethod
     def from_response(cls, response):
@@ -65,7 +65,7 @@ class SplunkError(Exception):
         return cls(status_code=response.status_code, code=code, text=body.get("text"))
 
     def __repr__(self):
-        return "<%s: status_code=%s, code=%s, text=%s>" % (
+        return "<{}: status_code={}, code={}, text={}>".format(
             type(self).__name__,
             self.status_code,
             self.code,
@@ -171,7 +171,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
             "type": event.get_event_type(),
         }
         props["tags"] = [[k.format(tagstore.get_standardized_key(k)), v] for k, v in event.tags]
-        for key, value in six.iteritems(event.interfaces):
+        for key, value in event.interfaces.items():
             if key == "request":
                 headers = value.headers
                 if not isinstance(headers, dict):
@@ -193,7 +193,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
                 props.update(
                     {
                         "{}_{}".format(key.rsplit(".", 1)[-1].lower(), k): v
-                        for k, v in six.iteritems(value.to_json())
+                        for k, v in value.to_json().items()
                     }
                 )
             elif key == "user":
@@ -223,7 +223,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
         return "{}:{}".format(self.conf_key, md5_text(self.project_token).hexdigest())
 
     def is_ratelimited(self, event):
-        if super(SplunkPlugin, self).is_ratelimited(event):
+        if super().is_ratelimited(event):
             metrics.incr(
                 "integrations.splunk.forward-event.rate-limited",
                 tags={
@@ -267,7 +267,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
                 json=payload,
                 # Splunk cloud instances certifcates dont play nicely
                 verify=False,
-                headers={"Authorization": "Splunk {}".format(self.project_token)},
+                headers={"Authorization": f"Splunk {self.project_token}"},
                 timeout=5,
             )
             if resp.status_code != 200:
@@ -299,7 +299,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
                     "instance": self.project_instance,
                     "project_id": event.project_id,
                     "organization_id": event.project.organization_id,
-                    "error": six.text_type(exc),
+                    "error": str(exc),
                 },
             )
 

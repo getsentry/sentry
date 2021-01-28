@@ -12,7 +12,7 @@ class Validator(Mediator):
     """
 
     install = Param("sentry.models.SentryAppInstallation")
-    client_id = Param(six.string_types)
+    client_id = Param((str,))
     user = Param("sentry.models.User")
 
     def call(self):

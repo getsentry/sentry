@@ -14,7 +14,7 @@ def remove_non_stacktrace_variants(variants):
 
     # In case any of the variants has a contributing stacktrace, we want
     # to make all other variants non contributing.
-    for key, component in six.iteritems(variants):
+    for key, component in variants.items():
         stacktrace_iter = component.iter_subcomponents(
             id="stacktrace", recursive=True, only_contributing=True
         )

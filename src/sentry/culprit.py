@@ -67,5 +67,5 @@ def get_frame_culprit(frame, platform):
     elif platform in ("javascript", "node"):
         # function and fileloc might be unicode here, so let it coerce
         # to a unicode string if needed.
-        return "%s(%s)" % (frame.get("function") or "?", fileloc)
-    return "%s in %s" % (fileloc, frame.get("function") or "?")
+        return "{}({})".format(frame.get("function") or "?", fileloc)
+    return "{} in {}".format(fileloc, frame.get("function") or "?")

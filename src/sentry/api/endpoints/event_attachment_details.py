@@ -13,7 +13,7 @@ from sentry.models import EventAttachment, File, OrganizationMember
 
 class EventAttachmentDetailsPermission(ProjectPermission):
     def has_object_permission(self, request, view, project):
-        result = super(EventAttachmentDetailsPermission, self).has_object_permission(
+        result = super().has_object_permission(
             request, view, project
         )
 

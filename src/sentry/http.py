@@ -50,7 +50,7 @@ class BadSource(Exception):
         if data is None:
             data = {}
         data.setdefault("type", self.error_type)
-        super(BadSource, self).__init__(data["type"])
+        super().__init__(data["type"])
         self.data = data
 
 
@@ -127,7 +127,7 @@ def expose_url(url):
     if url[:5] == "data:":
         return "<data url>"
     url = truncatechars(url, MAX_URL_LENGTH)
-    if isinstance(url, six.binary_type):
+    if isinstance(url, bytes):
         url = url.decode("utf-8", "replace")
     return url
 
@@ -148,7 +148,7 @@ def fetch_file(
     # lock down domains that are problematic
     if domain_lock_enabled:
         domain = urlparse(url).netloc
-        domain_key = "source:blacklist:v2:%s" % (md5_text(domain).hexdigest(),)
+        domain_key = "source:blacklist:v2:{}".format(md5_text(domain).hexdigest())
         domain_result = cache.get(domain_key)
         if domain_result:
             domain_result["url"] = url
@@ -219,11 +219,11 @@ def fetch_file(
                 elif isinstance(exc, (RequestException, ZeroReturnError, OpenSSLError)):
                     error = {
                         "type": EventError.FETCH_GENERIC_ERROR,
-                        "value": six.text_type(type(exc)),
+                        "value": str(type(exc)),
                         "url": expose_url(url),
                     }
                 else:
-                    logger.exception(six.text_type(exc))
+                    logger.exception(str(exc))
                     error = {"type": EventError.UNKNOWN_ERROR, "url": expose_url(url)}
 
                 # TODO(dcramer): we want to be less aggressive on disabling domains

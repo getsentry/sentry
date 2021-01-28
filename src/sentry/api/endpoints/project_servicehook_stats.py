@@ -25,5 +25,5 @@ class ProjectServiceHookStatsEndpoint(ProjectEndpoint, StatsMixin):
                 stats.setdefault(int(ts), {})[name] = count
 
         return self.respond(
-            [{"ts": ts, "total": data["total"]} for ts, data in six.iteritems(stats)]
+            [{"ts": ts, "total": data["total"]} for ts, data in stats.items()]
         )

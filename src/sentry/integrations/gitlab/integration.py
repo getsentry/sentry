@@ -72,7 +72,7 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
     repo_search = True
 
     def __init__(self, *args, **kwargs):
-        super(GitlabIntegration, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.default_identity = None
 
     def get_group_id(self):
@@ -96,7 +96,7 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
 
         # Must format the url ourselves since `check_file` is a head request
         # "https://gitlab.com/gitlab-org/gitlab/blob/master/README.md"
-        return "{}/{}/blob/{}/{}".format(base_url, repo_name, branch, filepath)
+        return f"{base_url}/{repo_name}/blob/{branch}/{filepath}"
 
     def search_projects(self, query):
         client = self.get_client()
@@ -288,7 +288,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
                     "verify_ssl": installation_data["verify_ssl"],
                     "group": installation_data["group"],
                     "include_subgroups": installation_data["include_subgroups"],
-                    "error_message": six.text_type(e),
+                    "error_message": str(e),
                     "error_status": e.code,
                 },
             )

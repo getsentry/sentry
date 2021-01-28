@@ -11,16 +11,16 @@ from sentry.db.models import (
 )
 
 
-class TypesClass(object):
+class TypesClass:
     TYPES = []
 
     @classmethod
     def as_choices(cls):
-        return [(k, six.text_type(v)) for k, v in cls.TYPES]
+        return [(k, str(v)) for k, v in cls.TYPES]
 
     @classmethod
     def as_text_choices(cls):
-        return [(six.text_type(v), six.text_type(v)) for _, v in cls.TYPES]
+        return [(str(v), str(v)) for _, v in cls.TYPES]
 
     @classmethod
     def get_type_name(cls, num):

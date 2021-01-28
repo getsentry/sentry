@@ -12,7 +12,7 @@ class AuthDetailsEndpointTest(APITestCase):
         self.login_as(user)
         response = self.client.get(self.path)
         assert response.status_code == 200
-        assert response.data["id"] == six.text_type(user.id)
+        assert response.data["id"] == str(user.id)
 
     def test_logged_out(self):
         response = self.client.get(self.path)
@@ -30,7 +30,7 @@ class AuthLoginEndpointTest(APITestCase):
             + b64encode("{}:{}".format(user.username, "admin").encode("utf-8")),
         )
         assert response.status_code == 200
-        assert response.data["id"] == six.text_type(user.id)
+        assert response.data["id"] == str(user.id)
 
     def test_invalid_password(self):
         user = self.create_user("foo@example.com")
@@ -50,7 +50,7 @@ class AuthVerifyEndpointTest(APITestCase):
         self.login_as(user)
         response = self.client.put(self.path, data={"password": "admin"})
         assert response.status_code == 200
-        assert response.data["id"] == six.text_type(user.id)
+        assert response.data["id"] == str(user.id)
 
     def test_invalid_password(self):
         user = self.create_user("foo@example.com")

@@ -135,7 +135,7 @@ class OrganizationSerializer(Serializer):
         # batch_has has found some features
         if batch_features:
             for feature_name, active in batch_features.get(
-                "organization:{}".format(obj.id), {}
+                f"organization:{obj.id}", {}
             ).items():
                 if active:
                     # Remove organization prefix
@@ -171,7 +171,7 @@ class OrganizationSerializer(Serializer):
             feature_list.add("shared-issues")
 
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "slug": obj.slug,
             "status": {"id": status.name.lower(), "name": status.label},
             "name": obj.name or obj.slug,
@@ -192,7 +192,7 @@ class OnboardingTasksSerializer(Serializer):
 
         data = {}
         for item in item_list:
-            data[item] = {"user": user_map.get(six.text_type(item.user_id))}
+            data[item] = {"user": user_map.get(str(item.user_id))}
         return data
 
     def serialize(self, obj, attrs, user):
@@ -208,7 +208,7 @@ class OnboardingTasksSerializer(Serializer):
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
     def get_attrs(self, item_list, user, **kwargs):
-        return super(DetailedOrganizationSerializer, self).get_attrs(item_list, user)
+        return super().get_attrs(item_list, user)
 
     def serialize(self, obj, attrs, user, access):
         from sentry import experiments
@@ -219,7 +219,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         experiment_assignments = experiments.all(org=obj, actor=user)
 
-        context = super(DetailedOrganizationSerializer, self).serialize(obj, attrs, user)
+        context = super().serialize(obj, attrs, user)
         max_rate = quotas.get_maximum_quota(obj)
         context["experiments"] = experiment_assignments
         context["quota"] = {
@@ -264,10 +264,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "storeCrashReports": convert_crashreport_count(
                     obj.get_option("sentry:store_crash_reports")
                 ),
-                "attachmentsRole": six.text_type(
+                "attachmentsRole": str(
                     obj.get_option("sentry:attachments_role", ATTACHMENTS_ROLE_DEFAULT)
                 ),
-                "debugFilesRole": six.text_type(
+                "debugFilesRole": str(
                     obj.get_option("sentry:debug_files_role", DEBUG_FILES_ROLE_DEFAULT)
                 ),
                 "eventsMemberAdmin": bool(
@@ -287,7 +287,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "allowJoinRequests": bool(
                     obj.get_option("sentry:join_requests", JOIN_REQUESTS_DEFAULT)
                 ),
-                "relayPiiConfig": six.text_type(obj.get_option("sentry:relay_pii_config") or "")
+                "relayPiiConfig": str(obj.get_option("sentry:relay_pii_config") or "")
                 or None,
                 "apdexThreshold": int(
                     obj.get_option("sentry:apdex_threshold", APDEX_THRESHOLD_DEFAULT)
@@ -311,7 +311,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
 class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSerializer):
     def get_attrs(self, item_list, user, **kwargs):
-        return super(DetailedOrganizationSerializerWithProjectsAndTeams, self).get_attrs(
+        return super().get_attrs(
             item_list, user
         )
 
@@ -347,7 +347,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         from sentry.api.serializers.models.project import ProjectSummarySerializer
         from sentry.api.serializers.models.team import TeamSerializer
 
-        context = super(DetailedOrganizationSerializerWithProjectsAndTeams, self).serialize(
+        context = super().serialize(
             obj, attrs, user, access
         )
 

@@ -241,7 +241,7 @@ class OrganizationEndpoint(Endpoint):
                     func = request.access.has_project_membership
                 projects = [p for p in qs if func(p)]
 
-        project_ids = set(p.id for p in projects)
+        project_ids = {p.id for p in projects}
 
         if requested_projects and project_ids != requested_projects:
             raise PermissionDenied
@@ -279,7 +279,7 @@ class OrganizationEndpoint(Endpoint):
                 with configure_scope() as scope:
                     scope.set_tag("query.period", (end - start).total_seconds())
         except InvalidParams as e:
-            raise ParseError(detail="Invalid date range: {}".format(e))
+            raise ParseError(detail=f"Invalid date range: {e}")
 
         try:
             projects = self.get_projects(request, organization, project_ids)
@@ -350,7 +350,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         ):
             return []
 
-        return super(OrganizationReleasesBaseEndpoint, self).get_projects(
+        return super().get_projects(
             request,
             organization,
             force_global_perms=has_valid_api_key,

@@ -16,7 +16,7 @@ class MissingAttachmentChunks(Exception):
     pass
 
 
-class CachedAttachment(object):
+class CachedAttachment:
     def __init__(
         self,
         key=None,
@@ -37,7 +37,7 @@ class CachedAttachment(object):
         self.name = name
         self.content_type = content_type
         self.type = type or "event.attachment"
-        assert isinstance(self.type, string_types), self.type
+        assert isinstance(self.type, str), self.type
         self.rate_limited = rate_limited
 
         if size is not None:
@@ -97,7 +97,7 @@ class CachedAttachment(object):
         )
 
 
-class BaseAttachmentCache(object):
+class BaseAttachmentCache:
     def __init__(self, inner):
         self.inner = inner
 

@@ -21,4 +21,4 @@ class InterfaceTypePlugin(TagPlugin):
     project_default_enabled = False
 
     def get_tag_values(self, event):
-        return [i.rsplit(".", 1)[-1] for i in six.iterkeys(event.interfaces)]
+        return [i.rsplit(".", 1)[-1] for i in event.interfaces.keys()]

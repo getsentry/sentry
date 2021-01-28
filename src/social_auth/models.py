@@ -37,7 +37,7 @@ class UserSocialAuth(models.Model):
 
     def __unicode__(self):
         """Return associated user unicode representation"""
-        return "%s - %s" % (six.text_type(self.user), self.provider.title())
+        return "{} - {}".format(str(self.user), self.provider.title())
 
     def get_backend(self):
         # Make import here to avoid recursive imports :-/
@@ -168,8 +168,8 @@ class UserSocialAuth(models.Model):
 
     @classmethod
     def create_social_auth(cls, user, uid, provider):
-        if not isinstance(uid, six.string_types):
-            uid = six.text_type(uid)
+        if not isinstance(uid, str):
+            uid = str(uid)
         return cls.objects.create(user=user, uid=uid, provider=provider)
 
     @classmethod

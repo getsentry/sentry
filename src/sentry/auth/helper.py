@@ -57,7 +57,7 @@ ERR_NOT_AUTHED = _("You must be authenticated to link accounts.")
 ERR_INVALID_IDENTITY = _("The provider did not return a valid user identity.")
 
 
-class RedisBackedState(object):
+class RedisBackedState:
     # Expire the pipeline after 10 minutes of inactivity.
     EXPIRATION_TTL = 10 * 60
 
@@ -73,7 +73,7 @@ class RedisBackedState(object):
         return self.request.session.get("auth_key")
 
     def regenerate(self, initial_state):
-        auth_key = "auth:pipeline:{}".format(uuid4().hex)
+        auth_key = f"auth:pipeline:{uuid4().hex}"
 
         self.request.session["auth_key"] = auth_key
         self.request.session.modified = True
@@ -515,7 +515,7 @@ def handle_new_user(auth_provider, organization, request, identity):
     return auth_identity
 
 
-class AuthHelper(object):
+class AuthHelper:
     """
     Helper class which is passed into AuthView's.
 
@@ -651,7 +651,7 @@ class AuthHelper(object):
         try:
             identity = self.provider.build_identity(data)
         except IdentityNotValid as error:
-            return self.error(six.text_type(error) or ERR_INVALID_IDENTITY)
+            return self.error(str(error) or ERR_INVALID_IDENTITY)
 
         if self.state.flow == self.FLOW_LOGIN:
             # create identity and authenticate the user
@@ -843,7 +843,7 @@ class AuthHelper(object):
         )
 
         messages.add_message(
-            self.request, messages.ERROR, "Authentication error: {}".format(message)
+            self.request, messages.ERROR, f"Authentication error: {message}"
         )
 
         return HttpResponseRedirect(redirect_uri)

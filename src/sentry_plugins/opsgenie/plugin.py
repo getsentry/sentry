@@ -70,7 +70,7 @@ class OpsGeniePlugin(CorePluginMixin, notify.NotificationPlugin):
     logger = logging.getLogger("sentry.plugins.opsgenie")
 
     def is_configured(self, project):
-        return all((self.get_option(k, project) for k in ("api_key", "alert_url")))
+        return all(self.get_option(k, project) for k in ("api_key", "alert_url"))
 
     def get_form_initial(self, project=None):
         return {"alert_url": "https://api.opsgenie.com/v2/alerts"}
@@ -81,7 +81,7 @@ class OpsGeniePlugin(CorePluginMixin, notify.NotificationPlugin):
             "alias": "sentry: %d" % group.id,
             "source": "Sentry",
             "details": {
-                "Sentry ID": six.text_type(group.id),
+                "Sentry ID": str(group.id),
                 "Sentry Group": getattr(group, "title", group.message).encode("utf-8"),
                 "Project ID": group.project.slug,
                 "Project Name": group.project.name,
@@ -94,7 +94,7 @@ class OpsGeniePlugin(CorePluginMixin, notify.NotificationPlugin):
         }
 
         payload["tags"] = [
-            "%s:%s" % (six.text_type(x).replace(",", ""), six.text_type(y).replace(",", ""))
+            "{}:{}".format(str(x).replace(",", ""), str(y).replace(",", ""))
             for x, y in event.tags
         ]
 

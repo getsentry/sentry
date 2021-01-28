@@ -33,7 +33,7 @@ def dump_registry(path, data):
         os.makedirs(directory)
     except OSError:
         pass
-    with io.open(fn, "wt", encoding="utf-8") as f:
+    with open(fn, "wt", encoding="utf-8") as f:
         # XXX: ideally, we use six.text_type here, but we can't use six.
         f.write(unicode(json.dumps(data, indent=2)))  # NOQA
         f.write("\n")

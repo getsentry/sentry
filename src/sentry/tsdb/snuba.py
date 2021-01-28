@@ -205,7 +205,7 @@ class SnubaTSDB(BaseTSDB):
     )
 
     def __init__(self, **options):
-        super(SnubaTSDB, self).__init__(**options)
+        super().__init__(**options)
 
     def get_data(
         self,
@@ -241,7 +241,7 @@ class SnubaTSDB(BaseTSDB):
             model_query_settings = self.model_query_settings.get(model)
 
         if model_query_settings is None:
-            raise Exception("Unsupported TSDBModel: {}".format(model.name))
+            raise Exception(f"Unsupported TSDBModel: {model.name}")
 
         model_group = model_query_settings.groupby
         model_aggregate = model_query_settings.aggregate
@@ -259,7 +259,7 @@ class SnubaTSDB(BaseTSDB):
 
         columns = (model_query_settings.groupby, model_query_settings.aggregate)
         keys_map = dict(zip(columns, self.flatten_keys(keys)))
-        keys_map = {k: v for k, v in six.iteritems(keys_map) if k is not None and v is not None}
+        keys_map = {k: v for k, v in keys_map.items() if k is not None and v is not None}
         if environment_ids is not None:
             keys_map["environment"] = environment_ids
 
@@ -297,7 +297,7 @@ class SnubaTSDB(BaseTSDB):
                 rollup=rollup,
                 limit=limit,
                 orderby=orderby,
-                referrer="tsdb-modelid:{}".format(model.value),
+                referrer=f"tsdb-modelid:{model.value}",
                 is_grouprelease=(model == TSDBModel.frequent_releases_by_group),
             )
         else:
@@ -357,7 +357,7 @@ class SnubaTSDB(BaseTSDB):
         else:
             model_query_settings = self.model_query_settings.get(model)
 
-        assert model_query_settings is not None, "Unsupported TSDBModel: {}".format(model.name)
+        assert model_query_settings is not None, f"Unsupported TSDBModel: {model.name}"
 
         if model_query_settings.dataset == snuba.Dataset.Outcomes:
             aggregate_function = "sum"
@@ -430,7 +430,7 @@ class SnubaTSDB(BaseTSDB):
     def get_most_frequent(
         self, model, keys, start, end=None, rollup=None, limit=10, environment_id=None
     ):
-        aggregation = "topK({})".format(limit)
+        aggregation = f"topK({limit})"
         result = self.get_data(
             model,
             keys,
@@ -444,7 +444,7 @@ class SnubaTSDB(BaseTSDB):
         #    {group:[top1, ...]}
         # into
         #    {group: [(top1, score), ...]}
-        for k, top in six.iteritems(result):
+        for k, top in result.items():
             item_scores = [(v, float(i + 1)) for i, v in enumerate(reversed(top or []))]
             result[k] = list(reversed(item_scores))
 
@@ -453,7 +453,7 @@ class SnubaTSDB(BaseTSDB):
     def get_most_frequent_series(
         self, model, keys, start, end=None, rollup=None, limit=10, environment_id=None
     ):
-        aggregation = "topK({})".format(limit)
+        aggregation = f"topK({limit})"
         result = self.get_data(
             model,
             keys,

@@ -9,7 +9,7 @@ from sentry.testutils.helpers.faux import faux
 from sentry.utils import json
 
 
-class DictContaining(object):
+class DictContaining:
     def __init__(self, *keys):
         self.keys = keys
 
@@ -17,7 +17,7 @@ class DictContaining(object):
         return all([k in other.keys() for k in self.keys])
 
 
-class Any(object):
+class Any:
     def __eq__(self, other):
         return True
 

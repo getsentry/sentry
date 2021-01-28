@@ -14,8 +14,8 @@ def get_api_root_from_dsn(dsn):
         return
     parsed = urlparse(dsn)
     if parsed.port:
-        return "{}://{}:{}".format(parsed.scheme, parsed.hostname, parsed.port)
-    return "{}://{}".format(parsed.scheme, parsed.hostname)
+        return f"{parsed.scheme}://{parsed.hostname}:{parsed.port}"
+    return f"{parsed.scheme}://{parsed.hostname}"
 
 
 SENTRY_DSN = settings.SENTRY_MONITOR_DSN
@@ -35,7 +35,7 @@ def connect(app):
         if hasattr(app.conf, "beat_schedule")
         else app.conf["CELERYBEAT_SCHEDULE"]
     )
-    for schedule_name, monitor_id in six.iteritems(settings.SENTRY_CELERYBEAT_MONITORS):
+    for schedule_name, monitor_id in settings.SENTRY_CELERYBEAT_MONITORS.items():
         schedule[schedule_name].setdefault("options", {}).setdefault("headers", {}).setdefault(
             "X-Sentry-Monitor", monitor_id
         )
@@ -73,8 +73,8 @@ def report_monitor_begin(task, **kwargs):
 
     with SafeSession() as session:
         req = session.post(
-            "{}/api/0/monitors/{}/checkins/".format(API_ROOT, monitor_id),
-            headers={"Authorization": "DSN {}".format(SENTRY_DSN)},
+            f"{API_ROOT}/api/0/monitors/{monitor_id}/checkins/",
+            headers={"Authorization": f"DSN {SENTRY_DSN}"},
             json={"status": "in_progress"},
         )
         req.raise_for_status()
@@ -104,8 +104,8 @@ def report_monitor_complete(task, retval, **kwargs):
 
     with SafeSession() as session:
         session.put(
-            "{}/api/0/monitors/{}/checkins/{}/".format(API_ROOT, monitor_id, checkin_id),
-            headers={"Authorization": "DSN {}".format(SENTRY_DSN)},
+            f"{API_ROOT}/api/0/monitors/{monitor_id}/checkins/{checkin_id}/",
+            headers={"Authorization": f"DSN {SENTRY_DSN}"},
             json={
                 "status": "error" if isinstance(retval, Exception) else "ok",
                 "duration": duration,

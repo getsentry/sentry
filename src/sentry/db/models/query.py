@@ -25,7 +25,7 @@ def update(self, using=None, **kwargs):
             kwargs[field.name] = field.pre_save(self, False)
 
     affected = self.__class__._base_manager.using(using).filter(pk=self.pk).update(**kwargs)
-    for k, v in six.iteritems(kwargs):
+    for k, v in kwargs.items():
         if isinstance(v, CombinedExpression):
             v = resolve_combined_expression(self, v)
         setattr(self, k, v)
@@ -77,7 +77,7 @@ def create_or_update(model, using=None, **kwargs):
 
     create_kwargs = kwargs.copy()
     inst = objects.model()
-    for k, v in itertools.chain(six.iteritems(values), six.iteritems(defaults)):
+    for k, v in itertools.chain(values.items(), defaults.items()):
         # XXX(dcramer): we want to support column shortcut on create so
         # we can do create_or_update(..., {'project': 1})
         if not isinstance(v, Model):
@@ -101,7 +101,7 @@ def in_iexact(column, values):
     matching to values in the given column."""
     from operator import or_
 
-    query = "{}__iexact".format(column)
+    query = f"{column}__iexact"
 
     return reduce(or_, [Q(**{query: v}) for v in values])
 
@@ -111,6 +111,6 @@ def in_icontains(column, values):
     contained within values in the given column."""
     from operator import or_
 
-    query = "{}__icontains".format(column)
+    query = f"{column}__icontains"
 
     return reduce(or_, [Q(**{query: v}) for v in values])

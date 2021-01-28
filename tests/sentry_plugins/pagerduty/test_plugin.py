@@ -83,7 +83,7 @@ class PagerDutyPluginTest(PluginTestCase):
                     "type": "link",
                 }
             ],
-            "incident_key": six.text_type(group.id),
+            "incident_key": str(group.id),
             "client": "sentry",
             "details": {
                 "project": self.project.name,

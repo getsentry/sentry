@@ -152,7 +152,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         with start_span(op="relay_fetch_orgs"):
             # Preload all organizations and their options to prevent repeated
             # database access when computing the project configuration.
-            org_ids = set(project.organization_id for project in six.itervalues(projects))
+            org_ids = {project.organization_id for project in projects.values()}
             if org_ids:
                 with metrics.timer("relay_project_configs.fetching_orgs.duration"):
                     orgs = Organization.objects.get_many_from_cache(org_ids)
@@ -161,7 +161,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
                 orgs = {}
 
             with metrics.timer("relay_project_configs.fetching_org_options.duration"):
-                for org_id in six.iterkeys(orgs):
+                for org_id in orgs.keys():
                     OrganizationOption.objects.get_all_values(org_id)
 
         with start_span(op="relay_fetch_keys"):
@@ -175,7 +175,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         configs = {}
         for project_id in project_ids:
-            configs[six.text_type(project_id)] = {"disabled": True}
+            configs[str(project_id)] = {"disabled": True}
 
             project = projects.get(int(project_id))
             if project is None:
@@ -197,7 +197,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
                         project_keys=project_keys.get(project.id) or [],
                     )
 
-            configs[six.text_type(project_id)] = project_config.to_dict()
+            configs[str(project_id)] = project_config.to_dict()
 
         if full_config_requested:
             projectconfig_cache.set_many(configs)

@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 import os
 import six
 
@@ -21,7 +18,7 @@ class InitTest(CliTestCase):
             # Make sure the python file is valid
             ctx = {"__file__": "sentry.conf.py"}
             with open("config/sentry.conf.py") as fp:
-                six.exec_(fp.read(), ctx)
+                exec(fp.read(), ctx)
             assert "DEBUG" in ctx
 
             # Make sure the yaml file is valid

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import pytest
 import pytz
 
@@ -325,9 +323,9 @@ class RedisTSDBTest(TestCase):
 
         # None of the registered frequency tables actually support
         # environments, so we have to pretend like one actually does
-        self.db.models_with_environment_support = self.db.models_with_environment_support | set(
-            [model]
-        )
+        self.db.models_with_environment_support = self.db.models_with_environment_support | {
+            model
+        }
 
         rollup = 3600
 

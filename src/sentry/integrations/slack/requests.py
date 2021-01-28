@@ -20,7 +20,7 @@ class SlackRequestError(Exception):
         self.status = status
 
 
-class SlackRequest(object):
+class SlackRequest:
     """
     Encapsulation of a request from Slack.
 
@@ -84,7 +84,7 @@ class SlackRequest(object):
         if self.integration:
             data["integration_id"] = self.integration.id
 
-        return dict((k, v) for k, v in data.items() if v)
+        return {k: v for k, v in data.items() if v}
 
     def _validate_data(self):
         try:
@@ -164,7 +164,7 @@ class SlackEventRequest(SlackRequest):
         else:
             # Non-Challenge requests need to validate everything plus the data
             # about the event.
-            super(SlackEventRequest, self).validate()
+            super().validate()
             self._validate_event()
 
     def is_challenge(self):
@@ -184,7 +184,7 @@ class SlackEventRequest(SlackRequest):
             raise SlackRequestError(status=400)
 
     def _log_request(self):
-        self._info("slack.event.{}".format(self.type))
+        self._info(f"slack.event.{self.type}")
 
 
 class SlackActionRequest(SlackRequest):
@@ -197,7 +197,7 @@ class SlackActionRequest(SlackRequest):
     """
 
     def __init__(self, request):
-        super(SlackActionRequest, self).__init__(request)
+        super().__init__(request)
         self._callback_data = None
 
     @property
@@ -224,7 +224,7 @@ class SlackActionRequest(SlackRequest):
         requests (nested in a ``payload`` attribute), so there's extra
         validation needed.
         """
-        super(SlackActionRequest, self)._validate_data()
+        super()._validate_data()
 
         if "payload" not in self.request.data:
             raise SlackRequestError(status=400)

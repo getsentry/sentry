@@ -69,7 +69,7 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
             "query": "proj",
             "dependentData": json.dumps({"org_id": "A"}),
         }
-        url = "%s?%s" % (self.url, urlencode(query))
+        url = "{}?{}".format(self.url, urlencode(query))
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert response.data == {"choices": [["1234", "Project Name"]]}

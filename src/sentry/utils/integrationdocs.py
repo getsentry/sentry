@@ -65,7 +65,7 @@ def dump_doc(path, data):
         os.makedirs(directory)
     except OSError:
         pass
-    with io.open(fn, "wt", encoding="utf-8") as f:
+    with open(fn, "wt", encoding="utf-8") as f:
         # XXX: ideally, we use six.text_type here, but we can't use six.
         f.write(unicode(json.dumps(data, indent=2)))  # NOQA
         f.write("\n")
@@ -76,16 +76,16 @@ def load_doc(path):
         return None
     fn = os.path.join(DOC_FOLDER, path + ".json")
     try:
-        with io.open(fn, "rt", encoding="utf-8") as f:
+        with open(fn, "rt", encoding="utf-8") as f:
             return json.load(f)
-    except IOError:
+    except OSError:
         return None
 
 
 def get_integration_id(platform_id, integration_id):
     if integration_id == "_self":
         return platform_id
-    return "{}-{}".format(platform_id, integration_id)
+    return f"{platform_id}-{integration_id}"
 
 
 def urlopen_with_retries(url, timeout=5, retries=10):
@@ -142,7 +142,7 @@ def sync_docs(quiet=False):
 
 def sync_integration_docs(platform_id, integration_id, path, quiet=False):
     if not quiet:
-        echo("  syncing documentation for %s.%s integration" % (platform_id, integration_id))
+        echo(f"  syncing documentation for {platform_id}.{integration_id} integration")
 
     data = json.load(urlopen_with_retries(BASE_URL.format(path)))
 
@@ -156,5 +156,5 @@ def integration_doc_exists(integration_id):
     # and using os.path.join() would allow directory traversal vulnerabilities
     # which we don't want.
     docs = os.listdir(DOC_FOLDER)
-    filename = "{}.json".format(integration_id)
+    filename = f"{integration_id}.json"
     return filename in docs

@@ -49,7 +49,7 @@ def get_legacy_name(key):
 class CanonicalKeyView(collections.Mapping):
     def __init__(self, data):
         self.data = data
-        self._len = len(set(get_canonical_name(key) for key in self.data))
+        self._len = len({get_canonical_name(key) for key in self.data})
 
     def copy(self):
         return self
@@ -93,7 +93,7 @@ class CanonicalKeyDict(collections.MutableMapping):
         norm_func = legacy and get_legacy_name or get_canonical_name
         self._norm_func = norm_func
         self.data = {}
-        for key, value in six.iteritems(data):
+        for key, value in data.items():
             canonical_key = norm_func(key)
             if key == canonical_key or canonical_key not in self.data:
                 self.data[canonical_key] = value
@@ -134,7 +134,7 @@ class CanonicalKeyDict(collections.MutableMapping):
         del self.data[self._norm_func(key)]
 
     def __repr__(self):
-        return "CanonicalKeyDict(%s)" % (self.data.__repr__(),)
+        return f"CanonicalKeyDict({self.data.__repr__()})"
 
 
 CANONICAL_TYPES = (CanonicalKeyDict, CanonicalKeyView)

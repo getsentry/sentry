@@ -14,11 +14,11 @@ def delete_pending_deletion_option(instance, **kwargs):
         instance.delete_pending_deletion_option()
 
 
-class PendingDeletionMixin(object):
+class PendingDeletionMixin:
     _rename_fields_on_pending_delete = frozenset()
 
     def build_pending_deletion_key(self):
-        return "pending-delete:%s:%s" % (self.__class__.__name__, self.id)
+        return f"pending-delete:{self.__class__.__name__}:{self.id}"
 
     def rename_on_pending_deletion(self, fields=None, extra_fields_to_save=None):
         """
@@ -85,7 +85,7 @@ class PendingDeletionMixin(object):
 
         fields_to_save = []
 
-        for field_name, field_value in six.iteritems(option.value):
+        for field_name, field_value in option.value.items():
             if field_name in ("id", "model"):
                 continue
             fields_to_save.append(field_name)

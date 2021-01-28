@@ -11,7 +11,7 @@ from sentry.tasks.sentry_apps import send_and_save_webhook_request
 class InstallationNotifier(Mediator):
     install = Param("sentry.models.SentryAppInstallation")
     user = Param("sentry.models.User")
-    action = Param(six.string_types)
+    action = Param((str,))
 
     def call(self):
         self._verify_action()
@@ -19,7 +19,7 @@ class InstallationNotifier(Mediator):
 
     def _verify_action(self):
         if self.action not in ["created", "deleted"]:
-            raise APIUnauthorized("Invalid action '{}'".format(self.action))
+            raise APIUnauthorized(f"Invalid action '{self.action}'")
 
     def _send_webhook(self):
         safe_urlread(send_and_save_webhook_request(self.sentry_app, self.request))

@@ -58,7 +58,7 @@ class OrganizationMemberUnreleasedCommitsEndpoint(OrganizationMemberEndpoint):
         results = list(queryset)
 
         if results:
-            repos = list(Repository.objects.filter(id__in=set([r.repository_id for r in results])))
+            repos = list(Repository.objects.filter(id__in={r.repository_id for r in results}))
         else:
             repos = []
 
@@ -69,12 +69,12 @@ class OrganizationMemberUnreleasedCommitsEndpoint(OrganizationMemberEndpoint):
                         "id": c.key,
                         "message": c.message,
                         "dateCreated": c.date_added,
-                        "repositoryID": six.text_type(c.repository_id),
+                        "repositoryID": str(c.repository_id),
                     }
                     for c in results
                 ],
                 "repositories": {
-                    six.text_type(r.id): d for r, d in zip(repos, serialize(repos, request.user))
+                    str(r.id): d for r, d in zip(repos, serialize(repos, request.user))
                 },
             }
         )

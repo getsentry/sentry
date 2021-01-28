@@ -18,7 +18,7 @@ class DeleteOrganizationSearchTest(APITestCase):
         return user
 
     def get_response(self, *args, **params):
-        return super(DeleteOrganizationSearchTest, self).get_response(
+        return super().get_response(
             *((self.organization.slug,) + args), **params
         )
 

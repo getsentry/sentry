@@ -7,7 +7,7 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 
 class GroupEventsOldestTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(GroupEventsOldestTest, self).setUp()
+        super().setUp()
         self.login_as(user=self.user)
 
         project = self.create_project()
@@ -36,22 +36,22 @@ class GroupEventsOldestTest(APITestCase, SnubaTestCase):
         self.group = Group.objects.first()
 
     def test_snuba_no_environment(self):
-        url = "/api/0/issues/{}/events/oldest/".format(self.group.id)
+        url = f"/api/0/issues/{self.group.id}/events/oldest/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
-        assert response.data["id"] == six.text_type(self.event1.event_id)
+        assert response.data["id"] == str(self.event1.event_id)
 
     def test_snuba_environment(self):
-        url = "/api/0/issues/{}/events/oldest/".format(self.group.id)
+        url = f"/api/0/issues/{self.group.id}/events/oldest/"
         response = self.client.get(url, format="json", data={"environment": ["production"]})
 
         assert response.status_code == 200
-        assert response.data["id"] == six.text_type(self.event2.event_id)
+        assert response.data["id"] == str(self.event2.event_id)
 
     def test_simple(self):
-        url = "/api/0/issues/{}/events/oldest/".format(self.group.id)
+        url = f"/api/0/issues/{self.group.id}/events/oldest/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
-        assert response.data["id"] == six.text_type(self.event1.event_id)
+        assert response.data["id"] == str(self.event1.event_id)

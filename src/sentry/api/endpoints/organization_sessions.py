@@ -44,7 +44,7 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
     def handle_query_errors(self):
         try:
             # TODO: this context manager should be decoupled from `OrganizationEventsEndpointBase`?
-            with super(OrganizationSessionsEndpoint, self).handle_query_errors():
+            with super().handle_query_errors():
                 yield
         except (InvalidField, NoProjects) as error:
-            raise ParseError(detail=six.text_type(error))
+            raise ParseError(detail=str(error))

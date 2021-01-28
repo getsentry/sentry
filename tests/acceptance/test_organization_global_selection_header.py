@@ -17,7 +17,7 @@ event_time = before_now(days=3).replace(tzinfo=pytz.utc)
 
 class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationGlobalHeaderTest, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(
@@ -70,7 +70,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         self.dismiss_assistant()
         self.project.update(first_event=timezone.now())
         self.issues_list.visit_issue_list(
-            self.org.slug, query="?query=assigned%3Ame&project=" + six.text_type(self.project_1.id)
+            self.org.slug, query="?query=assigned%3Ame&project=" + str(self.project_1.id)
         )
         self.browser.wait_until_test_id("awaiting-events")
 
@@ -95,25 +95,25 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         self.create_issues()
         # No project id in URL, selects first project
         self.issues_list.visit_issue_list(self.org.slug)
-        assert "project={}".format(self.project_1.id) in self.browser.current_url
+        assert f"project={self.project_1.id}" in self.browser.current_url
         assert self.issues_list.global_selection.get_selected_project_slug() == self.project_1.slug
 
         # Uses project id in URL
         self.issues_list.visit_issue_list(
-            self.org.slug, query="?project={}".format(self.project_2.id)
+            self.org.slug, query=f"?project={self.project_2.id}"
         )
-        assert "project={}".format(self.project_2.id) in self.browser.current_url
+        assert f"project={self.project_2.id}" in self.browser.current_url
         assert self.issues_list.global_selection.get_selected_project_slug() == self.project_2.slug
 
         # reloads page with no project id in URL, selects first project
         self.issues_list.visit_issue_list(self.org.slug)
-        assert "project={}".format(self.project_1.id) in self.browser.current_url
+        assert f"project={self.project_1.id}" in self.browser.current_url
         assert self.issues_list.global_selection.get_selected_project_slug() == self.project_1.slug
 
         # can select a different project
         self.issues_list.global_selection.select_project_by_slug(self.project_3.slug)
         self.issues_list.wait_until_loaded()
-        assert "project={}".format(self.project_3.id) in self.browser.current_url
+        assert f"project={self.project_3.id}" in self.browser.current_url
         assert self.issues_list.global_selection.get_selected_project_slug() == self.project_3.slug
 
         # reloading page with no project id in URL after previously
@@ -122,7 +122,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         # TODO check environment as well
         self.issues_list.visit_issue_list(self.org.slug)
         self.issues_list.wait_until_loaded()
-        assert "project={}".format(self.project_3.id) in self.browser.current_url
+        assert f"project={self.project_3.id}" in self.browser.current_url
 
     def test_global_selection_header_navigates_with_browser_back_button(self):
         """
@@ -135,7 +135,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         self.create_issues()
         # Issues list with project 1 selected
         self.issues_list.visit_issue_list(
-            self.org.slug, query="?project=" + six.text_type(self.project_1.id)
+            self.org.slug, query="?project=" + str(self.project_1.id)
         )
         self.issues_list.visit_issue_list(self.org.slug)
         assert self.issues_list.global_selection.get_selected_project_slug() == self.project_1.slug
@@ -143,13 +143,13 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         # selects a different project
         self.issues_list.global_selection.select_project_by_slug(self.project_3.slug)
         self.issues_list.wait_until_loaded()
-        assert "project={}".format(self.project_3.id) in self.browser.current_url
+        assert f"project={self.project_3.id}" in self.browser.current_url
         assert self.issues_list.global_selection.get_selected_project_slug() == self.project_3.slug
 
         # simulate pressing the browser back button
         self.browser.back()
         self.issues_list.wait_until_loaded()
-        assert "project={}".format(self.project_1.id) in self.browser.current_url
+        assert f"project={self.project_1.id}" in self.browser.current_url
         assert self.issues_list.global_selection.get_selected_project_slug() == self.project_1.slug
 
     def test_global_selection_header_updates_environment_with_browser_navigation_buttons(self):
@@ -236,22 +236,22 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             assert "project=" not in self.browser.current_url
             assert self.issues_list.global_selection.get_selected_project_slug() == "My Projects"
             assert (
-                self.browser.get_local_storage_item("global-selection:{}".format(self.org.slug))
+                self.browser.get_local_storage_item(f"global-selection:{self.org.slug}")
                 is None
             )
 
             # Uses project id in URL
             self.issues_list.visit_issue_list(
-                self.org.slug, query="?project={}".format(self.project_2.id)
+                self.org.slug, query=f"?project={self.project_2.id}"
             )
-            assert "project={}".format(self.project_2.id) in self.browser.current_url
+            assert f"project={self.project_2.id}" in self.browser.current_url
             assert (
                 self.issues_list.global_selection.get_selected_project_slug() == self.project_2.slug
             )
 
             # should not be in local storage
             assert (
-                self.browser.get_local_storage_item("global-selection:{}".format(self.org.slug))
+                self.browser.get_local_storage_item(f"global-selection:{self.org.slug}")
                 is None
             )
 
@@ -264,7 +264,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             # can select a different project
             self.issues_list.global_selection.select_project_by_slug(self.project_3.slug)
             self.issues_list.wait_until_loaded()
-            assert "project={}".format(self.project_3.id) in self.browser.current_url
+            assert f"project={self.project_3.id}" in self.browser.current_url
             assert (
                 self.issues_list.global_selection.get_selected_project_slug() == self.project_3.slug
             )
@@ -281,7 +281,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             self.issues_list.visit_issue_list(self.org.slug)
             self.issues_list.wait_until_loaded()
             # TODO check environment as well
-            assert "project={}".format(self.project_3.id) in self.browser.current_url
+            assert f"project={self.project_3.id}" in self.browser.current_url
             assert (
                 self.issues_list.global_selection.get_selected_project_slug() == self.project_3.slug
             )
@@ -319,7 +319,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             # can select a different project
             self.issues_list.global_selection.select_project_by_slug(self.project_3.slug)
             self.issues_list.wait_until_loaded()
-            assert "project={}".format(self.project_3.id) in self.browser.current_url
+            assert f"project={self.project_3.id}" in self.browser.current_url
             assert (
                 self.issues_list.global_selection.get_selected_project_slug() == self.project_3.slug
             )
@@ -333,30 +333,30 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
         self.create_issues()
         self.issues_list.visit_issue_list(
-            self.org.slug, query="?project={}".format(self.project_2.id)
+            self.org.slug, query=f"?project={self.project_2.id}"
         )
         self.issues_list.wait_for_issue()
 
-        assert "project={}".format(self.project_2.id) in self.browser.current_url
+        assert f"project={self.project_2.id}" in self.browser.current_url
         assert self.issues_list.global_selection.get_selected_project_slug() == self.project_2.slug
 
         # select the issue
         self.issues_list.navigate_to_issue(1)
 
         # project id should remain in URL
-        assert "project={}".format(self.project_2.id) in self.browser.current_url
+        assert f"project={self.project_2.id}" in self.browser.current_url
 
         # going back to issues list should keep project in URL
         self.issues_list.issue_details.go_back_to_issues()
         self.issues_list.wait_for_issue()
 
         # project id should remain in URL
-        assert "project={}".format(self.project_2.id) in self.browser.current_url
+        assert f"project={self.project_2.id}" in self.browser.current_url
 
         # can select a different project
         self.issues_list.global_selection.select_project_by_slug(self.project_3.slug)
         self.issues_list.wait_until_loaded()
-        assert "project={}".format(self.project_3.id) in self.browser.current_url
+        assert f"project={self.project_3.id}" in self.browser.current_url
         assert self.issues_list.global_selection.get_selected_project_slug() == self.project_3.slug
 
     @patch("django.utils.timezone.now")
@@ -371,7 +371,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         self.issue_details.visit_issue_in_environment(self.org.slug, self.issue_2.group.id, "prod")
 
         # Make sure issue's project is in URL and in header
-        assert "project={}".format(self.project_2.id) in self.browser.current_url
+        assert f"project={self.project_2.id}" in self.browser.current_url
         assert self.issues_list.global_selection.get_selected_project_slug() == self.project_2.slug
 
         # environment should be in URL and header
@@ -383,7 +383,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         self.issues_list.wait_for_issue()
 
         # project id should remain in URL
-        assert "project={}".format(self.project_2.id) in self.browser.current_url
+        assert f"project={self.project_2.id}" in self.browser.current_url
         assert "environment=prod" in self.browser.current_url
         assert self.issues_list.global_selection.get_selected_project_slug() == self.project_2.slug
         assert self.issue_details.global_selection.get_selected_environment() == "prod"
@@ -405,7 +405,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             )
 
             # Make sure issue's project is in URL and in header
-            assert "project={}".format(self.project_2.id) in self.browser.current_url
+            assert f"project={self.project_2.id}" in self.browser.current_url
             assert (
                 self.issues_list.global_selection.get_selected_project_slug() == self.project_2.slug
             )
@@ -422,7 +422,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             self.issues_list.wait_for_issue()
 
             # project id should remain in URL
-            assert "project={}".format(self.project_2.id) in self.browser.current_url
+            assert f"project={self.project_2.id}" in self.browser.current_url
             assert "environment=prod" in self.browser.current_url
             assert (
                 self.issues_list.global_selection.get_selected_project_slug() == self.project_2.slug

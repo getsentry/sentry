@@ -4,7 +4,6 @@ import sys
 from collections import defaultdict
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models import Q
-from six.moves import input
 
 from sentry.models import Organization, OrganizationMember, User
 from functools import reduce
@@ -107,7 +106,7 @@ class Command(BaseCommand):
             for user in user_list[1:]:
                 user.merge_to(primary_user)
                 sys.stdout.write(
-                    "{} was merged into {}\n".format(user.username, primary_user.username)
+                    f"{user.username} was merged into {primary_user.username}\n"
                 )
 
             if options["delete"]:

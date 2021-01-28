@@ -95,7 +95,7 @@ class SentryAppsPermission(SentryPermission):
 class IntegrationPlatformEndpoint(Endpoint):
     def dispatch(self, request, *args, **kwargs):
         add_request_metric_tags(request, integration_platform=True)
-        return super(IntegrationPlatformEndpoint, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
 
 class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
@@ -103,7 +103,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
 
     def _get_organization_slug(self, request):
         organization_slug = request.json_body.get("organization")
-        if not organization_slug or not isinstance(organization_slug, string_types):
+        if not organization_slug or not isinstance(organization_slug, str):
             error_message = """
                 Please provide a valid value for the 'organization' field.
             """
@@ -311,7 +311,7 @@ class SentryAppInstallationPermission(SentryPermission):
             and request.method == "PUT"
         ):
             return True
-        return super(SentryAppInstallationPermission, self).has_permission(request, *args, **kwargs)
+        return super().has_permission(request, *args, **kwargs)
 
     def has_object_permission(self, request, view, installation):
         if not hasattr(request, "user") or not request.user:

@@ -8,7 +8,7 @@ from sentry.models import ProjectDebugFile
 class DebugFileSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         d = {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "uuid": obj.debug_id[:36],
             "debugId": obj.debug_id,
             "codeId": obj.code_id,

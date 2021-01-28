@@ -66,7 +66,7 @@ class UserSerializer(Serializer):
         experiment_assignments = experiments.all(user=user)
 
         d = {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "name": obj.get_display_name(),
             "username": obj.username,
             "email": obj.email,
@@ -112,7 +112,7 @@ class UserSerializer(Serializer):
         if attrs["identities"] is not None:
             d["identities"] = [
                 {
-                    "id": six.text_type(i.id),
+                    "id": str(i.id),
                     "name": i.ident,
                     "organization": {
                         "slug": i.auth_provider.organization.slug,
@@ -129,7 +129,7 @@ class UserSerializer(Serializer):
             ]
 
         d["emails"] = [
-            {"id": six.text_type(e.id), "email": e.email, "is_verified": e.is_verified}
+            {"id": str(e.id), "email": e.email, "is_verified": e.is_verified}
             for e in attrs["emails"]
         ]
 
@@ -138,7 +138,7 @@ class UserSerializer(Serializer):
 
 class DetailedUserSerializer(UserSerializer):
     def get_attrs(self, item_list, user):
-        attrs = super(DetailedUserSerializer, self).get_attrs(item_list, user)
+        attrs = super().get_attrs(item_list, user)
 
         # ignore things that aren't user controlled (like recovery codes)
         authenticators = manytoone_to_dict(
@@ -168,7 +168,7 @@ class DetailedUserSerializer(UserSerializer):
         return attrs
 
     def serialize(self, obj, attrs, user):
-        d = super(DetailedUserSerializer, self).serialize(obj, attrs, user)
+        d = super().serialize(obj, attrs, user)
         # XXX(dcramer): we dont use is_active_superuser here as we simply
         # want to tell the UI that we're an authenticated superuser, and
         # for requests that require an *active* session, they should prompt
@@ -178,9 +178,9 @@ class DetailedUserSerializer(UserSerializer):
         d["permissions"] = [up.permission for up in attrs["permissions"]]
         d["authenticators"] = [
             {
-                "id": six.text_type(a.id),
+                "id": str(a.id),
                 "type": a.interface.interface_id,
-                "name": six.text_type(a.interface.name),
+                "name": str(a.interface.name),
                 "dateCreated": a.created_at,
                 "dateUsed": a.last_used_at,
             }

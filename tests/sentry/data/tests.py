@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 import os
 import six
 
@@ -24,9 +21,8 @@ class DataGenerator(type):
 
             test_func.__name__ = func_name
             attrs[func_name] = test_func
-        return super(DataGenerator, cls).__new__(cls, name, bases, attrs)
+        return super().__new__(cls, name, bases, attrs)
 
 
-@six.add_metaclass(DataGenerator)
-class DataTestCase(TestCase):
+class DataTestCase(TestCase, metaclass=DataGenerator):
     pass

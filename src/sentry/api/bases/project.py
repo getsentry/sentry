@@ -29,7 +29,7 @@ class ProjectPermission(OrganizationPermission):
     }
 
     def has_object_permission(self, request, view, project):
-        result = super(ProjectPermission, self).has_object_permission(
+        result = super().has_object_permission(
             request, view, project.organization
         )
 
@@ -146,8 +146,8 @@ class ProjectEndpoint(Endpoint):
                 # get full path so that we keep query strings
                 requested_url = request.get_full_path()
                 new_url = requested_url.replace(
-                    "projects/%s/%s/" % (organization_slug, project_slug),
-                    "projects/%s/%s/" % (organization_slug, redirect.project.slug),
+                    f"projects/{organization_slug}/{project_slug}/",
+                    f"projects/{organization_slug}/{redirect.project.slug}/",
                 )
 
                 # Resource was moved/renamed if the requested url is different than the new url
@@ -181,7 +181,7 @@ class ProjectEndpoint(Endpoint):
         try:
             start, end = get_date_range_from_params(request.GET, optional=date_filter_optional)
         except InvalidParams as e:
-            raise ProjectEventsError(six.text_type(e))
+            raise ProjectEventsError(str(e))
 
         environments = [env.name for env in get_environments(request, project.organization)]
         params = {"start": start, "end": end, "project_id": [project.id]}
@@ -198,4 +198,4 @@ class ProjectEndpoint(Endpoint):
             )
             response["Location"] = exc.detail["detail"]["extra"]["url"]
             return response
-        return super(ProjectEndpoint, self).handle_exception(request, exc)
+        return super().handle_exception(request, exc)

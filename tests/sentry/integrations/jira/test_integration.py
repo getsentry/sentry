@@ -47,7 +47,7 @@ class JiraIntegrationTest(APITestCase):
         return integration
 
     def setUp(self):
-        super(JiraIntegrationTest, self).setUp()
+        super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
         self.login_as(self.user)
 
@@ -282,7 +282,7 @@ class JiraIntegrationTest(APITestCase):
         group = event.group
         installation = self.integration.get_installation(self.organization.id)
         installation.org_integration.config = {
-            "project_issue_defaults": {six.text_type(group.project_id): {"project": "10001"}}
+            "project_issue_defaults": {str(group.project_id): {"project": "10001"}}
         }
         installation.org_integration.save()
 
@@ -314,7 +314,7 @@ class JiraIntegrationTest(APITestCase):
         group = event.group
         installation = self.integration.get_installation(self.organization.id)
         installation.org_integration.config = {
-            "project_issue_defaults": {six.text_type(group.project_id): {"project": "10001"}}
+            "project_issue_defaults": {str(group.project_id): {"project": "10001"}}
         }
         installation.org_integration.save()
 
@@ -346,7 +346,7 @@ class JiraIntegrationTest(APITestCase):
 
         installation = self.integration.get_installation(self.organization.id)
         installation.org_integration.config = {
-            "project_issue_defaults": {six.text_type(group.project_id): {"labels": label_default}}
+            "project_issue_defaults": {str(group.project_id): {"labels": label_default}}
         }
         installation.org_integration.save()
 
@@ -852,7 +852,7 @@ class JiraInstallationTest(IntegrationTestCase):
     provider = JiraIntegrationProvider
 
     def setUp(self):
-        super(JiraInstallationTest, self).setUp()
+        super().setUp()
         self.metadata = {
             "oauth_client_id": "oauth-client-id",
             "shared_secret": "a-super-secret-key-from-atlassian",

@@ -19,7 +19,7 @@ def bgtask(roles=None, interval=60):
     return decorator
 
 
-class BgTask(object):
+class BgTask:
     def __init__(self, callback, roles=None, interval=60):
         self.callback = callback
         self.roles = roles or []
@@ -28,7 +28,7 @@ class BgTask(object):
 
     @property
     def name(self):
-        return "%s:%s" % (self.callback.__module__, self.callback.__name__)
+        return f"{self.callback.__module__}:{self.callback.__name__}"
 
     def run(self):
         if self.running:
@@ -72,7 +72,7 @@ def get_task(task_name):
 
 
 def spawn_bgtasks(role):
-    for import_name, cfg in six.iteritems(settings.BGTASKS):
+    for import_name, cfg in settings.BGTASKS.items():
         task = get_task(import_name)
         # This is already running
         if task.name in tasks:
@@ -85,7 +85,7 @@ def spawn_bgtasks(role):
 
 
 def shutdown_bgtasks():
-    for task_name, task in list(six.iteritems(tasks)):
+    for task_name, task in list(tasks.items()):
         task.stop()
         tasks.pop(task_name, None)
 

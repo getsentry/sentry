@@ -19,7 +19,7 @@ logger = logging.getLogger("sentry.webhooks")
 PROVIDER_NAME = "integrations:gitlab"
 
 
-class Webhook(object):
+class Webhook:
     def __call__(self, integration, organization, event):
         raise NotImplementedError
 
@@ -202,7 +202,7 @@ class GitlabWebhookEndpoint(View):
         if request.method != "POST":
             return HttpResponse(status=405)
 
-        return super(GitlabWebhookEndpoint, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     def post(self, request):
         token = "<unknown>"
@@ -212,7 +212,7 @@ class GitlabWebhookEndpoint(View):
             # to find data on our side so we embed one in the token.
             token = request.META["HTTP_X_GITLAB_TOKEN"]
             instance, group_path, secret = token.split(":")
-            external_id = "{}:{}".format(instance, group_path)
+            external_id = f"{instance}:{group_path}"
         except Exception:
             logger.info("gitlab.webhook.invalid-token", extra={"token": token})
             return HttpResponse(status=400)

@@ -53,7 +53,7 @@ class UserAuthenticatorDetailsTest(APITestCase):
         assert resp.status_code == 200
         assert resp.data["isEnrolled"]
         assert resp.data["id"] == "totp"
-        assert resp.data["authId"] == six.text_type(auth.id)
+        assert resp.data["authId"] == str(auth.id)
 
         # should not have these because enrollment
         assert "totp_secret" not in resp.data
@@ -73,7 +73,7 @@ class UserAuthenticatorDetailsTest(APITestCase):
         resp = self.client.get(url)
         assert resp.status_code == 200
         assert resp.data["id"] == "recovery"
-        assert resp.data["authId"] == six.text_type(interface.authenticator.id)
+        assert resp.data["authId"] == str(interface.authenticator.id)
         assert len(resp.data["codes"])
 
         assert email_log.info.call_count == 0
@@ -105,7 +105,7 @@ class UserAuthenticatorDetailsTest(APITestCase):
         resp = self.client.get(url)
         assert resp.status_code == 200
         assert resp.data["id"] == "u2f"
-        assert resp.data["authId"] == six.text_type(auth.id)
+        assert resp.data["authId"] == str(auth.id)
         assert len(resp.data["devices"])
         assert resp.data["devices"][0]["name"] == "Amused Beetle"
 
@@ -218,7 +218,7 @@ class UserAuthenticatorDetailsTest(APITestCase):
         resp = self.client.get(url)
         assert resp.status_code == 200
         assert resp.data["id"] == "sms"
-        assert resp.data["authId"] == six.text_type(interface.authenticator.id)
+        assert resp.data["authId"] == str(interface.authenticator.id)
         assert resp.data["phone"] == "5551231234"
 
         # should not have these because enrollment

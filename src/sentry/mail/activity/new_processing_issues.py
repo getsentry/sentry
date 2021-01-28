@@ -14,7 +14,7 @@ def summarize_issues(issues):
         if "image_path" in issue["data"]:
             extra_info = issue["data"]["image_path"].rsplit("/", 1)[-1]
             if "image_arch" in issue["data"]:
-                extra_info = "%s (%s)" % (extra_info, issue["data"]["image_arch"])
+                extra_info = "{} ({})".format(extra_info, issue["data"]["image_arch"])
 
         rv.append({"message": EventError(msg_d).message, "extra_info": extra_info})
     return rv
@@ -26,10 +26,10 @@ class NewProcessingIssuesActivityEmail(ActivityEmail):
         self.issues = summarize_issues(self.activity.data["issues"])
 
     def get_participants(self):
-        return dict(
-            (user, GroupSubscriptionReason.processing_issue)
+        return {
+            user: GroupSubscriptionReason.processing_issue
             for user in self.project.get_mail_alert_subscribers()
-        )
+        }
 
     def get_context(self):
         return {
@@ -44,7 +44,7 @@ class NewProcessingIssuesActivityEmail(ActivityEmail):
         }
 
     def get_subject(self):
-        return "Processing Issues on {}".format(self.project.slug)
+        return f"Processing Issues on {self.project.slug}"
 
     def get_template(self):
         return "sentry/emails/activity/new_processing_issues.txt"

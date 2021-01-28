@@ -80,7 +80,7 @@ cmdclass = {
 
 
 def get_requirements(env):
-    with open("requirements-{}.txt".format(env)) as fp:
+    with open(f"requirements-{env}.txt") as fp:
         return [x.strip() for x in fp.read().split("\n") if not x.startswith("#")]
 
 
@@ -110,10 +110,10 @@ setup(
     license="BSL-1.1",
     include_package_data=True,
     package_data={
-        "sentry": ["static/sentry/{}/**".format(d) for d in ("dist", "js", "images", "vendor")]
+        "sentry": [f"static/sentry/{d}/**" for d in ("dist", "js", "images", "vendor")]
     },
     exclude_package_data={
-        "sentry": ["static/sentry/{}/**".format(d) for d in ("app", "fonts", "less")]
+        "sentry": [f"static/sentry/{d}/**" for d in ("app", "fonts", "less")]
     },
     entry_points={
         "console_scripts": ["sentry = sentry.runner:main"],

@@ -7,7 +7,7 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
     """
 
     def setUp(self):
-        super(OrganizationDeveloperSettingsNewAcceptanceTest, self).setUp()
+        super().setUp()
         self.team = self.create_team(organization=self.organization, name="Tesla Motors")
         self.project = self.create_project(
             organization=self.organization, teams=[self.team], name="Model S"
@@ -53,7 +53,7 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
     """
 
     def setUp(self):
-        super(OrganizationDeveloperSettingsEditAcceptanceTest, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Tesla", owner=self.user)
         self.team = self.create_team(organization=self.org, name="Tesla Motors")
@@ -94,7 +94,7 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
 
     def test_remove_tokens_internal_app(self):
         internal_app = self.create_internal_integration(name="Internal App", organization=self.org)
-        url = "/settings/{}/developer-settings/{}".format(self.org.slug, internal_app.slug)
+        url = f"/settings/{self.org.slug}/developer-settings/{internal_app.slug}"
 
         self.load_page(url)
 
@@ -107,7 +107,7 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
 
     def test_add_tokens_internal_app(self):
         internal_app = self.create_internal_integration(name="Internal App", organization=self.org)
-        url = "/settings/{}/developer-settings/{}".format(self.org.slug, internal_app.slug)
+        url = f"/settings/{self.org.slug}/developer-settings/{internal_app.slug}"
 
         self.load_page(url)
 

@@ -78,7 +78,7 @@ Is then "exploded" into something like:
 """
 
 
-class SessionsField(object):
+class SessionsField:
     def get_snuba_columns(self, raw_groupby):
         if "session.status" in raw_groupby:
             return ["sessions", "sessions_abnormal", "sessions_crashed", "sessions_errored"]
@@ -101,7 +101,7 @@ class SessionsField(object):
         return 0
 
 
-class UsersField(object):
+class UsersField:
     def get_snuba_columns(self, raw_groupby):
         if "session.status" in raw_groupby:
             return ["users", "users_abnormal", "users_crashed", "users_errored"]
@@ -124,7 +124,7 @@ class UsersField(object):
         return 0
 
 
-class DurationAverageField(object):
+class DurationAverageField:
     def get_snuba_columns(self, raw_groupby):
         return ["duration_avg"]
 
@@ -137,7 +137,7 @@ class DurationAverageField(object):
         return None
 
 
-class DurationQuantileField(object):
+class DurationQuantileField:
     def __init__(self, quantile_index):
         self.quantile_index = quantile_index
 
@@ -166,7 +166,7 @@ COLUMN_MAP = {
 }
 
 
-class SimpleGroupBy(object):
+class SimpleGroupBy:
     def __init__(self, row_name, name=None):
         self.row_name = row_name
         self.name = name or row_name
@@ -181,7 +181,7 @@ class SimpleGroupBy(object):
         return [(self.name, row[self.row_name])]
 
 
-class SessionStatusGroupBy(object):
+class SessionStatusGroupBy:
     def get_snuba_columns(self):
         return []
 
@@ -204,7 +204,7 @@ class InvalidField(Exception):
     pass
 
 
-class QueryDefinition(object):
+class QueryDefinition:
     """
     This is the definition of the query the user wants to execute.
     This is constructed out of the request params, and also contains a list of
@@ -222,13 +222,13 @@ class QueryDefinition(object):
         self.fields = {}
         for key in raw_fields:
             if key not in COLUMN_MAP:
-                raise InvalidField('Invalid field: "{}"'.format(key))
+                raise InvalidField(f'Invalid field: "{key}"')
             self.fields[key] = COLUMN_MAP[key]
 
         self.groupby = []
         for key in raw_groupby:
             if key not in GROUPBY_MAP:
-                raise InvalidField('Invalid groupBy: "{}"'.format(key))
+                raise InvalidField(f'Invalid groupBy: "{key}"')
             self.groupby.append(GROUPBY_MAP[key])
 
         start, end, rollup = get_date_range_rollup_from_params(query, "1h", round_range=True)

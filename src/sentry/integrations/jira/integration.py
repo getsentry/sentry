@@ -291,7 +291,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         self.model.save()
 
     def get_link_issue_config(self, group, **kwargs):
-        fields = super(JiraIntegration, self).get_link_issue_config(group, **kwargs)
+        fields = super().get_link_issue_config(group, **kwargs)
         org = group.organization
         autocomplete_url = reverse("sentry-extensions-jira-search", args=[org.slug, self.model.id])
         for field in fields:
@@ -301,7 +301,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return fields
 
     def get_issue_url(self, key, **kwargs):
-        return "%s/browse/%s" % (self.model.metadata["base_url"], key)
+        return "{}/browse/{}".format(self.model.metadata["base_url"], key)
 
     def get_persisted_default_config_fields(self):
         return ["project", "issuetype", "priority", "labels"]
@@ -354,7 +354,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def create_comment_attribution(self, user_id, comment_text):
         user = User.objects.get(id=user_id)
         attribution = "%s wrote:\n\n" % user.name
-        return "%s{quote}%s{quote}" % (attribution, comment_text)
+        return f"{attribution}{{quote}}{comment_text}{{quote}}"
 
     def update_comment(self, issue_id, user_id, group_note):
         quoted_comment = self.create_comment_attribution(user_id, group_note.data["text"])
@@ -396,7 +396,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         if data.get("errors"):
             if message:
                 message += " "
-            message += " ".join(["%s: %s" % (k, v) for k, v in data.get("errors").items()])
+            message += " ".join([f"{k}: {v}" for k, v in data.get("errors").items()])
         return message
 
     def error_fields_from_json(self, data):
@@ -545,7 +545,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                     "integration_id": self.model.id,
                     "organization_id": self.organization_id,
                     "jira_project": project_id,
-                    "error": six.text_type(e),
+                    "error": str(e),
                 },
             )
             raise IntegrationError(
@@ -576,7 +576,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         fields = []
         defaults = {}
         if group:
-            fields = super(JiraIntegration, self).get_create_issue_config(group, user, **kwargs)
+            fields = super().get_create_issue_config(group, user, **kwargs)
             defaults = self.get_defaults(group.project, user)
 
         project_id = params.get("project", defaults.get("project"))
@@ -589,7 +589,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 extra={
                     "integration_id": self.model.id,
                     "organization_id": self.organization_id,
-                    "error": six.text_type(e),
+                    "error": str(e),
                 },
             )
             raise IntegrationError(
@@ -612,7 +612,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         # make sure default issue type is actually
         # one that is allowed for project
         if issue_type:
-            if not any((c for c in issue_type_choices if c[0] == issue_type)):
+            if not any(c for c in issue_type_choices if c[0] == issue_type):
                 issue_type = issue_type_meta["id"]
 
         fields = (
@@ -693,7 +693,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                             "integration_id": self.model.id,
                             "organization_id": self.organization_id,
                             "persisted_reporter_id": reporter_id,
-                            "error": six.text_type(e),
+                            "error": str(e),
                         },
                     )
                     continue
@@ -771,7 +771,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                         try:
                             v = int(v)
                         except ValueError:
-                            raise IntegrationError("Invalid sprint ({}) specified".format(v))
+                            raise IntegrationError(f"Invalid sprint ({v}) specified")
                     elif schema["type"] == "array" and schema.get("items") == "option":
                         v = [{"value": vx} for vx in v]
                     elif schema["type"] == "array" and schema.get("items") == "string":

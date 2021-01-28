@@ -28,7 +28,7 @@ def Feature(names):
     >>> with Feature({'feature-1': True, 'feature-2': True}):
     >>>   # execute with both features enabled
     """
-    if isinstance(names, six.string_types):
+    if isinstance(names, str):
         names = {names: True}
 
     elif not isinstance(names, collections.Mapping):

@@ -22,7 +22,7 @@ class ApiScopesField(serializers.Field):
 
         for scope in data:
             if scope not in valid_scopes:
-                raise ValidationError("{} not a valid scope".format(scope))
+                raise ValidationError(f"{scope} not a valid scope")
         return data
 
 

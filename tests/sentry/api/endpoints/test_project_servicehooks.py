@@ -9,7 +9,7 @@ class ListProjectServiceHooksTest(APITestCase):
             project_id=project.id, actor_id=self.user.id, url="http://example.com"
         )[0]
         self.login_as(user=self.user)
-        url = "/api/0/projects/{}/{}/hooks/".format(project.organization.slug, project.slug)
+        url = f"/api/0/projects/{project.organization.slug}/{project.slug}/hooks/"
         with self.feature("projects:servicehooks"):
             response = self.client.get(url)
         assert response.status_code == 200
@@ -19,7 +19,7 @@ class ListProjectServiceHooksTest(APITestCase):
 
 class CreateProjectServiceHookTest(APITestCase):
     def setUp(self):
-        super(CreateProjectServiceHookTest, self).setUp()
+        super().setUp()
         self.project = self.create_project()
         self.login_as(user=self.user)
         self.path = "/api/0/projects/{}/{}/hooks/".format(

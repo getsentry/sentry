@@ -30,7 +30,7 @@ class ApiError(Exception):
                 self.json = None
         else:
             self.json = None
-        super(ApiError, self).__init__(text[:1024])
+        super().__init__(text[:1024])
 
     @classmethod
     def from_response(cls, response, url=None):
@@ -51,7 +51,7 @@ class ApiHostError(ApiError):
     @classmethod
     def from_request(cls, request):
         host = urlparse(request.url).netloc
-        return cls("Unable to reach host: {}".format(host))
+        return cls(f"Unable to reach host: {host}")
 
 
 class ApiTimeoutError(ApiError):
@@ -66,7 +66,7 @@ class ApiTimeoutError(ApiError):
     @classmethod
     def from_request(cls, request):
         host = urlparse(request.url).netloc
-        return cls("Timed out attempting to reach host: {}".format(host))
+        return cls(f"Timed out attempting to reach host: {host}")
 
 
 class ApiUnauthorized(ApiError):
@@ -93,7 +93,7 @@ class DeprecatedIntegrationError(IntegrationError):
 
 class IntegrationFormError(IntegrationError):
     def __init__(self, field_errors):
-        super(IntegrationFormError, self).__init__("Invalid integration action")
+        super().__init__("Invalid integration action")
         self.field_errors = field_errors
 
 

@@ -25,34 +25,34 @@ def disable_internal_networks():
 
 class RelayPublicKeysConfigTest(APITestCase):
     def setUp(self):
-        super(RelayPublicKeysConfigTest, self).setUp()
+        super().setUp()
 
         self.key_pair = generate_key_pair()
 
         self.public_key = self.key_pair[1]
         self.private_key = self.key_pair[0]
 
-        self.non_existing_key = six.text_type(uuid4())
+        self.non_existing_key = str(uuid4())
 
         self.internal_relay = Relay.objects.create(
-            relay_id=six.text_type(uuid4()),
-            public_key=six.text_type(self.public_key),
+            relay_id=str(uuid4()),
+            public_key=str(self.public_key),
             is_internal=True,
         )
 
         self.external_relay = Relay.objects.create(
-            relay_id=six.text_type(uuid4()),
-            public_key=six.text_type(self.public_key),
+            relay_id=str(uuid4()),
+            public_key=str(self.public_key),
             is_internal=False,
         )
         self.relay_a = Relay.objects.create(
-            relay_id=six.text_type(uuid4()),
-            public_key=six.text_type(self.public_key),
+            relay_id=str(uuid4()),
+            public_key=str(self.public_key),
             is_internal=False,
         )
         self.relay_b = Relay.objects.create(
-            relay_id=six.text_type(uuid4()),
-            public_key=six.text_type(self.public_key),
+            relay_id=str(uuid4()),
+            public_key=str(self.public_key),
             is_internal=True,
         )
 
@@ -109,8 +109,8 @@ class RelayPublicKeysConfigTest(APITestCase):
         raw_json, signature = self.private_key.pack(
             {
                 "relay_ids": [
-                    six.text_type(self.relay_a.relay_id),
-                    six.text_type(self.relay_b.relay_id),
+                    str(self.relay_a.relay_id),
+                    str(self.relay_b.relay_id),
                     self.non_existing_key,
                 ]
             }

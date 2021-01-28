@@ -34,7 +34,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        url = "/api/0/issues/{}/tags/".format(event1.group.id)
+        url = f"/api/0/issues/{event1.group.id}/tags/"
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 4
@@ -53,7 +53,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase):
         assert len(data[3]["topValues"]) == 1
 
         # Use the key= queryparam to grab results for specific tags
-        url = "/api/0/issues/{}/tags/?key=foo&key=sentry:release".format(event1.group.id)
+        url = f"/api/0/issues/{event1.group.id}/tags/?key=foo&key=sentry:release"
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
@@ -62,7 +62,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase):
 
         assert data[0]["key"] == "foo"
         assert len(data[0]["topValues"]) == 2
-        assert set(v["value"] for v in data[0]["topValues"]) == set(["bar", "quux"])
+        assert {v["value"] for v in data[0]["topValues"]} == {"bar", "quux"}
 
         assert data[1]["key"] == "release"
         assert len(data[1]["topValues"]) == 1
@@ -70,7 +70,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase):
     def test_invalid_env(self):
         this_group = self.create_group()
         self.login_as(user=self.user)
-        url = "/api/0/issues/{}/tags/".format(this_group.id)
+        url = f"/api/0/issues/{this_group.id}/tags/"
         response = self.client.get(url, {"environment": "notreal"}, format="json")
         assert response.status_code == 404
 
@@ -86,13 +86,13 @@ class GroupTagsTest(APITestCase, SnubaTestCase):
         group = event.group
 
         self.login_as(user=self.user)
-        url = "/api/0/issues/{}/tags/".format(group.id)
+        url = f"/api/0/issues/{group.id}/tags/"
         response = self.client.get(url, {"environment": "prod"}, format="json")
         assert response.status_code == 200
         assert len(response.data) == 4
-        assert set([tag["key"] for tag in response.data]) == set(
-            ["foo", "biz", "environment", "level"]
-        )
+        assert {tag["key"] for tag in response.data} == {
+            "foo", "biz", "environment", "level"
+        }
 
     def test_multi_env(self):
         min_ago = before_now(minutes=1)
@@ -118,9 +118,9 @@ class GroupTagsTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        url = "/api/0/issues/{}/tags/".format(event2.group.id)
+        url = f"/api/0/issues/{event2.group.id}/tags/"
         response = self.client.get(
-            "%s?environment=%s&environment=%s" % (url, env.name, env2.name), format="json"
+            f"{url}?environment={env.name}&environment={env2.name}", format="json"
         )
         assert response.status_code == 200
-        assert set([tag["key"] for tag in response.data]) >= set(["biz", "environment", "foo"])
+        assert {tag["key"] for tag in response.data} >= {"biz", "environment", "foo"}

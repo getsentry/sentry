@@ -40,7 +40,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
     def test_user(self):
         action = self.create_alert_rule_trigger_action(
             target_type=AlertRuleTriggerAction.TargetType.USER,
-            target_identifier=six.text_type(self.user.id),
+            target_identifier=str(self.user.id),
         )
         handler = EmailActionHandler(action, self.incident, self.project)
         assert handler.get_targets() == [(self.user.id, self.user.email)]
@@ -51,7 +51,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         )
         action = self.create_alert_rule_trigger_action(
             target_type=AlertRuleTriggerAction.TargetType.USER,
-            target_identifier=six.text_type(self.user.id),
+            target_identifier=str(self.user.id),
         )
         handler = EmailActionHandler(action, self.incident, self.project)
         assert handler.get_targets() == [(self.user.id, self.user.email)]
@@ -61,12 +61,12 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         self.create_team_membership(team=self.team, user=new_user)
         action = self.create_alert_rule_trigger_action(
             target_type=AlertRuleTriggerAction.TargetType.TEAM,
-            target_identifier=six.text_type(self.team.id),
+            target_identifier=str(self.team.id),
         )
         handler = EmailActionHandler(action, self.incident, self.project)
-        assert set(handler.get_targets()) == set(
-            [(self.user.id, self.user.email), (new_user.id, new_user.email)]
-        )
+        assert set(handler.get_targets()) == {
+            (self.user.id, self.user.email), (new_user.id, new_user.email)
+        }
 
     def test_team_alert_disabled(self):
         UserOption.objects.set_value(
@@ -79,10 +79,10 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         self.create_team_membership(team=self.team, user=new_user)
         action = self.create_alert_rule_trigger_action(
             target_type=AlertRuleTriggerAction.TargetType.TEAM,
-            target_identifier=six.text_type(self.team.id),
+            target_identifier=str(self.team.id),
         )
         handler = EmailActionHandler(action, self.incident, self.project)
-        assert set(handler.get_targets()) == set([(new_user.id, new_user.email)])
+        assert set(handler.get_targets()) == {(new_user.id, new_user.email)}
 
 
 @freeze_time()
@@ -148,7 +148,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         ).get("environment")
 
 
-class FireTest(object):
+class FireTest:
     def run_test(self, incident, method):
         raise NotImplementedError
 
@@ -167,7 +167,7 @@ class EmailActionHandlerTest(FireTest, TestCase):
     @responses.activate
     def run_test(self, incident, method):
         action = self.create_alert_rule_trigger_action(
-            target_identifier=six.text_type(self.user.id),
+            target_identifier=str(self.user.id),
             triggered_for_incident=incident,
         )
         handler = EmailActionHandler(action, incident, self.project)
@@ -424,11 +424,11 @@ class PagerDutyActionHandlerTest(FireTest, TestCase):
         )
         assert data["payload"]["summary"] == alert_rule.name
         assert data["payload"]["severity"] == "critical"
-        assert data["payload"]["source"] == six.text_type(incident.identifier)
+        assert data["payload"]["source"] == str(incident.identifier)
         assert data["payload"]["custom_details"] == {
             "details": "1000 events in the last 10 minutes\nFilter: level:error"
         }
-        assert data["links"][0]["text"] == "Critical: {}".format(alert_rule.name)
+        assert data["links"][0]["text"] == f"Critical: {alert_rule.name}"
         assert data["links"][0]["href"] == "http://testserver/organizations/baz/alerts/1/"
 
     @responses.activate

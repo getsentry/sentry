@@ -33,7 +33,7 @@ class OrganizationSerializer(serializers.Serializer):
     agreeTerms = serializers.BooleanField(required=True)
 
     def __init__(self, *args, **kwargs):
-        super(OrganizationSerializer, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         if not (settings.TERMS_URL and settings.PRIVACY_URL):
             del self.fields["agreeTerms"]
 
@@ -95,7 +95,7 @@ class OrganizationIndexEndpoint(Endpoint):
         query = request.GET.get("query")
         if query:
             tokens = tokenize_query(query)
-            for key, value in six.iteritems(tokens):
+            for key, value in tokens.items():
                 if key == "query":
                     value = " ".join(value)
                     queryset = queryset.filter(
@@ -185,7 +185,7 @@ class OrganizationIndexEndpoint(Endpoint):
 
         limit = options.get("api.rate-limit.org-create")
         if limit and ratelimiter.is_limited(
-            "org-create:{}".format(request.user.id), limit=limit, window=3600
+            f"org-create:{request.user.id}", limit=limit, window=3600
         ):
             return Response(
                 {"detail": "You are attempting to create too many organizations too quickly."},

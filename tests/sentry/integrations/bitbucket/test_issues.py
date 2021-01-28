@@ -110,7 +110,7 @@ class BitbucketIssueTest(APITestCase):
         )
         self.org_integration.config = {
             "project_issue_defaults": {
-                six.text_type(self.group.project_id): {"repo": "myaccount/repo1"}
+                str(self.group.project_id): {"repo": "myaccount/repo1"}
             }
         }
         self.org_integration.save()
@@ -134,7 +134,7 @@ class BitbucketIssueTest(APITestCase):
         )
         self.org_integration.config = {
             "project_issue_defaults": {
-                six.text_type(self.group.project_id): {"repo": "myaccount/repo1"}
+                str(self.group.project_id): {"repo": "myaccount/repo1"}
             }
         }
         self.org_integration.save()
@@ -280,7 +280,7 @@ class BitbucketIssueTest(APITestCase):
 
         responses.add(
             responses.POST,
-            "https://api.bitbucket.org/2.0/repositories/{repo}/issues".format(repo=repo),
+            f"https://api.bitbucket.org/2.0/repositories/{repo}/issues",
             json={"id": id, "title": title, "content": {"html": content}},
         )
         installation = self.integration.get_installation(self.organization.id)

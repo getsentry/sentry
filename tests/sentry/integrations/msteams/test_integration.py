@@ -17,7 +17,7 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
     provider = MsTeamsIntegrationProvider
 
     def setUp(self):
-        super(MsTeamsIntegrationTest, self).setUp()
+        super().setUp()
         self.start_time = 1594768808
         self.pipeline_state = {
             "team_id": team_id,
@@ -75,7 +75,7 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
                 integration=integration, organization=self.organization
             )
 
-            integration_url = "organizations/{}/rules/".format(self.organization.slug)
+            integration_url = f"organizations/{self.organization.slug}/rules/"
             assert integration_url in responses.calls[1].request.body.decode("utf-8")
             assert self.organization.name in responses.calls[1].request.body.decode("utf-8")
 

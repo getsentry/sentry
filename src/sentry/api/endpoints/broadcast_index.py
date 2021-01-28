@@ -36,7 +36,7 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
 
     def convert_args(self, request, organization_slug=None, *args, **kwargs):
         if organization_slug:
-            args, kwargs = super(BroadcastIndexEndpoint, self).convert_args(
+            args, kwargs = super().convert_args(
                 request, organization_slug
             )
 
@@ -59,7 +59,7 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
         query = request.GET.get("query")
         if query:
             tokens = tokenize_query(query)
-            for key, value in six.iteritems(tokens):
+            for key, value in tokens.items():
                 if key == "query":
                     value = " ".join(value)
                     queryset = queryset.filter(

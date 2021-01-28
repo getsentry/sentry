@@ -288,7 +288,7 @@ class ParseQueryTest(TestCase):
         assert result == {"assigned_to": self.user, "tags": {}, "query": ""}
 
     def test_assigned_email(self):
-        result = self.parse_query("assigned:%s" % (self.user.email,))
+        result = self.parse_query(f"assigned:{self.user.email}")
         assert result == {"assigned_to": self.user, "tags": {}, "query": ""}
 
     def test_assigned_unknown_user(self):
@@ -297,12 +297,12 @@ class ParseQueryTest(TestCase):
         assert result["assigned_to"].id == 0
 
     def test_assigned_valid_team(self):
-        result = self.parse_query("assigned:#{}".format(self.team.slug))
+        result = self.parse_query(f"assigned:#{self.team.slug}")
         assert result["assigned_to"] == self.team
 
     def test_assigned_unassociated_team(self):
         team2 = self.create_team(organization=self.organization)
-        result = self.parse_query("assigned:#{}".format(team2.slug))
+        result = self.parse_query(f"assigned:#{team2.slug}")
         assert isinstance(result["assigned_to"], Team)
         assert result["assigned_to"].id == 0
 
@@ -316,7 +316,7 @@ class ParseQueryTest(TestCase):
         assert result == {"bookmarked_by": self.user, "tags": {}, "query": ""}
 
     def test_bookmarks_email(self):
-        result = self.parse_query("bookmarks:%s" % (self.user.email,))
+        result = self.parse_query(f"bookmarks:{self.user.email}")
         assert result == {"bookmarked_by": self.user, "tags": {}, "query": ""}
 
     def test_bookmarks_unknown_user(self):
@@ -519,7 +519,7 @@ class ParseQueryTest(TestCase):
         assert result == {"owner": self.user, "tags": {}, "query": ""}
 
     def test_owner_email(self):
-        result = self.parse_query("owner:%s" % (self.user.email,))
+        result = self.parse_query(f"owner:{self.user.email}")
         assert result == {"owner": self.user, "tags": {}, "query": ""}
 
     def test_owner_unknown_user(self):
@@ -528,12 +528,12 @@ class ParseQueryTest(TestCase):
         assert result["owner"].id == 0
 
     def test_owner_valid_team(self):
-        result = self.parse_query("owner:#{}".format(self.team.slug))
+        result = self.parse_query(f"owner:#{self.team.slug}")
         assert result["owner"] == self.team
 
     def test_owner_unassociated_team(self):
         team2 = self.create_team(organization=self.organization)
-        result = self.parse_query("owner:#{}".format(team2.slug))
+        result = self.parse_query(f"owner:#{team2.slug}")
         assert isinstance(result["owner"], Team)
         assert result["owner"].id == 0
 

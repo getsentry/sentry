@@ -19,13 +19,13 @@ ERR_FIELD_REQUIRED = "This field is required."
 
 # TODO(dcramer): replace one-off validation code with standardized validator
 # (e.g. project_plugin_details.py)
-class ConfigValidator(object):
+class ConfigValidator:
     def __init__(self, config, data=None, initial=None, context=None):
         self.errors = {}
         self.result = {}
         self.context = context or {}
 
-        self.config = OrderedDict(((f["name"], f) for f in config))
+        self.config = OrderedDict((f["name"], f) for f in config)
 
         self._data = data or {}
         self._initial = initial or {}
@@ -36,7 +36,7 @@ class ConfigValidator(object):
         initial = self._initial
         cleaned = self.result
         errors = self.errors
-        for field in six.itervalues(self.config):
+        for field in self.config.values():
             key = field["name"]
             value = data.get(key, initial.get(key))
 
@@ -46,7 +46,7 @@ class ConfigValidator(object):
             try:
                 value = self.validate_field(name=key, value=value)
             except (forms.ValidationError, serializers.ValidationError, PluginError) as e:
-                errors[key] = six.text_type(e)
+                errors[key] = str(e)
 
             if not errors.get(key):
                 cleaned[key] = value
@@ -68,7 +68,7 @@ class ConfigValidator(object):
                 raise PluginError("Field is required")
             return value
 
-        if isinstance(value, six.string_types):
+        if isinstance(value, str):
             value = value.strip()
             # TODO(dcramer): probably should do something with default
             # validations here, though many things will end up bring string
@@ -125,7 +125,7 @@ class PluginConfigMixin(ProviderMixin):
                     value = self.get_option(name, project)
                 return value
 
-            if isinstance(value, six.string_types):
+            if isinstance(value, str):
                 value = value.strip()
                 # TODO(dcramer): probably should do something with default
                 # validations here, though many things will end up bring string

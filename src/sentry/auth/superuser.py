@@ -59,8 +59,8 @@ def is_active_superuser(request):
     return su.is_active
 
 
-class Superuser(object):
-    allowed_ips = [ipaddress.ip_network(six.text_type(v), strict=False) for v in ALLOWED_IPS]
+class Superuser:
+    allowed_ips = [ipaddress.ip_network(str(v), strict=False) for v in ALLOWED_IPS]
 
     org_id = ORG_ID
 
@@ -68,7 +68,7 @@ class Superuser(object):
         self.request = request
         if allowed_ips is not UNSET:
             self.allowed_ips = frozenset(
-                ipaddress.ip_network(six.text_type(v), strict=False) for v in allowed_ips or ()
+                ipaddress.ip_network(str(v), strict=False) for v in allowed_ips or ()
             )
         if org_id is not UNSET:
             self.org_id = org_id
@@ -83,7 +83,7 @@ class Superuser(object):
         if not self.request.user.is_superuser:
             return False
         # if the user has changed
-        if six.text_type(self.request.user.id) != self.uid:
+        if str(self.request.user.id) != self.uid:
             return False
         return self._is_active
 
@@ -99,7 +99,7 @@ class Superuser(object):
         # if there's no IPs configured, we allow assume its the same as *
         if not allowed_ips:
             return True, None
-        ip = ipaddress.ip_address(six.text_type(self.request.META["REMOTE_ADDR"]))
+        ip = ipaddress.ip_address(str(self.request.META["REMOTE_ADDR"]))
         if not any(ip in addr for addr in allowed_ips):
             return False, "invalid-ip"
         return True, None
@@ -151,7 +151,7 @@ class Superuser(object):
             )
             return
 
-        if data["uid"] != six.text_type(request.user.id):
+        if data["uid"] != str(request.user.id):
             logger.warn(
                 "superuser.invalid-uid",
                 extra={
@@ -222,7 +222,7 @@ class Superuser(object):
             if not self.is_active:
                 if self._inactive_reason:
                     logger.warn(
-                        "superuser.{}".format(self._inactive_reason),
+                        f"superuser.{self._inactive_reason}",
                         extra={
                             "ip_address": request.META["REMOTE_ADDR"],
                             "user_id": request.user.id,
@@ -245,7 +245,7 @@ class Superuser(object):
         if current_datetime is None:
             current_datetime = timezone.now()
         self.token = token
-        self.uid = six.text_type(user.id)
+        self.uid = str(user.id)
         # the absolute maximum age of this session
         self.expires = expires
         # do we have a valid superuser session?

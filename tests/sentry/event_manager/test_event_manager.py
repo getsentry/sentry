@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 import logging
 from sentry.utils.compat import mock
 import pytest
@@ -634,16 +631,16 @@ class EventManagerTest(TestCase):
         project = self.create_project(name="foo")
         partial_version_len = MAX_VERSION_LENGTH - 4
         release = Release.objects.create(
-            version="foo-%s" % ("a" * partial_version_len,), organization=project.organization
+            version="foo-{}".format("a" * partial_version_len), organization=project.organization
         )
         release.add_project(project)
 
         event = self.make_release_event("a" * partial_version_len, project.id)
 
         group = event.group
-        assert group.first_release.version == "foo-%s" % ("a" * partial_version_len,)
+        assert group.first_release.version == "foo-{}".format("a" * partial_version_len)
         release_tag = [v for k, v in event.tags if k == "sentry:release"][0]
-        assert release_tag == "foo-%s" % ("a" * partial_version_len,)
+        assert release_tag == "foo-{}".format("a" * partial_version_len)
 
     def test_group_release_no_env(self):
         project_id = 1

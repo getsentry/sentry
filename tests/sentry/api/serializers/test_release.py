@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 import six
 
 from sentry.utils.compat.mock import patch
@@ -70,7 +67,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
             order=1,
         )
         release.update(
-            authors=[six.text_type(commit_author.id)], commit_count=1, last_commit_id=commit.id
+            authors=[str(commit_author.id)], commit_count=1, last_commit_id=commit.id
         )
 
         result = serialize(release, user)
@@ -188,7 +185,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
             order=1,
         )
         release.update(
-            authors=[six.text_type(commit_author.id)], commit_count=1, last_commit_id=commit.id
+            authors=[str(commit_author.id)], commit_count=1, last_commit_id=commit.id
         )
 
         result = serialize(release, user)
@@ -231,7 +228,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         )
 
         release.update(
-            authors=[six.text_type(commit_author.id)], commit_count=1, last_commit_id=commit.id
+            authors=[str(commit_author.id)], commit_count=1, last_commit_id=commit.id
         )
 
         result = serialize(release, user)
@@ -275,7 +272,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         )
 
         release.update(
-            authors=[six.text_type(commit_author.id)], commit_count=1, last_commit_id=commit.id
+            authors=[str(commit_author.id)], commit_count=1, last_commit_id=commit.id
         )
 
         assert email.id < otheremail.id
@@ -360,7 +357,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         )
         ReleaseProject.objects.filter(release=release, project=project).update(new_groups=1)
         release.update(
-            authors=[six.text_type(commit_author1.id), six.text_type(commit_author2.id)],
+            authors=[str(commit_author1.id), str(commit_author2.id)],
             commit_count=2,
             last_commit_id=commit2.id,
         )
@@ -389,7 +386,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         result = serialize(release, user)
         assert result["version"] == release.version
         assert result["deployCount"] == 1
-        assert result["lastDeploy"]["id"] == six.text_type(deploy.id)
+        assert result["lastDeploy"]["id"] == str(deploy.id)
 
     def test_release_no_users(self):
         """
@@ -404,7 +401,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         release = Release.objects.create(
             organization_id=project.organization_id,
             version=uuid4().hex,
-            authors=[six.text_type(commit_author_id)],
+            authors=[str(commit_author_id)],
             commit_count=1,
             last_commit_id=commit_id,
         )
@@ -417,14 +414,14 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         self.create_member(user=user, organization=project.organization)
         users = get_users_for_authors(organization_id=project.organization_id, authors=[user])
         assert len(users) == 1
-        assert users[six.text_type(user.id)]["email"] == user.email
+        assert users[str(user.id)]["email"] == user.email
 
     def test_get_user_for_authors_no_user(self):
         user = User(email="notactuallyauser@sentry.io")
         project = self.create_project()
         users = get_users_for_authors(organization_id=project.organization_id, authors=[user])
         assert len(users) == 1
-        assert users[six.text_type(user.id)]["email"] == user.email
+        assert users[str(user.id)]["email"] == user.email
 
     @patch("sentry.api.serializers.models.release.serialize")
     def test_get_user_for_authors_caching(self, patched_serialize_base):
@@ -445,27 +442,27 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
             organization_id=project.organization_id, authors=[commit_author]
         )
         assert len(users) == 1
-        assert users[six.text_type(commit_author.id)]["email"] == user.email
+        assert users[str(commit_author.id)]["email"] == user.email
         patched_serialize_base.call_count = 1
         users = get_users_for_authors(
             organization_id=project.organization_id, authors=[commit_author]
         )
         assert len(users) == 1
-        assert users[six.text_type(commit_author.id)]["email"] == user.email
+        assert users[str(commit_author.id)]["email"] == user.email
         patched_serialize_base.call_count = 1
         users = get_users_for_authors(
             organization_id=project.organization_id, authors=[commit_author, commit_author2]
         )
         assert len(users) == 2
-        assert users[six.text_type(commit_author.id)]["email"] == user.email
-        assert users[six.text_type(commit_author2.id)]["email"] == user2.email
+        assert users[str(commit_author.id)]["email"] == user.email
+        assert users[str(commit_author2.id)]["email"] == user2.email
         patched_serialize_base.call_count = 2
         users = get_users_for_authors(
             organization_id=project.organization_id, authors=[commit_author, commit_author2]
         )
         assert len(users) == 2
-        assert users[six.text_type(commit_author.id)]["email"] == user.email
-        assert users[six.text_type(commit_author2.id)]["email"] == user2.email
+        assert users[str(commit_author.id)]["email"] == user.email
+        assert users[str(commit_author2.id)]["email"] == user2.email
         patched_serialize_base.call_count = 2
 
 

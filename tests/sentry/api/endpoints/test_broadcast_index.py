@@ -15,7 +15,7 @@ class BroadcastListTest(APITestCase):
         response = self.client.get("/api/0/broadcasts/")
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(broadcast1.id)
+        assert response.data[0]["id"] == str(broadcast1.id)
 
     def test_superuser_with_all(self):
         Broadcast.objects.create(message="bar", is_active=True)
@@ -58,7 +58,7 @@ class BroadcastListTest(APITestCase):
         response = self.client.get("/api/0/broadcasts/?show=all")
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(broadcast1.id)
+        assert response.data[0]["id"] == str(broadcast1.id)
 
 
 class BroadcastCreateTest(APITestCase):

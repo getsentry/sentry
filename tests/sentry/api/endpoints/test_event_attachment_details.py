@@ -5,7 +5,7 @@ from sentry.testutils import APITestCase, PermissionTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
-class CreateAttachmentMixin(object):
+class CreateAttachmentMixin:
     def create_attachment(self):
         self.project = self.create_project()
         self.release = self.create_release(self.project, self.user)
@@ -47,7 +47,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
             response = self.client.get(path)
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(self.attachment.id)
+        assert response.data["id"] == str(self.attachment.id)
         assert response.data["mimetype"] == self.attachment.mimetype
 
     def test_download(self):
@@ -63,7 +63,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
 
         assert response.status_code == 200, response.content
         assert response.get("Content-Disposition") == 'attachment; filename="hello.png"'
-        assert response.get("Content-Length") == six.text_type(self.file.size)
+        assert response.get("Content-Length") == str(self.file.size)
         assert response.get("Content-Type") == "application/octet-stream"
         assert b"File contents here" == six.BytesIO(b"".join(response.streaming_content)).getvalue()
 
@@ -84,7 +84,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
 
 class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentMixin):
     def setUp(self):
-        super(EventAttachmentDetailsPermissionTest, self).setUp()
+        super().setUp()
         self.create_attachment()
         self.path = "/api/0/projects/{}/{}/events/{}/attachments/{}/?download".format(
             self.organization.slug, self.project.slug, self.event.event_id, self.attachment.id

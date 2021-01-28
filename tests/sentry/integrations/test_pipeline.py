@@ -30,12 +30,12 @@ class FinishPipelineTestCase(IntegrationTestCase):
     provider = ExampleIntegrationProvider
 
     def setUp(self):
-        super(FinishPipelineTestCase, self).setUp()
+        super().setUp()
         self.external_id = "dummy_id-123"
         self.provider.needs_default_identity = False
 
     def tearDown(self):
-        super(FinishPipelineTestCase, self).tearDown()
+        super().tearDown()
 
     def test_with_data(self, *args):
         data = {
@@ -326,11 +326,11 @@ class GitlabFinishPipelineTest(IntegrationTestCase):
     provider = GitlabIntegrationProvider
 
     def setUp(self):
-        super(GitlabFinishPipelineTest, self).setUp()
+        super().setUp()
         self.external_id = "dummy_id-123"
 
     def tearDown(self):
-        super(GitlabFinishPipelineTest, self).tearDown()
+        super().tearDown()
 
     def test_different_user_same_external_id(self, *args):
         new_user = self.create_user()
@@ -359,4 +359,4 @@ class GitlabFinishPipelineTest(IntegrationTestCase):
         }
         resp = self.pipeline.finish_pipeline()
         assert not OrganizationIntegration.objects.filter(integration_id=integration.id)
-        assert "account is linked to a different Sentry user" in six.text_type(resp.content)
+        assert "account is linked to a different Sentry user" in str(resp.content)

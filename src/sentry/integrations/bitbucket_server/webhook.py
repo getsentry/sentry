@@ -18,7 +18,7 @@ logger = logging.getLogger("sentry.webhooks")
 PROVIDER_NAME = "integrations:bitbucket_server"
 
 
-class Webhook(object):
+class Webhook:
     def __call__(self, organization, integration_id, event):
         raise NotImplementedError
 
@@ -40,7 +40,7 @@ class PushEventWebhook(Webhook):
             repo = Repository.objects.get(
                 organization_id=organization.id,
                 provider=PROVIDER_NAME,
-                external_id=six.text_type(event["repository"]["id"]),
+                external_id=str(event["repository"]["id"]),
             )
         except Repository.DoesNotExist:
             raise Http404()
@@ -103,7 +103,7 @@ class BitbucketServerWebhookEndpoint(View):
         if request.method != "POST":
             return HttpResponse(status=405)
 
-        return super(BitbucketServerWebhookEndpoint, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     def post(self, request, organization_id, integration_id):
         try:
@@ -115,7 +115,7 @@ class BitbucketServerWebhookEndpoint(View):
             )
             return HttpResponse(status=400)
 
-        body = six.binary_type(request.body)
+        body = bytes(request.body)
         if not body:
             logger.error(
                 PROVIDER_NAME + ".webhook.missing-body", extra={"organization_id": organization.id}

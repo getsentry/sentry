@@ -12,7 +12,7 @@ from sentry.utils.kafka_config import get_kafka_producer_cluster_options
 logger = logging.getLogger(__name__)
 
 
-class ProducerManager(object):
+class ProducerManager:
     """
     Manages one `confluent_kafka.Producer` per Kafka cluster.
 
@@ -54,7 +54,7 @@ producers = ProducerManager()
 
 
 def create_batching_kafka_consumer(topic_names, worker, **options):
-    cluster_names = set(settings.KAFKA_TOPICS[topic_name]["cluster"] for topic_name in topic_names)
+    cluster_names = {settings.KAFKA_TOPICS[topic_name]["cluster"] for topic_name in topic_names}
     if len(cluster_names) > 1:
         raise ValueError(
             "Cannot launch Kafka consumer listening to multiple topics ({}) on different clusters ({})".format(

@@ -20,10 +20,10 @@ class SentryMigrationExecutor(MigrationExecutor):
 
     def apply_migration(self, state, migration, fake=False, fake_initial=False):
         fake = self._check_fake(migration, fake)
-        return super(SentryMigrationExecutor, self).apply_migration(
+        return super().apply_migration(
             state, migration, fake=fake, fake_initial=fake_initial
         )
 
     def unapply_migration(self, state, migration, fake=False):
         fake = self._check_fake(migration, fake)
-        return super(SentryMigrationExecutor, self).unapply_migration(state, migration, fake=fake)
+        return super().unapply_migration(state, migration, fake=fake)

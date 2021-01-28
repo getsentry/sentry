@@ -32,7 +32,7 @@ class OrganizationApiKeyDetails(APITestCase):
         resp = self.client.get(path)
 
         assert resp.status_code == 200
-        assert resp.data.get("id") == six.text_type(api_key.id)
+        assert resp.data.get("id") == str(api_key.id)
 
     def test_update_api_key_details(self):
         self.login_as(user=self.user)

@@ -1,7 +1,7 @@
 import six
 
 
-class EventError(object):
+class EventError:
     # Generic
     UNKNOWN_ERROR = "unknown_error"
 
@@ -108,7 +108,7 @@ class EventError(object):
 
     @property
     def data(self):
-        return {k: v for k, v in six.iteritems(self._data) if k != "type"}
+        return {k: v for k, v in self._data.items() if k != "type"}
 
     @property
     def message(self):

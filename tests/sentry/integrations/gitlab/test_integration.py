@@ -33,8 +33,8 @@ class GitlabIntegrationTest(IntegrationTestCase):
     default_group_id = 4
 
     def setUp(self):
-        super(GitlabIntegrationTest, self).setUp()
-        self.init_path_without_guide = "%s%s" % (self.init_path, "?completed_installation_guide")
+        super().setUp()
+        self.init_path_without_guide = "{}{}".format(self.init_path, "?completed_installation_guide")
 
     def assert_setup_flow(self, user_id="user_id_1"):
         resp = self.client.get(self.init_path)
@@ -56,7 +56,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         assert params["client_id"] == ["client_id"]
         # once we've asserted on it, switch to a singular values to make life
         # easier
-        authorize_params = {k: v[0] for k, v in six.iteritems(params)}
+        authorize_params = {k: v[0] for k, v in params.items()}
 
         access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
 
@@ -166,7 +166,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         assert redirect.path == "/oauth/authorize"
 
         params = parse_qs(redirect.query)
-        authorize_params = {k: v[0] for k, v in six.iteritems(params)}
+        authorize_params = {k: v[0] for k, v in params.items()}
 
         responses.add(
             responses.POST,
@@ -203,7 +203,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="Get Sentry / Example Repo",
-            external_id="{}:{}".format(instance, external_id),
+            external_id=f"{instance}:{external_id}",
             url="https://gitlab.example.com/getsentry/projects/example-repo",
             config={"project_id": external_id, "path": "getsentry/example-repo"},
             provider="integrations:gitlab",
@@ -235,7 +235,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="Get Sentry / Example Repo",
-            external_id="{}:{}".format(instance, external_id),
+            external_id=f"{instance}:{external_id}",
             url="https://gitlab.example.com/getsentry/projects/example-repo",
             config={"project_id": external_id, "path": "getsentry/example-repo"},
             provider="integrations:gitlab",
@@ -265,7 +265,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="Get Sentry / Example Repo",
-            external_id="{}:{}".format(instance, external_id),
+            external_id=f"{instance}:{external_id}",
             url="https://gitlab.example.com/getsentry/projects/example-repo",
             config={"project_id": external_id, "path": "getsentry/example-repo"},
             provider="integrations:gitlab",

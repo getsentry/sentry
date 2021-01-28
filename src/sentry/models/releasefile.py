@@ -43,7 +43,7 @@ class ReleaseFile(Model):
         if not self.ident and self.name:
             dist = self.dist_id and self.dist.name or None
             self.ident = type(self).get_ident(self.name, dist)
-        return super(ReleaseFile, self).save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     def update(self, *args, **kwargs):
         # If our name is changing, we must also change the ident
@@ -52,7 +52,7 @@ class ReleaseFile(Model):
             kwargs["ident"] = self.ident = type(self).get_ident(
                 kwargs["name"], dist and dist.name or dist
             )
-        return super(ReleaseFile, self).update(*args, **kwargs)
+        return super().update(*args, **kwargs)
 
     @classmethod
     def get_ident(cls, name, dist=None):
@@ -86,7 +86,7 @@ class ReleaseFile(Model):
         return urls
 
 
-class ReleaseFileCache(object):
+class ReleaseFileCache:
     @property
     def cache_path(self):
         return options.get("releasefile.cache-path")
@@ -98,8 +98,8 @@ class ReleaseFileCache(object):
             metrics.timing("release_file.cache.get.size", file_size, tags={"cutoff": True})
             return releasefile.file.getfile()
 
-        file_id = six.text_type(releasefile.file_id)
-        organization_id = six.text_type(releasefile.organization_id)
+        file_id = str(releasefile.file_id)
+        organization_id = str(releasefile.organization_id)
         file_path = os.path.join(self.cache_path, organization_id, file_id)
 
         hit = True

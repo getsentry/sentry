@@ -11,7 +11,7 @@ from sentry.utils.functional import compact
 from .param import Param
 
 
-class Mediator(object):
+class Mediator:
     """
     Objects that encapsulate domain logic.
 
@@ -129,7 +129,7 @@ class Mediator(object):
     @classmethod
     def _prepare_params(cls):
         if sentry.mediators.mediator.Mediator in cls.__bases__ and not cls._params_prepared:
-            params = [(k, v) for k, v in six.iteritems(cls.__dict__) if isinstance(v, Param)]
+            params = [(k, v) for k, v in cls.__dict__.items() if isinstance(v, Param)]
             for name, param in params:
                 param.setup(cls, name)
             cls._params_prepared = True
@@ -178,7 +178,7 @@ class Mediator(object):
             return self._measured(self)
 
     def _validate_params(self, **kwargs):
-        for name, param in six.iteritems(self._params):
+        for name, param in self._params.items():
             if param.is_required:
                 param.validate(self, name, self.__getattr__(name))
 
@@ -203,9 +203,9 @@ class Mediator(object):
     def _params(self):
         # These will be named ``_<name>`` on the class, so remove the ``_`` so
         # that it matches the name we'll be invoking on the Mediator instance.
-        return dict(
-            (k[1:], v) for k, v in six.iteritems(self.__class__.__dict__) if isinstance(v, Param)
-        )
+        return {
+            k[1:]: v for k, v in self.__class__.__dict__.items() if isinstance(v, Param)
+        }
 
     @memoize
     def _logging_name(self):

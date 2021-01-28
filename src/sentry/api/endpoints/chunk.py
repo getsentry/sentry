@@ -34,7 +34,7 @@ class GzipChunk(BytesIO):
         data = GzipFile(fileobj=file, mode="rb").read()
         self.size = len(data)
         self.name = file.name
-        super(GzipChunk, self).__init__(data)
+        super().__init__(data)
 
 
 class ChunkUploadEndpoint(OrganizationEndpoint):
@@ -117,9 +117,9 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
 
         try:
             FileBlob.from_files(zip(files, checksums), organization=organization, logger=logger)
-        except IOError as err:
+        except OSError as err:
             logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
-            return Response({"error": six.text_type(err)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": str(err)}, status=status.HTTP_400_BAD_REQUEST)
 
         logger.info("chunkupload.end", extra={"status": status.HTTP_200_OK})
         return Response(status=status.HTTP_200_OK)

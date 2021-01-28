@@ -301,7 +301,7 @@ class SetCommitsTestCase(TestCase):
 
         release = Release.objects.get(id=release.id)
         assert release.commit_count == 3
-        assert release.authors == [six.text_type(author.id)]
+        assert release.authors == [str(author.id)]
         assert release.last_commit_id == latest_commit.id
         assert not GroupInbox.objects.filter(group=group).exists()
 
@@ -352,7 +352,7 @@ class SetCommitsTestCase(TestCase):
 
         release = Release.objects.get(id=release.id)
         assert release.commit_count == 3
-        assert release.authors == [six.text_type(author.id)]
+        assert release.authors == [str(author.id)]
         assert release.last_commit_id == latest_commit.id
 
     @patch("sentry.models.Commit.update")
@@ -537,7 +537,7 @@ class SetCommitsTestCase(TestCase):
 
 class SetRefsTest(SetRefsTestCase):
     def setUp(self):
-        super(SetRefsTest, self).setUp()
+        super().setUp()
         self.release = Release.objects.create(version="abcdabc", organization=self.org)
         self.release.add_project(self.project)
 

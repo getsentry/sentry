@@ -77,7 +77,7 @@ def _webhook_event_data(event, group_id, project_id):
     # The URL has a regex OR in it ("|") which means `reverse` cannot generate
     # a valid URL (it can't know which option to pick). We have to manually
     # create this URL for, that reason.
-    event_context["issue_url"] = absolute_uri("/api/0/issues/{}/".format(group_id))
+    event_context["issue_url"] = absolute_uri(f"/api/0/issues/{group_id}/")
 
     return event_context
 
@@ -167,7 +167,7 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
         # we hit the max number of retries.
         return retryer.retry(exc=e)
 
-    event = "{}.{}".format(name, action)
+    event = f"{name}.{action}"
 
     if event not in VALID_EVENTS:
         return
@@ -259,7 +259,7 @@ def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwa
     data = kwargs.get("data", {})
     data.update({"issue": serialize(issue)})
 
-    send_webhooks(installation=install, event="issue.{}".format(type), data=data, actor=user)
+    send_webhooks(installation=install, event=f"issue.{type}", data=data, actor=user)
 
 
 def notify_sentry_app(event, futures):
@@ -344,7 +344,7 @@ def send_and_save_webhook_request(sentry_app, app_platform_event, url=None):
     buffer = SentryAppWebhookRequestsBuffer(sentry_app)
 
     org_id = app_platform_event.install.organization_id
-    event = "{}.{}".format(app_platform_event.resource, app_platform_event.action)
+    event = f"{app_platform_event.resource}.{app_platform_event.action}"
     slug = sentry_app.slug_for_metrics
     url = url or sentry_app.webhook_url
 

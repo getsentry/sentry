@@ -11,12 +11,12 @@ class RepositoryProjectPathConfigSerializer(Serializer):
         integration = obj.organization_integration.integration
         provider = integration.get_provider()
         return {
-            "id": six.text_type(obj.id),
-            "projectId": six.text_type(obj.project_id),
+            "id": str(obj.id),
+            "projectId": str(obj.project_id),
             "projectSlug": obj.project.slug,
-            "repoId": six.text_type(obj.repository.id),
+            "repoId": str(obj.repository.id),
             "repoName": obj.repository.name,
-            "integrationId": six.text_type(integration.id),
+            "integrationId": str(integration.id),
             "provider": serialize_provider(provider),
             "stackRoot": obj.stack_root,
             "sourceRoot": obj.source_root,

@@ -53,7 +53,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
     ]
 
     def get_group_urls(self):
-        _patterns = super(JiraPlugin, self).get_group_urls()
+        _patterns = super().get_group_urls()
         _patterns.append(
             url(
                 r"^autocomplete",
@@ -95,8 +95,8 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             schema.get("items") == "user" or schema["type"] == "user"
         ):
             fieldtype = "select"
-            sentry_url = "/api/0/issues/%s/plugins/%s/autocomplete" % (group.id, self.slug)
-            fkwargs["url"] = "%s?jira_url=%s" % (
+            sentry_url = f"/api/0/issues/{group.id}/plugins/{self.slug}/autocomplete"
+            fkwargs["url"] = "{}?jira_url={}".format(
                 sentry_url,
                 quote_plus(field_meta["autoCompleteUrl"]),
             )
@@ -141,7 +141,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         return issue_type_meta
 
     def get_new_issue_fields(self, request, group, event, **kwargs):
-        fields = super(JiraPlugin, self).get_new_issue_fields(request, group, event, **kwargs)
+        fields = super().get_new_issue_fields(request, group, event, **kwargs)
 
         jira_project_key = self.get_option("default_project", group.project)
 
@@ -150,7 +150,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             meta = client.get_create_meta_for_project(jira_project_key)
         except ApiError as e:
             raise PluginError(
-                "JIRA responded with an error. We received a status code of {}".format(e.code)
+                f"JIRA responded with an error. We received a status code of {e.code}"
             )
         except ApiUnauthorized:
             raise PluginError(
@@ -182,7 +182,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         # make sure default issue type is actually
         # one that is allowed for project
         if issue_type:
-            if not any((c for c in issue_type_choices if c[0] == issue_type)):
+            if not any(c for c in issue_type_choices if c[0] == issue_type):
                 issue_type = issue_type_meta["id"]
 
         fields = (
@@ -279,10 +279,10 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
 
     def get_issue_url(self, group, issue_id, **kwargs):
         instance = self.get_option("instance_url", group.project)
-        return "%s/browse/%s" % (instance, issue_id)
+        return f"{instance}/browse/{issue_id}"
 
     def _get_formatted_user(self, user):
-        display = "%s %s(%s)" % (
+        display = "{} {}({})".format(
             user.get("displayName", user["name"]),
             "- %s " % user.get("emailAddress") if user.get("emailAddress") else "",
             user["name"],
@@ -308,7 +308,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
                 )
             else:
                 issues = [
-                    {"text": "(%s) %s" % (i["key"], i["fields"]["summary"]), "id": i["key"]}
+                    {"text": "({}) {}".format(i["key"], i["fields"]["summary"]), "id": i["key"]}
                     for i in response.get("issues", [])
                 ]
                 return Response({field: issues})
@@ -395,7 +395,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
     def message_from_error(self, exc):
         if isinstance(exc, ApiUnauthorized):
             return "Unauthorized: either your username and password were invalid or you do not have access"
-        return super(JiraPlugin, self).message_from_error(exc)
+        return super().message_from_error(exc)
 
     def error_message_from_json(self, data):
         message = ""
@@ -404,7 +404,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         if data.get("errors"):
             if message:
                 message += " "
-            message += " ".join(["%s: %s" % (k, v) for k, v in data.get("errors").items()])
+            message += " ".join([f"{k}: {v}" for k, v in data.get("errors").items()])
         return message
 
     def create_issue(self, request, group, form_data, **kwargs):
@@ -495,7 +495,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         return [(y["id"], y["name"] if "name" in y else y["value"]) for y in x] if x else []
 
     def validate_config_field(self, project, name, value, actor=None):
-        value = super(JiraPlugin, self).validate_config_field(project, name, value, actor)
+        value = super().validate_config_field(project, name, value, actor)
         # Don't make people update password every time
         if name == "password":
             value = value or self.get_option("password", project)
@@ -539,7 +539,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             else:
                 if projects:
                     project_choices = [
-                        (p.get("key"), "%s (%s)" % (p.get("name"), p.get("key"))) for p in projects
+                        (p.get("key"), "{} ({})".format(p.get("name"), p.get("key"))) for p in projects
                     ]
                     jira_project = jira_project or projects[0]["key"]
 
@@ -651,7 +651,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         fields = self.get_new_issue_fields(None, group, event, **kwargs)
 
         post_data = {}
-        included_fields = set(["priority", "issuetype", "title", "description", "project"])
+        included_fields = {"priority", "issuetype", "title", "description", "project"}
         for field in fields:
             name = field["name"]
             if name in included_fields:
@@ -672,7 +672,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         try:
             issue_id = self.create_issue(request={}, group=group, form_data=post_data)
         except PluginError as e:
-            logger.info("post_process.fail", extra={"error": six.text_type(e)})
+            logger.info("post_process.fail", extra={"error": str(e)})
         else:
             prefix = self.get_conf_key()
             GroupMeta.objects.set_value(group, "%s:tid" % prefix, issue_id)

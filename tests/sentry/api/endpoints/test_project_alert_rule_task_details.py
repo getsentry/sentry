@@ -57,7 +57,7 @@ class ProjectAlertRuleTaskDetailsTest(APITestCase):
         assert response.data["status"] == "success"
 
         rule_data = response.data["alertRule"]
-        assert rule_data["id"] == six.text_type(self.rule.id)
+        assert rule_data["id"] == str(self.rule.id)
         assert rule_data["name"] == self.rule.name
 
     def test_wrong_no_alert_rule(self):

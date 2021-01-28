@@ -47,7 +47,7 @@ class GroupExternalIssueDetailsEndpointTest(APITestCase):
             web_url="https://example.com/app/issues/1",
         )
 
-        url = "/api/0/issues/{}/external-issues/{}/".format(group.id, external_issue.id)
+        url = f"/api/0/issues/{group.id}/external-issues/{external_issue.id}/"
 
         response = self.client.delete(url, format="json")
 

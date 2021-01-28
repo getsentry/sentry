@@ -129,7 +129,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     def validate_slug(self, slug):
         if slug in RESERVED_PROJECT_SLUGS:
             raise serializers.ValidationError(
-                'The slug "%s" is reserved and not allowed.' % (slug,)
+                f'The slug "{slug}" is reserved and not allowed.'
             )
         project = self.context["project"]
         other = (
@@ -183,7 +183,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             sources = parse_sources(sources_json.strip())
             sources_json = json.dumps(sources) if sources else ""
         except InvalidSourcesError as e:
-            raise serializers.ValidationError(six.text_type(e))
+            raise serializers.ValidationError(str(e))
 
         return sources_json
 
@@ -194,7 +194,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         try:
             Enhancements.from_config_string(value)
         except InvalidEnhancerConfig as e:
-            raise serializers.ValidationError(six.text_type(e))
+            raise serializers.ValidationError(str(e))
 
         return value
 
@@ -205,7 +205,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         try:
             FingerprintingRules.from_config_string(value)
         except InvalidFingerprintingConfig as e:
-            raise serializers.ValidationError(six.text_type(e))
+            raise serializers.ValidationError(str(e))
 
         return value
 
@@ -325,7 +325,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         if not has_project_write:
             # options isn't part of the serializer, but should not be editable by members
-            for key in chain(six.iterkeys(ProjectAdminSerializer().fields), ["options"]):
+            for key in chain(ProjectAdminSerializer().fields.keys(), ["options"]):
                 if request.data.get(key) and not result.get(key):
                     return Response(
                         {"detail": ["You do not have permission to perform this action."]},
@@ -558,22 +558,22 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "sentry:blacklisted_ips",
                     clean_newline_inputs(options["filters:blacklisted_ips"]),
                 )
-            if "filters:{}".format(FilterTypes.RELEASES) in options:
+            if f"filters:{FilterTypes.RELEASES}" in options:
                 if features.has("projects:custom-inbound-filters", project, actor=request.user):
                     project.update_option(
-                        "sentry:{}".format(FilterTypes.RELEASES),
-                        clean_newline_inputs(options["filters:{}".format(FilterTypes.RELEASES)]),
+                        f"sentry:{FilterTypes.RELEASES}",
+                        clean_newline_inputs(options[f"filters:{FilterTypes.RELEASES}"]),
                     )
                 else:
                     return Response(
                         {"detail": ["You do not have that feature enabled"]}, status=400
                     )
-            if "filters:{}".format(FilterTypes.ERROR_MESSAGES) in options:
+            if f"filters:{FilterTypes.ERROR_MESSAGES}" in options:
                 if features.has("projects:custom-inbound-filters", project, actor=request.user):
                     project.update_option(
-                        "sentry:{}".format(FilterTypes.ERROR_MESSAGES),
+                        f"sentry:{FilterTypes.ERROR_MESSAGES}",
                         clean_newline_inputs(
-                            options["filters:{}".format(FilterTypes.ERROR_MESSAGES)],
+                            options[f"filters:{FilterTypes.ERROR_MESSAGES}"],
                             case_insensitive=False,
                         ),
                     )

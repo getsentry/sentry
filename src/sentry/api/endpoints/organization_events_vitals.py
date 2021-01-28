@@ -37,7 +37,7 @@ class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
             aliases = {}
             for vital in vitals:
                 if vital not in self.VITALS:
-                    raise ParseError(detail="{} is not a valid vital".format(vital))
+                    raise ParseError(detail=f"{vital} is not a valid vital")
                 aliases[vital] = []
                 for index, threshold in enumerate(self.VITALS[vital]["thresholds"]):
                     column = "count_at_least({vital}, {threshold})".format(
@@ -46,7 +46,7 @@ class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
                     # Order aliases for later calculation
                     aliases[vital].append(get_function_alias(column))
                     selected_columns.append(column)
-                selected_columns.append("p75({vital})".format(vital=vital))
+                selected_columns.append(f"p75({vital})")
 
         with self.handle_query_errors():
             events_results = discover.query(
@@ -78,7 +78,7 @@ class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
 
                 results[vital]["total"] = total
                 results[vital]["p75"] = event_data.get(
-                    get_function_alias("p75({vital})".format(vital=vital))
+                    get_function_alias(f"p75({vital})")
                 )
 
         return Response(results)

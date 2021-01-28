@@ -8,7 +8,7 @@ from sentry.models import ReleaseFile
 class ReleaseFileSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "name": obj.name,
             "dist": obj.dist_id and obj.dist.name or None,
             "headers": obj.file.headers,

@@ -12,13 +12,13 @@ class ExportError(Exception):
     pass
 
 
-class ExportStatus(six.text_type, Enum):
+class ExportStatus(str, Enum):
     Early = "EARLY"  # The download is being prepared
     Valid = "VALID"  # The download is ready for the user
     Expired = "EXPIRED"  # The download has been deleted
 
 
-class ExportQueryType(object):
+class ExportQueryType:
     ISSUES_BY_TAG = 0
     DISCOVER = 1
     ISSUES_BY_TAG_STR = "Issues-by-Tag"
@@ -27,8 +27,8 @@ class ExportQueryType(object):
     @classmethod
     def as_choices(cls):
         return (
-            (cls.ISSUES_BY_TAG, six.text_type(cls.ISSUES_BY_TAG_STR)),
-            (cls.DISCOVER, six.text_type(cls.DISCOVER_STR)),
+            (cls.ISSUES_BY_TAG, str(cls.ISSUES_BY_TAG_STR)),
+            (cls.DISCOVER, str(cls.DISCOVER_STR)),
         )
 
     @classmethod

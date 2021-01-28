@@ -19,7 +19,7 @@ class QuotaScope(IntEnum):
         return self.name.lower()
 
 
-class QuotaConfig(object):
+class QuotaConfig:
     """
     Abstract configuration for a quota.
 
@@ -87,7 +87,7 @@ class QuotaConfig(object):
 
         self.id = id
         self.scope = scope
-        self.scope_id = six.text_type(scope_id) if scope_id is not None else None
+        self.scope_id = str(scope_id) if scope_id is not None else None
         self.categories = set(categories or [])
         # NOTE: Use `quotas.base._limit_from_settings` to map from settings
         self.limit = limit
@@ -104,8 +104,8 @@ class QuotaConfig(object):
 
     def to_json_legacy(self):
         data = {
-            "prefix": six.text_type(self.id) if self.id is not None else None,
-            "subscope": six.text_type(self.scope_id) if self.scope_id is not None else None,
+            "prefix": str(self.id) if self.id is not None else None,
+            "subscope": str(self.scope_id) if self.scope_id is not None else None,
             "limit": self.limit,
             "window": self.window,
             "reasonCode": self.reason_code,
@@ -122,7 +122,7 @@ class QuotaConfig(object):
             categories = [c.api_name() for c in self.categories]
 
         data = {
-            "id": six.text_type(self.id) if self.id is not None else None,
+            "id": str(self.id) if self.id is not None else None,
             "scope": self.scope.api_name(),
             "scopeId": self.scope_id,
             "categories": categories,
@@ -134,7 +134,7 @@ class QuotaConfig(object):
         return prune_empty_keys(data)
 
 
-class RateLimit(object):
+class RateLimit:
     """
     Return value of ``quotas.is_rate_limited``.
     """
@@ -169,12 +169,12 @@ class RateLimit(object):
 
 class NotRateLimited(RateLimit):
     def __init__(self, **kwargs):
-        super(NotRateLimited, self).__init__(False, **kwargs)
+        super().__init__(False, **kwargs)
 
 
 class RateLimited(RateLimit):
     def __init__(self, **kwargs):
-        super(RateLimited, self).__init__(True, **kwargs)
+        super().__init__(True, **kwargs)
 
 
 def _limit_from_settings(x):
@@ -300,7 +300,7 @@ class Quota(Service):
         pass
 
     def _translate_quota(self, quota, parent_quota):
-        if six.text_type(quota).endswith("%"):
+        if str(quota).endswith("%"):
             pct = int(quota[:-1])
             quota = int(parent_quota or 0) * pct / 100
 
@@ -312,7 +312,7 @@ class Quota(Service):
         # XXX(epurkhiser): Avoid excessive feature manager checks (which can be
         # expensive depending on feature handlers) for project rate limits.
         # This happens on /store.
-        cache_key = "project:{}:features:rate-limits".format(key.project.id)
+        cache_key = f"project:{key.project.id}:features:rate-limits"
 
         has_rate_limits = cache.get(cache_key)
         if has_rate_limits is None:
@@ -340,7 +340,7 @@ class Quota(Service):
         org_quota, window = self.get_organization_quota(org)
 
         if max_quota_share != 100 and org_quota:
-            quota = self._translate_quota("{}%".format(max_quota_share), org_quota)
+            quota = self._translate_quota(f"{max_quota_share}%", org_quota)
         else:
             quota = None
 

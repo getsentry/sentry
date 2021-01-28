@@ -15,7 +15,7 @@ class VstsExtensionIntegrationProvider(VstsIntegrationProvider):
     visible = False
 
     def get_pipeline_views(self):
-        views = super(VstsExtensionIntegrationProvider, self).get_pipeline_views()
+        views = super().get_pipeline_views()
         views = [view for view in views if not isinstance(view, AccountConfigView)]
         views.append(VstsExtensionFinishedView())
         return views
@@ -26,7 +26,7 @@ class VstsExtensionIntegrationProvider(VstsIntegrationProvider):
             "accountName": state["vsts"]["accountName"],
         }
 
-        return super(VstsExtensionIntegrationProvider, self).build_integration(state)
+        return super().build_integration(state)
 
 
 class VstsExtensionFinishedView(PipelineView):

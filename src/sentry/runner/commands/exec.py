@@ -60,8 +60,8 @@ def exec_(c, file):
             try:
                 with open(file, "rb") as fp:
                     c = fp.read().decode("utf8")
-            except (IOError, OSError) as e:
-                raise click.ClickException(six.text_type(e))
+            except OSError as e:
+                raise click.ClickException(str(e))
     else:
         file = "<string>"
 
@@ -115,4 +115,4 @@ def exec_(c, file):
     }
     # we use globals as locals due to:
     # http://stackoverflow.com/a/2906198/154651
-    six.exec_(compile(script, file, "exec"), g, g)
+    exec(compile(script, file, "exec"), g, g)

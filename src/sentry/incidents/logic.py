@@ -229,8 +229,8 @@ def create_incident_activity(
 ):
     if activity_type == IncidentActivityType.COMMENT and user:
         subscribe_to_incident(incident, user)
-    value = six.text_type(value) if value is not None else value
-    previous_value = six.text_type(previous_value) if previous_value is not None else previous_value
+    value = str(value) if value is not None else value
+    previous_value = str(previous_value) if previous_value is not None else previous_value
     kwargs = {}
     if date_added:
         kwargs["date_added"] = date_added
@@ -846,7 +846,7 @@ def update_alert_rule(
                 AlertRuleExcludedProjects.objects.bulk_create(new_exclusions)
 
                 new_projects = Project.objects.filter(organization=alert_rule.organization).exclude(
-                    id__in=set([sub.project_id for sub in existing_subs]) | excluded_project_ids
+                    id__in={sub.project_id for sub in existing_subs} | excluded_project_ids
                 )
                 # If we're subscribed to any of the excluded projects then we want to
                 # remove those subscriptions
@@ -1117,9 +1117,9 @@ def get_subscriptions_from_alert_rule(alert_rule, projects):
     """
     excluded_subscriptions = alert_rule.snuba_query.subscriptions.filter(project__in=projects)
     if len(excluded_subscriptions) != len(projects):
-        invalid_slugs = set([p.slug for p in projects]) - set(
-            [s.project.slug for s in excluded_subscriptions]
-        )
+        invalid_slugs = {p.slug for p in projects} - {
+            s.project.slug for s in excluded_subscriptions
+        }
         raise ProjectsNotAssociatedWithAlertRuleError(invalid_slugs)
     return excluded_subscriptions
 

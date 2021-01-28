@@ -17,7 +17,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
     base_url = "https://app.pagerduty.com"
 
     def setUp(self):
-        super(PagerDutyIntegrationTest, self).setUp()
+        super().setUp()
         self.app_id = "app_1"
         self.account_slug = "test-app"
         self._stub_pagerduty()
@@ -68,7 +68,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
 
     def assert_add_service_flow(self, integration):
         query_param = "?account=%s" % (integration.metadata["domain_name"])
-        init_path_with_account = "%s%s" % (self.init_path, query_param)
+        init_path_with_account = f"{self.init_path}{query_param}"
         resp = self.client.get(init_path_with_account)
         assert resp.status_code == 302
         redirect = urlparse(resp["Location"])
@@ -185,7 +185,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         }
         with pytest.raises(IntegrationError) as error:
             integration.get_installation(self.organization).update_organization_config(config_data)
-        assert six.text_type(error.value) == "Name and key are required"
+        assert str(error.value) == "Name and key are required"
 
     @responses.activate
     def test_get_config_data(self):

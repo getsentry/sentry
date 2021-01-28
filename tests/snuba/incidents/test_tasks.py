@@ -31,7 +31,7 @@ from sentry.testutils import TestCase
 @freeze_time()
 class HandleSnubaQueryUpdateTest(TestCase):
     def setUp(self):
-        super(HandleSnubaQueryUpdateTest, self).setUp()
+        super().setUp()
         self.override_settings_cm = override_settings(
             KAFKA_TOPICS={self.topic: {"cluster": "default", "topic": self.topic}}
         )
@@ -39,7 +39,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
         self.orig_registry = deepcopy(subscriber_registry)
 
     def tearDown(self):
-        super(HandleSnubaQueryUpdateTest, self).tearDown()
+        super().tearDown()
         self.override_settings_cm.__exit__(None, None, None)
         subscriber_registry.clear()
         subscriber_registry.update(self.orig_registry)
@@ -64,7 +64,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
                 trigger,
                 AlertRuleTriggerAction.Type.EMAIL,
                 AlertRuleTriggerAction.TargetType.USER,
-                six.text_type(self.user.id),
+                str(self.user.id),
             )
             return rule
 

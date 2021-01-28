@@ -5,7 +5,7 @@ import types
 from sentry.utils.cache import memoize
 
 
-class Param(object):
+class Param:
     """
     Argument declarations for Mediators.
 
@@ -80,7 +80,7 @@ class Param(object):
 
     def setup(self, target, name):
         delattr(target, name)
-        setattr(target, "_{}".format(name), self)
+        setattr(target, f"_{name}", self)
 
     def validate(self, target, name, value):
         """
@@ -91,7 +91,7 @@ class Param(object):
             value = self.default(target)
 
         if self._missing_value(value):
-            raise AttributeError("Missing required param: `{}`".format(name))
+            raise AttributeError(f"Missing required param: `{name}`")
 
         if self.is_required and not isinstance(value, self.type):
             raise TypeError("`{}` must be a {}, received {}".format(name, self.type, type(value)))
@@ -111,7 +111,7 @@ class Param(object):
 
     @memoize
     def type(self):
-        if isinstance(self._type, six.string_types):
+        if isinstance(self._type, str):
             return self._eval_string_type()
         return self._type
 

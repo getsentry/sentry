@@ -50,7 +50,7 @@ class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
         try:
             start, end = get_date_range_from_params(request.GET)
         except InvalidParams as e:
-            raise ParseError(detail=six.text_type(e))
+            raise ParseError(detail=str(e))
 
         if stats_period not in (None, "", "24h", "14d", "auto"):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
@@ -82,6 +82,6 @@ class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
                 )
                 response[query] = count
             except (ValidationError, discover.InvalidSearchQuery) as exc:
-                return Response({"detail": six.text_type(exc)}, status=400)
+                return Response({"detail": str(exc)}, status=400)
 
         return Response(response)

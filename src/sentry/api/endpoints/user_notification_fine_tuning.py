@@ -118,7 +118,7 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
             parent_ids = set(self.get_org_ids(user))
 
         try:
-            ids_to_update = set([int(i) for i in request.data.keys()])
+            ids_to_update = {int(i) for i in request.data.keys()}
         except ValueError:
             return Response(
                 {"detail": "Invalid id value provided. Id values should be integers."},
@@ -172,7 +172,7 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
 
                     # Values have been saved as strings for `mail:alerts` *shrug*
                     # `reports:disabled-organizations` requires an array of ids
-                    user_option.update(value=int_val if key["type"] is int else six.text_type(val))
+                    user_option.update(value=int_val if key["type"] is int else str(val))
 
             return Response(status=status.HTTP_204_NO_CONTENT)
 

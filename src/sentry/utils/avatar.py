@@ -20,14 +20,14 @@ from sentry.utils.compat import map
 def get_gravatar_url(email, size=None, default="mm"):
     if email is None:
         email = ""
-    gravatar_url = "%s/avatar/%s" % (
+    gravatar_url = "{}/avatar/{}".format(
         settings.SENTRY_GRAVATAR_BASE_URL,
         md5_text(email.lower()).hexdigest(),
     )
 
     properties = {}
     if size:
-        properties["s"] = six.text_type(size)
+        properties["s"] = str(size)
     if default:
         properties["d"] = default
     if properties:
@@ -67,11 +67,11 @@ def get_letter_avatar_color(identifier):
 def get_letter_avatar(display_name, identifier, size=None, use_svg=True):
     display_name = (display_name or "").strip() or "?"
     names = display_name.split(" ")
-    initials = "%s%s" % (names[0][0], names[-1][0] if len(names) > 1 else "")
+    initials = "{}{}".format(names[0][0], names[-1][0] if len(names) > 1 else "")
     initials = escape(initials.upper())
     color = get_letter_avatar_color(identifier)
     if use_svg:
-        size_attrs = 'height="%s" width="%s"' % (size, size) if size else ""
+        size_attrs = f'height="{size}" width="{size}"' if size else ""
         return (
             '<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" {size_attrs}>'
             '<rect x="0" y="0" width="120" height="120" rx="15" ry="15" fill={color}></rect>'
@@ -81,7 +81,7 @@ def get_letter_avatar(display_name, identifier, size=None, use_svg=True):
             "</svg>"
         ).format(color=color, initials=initials, size_attrs=size_attrs)
     else:
-        size_attrs = "height:%spx;width:%spx;" % (size, size) if size else ""
+        size_attrs = f"height:{size}px;width:{size}px;" if size else ""
         font_size = "font-size:%spx;" % (size / 2) if size else ""
         line_height = "line-height:%spx;" % size if size else ""
         return (
@@ -112,5 +112,5 @@ def get_email_avatar(display_name, identifier, size=None, try_gravatar=True):
                 if resp.status_code == 200:
                     # default to mm if including in emails
                     gravatar_url = get_gravatar_url(identifier, size=size)
-                    return '<img class="avatar" src="{url}">'.format(url=gravatar_url)
+                    return f'<img class="avatar" src="{gravatar_url}">'
     return get_letter_avatar(display_name, identifier, size, use_svg=False)

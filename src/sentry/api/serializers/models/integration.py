@@ -25,7 +25,7 @@ class IntegrationSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         provider = obj.get_provider()
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "name": obj.name,
             "icon": obj.metadata.get("icon"),
             "domainName": obj.metadata.get("domain_name"),
@@ -41,7 +41,7 @@ class IntegrationConfigSerializer(IntegrationSerializer):
         self.params = params or {}
 
     def serialize(self, obj, attrs, user, include_config=True):
-        data = super(IntegrationConfigSerializer, self).serialize(obj, attrs, user)
+        data = super().serialize(obj, attrs, user)
 
         if not include_config:
             return data
@@ -119,7 +119,7 @@ class IntegrationProviderSerializer(Serializer):
             "canDisable": obj.can_disable,
             "features": [f.value for f in obj.features],
             "setupDialog": dict(
-                url="/organizations/{}/integrations/{}/setup/".format(organization.slug, obj.key),
+                url=f"/organizations/{organization.slug}/integrations/{obj.key}/setup/",
                 **obj.setup_dialog_config,
             ),
         }
@@ -143,7 +143,7 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
         self.params = params
 
     def serialize(self, obj, attrs, user, organization_id=None):
-        data = super(IntegrationIssueConfigSerializer, self).serialize(obj, attrs, user)
+        data = super().serialize(obj, attrs, user)
         installation = obj.get_installation(organization_id)
 
         if self.action == "link":
@@ -181,7 +181,7 @@ class IntegrationIssueSerializer(IntegrationSerializer):
             )
             issues_by_integration[ei.integration_id].append(
                 {
-                    "id": six.text_type(ei.id),
+                    "id": str(ei.id),
                     "key": ei.key,
                     "url": installation.get_issue_url(ei.key),
                     "title": ei.title,
@@ -195,6 +195,6 @@ class IntegrationIssueSerializer(IntegrationSerializer):
         }
 
     def serialize(self, obj, attrs, user):
-        data = super(IntegrationIssueSerializer, self).serialize(obj, attrs, user)
+        data = super().serialize(obj, attrs, user)
         data["externalIssues"] = attrs.get("external_issues", [])
         return data

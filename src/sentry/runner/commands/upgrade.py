@@ -32,7 +32,7 @@ def _has_applied_django_migration(connection, app_name, migration):
             [app_name, migration],
         )
     except ProgrammingError as exc:
-        if 'relation "django_migrations" does not exist' in six.text_type(exc):
+        if 'relation "django_migrations" does not exist' in str(exc):
             return False
         raise
     else:
@@ -60,7 +60,7 @@ def _fake_django_migration(connection, app_name, migration, verbosity=0):
         return False
 
     if verbosity:
-        click.echo("Faking migration for {}.{}".format(app_name, migration))
+        click.echo(f"Faking migration for {app_name}.{migration}")
 
     cursor = connection.cursor()
     try:
@@ -77,7 +77,7 @@ def _has_south_history(connection):
     try:
         cursor.execute("SELECT 1 FROM south_migrationhistory LIMIT 1")
     except ProgrammingError as exc:
-        if 'relation "south_migrationhistory" does not exist' in six.text_type(exc):
+        if 'relation "south_migrationhistory" does not exist' in str(exc):
             return False
         raise
     return True

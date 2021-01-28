@@ -14,7 +14,7 @@ def test_builtin_types():
         ("a", "b", "c"),
         ["a", "b", "c"],
         {"a": 1, "b": 2, "c": 3},
-        set(["a", "b", "c"]),
+        {"a", "b", "c"},
         frozenset(["a", "b", "c"]),
         [{"a": 1}, set("b"), ["c"], "text"],
     ]
@@ -26,14 +26,14 @@ def test_builtin_types():
 
     for value in values:
         encoded = encoder.dumps(value)
-        assert isinstance(encoded, six.binary_type)
+        assert isinstance(encoded, bytes)
 
     with pytest.raises(TypeError):
         encoder.dumps(object())
 
 
 def test_custom_types():
-    class Widget(object):
+    class Widget:
         def __init__(self, color):
             self.color = color
 

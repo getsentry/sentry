@@ -6,7 +6,7 @@ from django import forms
 from sentry.rules.conditions.base import EventCondition
 
 
-class MatchType(object):
+class MatchType:
     EQUAL = "eq"
     NOT_EQUAL = "ne"
     STARTS_WITH = "sw"
@@ -189,7 +189,7 @@ class EventAttributeCondition(EventCondition):
         except KeyError:
             attribute_values = []
 
-        attribute_values = [six.text_type(v).lower() for v in attribute_values if v is not None]
+        attribute_values = [str(v).lower() for v in attribute_values if v is not None]
 
         if match == MatchType.EQUAL:
             for a_value in attribute_values:

@@ -13,7 +13,7 @@ WRITE = 1
 
 
 def single_model_argument(callargs):
-    return set([callargs["model"]])
+    return {callargs["model"]}
 
 
 def multiple_model_argument(callargs):
@@ -98,8 +98,7 @@ class RedisSnubaTSDBMeta(type):
         return type.__new__(cls, name, bases, attrs)
 
 
-@six.add_metaclass(RedisSnubaTSDBMeta)
-class RedisSnubaTSDB(BaseTSDB):
+class RedisSnubaTSDB(BaseTSDB, metaclass=RedisSnubaTSDBMeta):
     def __init__(self, switchover_timestamp=None, **options):
         """
         A TSDB backend that uses the Snuba outcomes and events datasets as far
@@ -123,4 +122,4 @@ class RedisSnubaTSDB(BaseTSDB):
             "redis": RedisTSDB(**options.pop("redis", {})),
             "snuba": SnubaTSDB(**options.pop("snuba", {})),
         }
-        super(RedisSnubaTSDB, self).__init__(**options)
+        super().__init__(**options)

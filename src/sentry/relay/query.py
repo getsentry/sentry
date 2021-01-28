@@ -8,7 +8,7 @@ from sentry.relay.utils import type_to_class_name
 
 def execute_queries(relay, queries):
     query_results = {}
-    for query_id, query in six.iteritems(queries):
+    for query_id, query in queries.items():
         try:
             relay_query = import_module("sentry.relay.queries.%s" % query.get("type", None))
         except ImportError:
@@ -20,7 +20,7 @@ def execute_queries(relay, queries):
             try:
                 query_inst.preprocess(query)
             except InvalidQuery as exc:
-                result = {"status": "error", "error": six.text_type(exc)}
+                result = {"status": "error", "error": str(exc)}
             else:
                 # TODO(mitsuhiko): support for pending or failing queries
                 result = {"status": "ok", "result": query_inst.execute()}

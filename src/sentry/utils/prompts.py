@@ -5,7 +5,7 @@ DEFAULT_PROMPTS = {
 }
 
 
-class PromptsConfig(object):
+class PromptsConfig:
     """
     Used to configure available 'prompts' (frontend modals or UI that may be
     dismissed or have some other action recorded about it). This config
@@ -19,7 +19,7 @@ class PromptsConfig(object):
 
     def add(self, name, config):
         if self.has(name):
-            raise Exception("Prompt key {} is already in use".format(name))
+            raise Exception(f"Prompt key {name} is already in use")
         if "required_fields" not in config:
             raise Exception("'required_fields' must be present in the config dict")
 

@@ -108,7 +108,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         try:
             start, end = get_date_range_from_params(request.GET)
         except InvalidParams as e:
-            raise ParseError(detail=six.text_type(e))
+            raise ParseError(detail=str(e))
 
         expand = request.GET.getlist("expand", [])
         collapse = request.GET.getlist("collapse", [])
@@ -160,9 +160,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 # projects that the user is a member of. This gives us a better
                 # chance of returning the correct result, even if the wrong
                 # project is selected.
-                direct_hit_projects = set(project_ids) | set(
-                    [project.id for project in request.access.projects]
-                )
+                direct_hit_projects = set(project_ids) | {
+                    project.id for project in request.access.projects
+                }
                 groups = list(Group.objects.filter_by_event_id(direct_hit_projects, event_id))
                 if len(groups) == 1:
                     response = Response(
@@ -203,7 +203,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 {"count_hits": True, "date_to": end, "date_from": start},
             )
         except (ValidationError, discover.InvalidSearchQuery) as exc:
-            return Response({"detail": six.text_type(exc)}, status=400)
+            return Response({"detail": str(exc)}, status=400)
 
         results = list(cursor_result)
 
