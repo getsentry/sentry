@@ -20,7 +20,7 @@ from sentry.utils import json
 from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 from sentry.tasks.post_process import post_process_group
 from sentry.api.serializers import serialize
-from sentry.shared_integrations.exceptions import ApiError, IgnorableSentryAppError
+from sentry.shared_integrations.exceptions import ClientError, IgnorableSentryAppError
 from sentry.tasks.sentry_apps import (
     send_alert_event,
     notify_sentry_app,
@@ -420,7 +420,7 @@ class TestWebhookRequests(TestCase):
     def test_saves_error_if_webhook_request_fails(self, safe_urlopen):
         data = {"issue": serialize(self.issue)}
 
-        with self.assertRaises(ApiError):
+        with self.assertRaises(ClientError):
             send_webhooks(
                 installation=self.install, event="issue.assigned", data=data, actor=self.user
             )
@@ -473,7 +473,7 @@ class TestWebhookRequests(TestCase):
     @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseWithHeadersInstance)
     def test_saves_error_event_id_if_in_header(self, safe_urlopen):
         data = {"issue": serialize(self.issue)}
-        with self.assertRaises(ApiError):
+        with self.assertRaises(ClientError):
             send_webhooks(
                 installation=self.install, event="issue.assigned", data=data, actor=self.user
             )

@@ -99,3 +99,7 @@ class IntegrationFormError(IntegrationError):
 
 class IgnorableSentryAppError(RequestException):
     pass
+
+
+class ClientError(RequestException):
+    """4xx Error Occurred"""

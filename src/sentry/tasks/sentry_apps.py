@@ -24,9 +24,9 @@ from sentry.models import (
 )
 from sentry.models.sentryapp import VALID_EVENTS, track_response_code
 from sentry.shared_integrations.exceptions import (
-    ApiError,
     ApiHostError,
     ApiTimeoutError,
+    ClientError,
     IgnorableSentryAppError,
 )
 from sentry.tasks.base import instrumented_task, retry
@@ -46,7 +46,7 @@ TASK_OPTIONS = {
 
 RETRY_OPTIONS = {
     "on": (RequestException, ApiHostError, ApiTimeoutError),
-    "ignore": (IgnorableSentryAppError, ApiError),
+    "ignore": (IgnorableSentryAppError, ClientError),
 }
 
 # We call some models by a different name, publicly, than their class name.
@@ -382,7 +382,7 @@ def send_and_save_webhook_request(sentry_app, app_platform_event, url=None):
             raise ApiTimeoutError.from_request(resp.request)
 
         if 400 <= resp.status_code <= 404:
-            raise ApiError.from_response(resp)
+            raise ClientError("Client Error", response=resp)
 
         resp.raise_for_status()
 
