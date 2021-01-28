@@ -31,6 +31,7 @@ def reprocessing_feature(monkeypatch):
 @pytest.fixture
 def process_and_save(default_project, task_runner):
     def inner(data, seconds_ago=1):
+        data.setdefault("platform", "native")
         data.setdefault("timestamp", iso_format(before_now(seconds=seconds_ago)))
         mgr = EventManager(data=data, project=default_project)
         mgr.normalize()

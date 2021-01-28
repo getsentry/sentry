@@ -244,10 +244,6 @@ def post_process_group(
 
         _capture_stats(event, is_new)
 
-        from sentry.reprocessing2 import spawn_capture_nodestore_stats
-
-        spawn_capture_nodestore_stats(cache_key, event.project_id, event.event_id)
-
         if event.group_id and is_reprocessed and is_new:
             add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
 
