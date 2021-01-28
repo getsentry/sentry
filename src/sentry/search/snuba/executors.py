@@ -370,16 +370,15 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 if sf.key.name not in self.postgres_only_fields.union(["date"])
             ]
         ):
-            group_queryset = group_queryset.filter(last_seen__gte=start, last_seen__lte=end)
+            # We just filter on `GroupInbox.date_added` here, and don't filter by date
+            # on the group. This keeps the query simpler and faster in some edge cases,
+            # and date_added is a good enough proxy when we're using this sort.
+            group_queryset = group_queryset.filter(
+                groupinbox__date_added__gte=start,
+                groupinbox__date_added__lte=end,
+            )
             group_queryset = group_queryset.extra(
                 select={"inbox_date": "sentry_groupinbox.date_added"},
-                tables=["sentry_groupinbox"],
-                where=[
-                    "sentry_groupinbox.group_id = sentry_groupedmessage.id",
-                    "sentry_groupinbox.project_id in %s",
-                    "sentry_groupinbox.date_added BETWEEN %s AND %s",
-                ],
-                params=(tuple(p.id for p in projects), start, end),
             ).order_by("-inbox_date")
             paginator = DateTimePaginator(group_queryset, "-inbox_date", **paginator_options)
             return paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
