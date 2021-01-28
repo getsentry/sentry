@@ -77,7 +77,7 @@ jobs:
         run: |
           echo ${{ steps.changes.outputs.changes }}
           yarn eslint --fix ${{ steps.changes.outputs.frontend_modified_lintable_files }}
-          yarn stylelint --fix ${{ steps.changes.outputs.frontend_components_modified_lintable_files }}
+          yarn stylelint ${{ steps.changes.outputs.frontend_components_modified_lintable_files }}
 
       # Check (and error) for dirty working tree for forks
       # Reason being we need a different token to auto commit changes and
