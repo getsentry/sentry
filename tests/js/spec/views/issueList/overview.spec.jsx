@@ -1674,7 +1674,6 @@ describe('IssueList', function () {
       wrapper = mountWithTheme(<IssueListOverview {...props} />);
       wrapper.setState({
         groupIds: range(0, 25).map(String),
-        originalCount: 500,
         queryCount: 500,
         queryMaxCount: 1000,
       });
@@ -1725,7 +1724,6 @@ describe('IssueList', function () {
       wrapper = mountWithTheme(<IssueListOverview {...props} />);
       wrapper.setState({
         groupIds: range(0, 25).map(String),
-        originalCount: 500,
         queryCount: 500,
         queryMaxCount: 1000,
       });
@@ -1776,9 +1774,8 @@ describe('IssueList', function () {
       wrapper = mountWithTheme(<IssueListOverview {...props} />);
       wrapper.setState({
         groupIds: range(0, 25).map(String),
-        originalCount: 75,
-        // One item has been removed
-        queryCount: 74,
+        queryCount: 75,
+        itemsRemoved: 1,
         queryMaxCount: 1000,
       });
 

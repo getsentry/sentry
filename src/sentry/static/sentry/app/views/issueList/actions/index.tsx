@@ -29,10 +29,10 @@ type Props = {
   statsPeriod: string;
   query: string;
   queryCount: number;
-  queryMaxCount: number;
-  pageCount: number;
+  displayCount: React.ReactElement;
   displayReprocessingActions: boolean;
   hasInbox?: boolean;
+  onMarkReviewed?: (itemIds: string[]) => void;
 };
 
 type State = {
@@ -119,11 +119,15 @@ class IssueListActions extends React.Component<Props, State> {
   };
 
   handleUpdate = (data?: any) => {
-    const {selection, api, organization, query} = this.props;
+    const {selection, api, organization, query, onMarkReviewed} = this.props;
     const orgId = organization.slug;
 
     this.actionSelectedGroups(itemIds => {
       addLoadingMessage(t('Saving changes\u2026'));
+
+      if (data?.inbox === false) {
+        onMarkReviewed?.(itemIds ?? []);
+      }
 
       // If `itemIds` is undefined then it means we expect to bulk update all items
       // that match the query.
@@ -237,8 +241,7 @@ class IssueListActions extends React.Component<Props, State> {
       query,
       realtimeActive,
       statsPeriod,
-      pageCount,
-      queryMaxCount,
+      displayCount,
       selection,
       organization,
       displayReprocessingActions,
@@ -289,9 +292,7 @@ class IssueListActions extends React.Component<Props, State> {
             anySelected={anySelected}
             selection={selection}
             statsPeriod={statsPeriod}
-            pageCount={pageCount}
-            queryCount={queryCount}
-            queryMaxCount={queryMaxCount}
+            displayCount={displayCount}
             hasInbox={hasInbox}
             isReprocessingQuery={displayReprocessingActions}
           />

@@ -92,14 +92,16 @@ type State = {
   selectAllActive: boolean;
   realtimeActive: boolean;
   pageLinks: string;
+  /**
+   * Current query total
+   */
   queryCount: number;
   /**
    * Counts for each inbox tab
    */
   queryCounts: QueryCounts;
   queryMaxCount: number;
-  /** Used to figure out if items have been removed when changing pages */
-  originalCount: number;
+  itemsRemoved: number;
   error: string | null;
   isSidebarVisible: boolean;
   renderSidebar: boolean;
@@ -143,8 +145,8 @@ class IssueListOverview extends React.Component<Props, State> {
       selectAllActive: false,
       realtimeActive,
       pageLinks: '',
+      itemsRemoved: 0,
       queryCount: 0,
-      originalCount: 0,
       queryCounts: {},
       queryMaxCount: 0,
       error: null,
@@ -475,12 +477,12 @@ class IssueListOverview extends React.Component<Props, State> {
   fetchData = (selectionChanged?: boolean) => {
     GroupStore.loadInitialData([]);
 
-    this.setState(state => ({
+    this.setState({
       issuesLoading: true,
       queryCount: 0,
+      itemsRemoved: 0,
       error: null,
-      originalCount: selectionChanged ? 0 : state.originalCount,
-    }));
+    });
 
     const requestParams: any = {
       ...this.getEndpointParams(),
@@ -562,14 +564,13 @@ class IssueListOverview extends React.Component<Props, State> {
           this.fetchCounts(queryCount, fetchAllCounts);
         }
 
-        this.setState(state => ({
+        this.setState({
           error: null,
           issuesLoading: false,
           queryCount,
           queryMaxCount,
-          originalCount: Math.max(queryCount, state.originalCount),
           pageLinks: pageLinks !== null ? pageLinks : '',
-        }));
+        });
       },
       error: err => {
         this.setState({
@@ -793,6 +794,7 @@ class IssueListOverview extends React.Component<Props, State> {
           hasGuideAnchor={hasGuideAnchor}
           memberList={members}
           displayReprocessingLayout={displayReprocessingLayout}
+          onMarkReviewed={this.onMarkReviewed}
           useFilteredStats
         />
       );
@@ -862,6 +864,27 @@ class IssueListOverview extends React.Component<Props, State> {
     });
   };
 
+  onMarkReviewed = (itemIds: string[]) => {
+    const query = this.getQuery();
+    if (query !== Query.FOR_REVIEW && query !== Query.FOR_REVIEW_OWNER) {
+      return;
+    }
+
+    const {queryCounts, itemsRemoved} = this.state;
+    const currentQueryCount = queryCounts[query as Query];
+    if (itemIds.length && currentQueryCount) {
+      const inInboxCount = itemIds.filter(id => GroupStore.get(id)?.inbox).length;
+      currentQueryCount.count -= inInboxCount;
+      this.setState({
+        queryCounts: {
+          ...queryCounts,
+          [query as Query]: currentQueryCount,
+        },
+        itemsRemoved: itemsRemoved + inInboxCount,
+      });
+    }
+  };
+
   tagValueLoader = (key: string, search: string) => {
     const {orgId} = this.props.params;
     const projectIds = this.getGlobalSearchProjectIds().map(id => id.toString());
@@ -892,7 +915,7 @@ class IssueListOverview extends React.Component<Props, State> {
       realtimeActive,
       groupIds,
       queryMaxCount,
-      originalCount,
+      itemsRemoved,
     } = this.state;
     const {
       organization,
@@ -908,16 +931,12 @@ class IssueListOverview extends React.Component<Props, State> {
     const queryPageInt = parseInt(location.query.page, 10);
     // Cursor must be present for the page number to be used
     const page = isNaN(queryPageInt) || !location.query.cursor ? 0 : queryPageInt;
-    const itemsRemoved = originalCount - queryCount;
     /**
      * As items are removed from the current query, the total count might change.
      * When you remove items from page 1 and get to the last page the totals will no longer
      * match
      */
-    const possibleCount = Math.max(
-      page * MAX_ITEMS + groupIds.length - itemsRemoved,
-      groupIds.length
-    );
+    const possibleCount = Math.max(page * MAX_ITEMS + groupIds.length, groupIds.length);
 
     let pageCount = possibleCount > queryCount ? queryCount : possibleCount;
     if (!links?.next?.results || this.allResultsVisible()) {
@@ -927,6 +946,21 @@ class IssueListOverview extends React.Component<Props, State> {
       // Is on first available page
       pageCount = groupIds.length;
     }
+
+    // Subtract # items that have been marked reviewed
+    pageCount = Math.max(pageCount - itemsRemoved, 0);
+    const modifiedQueryCount = Math.max(queryCount - itemsRemoved, 0);
+    const displayCount = tct('[count] of [total]', {
+      count: pageCount,
+      total: (
+        <StyledQueryCount
+          hideParens
+          hideIfEmpty={false}
+          count={modifiedQueryCount}
+          max={queryMaxCount || 100}
+        />
+      ),
+    });
 
     // TODO(workflow): When organization:inbox flag is removed add 'inbox' to tagStore
     if (
@@ -992,11 +1026,11 @@ class IssueListOverview extends React.Component<Props, State> {
                     organization={organization}
                     selection={selection}
                     query={query}
-                    queryCount={queryCount}
-                    queryMaxCount={queryMaxCount}
-                    pageCount={pageCount}
+                    queryCount={modifiedQueryCount}
+                    displayCount={displayCount}
                     onSelectStatsPeriod={this.onSelectStatsPeriod}
                     onRealtimeChange={this.onRealtimeChange}
+                    onMarkReviewed={this.onMarkReviewed}
                     realtimeActive={realtimeActive}
                     statsPeriod={this.getGroupStatsPeriod()}
                     groupIds={groupIds}
@@ -1017,15 +1051,8 @@ class IssueListOverview extends React.Component<Props, State> {
                   {hasFeature && groupIds?.length > 0 && (
                     <div>
                       {/* total includes its own space */}
-                      {tct('Showing [count] of [total] issues', {
-                        count: <React.Fragment>{pageCount}</React.Fragment>,
-                        total: (
-                          <StyledQueryCount
-                            hideParens
-                            count={queryCount}
-                            max={queryMaxCount}
-                          />
-                        ),
+                      {tct('Showing [displayCount] issues', {
+                        displayCount,
                       })}
                     </div>
                   )}
