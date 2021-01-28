@@ -9,6 +9,7 @@ import space from 'app/styles/space';
 import {DynamicSamplingRule} from 'app/types/dynamicSampling';
 
 import Rules from './rules';
+import {DOC_LINK} from './utils';
 
 type Props = {
   rules: Array<DynamicSamplingRule>;
@@ -16,17 +17,9 @@ type Props = {
   onDeleteRule: (rule: DynamicSamplingRule) => () => void;
   onAddRule: () => void;
   disabled: boolean;
-  platformDocLink?: string;
 };
 
-function RulesPanel({
-  rules,
-  platformDocLink,
-  onAddRule,
-  onEditRule,
-  onDeleteRule,
-  disabled,
-}: Props) {
+function RulesPanel({rules, onAddRule, onEditRule, onDeleteRule, disabled}: Props) {
   return (
     <Panel>
       <Rules
@@ -37,11 +30,9 @@ function RulesPanel({
       />
       <StyledPanelFooter>
         <ButtonBar gap={1}>
-          {platformDocLink && (
-            <Button href={platformDocLink} external>
-              {t('Read the docs')}
-            </Button>
-          )}
+          <Button href={DOC_LINK} external>
+            {t('Read the docs')}
+          </Button>
           <Button priority="primary" onClick={onAddRule} disabled={disabled}>
             {t('Add rule')}
           </Button>
