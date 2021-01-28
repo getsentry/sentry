@@ -1,7 +1,5 @@
 import React from 'react';
-import cloneDeep from 'lodash/cloneDeep';
 import debounce from 'lodash/debounce';
-import set from 'lodash/set';
 import * as queryString from 'query-string';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
@@ -136,13 +134,13 @@ export default class AbstractExternalIssueForm<
     field: IssueConfigField,
     result: {value: string; label: string}[]
   ): void => {
-    const fetchedFieldOptionsCache = cloneDeep(this.state.fetchedFieldOptionsCache);
-    set(
-      fetchedFieldOptionsCache,
-      field.name,
-      result.map(obj => [obj.value, obj.label])
-    );
-    this.setState({fetchedFieldOptionsCache});
+    const {fetchedFieldOptionsCache} = this.state;
+    this.setState({
+      fetchedFieldOptionsCache: {
+        ...fetchedFieldOptionsCache,
+        [field.name]: result.map(obj => [obj.value, obj.label]),
+      },
+    });
   };
 
   /**
@@ -238,12 +236,13 @@ export default class AbstractExternalIssueForm<
 
     const configsFromAPI = (integrationDetails || {})[this.getConfigName()];
     return (configsFromAPI || []).map(field => {
+      const fieldCopy = {...field};
       // Overwrite choices from cache.
       if (fetchedFieldOptionsCache?.hasOwnProperty(field.name)) {
-        field.choices = fetchedFieldOptionsCache[field.name];
+        fieldCopy.choices = fetchedFieldOptionsCache[field.name];
       }
 
-      return field;
+      return fieldCopy;
     });
   };
 
