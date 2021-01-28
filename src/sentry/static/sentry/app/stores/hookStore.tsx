@@ -117,4 +117,6 @@ type HookStore = Reflux.Store & HookStoreInterface;
  *
  * This functionality is primarily used by the SASS sentry.io product.
  */
-export default Reflux.createStore(hookStoreConfig) as HookStore;
+const HookStore = Reflux.createStore(hookStoreConfig) as HookStore;
+
+export default HookStore;
