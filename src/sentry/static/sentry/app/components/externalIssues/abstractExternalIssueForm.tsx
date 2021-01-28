@@ -1,11 +1,13 @@
 import React from 'react';
+import cloneDeep from 'lodash/cloneDeep';
 import debounce from 'lodash/debounce';
+import set from 'lodash/set';
 import * as queryString from 'query-string';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import AsyncComponent from 'app/components/asyncComponent';
 import {tct} from 'app/locale';
-import {IntegrationIssueConfig, IssueConfigField} from 'app/types';
+import {Choices, IntegrationIssueConfig, IssueConfigField} from 'app/types';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
 import {FieldValue} from 'app/views/settings/components/forms/model';
@@ -26,6 +28,8 @@ type State = {
    * `integrationDetails` when it loads. Null until set.
    */
   dynamicFieldValues: {[key: string]: FieldValue | null} | null;
+  /** Cache of options fetched for async fields. */
+  fetchedFieldOptionsCache: Record<string, Choices>;
 } & AsyncComponent['state'];
 
 const DEBOUNCE_MS = 200;
@@ -43,6 +47,7 @@ export default class AbstractExternalIssueForm<
       ...super.getDefaultState(),
       action: 'create',
       dynamicFieldValues: null,
+      fetchedFieldOptionsCache: {},
       integrationDetails: null,
     };
   }
@@ -126,11 +131,17 @@ export default class AbstractExternalIssueForm<
     }
   };
 
+  /** For fields with dynamic fields, cache the fetched choices. */
   updateFetchedFieldOptionsCache = (
-    _field: IssueConfigField,
-    _result: {value: string; label: string}[]
+    field: IssueConfigField,
+    result: {value: string; label: string}[]
   ): void => {
-    // Do nothing.
+    const fetchedFieldOptionsCache = result.map(obj => [obj.value, obj.label]);
+    this.setState(prevState => {
+      const newState = cloneDeep(prevState);
+      set(newState, `fetchedFieldOptionsCache[${field.name}]`, fetchedFieldOptionsCache);
+      return newState;
+    });
   };
 
   /**
@@ -184,6 +195,7 @@ export default class AbstractExternalIssueForm<
     {trailing: true}
   );
 
+  /** If this field is an async select (field.url is not null), add async props. */
   getFieldProps = (field: IssueConfigField) =>
     field.url
       ? {
@@ -218,6 +230,20 @@ export default class AbstractExternalIssueForm<
       submitDisabled: this.state.reloading,
       // Other form props implemented by child classes.
     };
+  };
+
+  getCleanedFields = (): IssueConfigField[] => {
+    const {fetchedFieldOptionsCache, integrationDetails} = this.state;
+
+    const configsFromAPI = (integrationDetails || {})[this.getConfigName()];
+    return (configsFromAPI || []).map(field => {
+      // Overwrite choices from cache.
+      if (fetchedFieldOptionsCache?.hasOwnProperty(field.name)) {
+        field.choices = fetchedFieldOptionsCache[field.name];
+      }
+
+      return field;
+    });
   };
 
   renderComponent() {
