@@ -283,9 +283,9 @@ function generateGenericPerformanceEventView(
   if (!query.statsPeriod && !hasStartAndEnd) {
     savedQuery.range = DEFAULT_STATS_PERIOD;
   }
-  savedQuery.orderby = decodeScalar(query.sort) || '-tpm';
+  savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
-  const searchQuery = decodeScalar(query.query) || '';
+  const searchQuery = decodeScalar(query.query, '');
   const conditions = tokenizeSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
@@ -337,9 +337,9 @@ function generateBackendPerformanceEventView(
   if (!query.statsPeriod && !hasStartAndEnd) {
     savedQuery.range = DEFAULT_STATS_PERIOD;
   }
-  savedQuery.orderby = decodeScalar(query.sort) || '-tpm';
+  savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
-  const searchQuery = decodeScalar(query.query) || '';
+  const searchQuery = decodeScalar(query.query, '');
   const conditions = tokenizeSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
@@ -390,9 +390,9 @@ function generateFrontendPageloadPerformanceEventView(
   if (!query.statsPeriod && !hasStartAndEnd) {
     savedQuery.range = DEFAULT_STATS_PERIOD;
   }
-  savedQuery.orderby = decodeScalar(query.sort) || '-tpm';
+  savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
-  const searchQuery = decodeScalar(query.query) || '';
+  const searchQuery = decodeScalar(query.query, '');
   const conditions = tokenizeSearch(searchQuery);
 
   // If there is a bare text search, we want to treat it as a search
@@ -440,9 +440,9 @@ function generateFrontendOtherPerformanceEventView(
   if (!query.statsPeriod && !hasStartAndEnd) {
     savedQuery.range = DEFAULT_STATS_PERIOD;
   }
-  savedQuery.orderby = decodeScalar(query.sort) || '-tpm';
+  savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
-  const searchQuery = decodeScalar(query.query) || '';
+  const searchQuery = decodeScalar(query.query, '');
   const conditions = tokenizeSearch(searchQuery);
 
   // If there is a bare text search, we want to treat it as a search
@@ -511,9 +511,9 @@ export function generatePerformanceVitalDetailView(
   if (!query.statsPeriod && !hasStartAndEnd) {
     savedQuery.range = DEFAULT_STATS_PERIOD;
   }
-  savedQuery.orderby = decodeScalar(query.sort) || `-count`;
+  savedQuery.orderby = decodeScalar(query.sort, '-count');
 
-  const searchQuery = decodeScalar(query.query) || '';
+  const searchQuery = decodeScalar(query.query, '');
   const conditions = tokenizeSearch(searchQuery);
 
   // If there is a bare text search, we want to treat it as a search
