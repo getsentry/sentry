@@ -59,7 +59,7 @@
     "classnames": "2.2.6",
     "clean-webpack-plugin": "^3.0.0",
     "clipboard": "^1.7.1",
-    "color": "^3.1.0",
+    "color": "^3.1.3",
     "compression-webpack-plugin": "3.1.0",
     "core-js": "^3.2.1",
     "create-react-class": "^15.6.2",
