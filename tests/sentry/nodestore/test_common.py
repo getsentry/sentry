@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 """
 Testsuite of backend-independent nodestore tests. Add your backend to the
 `ns` fixture to have it tested.
