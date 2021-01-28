@@ -110,7 +110,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   getSavedQuerySearchQuery(): string {
     const {location} = this.props;
 
-    return decodeScalar(location.query.query).trim();
+    return decodeScalar(location.query.query, '').trim();
   }
 
   getActiveSort() {

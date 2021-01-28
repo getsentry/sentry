@@ -205,7 +205,7 @@ const decodeQuery = (location: Location): string => {
 
   const queryParameter = location.query.query;
 
-  return decodeScalar(queryParameter).trim();
+  return decodeScalar(queryParameter, '').trim();
 };
 
 const decodeProjects = (location: Location): number[] => {

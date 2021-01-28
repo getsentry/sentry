@@ -51,10 +51,11 @@ export function appendTagCondition(
   return currentQuery;
 }
 
-export function decodeScalar(
-  value: string[] | string | undefined | null,
-  fallback = ''
-): string {
+// This function has multiple signatures to help with typing in callers.
+export function decodeScalar(value: QueryValue): string | undefined;
+export function decodeScalar(value: QueryValue, fallback: string): string;
+
+export function decodeScalar(value: QueryValue, fallback?: string): string | undefined {
   if (!value) {
     return fallback;
   }

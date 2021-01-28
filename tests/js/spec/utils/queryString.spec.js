@@ -86,9 +86,17 @@ describe('decodeScalar()', function () {
   });
 
   it('handles falsey values', function () {
-    expect(utils.decodeScalar(undefined)).toStrictEqual('');
-    expect(utils.decodeScalar(false)).toStrictEqual('');
-    expect(utils.decodeScalar('')).toStrictEqual('');
+    expect(utils.decodeScalar(undefined)).toBeUndefined();
+    expect(utils.decodeScalar(false)).toBeUndefined();
+    expect(utils.decodeScalar('')).toBeUndefined();
+  });
+
+  it('uses fallback values', function () {
+    expect(utils.decodeScalar('value', 'default')).toEqual('value');
+    expect(utils.decodeScalar('', 'default')).toEqual('default');
+    expect(utils.decodeScalar(null, 'default')).toEqual('default');
+    expect(utils.decodeScalar(undefined, 'default')).toEqual('default');
+    expect(utils.decodeScalar([], 'default')).toEqual('default');
   });
 });
 
