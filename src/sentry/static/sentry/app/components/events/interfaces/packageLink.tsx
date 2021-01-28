@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {trimPackage} from 'app/components/events/interfaces/frame/utils';
+import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'app/components/stacktracePreview';
 import Tooltip from 'app/components/tooltip';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -13,6 +14,10 @@ type Props = {
   includeSystemFrames: boolean;
   packagePath: string | null;
   isClickable?: boolean;
+  /**
+   * Is the stack trace being previewed in a hovercard?
+   */
+  isHoverPreviewed?: boolean;
 };
 
 class PackageLink extends React.Component<Props> {
@@ -31,6 +36,7 @@ class PackageLink extends React.Component<Props> {
       withLeadHint,
       children,
       includeSystemFrames,
+      isHoverPreviewed,
     } = this.props;
 
     return (
@@ -41,7 +47,10 @@ class PackageLink extends React.Component<Props> {
         includeSystemFrames={includeSystemFrames}
       >
         {defined(packagePath) ? (
-          <Tooltip title={packagePath}>
+          <Tooltip
+            title={packagePath}
+            delay={isHoverPreviewed ? STACKTRACE_PREVIEW_TOOLTIP_DELAY : undefined}
+          >
             <PackageName
               isClickable={isClickable}
               withLeadHint={withLeadHint}

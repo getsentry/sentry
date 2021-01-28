@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import ExternalLink from 'app/components/links/externalLink';
+import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'app/components/stacktracePreview';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
 import {IconOpen, IconQuestion} from 'app/icons';
@@ -20,13 +21,18 @@ import OriginalSourceInfo from './originalSourceInfo';
 type Props = {
   frame: Frame;
   platform: PlatformType;
+  /**
+   * Is the stack trace being previewed in a hovercard?
+   */
+  isHoverPreviewed?: boolean;
 };
 
 type GetPathNameOutput = {key: string; value: string; meta?: Meta};
 
-const DefaultTitle = ({frame, platform}: Props) => {
+const DefaultTitle = ({frame, platform, isHoverPreviewed}: Props) => {
   const title: Array<React.ReactElement> = [];
   const framePlatform = getPlatform(frame.platform, platform);
+  const tooltipDelay = isHoverPreviewed ? STACKTRACE_PREVIEW_TOOLTIP_DELAY : undefined;
 
   const handleExternalLink = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.stopPropagation();
@@ -86,7 +92,12 @@ const DefaultTitle = ({frame, platform}: Props) => {
 
     if (pathName) {
       title.push(
-        <Tooltip key={pathName.key} title={frame.absPath} disabled={!enablePathTooltip}>
+        <Tooltip
+          key={pathName.key}
+          title={frame.absPath}
+          disabled={!enablePathTooltip}
+          delay={tooltipDelay}
+        >
           <code key="filename" className="filename">
             <AnnotatedText
               value={<Truncate value={pathName.value} maxLength={100} leftTrim />}
@@ -101,7 +112,7 @@ const DefaultTitle = ({frame, platform}: Props) => {
     // we want to show a litle (?) icon that on hover shows the actual filename
     if (shouldPrioritizeModuleName && frame.filename) {
       title.push(
-        <Tooltip key={frame.filename} title={frame.filename}>
+        <Tooltip key={frame.filename} title={frame.filename} delay={tooltipDelay}>
           <a className="in-at real-filename">
             <IconQuestion size="xs" />
           </a>
@@ -164,6 +175,7 @@ const DefaultTitle = ({frame, platform}: Props) => {
       <Tooltip
         key="info-tooltip"
         title={<OriginalSourceInfo mapUrl={frame.mapUrl} map={frame.map} />}
+        delay={tooltipDelay}
       >
         <a className="in-at original-src">
           <IconQuestion size="xs" />

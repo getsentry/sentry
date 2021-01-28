@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {formatAddress, parseAddress} from 'app/components/events/interfaces/utils';
+import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'app/components/stacktracePreview';
 import Tooltip from 'app/components/tooltip';
 import {IconFilter} from 'app/icons';
 import {t} from 'app/locale';
@@ -17,6 +18,10 @@ type Props = {
   isInlineFrame: boolean;
   relativeAddressMaxlength?: number;
   onToggle?: (event: React.MouseEvent<SVGElement>) => void;
+  /**
+   * Is the stack trace being previewed in a hovercard?
+   */
+  isHoverPreviewed?: boolean;
 };
 
 const TogglableAddress = ({
@@ -27,6 +32,7 @@ const TogglableAddress = ({
   isFoundByStackScanning,
   isAbsolute,
   onToggle,
+  isHoverPreviewed,
 }: Props) => {
   const convertAbsoluteAddressToRelative = () => {
     if (!startingAddress) {
@@ -61,6 +67,7 @@ const TogglableAddress = ({
   const canBeConverted = !!(onToggle && relativeAddress);
   const formattedAddress = !relativeAddress || isAbsolute ? address : relativeAddress;
   const tooltipTitle = getAddressTooltip();
+  const tooltipDelay = isHoverPreviewed ? STACKTRACE_PREVIEW_TOOLTIP_DELAY : undefined;
 
   return (
     <Wrapper>
@@ -68,11 +75,16 @@ const TogglableAddress = ({
         <AddressIconTooltip
           title={isAbsolute ? t('Switch to relative') : t('Switch to absolute')}
           containerDisplayMode="inline-flex"
+          delay={tooltipDelay}
         >
           <AddressToggleIcon onClick={onToggle} size="xs" color="purple300" />
         </AddressIconTooltip>
       )}
-      <Tooltip title={tooltipTitle} disabled={!(isFoundByStackScanning || isInlineFrame)}>
+      <Tooltip
+        title={tooltipTitle}
+        disabled={!(isFoundByStackScanning || isInlineFrame)}
+        delay={tooltipDelay}
+      >
         <Address
           isFoundByStackScanning={isFoundByStackScanning}
           isInlineFrame={isInlineFrame}
