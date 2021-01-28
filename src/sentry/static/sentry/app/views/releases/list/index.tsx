@@ -378,7 +378,7 @@ const SortAndFilterWrapper = styled('div')`
   grid-gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: 1fr repeat(3, auto);
   }
 `;
