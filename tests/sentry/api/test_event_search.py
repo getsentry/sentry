@@ -2027,6 +2027,14 @@ class GetSnubaQueryArgsTest(TestCase):
         result = get_filter("percentile(     transaction.duration,     0.75   ):>100")
         assert result.having == [["percentile_transaction_duration_0_75", ">", 100]]
 
+        result = get_filter("percentile    (transaction.duration, 0.75):>100")
+        assert result.conditions == [
+            _om("percentile"),
+            _om("transaction.duration, 0.75"),
+            _om(":>100"),
+        ]
+        assert result.having == []
+
         result = get_filter(
             "epm(       ):>100", {"start": before_now(minutes=5), "end": before_now()}
         )
