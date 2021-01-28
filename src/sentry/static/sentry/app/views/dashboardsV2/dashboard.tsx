@@ -374,7 +374,7 @@ class Dashboard extends React.Component<Props, State> {
 
     return (
       <LazyLoad key={`${widget.id ?? index}`} once height={240} offset={100}>
-        <WidgetWrapper data-component="widget-wrapper">
+        <WidgetWrapper data-component="widget-wrapper" displayType={widget.displayType}>
           <WidgetCard
             widget={widget}
             isEditing={isEditing}
@@ -422,7 +422,7 @@ class Dashboard extends React.Component<Props, State> {
       <WidgetContainer>
         {widgets.map((widget, i) => this.renderWidget(widget, i))}
         {isEditing && (
-          <WidgetWrapper key="add">
+          <WidgetWrapper key="add" displayType="big_number">
             <AddWidgetWrapper
               key="add"
               data-test-id="widget-add"
@@ -451,10 +451,19 @@ const WidgetContainer = styled('div')`
   }
 `;
 
-const WidgetWrapper = styled('div')`
+const WidgetWrapper = styled('div')<{displayType: Widget['displayType']}>`
   position: relative;
   /* Min-width prevents grid items from stretching the grid */
   min-width: 200px;
+
+  ${p => {
+    switch (p.displayType) {
+      case 'big_number':
+        return 'grid-area: span 1 / span 1;';
+      default:
+        return 'grid-area: span 2 / span 2;';
+    }
+  }};
 `;
 
 const AddWidgetWrapper = styled('a')`
