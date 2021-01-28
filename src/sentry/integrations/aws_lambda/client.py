@@ -52,12 +52,12 @@ def gen_aws_client(account_number, region, aws_external_id, service_name="lambda
         region_name=options.get("aws-lambda.host-region"),
     )
 
-    role_in_client = f"arn:aws:iam::{account_number}:role/SentryRole"
+    role_in_user_account = f"arn:aws:iam::{account_number}:role/SentryRole"
 
     # assume the role in the client account
     assumed_role_object = client.assume_role(
         RoleSessionName="Sentry",
-        RoleArn=role_in_client,
+        RoleArn=role_in_user_account,
         ExternalId=aws_external_id,
         # need policy statements for cross account access
         Policy=json.dumps(
