@@ -9,6 +9,7 @@ import ButtonBar from 'app/components/buttonBar';
 import ContextPickerModalContainer from 'app/components/contextPickerModal';
 import * as Layout from 'app/components/layouts/thirds';
 import QueryCount from 'app/components/queryCount';
+import Tooltip from 'app/components/tooltip';
 import {IconPause, IconPlay, IconUser} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -95,6 +96,11 @@ function IssueListHeader({
         </StyledHeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
+            <Tooltip title="Give us feedback via email about these changes to Issues">
+              <Button size="small" href="mailto:workflow-feedback@sentry.io">
+                Give Feedback
+              </Button>
+            </Tooltip>
             <Button
               size="small"
               icon={<IconUser size="xs" />}
