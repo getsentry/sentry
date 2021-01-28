@@ -189,7 +189,13 @@ class VitalChart extends React.Component<Props> {
               title={t(`The durations shown should fall under the vital threshold.`)}
             />
           </HeaderTitleLegend>
-          <ChartZoom router={router} period={statsPeriod}>
+          <ChartZoom
+            router={router}
+            period={statsPeriod}
+            start={start}
+            end={end}
+            utc={utc}
+          >
             {zoomRenderProps => (
               <EventsRequest
                 api={api}

@@ -50,11 +50,11 @@ function DurationChart(props: Props) {
   const globalSelection = eventView.getGlobalSelection();
   const start = globalSelection.datetime.start
     ? getUtcToLocalDateObject(globalSelection.datetime.start)
-    : undefined;
+    : null;
 
   const end = globalSelection.datetime.end
     ? getUtcToLocalDateObject(globalSelection.datetime.end)
-    : undefined;
+    : null;
 
   const {utc} = getParams(location.query);
 
@@ -69,8 +69,8 @@ function DurationChart(props: Props) {
       end={end}
       interval={getInterval(
         {
-          start: start || null,
-          end: end || null,
+          start,
+          end,
           period: globalSelection.datetime.period,
         },
         true
@@ -117,6 +117,8 @@ function DurationChart(props: Props) {
                         loading={loading || reloading}
                         router={router}
                         statsPeriod={globalSelection.datetime.period}
+                        start={start}
+                        end={end}
                         utc={utc === 'true'}
                         grid={{
                           left: space(3),

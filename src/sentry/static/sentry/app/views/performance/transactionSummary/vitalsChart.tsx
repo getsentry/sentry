@@ -148,7 +148,7 @@ class VitalsChart extends React.Component<Props> {
             )}
           />
         </HeaderTitleLegend>
-        <ChartZoom router={router} period={statsPeriod}>
+        <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
           {zoomRenderProps => (
             <EventsRequest
               api={api}
