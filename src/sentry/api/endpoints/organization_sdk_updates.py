@@ -24,7 +24,7 @@ def serialize(data, projects):
     latest_sdks = chain.from_iterable(
         [
             {
-                "projectId": project_id,
+                "projectId": str(project_id),
                 "sdkName": sdk_name,
                 "sdkVersion": max((s["sdk.version"] for s in sdks), key=LooseVersion),
             }
