@@ -50,7 +50,7 @@ class JiraIssueHookView(JiraBaseHook):
                 group = Group.objects.get(id=group_link.group_id)
             except (ExternalIssue.DoesNotExist, GroupLink.DoesNotExist, Group.DoesNotExist):
                 return self.get_response({"issue_not_linked": True})
-            scope.set_tag("organization_slug", group.organization.slug)
+            scope.set_tag("organization.slug", group.organization.slug)
 
             # TODO: find more efficient way of getting stats
             def get_serialized_and_stats(stats_period):
