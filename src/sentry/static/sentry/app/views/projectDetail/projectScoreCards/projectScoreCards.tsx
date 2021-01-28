@@ -30,7 +30,6 @@ const CardWrapper = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   grid-gap: ${space(2)};
-  margin-bottom: ${space(3)};
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: 1fr;

@@ -77,6 +77,7 @@ ProjectTeamAccess.propTypes = {
 };
 
 const Section = styled('section')`
+  font-size: ${p => p.theme.fontSizeMedium};
   margin-bottom: ${space(2)};
 `;
 

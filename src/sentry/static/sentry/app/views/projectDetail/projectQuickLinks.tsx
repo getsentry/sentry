@@ -114,6 +114,7 @@ const QuickLink = styled(p =>
 `;
 
 const QuickLinkText = styled('span')`
+  font-size: ${p => p.theme.fontSizeMedium};
   ${overflowEllipsis}
 `;
 
