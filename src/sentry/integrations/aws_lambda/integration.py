@@ -243,7 +243,7 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
             context = {
                 "baseCloudformationUrl": "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review",
                 "templateUrl": template_url,
-                "stackName": "Sentry-Monitoring-Stack-Filter",
+                "stackName": "Sentry-Monitoring-Stack",
                 "regionList": ALL_AWS_REGIONS,
                 "accountNumber": pipeline.fetch_state("account_number"),
                 "region": pipeline.fetch_state("region"),

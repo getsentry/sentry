@@ -15,7 +15,7 @@ import EventView from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
-import {getTermHelp} from 'app/views/performance/data';
+import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,
@@ -164,7 +164,7 @@ function UserStats({eventView, totals, location, organization, transactionName}:
           {t('User Misery')}
           <QuestionTooltip
             position="top"
-            title={getTermHelp(organization, 'userMisery')}
+            title={getTermHelp(organization, PERFORMANCE_TERM.USER_MISERY)}
             size="sm"
           />
         </SectionHeading>
