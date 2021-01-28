@@ -80,8 +80,15 @@ function DurationChart(props: Props) {
       includePrevious={false}
       yAxis={[field]}
     >
-      {({loading, reloading, errored, timeseriesData}) => {
-        const results = timeseriesData;
+      {({loading, reloading, errored, timeseriesData: results}) => {
+        const series = results
+          ? results.map(({...rest}) => {
+              return {
+                ...rest,
+                seriesName: props.field,
+              };
+            })
+          : [];
         if (errored) {
           return (
             <ErrorPanel>
@@ -106,7 +113,7 @@ function DurationChart(props: Props) {
                     value: (
                       <Chart
                         height={250}
-                        data={results}
+                        data={series}
                         loading={loading || reloading}
                         router={router}
                         statsPeriod={globalSelection.datetime.period}
