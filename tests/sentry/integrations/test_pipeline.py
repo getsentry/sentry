@@ -1,4 +1,3 @@
-
 from sentry.utils.compat.mock import patch
 
 from sentry.models import IdentityProvider, Identity, Integration, OrganizationIntegration

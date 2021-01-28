@@ -1,4 +1,3 @@
-
 from sentry import tagstore
 from sentry.models import EventUser, Group, get_group_with_redirect, Project
 

@@ -1,4 +1,3 @@
-
 from collections import Counter, defaultdict, OrderedDict
 from sentry.models import OrganizationMemberTeam, ProjectOwnership, Team, User
 from sentry.api.fields.actor import Actor

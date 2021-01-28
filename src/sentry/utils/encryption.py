@@ -1,4 +1,3 @@
-
 from base64 import b64encode, b64decode
 from collections import OrderedDict
 from django.conf import settings

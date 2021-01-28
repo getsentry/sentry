@@ -1,4 +1,3 @@
-
 from django.forms.widgets import TextInput, Widget
 from django.forms.utils import flatatt
 from django.forms import Field, CharField, EmailField, TypedChoiceField, ValidationError

@@ -1,4 +1,3 @@
-
 from sentry.api.serializers import register, Serializer
 from sentry.models import PlatformExternalIssue
 

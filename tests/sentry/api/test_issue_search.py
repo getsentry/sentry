@@ -1,4 +1,3 @@
-
 from sentry.api.event_search import (
     InvalidSearchQuery,
     AggregateFilter,

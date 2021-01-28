@@ -1,4 +1,3 @@
-
 from datetime import datetime, timedelta
 from django.utils import timezone
 from sentry.models import Commit, CommitAuthor, GroupLink, Integration, PullRequest, Repository

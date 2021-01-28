@@ -1,4 +1,3 @@
-
 from bitfield import BitField
 from django.db import models
 from django.utils import timezone

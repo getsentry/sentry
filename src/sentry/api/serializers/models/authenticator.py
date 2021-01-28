@@ -1,4 +1,3 @@
-
 from sentry.api.serializers import Serializer, register
 from sentry.auth.authenticators import (
     AuthenticatorInterface,

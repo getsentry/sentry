@@ -1,4 +1,3 @@
-
 from django.core.exceptions import ValidationError
 from django.db.models import TextField
 from django.utils.encoding import smart_text

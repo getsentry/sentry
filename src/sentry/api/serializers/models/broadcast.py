@@ -1,4 +1,3 @@
-
 from django.db.models import Count
 
 from sentry.api.serializers import Serializer, register

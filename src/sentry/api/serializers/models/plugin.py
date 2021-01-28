@@ -1,4 +1,3 @@
-
 from sentry.api.serializers import Serializer
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri

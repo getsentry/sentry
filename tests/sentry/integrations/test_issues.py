@@ -1,4 +1,3 @@
-
 from sentry.integrations.example.integration import AliasedIntegrationProvider
 from sentry.models import (
     ExternalIssue,

@@ -1,4 +1,3 @@
-
 from datetime import datetime
 from django.utils import timezone
 from sentry_relay import meta_with_chunks

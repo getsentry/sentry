@@ -1,4 +1,3 @@
-
 from collections import namedtuple, defaultdict
 from django.db.models import Q
 from django.utils import timezone

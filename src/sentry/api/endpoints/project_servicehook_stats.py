@@ -1,4 +1,3 @@
-
 from collections import OrderedDict
 
 from sentry import tsdb

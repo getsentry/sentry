@@ -1,4 +1,3 @@
-
 from sentry.models import PlatformExternalIssue
 from sentry.testutils import APITestCase
 

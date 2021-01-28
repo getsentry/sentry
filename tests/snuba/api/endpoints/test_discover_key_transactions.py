@@ -1,4 +1,3 @@
-
 from django.core.urlresolvers import reverse
 
 from sentry.discover.models import KeyTransaction, MAX_KEY_TRANSACTIONS

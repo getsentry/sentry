@@ -1,4 +1,3 @@
-
 from collections import deque
 
 from sentry.utils import json

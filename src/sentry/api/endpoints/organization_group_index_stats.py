@@ -1,5 +1,3 @@
-
-
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.response import Response
 

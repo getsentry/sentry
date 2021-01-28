@@ -1,4 +1,3 @@
-
 from collections import defaultdict, namedtuple
 from rest_framework import serializers
 from sentry.models import User, Team

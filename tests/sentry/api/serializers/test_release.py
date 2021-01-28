@@ -1,4 +1,3 @@
-
 from sentry.utils.compat.mock import patch
 from uuid import uuid4
 

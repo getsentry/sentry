@@ -1,4 +1,3 @@
-
 from django.core.validators import validate_slug, ValidationError
 from django.db import transaction
 from rest_framework.response import Response

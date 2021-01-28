@@ -1,4 +1,3 @@
-
 from pytz import utc
 
 from django.core.urlresolvers import reverse

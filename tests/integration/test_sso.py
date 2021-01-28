@@ -1,4 +1,3 @@
-
 from sentry.models import AuthIdentity, AuthProvider
 from sentry.testutils import AuthProviderTestCase
 from sentry.utils.auth import SSO_SESSION_KEY

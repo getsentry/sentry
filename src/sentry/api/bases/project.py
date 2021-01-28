@@ -1,4 +1,3 @@
-
 from rest_framework.response import Response
 
 from sentry import roles

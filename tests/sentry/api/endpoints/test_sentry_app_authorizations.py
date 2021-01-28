@@ -1,4 +1,3 @@
-
 from datetime import timedelta
 from django.core.urlresolvers import reverse
 from django.utils import timezone

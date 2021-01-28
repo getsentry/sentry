@@ -1,4 +1,3 @@
-
 import sentry
 
 from django.conf import settings

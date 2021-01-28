@@ -1,4 +1,3 @@
-
 from sentry.plugins.bases.notify import NotifyPlugin
 
 from sentry_plugins.base import CorePluginMixin

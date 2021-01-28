@@ -1,4 +1,3 @@
-
 from django.db import connections, DEFAULT_DB_ALIAS
 
 from django.db.models.fields.related_descriptors import ReverseOneToOneDescriptor

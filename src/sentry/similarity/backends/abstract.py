@@ -1,7 +1,6 @@
 from abc import ABCMeta, abstractmethod
 
 
-
 class AbstractIndexBackend(metaclass=ABCMeta):
     @abstractmethod
     def classify(self, scope, items, limit=None, timestamp=None):

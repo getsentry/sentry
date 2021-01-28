@@ -1,4 +1,3 @@
-
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators import Mediator, Param, external_requests
 from sentry.models import PlatformExternalIssue

@@ -1,4 +1,3 @@
-
 from django.utils.functional import empty
 from sentry.utils.compat import zip
 

@@ -1,4 +1,3 @@
-
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.incidents.models import IncidentSeen
 from sentry.utils.db import attach_foreignkey

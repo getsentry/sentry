@@ -1,4 +1,3 @@
-
 from warnings import warn
 
 from sentry.utils.strings import truncatechars, strip

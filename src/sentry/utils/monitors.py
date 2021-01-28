@@ -1,4 +1,3 @@
-
 from celery.signals import task_prerun, task_postrun
 from django.conf import settings
 from six.moves.urllib.parse import urlparse

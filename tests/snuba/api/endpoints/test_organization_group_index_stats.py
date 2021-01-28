@@ -1,4 +1,3 @@
-
 from sentry.models import GroupStatus
 
 from sentry.testutils import APITestCase, SnubaTestCase

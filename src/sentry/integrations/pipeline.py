@@ -13,7 +13,6 @@ from sentry.web.helpers import render_to_response
 from . import default_manager
 
 
-
 def ensure_integration(key, data):
     defaults = {
         "metadata": data.get("metadata", {}),

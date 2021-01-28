@@ -1,4 +1,3 @@
-
 from sentry.models import Activity, OrganizationMember, OrganizationMemberTeam
 from sentry.incidents.models import IncidentActivityType
 

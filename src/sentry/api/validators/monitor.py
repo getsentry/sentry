@@ -1,4 +1,3 @@
-
 from collections import OrderedDict
 from croniter import croniter
 from django.core.exceptions import ValidationError

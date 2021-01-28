@@ -1,4 +1,3 @@
-
 from django.core.urlresolvers import reverse
 
 from sentry.api.serializers import serialize

@@ -1,4 +1,3 @@
-
 from uuid import uuid4
 
 from social_auth.utils import setting, module_member

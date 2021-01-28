@@ -1,4 +1,3 @@
-
 from sentry import tsdb
 from sentry.models import ProjectKey
 from sentry.testutils import APITestCase

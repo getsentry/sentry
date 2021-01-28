@@ -1,4 +1,3 @@
-
 from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.eventstore.snuba.backend import SnubaEventStorage

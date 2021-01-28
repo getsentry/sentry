@@ -1,4 +1,3 @@
-
 from sentry.plugins.bases.notify import NotifyPlugin
 from sentry.utils.http import absolute_uri
 

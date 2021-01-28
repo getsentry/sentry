@@ -1,4 +1,3 @@
-
 from sentry.utils.compat import implements_to_string
 
 

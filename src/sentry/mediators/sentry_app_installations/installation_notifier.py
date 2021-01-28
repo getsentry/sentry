@@ -1,4 +1,3 @@
-
 from sentry.api.serializers import SentryAppInstallationSerializer, AppPlatformEvent
 from sentry.coreapi import APIUnauthorized
 from sentry.http import safe_urlread

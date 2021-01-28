@@ -1,4 +1,3 @@
-
 from collections import namedtuple
 from datetime import timedelta
 from django.utils import timezone

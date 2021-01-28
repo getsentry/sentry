@@ -1,4 +1,3 @@
-
 from collections import defaultdict
 
 from sentry.api.bases.user import UserEndpoint

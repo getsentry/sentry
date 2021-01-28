@@ -1,4 +1,3 @@
-
 from sentry.constants import ObjectStatus
 from sentry.api.bases.organization import OrganizationIntegrationsPermission
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint

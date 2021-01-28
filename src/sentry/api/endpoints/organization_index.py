@@ -1,4 +1,3 @@
-
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db.models import Count, Q, Sum

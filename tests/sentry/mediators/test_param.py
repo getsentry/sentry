@@ -1,4 +1,3 @@
-
 from sentry.mediators import Param
 from sentry.models import User
 from sentry.testutils import TestCase

@@ -1,5 +1,3 @@
-
-
 from django.db import connections
 
 from sentry.api.bases import OrganizationMemberEndpoint

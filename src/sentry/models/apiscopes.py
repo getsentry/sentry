@@ -1,4 +1,3 @@
-
 from bitfield import BitField
 from collections import Sequence
 from django.db import models

@@ -1,4 +1,3 @@
-
 from django.db import models
 
 from sentry.db.models.utils import Creator

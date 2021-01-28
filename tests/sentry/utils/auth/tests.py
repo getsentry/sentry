@@ -1,4 +1,3 @@
-
 from django.contrib.auth.models import AnonymousUser
 from django.core.urlresolvers import reverse
 from django.http import HttpRequest

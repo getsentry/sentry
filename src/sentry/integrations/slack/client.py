@@ -1,4 +1,3 @@
-
 from sentry.integrations.client import ApiClient
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import metrics

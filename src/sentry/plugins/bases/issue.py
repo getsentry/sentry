@@ -1,4 +1,3 @@
-
 from django import forms
 from django.conf import settings
 from django.utils.html import format_html

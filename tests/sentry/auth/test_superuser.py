@@ -1,4 +1,3 @@
-
 from datetime import timedelta
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
