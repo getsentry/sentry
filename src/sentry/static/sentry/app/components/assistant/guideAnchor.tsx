@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import createReactClass from 'create-react-class';
+import {Query} from 'history';
 import PropTypes from 'prop-types';
 import Reflux from 'reflux';
 
@@ -11,6 +12,7 @@ import {
   nextStep,
   recordFinish,
   registerAnchor,
+  toStep,
   unregisterAnchor,
 } from 'app/actionCreators/guides';
 import {Guide} from 'app/components/assistant/types';
@@ -26,6 +28,11 @@ type Props = {
   position?: string;
   disabled?: boolean;
   offset?: string;
+  to?: {
+    pathname: string;
+    query: Query;
+    step: number;
+  };
 };
 
 type State = {
@@ -47,6 +54,11 @@ const GuideAnchor = createReactClass<Props, State>({
     position: PropTypes.string,
     disabled: PropTypes.bool,
     offset: PropTypes.string,
+    to: PropTypes.shape({
+      pathname: PropTypes.string,
+      query: PropTypes.object,
+      step: PropTypes.number,
+    }),
   },
 
   mixins: [Reflux.listenTo(GuideStore, 'onGuideStateChange') as any],
@@ -109,8 +121,12 @@ const GuideAnchor = createReactClass<Props, State>({
   },
 
   handleNextStep(e: React.MouseEvent) {
-    e.stopPropagation();
-    nextStep();
+    if (this.props.to) {
+      toStep(this.props.to.step);
+    } else {
+      e.stopPropagation();
+      nextStep();
+    }
   },
 
   handleDismiss(e: React.MouseEvent) {
@@ -120,6 +136,7 @@ const GuideAnchor = createReactClass<Props, State>({
   },
 
   getHovercardBody() {
+    const {to} = this.props;
     const {currentGuide, step} = this.state;
 
     const totalStepCount = currentGuide.steps.length;
@@ -131,7 +148,7 @@ const GuideAnchor = createReactClass<Props, State>({
     return (
       <GuideContainer>
         <GuideContent>
-          <GuideTitle>{currentStep.title}</GuideTitle>
+          {currentStep.title && <GuideTitle>{currentStep.title}</GuideTitle>}
           <GuideDescription>{currentStep.description}</GuideDescription>
         </GuideContent>
         <GuideAction>
@@ -142,20 +159,23 @@ const GuideAnchor = createReactClass<Props, State>({
                 href="#" // to clear `#assistant` from the url
                 onClick={this.handleFinish}
               >
-                {hasManySteps ? t('Enough Already') : t('Got It')}
+                {currentStep.nextText ||
+                  (hasManySteps ? t('Enough Already') : t('Got It'))}
               </StyledButton>
             ) : (
               <React.Fragment>
-                <DismissButton
-                  priority="primary"
-                  size="small"
-                  href="#" // to clear `#assistant` from the url
-                  onClick={this.handleDismiss}
-                >
-                  {t('Dismiss')}
-                </DismissButton>
-                <StyledButton size="small" onClick={this.handleNextStep}>
-                  {t('Next')}
+                {!currentStep.cantDismiss && (
+                  <DismissButton
+                    priority="primary"
+                    size="small"
+                    href="#" // to clear `#assistant` from the url
+                    onClick={this.handleDismiss}
+                  >
+                    {t('Dismiss')}
+                  </DismissButton>
+                )}
+                <StyledButton size="small" onClick={this.handleNextStep} to={to}>
+                  {currentStep.nextText || t('Next')}
                 </StyledButton>
               </React.Fragment>
             )}

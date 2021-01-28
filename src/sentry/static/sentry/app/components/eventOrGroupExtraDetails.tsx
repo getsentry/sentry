@@ -3,6 +3,7 @@ import {Link, withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import EventAnnotation from 'app/components/events/eventAnnotation';
 import InboxReason from 'app/components/group/inboxBadges/inboxReason';
 import InboxShortId from 'app/components/group/inboxBadges/shortId';
@@ -23,9 +24,16 @@ type Props = WithRouterProps<{orgId: string}> & {
   data: Event | Group;
   showAssignee?: boolean;
   organization: Organization;
+  hasGuideAnchor?: boolean;
 };
 
-function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Props) {
+function EventOrGroupExtraDetails({
+  data,
+  showAssignee,
+  params,
+  organization,
+  hasGuideAnchor,
+}: Props) {
   const {
     id,
     lastSeen,
@@ -47,7 +55,11 @@ function EventOrGroupExtraDetails({data, showAssignee, params, organization}: Pr
 
   return (
     <GroupExtra hasInbox={hasInbox}>
-      {hasInbox && inbox && <InboxReason inbox={inbox} />}
+      {hasInbox && inbox && (
+        <GuideAnchor target="inbox_guide_reason" disabled={!hasGuideAnchor}>
+          <InboxReason inbox={inbox} />
+        </GuideAnchor>
+      )}
       {shortId &&
         (hasInbox ? (
           <InboxShortId

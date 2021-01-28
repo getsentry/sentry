@@ -7,6 +7,7 @@ import {Client} from 'app/api';
 import Checkbox from 'app/components/checkbox';
 import {t, tct, tn} from 'app/locale';
 import GroupStore from 'app/stores/groupStore';
+import GuideStore, {GuideStoreState} from 'app/stores/guideStore';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import space from 'app/styles/space';
 import {GlobalSelection, Group, Organization} from 'app/types';
@@ -43,6 +44,9 @@ type State = {
   allInQuerySelected: boolean;
   selectedIds: Set<string>;
   selectedProjectSlug?: string;
+  inboxGuideActive: boolean;
+  inboxGuideActiveReview: boolean;
+  inboxGuideActiveIgnore: boolean;
 };
 
 class IssueListActions extends React.Component<Props, State> {
@@ -53,6 +57,9 @@ class IssueListActions extends React.Component<Props, State> {
     pageSelected: false, // all on current page selected (e.g. 25)
     allInQuerySelected: false, // all in current search query selected (e.g. 1000+)
     selectedIds: new Set(),
+    inboxGuideActive: false,
+    inboxGuideActiveReview: false,
+    inboxGuideActiveIgnore: false,
   };
 
   componentDidMount() {
@@ -61,9 +68,11 @@ class IssueListActions extends React.Component<Props, State> {
 
   componentWillUnmount() {
     callIfFunction(this.listener);
+    callIfFunction(this.guideListener);
   }
 
   listener = SelectedGroupStore.listen(() => this.handleSelectedGroupChange(), undefined);
+  guideListener = GuideStore.listen(data => this.handleGuideStateChange(data), undefined);
 
   actionSelectedGroups(callback: (itemIds: string[] | undefined) => void) {
     let selectedIds: string[] | undefined;
@@ -107,6 +116,16 @@ class IssueListActions extends React.Component<Props, State> {
       allInQuerySelected: false, // any change resets
       selectedIds: SelectedGroupStore.getSelectedIds(),
       selectedProjectSlug,
+    });
+  }
+
+  handleGuideStateChange(data: GuideStoreState) {
+    const {hasInbox} = this.props;
+    const inboxGuideActive = !!(hasInbox && data.currentGuide?.guide === 'inbox_guide');
+    this.setState({
+      inboxGuideActive,
+      inboxGuideActiveReview: inboxGuideActive && data.currentStep === 3,
+      inboxGuideActiveIgnore: inboxGuideActive && data.currentStep === 4,
     });
   }
 
@@ -251,6 +270,9 @@ class IssueListActions extends React.Component<Props, State> {
       selectedIds: issues,
       multiSelected,
       selectedProjectSlug,
+      inboxGuideActive,
+      inboxGuideActiveReview,
+      inboxGuideActiveIgnore,
     } = this.state;
 
     const numIssues = issues.size;
@@ -265,25 +287,28 @@ class IssueListActions extends React.Component<Props, State> {
               disabled={displayReprocessingActions}
             />
           </ActionsCheckbox>
-          {(anySelected || !hasInbox) && !displayReprocessingActions && (
-            <ActionSet
-              orgSlug={organization.slug}
-              queryCount={queryCount}
-              query={query}
-              realtimeActive={realtimeActive}
-              hasInbox={hasInbox}
-              issues={issues}
-              allInQuerySelected={allInQuerySelected}
-              anySelected={anySelected}
-              multiSelected={multiSelected}
-              selectedProjectSlug={selectedProjectSlug}
-              onShouldConfirm={this.shouldConfirm}
-              onDelete={this.handleDelete}
-              onRealtimeChange={this.handleRealtimeChange}
-              onMerge={this.handleMerge}
-              onUpdate={this.handleUpdate}
-            />
-          )}
+          {(anySelected || !hasInbox || inboxGuideActive) &&
+            !displayReprocessingActions && (
+              <ActionSet
+                orgSlug={organization.slug}
+                queryCount={queryCount}
+                query={query}
+                realtimeActive={realtimeActive}
+                hasInbox={hasInbox}
+                issues={issues}
+                allInQuerySelected={allInQuerySelected}
+                anySelected={anySelected}
+                multiSelected={multiSelected}
+                selectedProjectSlug={selectedProjectSlug}
+                onShouldConfirm={this.shouldConfirm}
+                onDelete={this.handleDelete}
+                onRealtimeChange={this.handleRealtimeChange}
+                onMerge={this.handleMerge}
+                onUpdate={this.handleUpdate}
+                inboxGuideActiveReview={inboxGuideActiveReview}
+                inboxGuideActiveIgnore={inboxGuideActiveIgnore}
+              />
+            )}
           <Headers
             onSelectStatsPeriod={this.handleSelectStatsPeriod}
             anySelected={anySelected}

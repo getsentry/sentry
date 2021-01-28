@@ -26,6 +26,10 @@ export function nextStep() {
   GuideActions.nextStep();
 }
 
+export function toStep(step: number) {
+  GuideActions.toStep(step);
+}
+
 export function closeGuide() {
   GuideActions.closeGuide();
 }

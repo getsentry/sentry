@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import PropTypes from 'prop-types';
 
 import {openModal} from 'app/actionCreators/modal';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import ContextPickerModalContainer from 'app/components/contextPickerModal';
@@ -125,14 +126,24 @@ function IssueListHeader({
                   pathname: `/organizations/${organization.slug}/issues/`,
                 }}
               >
-                {queryName}{' '}
-                {queryCounts[tabQuery] && (
-                  <StyledQueryCount
-                    isTag
-                    count={queryCounts[tabQuery].count}
-                    max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
-                  />
-                )}
+                <GuideAnchor
+                  target={queryName === 'For Review' ? 'inbox_guide_tab' : 'none'}
+                  disabled={queryName !== 'For Review'}
+                  to={{
+                    query: {...router?.location?.query, query: tabQuery},
+                    pathname: `/organizations/${organization.slug}/issues/`,
+                    step: 1,
+                  }}
+                >
+                  {queryName}{' '}
+                  {queryCounts[tabQuery] && (
+                    <StyledQueryCount
+                      isTag
+                      count={queryCounts[tabQuery].count}
+                      max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
+                    />
+                  )}
+                </GuideAnchor>
               </Link>
             </li>
           ))}

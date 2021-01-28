@@ -1,5 +1,5 @@
 export type GuideStep = {
-  title: string;
+  title?: string;
   /**
    * Step is tied to an anchor target. If the anchor doesn't exist,
    * the step will not be shown. If the anchor exists but is of type
@@ -8,6 +8,8 @@ export type GuideStep = {
    */
   target?: string;
   description: React.ReactNode;
+  nextText?: string;
+  cantDismiss?: boolean;
 };
 
 export type Guide = {

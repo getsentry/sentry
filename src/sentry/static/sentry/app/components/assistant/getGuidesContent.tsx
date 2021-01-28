@@ -114,5 +114,60 @@ export default function getGuidesContent(): GuidesContent {
         },
       ],
     },
+    {
+      guide: 'inbox_guide',
+      requiredTargets: ['inbox_guide_tab'],
+      steps: [
+        {
+          target: 'inbox_guide_tab',
+          description: t(
+            `For Review lets you focus on new and reopened issues that are
+            assigned to your team.`
+          ),
+          nextText: t(`Take a Look`),
+        },
+        {
+          target: 'inbox_guide_issue',
+          description: t(
+            `These issues give you a lightweight way to review things and ensure
+            that nothing new has happened in the last 7 days.`
+          ),
+          cantDismiss: true,
+        },
+        {
+          target: 'inbox_guide_reason',
+          description: t(
+            `These labels explain why an issue needs attention. When you mark the
+            issue as reviewed, it removes the label and moves the issue to Unresolved.`
+          ),
+          cantDismiss: true,
+        },
+        {
+          target: 'inbox_guide_review',
+          description: t(
+            `Mark as Reviewed lets you get to Inbox Zero so that your team knows
+            which issues need attention.`
+          ),
+          nextText: t(`Wow there's more tutorial, huh?`),
+          cantDismiss: true,
+        },
+        {
+          target: 'inbox_guide_ignore',
+          description: t(
+            `Resolving or ignoring an issue also marks an issue as reviewed.`
+          ),
+          nextText: t(`Next, ugh`),
+          cantDismiss: true,
+        },
+        {
+          target: 'inbox_guide_issue',
+          description: t(
+            `An issue will automatically be reviewed after 7 days so this list never
+            gets too overwhelming.`
+          ),
+          nextText: t(`Got it`),
+        },
+      ],
+    },
   ];
 }
