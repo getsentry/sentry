@@ -130,7 +130,7 @@ class WidgetCard extends React.Component<Props> {
       >
         <div
           style={{
-            backgroundColor: isDragging ? theme.border : undefined,
+            backgroundColor: isDragging ? theme.innerBorder : undefined,
             borderRadius: isDragging ? theme.borderRadius : undefined,
           }}
         >
