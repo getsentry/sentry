@@ -442,7 +442,8 @@ export default withApi(withGlobalSelection(Dashboard));
 
 const WidgetContainer = styled('div')`
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-flow: row dense;
   grid-gap: ${space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
