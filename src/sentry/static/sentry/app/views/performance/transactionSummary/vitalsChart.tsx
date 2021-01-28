@@ -103,7 +103,6 @@ class VitalsChart extends React.Component<Props> {
         }
         return seriesName;
       },
-      theme,
     });
 
     const datetimeSelection = {

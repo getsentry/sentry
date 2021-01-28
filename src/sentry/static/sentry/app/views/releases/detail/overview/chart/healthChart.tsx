@@ -207,7 +207,6 @@ class HealthChart extends React.Component<Props> {
       top: 0,
       data: timeseriesData.map(d => d.seriesName).reverse(),
       selected: getSeriesSelection(location),
-      theme,
       tooltip: {
         show: true,
         // TODO(ts) tooltip.formatter has incorrect types in echarts 4

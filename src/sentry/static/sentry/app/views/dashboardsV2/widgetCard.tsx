@@ -425,7 +425,6 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
       top: 3,
       type: 'plain',
       selected: getSeriesSelection(location),
-      theme,
       formatter: (seriesName: string) => {
         const arg = getAggregateArg(seriesName);
         if (arg !== null) {

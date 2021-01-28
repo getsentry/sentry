@@ -74,7 +74,6 @@ function getLegend(trendFunction: string) {
       fontSize: 11,
       fontFamily: 'Rubik',
     },
-    theme,
     data: [
       {
         name: 'Baseline',

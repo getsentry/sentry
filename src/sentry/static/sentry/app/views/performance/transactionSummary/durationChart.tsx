@@ -90,7 +90,6 @@ class DurationChart extends React.Component<Props> {
       right: 10,
       top: 0,
       selected: getSeriesSelection(location),
-      theme,
     });
 
     const datetimeSelection = {

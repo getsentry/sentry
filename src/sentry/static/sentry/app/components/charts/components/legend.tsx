@@ -13,12 +13,20 @@ type ChartProps = React.ComponentProps<typeof BaseChart>;
 export default function Legend(
   props: ChartProps['legend'] & {theme?: Theme} = {}
 ): EChartOption.Legend {
-  const {truncate, theme, ...rest} = props ?? {};
+  const {truncate, theme, textStyle, ...rest} = props ?? {};
   const formatter = (value: string) => truncationFormatter(value, truncate ?? 0);
 
-  return {
+  const newTextStyle = {
+    color: theme?.textColor,
+    verticalAlign: 'top',
+    fontSize: 11,
+    fontFamily: 'Rubik',
+    ...textStyle,
+  };
+
+  const legend = {
     show: true,
-    type: 'scroll',
+    type: 'scroll' as const,
     padding: 0,
     formatter,
     icon: 'circle',
@@ -26,13 +34,15 @@ export default function Legend(
     itemWidth: 8,
     itemGap: 12,
     align: 'left' as const,
-    textStyle: {
-      color: theme?.textColor,
-      verticalAlign: 'top',
-      fontSize: 11,
-      fontFamily: 'Rubik',
-    },
+    textStyle: newTextStyle,
     inactiveColor: theme?.inactive,
     ...rest,
   };
+
+  if (theme === undefined) {
+    delete newTextStyle.color;
+    delete legend.inactiveColor;
+  }
+
+  return legend;
 }

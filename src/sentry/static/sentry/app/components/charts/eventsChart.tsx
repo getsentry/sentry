@@ -180,7 +180,6 @@ class Chart extends React.Component<ChartProps, State> {
           top: 12,
           data,
           selected: seriesSelection,
-          theme,
           ...(legendOptions ?? {}),
         })
       : undefined;
