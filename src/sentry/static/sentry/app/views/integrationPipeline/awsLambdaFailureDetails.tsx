@@ -1,9 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import ExternalLink from 'app/components/links/externalLink';
 import {Panel, PanelItem} from 'app/components/panels';
 import {IconCheckmark, IconWarning} from 'app/icons';
-import {t} from 'app/locale';
+import {t, tct, tn} from 'app/locale';
 
 import FooterWithButtons from './components/footerWithButtons';
 import HeaderWithHelp from './components/headerWithHelp';
@@ -19,17 +20,35 @@ export default function AwsLambdaFailureDetails({
   lambdaFunctionFailures,
   successCount,
 }: Props) {
+  const baseDocsUrl = 'https://docs.sentry.io/product/integrations/aws_lambda/';
   return (
     <React.Fragment>
-      <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/" />
+      <HeaderWithHelp docsUrl={baseDocsUrl} />
       <Wrapper>
         <div>
           <StyledCheckmark isCircled color="green300" />
-          <h3>{t('Succesfully updated %s functions', successCount)}</h3>
+          <h3>
+            {tn(
+              'Succesfully updated %s function',
+              'Succesfully updated %s functions',
+              successCount
+            )}
+          </h3>
         </div>
         <div>
           <StyledWarning color="red300" />
-          <h3>{t('Failed to update %s functions', lambdaFunctionFailures.length)}</h3>
+          <h3>
+            {tn(
+              'Failed to update %s function',
+              'Failed to update %s functions',
+              lambdaFunctionFailures.length
+            )}
+          </h3>
+          <Troubleshooting>
+            {tct('See [link:Troubleshooting Docs]', {
+              link: <ExternalLink href={baseDocsUrl + '#troubleshooting'} />,
+            })}
+          </Troubleshooting>
         </div>
         <StyledPanel>{lambdaFunctionFailures.map(SingleFailure)}</StyledPanel>
       </Wrapper>
@@ -62,6 +81,10 @@ const Error = styled('span')`
 
 const StyledPanel = styled(Panel)`
   overflow: hidden;
+  margin-left: 34px;
+`;
+
+const Troubleshooting = styled('p')`
   margin-left: 34px;
 `;
 

@@ -497,6 +497,26 @@ const Wrapper = styled(PanelItem)<{reviewed: boolean; hasInbox: boolean}>`
     p.reviewed &&
     css`
       animation: tintRow 0.2s linear forwards;
+      position: relative;
+
+      /*
+       * A mask that fills the entire row and makes the text opaque. Doing this because
+       * opacity adds a stacking context in CSS so we need to apply it to another element.
+       */
+      &:after {
+        content: '';
+        pointer-events: none;
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+        height: 100%;
+        background-color: ${p.theme.bodyBackground};
+        opacity: 0.4;
+        z-index: 1;
+      }
 
       @keyframes tintRow {
         0% {

@@ -1,42 +1,76 @@
 import six
 
-from base64 import b64encode
 from threading import local
-from uuid import uuid4
 
 from django.core.cache import caches, InvalidCacheBackendError
 
 from sentry.utils.cache import memoize
+from sentry.utils import json
 from sentry.utils.services import Service
 
 
+# Cache an instance of the encoder we want to use
+json_dumps = json.JSONEncoder(
+    separators=(",", ":"),
+    sort_keys=True,
+    skipkeys=False,
+    ensure_ascii=True,
+    check_circular=True,
+    allow_nan=True,
+    indent=None,
+    encoding="utf-8",
+    default=None,
+).encode
+
+json_loads = json._default_decoder.decode
+
+
 class NodeStorage(local, Service):
+    """
+    Nodestore is a key-value store that is used to store event payloads. It comes in two flavors:
+
+    * Django backend, which is just KV-store implemented on top of postgres.
+    * Bigtable backend
+
+    Keys (ids) in nodestore are strings, and values (nodes) are
+    JSON-serializable objects. Nodestore additionally has the concept of
+    subkeys, which are additional JSON payloads that should be stored together
+    with the same "main" value. Internally those values are concatenated and
+    compressed as one bytestream which makes them compress very well. This:
+
+    >>> nodestore.set("key1", "my key")
+    >>> nodestore.set("key1.1", "my key 2")
+    >>> nodestore.get("key1")
+    "my key"
+    >>> nodestore.get("key1.1")
+    "my key 2"
+
+    ...very likely takes more space than:
+
+    >>> nodestore.set_subkeys("key1", {None: "my key", "1": "my key 2"})
+    >>> nodestore.get("key1")
+    "my key"
+    >>> nodestore.get("key1", subkey="1")
+    "my key 2"
+
+    ...simply because compressing "my key<SEPARATOR>my key 2" yields better
+    compression ratio than compressing each key individually.
+
+    This is used in reprocessing to store a snapshot of the event from multiple
+    stages of the pipeline.
+    """
+
     __all__ = (
-        "create",
         "delete",
         "delete_multi",
         "get",
         "get_multi",
         "set",
-        "set_multi",
-        "generate_id",
+        "set_subkeys",
         "cleanup",
         "validate",
         "bootstrap",
-        "_get_cache_item",
-        "_get_cache_items",
-        "_set_cache_item",
-        "_delete_cache_item",
-        "_delete_cache_items",
     )
-
-    def create(self, data):
-        """
-        >>> key = nodestore.create({'foo': 'bar'})
-        """
-        node_id = self.generate_id()
-        self.set(node_id, data)
-        return node_id
 
     def delete(self, id):
         """
@@ -56,39 +90,140 @@ class NodeStorage(local, Service):
         for id in id_list:
             self.delete(id)
 
-    def get(self, id):
+    def _decode(self, value, subkey):
+        if value is None:
+            return None
+
+        lines_iter = iter(value.splitlines())
+        try:
+            if subkey is not None:
+                # Those keys should be statically known identifiers in the app, such as
+                # "unprocessed_event". There is really no reason to allow anything but
+                # ASCII here.
+                subkey = subkey.encode("ascii")
+
+                next(lines_iter)
+
+                for line in lines_iter:
+                    if line.strip() == subkey:
+                        break
+
+                    next(lines_iter)
+
+            return json_loads(next(lines_iter))
+        except StopIteration:
+            return None
+
+    def _get_bytes(self, id):
         """
-        >>> data = nodestore.get('key1')
-        >>> print data
+        >>> nodestore._get_bytes('key1')
+        b'{"message": "hello world"}'
         """
         raise NotImplementedError
 
-    def get_multi(self, id_list):
+    def get(self, id, subkey=None):
         """
-        >>> data_map = nodestore.get_multi(['key1', 'key2')
-        >>> print 'key1', data_map['key1']
-        >>> print 'key2', data_map['key2']
+        >>> nodestore.get('key1')
+        {"message": "hello world"}
         """
-        return dict((id, self.get(id)) for id in id_list)
+        if subkey is None:
+            item_from_cache = self._get_cache_item(id)
+            if item_from_cache:
+                return item_from_cache
+
+        bytes_data = self._get_bytes(id)
+        rv = self._decode(bytes_data, subkey=subkey)
+        if subkey is None:
+            # set cache item only after we know decoding did not fail
+            self._set_cache_item(id, rv)
+        return rv
+
+    def _get_bytes_multi(self, id_list):
+        """
+        >>> nodestore._get_bytes_multi(['key1', 'key2')
+        {
+            "key1": b'{"message": "hello world"}',
+            "key2": b'{"message": "hello world"}'
+        }
+        """
+        return dict((id, self._get_bytes(id)) for id in id_list)
+
+    def get_multi(self, id_list, subkey=None):
+        """
+        >>> nodestore.get_multi(['key1', 'key2')
+        {
+            "key1": {"message": "hello world"},
+            "key2": {"message": "hello world"}
+        }
+        """
+        if subkey is None:
+            cache_items = self._get_cache_items(id_list)
+            if len(cache_items) == len(id_list):
+                return cache_items
+
+            uncached_ids = [id for id in id_list if id not in cache_items]
+        else:
+            uncached_ids = id_list
+
+        items = {
+            id: self._decode(value, subkey=subkey)
+            for id, value in six.iteritems(self._get_bytes_multi(uncached_ids))
+        }
+        if subkey is None:
+            self._set_cache_items(items)
+            items.update(cache_items)
+        return items
+
+    def _encode(self, data):
+        """
+        Encode data dict in a way where its keys can be deserialized
+        independently. A `None` key must always be present which is served as
+        the "default" subkey (the regular event payload).
+
+        >>> _encode({"unprocessed": {}, None: {"stacktrace": {}}})
+        b'{"stacktrace": {}}\nunprocessed\n{}'
+        """
+        lines = [json_dumps(data.pop(None)).encode("utf8")]
+        for key, value in six.iteritems(data):
+            lines.append(key.encode("ascii"))
+            lines.append(json_dumps(value).encode("utf8"))
+
+        return b"\n".join(lines)
+
+    def _set_bytes(self, id, data, ttl=None):
+        """
+        >>> nodestore.set('key1', b"{'foo': 'bar'}")
+        """
+        raise NotImplementedError
 
     def set(self, id, data, ttl=None):
         """
+        Set value for `id`. Note that this deletes existing subkeys for `id` as
+        well, use `set_subkeys` to write a value + subkeys.
+
         >>> nodestore.set('key1', {'foo': 'bar'})
         """
-        raise NotImplementedError
+        return self.set_subkeys(id, {None: data}, ttl=ttl)
 
-    def set_multi(self, values):
+    def set_subkeys(self, id, data, ttl=None):
         """
-        >>> nodestore.set_multi({
-        >>>     'key1': {'foo': 'bar'},
-        >>>     'key2': {'foo': 'baz'},
-        >>> })
-        """
-        for id, data in six.iteritems(values):
-            self.set(id=id, data=data)
+        Set value for `id` and its subkeys.
 
-    def generate_id(self):
-        return b64encode(uuid4().bytes)
+        >>> nodestore.set_subkeys('key1', {
+        ...    None: {'foo': 'bar'},
+        ...    "reprocessing": {'foo': 'bam'},
+        ... })
+
+        >>> nodestore.get('key1')
+        {'foo': 'bar'}
+        >>> nodestore.get('key1', subkey='reprocessing')
+        {'foo': 'bam'}
+        """
+        cache_item = data.get(None)
+        bytes_data = self._encode(data)
+        self._set_bytes(id, bytes_data, ttl=ttl)
+        # set cache only after encoding and write to nodestore has succeeded
+        self._set_cache_item(id, cache_item)
 
     def cleanup(self, cutoff_timestamp):
         raise NotImplementedError
@@ -110,9 +245,8 @@ class NodeStorage(local, Service):
             self.cache.set(id, data)
 
     def _set_cache_items(self, items):
-        cacheable_items = {k: v for k, v in six.iteritems(items) if v}
         if self.cache:
-            self.cache.set_many(cacheable_items)
+            self.cache.set_many(items)
 
     def _delete_cache_item(self, id):
         if self.cache:
@@ -120,7 +254,7 @@ class NodeStorage(local, Service):
 
     def _delete_cache_items(self, id_list):
         if self.cache:
-            self.cache.delete_many(id_list)
+            self.cache.delete_many([id for id in id_list])
 
     @memoize
     def cache(self):

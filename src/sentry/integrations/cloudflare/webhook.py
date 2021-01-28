@@ -224,7 +224,7 @@ class CloudflareWebhookEndpoint(Endpoint):
             return Response(status=400)
 
         if not self.verify(payload, key, signature):
-            logger.error("cloudflare.webhook.invalid-signature".format(event), extra=logging_data)
+            logger.error("cloudflare.webhook.invalid-signature", extra=logging_data)
             return Response(status=400)
 
         if event == "option-change:account":

@@ -37,7 +37,7 @@ from .utils import (
 logger = logging.getLogger("sentry.integrations.aws_lambda")
 
 DESCRIPTION = """
-The AWS Lambda integration will automatically instrument your Lambda functions without any code changes. All you need to do is run a CloudFormation stack that we provide to get started. Note, currently only Node runtimes are supported.
+The AWS Lambda integration will automatically instrument your Lambda functions without any code changes. We use CloudFormation Stack ([Learn more about CloudFormation](https://aws.amazon.com/cloudformation/)) to create Sentry role and enable errors and transactions capture from your Lambda functions.
 """
 
 
@@ -164,7 +164,6 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
 class AwsLambdaIntegrationProvider(IntegrationProvider):
     key = "aws_lambda"
     name = "AWS Lambda"
-    requires_feature_flag = True
     metadata = metadata
     integration_cls = AwsLambdaIntegration
     features = frozenset([IntegrationFeatures.SERVERLESS])
@@ -243,7 +242,7 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
             context = {
                 "baseCloudformationUrl": "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review",
                 "templateUrl": template_url,
-                "stackName": "Sentry-Monitoring-Stack-Filter",
+                "stackName": "Sentry-Monitoring-Stack",
                 "regionList": ALL_AWS_REGIONS,
                 "accountNumber": pipeline.fetch_state("account_number"),
                 "region": pipeline.fetch_state("region"),

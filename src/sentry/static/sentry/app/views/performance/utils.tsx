@@ -10,7 +10,7 @@ export function getPerformanceLandingUrl(organization: OrganizationSummary): str
 }
 
 export function getTransactionSearchQuery(location: Location, query: string = '') {
-  return String(decodeScalar(location.query.query) || query).trim();
+  return decodeScalar(location.query.query, query).trim();
 }
 
 export function getTransactionDetailsUrl(
@@ -59,7 +59,7 @@ export function addRoutePerformanceContext(selection: GlobalSelection) {
   );
   const seconds = Math.floor(days * 86400);
 
-  transaction?.setTag('statsPeriod', seconds.toString());
+  transaction?.setTag('query.period', seconds.toString());
 }
 
 export function getTransactionName(location: Location): string | undefined {

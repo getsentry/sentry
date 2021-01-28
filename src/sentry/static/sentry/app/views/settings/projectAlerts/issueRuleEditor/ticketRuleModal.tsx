@@ -1,14 +1,12 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import cloneDeep from 'lodash/cloneDeep';
-import set from 'lodash/set';
 
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import AbstractExternalIssueForm from 'app/components/externalIssues/abstractExternalIssueForm';
 import ExternalLink from 'app/components/links/externalLink';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {IssueConfigField, IssueConfigFieldChoices, Organization} from 'app/types';
+import {Choices, IssueConfigField, Organization} from 'app/types';
 import {IssueAlertRuleAction} from 'app/types/alerts';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
@@ -22,7 +20,7 @@ type Props = {
   link?: string;
   onSubmitAction: (
     data: {[key: string]: string},
-    fetchedFieldOptionsCache: {[key: string]: IssueConfigFieldChoices}
+    fetchedFieldOptionsCache: Record<string, Choices>
   ) => void;
   organization: Organization;
   ticketType?: string;
@@ -30,7 +28,6 @@ type Props = {
 
 type State = {
   issueConfigFieldsCache: IssueConfigField[];
-  fetchedFieldOptionsCache: {[key: string]: IssueConfigFieldChoices};
 } & AbstractExternalIssueForm['state'];
 
 class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
@@ -40,10 +37,7 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
     return {
       ...super.getDefaultState(),
       fetchedFieldOptionsCache: Object.fromEntries(
-        issueConfigFieldsCache.map(field => [
-          field.name,
-          field.choices as IssueConfigFieldChoices,
-        ])
+        issueConfigFieldsCache.map(field => [field.name, field.choices as Choices])
       ),
       issueConfigFieldsCache,
     };
@@ -134,18 +128,6 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
     }
   };
 
-  updateFetchedFieldOptionsCache = (
-    field: IssueConfigField,
-    result: {value: string; label: string}[]
-  ): void => {
-    const fetchedFieldOptionsCache = result.map(obj => [obj.value, obj.label]);
-    this.setState(prevState => {
-      const newState = cloneDeep(prevState);
-      set(newState, `fetchedFieldOptionsCache[${field.name}]`, fetchedFieldOptionsCache);
-      return newState;
-    });
-  };
-
   getFormProps = (): Form['props'] => {
     const {closeModal} = this.props;
 
@@ -164,7 +146,6 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
    */
   cleanFields = (): IssueConfigField[] => {
     const {instance} = this.props;
-    const {fetchedFieldOptionsCache, integrationDetails} = this.state;
 
     const fields: IssueConfigField[] = [
       {
@@ -183,9 +164,8 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
       } as IssueConfigField,
     ];
 
-    const configsFromAPI = (integrationDetails || {})[this.getConfigName()];
     return fields.concat(
-      (configsFromAPI || [])
+      this.getCleanedFields()
         // Skip fields if they already exist.
         .filter(field => !fields.map(f => f.name).includes(field.name))
         .map(field => {
@@ -193,12 +173,6 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
           if (instance.hasOwnProperty(field.name)) {
             field.default = instance[field.name] || field.default;
           }
-
-          // Overwrite choices from cache.
-          if (fetchedFieldOptionsCache?.hasOwnProperty(field.name)) {
-            field.choices = fetchedFieldOptionsCache[field.name];
-          }
-
           return field;
         })
     );
