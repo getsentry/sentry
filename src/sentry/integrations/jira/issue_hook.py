@@ -51,7 +51,7 @@ class JiraIssueHookView(JiraBaseHook):
                     raise GroupLink.DoesNotExist()
                 group = Group.objects.get(id=group_link.group_id)
             except (ExternalIssue.DoesNotExist, GroupLink.DoesNotExist, Group.DoesNotExist) as e:
-                scope.set_tag("failure", e)
+                scope.set_tag("failure", e.__class__.__name__)
                 return self.get_response({"issue_not_linked": True})
             scope.set_tag("organization.slug", group.organization.slug)
 
