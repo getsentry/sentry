@@ -381,7 +381,7 @@ def send_and_save_webhook_request(sentry_app, app_platform_event, url=None):
         elif resp.status_code == 504:
             raise ApiTimeoutError.from_request(resp.request)
 
-        if 400 <= resp.status_code <= 404:
+        if 400 <= resp.status_code < 500:
             raise ClientError("Client Error", response=resp)
 
         resp.raise_for_status()

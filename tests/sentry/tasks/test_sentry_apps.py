@@ -453,7 +453,6 @@ class TestWebhookRequests(TestCase):
     @patch("sentry.tasks.sentry_apps.safe_urlopen", side_effect=Timeout)
     def test_saves_error_for_request_timeout(self, safe_urlopen):
         data = {"issue": serialize(self.issue)}
-        # self.sentry_app.update(status=SentryAppStatus.PUBLISHED)
         # we don't log errors for unpublished and internal apps
         with self.assertRaises(Timeout):
             send_webhooks(
