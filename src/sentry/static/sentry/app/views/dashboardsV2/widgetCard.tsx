@@ -87,12 +87,14 @@ class WidgetCard extends React.Component<Props> {
     return (
       <ToolbarPanel>
         <IconContainer data-component="icon-container">
-          <StyledIconGrabbable
-            color="gray500"
-            size="md"
-            onMouseDown={event => startWidgetDrag(event)}
-            onTouchStart={event => startWidgetDrag(event)}
-          />
+          <IconClick>
+            <StyledIconGrabbable
+              color="gray500"
+              size="md"
+              onMouseDown={event => startWidgetDrag(event)}
+              onTouchStart={event => startWidgetDrag(event)}
+            />
+          </IconClick>
           <IconClick
             data-test-id="widget-edit"
             onClick={() => {
@@ -212,13 +214,14 @@ const IconContainer = styled('div')`
   > * + * {
     margin-left: 50px;
   }
-
-  svg {
-    background: ${p => p.theme.background};
-  }
 `;
 
 const IconClick = styled('div')`
+  background: ${p => p.theme.background};
+  padding: ${space(0.5)};
+  border-radius: ${p => p.theme.borderRadius};
+  line-height: 0.9;
+
   &:hover {
     cursor: pointer;
   }
