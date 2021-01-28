@@ -11,7 +11,6 @@ from hashlib import sha1
 from random import randint
 from uuid import uuid4
 
-import six
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db.models import F

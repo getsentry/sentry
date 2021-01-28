@@ -1,5 +1,4 @@
 import logging
-import six
 
 from contextlib import contextmanager
 
@@ -16,7 +15,7 @@ class Lock:
         self.routing_key = routing_key
 
     def __repr__(self):
-        return "<Lock: {!r}>".format(self.key)
+        return f"<Lock: {self.key!r}>"
 
     def acquire(self):
         """
@@ -30,9 +29,9 @@ class Lock:
         try:
             self.backend.acquire(self.key, self.duration, self.routing_key)
         except Exception as error:
-            raise UnableToAcquireLock("Unable to acquire {!r} due to error: {}".format(self, error)) from
-                error,
-
+            raise UnableToAcquireLock(
+                f"Unable to acquire {self!r} due to error: {error}"
+            ) from error
 
         @contextmanager
         def releaser():
