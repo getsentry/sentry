@@ -1,7 +1,6 @@
 import logging
 from sentry.utils.compat import mock
 import pytest
-import six
 
 from sentry import eventstore
 from sentry.eventstore.models import Event

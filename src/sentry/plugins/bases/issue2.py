@@ -1,4 +1,3 @@
-import six
 
 from rest_framework.response import Response
 from social_auth.models import UserSocialAuth
@@ -179,7 +178,6 @@ class IssueTrackingPlugin2(Plugin):
 
         Returns ``{'id': '1', 'title': issue_title}``
         """
-        pass
 
     def has_auth_configured(self, **kwargs):
         if not self.auth_provider:

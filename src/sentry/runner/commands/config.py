@@ -1,5 +1,4 @@
 import click
-import six
 
 from sentry.runner.decorators import configuration
 

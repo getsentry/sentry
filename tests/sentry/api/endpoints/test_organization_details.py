@@ -1,7 +1,6 @@
 from datetime import datetime
 
 import dateutil
-import six
 from pytz import UTC
 from base64 import b64encode
 from exam import fixture

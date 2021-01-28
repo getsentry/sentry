@@ -1,4 +1,3 @@
-import six
 
 from pytz import utc
 

@@ -1,5 +1,4 @@
 import pytest
-import six
 
 from sentry.utils.hashlib import md5_text, sha1_text, hash_values
 from unittest import TestCase

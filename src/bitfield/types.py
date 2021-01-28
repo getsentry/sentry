@@ -1,6 +1,4 @@
-import six
 
-from six import string_types
 from sentry.utils.compat import implements_to_string
 
 

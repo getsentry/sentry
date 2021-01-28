@@ -1,7 +1,6 @@
 import datetime
 import itertools
 import random
-import six
 import time
 
 from django.core.management.base import BaseCommand, CommandError

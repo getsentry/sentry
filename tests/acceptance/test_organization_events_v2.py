@@ -1,5 +1,4 @@
 import copy
-import six
 import pytest
 import pytz
 from sentry.utils.compat.mock import patch

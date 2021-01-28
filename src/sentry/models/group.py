@@ -6,7 +6,6 @@ from collections import namedtuple
 from enum import Enum
 from datetime import timedelta
 
-import six
 from django.db import models
 from django.utils import timezone
 from django.utils.http import urlencode, urlquote

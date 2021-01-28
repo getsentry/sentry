@@ -1,5 +1,4 @@
 import re
-import six
 
 from sentry_sdk.hub import Hub
 from sentry_sdk.integrations import Integration

@@ -3,7 +3,6 @@ import itertools
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-import six
 import pytz
 import logging
 

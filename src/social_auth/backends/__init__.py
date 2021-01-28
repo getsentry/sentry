@@ -12,7 +12,6 @@ enabled.
 
 import logging
 import requests
-import six
 import threading
 
 from requests_oauthlib import OAuth1

@@ -1,4 +1,3 @@
-import six
 import pytest
 import base64
 from sentry.utils.compat import mock

@@ -1,7 +1,6 @@
 import os.path
 import random
 import pytz
-import six
 from uuid import uuid4
 
 from datetime import datetime, timedelta

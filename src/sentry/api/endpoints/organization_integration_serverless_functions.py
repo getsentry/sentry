@@ -1,4 +1,3 @@
-import six
 from rest_framework import serializers
 
 from sentry.api.bases.organization import OrganizationIntegrationsPermission

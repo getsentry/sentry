@@ -1,6 +1,5 @@
 import logging
 import os
-import six
 import subprocess
 import tempfile
 import time

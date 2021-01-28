@@ -1,6 +1,5 @@
 import abc
 
-import six
 from django.core.urlresolvers import reverse
 from django.template.defaultfilters import pluralize
 

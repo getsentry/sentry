@@ -1,4 +1,3 @@
-import six
 from django.contrib.admin import FieldListFilter
 from django.contrib.admin.options import IncorrectLookupParameters
 from django.core.exceptions import ValidationError

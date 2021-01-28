@@ -1,4 +1,3 @@
-import six
 
 from sentry.plugins.bases.notify import NotifyPlugin
 

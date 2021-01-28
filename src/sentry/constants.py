@@ -5,7 +5,6 @@ web-server
 
 import logging
 import os.path
-import six
 from datetime import timedelta
 
 from collections import OrderedDict, namedtuple

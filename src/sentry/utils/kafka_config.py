@@ -1,4 +1,3 @@
-import six
 from django.conf import settings
 
 SUPPORTED_KAFKA_CONFIGURATION = (

@@ -1,5 +1,4 @@
 import responses
-import six
 
 from exam import fixture
 from django.core.urlresolvers import reverse

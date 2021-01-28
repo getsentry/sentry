@@ -1,4 +1,3 @@
-import six
 
 from django.db.models import Q
 from rest_framework.response import Response

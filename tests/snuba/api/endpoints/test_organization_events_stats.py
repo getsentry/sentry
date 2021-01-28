@@ -1,4 +1,3 @@
-import six
 import uuid
 
 from pytz import utc

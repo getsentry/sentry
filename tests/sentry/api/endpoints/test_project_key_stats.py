@@ -1,4 +1,3 @@
-import six
 
 from sentry import tsdb
 from sentry.models import ProjectKey

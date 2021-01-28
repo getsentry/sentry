@@ -1,5 +1,4 @@
 from sentry.utils.compat import mock
-import six
 from exam import fixture
 from six.moves.urllib.parse import urlencode, urlparse, parse_qs
 from collections import namedtuple

@@ -1,5 +1,4 @@
 import requests
-import six
 
 from django.conf.urls import url
 from django.utils.encoding import force_text

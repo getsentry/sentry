@@ -1,5 +1,4 @@
 import ipaddress
-import six
 import uuid
 
 from django.utils.encoding import force_text

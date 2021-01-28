@@ -1,6 +1,5 @@
 import time
 import inspect
-import six
 
 from sentry.tsdb.base import BaseTSDB
 from sentry.tsdb.dummy import DummyTSDB

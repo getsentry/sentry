@@ -1,4 +1,3 @@
-import six
 
 from django.forms.widgets import TextInput, Widget
 from django.forms.utils import flatatt

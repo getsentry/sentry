@@ -1,5 +1,4 @@
 import logging
-import six
 
 from confluent_kafka import OFFSET_INVALID, TopicPartition
 from django.conf import settings

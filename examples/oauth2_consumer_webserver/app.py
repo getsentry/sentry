@@ -1,6 +1,5 @@
 import json  # noqa
 import os
-import six
 
 from flask import Flask, redirect, url_for, request, session
 from flask_oauth import OAuth

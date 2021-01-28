@@ -1,4 +1,3 @@
-import six
 
 from django import forms
 from django.db import IntegrityError, transaction

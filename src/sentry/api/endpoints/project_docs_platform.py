@@ -1,4 +1,3 @@
-import six
 
 from sentry.utils.http import absolute_uri
 from rest_framework.response import Response

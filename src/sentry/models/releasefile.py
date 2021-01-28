@@ -1,6 +1,5 @@
 import os
 import errno
-import six
 
 from django.core.files.base import File as FileObj
 from django.db import models

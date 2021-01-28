@@ -1,4 +1,3 @@
-import six
 import pytz
 
 from datetime import datetime

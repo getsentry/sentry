@@ -1,4 +1,3 @@
-import six
 
 from sentry import features
 from sentry.app import ratelimiter

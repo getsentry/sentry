@@ -1,5 +1,4 @@
 import operator
-import six
 
 from sentry.api.serializers import serialize
 from sentry.models import Release, ReleaseCommit, Commit, CommitFileChange, Group

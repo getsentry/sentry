@@ -1,6 +1,5 @@
 __all__ = ["IdentityManager"]
 
-import six
 
 from sentry.exceptions import NotRegistered
 

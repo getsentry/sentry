@@ -1,6 +1,5 @@
 from collections import defaultdict
 
-import six
 
 from sentry import features
 from sentry.api.serializers import Serializer, register, serialize

@@ -1,5 +1,4 @@
 import os
-import six
 import shutil
 import zipfile
 

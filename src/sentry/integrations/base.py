@@ -7,7 +7,6 @@ __all__ = [
 ]
 
 import logging
-import six
 import sys
 
 from collections import namedtuple

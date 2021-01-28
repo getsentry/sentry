@@ -1,4 +1,3 @@
-import six
 
 from collections import Iterable
 from django.db import IntegrityError, transaction

@@ -5,7 +5,6 @@ All model-related fixtures defined here require the database, and should imply a
 including ``db`` fixture in the function resolution scope.
 """
 
-import io
 import os
 import re
 import sys
@@ -15,7 +14,6 @@ import sentry
 
 import pytest
 import requests
-import six
 
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime

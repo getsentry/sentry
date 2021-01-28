@@ -81,7 +81,6 @@ import hashlib
 import logging
 import sentry_sdk
 from sentry.utils import json
-import six
 
 from django.conf import settings
 

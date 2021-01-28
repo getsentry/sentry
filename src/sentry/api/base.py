@@ -1,6 +1,5 @@
 import functools
 import logging
-import six
 import time
 import sentry_sdk
 

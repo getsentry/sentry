@@ -1,4 +1,3 @@
-import six
 
 from collections import OrderedDict
 from croniter import croniter

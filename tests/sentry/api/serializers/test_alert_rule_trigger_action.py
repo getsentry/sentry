@@ -1,4 +1,3 @@
-import six
 
 from sentry.api.serializers import serialize
 from sentry.incidents.endpoints.serializers import action_target_type_to_string

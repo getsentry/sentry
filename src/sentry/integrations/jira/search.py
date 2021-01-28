@@ -1,5 +1,4 @@
 from bs4 import BeautifulSoup
-import six
 from rest_framework.response import Response
 
 from sentry.api.bases.integration import IntegrationEndpoint

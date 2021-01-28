@@ -1,4 +1,3 @@
-import six
 
 from collections import namedtuple, defaultdict
 from django.db.models import Q

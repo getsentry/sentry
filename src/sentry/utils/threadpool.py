@@ -1,4 +1,3 @@
-import six
 from six.moves.queue import Queue, Empty
 
 from collections import defaultdict

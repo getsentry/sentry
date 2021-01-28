@@ -1,6 +1,5 @@
 import jwt
 import logging
-import six
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry.api.base import Endpoint

@@ -4,7 +4,6 @@ import itertools
 import logging
 import threading
 
-import six
 from django.utils.functional import empty, LazyObject
 
 from sentry.utils import warnings, metrics

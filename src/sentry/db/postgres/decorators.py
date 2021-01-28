@@ -1,4 +1,3 @@
-import six
 import sys
 
 from functools import wraps

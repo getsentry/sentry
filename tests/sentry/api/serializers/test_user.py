@@ -1,4 +1,3 @@
-import six
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user import DetailedUserSerializer

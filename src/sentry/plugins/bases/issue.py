@@ -1,4 +1,3 @@
-import six
 
 from django import forms
 from django.conf import settings
@@ -152,7 +151,6 @@ class IssueTrackingPlugin(Plugin):
         Can be overridden for any actions needed when linking issues
         (like adding a comment to an existing issue).
         """
-        pass
 
     def get_initial_form_data(self, request, group, event, **kwargs):
         return {

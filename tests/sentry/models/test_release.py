@@ -1,5 +1,4 @@
 import pytest
-import six
 
 from django.utils import timezone
 from freezegun import freeze_time

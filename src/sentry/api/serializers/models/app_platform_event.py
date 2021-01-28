@@ -1,4 +1,3 @@
-import six
 from time import time
 from uuid import uuid4
 from sentry.utils import json

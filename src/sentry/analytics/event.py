@@ -2,7 +2,6 @@ from sentry.utils.compat import map
 
 __all__ = ("Attribute", "Event", "Map")
 
-import six
 from uuid import uuid1
 from base64 import b64encode
 

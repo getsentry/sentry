@@ -1,4 +1,3 @@
-from six import string_types
 import zlib
 
 from sentry.utils import metrics

@@ -2,7 +2,6 @@
 Used for notifying a *specific* plugin
 """
 
-import six
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 

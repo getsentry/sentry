@@ -1,4 +1,3 @@
-import six
 
 from sentry.relay.projectconfig_cache.base import ProjectConfigCache
 from sentry.utils import json

@@ -1,5 +1,4 @@
 from sentry.utils.compat import mock
-import six
 import time
 
 from exam import fixture, patcher

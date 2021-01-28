@@ -1,4 +1,3 @@
-import six
 import re
 
 from datetime import datetime, timedelta

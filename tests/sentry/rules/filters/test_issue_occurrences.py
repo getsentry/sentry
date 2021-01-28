@@ -1,4 +1,3 @@
-import six
 
 from sentry.rules.filters.issue_occurrences import IssueOccurrencesFilter
 from sentry.testutils.cases import RuleTestCase

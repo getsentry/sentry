@@ -7,7 +7,6 @@ from simplejson import JSONEncoder, JSONDecodeError, _default_decoder  # NOQA
 from enum import Enum
 import datetime
 import uuid
-import six
 import decimal
 
 from bitfield.types import BitHandler

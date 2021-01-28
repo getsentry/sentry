@@ -1,4 +1,3 @@
-import six
 
 from dateutil.parser import parse as parse_date
 from django.conf import settings

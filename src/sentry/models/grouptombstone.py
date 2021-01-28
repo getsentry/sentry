@@ -1,6 +1,5 @@
 import logging
 
-import six
 from django.db import models
 
 from sentry.constants import LOG_LEVELS, MAX_CULPRIT_LENGTH

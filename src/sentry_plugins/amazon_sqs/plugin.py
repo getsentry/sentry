@@ -1,6 +1,5 @@
 import logging
 
-import six
 import boto3
 from botocore.client import ClientError, Config
 

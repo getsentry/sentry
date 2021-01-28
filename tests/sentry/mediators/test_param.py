@@ -1,4 +1,3 @@
-import six
 
 from sentry.mediators import Param
 from sentry.models import User

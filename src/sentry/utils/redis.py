@@ -2,7 +2,6 @@ from copy import deepcopy
 import functools
 import logging
 import posixpath
-import six
 
 from threading import Lock
 

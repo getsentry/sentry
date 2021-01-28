@@ -1,4 +1,3 @@
-import six
 import uuid
 
 from django.db import models

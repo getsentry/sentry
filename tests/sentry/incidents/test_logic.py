@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 from exam import fixture, patcher
 from freezegun import freeze_time
 
-import six
 import unittest
 from django.conf import settings
 from django.core import mail

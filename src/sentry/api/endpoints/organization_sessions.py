@@ -3,7 +3,6 @@ from contextlib import contextmanager
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
-import six
 import sentry_sdk
 
 from sentry.api.bases import OrganizationEventsEndpointBase, NoProjects

@@ -1,4 +1,3 @@
-import six
 
 from django.db.models.fields import BigIntegerField
 

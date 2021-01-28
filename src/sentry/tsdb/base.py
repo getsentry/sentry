@@ -1,5 +1,4 @@
 import collections
-import six
 
 from collections import OrderedDict
 from datetime import timedelta

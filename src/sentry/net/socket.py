@@ -1,4 +1,3 @@
-import six
 import ipaddress
 import socket
 from sentry.utils.compat import functools

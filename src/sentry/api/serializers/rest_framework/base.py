@@ -1,4 +1,3 @@
-import six
 from django.utils.text import re_camel_case
 from rest_framework.fields import empty
 from rest_framework.serializers import ModelSerializer, Serializer

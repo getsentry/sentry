@@ -1,6 +1,5 @@
 import random
 import logging
-import six
 from rest_framework.response import Response
 
 from django.conf import settings

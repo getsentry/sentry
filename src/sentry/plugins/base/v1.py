@@ -1,7 +1,6 @@
 __all__ = ("Plugin",)
 
 import logging
-import six
 
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect

@@ -1,4 +1,3 @@
-import six
 import re
 from django.conf import settings
 from django import template

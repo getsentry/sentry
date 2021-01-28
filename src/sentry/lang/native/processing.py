@@ -1,6 +1,5 @@
 import logging
 import posixpath
-import six
 
 from sentry.lang.native.error import write_error, SymbolicationFailed
 from sentry.lang.native.symbolicator import Symbolicator

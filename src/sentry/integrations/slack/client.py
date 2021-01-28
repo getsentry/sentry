@@ -1,4 +1,3 @@
-import six
 
 from sentry.integrations.client import ApiClient
 from sentry.shared_integrations.exceptions import ApiError

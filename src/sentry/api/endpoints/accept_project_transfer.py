@@ -1,4 +1,3 @@
-import six
 from django.http import Http404
 from django.utils.encoding import force_str
 from django.core.signing import BadSignature, SignatureExpired

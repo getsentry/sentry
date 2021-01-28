@@ -1,5 +1,4 @@
 import logging
-import six
 
 from django.contrib import messages
 from django.core.urlresolvers import reverse

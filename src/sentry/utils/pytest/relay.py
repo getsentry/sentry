@@ -8,7 +8,6 @@ import time
 import pytest
 from os import path
 
-import six
 from six.moves.urllib.parse import urlparse
 import requests
 

@@ -1,5 +1,4 @@
 import logging
-import six
 from six.moves.urllib.error import HTTPError as UrllibHTTPError
 from six.moves.urllib.parse import urlparse, urlencode, urlunparse, parse_qs
 

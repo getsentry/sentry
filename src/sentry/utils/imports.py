@@ -1,5 +1,4 @@
 import pkgutil
-import six
 
 
 class ModuleProxyCache(dict):

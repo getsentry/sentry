@@ -1,4 +1,3 @@
-import six
 
 from yaml.parser import ParserError
 from yaml.scanner import ScannerError

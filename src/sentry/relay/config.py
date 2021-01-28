@@ -1,4 +1,3 @@
-import six
 import uuid
 
 from sentry_sdk import Hub

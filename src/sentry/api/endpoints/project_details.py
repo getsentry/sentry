@@ -1,4 +1,3 @@
-import six
 import logging
 from itertools import chain
 from uuid import uuid4

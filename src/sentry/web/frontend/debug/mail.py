@@ -1,6 +1,5 @@
 import itertools
 import logging
-import six
 import time
 import traceback
 import uuid

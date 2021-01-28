@@ -1,6 +1,5 @@
 import abc
 import logging
-import six
 import time
 
 from confluent_kafka import (
@@ -74,7 +73,6 @@ class AbstractBatchWorker(metaclass=abc.ABCMeta):
         A simple example would be decoding the JSON value and extracting a few
         fields.
         """
-        pass
 
     @abc.abstractmethod
     def flush_batch(self, batch):
@@ -84,7 +82,6 @@ class AbstractBatchWorker(metaclass=abc.ABCMeta):
 
         A simple example would be writing the batch to another Kafka topic.
         """
-        pass
 
     @abc.abstractmethod
     def shutdown(self):
@@ -93,7 +90,6 @@ class AbstractBatchWorker(metaclass=abc.ABCMeta):
         cleanup.
 
         A simple example would be closing any remaining backend connections."""
-        pass
 
 
 class BatchingKafkaConsumer:

@@ -1,5 +1,4 @@
 import responses
-import six
 
 from six.moves.urllib.parse import parse_qs, urlencode, urlparse
 

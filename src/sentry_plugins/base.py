@@ -1,5 +1,4 @@
 import sentry_plugins
-import six
 import sys
 
 from sentry.exceptions import InvalidIdentity, PluginError

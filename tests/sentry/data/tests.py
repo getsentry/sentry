@@ -1,5 +1,4 @@
 import os
-import six
 
 from sentry.constants import DATA_ROOT
 from sentry.testutils import TestCase

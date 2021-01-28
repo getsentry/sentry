@@ -1,5 +1,4 @@
 import logging
-import six
 from collections import defaultdict
 
 from sentry import features
@@ -196,7 +195,6 @@ class IssueBasicMixin:
         Does anything needed after an issue has been linked, i.e. creating
         a comment for a linked issue.
         """
-        pass
 
     def make_external_key(self, data):
         """

@@ -1,6 +1,4 @@
-import io
 import os
-import six
 import zlib
 import base64
 import msgpack

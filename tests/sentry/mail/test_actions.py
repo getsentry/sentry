@@ -1,4 +1,3 @@
-import six
 from django.core import mail
 
 from sentry.mail.actions import ActionTargetType, NotifyEmailAction, NotifyEmailForm

@@ -1,6 +1,5 @@
 import logging
 import re
-import six
 import sentry_sdk
 import itertools
 

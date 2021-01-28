@@ -1,6 +1,5 @@
 import responses
 import pytest
-import six
 
 from exam import fixture
 from django.test import RequestFactory

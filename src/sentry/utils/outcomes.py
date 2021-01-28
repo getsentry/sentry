@@ -1,7 +1,6 @@
 from datetime import datetime
 from django.conf import settings
 from enum import IntEnum
-import six
 import time
 
 from sentry.constants import DataCategory

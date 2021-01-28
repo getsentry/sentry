@@ -1,4 +1,3 @@
-import six
 
 from warnings import warn
 

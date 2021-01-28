@@ -1,6 +1,5 @@
 import functools
 
-import six
 from rest_framework.response import Response
 
 from sentry import analytics, eventstore, search, features

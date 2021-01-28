@@ -1,6 +1,5 @@
 import abc
 
-import six
 from django.db import transaction
 from django.http import Http404, HttpResponseRedirect
 from django.utils.decorators import method_decorator

@@ -1,4 +1,3 @@
-import six
 
 from sentry import analytics
 

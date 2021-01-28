@@ -1,6 +1,5 @@
 import re
 import os
-import six
 import uuid
 import errno
 import shutil

@@ -1,5 +1,4 @@
 import itertools
-import six
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Model, Q

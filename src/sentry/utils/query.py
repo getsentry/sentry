@@ -1,6 +1,5 @@
 import progressbar
 import re
-import six
 
 from django.db import connections, router
 from sentry import eventstore

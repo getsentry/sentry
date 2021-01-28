@@ -1,4 +1,3 @@
-import six
 
 from sentry.app import tsdb
 from sentry.testutils import APITestCase

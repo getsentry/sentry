@@ -1,4 +1,3 @@
-import six
 
 from collections import namedtuple
 from datetime import timedelta

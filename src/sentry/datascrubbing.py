@@ -1,5 +1,4 @@
 import copy
-import six
 
 import sentry_relay
 from rest_framework import serializers

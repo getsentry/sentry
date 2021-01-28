@@ -1,4 +1,3 @@
-import six
 
 from threading import local
 

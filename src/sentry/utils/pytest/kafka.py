@@ -1,7 +1,6 @@
 import os
 
 import pytest
-import six
 from confluent_kafka.admin import AdminClient
 from confluent_kafka import Producer
 import time

@@ -1,5 +1,4 @@
 import click
-import six
 
 from django.db import connections, ProgrammingError
 from django.conf import settings

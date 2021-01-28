@@ -24,7 +24,6 @@ import os
 import os.path
 import pytest
 import requests
-import six
 import time
 import inspect
 from uuid import uuid4

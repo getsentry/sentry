@@ -1,4 +1,3 @@
-import six
 
 from uuid import uuid4
 

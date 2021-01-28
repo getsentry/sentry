@@ -1,4 +1,3 @@
-import six
 import re
 
 from uuid import uuid4

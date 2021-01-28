@@ -1,4 +1,3 @@
-import six
 import pytest
 
 from celery import Task

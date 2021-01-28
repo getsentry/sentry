@@ -1,6 +1,5 @@
 import dateutil.parser
 import logging
-import six
 import re
 
 import ipaddress

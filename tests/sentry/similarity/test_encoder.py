@@ -1,5 +1,4 @@
 import pytest
-import six
 
 from sentry.similarity.encoder import Encoder
 

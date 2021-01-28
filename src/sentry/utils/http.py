@@ -1,4 +1,3 @@
-import six
 
 from collections import namedtuple
 from django.conf import settings

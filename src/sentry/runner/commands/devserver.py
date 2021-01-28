@@ -1,5 +1,4 @@
 import click
-import six
 import types
 from six.moves.urllib.parse import urlparse
 import threading

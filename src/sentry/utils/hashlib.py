@@ -1,4 +1,3 @@
-import six
 from hashlib import md5 as _md5
 from hashlib import sha1 as _sha1
 

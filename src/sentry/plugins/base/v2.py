@@ -1,7 +1,6 @@
 __all__ = ("Plugin2",)
 
 import logging
-import six
 
 from django.http import HttpResponseRedirect
 from threading import local

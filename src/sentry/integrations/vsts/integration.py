@@ -2,7 +2,6 @@ from time import time
 import logging
 import re
 
-import six
 from django import forms
 from django.utils.translation import ugettext as _
 

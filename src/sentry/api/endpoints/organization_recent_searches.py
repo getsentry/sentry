@@ -1,4 +1,4 @@
-from django.utils import six, timezone
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 

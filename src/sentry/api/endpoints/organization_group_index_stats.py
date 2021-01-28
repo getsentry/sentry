@@ -1,4 +1,3 @@
-import six
 
 
 from rest_framework.exceptions import ParseError, PermissionDenied

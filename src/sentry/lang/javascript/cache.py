@@ -1,4 +1,3 @@
-from six import text_type
 from symbolic import SourceView
 from sentry.utils.strings import codec_lookup
 

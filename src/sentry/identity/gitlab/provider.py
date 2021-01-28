@@ -1,6 +1,5 @@
 import logging
 
-import six
 
 from sentry import http
 from sentry.auth.exceptions import IdentityNotValid

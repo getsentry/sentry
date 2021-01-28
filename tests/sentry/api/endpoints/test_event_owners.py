@@ -1,4 +1,3 @@
-import six
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase

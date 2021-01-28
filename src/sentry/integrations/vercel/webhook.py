@@ -1,7 +1,6 @@
 import hashlib
 import hmac
 import logging
-import six
 
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.crypto import constant_time_compare

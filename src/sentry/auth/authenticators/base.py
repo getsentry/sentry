@@ -1,4 +1,3 @@
-import six
 
 from django.core.cache import cache
 from django.utils.translation import ugettext_lazy as _
@@ -90,7 +89,6 @@ class AuthenticatorInterface:
         """
         # This method needs to be empty for the default
         # `requires_activation` property to make sense.
-        pass
 
     def enroll(self, user):
         """Invoked to enroll a user for this interface.  If already enrolled

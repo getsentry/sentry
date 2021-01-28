@@ -1,4 +1,3 @@
-import six
 
 import threading
 from time import time

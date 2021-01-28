@@ -1,6 +1,5 @@
 from uuid import uuid4
 
-import six
 
 from sentry.api.bases.organization import OrganizationIntegrationsPermission
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint

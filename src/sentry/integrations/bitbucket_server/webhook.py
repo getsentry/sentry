@@ -1,6 +1,5 @@
 import logging
 
-import six
 
 from datetime import datetime
 from django.db import IntegrityError, transaction

@@ -1,5 +1,4 @@
 import functools
-import six
 
 from django.conf import settings
 

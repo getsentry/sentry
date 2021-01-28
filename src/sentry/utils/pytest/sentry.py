@@ -5,7 +5,6 @@ from hashlib import md5
 from django.conf import settings
 from sentry_sdk import Hub
 
-import six
 
 TEST_ROOT = os.path.normpath(
     os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir, os.pardir, "tests")

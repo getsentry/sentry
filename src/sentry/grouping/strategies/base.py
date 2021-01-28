@@ -1,4 +1,3 @@
-import six
 import inspect
 
 from sentry import projectoptions

@@ -1,7 +1,6 @@
 from collections import defaultdict
 from itertools import chain
 
-import six
 
 from django.db.models import Count, Q
 

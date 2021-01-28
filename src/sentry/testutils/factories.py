@@ -4,7 +4,6 @@ import io
 import os
 import petname
 import random
-import six
 import warnings
 from binascii import hexlify
 from hashlib import sha1

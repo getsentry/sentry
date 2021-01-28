@@ -1,6 +1,5 @@
 from abc import ABCMeta, abstractmethod
 
-import six
 
 
 class AbstractIndexBackend(metaclass=ABCMeta):

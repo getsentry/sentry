@@ -1,4 +1,3 @@
-import six
 import inspect
 
 from parsimonious.grammar import Grammar, NodeVisitor

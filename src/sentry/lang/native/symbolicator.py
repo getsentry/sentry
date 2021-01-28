@@ -1,7 +1,6 @@
 import sys
 import jsonschema
 import logging
-import six
 import time
 
 from django.conf import settings

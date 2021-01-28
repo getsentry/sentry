@@ -1,4 +1,3 @@
-import six
 
 from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.models.integration import serialize_provider

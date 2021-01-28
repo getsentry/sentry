@@ -1,4 +1,3 @@
-import six
 import pytest
 
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig

@@ -1,4 +1,3 @@
-import six
 
 from django.http import HttpResponse
 

@@ -1,5 +1,3 @@
-import io
-import six
 import sys
 
 import click

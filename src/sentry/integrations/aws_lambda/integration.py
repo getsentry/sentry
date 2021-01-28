@@ -1,6 +1,5 @@
 import logging
 import re
-import six
 
 from botocore.exceptions import ClientError
 from django.utils.translation import ugettext_lazy as _

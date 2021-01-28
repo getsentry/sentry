@@ -1,4 +1,3 @@
-import six
 
 from collections import defaultdict
 from django.utils import timezone

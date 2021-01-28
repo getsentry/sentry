@@ -1,7 +1,6 @@
 import logging
 import requests
 import sentry_sdk
-import six
 
 from collections import OrderedDict
 

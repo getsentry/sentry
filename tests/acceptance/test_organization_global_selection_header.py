@@ -1,5 +1,4 @@
 from datetime import datetime
-import six
 
 import pytz
 import pytest

@@ -1,4 +1,3 @@
-import six
 import re
 
 from django.core.urlresolvers import reverse

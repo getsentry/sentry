@@ -1,6 +1,5 @@
 from sentry.utils.compat import mock
 import pytest
-import six
 
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models import (

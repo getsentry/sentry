@@ -1,4 +1,3 @@
-import six
 import time
 import hmac
 import base64

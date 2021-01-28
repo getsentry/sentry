@@ -1,6 +1,5 @@
 import hmac
 import time
-import six
 from datetime import datetime
 from hashlib import sha256
 from six.moves.urllib.parse import urlencode

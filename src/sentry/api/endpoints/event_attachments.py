@@ -1,4 +1,3 @@
-import six
 
 from sentry import eventstore, features
 from sentry.api.bases.project import ProjectEndpoint

@@ -2,7 +2,6 @@ import time
 import signal
 import os
 import click
-from six import text_type
 
 from sentry.utils.compat import map
 

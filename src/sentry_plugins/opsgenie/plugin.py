@@ -1,6 +1,5 @@
 import logging
 import sentry
-import six
 
 from django import forms
 

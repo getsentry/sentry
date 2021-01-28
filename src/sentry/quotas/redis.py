@@ -1,5 +1,4 @@
 import functools
-import six
 
 from time import time
 

@@ -1,4 +1,3 @@
-import six
 import logging
 
 from sentry.shared_integrations.exceptions import ApiError

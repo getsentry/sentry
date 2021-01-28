@@ -3,7 +3,6 @@ from collections import namedtuple, defaultdict
 from copy import deepcopy
 from datetime import datetime
 
-import six
 from django.utils.functional import cached_property
 from parsimonious.expressions import Optional
 from parsimonious.exceptions import IncompleteParseError, ParseError

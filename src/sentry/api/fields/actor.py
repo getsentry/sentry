@@ -1,4 +1,3 @@
-import six
 
 from collections import defaultdict, namedtuple
 from rest_framework import serializers

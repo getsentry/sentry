@@ -1,4 +1,3 @@
-import six
 
 
 class EventTypeManager:

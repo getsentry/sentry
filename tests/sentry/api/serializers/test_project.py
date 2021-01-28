@@ -1,6 +1,5 @@
 from datetime import timedelta
 
-import six
 import datetime
 from django.db.models import F
 from django.utils import timezone

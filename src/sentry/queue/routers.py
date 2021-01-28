@@ -1,5 +1,4 @@
 import itertools
-import six
 
 from celery import current_app
 

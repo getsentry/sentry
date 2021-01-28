@@ -1,7 +1,6 @@
 import os
 import re
 import logging
-import six
 
 from pkg_resources import parse_version
 from sentry.utils.compat import functools

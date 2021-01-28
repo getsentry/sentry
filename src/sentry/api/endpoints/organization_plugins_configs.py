@@ -1,5 +1,4 @@
 from rest_framework.response import Response
-import six
 
 from sentry.constants import ObjectStatus
 from sentry.plugins.base import plugins

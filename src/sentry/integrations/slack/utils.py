@@ -1,6 +1,5 @@
 import logging
 import time
-import six
 
 from django.core.cache import cache
 from django.http import Http404

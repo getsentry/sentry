@@ -1,4 +1,3 @@
-import six
 from functools import wraps
 
 from sentry.snuba import discover

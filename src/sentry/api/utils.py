@@ -1,7 +1,6 @@
 from datetime import timedelta
 
 import math
-import six
 from django.utils import timezone
 
 from sentry.search.utils import parse_datetime_string, InvalidQuery

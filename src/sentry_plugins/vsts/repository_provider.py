@@ -1,4 +1,3 @@
-import six
 
 from sentry.plugins import providers
 from six.moves.urllib.parse import urlparse

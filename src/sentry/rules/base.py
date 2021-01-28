@@ -29,7 +29,6 @@ by the rule's logic. Each rule condition may be associated with a form.
 """
 
 import logging
-import six
 
 from collections import namedtuple
 

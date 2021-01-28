@@ -1,5 +1,4 @@
 import datetime
-import six
 
 from decimal import Decimal
 

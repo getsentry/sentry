@@ -1,4 +1,3 @@
-import six
 
 from bitfield import BitField
 from collections import Sequence

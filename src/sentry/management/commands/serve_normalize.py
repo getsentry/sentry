@@ -8,7 +8,6 @@ import traceback
 import resource
 from optparse import make_option
 
-import six
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.encoding import force_str
 

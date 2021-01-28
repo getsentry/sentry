@@ -1,4 +1,3 @@
-import six
 from django.db import IntegrityError, transaction
 from rest_framework.response import Response
 

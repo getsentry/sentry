@@ -1,4 +1,3 @@
-import six
 
 from django.core.exceptions import ValidationError
 from django.db.models import TextField

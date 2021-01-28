@@ -1,4 +1,3 @@
-import six
 
 from sentry.models import ExternalIssue, GroupLink, Integration
 from sentry.testutils import APITestCase

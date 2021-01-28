@@ -1,5 +1,4 @@
 import functools
-import six
 from collections import defaultdict, Iterable, OrderedDict
 from dateutil.parser import parse as parse_datetime
 from pytz import UTC

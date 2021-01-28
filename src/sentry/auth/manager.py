@@ -1,6 +1,5 @@
 __all__ = ["ProviderManager"]
 
-import six
 
 from .exceptions import ProviderNotRegistered
 

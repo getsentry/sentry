@@ -1,5 +1,4 @@
 import logging
-import six
 import threading
 import weakref
 

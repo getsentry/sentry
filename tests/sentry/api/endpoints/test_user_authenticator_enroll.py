@@ -1,4 +1,3 @@
-import io
 import os
 
 from six.moves.urllib.parse import parse_qsl

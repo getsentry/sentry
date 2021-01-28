@@ -1,7 +1,6 @@
 import base64
 import codecs
 import re
-import six
 import string
 import zlib
 

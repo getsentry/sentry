@@ -5,7 +5,6 @@
 import cProfile
 import re
 import pstats
-import six
 import sys
 
 from django.conf import settings

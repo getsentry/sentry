@@ -1,4 +1,3 @@
-import six
 
 from sentry.models import EventAttachment, File
 from sentry.testutils import APITestCase

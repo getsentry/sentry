@@ -1,5 +1,4 @@
 import logging
-import six
 
 from rest_framework.response import Response
 from social_auth.backends import get_backend

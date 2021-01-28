@@ -1,4 +1,3 @@
-import six
 
 from exam import fixture
 

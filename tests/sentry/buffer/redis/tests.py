@@ -1,4 +1,3 @@
-import six
 from django.utils.encoding import force_text
 
 from sentry.utils.compat import mock, pickle

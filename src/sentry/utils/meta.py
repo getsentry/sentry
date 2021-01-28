@@ -1,5 +1,4 @@
 import collections
-import six
 from sentry.utils.compat import map
 
 

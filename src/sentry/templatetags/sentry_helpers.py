@@ -4,7 +4,6 @@ from collections import namedtuple
 from datetime import timedelta
 from random import randint
 
-import six
 from django import template
 from django.template.defaultfilters import stringfilter
 from django.utils import timezone

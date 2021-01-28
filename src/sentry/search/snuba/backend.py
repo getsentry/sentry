@@ -1,6 +1,5 @@
 from abc import ABCMeta, abstractmethod
 import functools
-import six
 from datetime import timedelta
 
 from django.db.models import Q

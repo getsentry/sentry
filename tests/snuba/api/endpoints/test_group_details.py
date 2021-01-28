@@ -1,4 +1,3 @@
-import six
 from sentry.utils.compat import mock
 
 from sentry.models import Environment, Release, GroupInboxReason

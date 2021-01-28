@@ -1,4 +1,3 @@
-import six
 import ipaddress
 from sentry.net import socket as net_socket
 

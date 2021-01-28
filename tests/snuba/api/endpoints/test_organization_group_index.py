@@ -1,4 +1,3 @@
-import six
 from datetime import timedelta
 from dateutil.parser import parse as parse_datetime
 from uuid import uuid4

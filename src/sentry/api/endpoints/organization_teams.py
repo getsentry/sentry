@@ -1,4 +1,3 @@
-import six
 
 from django.db import IntegrityError, transaction
 from django.db.models import Q

@@ -1,4 +1,3 @@
-import six
 
 
 def remove_non_stacktrace_variants(variants):

@@ -1,6 +1,5 @@
 from copy import copy
 import logging
-import six
 
 from bitfield.types import BitHandler
 from django.db import models

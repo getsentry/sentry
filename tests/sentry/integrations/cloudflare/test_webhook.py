@@ -1,6 +1,5 @@
 from hashlib import sha256
 import hmac
-import six
 
 from sentry import options
 from sentry.utils import json

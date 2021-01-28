@@ -1,4 +1,3 @@
-import six
 from sentry.utils.compat import mock
 import copy
 

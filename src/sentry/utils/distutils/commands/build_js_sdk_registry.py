@@ -5,7 +5,6 @@
 # run in setup.py
 import json  # NOQA
 
-import io
 import os
 import sys
 from distutils import log

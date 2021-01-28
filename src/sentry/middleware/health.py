@@ -1,5 +1,4 @@
 import itertools
-import six
 
 from django.http import HttpResponse
 from sentry.utils.compat import filter

@@ -2,7 +2,6 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 
 import logging
 import time
-import six
 import sentry_sdk
 from datetime import datetime, timedelta
 from hashlib import md5

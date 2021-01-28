@@ -1,7 +1,6 @@
 from hashlib import sha256
 import hmac
 import logging
-import six
 
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt

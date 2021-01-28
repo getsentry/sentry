@@ -1,6 +1,5 @@
 import logging
 import re
-import six
 
 from django.utils.timezone import now
 from structlog import get_logger

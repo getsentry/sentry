@@ -1,5 +1,4 @@
 import functools
-import six
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import Activity, Commit, Group, PullRequest

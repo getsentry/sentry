@@ -1,5 +1,4 @@
 import logging
-import six
 
 from sentry.plugins import providers
 from sentry.models import Integration

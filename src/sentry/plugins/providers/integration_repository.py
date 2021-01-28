@@ -1,5 +1,4 @@
 import dateutil.parser
-import six
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework.response import Response

@@ -3,7 +3,6 @@ from functools import wraps
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
-from six import string_types
 
 from sentry.api.authentication import ClientIdSecretAuthentication
 from sentry.api.base import Endpoint

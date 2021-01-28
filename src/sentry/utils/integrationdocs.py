@@ -1,7 +1,6 @@
 # NOTE: This is run external to sentry as well as part of the setup
 # process.  Thus we do not want to import non stdlib things here.
 
-import io
 import multiprocessing
 import multiprocessing.dummy
 import os

@@ -1,5 +1,4 @@
 import logging
-import six
 
 from django.db import transaction
 from uuid import uuid4

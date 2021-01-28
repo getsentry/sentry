@@ -1,4 +1,3 @@
-import six
 from datetime import timedelta
 from enum import Enum
 
