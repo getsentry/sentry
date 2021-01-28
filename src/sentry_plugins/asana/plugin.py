@@ -13,6 +13,7 @@ from .client import AsanaClient
 
 
 ERR_AUTH_NOT_CONFIGURED = "You still need to associate an Asana identity with this account."
+ERR_BEARER_EXPIRED = "Authorization failed. Disconnect identity and reconfigure."
 
 DESCRIPTION = """
 Improve your productivity by creating tasks in Asana directly
@@ -202,7 +203,14 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
             client = self.get_client(user)
         except PluginIdentityRequired as e:
             self.raise_error(e)
-        workspaces = client.get_workspaces()
+        try:
+            workspaces = client.get_workspaces()
+        except Exception as e:
+            if (
+                e.response.reason == "Bad Request"
+                and e.response.url == "https://app.asana.com/-/oauth_token"
+            ):
+                raise PluginIdentityRequired(ERR_BEARER_EXPIRED)
         workspace_choices = self.get_workspace_choices(workspaces)
         workspace = self.get_option("workspace", kwargs["project"])
         # check to make sure the current user has access to the workspace

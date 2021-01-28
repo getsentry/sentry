@@ -1,4 +1,3 @@
-from sentry.exceptions import PluginIdentityRequired
 from sentry.shared_integrations.client import BaseApiClient, BaseInternalApiClient
 from sentry.shared_integrations.exceptions import ApiUnauthorized
 
@@ -51,10 +50,6 @@ class AuthApiClient(ApiClient):
                 raise
             if not self.auth:
                 raise
-            if self.auth.provider == "asana" and exc.code == 401:
-                raise PluginIdentityRequired(
-                    "Authorization failed. Disconnect identity and reconfigure."
-                )
 
         # refresh token
         self.logger.info(
