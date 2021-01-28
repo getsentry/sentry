@@ -59,7 +59,7 @@ export default function AwsLambdaFailureDetails({
 
 function SingleFailure(errorDetail: ErrorDetail) {
   return (
-    <StyledRow>
+    <StyledRow key={errorDetail.name}>
       <span>{errorDetail.name}</span>
       <Error>{errorDetail.error}</Error>
     </StyledRow>

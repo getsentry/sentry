@@ -182,6 +182,7 @@ class IntegrationSetup extends React.Component<Props, State> {
             organization={organization}
             priority="primary"
             size="small"
+            analyticsParams={{view: 'onboarding', already_installed: false}}
           />
         </DocsWrapper>
       </React.Fragment>
