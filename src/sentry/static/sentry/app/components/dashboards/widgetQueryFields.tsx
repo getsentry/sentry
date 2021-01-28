@@ -50,7 +50,7 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
     event.preventDefault();
 
     const newFields = [...fields];
-    newFields.splice(fieldIndex, fieldIndex + 1);
+    newFields.splice(fieldIndex, 1);
     onChange(newFields);
   }
 
