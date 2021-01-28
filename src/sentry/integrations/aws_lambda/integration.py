@@ -164,7 +164,6 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
 class AwsLambdaIntegrationProvider(IntegrationProvider):
     key = "aws_lambda"
     name = "AWS Lambda"
-    requires_feature_flag = True
     metadata = metadata
     integration_cls = AwsLambdaIntegration
     features = frozenset([IntegrationFeatures.SERVERLESS])
