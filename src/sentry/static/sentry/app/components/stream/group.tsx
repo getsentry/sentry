@@ -319,9 +319,14 @@ class StreamGroup extends React.Component<Props, State> {
             query={query}
             size="normal"
           />
-          <EventOrGroupExtraDetails organization={organization} data={data} />
+          <EventOrGroupExtraDetails
+            hasGuideAnchor={hasGuideAnchor}
+            organization={organization}
+            data={data}
+          />
         </GroupSummary>
         {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
+        {hasGuideAnchor && <GuideAnchor target="inbox_guide_issue" position="bottom" />}
         {withChart && !displayReprocessingLayout && (
           <ChartWrapper className="hidden-xs hidden-sm">
             {!data.filtered?.stats && !data.stats ? (
