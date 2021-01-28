@@ -17,6 +17,7 @@ import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask
 import {getSeriesSelection} from 'app/components/charts/utils';
 import WorldMapChart from 'app/components/charts/worldMapChart';
 import ErrorBoundary from 'app/components/errorBoundary';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import {IconDelete, IconEdit, IconGrabbable, IconWarning} from 'app/icons';
@@ -331,7 +332,7 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
     if (widget.displayType === 'table') {
       return (
         <TransitionChart loading={loading} reloading={loading}>
-          <TransparentLoadingMask visible={loading} />
+          <LoadingScreen loading={loading} />
           {this.tableResultComponent({tableResults, loading, errorMessage})}
         </TransitionChart>
       );
@@ -396,7 +397,7 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
 
       return (
         <TransitionChart loading={loading} reloading={loading}>
-          <TransparentLoadingMask visible={loading} />
+          <LoadingScreen loading={loading} />
           <ChartWrapper>
             {getDynamicText({
               value: this.chartComponent({
@@ -475,7 +476,7 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
 
           return (
             <TransitionChart loading={loading} reloading={loading}>
-              <TransparentLoadingMask visible={loading} />
+              <LoadingScreen loading={loading} />
               <ChartWrapper>
                 {getDynamicText({
                   value: this.chartComponent({
@@ -494,3 +495,22 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
     );
   }
 }
+
+const StyledTransparentLoadingMask = styled(props => (
+  <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
+))`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;
+
+const LoadingScreen = ({loading}: {loading: boolean}) => {
+  if (!loading) {
+    return null;
+  }
+  return (
+    <StyledTransparentLoadingMask visible={loading}>
+      <LoadingIndicator mini />
+    </StyledTransparentLoadingMask>
+  );
+};
