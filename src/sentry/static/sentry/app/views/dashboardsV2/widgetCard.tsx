@@ -198,6 +198,7 @@ const StyledPanel = styled(Panel, {
   visibility: ${p => (p.isDragging ? 'hidden' : 'visible')};
   /* If a panel overflows due to a long title stretch its grid sibling */
   height: 100%;
+  min-height: 110px;
 `;
 
 const ToolbarPanel = styled('div')`
