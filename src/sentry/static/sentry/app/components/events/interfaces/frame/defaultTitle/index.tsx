@@ -38,16 +38,24 @@ const DefaultTitle = ({frame, platform, isHoverPreviewed}: Props) => {
     event.stopPropagation();
   };
 
-  const getPathName = (
+  const getModule = (): GetPathNameOutput | undefined => {
+    if (frame.module) {
+      return {
+        key: 'module',
+        value: frame.module,
+        meta: getMeta(frame, 'module'),
+      };
+    }
+
+    return undefined;
+  };
+
+  const getPathNameOrModule = (
     shouldPrioritizeModuleName: boolean
   ): GetPathNameOutput | undefined => {
     if (shouldPrioritizeModuleName) {
       if (frame.module) {
-        return {
-          key: 'module',
-          value: frame.module,
-          meta: getMeta(frame, 'module'),
-        };
+        return getModule();
       }
       if (frame.filename) {
         return {
@@ -68,11 +76,7 @@ const DefaultTitle = ({frame, platform, isHoverPreviewed}: Props) => {
     }
 
     if (frame.module) {
-      return {
-        key: 'module',
-        value: frame.module,
-        meta: getMeta(frame, 'module'),
-      };
+      return getModule();
     }
 
     return undefined;
@@ -85,23 +89,24 @@ const DefaultTitle = ({frame, platform, isHoverPreviewed}: Props) => {
     const shouldPrioritizeModuleName = framePlatform === 'java';
 
     // we do not want to show path in title on csharp platform
-    const pathName = isDotnet(framePlatform)
-      ? undefined
-      : getPathName(shouldPrioritizeModuleName);
-    const enablePathTooltip = defined(frame.absPath) && frame.absPath !== pathName?.value;
+    const pathNameOrModule = isDotnet(framePlatform)
+      ? getModule()
+      : getPathNameOrModule(shouldPrioritizeModuleName);
+    const enablePathTooltip =
+      defined(frame.absPath) && frame.absPath !== pathNameOrModule?.value;
 
-    if (pathName) {
+    if (pathNameOrModule) {
       title.push(
         <Tooltip
-          key={pathName.key}
+          key={pathNameOrModule.key}
           title={frame.absPath}
           disabled={!enablePathTooltip}
           delay={tooltipDelay}
         >
           <code key="filename" className="filename">
             <AnnotatedText
-              value={<Truncate value={pathName.value} maxLength={100} leftTrim />}
-              meta={pathName.meta}
+              value={<Truncate value={pathNameOrModule.value} maxLength={100} leftTrim />}
+              meta={pathNameOrModule.meta}
             />
           </code>
         </Tooltip>
@@ -128,7 +133,10 @@ const DefaultTitle = ({frame, platform, isHoverPreviewed}: Props) => {
       );
     }
 
-    if ((defined(frame.function) || defined(frame.rawFunction)) && defined(pathName)) {
+    if (
+      (defined(frame.function) || defined(frame.rawFunction)) &&
+      defined(pathNameOrModule)
+    ) {
       title.push(
         <span className="in-at" key="in">
           {` ${t('in')} `}
