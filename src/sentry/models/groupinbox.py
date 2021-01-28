@@ -7,6 +7,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model, JSONField
+from sentry.models import Activity
 from sentry.signals import inbox_in, inbox_out
 
 INBOX_REASON_DETAILS = {
@@ -87,6 +88,14 @@ def remove_group_from_inbox(group, action=None, user=None):
     try:
         group_inbox = GroupInbox.objects.get(group=group)
         group_inbox.delete()
+
+        if user is not None:
+            Activity.objects.create(
+                project_id=group_inbox.group.project.id,
+                group_id=group_inbox.group.id,
+                type=Activity.MARK_REVIEWED,
+                user=user,
+            )
 
         inbox_out.send_robust(
             group=group_inbox.group,

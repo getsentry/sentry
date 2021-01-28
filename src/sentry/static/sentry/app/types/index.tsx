@@ -726,6 +726,7 @@ export enum GroupActivityType {
   UNASSIGNED = 'unassigned',
   MERGE = 'merge',
   REPROCESS = 'reprocess',
+  MARK_REVIEWED = 'mark_reviewed',
 }
 
 type GroupActivityBase = {
@@ -776,6 +777,11 @@ type GroupActivityUnassigned = GroupActivityBase & {
 
 type GroupActivityFirstSeen = GroupActivityBase & {
   type: GroupActivityType.FIRST_SEEN;
+  data: Record<string, any>;
+};
+
+type GroupActivityMarkReviewed = GroupActivityBase & {
+  type: GroupActivityType.MARK_REVIEWED;
   data: Record<string, any>;
 };
 
@@ -889,6 +895,7 @@ export type GroupActivity =
   | GroupActivityMerge
   | GroupActivityReprocess
   | GroupActivityUnassigned
+  | GroupActivityMarkReviewed
   | GroupActivityUnmergeDestination
   | GroupActivitySetPublic
   | GroupActivitySetPrivate
