@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 
 from django.core.urlresolvers import reverse
@@ -87,7 +85,7 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
     def test_dashboard_does_not_exist(self):
         response = self.client.get(self.url(1234567890))
         assert response.status_code == 404
-        assert response.data == {u"detail": "The requested resource does not exist"}
+        assert response.data == {"detail": "The requested resource does not exist"}
 
     def test_get_prebuilt_dashboard(self):
         # Pre-built dashboards should be accessible
@@ -117,10 +115,14 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         assert not DashboardWidgetQuery.objects.filter(widget_id=self.widget_1.id).exists()
         assert not DashboardWidgetQuery.objects.filter(widget_id=self.widget_2.id).exists()
 
+    def test_delete_permission(self):
+        self.create_user_member_role()
+        self.test_delete()
+
     def test_dashboard_does_not_exist(self):
         response = self.client.delete(self.url(1234567890))
         assert response.status_code == 404
-        assert response.data == {u"detail": "The requested resource does not exist"}
+        assert response.data == {"detail": "The requested resource does not exist"}
 
     def test_delete_prebuilt_dashboard(self):
         slug = "default-overview"
@@ -132,6 +134,7 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
 class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
     def setUp(self):
         super(OrganizationDashboardDetailsPutTest, self).setUp()
+        self.create_user_member_role()
         self.widget_3 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
             order=2,
@@ -166,7 +169,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
     def test_dashboard_does_not_exist(self):
         response = self.client.put(self.url(1234567890))
         assert response.status_code == 404
-        assert response.data == {u"detail": u"The requested resource does not exist"}
+        assert response.data == {"detail": "The requested resource does not exist"}
 
     def test_change_dashboard_title(self):
         response = self.client.put(self.url(self.dashboard.id), data={"title": "Dashboard Hello"})
@@ -181,7 +184,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         )
         response = self.client.put(self.url(self.dashboard.id), data={"title": "Dashboard 2"})
         assert response.status_code == 409, response.data
-        assert list(response.data) == [u"Dashboard with that title already exists."]
+        assert list(response.data) == ["Dashboard with that title already exists."]
 
     def test_add_widget(self):
         data = {
@@ -191,6 +194,14 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 {"id": six.text_type(self.widget_2.id)},
                 {"id": six.text_type(self.widget_3.id)},
                 {"id": six.text_type(self.widget_4.id)},
+                {
+                    "title": "Error Counts by Country",
+                    "displayType": "world_map",
+                    "interval": "5m",
+                    "queries": [
+                        {"name": "Errors", "fields": ["count()"], "conditions": "event.type:error"}
+                    ],
+                },
                 {
                     "title": "Errors over time",
                     "displayType": "line",
@@ -205,14 +216,14 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200, response.data
 
         widgets = self.get_widgets(self.dashboard.id)
-        assert len(widgets) == 5
+        assert len(widgets) == 6
 
         last = list(widgets).pop()
-        self.assert_serialized_widget(data["widgets"][4], last)
+        self.assert_serialized_widget(data["widgets"][5], last)
 
         queries = last.dashboardwidgetquery_set.all()
         assert len(queries) == 1
-        self.assert_serialized_widget_query(data["widgets"][4]["queries"][0], queries[0])
+        self.assert_serialized_widget_query(data["widgets"][5]["queries"][0], queries[0])
 
     def test_add_widget_missing_title(self):
         data = {
@@ -606,7 +617,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             data={"widgets": [{"id": self.widget_4.id}, {"id": widget.id}]},
         )
         assert response.status_code == 400
-        assert response.data == [u"You cannot update widgets that are not part of this dashboard."]
+        assert response.data == ["You cannot update widgets that are not part of this dashboard."]
         self.assert_no_changes()
 
     def test_widget_does_not_exist(self):
@@ -615,5 +626,5 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             data={"widgets": [{"id": self.widget_4.id}, {"id": 1234567890}]},
         )
         assert response.status_code == 400
-        assert response.data == [u"You cannot update widgets that are not part of this dashboard."]
+        assert response.data == ["You cannot update widgets that are not part of this dashboard."]
         self.assert_no_changes()

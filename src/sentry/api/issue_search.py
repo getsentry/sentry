@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
 
@@ -47,7 +45,7 @@ class IssueSearchVisitor(SearchVisitor):
         is_filter_translators = {
             "assigned": (SearchKey("unassigned"), SearchValue(False)),
             "unassigned": (SearchKey("unassigned"), SearchValue(True)),
-            "needs_review": (SearchKey("needs_review"), SearchValue(True)),
+            "for_review": (SearchKey("for_review"), SearchValue(True)),
             "linked": (SearchKey("linked"), SearchValue(True)),
             "unlinked": (SearchKey("linked"), SearchValue(False)),
         }
@@ -85,7 +83,7 @@ def parse_search_query(query):
         raise InvalidSearchQuery(
             "%s %s"
             % (
-                u"Parse error: %r (column %d)." % (e.expr.name, e.column()),
+                "Parse error: %r (column %d)." % (e.expr.name, e.column()),
                 "This is commonly caused by unmatched-parentheses. Enclose any text in double quotes.",
             )
         )
@@ -112,7 +110,7 @@ def convert_status_value(value, projects, user, environments):
     try:
         return parse_status_value(value)
     except ValueError:
-        raise InvalidSearchQuery(u"invalid status value of '{}'".format(value))
+        raise InvalidSearchQuery("invalid status value of '{}'".format(value))
 
 
 value_converters = {
@@ -143,7 +141,7 @@ def convert_query_values(search_filters, projects, user, environments):
             search_filter = search_filter._replace(value=SearchValue(new_value))
         elif isinstance(search_filter, AggregateFilter):
             raise InvalidSearchQuery(
-                u"Aggregate filters ({}) are not supported in issue searches.".format(
+                "Aggregate filters ({}) are not supported in issue searches.".format(
                     search_filter.key.name
                 )
             )

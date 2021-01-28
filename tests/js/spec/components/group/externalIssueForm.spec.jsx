@@ -40,7 +40,13 @@ describe('ExternalIssueForm', () => {
       body: formConfig,
     });
     const component = mountWithTheme(
-      <ExternalIssueForm group={group} integration={integration} onChange={onChange} />,
+      <ExternalIssueForm
+        Body={p => p.children}
+        Header={p => p.children}
+        group={group}
+        integration={integration}
+        onChange={onChange}
+      />,
       TestStubs.routerContext()
     );
     component.instance().handleClick(action);
@@ -187,7 +193,7 @@ describe('ExternalIssueForm', () => {
 
       it('debounced function returns a promise with the options returned by fetch', async () => {
         const output = await wrapper.instance().getOptions(externalIssueField, 'd');
-        expect(output.options).toEqual(mockSuccessResponse);
+        expect(output).toEqual(mockSuccessResponse);
       });
     });
   });

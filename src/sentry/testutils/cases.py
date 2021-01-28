@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from sentry.utils.compat import zip
 
 __all__ = (
@@ -345,7 +344,7 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
         # this here.
         if "qs_params" in params:
             query_string = urlencode(params.pop("qs_params"), doseq=True)
-            url = u"{}?{}".format(url, query_string)
+            url = "{}?{}".format(url, query_string)
 
         method = params.pop("method", self.method)
 
@@ -646,7 +645,7 @@ class IntegrationTestCase(TestCase):
         self.setup_path = reverse(
             "sentry-extension-setup", kwargs={"provider_id": self.provider.key}
         )
-        self.configure_path = u"/extensions/{}/configure/".format(self.provider.key)
+        self.configure_path = "/extensions/{}/configure/".format(self.provider.key)
 
         self.pipeline.initialize()
         self.save_session()
@@ -1023,3 +1022,10 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             assert data["displayType"] == DashboardWidgetDisplayTypes.get_type_name(
                 expected_widget.display_type
             )
+
+    def create_user_member_role(self):
+        self.user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=self.user, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.login_as(self.user)

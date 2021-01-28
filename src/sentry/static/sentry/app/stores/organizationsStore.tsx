@@ -87,4 +87,8 @@ const organizationsStoreConfig: Reflux.StoreDefinition & OrganizationsStoreInter
   },
 };
 
-export default Reflux.createStore(organizationsStoreConfig) as OrganizationsStore;
+const OrganizationsStore = Reflux.createStore(
+  organizationsStoreConfig
+) as OrganizationsStore;
+
+export default OrganizationsStore;

@@ -13,9 +13,9 @@ import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {getAggregateAlias} from 'app/utils/discover/fields';
+import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
-import {getTermHelp} from 'app/views/performance/data';
+import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,
@@ -23,7 +23,7 @@ import {
 } from 'app/views/performance/transactionVitals/constants';
 import {vitalsRouteWithQuery} from 'app/views/performance/transactionVitals/utils';
 
-import VitalsCards from '../vitalsCards';
+import VitalInfo from '../vitalDetail/vitalInfo';
 
 type Props = {
   eventView: EventView;
@@ -125,11 +125,13 @@ function UserStats({eventView, totals, location, organization, transactionName}:
                     <IconOpen />
                   </Link>
                 </VitalsHeading>
-                <VitalsCards
+                <VitalInfo
                   eventView={eventView}
                   organization={organization}
                   location={location}
-                  hasCondensedVitals
+                  vital={[WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS]}
+                  hideVitalPercentNames
+                  hideDurationDetail
                 />
               </SidebarWrapper>
             );
@@ -162,7 +164,7 @@ function UserStats({eventView, totals, location, organization, transactionName}:
           {t('User Misery')}
           <QuestionTooltip
             position="top"
-            title={getTermHelp(organization, 'userMisery')}
+            title={getTermHelp(organization, PERFORMANCE_TERM.USER_MISERY)}
             size="sm"
           />
         </SectionHeading>

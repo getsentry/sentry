@@ -1,16 +1,16 @@
 import React from 'react';
 import {withInfo} from '@storybook/addon-info';
 
-import {IconTelescope} from 'app/icons';
 import Button from 'app/components/button';
 import {
   Panel,
   PanelAlert,
-  PanelHeader,
   PanelBody,
+  PanelHeader,
   PanelItem,
   PanelTable,
 } from 'app/components/panels';
+import {IconTelescope} from 'app/icons';
 import Field from 'app/views/settings/components/forms/field';
 
 import {_BulkController} from './bulkController.stories';
@@ -60,7 +60,7 @@ export const _PanelTable = withInfo({
   <React.Fragment>
     <PanelTable
       // eslint-disable-next-line react/jsx-key
-      headers={[<div>Header #1</div>, 'Header #2', <div>Custom Header Wooooo</div>]}
+      headers={[<div>Header #1</div>, 'Header #2', <div>Custom Header Wooooo</div>, '']}
     >
       <div>Panel Item with really long content</div>
       <div>Panel Item</div>
@@ -71,6 +71,14 @@ export const _PanelTable = withInfo({
       <div>Panel Item</div>
       <div>Panel Item</div>
       <div>Panel Item</div>
+      <div>Panel Item</div>
+      <div>Panel Item</div>
+    </PanelTable>
+
+    <PanelTable headers={['Short', 'Longer heading name', '']}>
+      <div>One Row</div>
+      <div>One Row</div>
+      <div>One Row</div>
     </PanelTable>
 
     <PanelTable

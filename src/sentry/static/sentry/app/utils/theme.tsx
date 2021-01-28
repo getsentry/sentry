@@ -108,7 +108,7 @@ const aliases = {
   /**
    * Indicates that something is "active" or "selected"
    */
-  active: colors.pink300,
+  active: colors.purple300,
 
   /**
    * Indicates that something has "focus", which is different than "active" state as it is more temporal

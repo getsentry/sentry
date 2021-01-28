@@ -13,7 +13,7 @@ import EventView from 'app/utils/discover/eventView';
 import {uniqueId} from 'app/utils/guid';
 import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
 import IncidentRulesCreate from 'app/views/settings/incidentRules/create';
-import IssueEditor from 'app/views/settings/projectAlerts/issueEditor';
+import IssueRuleEditor from 'app/views/settings/projectAlerts/issueRuleEditor';
 
 import AlertTypeChooser from './alertTypeChooser';
 
@@ -104,7 +104,7 @@ class Create extends React.Component<Props, State> {
           )}
 
           {(!hasMetricAlerts || alertType === 'issue') && (
-            <IssueEditor {...this.props} project={project} />
+            <IssueRuleEditor {...this.props} project={project} />
           )}
 
           {hasMetricAlerts && alertType === 'metric' && (

@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from hashlib import sha256
 import hmac
 import logging

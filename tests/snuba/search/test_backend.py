@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import uuid
 
 from sentry.utils.compat import mock
@@ -21,7 +20,7 @@ from sentry.models import (
 )
 from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
 from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
-from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.snuba import Dataset, SENTRY_SNUBA_MAP, SnubaError
 
 
@@ -164,7 +163,9 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(event.group.organization, self.user)
         self.create_integration_external_issue(
-            group=event.group, integration=integration, key="APP-123",
+            group=event.group,
+            integration=integration,
+            key="APP-123",
         )
         return event.group
 
@@ -221,7 +222,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             sort_by=sort_by,
             date_from=date_from,
             date_to=date_to,
-            **kwargs
+            **kwargs,
         )
 
     def test_query(self):
@@ -1023,7 +1024,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 ["uniq", "group_id", "total"],
             ],
             having=[["last_seen", ">=", Any(int)]],
-            **common_args
+            **common_args,
         )
 
         self.make_query(search_filter_query="foo", sort_by="priority")
@@ -1037,7 +1038,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 ["uniq", "group_id", "total"],
             ],
             having=[],
-            **common_args
+            **common_args,
         )
 
         self.make_query(search_filter_query="times_seen:5 foo", sort_by="freq")
@@ -1046,7 +1047,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             orderby=["-times_seen", "group_id"],
             aggregations=[["count()", "", "times_seen"], ["uniq", "group_id", "total"]],
             having=[["times_seen", "=", 5]],
-            **common_args
+            **common_args,
         )
 
         self.make_query(search_filter_query="foo", sort_by="user")
@@ -1058,7 +1059,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 ["uniq", "tags[sentry:user]", "user_count"],
             ],
             having=[],
-            **common_args
+            **common_args,
         )
 
     def test_pre_and_post_filtering(self):
@@ -1363,6 +1364,82 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         results = self.make_query([self.project, self.project2], sort_by="user")
         assert list(results) == [self.group1, self.group2, self.group_p2]
 
+    def test_sort_trend(self):
+        start = self.group1.first_seen - timedelta(days=1)
+        end = before_now(days=1).replace(tzinfo=pytz.utc)
+        middle = start + ((end - start) / 2)
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group1"],
+                "event_id": "2" * 32,
+                "message": "something",
+                "timestamp": iso_format(self.base_datetime),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group1"],
+                "event_id": "3" * 32,
+                "message": "something",
+                "timestamp": iso_format(self.base_datetime),
+            },
+            project_id=self.project.id,
+        )
+
+        fewer_events_group = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group4"],
+                "event_id": "4" * 32,
+                "message": "something",
+                "timestamp": iso_format(middle - timedelta(days=1)),
+            },
+            project_id=self.project.id,
+        ).group
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group4"],
+                "event_id": "5" * 32,
+                "message": "something",
+                "timestamp": iso_format(middle - timedelta(days=1)),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group4"],
+                "event_id": "6" * 32,
+                "message": "something",
+                "timestamp": iso_format(self.base_datetime),
+            },
+            project_id=self.project.id,
+        )
+
+        no_before_group = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group5"],
+                "event_id": "3" * 32,
+                "message": "something",
+                "timestamp": iso_format(self.base_datetime),
+            },
+            project_id=self.project.id,
+        ).group
+        no_after_group = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group6"],
+                "event_id": "4" * 32,
+                "message": "something",
+                "timestamp": iso_format(middle - timedelta(days=1)),
+            },
+            project_id=self.project.id,
+        ).group
+
+        self.set_up_multi_project()
+        results = self.make_query([self.project], sort_by="trend", date_from=start, date_to=end)
+        assert results[:2] == [self.group1, fewer_events_group]
+        # These will be arbitrarily ordered since their trend values are all 0
+        assert set(results[2:]) == set([self.group2, no_before_group, no_after_group])
+
     def test_first_release_any_or_no_environments(self):
         # test scenarios for tickets:
         # SEN-571
@@ -1435,7 +1512,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        assert group_b_event_1.get_environment().name == u""  # has no environment
+        assert group_b_event_1.get_environment().name == ""  # has no environment
 
         group_b = group_b_event_1.group
 
@@ -1450,7 +1527,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        assert group_c_event_1.get_environment().name == u""  # has no environment
+        assert group_c_event_1.get_environment().name == ""  # has no environment
 
         group_c = group_c_event_1.group
 

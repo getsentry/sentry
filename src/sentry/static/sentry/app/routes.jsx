@@ -421,6 +421,16 @@ function routes() {
         <Route path=":filterType/" />
       </Route>
       <Route
+        name={t('Filters & Sampling')}
+        path="filters-and-sampling/"
+        componentPromise={() =>
+          import(
+            /* webpackChunkName: "ProjectFiltersAndSampling" */ 'app/views/settings/project/filtersAndSampling'
+          )
+        }
+        component={errorHandler(LazyLoad)}
+      />
+      <Route
         path="issue-grouping/"
         name={t('Issue Grouping')}
         componentPromise={() =>
@@ -1430,6 +1440,17 @@ function routes() {
                 import(/* webpackChunkName: "AlertsList" */ 'app/views/alerts/list')
               }
               component={errorHandler(LazyLoad)}
+            />
+
+            <Route
+              path="rules/details/:ruleId/"
+              name="Alert Rule Details"
+              component={errorHandler(LazyLoad)}
+              componentPromise={() =>
+                import(
+                  /* webpackChunkName: "AlertRulesDetails" */ 'app/views/alerts/rules/details'
+                )
+              }
             />
 
             <Route path="rules/">

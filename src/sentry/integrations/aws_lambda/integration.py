@@ -1,11 +1,9 @@
-from __future__ import absolute_import
-
 import logging
+import re
 import six
-import uuid
 
+from botocore.exceptions import ClientError
 from django.utils.translation import ugettext_lazy as _
-
 
 from sentry import options
 from sentry.api.serializers import serialize
@@ -17,14 +15,13 @@ from sentry.integrations import (
     FeatureDescription,
 )
 from sentry.integrations.serverless import ServerlessMixin
-from sentry.models import Project, OrganizationIntegration
+from sentry.models import Project, OrganizationIntegration, ProjectStatus
 from sentry.pipeline import PipelineView
 from sentry.utils.compat import map
 from sentry.utils import json
 
-from .client import gen_aws_client
+from .client import gen_aws_client, ConfigurationError
 from .utils import (
-    parse_arn,
     get_index_of_sentry_layer,
     get_version_of_arn,
     get_supported_functions,
@@ -34,12 +31,13 @@ from .utils import (
     enable_single_lambda,
     disable_single_lambda,
     get_dsn_for_project,
+    ALL_AWS_REGIONS,
 )
 
 logger = logging.getLogger("sentry.integrations.aws_lambda")
 
 DESCRIPTION = """
-The AWS Lambda integration will automatically instrument your Lambda functions without any code changes. All you need to do is run a CloudFormation stack that we provide to get started.
+The AWS Lambda integration will automatically instrument your Lambda functions without any code changes. All you need to do is run a CloudFormation stack that we provide to get started. Note, currently only Node runtimes are supported.
 """
 
 
@@ -70,14 +68,15 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
 
     @property
     def region(self):
-        return parse_arn(self.metadata["arn"])["region"]
+        return self.metadata["region"]
 
     @property
     def client(self):
         if not self._client:
-            arn = self.metadata["arn"]
+            region = self.metadata["region"]
+            account_number = self.metadata["account_number"]
             aws_external_id = self.metadata["aws_external_id"]
-            self._client = gen_aws_client(arn, aws_external_id)
+            self._client = gen_aws_client(account_number, region, aws_external_id)
         return self._client
 
     def get_one_lambda_function(self, name):
@@ -110,7 +109,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
             "runtime": function["Runtime"],
             "version": current_version,
             "outOfDate": out_of_date,
-            "enabled": current_version > -1,  # TODO: check env variables
+            "enabled": current_version > -1,
         }
 
     # ServerlessMixin interface
@@ -156,7 +155,8 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
             layers[sentry_layer_index] = layer_arn
 
         self.client.update_function_configuration(
-            FunctionName=target, Layers=layers,
+            FunctionName=target,
+            Layers=layers,
         )
         return self.get_serialized_lambda_function(target)
 
@@ -178,24 +178,27 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
         ]
 
     def build_integration(self, state):
-        arn = state["arn"]
+        region = state["region"]
+        account_number = state["account_number"]
         aws_external_id = state["aws_external_id"]
 
-        parsed_arn = parse_arn(arn)
-        account_id = parsed_arn["account"]
-        region = parsed_arn["region"]
+        org_client = gen_aws_client(
+            account_number, region, aws_external_id, service_name="organizations"
+        )
+        account = org_client.describe_account(AccountId=account_number)["Account"]
 
-        org_client = gen_aws_client(arn, aws_external_id, service_name="organizations")
-        account = org_client.describe_account(AccountId=account_id)["Account"]
+        integration_name = "{} {}".format(account["Name"], region)
 
-        integration_name = u"{} {}".format(account["Name"], region)
-
-        external_id = u"{}-{}".format(account_id, region)
+        external_id = "{}-{}".format(account_number, region)
 
         integration = {
             "name": integration_name,
             "external_id": external_id,
-            "metadata": {"arn": arn, "aws_external_id": aws_external_id},
+            "metadata": {
+                "account_number": account_number,
+                "region": region,
+                "aws_external_id": aws_external_id,
+            },
             "post_install_data": {"default_project_id": state["project_id"]},
         }
         return integration
@@ -209,16 +212,23 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
 
 class AwsLambdaProjectSelectPipelineView(PipelineView):
     def dispatch(self, request, pipeline):
-        # if we have the project_id, go to the next step
-        if "project_id" in request.GET:
-            pipeline.bind_state("project_id", request.GET["project_id"])
+        # if we have the projectId, go to the next step
+        if "projectId" in request.GET:
+            pipeline.bind_state("project_id", request.GET["projectId"])
             return pipeline.next_step()
 
         organization = pipeline.organization
-        # TODO: check status of project
-        projects = Project.objects.filter(organization=organization).order_by("id")
-        serialized_projects = map(lambda x: serialize(x, request.user), projects)
+        projects = Project.objects.filter(
+            organization=organization, status=ProjectStatus.VISIBLE
+        ).order_by("slug")
 
+        # if only one project, automatically use that
+        if len(projects) == 1:
+            pipeline.bind_state("skipped_project_select", True)
+            pipeline.bind_state("project_id", projects[0].id)
+            return pipeline.next_step()
+
+        serialized_projects = map(lambda x: serialize(x, request.user), projects)
         return self.render_react_view(
             request, "awsLambdaProjectSelect", {"projects": serialized_projects}
         )
@@ -226,61 +236,80 @@ class AwsLambdaProjectSelectPipelineView(PipelineView):
 
 class AwsLambdaCloudFormationPipelineView(PipelineView):
     def dispatch(self, request, pipeline):
-        if request.method == "POST":
-            # accept form data or json data
-            data = request.POST or json.loads(request.body)
+        curr_step = 0 if pipeline.fetch_state("skipped_project_select") else 1
+
+        def render_response(error=None):
+            template_url = options.get("aws-lambda.cloudformation-url")
+            context = {
+                "baseCloudformationUrl": "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review",
+                "templateUrl": template_url,
+                "stackName": "Sentry-Monitoring-Stack",
+                "regionList": ALL_AWS_REGIONS,
+                "accountNumber": pipeline.fetch_state("account_number"),
+                "region": pipeline.fetch_state("region"),
+                "error": error,
+                "initialStepNumber": curr_step,
+            }
+            return self.render_react_view(request, "awsLambdaCloudformation", context)
+
+        # form submit adds accountNumber to GET parameters
+        if "accountNumber" in request.GET:
+            data = request.GET
 
             # load parameters post request
-            arn = data["arn"]
+            account_number = data["accountNumber"]
+            region = data["region"]
             aws_external_id = data["awsExternalId"]
 
-            # TODO: add arn validation
-
-            pipeline.bind_state("arn", arn)
+            pipeline.bind_state("account_number", account_number)
+            pipeline.bind_state("region", region)
             pipeline.bind_state("aws_external_id", aws_external_id)
+
+            # now validate the arn works
+            try:
+                gen_aws_client(account_number, region, aws_external_id)
+            except ClientError:
+                return render_response(
+                    _("Please validate the Cloudformation stack was created successfully")
+                )
+            except ConfigurationError:
+                # if we have a configuration error, we should blow up the pipeline
+                raise
+            except Exception as e:
+                logger.error(
+                    "AwsLambdaCloudFormationPipelineView.unexpected_error",
+                    extra={"error": six.text_type(e)},
+                )
+                return render_response(_("Unkown errror"))
+
+            # if no error, continue
             return pipeline.next_step()
 
-        template_url = options.get("aws-lambda.cloudformation-url")
-
-        # let browser set external id from local storage so restarting
-        # the installation maintains the same external id
-        aws_external_id = request.GET.get("aws_external_id", uuid.uuid4())
-
-        cloudformation_url = (
-            "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?"
-            "stackName=Sentry-Monitoring-Stack-Filter&templateURL=%s&param_ExternalId=%s"
-            % (template_url, aws_external_id)
-        )
-
-        return self.render_react_view(
-            request,
-            "awsLambdaCloudformation",
-            {"cloudformationUrl": cloudformation_url, "awsExternalId": aws_external_id},
-        )
+        return render_response()
 
 
 class AwsLambdaListFunctionsPipelineView(PipelineView):
     def dispatch(self, request, pipeline):
-        # the previous pipeline step will have be POST and will reach this line here
-        # we need to check our state to determine what to do
-        if request.method == "POST" and pipeline.fetch_state("ready_for_enabled_lambdas_post"):
+        if request.method == "POST":
             # accept form data or json data
             data = request.POST or json.loads(request.body)
             pipeline.bind_state("enabled_lambdas", data)
             return pipeline.next_step()
 
-        # bind the state now so we are ready to accept the enabled_lambdas in the post pdy
-        pipeline.bind_state("ready_for_enabled_lambdas_post", True)
-
-        arn = pipeline.fetch_state("arn")
+        account_number = pipeline.fetch_state("account_number")
+        region = pipeline.fetch_state("region")
         aws_external_id = pipeline.fetch_state("aws_external_id")
 
-        lambda_client = gen_aws_client(arn, aws_external_id)
+        lambda_client = gen_aws_client(account_number, region, aws_external_id)
 
         lambda_functions = get_supported_functions(lambda_client)
 
+        curr_step = 2 if pipeline.fetch_state("skipped_project_select") else 3
+
         return self.render_react_view(
-            request, "awsLambdaFunctionSelect", {"lambdaFunctions": lambda_functions}
+            request,
+            "awsLambdaFunctionSelect",
+            {"lambdaFunctions": lambda_functions, "initialStepNumber": curr_step},
         )
 
 
@@ -291,7 +320,8 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
 
         organization = pipeline.organization
 
-        arn = pipeline.fetch_state("arn")
+        account_number = pipeline.fetch_state("account_number")
+        region = pipeline.fetch_state("region")
 
         project_id = pipeline.fetch_state("project_id")
         aws_external_id = pipeline.fetch_state("aws_external_id")
@@ -299,12 +329,13 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
 
         sentry_project_dsn = get_dsn_for_project(organization.id, project_id)
 
-        lambda_client = gen_aws_client(arn, aws_external_id)
+        lambda_client = gen_aws_client(account_number, region, aws_external_id)
 
         lambda_functions = get_supported_functions(lambda_client)
         lambda_functions.sort(key=lambda x: x["FunctionName"].lower())
 
         failures = []
+        success_count = 0
 
         for function in lambda_functions:
             name = function["FunctionName"]
@@ -316,14 +347,25 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
             layer_arn = get_latest_layer_for_function(function)
             try:
                 enable_single_lambda(lambda_client, function, sentry_project_dsn, layer_arn)
+                success_count += 1
             except Exception as e:
-                failures.append(function)
+                err_message = six.text_type(e)
+                match = re.search(
+                    "Layer version arn:aws:lambda:[^:]+:\d+:layer:([^:]+):\d+ does not exist",
+                    err_message,
+                )
+                if match:
+                    err_message = _("Invalid existing layer %s") % match[1]
+                else:
+                    err_message = _("Unkown Error")
+                failures.append({"name": function["FunctionName"], "error": err_message})
                 logger.info(
                     "update_function_configuration.error",
                     extra={
                         "organization_id": organization.id,
                         "lambda_name": name,
-                        "arn": arn,
+                        "account_number": account_number,
+                        "region": region,
                         "error": six.text_type(e),
                     },
                 )
@@ -332,7 +374,9 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
         # otherwise, finish
         if failures:
             return self.render_react_view(
-                request, "awsLambdaFailureDetails", {"lambdaFunctionFailures": failures}
+                request,
+                "awsLambdaFailureDetails",
+                {"lambdaFunctionFailures": failures, "successCount": success_count},
             )
         else:
             return pipeline.finish_pipeline()

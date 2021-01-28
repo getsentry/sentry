@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import responses
 from six.moves.urllib.parse import parse_qs
 
@@ -10,7 +8,7 @@ from sentry.models import OrganizationMember
 class VercelExtensionConfigurationTest(TestCase):
     @property
     def path(self):
-        return u"/extensions/vercel/configure/"
+        return "/extensions/vercel/configure/"
 
     def setUp(self):
         self.user = self.create_user()

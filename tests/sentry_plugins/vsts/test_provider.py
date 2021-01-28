@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import responses
 
 from exam import fixture
@@ -47,7 +45,7 @@ class VisualStudioRepositoryProviderPluginTest(PluginTestCase):
 
         assert res == [
             {
-                "patch_set": [{"path": u"/README.md", "type": "M"}],
+                "patch_set": [{"path": "/README.md", "type": "M"}],
                 "author_email": "max@sentry.io",
                 "author_name": "max bittker",
                 "message": "Updated README.md",

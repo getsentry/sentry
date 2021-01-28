@@ -13,7 +13,6 @@ import {IconPause, IconPlay, IconUser} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
-import theme from 'app/utils/theme';
 import withProjects from 'app/utils/withProjects';
 
 import SavedSearchTab from './savedSearchTab';
@@ -30,11 +29,13 @@ type Props = {
   projects: Array<Project>;
   onRealtimeChange: (realtime: boolean) => void;
   displayReprocessingTab: boolean;
+  queryCount?: number;
 } & React.ComponentProps<typeof SavedSearchTab>;
 
 function IssueListHeader({
   organization,
   query,
+  queryCount,
   queryCounts,
   orgSlug,
   projectIds,
@@ -127,14 +128,9 @@ function IssueListHeader({
                 {queryName}{' '}
                 {queryCounts[tabQuery] && (
                   <StyledQueryCount
+                    isTag
                     count={queryCounts[tabQuery].count}
                     max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
-                    backgroundColor={
-                      ((tabQuery === Query.NEEDS_REVIEW_OWNER ||
-                        tabQuery === Query.NEEDS_REVIEW) &&
-                        theme.yellow300) ||
-                      theme.gray100
-                    }
                   />
                 )}
               </Link>
@@ -147,6 +143,7 @@ function IssueListHeader({
             onSavedSearchSelect={onSavedSearchSelect}
             onSavedSearchDelete={onSavedSearchDelete}
             isActive={savedSearchTabActive}
+            queryCount={queryCount}
           />
         </Layout.HeaderNavTabs>
       </TabLayoutHeader>

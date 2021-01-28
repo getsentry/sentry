@@ -14,6 +14,8 @@ export const DISPLAY_TYPE_CHOICES = [
   {label: t('Area chart'), value: 'area'},
   {label: t('Bar chart'), value: 'bar'},
   {label: t('Line chart'), value: 'line'},
+  {label: t('Table results'), value: 'table'},
+  {label: t('World Map'), value: 'world_map'},
 ];
 
 export const INTERVAL_CHOICES = [
@@ -24,3 +26,5 @@ export const INTERVAL_CHOICES = [
   {label: t('1 Hour'), value: '1h'},
   {label: t('1 Day'), value: '1d'},
 ];
+
+export const DEFAULT_STATS_PERIOD = '24h';

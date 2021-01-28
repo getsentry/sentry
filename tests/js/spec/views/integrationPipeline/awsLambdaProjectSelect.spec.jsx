@@ -8,29 +8,25 @@ import AwsLambdaProjectSelect from 'app/views/integrationPipeline/awsLambdaProje
 describe('AwsLambdaProjectSelect', () => {
   let projects;
   let wrapper;
-  let windowReplaceMock;
+  let windowAssignMock;
   beforeEach(() => {
+    windowAssignMock = jest.fn();
+    window.location.assign = windowAssignMock;
     projects = [
       TestStubs.Project(),
       TestStubs.Project({id: '53', name: 'My Proj', slug: 'my-proj'}),
     ];
-    wrapper = mountWithTheme(
-      <AwsLambdaProjectSelect projects={projects} />,
-      TestStubs.routerContext()
-    );
-    windowReplaceMock = jest.fn();
-    window.location.replace = windowReplaceMock;
-    window.localStorage.setItem('AWS_EXTERNAL_ID', 'my_external_id');
+    wrapper = mountWithTheme(<AwsLambdaProjectSelect projects={projects} />);
   });
   it('submit project', () => {
     selectByValue(wrapper, '53', {name: 'projectId', control: true});
+    wrapper.find('StyledButton[aria-label="Next"]').simulate('click');
 
-    wrapper.find('form').simulate('submit');
     const {
       location: {origin},
     } = window;
-    expect(windowReplaceMock).toHaveBeenCalledWith(
-      `${origin}/extensions/aws_lambda/setup/?project_id=53&aws_external_id=my_external_id`
+    expect(windowAssignMock).toHaveBeenCalledWith(
+      `${origin}/extensions/aws_lambda/setup/?projectId=53`
     );
   });
 });

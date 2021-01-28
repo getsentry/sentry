@@ -126,7 +126,7 @@ class GroupActivity extends React.Component<Props, State> {
 
   render() {
     const {group, organization} = this.props;
-    const {activity: activities, count} = group;
+    const {activity: activities, count, id: groupId} = group;
     const groupCount = Number(count);
     const mostRecentActivity = getGroupMostRecentActivity(activities);
     const reprocessingStatus = getGroupReprocessingStatus(group, mostRecentActivity);
@@ -150,6 +150,7 @@ class GroupActivity extends React.Component<Props, State> {
             reprocessActivity={mostRecentActivity as GroupActivityReprocess}
             groupCount={groupCount}
             orgSlug={organization.slug}
+            groupId={groupId}
           />
         )}
         <div className="row">

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from exam import mock
 
 from sentry.models import Integration
@@ -23,7 +21,7 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
         self.login_as(self.user)
 
     def load_page(self, slug, configuration_tab=False):
-        url = u"/settings/{}/integrations/{}/".format(self.organization.slug, slug)
+        url = "/settings/{}/integrations/{}/".format(self.organization.slug, slug)
         if configuration_tab:
             url += "?tab=configurations"
         self.browser.get(url)
@@ -49,7 +47,7 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
 
         assert integration
         assert (
-            u"/settings/{}/integrations/{}/{}/".format(
+            "/settings/{}/integrations/{}/{}/".format(
                 self.organization.slug, self.provider.key, integration.id
             )
             in self.browser.driver.current_url
@@ -60,7 +58,7 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
             provider="slack",
             external_id="some_slack",
             name="Test Slack",
-            metadata={"domain_name": "slack-test.slack.com"},
+            metadata={"domain_name": "slack-test.slack.com", "installation_type": "born_as_bot"},
         )
 
         model.add_organization(self.organization, self.user)

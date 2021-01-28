@@ -15,13 +15,14 @@ import space from 'app/styles/space';
 import {GlobalSelection, Organization, Release, ReleaseProject} from 'app/types';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import {getAggregateAlias} from 'app/utils/discover/fields';
-import {getTermHelp} from 'app/views/performance/data';
+import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 import {
   getSessionTermDescription,
   SessionTerm,
   sessionTerm,
 } from 'app/views/releases/utils/sessionTerm';
 
+import {getReleaseNewIssuesUrl, getReleaseUnhandledIssuesUrl} from '../../utils';
 import {getReleaseEventView} from '../utils';
 
 type Props = {
@@ -67,7 +68,13 @@ function ReleaseStats({organization, release, project, location, selection}: Pro
       <div>
         <SectionHeading>{t('New Issues')}</SectionHeading>
         <div>
-          <Count value={newGroups} />
+          <Tooltip title={t('Open in Issues')}>
+            <GlobalSelectionLink
+              to={getReleaseNewIssuesUrl(organization.slug, project.id, version)}
+            >
+              <Count value={newGroups} />
+            </GlobalSelectionLink>
+          </Tooltip>
         </div>
       </div>
 
@@ -76,7 +83,7 @@ function ReleaseStats({organization, release, project, location, selection}: Pro
           {t('Apdex')}
           <QuestionTooltip
             position="top"
-            title={getTermHelp(organization, 'apdex')}
+            title={getTermHelp(organization, PERFORMANCE_TERM.APDEX)}
             size="sm"
           />
         </SectionHeading>
@@ -140,7 +147,13 @@ function ReleaseStats({organization, release, project, location, selection}: Pro
         </SectionHeading>
         <div>
           {hasHealthData ? (
-            <Count value={sessionsCrashed} />
+            <Tooltip title={t('Open in Issues')}>
+              <GlobalSelectionLink
+                to={getReleaseUnhandledIssuesUrl(organization.slug, project.id, version)}
+              >
+                <Count value={sessionsCrashed} />
+              </GlobalSelectionLink>
+            </Tooltip>
           ) : (
             <Tooltip title={t('This view is only available with release health data.')}>
               {'\u2014'}

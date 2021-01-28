@@ -1,10 +1,10 @@
-from __future__ import absolute_import
-
-
+from botocore.exceptions import ClientError
 from django.http import HttpResponse
+from six.moves.urllib.parse import urlencode
 
 from sentry.api.serializers import serialize
 from sentry.integrations.aws_lambda import AwsLambdaIntegrationProvider
+from sentry.integrations.aws_lambda.utils import ALL_AWS_REGIONS
 from sentry.models import (
     Integration,
     OrganizationIntegration,
@@ -19,8 +19,11 @@ from sentry.pipeline import PipelineView
 
 arn = (
     "arn:aws:cloudformation:us-east-2:599817902985:stack/"
-    "Sentry-Monitoring-Stack-Filter/e42083d0-3e3f-11eb-b66a-0ac9b5db7f30"
+    "Sentry-Monitoring-Stack/e42083d0-3e3f-11eb-b66a-0ac9b5db7f30"
 )
+
+account_number = "599817902985"
+region = "us-east-2"
 
 
 class AwsLambdaIntegrationTest(IntegrationTestCase):
@@ -28,8 +31,8 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
 
     def setUp(self):
         super(AwsLambdaIntegrationTest, self).setUp()
-        self.projectA = self.create_project(organization=self.organization)
-        self.projectB = self.create_project(organization=self.organization)
+        self.projectA = self.create_project(organization=self.organization, slug="projA")
+        self.projectB = self.create_project(organization=self.organization, slug="projB")
 
     @patch.object(PipelineView, "render_react_view", return_value=HttpResponse())
     def test_project_select(self, mock_react_view):
@@ -38,6 +41,65 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
         serialized_projects = map(lambda x: serialize(x, self.user), [self.projectA, self.projectB])
         mock_react_view.assert_called_with(
             ANY, "awsLambdaProjectSelect", {"projects": serialized_projects}
+        )
+
+    @patch.object(PipelineView, "render_react_view", return_value=HttpResponse())
+    def test_one_project(self, mock_react_view):
+        self.projectB.delete()
+        resp = self.client.get(self.setup_path)
+        assert resp.status_code == 200
+        mock_react_view.assert_called_with(ANY, "awsLambdaCloudformation", ANY)
+
+    @patch.object(PipelineView, "render_react_view", return_value=HttpResponse())
+    def test_render_cloudformation_view(self, mock_react_view):
+        self.pipeline.state.step_index = 1
+        resp = self.client.get(self.setup_path)
+        assert resp.status_code == 200
+        mock_react_view.assert_called_with(
+            ANY,
+            "awsLambdaCloudformation",
+            {
+                "baseCloudformationUrl": "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review",
+                "templateUrl": "https://example.com/file.json",
+                "stackName": "Sentry-Monitoring-Stack",
+                "regionList": ALL_AWS_REGIONS,
+                "region": None,
+                "accountNumber": None,
+                "error": None,
+                "initialStepNumber": 1,
+            },
+        )
+
+    @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
+    @patch.object(PipelineView, "render_react_view", return_value=HttpResponse())
+    def test_set_valid_arn(self, mock_react_view, mock_gen_aws_client):
+        self.pipeline.state.step_index = 1
+        data = {"region": region, "accountNumber": account_number, "awsExternalId": "my-id"}
+        resp = self.client.get(self.setup_path + "?" + urlencode(data))
+        assert resp.status_code == 200
+        mock_react_view.assert_called_with(ANY, "awsLambdaFunctionSelect", ANY)
+
+    @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
+    @patch.object(PipelineView, "render_react_view", return_value=HttpResponse())
+    def test_set_arn_with_error(self, mock_react_view, mock_gen_aws_client):
+        self.pipeline.state.step_index = 1
+        mock_gen_aws_client.side_effect = ClientError({"Error": {}}, "assume_role")
+        data = {"region": region, "accountNumber": account_number, "awsExternalId": "my-id"}
+        resp = self.client.get(self.setup_path + "?" + urlencode(data))
+        assert resp.status_code == 200
+        mock_react_view.assert_called_with(
+            ANY,
+            "awsLambdaCloudformation",
+            {
+                "baseCloudformationUrl": "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review",
+                "templateUrl": "https://example.com/file.json",
+                "stackName": "Sentry-Monitoring-Stack",
+                "regionList": ALL_AWS_REGIONS,
+                "region": region,
+                "accountNumber": account_number,
+                "error": "Please validate the Cloudformation stack was created successfully",
+                "initialStepNumber": 1,
+            },
         )
 
     @patch("sentry.integrations.aws_lambda.integration.get_supported_functions")
@@ -52,7 +114,8 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
         aws_external_id = "12-323"
         self.pipeline.state.step_index = 2
         self.pipeline.state.data = {
-            "arn": arn,
+            "region": region,
+            "accountNumber": account_number,
             "aws_external_id": aws_external_id,
             "project_id": self.projectA.id,
         }
@@ -65,7 +128,8 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
                 "lambdaFunctions": [
                     {"FunctionName": "lambdaA", "Runtime": "nodejs12.x"},
                     {"FunctionName": "lambdaB", "Runtime": "nodejs10.x"},
-                ]
+                ],
+                "initialStepNumber": 3,
             },
         )
 
@@ -93,10 +157,10 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
         aws_external_id = "12-323"
         self.pipeline.state.step_index = 2
         self.pipeline.state.data = {
-            "arn": arn,
+            "region": region,
+            "account_number": account_number,
             "aws_external_id": aws_external_id,
             "project_id": self.projectA.id,
-            "ready_for_enabled_lambdas_post": True,
         }
 
         sentry_project_dsn = ProjectKey.get_default(project=self.projectA).get_dsn(public=True)
@@ -116,7 +180,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
             Layers=["arn:aws:lambda:us-east-2:1234:layer:my-layer:3"],
             Environment={
                 "Variables": {
-                    "NODE_OPTIONS": "-r @sentry/serverless/dist/auto",
+                    "NODE_OPTIONS": "-r @sentry/serverless/dist/awslambda-auto",
                     "SENTRY_DSN": sentry_project_dsn,
                     "SENTRY_TRACES_SAMPLE_RATE": "1.0",
                 }
@@ -126,7 +190,11 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
         integration = Integration.objects.get(provider=self.provider.key)
         assert integration.name == "my_name us-east-2"
         assert integration.external_id == "599817902985-us-east-2"
-        assert integration.metadata == {"arn": arn, "aws_external_id": aws_external_id}
+        assert integration.metadata == {
+            "region": region,
+            "account_number": account_number,
+            "aws_external_id": aws_external_id,
+        }
         assert OrganizationIntegration.objects.filter(
             integration=integration, organization=self.organization
         )

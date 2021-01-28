@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 
 from sentry.nodestore.bigtable.backend import BigtableNodeStorage
@@ -91,43 +89,6 @@ def test_get(ns, compression, expected_prefix):
 
     raw_data = ns.connection.read_row("node_id").cells["x"][b"0"][0].value
     assert raw_data.startswith(expected_prefix)
-
-
-def test_get_multi(ns):
-    nodes = [("a" * 32, {"foo": "a"}), ("b" * 32, {"foo": "b"})]
-
-    ns.set(nodes[0][0], nodes[0][1])
-    ns.set(nodes[1][0], nodes[1][1])
-
-    result = ns.get_multi([nodes[0][0], nodes[1][0]])
-    assert result == dict((n[0], n[1]) for n in nodes)
-
-
-def test_set(ns):
-    node_id = "d2502ebbd7df41ceba8d3275595cac33"
-    data = {"foo": "bar"}
-    ns.set(node_id, data)
-    assert ns.get(node_id) == data
-
-
-def test_delete(ns):
-    node_id = "d2502ebbd7df41ceba8d3275595cac33"
-    data = {"foo": "bar"}
-    ns.set(node_id, data)
-    assert ns.get(node_id) == data
-    ns.delete(node_id)
-    assert not ns.get(node_id)
-
-
-def test_delete_multi(ns):
-    nodes = [("node_1", {"foo": "a"}), ("node_2", {"foo": "b"})]
-
-    for n in nodes:
-        ns.set(n[0], n[1])
-
-    ns.delete_multi([nodes[0][0], nodes[1][0]])
-    assert not ns.get(nodes[0][0])
-    assert not ns.get(nodes[1][0])
 
 
 def test_cache(ns):

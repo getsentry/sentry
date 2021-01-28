@@ -18,8 +18,6 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {DashboardDetails, Widget} from './types';
 import WidgetCard from './widgetCard';
 
-const GHOST_WIDGET_OFFSET = 20;
-
 type Props = {
   api: Client;
   organization: Organization;
@@ -38,11 +36,13 @@ type State = {
   draggingTargetIndex: undefined | number;
   top: undefined | number;
   left: undefined | number;
+  ghostLeftOffset: number;
+  ghostTopOffset: number;
   widgets: undefined | Widget[];
 };
 
 class Dashboard extends React.Component<Props, State> {
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
 
     // Create a DOM node that exists outside the DOM hierarchy of this component.
@@ -63,6 +63,8 @@ class Dashboard extends React.Component<Props, State> {
     isDragging: false,
     top: undefined,
     left: undefined,
+    ghostLeftOffset: 0,
+    ghostTopOffset: 0,
     widgets: undefined,
   };
 
@@ -207,33 +209,29 @@ class Dashboard extends React.Component<Props, State> {
     );
 
     const widgetWrapper = widgetWrappers[index];
-
     const rects = widgetWrapper.getBoundingClientRect();
+    let {ghostLeftOffset, ghostTopOffset} = this.state;
 
     if (this.dragGhostRef.current) {
       const ghostDOM = this.dragGhostRef.current;
 
       // create the ghost widget
-
       const newClone = widgetWrapper.cloneNode(true) as HTMLDivElement;
       newClone.removeAttribute('data-component');
 
-      const iconContainer = newClone.querySelector('[data-component="icon-container"]');
-      if (iconContainer && iconContainer.parentNode) {
-        iconContainer.parentNode.removeChild(iconContainer);
-      }
+      const iconContainer = widgetWrapper.querySelector<HTMLDivElement>(
+        '[data-component="icon-container"]'
+      );
+      ghostLeftOffset = iconContainer ? iconContainer.offsetLeft : 0;
+      ghostTopOffset = iconContainer ? iconContainer.offsetTop : 0;
 
       newClone.style.width = `${rects.width}px`;
       newClone.style.height = `${rects.height}px`;
 
       ghostDOM.appendChild(newClone);
 
-      ghostDOM.style.left = `${
-        getPointerPosition(event, 'pageX') - GHOST_WIDGET_OFFSET
-      }px`;
-      ghostDOM.style.top = `${
-        getPointerPosition(event, 'pageY') - GHOST_WIDGET_OFFSET
-      }px`;
+      ghostDOM.style.left = `${getPointerPosition(event, 'pageX') - ghostLeftOffset}px`;
+      ghostDOM.style.top = `${getPointerPosition(event, 'pageY') - ghostTopOffset}px`;
     }
 
     this.setState({
@@ -243,6 +241,8 @@ class Dashboard extends React.Component<Props, State> {
       top: getPointerPosition(event, 'pageY'),
       left: getPointerPosition(event, 'pageX'),
       widgets: this.shallowCloneWidgets(),
+      ghostLeftOffset,
+      ghostTopOffset,
     });
   };
 
@@ -258,16 +258,18 @@ class Dashboard extends React.Component<Props, State> {
 
     event.preventDefault();
     event.stopPropagation();
+    const {
+      ghostLeftOffset,
+      ghostTopOffset,
+      draggingIndex,
+      draggingTargetIndex,
+    } = this.state;
 
     if (this.dragGhostRef.current) {
       // move the ghost box
       const ghostDOM = this.dragGhostRef.current;
-      ghostDOM.style.left = `${
-        getPointerPosition(event, 'pageX') - GHOST_WIDGET_OFFSET
-      }px`;
-      ghostDOM.style.top = `${
-        getPointerPosition(event, 'pageY') - GHOST_WIDGET_OFFSET
-      }px`;
+      ghostDOM.style.left = `${getPointerPosition(event, 'pageX') - ghostLeftOffset}px`;
+      ghostDOM.style.top = `${getPointerPosition(event, 'pageY') - ghostTopOffset}px`;
     }
 
     const widgetWrappers = document.querySelectorAll<HTMLDivElement>(
@@ -289,9 +291,9 @@ class Dashboard extends React.Component<Props, State> {
       return topStart <= top && top <= topEnd && leftStart <= left && left <= leftEnd;
     });
 
-    if (targetIndex >= 0 && targetIndex !== this.state.draggingTargetIndex) {
+    if (targetIndex >= 0 && targetIndex !== draggingTargetIndex) {
       const nextWidgets = this.shallowCloneWidgets();
-      const removed = nextWidgets.splice(this.state.draggingIndex, 1);
+      const removed = nextWidgets.splice(draggingIndex, 1);
       nextWidgets.splice(targetIndex, 0, removed[0]);
 
       this.setState({draggingTargetIndex: targetIndex, widgets: nextWidgets});
@@ -337,6 +339,8 @@ class Dashboard extends React.Component<Props, State> {
       top: undefined,
       draggingIndex: undefined,
       draggingTargetIndex: undefined,
+      ghostTopOffset: 0,
+      ghostLeftOffset: 0,
       widgets: undefined,
     });
   };
@@ -365,11 +369,11 @@ class Dashboard extends React.Component<Props, State> {
     if (!this.portal) {
       return null;
     }
+    const {ghostLeftOffset, ghostTopOffset} = this.state;
 
-    const top =
-      typeof this.state.top === 'number' ? this.state.top - GHOST_WIDGET_OFFSET : 0;
+    const top = typeof this.state.top === 'number' ? this.state.top - ghostTopOffset : 0;
     const left =
-      typeof this.state.left === 'number' ? this.state.left - GHOST_WIDGET_OFFSET : 0;
+      typeof this.state.left === 'number' ? this.state.left - ghostLeftOffset : 0;
 
     const ghost = (
       <WidgetGhost
@@ -395,7 +399,11 @@ class Dashboard extends React.Component<Props, State> {
         {widgets.map((widget, i) => this.renderWidget(widget, i))}
         {isEditing && (
           <WidgetWrapper key="add">
-            <AddWidgetWrapper key="add" onClick={this.handleStartAdd}>
+            <AddWidgetWrapper
+              key="add"
+              data-test-id="widget-add"
+              onClick={this.handleStartAdd}
+            >
               <IconAdd size="lg" isCircled color="inactive" />
             </AddWidgetWrapper>
           </WidgetWrapper>
@@ -420,6 +428,8 @@ const WidgetContainer = styled('div')`
 
 const WidgetWrapper = styled('div')`
   position: relative;
+  /* Min-width prevents grid items from stretching the grid */
+  min-width: 200px;
 `;
 
 const AddWidgetWrapper = styled('a')`

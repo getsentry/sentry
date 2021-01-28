@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import click
 import logging
 import os
@@ -257,8 +255,7 @@ def configure_structlog():
     lvl = os.environ.get("SENTRY_LOG_LEVEL")
 
     if lvl:
-        levelNames = logging._levelNames if not six.PY3 else logging._nameToLevel
-        if lvl not in levelNames:
+        if lvl not in logging._nameToLevel:
             raise AttributeError("%s is not a valid logging level." % lvl)
 
     settings.LOGGING["root"].update({"level": lvl or settings.LOGGING["default_level"]})
@@ -271,6 +268,22 @@ def configure_structlog():
                 raise KeyError("%s is not a defined logger." % logger)
 
     logging.config.dictConfig(settings.LOGGING)
+
+
+def show_big_error(message):
+    if isinstance(message, six.string_types):
+        lines = message.strip().splitlines()
+    else:
+        lines = message
+    maxline = max(map(len, lines))
+    click.echo("", err=True)
+    click.secho("!!!%s!!!" % ("!" * min(maxline, 80),), err=True, fg="red")
+    click.secho("!! %s !!" % "".center(maxline), err=True, fg="red")
+    for line in lines:
+        click.secho("!! %s !!" % line.center(maxline), err=True, fg="red")
+    click.secho("!! %s !!" % "".center(maxline), err=True, fg="red")
+    click.secho("!!!%s!!!" % ("!" * min(maxline, 80),), err=True, fg="red")
+    click.echo("", err=True)
 
 
 def initialize_app(config, skip_service_validation=False):
@@ -323,7 +336,7 @@ def initialize_app(config, skip_service_validation=False):
 
     for key in settings.CACHES:
         if not hasattr(settings.CACHES[key], "VERSION"):
-            settings.CACHES[key]["VERSION"] = 2 if six.PY3 else 1
+            settings.CACHES[key]["VERSION"] = 2
 
     settings.ASSET_VERSION = get_asset_version(settings)
     settings.STATIC_URL = settings.STATIC_URL.format(version=settings.ASSET_VERSION)
@@ -399,9 +412,7 @@ def setup_services(validate=True):
             except AttributeError as exc:
                 reraise_as(
                     ConfigurationError(
-                        u"{} service failed to call validate()\n{}".format(
-                            service.__name__, six.text_type(exc)
-                        )
+                        f"{service.__name__} service failed to call validate()\n{six.text_type(exc)}"
                     )
                 )
         try:
@@ -410,9 +421,7 @@ def setup_services(validate=True):
             if not hasattr(service, "setup") or not callable(service.setup):
                 reraise_as(
                     ConfigurationError(
-                        u"{} service failed to call setup()\n{}".format(
-                            service.__name__, six.text_type(exc)
-                        )
+                        f"{service.__name__} service failed to call setup()\n{six.text_type(exc)}"
                     )
                 )
             raise
@@ -473,22 +482,6 @@ def bind_cache_to_option_store():
     from sentry.options import default_store
 
     default_store.cache = default_cache
-
-
-def show_big_error(message):
-    if isinstance(message, six.string_types):
-        lines = message.strip().splitlines()
-    else:
-        lines = message
-    maxline = max(map(len, lines))
-    click.echo("", err=True)
-    click.secho("!!!%s!!!" % ("!" * min(maxline, 80),), err=True, fg="red")
-    click.secho("!! %s !!" % "".center(maxline), err=True, fg="red")
-    for line in lines:
-        click.secho("!! %s !!" % line.center(maxline), err=True, fg="red")
-    click.secho("!! %s !!" % "".center(maxline), err=True, fg="red")
-    click.secho("!!!%s!!!" % ("!" * min(maxline, 80),), err=True, fg="red")
-    click.echo("", err=True)
 
 
 def apply_legacy_settings(settings):

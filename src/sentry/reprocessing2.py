@@ -76,7 +76,6 @@ instead of group deletion is:
 * Mark the group as deleted in Redis.
 * All reprocessed events are "just" inserted over the old ones.
 """
-from __future__ import absolute_import
 
 import hashlib
 import logging
@@ -86,15 +85,16 @@ import six
 
 from django.conf import settings
 
-from sentry import nodestore, features, eventstore
+from sentry import nodestore, features, eventstore, options, models
+from sentry.eventstore.models import Event
 from sentry.attachments import CachedAttachment, attachment_cache
-from sentry import models
 from sentry.utils import snuba
-from sentry.utils.safe import set_path, get_path
 from sentry.utils.cache import cache_key_for_event
+from sentry.utils.safe import set_path, get_path
 from sentry.utils.redis import redis_clusters
 from sentry.eventstore.processing import event_processing_store
 from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
+from sentry.eventstore.processing.base import _get_unprocessed_key
 
 logger = logging.getLogger("sentry.reprocessing")
 
@@ -106,9 +106,7 @@ GROUP_MODELS_TO_MIGRATE = DIRECT_GROUP_RELATED_MODELS + (models.Activity,)
 
 
 def _generate_unprocessed_event_node_id(project_id, event_id):
-    return hashlib.md5(
-        u"{}:{}:unprocessed".format(project_id, event_id).encode("utf-8")
-    ).hexdigest()
+    return hashlib.md5("{}:{}:unprocessed".format(project_id, event_id).encode("utf-8")).hexdigest()
 
 
 def save_unprocessed_event(project, event_id):
@@ -133,21 +131,43 @@ def save_unprocessed_event(project, event_id):
         nodestore.set(node_id, data)
 
 
+def _should_capture_nodestore_stats(event_id):
+    """
+    Computes a sample rate consistent per-event ID.
+
+    event IDs are assumed to be random, so this is like random sampling but
+    gives the same value for the same event ID.
+    """
+
+    try:
+        assert event_id
+        rate = options.get("store.nodestore-stats-sample-rate") or 0
+        return (int(event_id, 16) % 10000) < (rate * 10000)
+    except Exception:
+        logger.exception("nodestore-stats.error")
+        return False
+
+
+def spawn_capture_nodestore_stats(cache_key, project_id, event_id):
+    if not _should_capture_nodestore_stats(event_id):
+        event_processing_store.delete_by_key(_get_unprocessed_key(cache_key))
+        return
+
+    from sentry.tasks.reprocessing2 import capture_nodestore_stats
+
+    capture_nodestore_stats.delay(cache_key=cache_key, project_id=project_id, event_id=event_id)
+
+
 def backup_unprocessed_event(project, data):
     """
     Backup unprocessed event payload into redis. Only call if event should be
     able to be reprocessed.
     """
 
-    if not features.has("organizations:reprocessing-v2", project.organization, actor=None):
-        return
-
-    event_processing_store.store(data, unprocessed=True)
-
-
-def delete_unprocessed_events(project_id, event_ids):
-    node_ids = [_generate_unprocessed_event_node_id(project_id, event_id) for event_id in event_ids]
-    nodestore.delete_multi(node_ids)
+    if features.has(
+        "organizations:reprocessing-v2", project.organization, actor=None
+    ) or _should_capture_nodestore_stats(data.get("event_id")):
+        event_processing_store.store(dict(data), unprocessed=True)
 
 
 def reprocess_event(project_id, event_id, start_time):
@@ -155,14 +175,12 @@ def reprocess_event(project_id, event_id, start_time):
     from sentry.tasks.store import preprocess_event_from_reprocessing
     from sentry.ingest.ingest_consumer import CACHE_TIMEOUT
 
-    # Take unprocessed data from old event and save it as unprocessed data
-    # under a new event ID. The second step happens in pre-process. We could
-    # save the "original event ID" instead and get away with writing less to
-    # nodestore, but doing it this way makes the logic slightly simpler.
-    node_id = _generate_unprocessed_event_node_id(project_id=project_id, event_id=event_id)
-
     with sentry_sdk.start_span(op="reprocess_events.nodestore.get"):
-        data = nodestore.get(node_id)
+        node_id = Event.generate_node_id(project_id, event_id)
+        data = nodestore.get(node_id, subkey="unprocessed")
+        if data is None:
+            node_id = _generate_unprocessed_event_node_id(project_id=project_id, event_id=event_id)
+            data = nodestore.get(node_id)
 
     with sentry_sdk.start_span(op="reprocess_events.eventstore.get"):
         event = eventstore.get_event_by_id(project_id, event_id)
@@ -192,9 +210,8 @@ def reprocess_event(project_id, event_id, start_time):
     cache_key = event_processing_store.store(data)
 
     # Step 2: Copy attachments into attachment cache
-    queryset = models.EventAttachment.objects.filter(
-        project_id=project_id, event_id=event_id
-    ).select_related("file")
+    queryset = models.EventAttachment.objects.filter(project_id=project_id, event_id=event_id)
+    files = {f.id: f for f in models.File.objects.filter(id__in=[ea.file_id for ea in queryset])}
 
     attachment_objects = []
 
@@ -205,6 +222,7 @@ def reprocess_event(project_id, event_id, start_time):
                 _copy_attachment_into_cache(
                     attachment_id=attachment_id,
                     attachment=attachment,
+                    file=files[attachment.file_id],
                     cache_key=cache_key,
                     cache_timeout=CACHE_TIMEOUT,
                 )
@@ -219,9 +237,8 @@ def reprocess_event(project_id, event_id, start_time):
     )
 
 
-def _copy_attachment_into_cache(attachment_id, attachment, cache_key, cache_timeout):
-    fp = attachment.file.getfile()
-    chunk = None
+def _copy_attachment_into_cache(attachment_id, attachment, file, cache_key, cache_timeout):
+    fp = file.getfile()
     chunk_index = 0
     size = 0
     while True:
@@ -240,7 +257,7 @@ def _copy_attachment_into_cache(attachment_id, attachment, cache_key, cache_time
         )
         chunk_index += 1
 
-    assert size == attachment.file.size
+    assert size == file.size
 
     return CachedAttachment(
         key=cache_key,
@@ -249,7 +266,7 @@ def _copy_attachment_into_cache(attachment_id, attachment, cache_key, cache_time
         # XXX: Not part of eventattachment model, but not strictly
         # necessary for processing
         content_type=None,
-        type=attachment.file.type,
+        type=file.type,
         chunks=chunk_index,
         size=size,
     )
@@ -291,7 +308,9 @@ def mark_event_reprocessed(data):
         finish_reprocessing.delay(project_id=data["project"], group_id=group_id)
 
 
-def start_group_reprocessing(project_id, group_id, max_events=None, acting_user_id=None):
+def start_group_reprocessing(
+    project_id, group_id, remaining_events, max_events=None, acting_user_id=None
+):
     from django.db import transaction
 
     with transaction.atomic():
@@ -319,8 +338,15 @@ def start_group_reprocessing(project_id, group_id, max_events=None, acting_user_
         del group
         new_group.status = original_status
         new_group.short_id = original_short_id
-        # this will be incremented by the events that are reprocessed
-        new_group.times_seen = 0
+
+        if remaining_events == "keep":
+            # this will be incremented by the events that are reprocessed
+            new_group.times_seen -= max_events
+        elif remaining_events == "delete":
+            new_group.times_seen = 0
+        else:
+            raise ValueError(remaining_events)
+
         new_group.save()
 
         # This migrates all models that are associated with a group but not

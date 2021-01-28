@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry import options
 
 from sentry.models import Project, ProjectKey
@@ -9,6 +7,24 @@ from sentry.utils.compat import filter, map
 SUPPORTED_RUNTIMES = ["nodejs12.x", "nodejs10.x"]
 
 DEFAULT_NUM_RETRIES = 3
+
+ALL_AWS_REGIONS = [
+    "us-east-1",
+    "us-east-2",
+    "us-west-1",
+    "us-west-2",
+    "ap-south-1",
+    "ap-southeast-1",
+    "ap-southeast-2",
+    "ap-northeast-1",
+    "ap-northeast-2",
+    "ca-central-1",
+    "eu-central-1",
+    "eu-west-1",
+    "eu-west-2",
+    "eu-west-3",
+    "sa-east-1",
+]
 
 
 # Taken from: https://gist.github.com/gene1wood/5299969edc4ef21d8efcfea52158dd40
@@ -32,11 +48,11 @@ def parse_arn(arn):
 
 
 def _get_aws_node_arn(region):
-    return u"arn:aws:lambda:{}:{}:layer:{}:{}".format(
+    return "arn:aws:lambda:{}:{}:layer:{}:{}".format(
         region,
-        options.get("aws-lambda.host-account-id"),
-        options.get("aws-lambda.node-layer-name"),
-        options.get("aws-lambda.node-layer-version"),
+        options.get("aws-lambda.account-number"),
+        options.get("aws-lambda.node.layer-name"),
+        options.get("aws-lambda.node.layer-version"),
     )
 
 
@@ -71,7 +87,7 @@ def get_latest_layer_for_function(function):
 
 def get_latest_layer_version(runtime):
     if runtime.startswith("nodejs"):
-        return int(options.get("aws-lambda.node-layer-version"))
+        return int(options.get("aws-lambda.node.layer-version"))
     # update when we can handle other runtimes like Python
     raise Exception("Unsupported runtime")
 
@@ -99,7 +115,10 @@ def get_supported_functions(lambda_client):
     for page in response_iterator:
         functions += page["Functions"]
 
-    return filter(lambda x: x.get("Runtime") in SUPPORTED_RUNTIMES, functions,)
+    return filter(
+        lambda x: x.get("Runtime") in SUPPORTED_RUNTIMES,
+        functions,
+    )
 
 
 def get_dsn_for_project(organization_id, project_id):
@@ -120,7 +139,7 @@ def enable_single_lambda(lambda_client, function, sentry_project_dsn, layer_arn,
     env_variables = function.get("Environment", {}).get("Variables", {})
     env_variables.update(
         {
-            "NODE_OPTIONS": "-r @sentry/serverless/dist/auto",
+            "NODE_OPTIONS": "-r @sentry/serverless/dist/awslambda-auto",
             "SENTRY_DSN": sentry_project_dsn,
             "SENTRY_TRACES_SAMPLE_RATE": "1.0",
         }
@@ -154,7 +173,10 @@ def disable_single_lambda(lambda_client, function, layer_arn):
             del env_variables[env_name]
 
     return update_lambda_with_retries(
-        lambda_client, FunctionName=name, Layers=layers, Environment={"Variables": env_variables},
+        lambda_client,
+        FunctionName=name,
+        Layers=layers,
+        Environment={"Variables": env_variables},
     )
 
 

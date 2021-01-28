@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.constants import ObjectStatus
 from sentry.models import Repository
 from sentry.shared_integrations.exceptions import ApiError
@@ -30,6 +28,7 @@ class RepositoryMixin(object):
         filepath: file from the stacktrace (string)
         branch: commitsha or default_branch (string)
         """
+        filepath = filepath.lstrip("/")
         try:
             self.get_client().check_file(repo, filepath, branch)
         except ApiError as e:

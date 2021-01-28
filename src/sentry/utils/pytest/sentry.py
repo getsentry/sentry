@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.utils.compat import mock
 import os
 from hashlib import md5
@@ -133,9 +131,10 @@ def pytest_configure(config):
             "msteams.client-secret": "msteams-client-secret",
             "aws-lambda.access-key-id": "aws-key-id",
             "aws-lambda.secret-access-key": "aws-secret-access-key",
-            "aws-lambda.node-layer-name": "my-layer",
-            "aws-lambda.node-layer-version": "3",
-            "aws-lambda.host-account-id": "1234",
+            "aws-lambda.cloudformation-url": "https://example.com/file.json",
+            "aws-lambda.account-number": "1234",
+            "aws-lambda.node.layer-name": "my-layer",
+            "aws-lambda.node.layer-version": "3",
         }
     )
 

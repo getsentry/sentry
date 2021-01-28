@@ -1,9 +1,13 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PlatformIcon from 'platformicons';
+import {PlatformIcon} from 'platformicons';
 
 import Line from 'app/components/events/interfaces/frame/line';
-import {getImageRange, parseAddress} from 'app/components/events/interfaces/utils';
+import {
+  getImageRange,
+  parseAddress,
+  stackTracePlatformIcon,
+} from 'app/components/events/interfaces/utils';
 import {t} from 'app/locale';
 import {Frame, PlatformType} from 'app/types';
 import {Event} from 'app/types/event';
@@ -250,7 +254,7 @@ export default class StacktraceContent extends React.Component<Props, State> {
     return (
       <Wrapper className={className}>
         <StyledPlatformIcon
-          platform={platform}
+          platform={stackTracePlatformIcon(platform, data.frames)}
           size="20px"
           style={{borderRadius: '3px 0 0 3px'}}
         />

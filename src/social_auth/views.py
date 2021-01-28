@@ -5,7 +5,6 @@ Notes:
       on third party providers that (if using POST) won't be sending csrf
       token back.
 """
-from __future__ import absolute_import
 
 import six
 
@@ -76,7 +75,7 @@ def complete(request, backend, *args, **kwargs):
         messages.add_message(
             request,
             messages.SUCCESS,
-            u"You have linked your account with {}.".format(
+            "You have linked your account with {}.".format(
                 settings.AUTH_PROVIDER_LABELS.get(backend_name, backend_name)
             ),
         )

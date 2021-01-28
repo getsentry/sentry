@@ -1,16 +1,14 @@
-from __future__ import absolute_import, print_function
-
-import six
 import logging
 import sentry_sdk
-import random
 
-from sentry import features, options
-from sentry.utils.cache import cache
+from sentry import features
+from sentry.app import locks
 from sentry.exceptions import PluginError
 from sentry.signals import event_processed, issue_unignored
 from sentry.tasks.base import instrumented_task
-from sentry.utils import metrics, json
+from sentry.utils import metrics
+from sentry.utils.cache import cache
+from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_project, bind_organization_context
 
@@ -20,7 +18,7 @@ logger = logging.getLogger("sentry")
 def _get_service_hooks(project_id):
     from sentry.models import ServiceHook
 
-    cache_key = u"servicehooks:1:{}".format(project_id)
+    cache_key = "servicehooks:1:{}".format(project_id)
     result = cache.get(cache_key)
 
     if result is None:
@@ -33,7 +31,7 @@ def _get_service_hooks(project_id):
 def _should_send_error_created_hooks(project):
     from sentry.models import ServiceHook, Organization
 
-    cache_key = u"servicehooks-error-created:1:{}".format(project.id)
+    cache_key = "servicehooks-error-created:1:{}".format(project.id)
     result = cache.get(cache_key)
 
     if result is None:
@@ -67,7 +65,7 @@ def _capture_stats(event, is_new):
         metrics.incr("events.unique", tags=tags, skip_internal=False)
 
     metrics.incr("events.processed", tags=tags, skip_internal=False)
-    metrics.incr(u"events.processed.{platform}".format(platform=platform), skip_internal=False)
+    metrics.incr("events.processed.{platform}".format(platform=platform), skip_internal=False)
     metrics.timing("events.size.data", event.size, tags=tags)
 
     # This is an experiment to understand whether we have, in production,
@@ -83,7 +81,7 @@ def handle_owner_assignment(project, group, event):
     from sentry.models import GroupAssignee, ProjectOwnership
 
     with metrics.timer("post_process.handle_owner_assignment"):
-        owners_ingestion = features.has("projects:workflow-owners-ingestion", event.project)
+        owners_ingestion = features.has("organizations:workflow-owners", event.project.organization)
 
         # Is the issue already assigned to a team or user?
         key = "assignee_exists:1:%s" % group.id
@@ -194,7 +192,8 @@ def post_process_group(
         data = event_processing_store.get(cache_key)
         if not data:
             logger.info(
-                "post_process.skipped", extra={"cache_key": cache_key, "reason": "missing_cache"},
+                "post_process.skipped",
+                extra={"cache_key": cache_key, "reason": "missing_cache"},
             )
             return
         event = Event(
@@ -244,7 +243,10 @@ def post_process_group(
         bind_organization_context(event.project.organization)
 
         _capture_stats(event, is_new)
-        _spawn_capture_nodestore_stats(event)
+
+        from sentry.reprocessing2 import spawn_capture_nodestore_stats
+
+        spawn_capture_nodestore_stats(cache_key, event.project_id, event.event_id)
 
         if event.group_id and is_reprocessed and is_new:
             add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
@@ -272,24 +274,46 @@ def post_process_group(
                 with sentry_sdk.start_transaction(
                     op="post_process_group", name="rule_processor_apply", sampled=True
                 ):
-                    safe_execute(callback, event, futures)
-
-            has_commit_key = "workflow-owners-ingestion:org-{}-has-commits".format(
-                event.project.organization_id
-            )
+                    safe_execute(callback, event, futures, _with_transaction=False)
 
             try:
-                org_has_commit = cache.get(has_commit_key)
-                if org_has_commit is None:
-                    org_has_commit = Commit.objects.filter(
-                        organization_id=event.project.organization_id
-                    ).exists()
-                    cache.set(has_commit_key, org_has_commit, 3600)
+                lock = locks.get(
+                    "w-o:{}-d-l".format(event.group_id),
+                    duration=10,
+                )
+                with lock.acquire():
+                    has_commit_key = "w-o:{}-h-c".format(event.project.organization_id)
+                    org_has_commit = cache.get(has_commit_key)
+                    if org_has_commit is None:
+                        org_has_commit = Commit.objects.filter(
+                            organization_id=event.project.organization_id
+                        ).exists()
+                        cache.set(has_commit_key, org_has_commit, 3600)
 
-                if org_has_commit and features.has(
-                    "projects:workflow-owners-ingestion", event.project,
-                ):
-                    process_suspect_commits(event=event)
+                    if org_has_commit and features.has(
+                        "organizations:workflow-owners",
+                        event.project.organization,
+                    ):
+                        group_cache_key = "w-o-i:g-{}".format(event.group_id)
+                        if cache.get(group_cache_key):
+                            metrics.incr(
+                                "sentry.tasks.process_suspect_commits.debounce",
+                                tags={"detail": "w-o-i:g debounce"},
+                            )
+                        else:
+                            from sentry.utils.committers import get_frame_paths
+
+                            cache.set(group_cache_key, True, 604800)  # 1 week in seconds
+                            event_frames = get_frame_paths(event.data)
+                            process_suspect_commits.delay(
+                                event_id=event.event_id,
+                                event_platform=event.platform,
+                                event_frames=event_frames,
+                                group_id=event.group_id,
+                                project_id=event.project_id,
+                            )
+            except UnableToAcquireLock:
+                pass
             except Exception:
                 logger.exception("Failed to process suspect commits")
 
@@ -325,7 +349,7 @@ def post_process_group(
 
             from sentry import similarity
 
-            safe_execute(similarity.record, event.project, [event])
+            safe_execute(similarity.record, event.project, [event], _with_transaction=False)
 
         if event.group_id:
             # Patch attachments that were ingested on the standalone path.
@@ -408,64 +432,6 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
         event=event,
         group=event.group,
         expected_errors=(PluginError,),
-        **kwargs
+        _with_transaction=False,
+        **kwargs,
     )
-
-
-def _spawn_capture_nodestore_stats(event):
-    rate = options.get("store.nodestore-stats-sample-rate") or 0
-    metrics.timing("eventstore.compressor.sample_rate", rate)
-
-    if not rate:
-        return
-
-    if random.random() >= rate:
-        return
-
-    capture_nodestore_stats.delay(project_id=event.project_id, event_id=event.event_id)
-
-
-@instrumented_task(name="sentry.tasks.post_process.capture_nodestore_stats")
-def capture_nodestore_stats(project_id, event_id):
-    set_current_project(project_id)
-
-    from sentry import nodestore
-    from sentry.eventstore.compressor import deduplicate
-    from sentry.eventstore.models import Event
-
-    event = Event(project_id=project_id, event_id=event_id)
-    old_event_size = len(json.dumps(dict(event.data)).encode("utf8"))
-
-    if not event.data:
-        metrics.incr("eventstore.compressor.error", tags={"reason": "no_data"})
-        return
-
-    platform = event.platform
-
-    for key, value in six.iteritems(event.interfaces):
-        len_value = len(json.dumps(value.to_json()).encode("utf8"))
-        metrics.timing(
-            "events.size.interface", len_value, tags={"interface": key, "platform": platform}
-        )
-
-    new_data, extra_keys = deduplicate(dict(event.data))
-
-    total_size = event_size = len(json.dumps(new_data).encode("utf8"))
-
-    for key, value in six.iteritems(extra_keys):
-        if nodestore.get(key) is not None:
-            metrics.incr("eventstore.compressor.hits")
-            # do not continue, nodestore.set() should bump TTL
-        else:
-            metrics.incr("eventstore.compressor.misses")
-            total_size += len(json.dumps(value).encode("utf8"))
-
-        # key is md5sum of content
-        # do not store actual value to keep prod impact to a minimum
-        nodestore.set(key, {})
-
-    metrics.timing("events.size.deduplicated", event_size)
-    metrics.timing("events.size.deduplicated.total_written", total_size)
-
-    metrics.timing("events.size.deduplicated.ratio", event_size / old_event_size)
-    metrics.timing("events.size.deduplicated.total_written.ratio", total_size / old_event_size)

@@ -8,6 +8,7 @@ import LoadingPanel from 'app/components/charts/loadingPanel';
 import {getInterval} from 'app/components/charts/utils';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel} from 'app/components/panels';
+import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {Organization} from 'app/types';
@@ -48,7 +49,6 @@ class Container extends React.Component<Props> {
     const start = globalSelection.datetime.start
       ? getUtcToLocalDateObject(globalSelection.datetime.start)
       : undefined;
-
     const end = globalSelection.datetime.end
       ? getUtcToLocalDateObject(globalSelection.datetime.end)
       : undefined;
@@ -115,7 +115,7 @@ class Container extends React.Component<Props> {
                         utc={utc === 'true'}
                       />
                     ),
-                    fixed: 'apdex and throughput charts',
+                    fixed: <Placeholder height="200px" testId="skeleton-ui" />,
                   })
                 ) : (
                   <LoadingPanel data-test-id="events-request-loading" />

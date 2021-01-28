@@ -3,7 +3,6 @@ Obtain
 VISUALSTUDIO_CLIENT_ID & VISUALSTUDIO_CLIENT_SECRET
 and put into sentry.conf.py
 """
-from __future__ import absolute_import
 
 import requests
 
@@ -54,7 +53,7 @@ class VisualStudioAuth(BaseOAuth2):
         """Loads user data from service"""
         resp = requests.get(
             VISUALSTUDIO_USER_DETAILS_URL,
-            headers={"Authorization": u"Bearer {}".format(access_token)},
+            headers={"Authorization": "Bearer {}".format(access_token)},
         )
         resp.raise_for_status()
         content = resp.json()

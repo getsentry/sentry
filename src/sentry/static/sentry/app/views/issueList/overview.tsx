@@ -44,7 +44,7 @@ import {
   TagCollection,
 } from 'app/types';
 import {defined} from 'app/utils';
-import {analytics, metric} from 'app/utils/analytics';
+import {analytics, metric, trackAnalyticsEvent} from 'app/utils/analytics';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import CursorPoller from 'app/utils/cursorPoller';
 import {getUtcDateString} from 'app/utils/dates';
@@ -62,7 +62,7 @@ import IssueListFilters from './filters';
 import IssueListHeader from './header';
 import NoGroupsHandler from './noGroupsHandler';
 import IssueListSidebar from './sidebar';
-import {getTabsWithCounts, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
+import {getTabs, getTabsWithCounts, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
 
 const MAX_ITEMS = 25;
 const DEFAULT_SORT = 'date';
@@ -282,10 +282,10 @@ class IssueListOverview extends React.Component<Props, State> {
       organization.features.includes('inbox-tab-default')
     ) {
       if (organization.features.includes('inbox-owners-query')) {
-        return Query.NEEDS_REVIEW_OWNER;
+        return Query.FOR_REVIEW_OWNER;
       }
 
-      return Query.NEEDS_REVIEW;
+      return Query.FOR_REVIEW;
     }
 
     return DEFAULT_QUERY;
@@ -448,6 +448,19 @@ class IssueListOverview extends React.Component<Props, State> {
         count: currentQueryCount,
         hasMore: false,
       };
+
+      const tab = getTabs(organization).find(
+        ([tabQuery]) => currentTabQuery === tabQuery
+      )?.[1];
+      if (tab && !endpointParams.cursor) {
+        trackAnalyticsEvent({
+          eventKey: 'issues_tab.viewed',
+          eventName: 'Viewed Issues Tab',
+          organization_id: organization.id,
+          tab: tab.analyticsName,
+          num_issues: queryCounts[currentTabQuery].count,
+        });
+      }
     }
 
     this.setState({queryCounts});
@@ -889,9 +902,9 @@ class IssueListOverview extends React.Component<Props, State> {
     // TODO(workflow): When organization:inbox flag is removed add 'inbox' to tagStore
     if (
       organization.features.includes('inbox') &&
-      !tags?.is?.values?.includes('needs_review')
+      !tags?.is?.values?.includes('for_review')
     ) {
-      tags?.is?.values?.push('needs_review');
+      tags?.is?.values?.push('for_review');
     }
 
     const projectIds = selection?.projects?.map(p => p.toString());
@@ -911,6 +924,7 @@ class IssueListOverview extends React.Component<Props, State> {
               <IssueListHeader
                 organization={organization}
                 query={query}
+                queryCount={queryCount}
                 queryCounts={queryCounts}
                 realtimeActive={realtimeActive}
                 onRealtimeChange={this.onRealtimeChange}

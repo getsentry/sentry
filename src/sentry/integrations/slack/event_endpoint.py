@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import re
 import six
 from collections import defaultdict
@@ -16,7 +14,7 @@ from sentry.utils import json
 
 from .client import SlackClient
 from .requests import SlackEventRequest, SlackRequestError
-from .utils import build_group_attachment, build_incident_attachment, logger
+from .utils import build_group_attachment, build_incident_attachment, parse_link, logger
 
 # XXX(dcramer): this could be more tightly bound to our configured domain,
 # but slack limits what we can unfurl anyways so its probably safe
@@ -168,6 +166,13 @@ class SlackEventEndpoint(Endpoint):
         parsed_issues = defaultdict(dict)
         event_id_by_url = {}
         for item in data["links"]:
+            try:
+                # we're logging to Kibana because the Slackbot is filtered in Relay
+                logger.info(
+                    "slack.link-shared", extra={"slack_shared_link": parse_link(item["url"])}
+                )
+            except Exception as e:
+                logger.error("slack.parse-link-error", extra={"error": six.text_type(e)})
             event_type, instance_id, event_id = self._parse_url(item["url"])
             if not instance_id:
                 continue

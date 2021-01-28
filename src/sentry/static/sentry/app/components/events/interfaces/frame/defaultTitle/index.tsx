@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import ExternalLink from 'app/components/links/externalLink';
+import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'app/components/stacktracePreview';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
 import {IconOpen, IconQuestion} from 'app/icons';
@@ -13,20 +14,25 @@ import {Frame, Meta, PlatformType} from 'app/types';
 import {defined, isUrl} from 'app/utils';
 
 import FunctionName from '../functionName';
-import {getPlatform, trimPackage} from '../utils';
+import {getPlatform, isDotnet, trimPackage} from '../utils';
 
 import OriginalSourceInfo from './originalSourceInfo';
 
 type Props = {
   frame: Frame;
   platform: PlatformType;
+  /**
+   * Is the stack trace being previewed in a hovercard?
+   */
+  isHoverPreviewed?: boolean;
 };
 
 type GetPathNameOutput = {key: string; value: string; meta?: Meta};
 
-const DefaultTitle = ({frame, platform}: Props) => {
+const DefaultTitle = ({frame, platform, isHoverPreviewed}: Props) => {
   const title: Array<React.ReactElement> = [];
   const framePlatform = getPlatform(frame.platform, platform);
+  const tooltipDelay = isHoverPreviewed ? STACKTRACE_PREVIEW_TOOLTIP_DELAY : undefined;
 
   const handleExternalLink = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.stopPropagation();
@@ -76,15 +82,22 @@ const DefaultTitle = ({frame, platform}: Props) => {
   // localized correctly
   if (defined(frame.filename || frame.module)) {
     // prioritize module name for Java as filename is often only basename
-    const shouldPrioritizeModuleName =
-      framePlatform === 'java' || framePlatform === 'csharp';
+    const shouldPrioritizeModuleName = framePlatform === 'java';
 
-    const pathName = getPathName(shouldPrioritizeModuleName);
+    // we do not want to show path in title on csharp platform
+    const pathName = isDotnet(framePlatform)
+      ? undefined
+      : getPathName(shouldPrioritizeModuleName);
     const enablePathTooltip = defined(frame.absPath) && frame.absPath !== pathName?.value;
 
     if (pathName) {
       title.push(
-        <Tooltip key={pathName.key} title={frame.absPath} disabled={!enablePathTooltip}>
+        <Tooltip
+          key={pathName.key}
+          title={frame.absPath}
+          disabled={!enablePathTooltip}
+          delay={tooltipDelay}
+        >
           <code key="filename" className="filename">
             <AnnotatedText
               value={<Truncate value={pathName.value} maxLength={100} leftTrim />}
@@ -97,9 +110,9 @@ const DefaultTitle = ({frame, platform}: Props) => {
 
     // in case we prioritized the module name but we also have a filename info
     // we want to show a litle (?) icon that on hover shows the actual filename
-    if (shouldPrioritizeModuleName && frame.filename && framePlatform !== 'csharp') {
+    if (shouldPrioritizeModuleName && frame.filename) {
       title.push(
-        <Tooltip key={frame.filename} title={frame.filename}>
+        <Tooltip key={frame.filename} title={frame.filename} delay={tooltipDelay}>
           <a className="in-at real-filename">
             <IconQuestion size="xs" />
           </a>
@@ -115,7 +128,7 @@ const DefaultTitle = ({frame, platform}: Props) => {
       );
     }
 
-    if (defined(frame.function) || defined(frame.rawFunction)) {
+    if ((defined(frame.function) || defined(frame.rawFunction)) && defined(pathName)) {
       title.push(
         <span className="in-at" key="in">
           {` ${t('in')} `}
@@ -144,7 +157,7 @@ const DefaultTitle = ({frame, platform}: Props) => {
     );
   }
 
-  if (defined(frame.package) && framePlatform !== 'csharp') {
+  if (defined(frame.package) && !isDotnet(framePlatform)) {
     title.push(
       <span className="within" key="within">
         {` ${t('within')} `}
@@ -162,6 +175,7 @@ const DefaultTitle = ({frame, platform}: Props) => {
       <Tooltip
         key="info-tooltip"
         title={<OriginalSourceInfo mapUrl={frame.mapUrl} map={frame.map} />}
+        delay={tooltipDelay}
       >
         <a className="in-at original-src">
           <IconQuestion size="xs" />

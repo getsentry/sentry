@@ -1,111 +1,224 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
 import {addErrorMessage, addLoadingMessage} from 'app/actionCreators/indicator';
-import Link from 'app/components/links/link';
-import {t, tct} from 'app/locale';
-import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
-import FormModel from 'app/views/settings/components/forms/model';
-import {JsonFormObject} from 'app/views/settings/components/forms/type';
+import ExternalLink from 'app/components/links/externalLink';
+import List from 'app/components/list';
+import ListItem from 'app/components/list/listItem';
+import {t} from 'app/locale';
+import {uniqueId} from 'app/utils/guid';
+import SelectField from 'app/views/settings/components/forms/selectField';
+import TextField from 'app/views/settings/components/forms/textField';
 
-type Props = {
-  cloudformationUrl: string;
-  awsExternalId: string;
+import FooterWithButtons from './components/footerWithButtons';
+import HeaderWithHelp from './components/headerWithHelp';
+
+// let the browser generate and store the external ID
+// this way the same user always has the same external ID if they restart the pipeline
+const ID_NAME = 'AWS_EXTERNAL_ID';
+const getAwsExternalId = () => {
+  let awsExternalId = window.localStorage.getItem(ID_NAME);
+  if (!awsExternalId) {
+    awsExternalId = uniqueId();
+    window.localStorage.setItem(ID_NAME, awsExternalId);
+  }
+  return awsExternalId;
 };
 
-export default class AwsLambdaCloudformation extends React.Component<Props> {
-  model = new FormModel({apiOptions: {baseUrl: window.location.origin}});
+const accountNumberRegex = /^\d{12}$/;
+const testAccountNumber = (arn: string) => accountNumberRegex.test(arn);
+
+type Props = {
+  baseCloudformationUrl: string;
+  templateUrl: string;
+  stackName: string;
+  regionList: string[];
+  initialStepNumber: number;
+  accountNumber?: string;
+  region?: string;
+  error?: string;
+};
+
+type State = {
+  awsExternalId?: string;
+  accountNumber?: string;
+  region?: string;
+  accountNumberError?: string;
+  submitting?: boolean;
+};
+
+export default class AwsLambdaCloudformation extends React.Component<Props, State> {
+  state: State = {
+    accountNumber: this.props.accountNumber,
+    region: this.props.region,
+    awsExternalId: getAwsExternalId(),
+  };
+
+  componentDidMount() {
+    // show the error if we have it
+    const {error} = this.props;
+    if (error) {
+      addErrorMessage(error, {duration: 10000});
+    }
+  }
+
   get initialData() {
+    const {region, accountNumber} = this.props;
+    const {awsExternalId} = this.state;
     return {
-      awsExternalId: this.props.awsExternalId,
+      awsExternalId,
+      region,
+      accountNumber,
     };
   }
-  handlePreSubmit = () => addLoadingMessage(t('Submitting\u2026'));
-  handleSubmitError = () => addErrorMessage(t('Unexpected error ocurred!'));
-  renderFormHeader = () => {
-    const {cloudformationUrl} = this.props;
-    const acklowedgeResource = (
-      <strong>
-        {t('I Acknowledge that AWS CloudFormation might create IAM resources')}
-      </strong>
-    );
-    const create = <strong>{t('Create')}</strong>;
-    const arnStrong = <strong>ARN</strong>;
-    const sentryMonitoringStack = <strong>SentryMonitoringStack</strong>;
-    return (
-      <InstructionWrapper>
-        <ol>
-          <li>
-            <Link to={cloudformationUrl}>
-              {t("Add Sentry's Cloudfromation stack to your AWS")}
-            </Link>
-          </li>
-          <li>
-            {tct('Mark "[acklowedgeResource]"', {
-              acklowedgeResource,
-            })}
-          </li>
-          <li>
-            {tct('Press "[create]"', {
-              create,
-            })}
-          </li>
-          <li>
-            {tct(
-              'It might take a minute or two for the CloudFormation stack to set up. Find the stack in list of stacks and copy the "[arnStrong]" value of "[sentryMonitoringStack]" into the input below:',
-              {
-                arnStrong,
-                sentryMonitoringStack,
-              }
-            )}
-          </li>
-        </ol>
-      </InstructionWrapper>
-    );
-  };
-  render = () => {
-    const model = this.model;
-    const formFields: JsonFormObject = {
-      title: t('Install Sentry to your AWS account'),
-      fields: [
-        {
-          name: 'awsExternalId',
-          type: 'hidden',
-          required: true,
-          label: 'test',
-        },
-        {
-          name: 'arn',
-          type: 'text',
-          required: true,
-          label: t('ARN'),
-          inline: false,
-          placeholder:
-            'arn:aws:iam::XXXXXXXXXXXX:role/SentryMonitoringStack-XXXXXXXXXXXXX',
-        },
-      ],
+
+  get cloudformationUrl() {
+    // generarate the cloudformation URL using the params we get from the server
+    // and the external id we generate
+    const {baseCloudformationUrl, templateUrl, stackName} = this.props;
+    const {awsExternalId} = this.state;
+    const query = qs.stringify({
+      templateURL: templateUrl,
+      stackName,
+      param_ExternalId: awsExternalId,
+    });
+    return `${baseCloudformationUrl}?${query}`;
+  }
+
+  get regionOptions() {
+    return this.props.regionList.map(region => ({value: region, label: region}));
+  }
+
+  handleSubmit = (e: React.MouseEvent) => {
+    this.setState({submitting: true});
+    e.preventDefault();
+    const {accountNumber, region} = this.state;
+    const data = {
+      accountNumber,
+      region,
+      awsExternalId: getAwsExternalId(),
     };
+    addLoadingMessage(t('Submitting\u2026'));
+    const {
+      location: {origin},
+    } = window;
+    // redirect to the extensions endpoint with the form fields as query params
+    // this is needed so we don't restart the pipeline loading from the original
+    // OrganizationIntegrationSetupView route
+    const newUrl = `${origin}/extensions/aws_lambda/setup/?${qs.stringify(data)}`;
+    window.location.assign(newUrl);
+  };
+
+  validateAccountNumber = (value: string) => {
+    // validate the account number
+    let accountNumberError = '';
+    if (!value) {
+      accountNumberError = t('Account number required');
+    } else if (!testAccountNumber(value)) {
+      accountNumberError = t('Invalid account number');
+    }
+    this.setState({accountNumberError});
+  };
+
+  handleChangeArn = (accountNumber: string) => {
+    // reset the error if we ever get a valid account number
+    if (testAccountNumber(accountNumber)) {
+      this.setState({accountNumberError: ''});
+    }
+    this.setState({accountNumber});
+  };
+
+  hanldeChangeRegion = (region: string) => {
+    this.setState({region});
+  };
+
+  handleChangeExternalId = (awsExternalId: string) => {
+    awsExternalId = awsExternalId.trim();
+    window.localStorage.setItem(ID_NAME, awsExternalId);
+    this.setState({awsExternalId});
+  };
+
+  get formValid() {
+    const {accountNumber, region, awsExternalId} = this.state;
+    return !!region && testAccountNumber(accountNumber || '') && !!awsExternalId;
+  }
+
+  render = () => {
+    const {initialStepNumber} = this.props;
+    const {
+      accountNumber,
+      region,
+      accountNumberError,
+      submitting,
+      awsExternalId,
+    } = this.state;
     return (
-      <StyledForm
-        initialData={this.initialData}
-        skipPreventDefault
-        model={model}
-        apiEndpoint="/extensions/aws_lambda/setup/"
-        onPreSubmit={this.handlePreSubmit}
-        onSubmitError={this.handleSubmitError}
-      >
-        <JsonForm renderHeader={this.renderFormHeader} forms={[formFields]} />
-      </StyledForm>
+      <React.Fragment>
+        <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/" />
+        <StyledList symbol="colored-numeric" initialCounterValue={initialStepNumber}>
+          <ListItem>
+            <h4>{t("Add Sentry's CloudFormation to your AWS")}</h4>
+            <ExternalLink href={this.cloudformationUrl}>
+              {t('Create Cloudformation Stack')}
+            </ExternalLink>
+            <p>{t('After the stack has been created, continue to the next step')}</p>
+          </ListItem>
+          <ListItem>
+            <h4>{t('Add AWS Account Information')}</h4>
+            <TextField
+              name="accountNumber"
+              value={accountNumber}
+              onChange={this.handleChangeArn}
+              onBlur={this.validateAccountNumber}
+              error={accountNumberError}
+              inline={false}
+              stacked
+              label={t('AWS Account Number')}
+              showHelpInTooltip
+              help={t(
+                'Your account number can be found on the right side of the header in AWS'
+              )}
+            />
+            <SelectField
+              name="region"
+              value={region}
+              onChange={this.hanldeChangeRegion}
+              options={this.regionOptions}
+              allowClear={false}
+              inline={false}
+              stacked
+              label={t('AWS Region')}
+              showHelpInTooltip
+              help={t(
+                'Your current region can be found on the right side of the header in AWS'
+              )}
+            />
+            <TextField
+              name="awsExternalId"
+              value={awsExternalId}
+              onChange={this.handleChangeExternalId}
+              inline={false}
+              stacked
+              error={awsExternalId ? '' : t('External ID Required')}
+              label={t('External ID')}
+              showHelpInTooltip
+              help={t(
+                'Do not edit unless you are copying from a previously created CloudFormation stack'
+              )}
+            />
+          </ListItem>
+        </StyledList>
+        <FooterWithButtons
+          buttonText={t('Next')}
+          onClick={this.handleSubmit}
+          disabled={submitting || !this.formValid}
+        />
+      </React.Fragment>
     );
   };
 }
 
-const StyledForm = styled(Form)`
-  margin: 50px;
-  padding-bottom: 50px;
-`;
-
-const InstructionWrapper = styled('div')`
-  margin: 20px;
+const StyledList = styled(List)`
+  margin: 100px 50px 50px 50px;
 `;

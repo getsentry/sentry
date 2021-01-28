@@ -1,5 +1,3 @@
-from __future__ import print_function, absolute_import
-
 from sentry import analytics
 from sentry.signals import join_request_created, join_request_link_viewed, user_signup
 
