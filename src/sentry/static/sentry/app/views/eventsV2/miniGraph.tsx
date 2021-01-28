@@ -17,7 +17,7 @@ import {Series} from 'app/types/echarts';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {axisLabelFormatter} from 'app/utils/discover/charts';
 import EventView from 'app/utils/discover/eventView';
-import {aggregateMultiPlotType} from 'app/utils/discover/fields';
+import {aggregateMultiPlotType, PlotType} from 'app/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'app/utils/discover/types';
 import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
@@ -87,7 +87,7 @@ class MiniGraph extends React.Component<Props> {
     showDaily: boolean;
     yAxis: string;
     timeseriesData: Series[];
-  }): 'bar' | 'line' | 'area' {
+  }): PlotType {
     if (showDaily) {
       return 'bar';
     }
@@ -105,7 +105,7 @@ class MiniGraph extends React.Component<Props> {
   }
 
   getChartComponent(
-    chartType: 'bar' | 'line' | 'area'
+    chartType: PlotType
   ): React.ComponentType<BarChart['props']> | React.ComponentType<AreaChart['props']> {
     switch (chartType) {
       case 'bar':
