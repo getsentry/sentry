@@ -174,9 +174,7 @@ class OrganizationSerializer(serializers.Serializer):
                 f'This slug "{value}" is too short. Minimum of 3 characters.'
             )
         if value in RESERVED_ORGANIZATION_SLUGS:
-            raise serializers.ValidationError(
-                f'This slug "{value}" is reserved and not allowed.'
-            )
+            raise serializers.ValidationError(f'This slug "{value}" is reserved and not allowed.')
         qs = Organization.objects.filter(slug=value).exclude(id=self.context["organization"].id)
         if qs.exists():
             raise serializers.ValidationError(f'The slug "{value}" is already in use.')
@@ -237,9 +235,7 @@ class OrganizationSerializer(serializers.Serializer):
             for key_info in value:
                 key = key_info.get("public_key")
                 if key in public_keys:
-                    raise serializers.ValidationError(
-                        f"Duplicated key in Trusted Relays: '{key}'"
-                    )
+                    raise serializers.ValidationError(f"Duplicated key in Trusted Relays: '{key}'")
                 public_keys.add(key)
 
         return value

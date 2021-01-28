@@ -13,8 +13,7 @@ class OrganizationMemberSerializer(Serializer):
         users = {d["id"]: d for d in serialize({i.user for i in item_list if i.user_id}, user)}
 
         return {
-            item: {"user": users[str(item.user_id)] if item.user_id else None}
-            for item in item_list
+            item: {"user": users[str(item.user_id)] if item.user_id else None} for item in item_list
         }
 
     def serialize(self, obj, attrs, user):

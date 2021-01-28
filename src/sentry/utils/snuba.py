@@ -375,9 +375,7 @@ def get_function_index(column_expr, depth=0):
         while i < len(column_expr) - 1:
             # The assumption here is that a list that follows a string means
             # the string is a function name
-            if isinstance(column_expr[i], str) and isinstance(
-                column_expr[i + 1], (tuple, list)
-            ):
+            if isinstance(column_expr[i], str) and isinstance(column_expr[i + 1], (tuple, list)):
                 assert SAFE_FUNCTION_RE.match(column_expr[i])
                 index = i
                 break
@@ -655,9 +653,7 @@ def bulk_raw_query(snuba_param_list, referrer=None):
                     logger.info("{}.body: {}".format(referrer, json.dumps(query_params)))
                     query_params["debug"] = True
                 body = json.dumps(query_params)
-                with thread_hub.start_span(
-                    op="snuba", description=f"query {referrer}"
-                ) as span:
+                with thread_hub.start_span(op="snuba", description=f"query {referrer}") as span:
                     span.set_tag("referrer", referrer)
                     for param_key, param_data in query_params.items():
                         span.set_data(param_key, param_data)
@@ -702,9 +698,7 @@ def bulk_raw_query(snuba_param_list, referrer=None):
             if response.status != 200:
                 logger.error("snuba.query.invalid-json")
                 raise SnubaError("Failed to parse snuba error response")
-            raise UnexpectedResponseError(
-                f"Could not decode JSON response: {response.data}"
-            )
+            raise UnexpectedResponseError(f"Could not decode JSON response: {response.data}")
 
         if response.status != 200:
             if body.get("error"):
@@ -801,9 +795,7 @@ def nest_groups(data, groups, aggregate_cols):
         inter = OrderedDict()
         for d in data:
             inter.setdefault(d[g], []).append(d)
-        return OrderedDict(
-            (k, nest_groups(v, rest, aggregate_cols)) for k, v in inter.items()
-        )
+        return OrderedDict((k, nest_groups(v, rest, aggregate_cols)) for k, v in inter.items())
 
 
 def resolve_column(dataset):
@@ -812,9 +804,7 @@ def resolve_column(dataset):
             return col
         if isinstance(col, int) or isinstance(col, float):
             return col
-        if isinstance(col, str) and (
-            col.startswith("tags[") or QUOTED_LITERAL_RE.match(col)
-        ):
+        if isinstance(col, str) and (col.startswith("tags[") or QUOTED_LITERAL_RE.match(col)):
             return col
 
         # Some dataset specific logic:

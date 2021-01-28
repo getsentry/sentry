@@ -187,9 +187,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         assert len(resp.data["owners"]) == 3
-        assert [o["id"] for o in resp.data["owners"]] == [
-            str(u.id) for u in reversed(users)
-        ]
+        assert [o["id"] for o in resp.data["owners"]] == [str(u.id) for u in reversed(users)]
         assert resp.data["rule"] == Matcher("path", "*")
         assert len(resp.data["rules"]) == 3
 

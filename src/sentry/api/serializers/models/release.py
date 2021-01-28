@@ -114,9 +114,7 @@ def get_users_for_authors(organization_id, authors, user=None):
             results[str(author.id)] = users_by_email.get(
                 author.email.lower(), {"name": author.name, "email": author.email}
             )
-            to_cache[_user_to_author_cache_key(organization_id, author)] = results[
-                str(author.id)
-            ]
+            to_cache[_user_to_author_cache_key(organization_id, author)] = results[str(author.id)]
         cache.set_many(to_cache)
 
     metrics.incr("sentry.release.get_users_for_authors.missed", amount=len(missed))
@@ -318,9 +316,7 @@ class ReleaseSerializer(Serializer):
                 issue_counts_by_release,
             ) = self.__get_release_data_with_environments(project, item_list, environments)
 
-        owners = {
-            d["id"]: d for d in serialize({i.owner for i in item_list if i.owner_id}, user)
-        }
+        owners = {d["id"]: d for d in serialize({i.owner for i in item_list if i.owner_id}, user)}
 
         release_metadata_attrs = self._get_commit_metadata(item_list, user)
         deploy_metadata_attrs = self._get_deploy_metadata(item_list, user)

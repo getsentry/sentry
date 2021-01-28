@@ -6,8 +6,8 @@ from celery import current_app
 COUNTER_TASKS = {"sentry.tasks.process_buffer.process_incr"}
 
 TRIGGER_TASKS = {
-        "sentry.tasks.post_process.post_process_group",
-        "sentry.tasks.post_process.plugin_post_process_group",
+    "sentry.tasks.post_process.post_process_group",
+    "sentry.tasks.post_process.plugin_post_process_group",
 }
 
 

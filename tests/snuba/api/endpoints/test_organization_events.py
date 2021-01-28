@@ -459,9 +459,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         self.assert_events_in_response(response, [event_3.event_id])
 
-        response = self.client.get(
-            f"{base_url}?query=!user.email:*@example.com", format="json"
-        )
+        response = self.client.get(f"{base_url}?query=!user.email:*@example.com", format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 3
         self.assert_events_in_response(
@@ -580,9 +578,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        response = self.client.get(
-            url, {"query": f"project_id:{project.id}"}, format="json"
-        )
+        response = self.client.get(url, {"query": f"project_id:{project.id}"}, format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["projectID"] == str(project.id)

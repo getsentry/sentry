@@ -14,9 +14,7 @@ class FilterTests(RelayStoreHelper, TransactionTestCase):
         return {}
 
     def _set_filter_state(self, flt, state):
-        ProjectOption.objects.set_value(
-            project=self.project, key=f"filters:{flt.id}", value=state
-        )
+        ProjectOption.objects.set_value(project=self.project, key=f"filters:{flt.id}", value=state)
 
     def test_should_not_filter_simple_messages(self):
         # baseline test (so we know everything works as expected)

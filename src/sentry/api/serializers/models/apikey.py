@@ -13,7 +13,5 @@ class ApiKeySerializer(Serializer):
             "key": obj.key,
             "scope_list": obj.scope_list,
             "status": obj.status,
-            "allowed_origins": ""
-            if obj.allowed_origins is None
-            else str(obj.allowed_origins),
+            "allowed_origins": "" if obj.allowed_origins is None else str(obj.allowed_origins),
         }

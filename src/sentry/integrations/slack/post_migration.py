@@ -50,9 +50,7 @@ def run_post_migration(
             "link_names": 1,
             "attachments": json.dumps([attachment]),
         }
-        headers = {
-            "Authorization": "Bearer %s" % (str(integration.metadata["old_access_token"]))
-        }
+        headers = {"Authorization": "Bearer %s" % (str(integration.metadata["old_access_token"]))}
         try:
             client.post("/chat.postMessage", data=payload, headers=headers, timeout=5, json=True)
             good_channels.append(channel)

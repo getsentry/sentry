@@ -119,9 +119,7 @@ class PreviewWebhookTest(BaseWebhookTest):
         assert resp.data["install"]["schema"]["properties"]["dsn"]["enum"] == [
             self.key.get_dsn(public=True)
         ]
-        assert resp.data["install"]["options"]["dsn"] == str(
-            self.key.get_dsn(public=True)
-        )
+        assert resp.data["install"]["options"]["dsn"] == str(self.key.get_dsn(public=True))
 
     def test_multiple_projects(self):
         project2 = self.create_project(name="b", teams=[self.team])
@@ -146,9 +144,7 @@ class PreviewWebhookTest(BaseWebhookTest):
         assert resp.data["install"]["schema"]["properties"]["dsn"]["enum"] == [
             self.key.get_dsn(public=True)
         ]
-        assert resp.data["install"]["options"]["dsn"] == str(
-            self.key.get_dsn(public=True)
-        )
+        assert resp.data["install"]["options"]["dsn"] == str(self.key.get_dsn(public=True))
 
     def test_no_projects(self):
         self.project.delete()
@@ -198,9 +194,7 @@ class OptionChangeAccountWebhookTest(BaseWebhookTest):
         assert resp.data["install"]["schema"]["properties"]["dsn"]["enum"] == [
             self.key.get_dsn(public=True)
         ]
-        assert resp.data["install"]["options"]["dsn"] == str(
-            self.key.get_dsn(public=True)
-        )
+        assert resp.data["install"]["options"]["dsn"] == str(self.key.get_dsn(public=True))
 
     def test_with_invalid_organization_selected(self):
         webhook_data = json.loads(
@@ -223,9 +217,7 @@ class OptionChangeAccountWebhookTest(BaseWebhookTest):
         assert resp.data["install"]["schema"]["properties"]["dsn"]["enum"] == [
             self.key.get_dsn(public=True)
         ]
-        assert resp.data["install"]["options"]["dsn"] == str(
-            self.key.get_dsn(public=True)
-        )
+        assert resp.data["install"]["options"]["dsn"] == str(self.key.get_dsn(public=True))
 
     def test_with_existing_project_selected_and_no_keys(self):
         project2 = self.create_project(name="b", teams=[self.team])

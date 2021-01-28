@@ -116,16 +116,16 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
         self.create_member(user=user4, organization=self.organization, teams=[])
 
         team1_events = {
-                self.create_event(self.project.id),
-                self.create_event(self.project.id),
-                self.create_event(self.project.id),
-                self.create_event(self.project.id),
+            self.create_event(self.project.id),
+            self.create_event(self.project.id),
+            self.create_event(self.project.id),
+            self.create_event(self.project.id),
         }
         team2_events = {
-                self.create_event(self.project.id),
-                self.create_event(self.project.id),
-                self.create_event(self.project.id),
-                self.create_event(self.project.id),
+            self.create_event(self.project.id),
+            self.create_event(self.project.id),
+            self.create_event(self.project.id),
+            self.create_event(self.project.id),
         }
         user4_events = {self.create_event(self.project.id), self.create_event(self.project.id)}
         events_by_actor = {

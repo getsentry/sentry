@@ -842,9 +842,7 @@ class AuthHelper:
             sample_rate=1.0,
         )
 
-        messages.add_message(
-            self.request, messages.ERROR, f"Authentication error: {message}"
-        )
+        messages.add_message(self.request, messages.ERROR, f"Authentication error: {message}")
 
         return HttpResponseRedirect(redirect_uri)
 

@@ -48,9 +48,7 @@ def relay_id():
 
 @pytest.fixture
 def relay(relay_id, public_key):
-    return Relay.objects.create(
-        relay_id=relay_id, public_key=str(public_key), is_internal=True
-    )
+    return Relay.objects.create(relay_id=relay_id, public_key=str(public_key), is_internal=True)
 
 
 @pytest.fixture(autouse=True)

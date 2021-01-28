@@ -18,7 +18,9 @@ class OrganizationIntegrationRepositoryProjectPathConfigDetailsEndpoint(
     permission_classes = (OrganizationIntegrationsPermission,)
 
     def convert_args(self, request, organization_slug, integration_id, config_id, *args, **kwargs):
-        args, kwargs = super().convert_args(request, organization_slug, integration_id, config_id, *args, **kwargs)
+        args, kwargs = super().convert_args(
+            request, organization_slug, integration_id, config_id, *args, **kwargs
+        )
 
         org_integration = self.get_organization_integration(kwargs["organization"], integration_id)
         kwargs["org_integration"] = org_integration

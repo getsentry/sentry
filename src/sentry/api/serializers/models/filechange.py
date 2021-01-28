@@ -24,9 +24,7 @@ class CommitFileChangeSerializer(Serializer):
         for item in item_list:
             commit = commits_by_id[item.commit_id]
             result[item] = {
-                "user": users_by_author.get(str(commit.author_id), {})
-                if commit.author_id
-                else {},
+                "user": users_by_author.get(str(commit.author_id), {}) if commit.author_id else {},
                 "message": commit.message,
                 "repository_name": repo_names_by_id.get(commit.repository_id),
             }

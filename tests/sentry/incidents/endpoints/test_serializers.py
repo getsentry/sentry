@@ -472,9 +472,7 @@ class TestAlertRuleSerializer(TestCase):
         serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
         assert serializer.is_valid()
         alert_rule = serializer.save()
-        assert set(alert_rule.snuba_query.event_types) == {
-            SnubaQueryEventType.EventType.DEFAULT
-        }
+        assert set(alert_rule.snuba_query.event_types) == {SnubaQueryEventType.EventType.DEFAULT}
         params["event_types"] = [SnubaQueryEventType.EventType.ERROR.name.lower()]
         serializer = AlertRuleSerializer(
             context=self.context, instance=alert_rule, data=params, partial=True

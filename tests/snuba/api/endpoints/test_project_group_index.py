@@ -61,9 +61,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         group1 = self.create_group(checksum="a" * 32, last_seen=before_now(seconds=1))
         self.login_as(user=self.user)
 
-        response = self.client.get(
-            f"{self.path}?sort_by=date&query=is:unresolved", format="json"
-        )
+        response = self.client.get(f"{self.path}?sort_by=date&query=is:unresolved", format="json")
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group1.id)
@@ -72,9 +70,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.create_group(checksum="a" * 32, last_seen=before_now(seconds=1))
         self.login_as(user=self.user)
 
-        response = self.client.get(
-            f"{self.path}?sort_by=date&query=timesSeen:>1k", format="json"
-        )
+        response = self.client.get(f"{self.path}?sort_by=date&query=timesSeen:>1k", format="json")
         assert response.status_code == 400
         assert "could not" in response.data["detail"]
 
@@ -242,9 +238,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         short_id = group.qualified_short_id
 
         self.login_as(user=self.user)
-        response = self.client.get(
-            f"{self.path}?query={short_id}&shortIdLookup=1", format="json"
-        )
+        response = self.client.get(f"{self.path}?query={short_id}&shortIdLookup=1", format="json")
         assert response.status_code == 200
         assert len(response.data) == 1
 
@@ -263,9 +257,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.login_as(user=user)
 
         path = f"/api/0/projects/{organization.slug}/{project2.slug}/issues/"
-        response = self.client.get(
-            f"{path}?query={short_id}&shortIdLookup=1", format="json"
-        )
+        response = self.client.get(f"{path}?query={short_id}&shortIdLookup=1", format="json")
         assert response.status_code == 200
         assert len(response.data) == 0
 
@@ -402,9 +394,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         for i in range(200):
             self.create_group(status=GroupStatus.UNRESOLVED)
 
-        response = self.client.get(
-            f"{self.path}?sort_by=date&query=is:unresolved", format="json"
-        )
+        response = self.client.get(f"{self.path}?sort_by=date&query=is:unresolved", format="json")
 
         assert len(response.data) == 100
 
@@ -414,9 +404,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.data
 
         assert response.data == {"status": "resolved", "statusDetails": {}}
-        response = self.client.get(
-            f"{self.path}?sort_by=date&query=is:unresolved", format="json"
-        )
+        response = self.client.get(f"{self.path}?sort_by=date&query=is:unresolved", format="json")
 
         assert len(response.data) == 0
 
@@ -453,9 +441,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             relationship=GroupLink.Relationship.references,
         )[0]
 
-        response = self.client.get(
-            f"{self.path}?sort_by=date&query=is:unresolved", format="json"
-        )
+        response = self.client.get(f"{self.path}?sort_by=date&query=is:unresolved", format="json")
 
         assert len(response.data) == 1
 
@@ -476,9 +462,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
                     external_issue, True, group.project_id
                 )
 
-        response = self.client.get(
-            f"{self.path}?sort_by=date&query=is:unresolved", format="json"
-        )
+        response = self.client.get(f"{self.path}?sort_by=date&query=is:unresolved", format="json")
         assert len(response.data) == 0
 
     @patch("sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound")

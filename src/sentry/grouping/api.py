@@ -160,9 +160,7 @@ def _get_calculated_grouping_variants_for_event(event, config):
             if winning_strategy is None:
                 if component.contributes:
                     winning_strategy = strategy.name
-                    variants_hint = "/".join(
-                        sorted(k for k, v in rv.items() if v.contributes)
-                    )
+                    variants_hint = "/".join(sorted(k for k, v in rv.items() if v.contributes))
                     precedence_hint = "{} take{} precedence".format(
                         f"{strategy.name} of {variants_hint}"
                         if variant != "default"

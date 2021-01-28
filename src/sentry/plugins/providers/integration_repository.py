@@ -95,15 +95,11 @@ class IntegrationRepositoryProvider:
 
         if isinstance(e, IntegrationError):
             if "503" in str(e):
-                context.update(
-                    {"error_type": "service unavailable", "errors": {"__all__": str(e)}}
-                )
+                context.update({"error_type": "service unavailable", "errors": {"__all__": str(e)}})
                 status = 503
             else:
                 # TODO(dcramer): we should have a proper validation error
-                context.update(
-                    {"error_type": "validation", "errors": {"__all__": str(e)}}
-                )
+                context.update({"error_type": "validation", "errors": {"__all__": str(e)}})
                 status = 400
         elif isinstance(e, Integration.DoesNotExist):
             context.update({"error_type": "not found", "errors": {"__all__": str(e)}})

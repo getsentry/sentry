@@ -105,7 +105,5 @@ def organizations(metrics, since, until):
                 values.append(aggregate(results[metric][key]))
 
             stdout.write(
-                "{} {} {}\n".format(
-                    instance.id, instance.slug, " ".join(map(str, values))
-                )
+                "{} {} {}\n".format(instance.id, instance.slug, " ".join(map(str, values)))
             )

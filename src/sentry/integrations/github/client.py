@@ -112,9 +112,7 @@ class GitHubClientMixin(ApiClient):
 
     def check_file(self, repo, path, version):
         repo_name = repo.name
-        return self.head_cached(
-            path=f"/repos/{repo_name}/contents/{path}", params={"ref": version}
-        )
+        return self.head_cached(path=f"/repos/{repo_name}/contents/{path}", params={"ref": version})
 
 
 class GitHubAppsClient(GitHubClientMixin):

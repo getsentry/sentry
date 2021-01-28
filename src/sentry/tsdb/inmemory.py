@@ -269,7 +269,9 @@ class InMemoryTSDB(BaseTSDB):
 
         results = {}
 
-        for key, series in self.get_frequency_series(model, items, start, end, rollup, environment_id).items():
+        for key, series in self.get_frequency_series(
+            model, items, start, end, rollup, environment_id
+        ).items():
             result = results[key] = {}
             for timestamp, scores in series:
                 for member, score in scores.items():

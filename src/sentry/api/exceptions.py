@@ -43,9 +43,7 @@ class SsoRequired(SentryAPIException):
     message = "Must login via SSO"
 
     def __init__(self, organization):
-        super().__init__(
-            loginUrl=reverse("sentry-auth-organization", args=[organization.slug])
-        )
+        super().__init__(loginUrl=reverse("sentry-auth-organization", args=[organization.slug]))
 
 
 class SuperuserRequired(SentryAPIException):

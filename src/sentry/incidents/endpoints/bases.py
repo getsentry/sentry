@@ -34,9 +34,7 @@ class OrganizationAlertRuleEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationAlertRulePermission,)
 
     def convert_args(self, request, alert_rule_id, *args, **kwargs):
-        args, kwargs = super().convert_args(
-            request, *args, **kwargs
-        )
+        args, kwargs = super().convert_args(request, *args, **kwargs)
         organization = kwargs["organization"]
 
         if not features.has("organizations:incidents", organization, actor=request.user):
@@ -54,9 +52,7 @@ class OrganizationAlertRuleEndpoint(OrganizationEndpoint):
 
 class OrganizationAlertRuleTriggerEndpoint(OrganizationAlertRuleEndpoint):
     def convert_args(self, request, alert_rule_trigger_id, *args, **kwargs):
-        args, kwargs = super().convert_args(
-            request, *args, **kwargs
-        )
+        args, kwargs = super().convert_args(request, *args, **kwargs)
         organization = kwargs["organization"]
         alert_rule = kwargs["alert_rule"]
 
@@ -75,9 +71,7 @@ class OrganizationAlertRuleTriggerEndpoint(OrganizationAlertRuleEndpoint):
 
 class OrganizationAlertRuleTriggerActionEndpoint(OrganizationAlertRuleTriggerEndpoint):
     def convert_args(self, request, alert_rule_trigger_action_id, *args, **kwargs):
-        args, kwargs = super().convert_args(
-            request, *args, **kwargs
-        )
+        args, kwargs = super().convert_args(request, *args, **kwargs)
         organization = kwargs["organization"]
         trigger = kwargs["alert_rule_trigger"]
 

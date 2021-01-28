@@ -140,9 +140,7 @@ class RedisQuota(Quota):
         else:
             with self.cluster.fanout() as client:
                 results = map(
-                    functools.partial(
-                        get_usage_for_quota, client.target_key(str(organization_id))
-                    ),
+                    functools.partial(get_usage_for_quota, client.target_key(str(organization_id))),
                     quotas,
                 )
 

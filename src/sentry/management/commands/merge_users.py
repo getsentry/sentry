@@ -105,9 +105,7 @@ class Command(BaseCommand):
 
             for user in user_list[1:]:
                 user.merge_to(primary_user)
-                sys.stdout.write(
-                    f"{user.username} was merged into {primary_user.username}\n"
-                )
+                sys.stdout.write(f"{user.username} was merged into {primary_user.username}\n")
 
             if options["delete"]:
                 for user in user_list[1:]:

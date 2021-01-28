@@ -456,9 +456,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.element('input[name="query_name"]').send_keys(query_name)
             self.browser.element('[aria-label="Save"]').click()
 
-            self.browser.wait_until(
-                f'div[name="discover2-query-name"][value="{query_name}"]'
-            )
+            self.browser.wait_until(f'div[name="discover2-query-name"][value="{query_name}"]')
 
             # Page title should update.
             title_input = self.browser.element('div[name="discover2-query-name"]')

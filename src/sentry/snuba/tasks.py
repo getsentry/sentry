@@ -206,9 +206,7 @@ def _create_in_snuba(subscription):
 
 
 def _delete_from_snuba(dataset, subscription_id):
-    response = _snuba_pool.urlopen(
-        "DELETE", f"/{dataset.value}/subscriptions/{subscription_id}"
-    )
+    response = _snuba_pool.urlopen("DELETE", f"/{dataset.value}/subscriptions/{subscription_id}")
     if response.status != 202:
         raise SnubaError("HTTP %s response from Snuba!" % response.status)
 

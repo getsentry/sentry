@@ -109,9 +109,7 @@ class IncidentManager(BaseManager):
             else:
                 identifier += 1
 
-            return super().create(
-                organization=organization, identifier=identifier, **kwargs
-            )
+            return super().create(organization=organization, identifier=identifier, **kwargs)
 
 
 class IncidentType(Enum):
@@ -300,11 +298,7 @@ class AlertRuleManager(BaseManager):
     CACHE_SUBSCRIPTION_KEY = "alert_rule:subscription:%s"
 
     def get_queryset(self):
-        return (
-            super()
-            .get_queryset()
-            .exclude(status=AlertRuleStatus.SNAPSHOT.value)
-        )
+        return super().get_queryset().exclude(status=AlertRuleStatus.SNAPSHOT.value)
 
     def fetch_for_organization(self, organization, projects=None):
         queryset = self.filter(organization=organization)

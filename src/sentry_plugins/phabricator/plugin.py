@@ -99,9 +99,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
         ]
 
     def get_new_issue_fields(self, request, group, event, **kwargs):
-        fields = super().get_new_issue_fields(
-            request, group, event, **kwargs
-        )
+        fields = super().get_new_issue_fields(request, group, event, **kwargs)
         return fields + [
             {
                 "name": "tags",

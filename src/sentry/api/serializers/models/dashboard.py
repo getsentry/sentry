@@ -22,9 +22,7 @@ class DashboardWidgetSerializer(Serializer):
         )
 
         for widget in item_list:
-            widget_data_sources = [
-                d for d in data_sources if d["widgetId"] == str(widget.id)
-            ]
+            widget_data_sources = [d for d in data_sources if d["widgetId"] == str(widget.id)]
             result[widget] = {"queries": widget_data_sources}
 
         return result
@@ -79,9 +77,7 @@ class DashboardDetailsSerializer(Serializer):
         )
 
         for dashboard in item_list:
-            dashboard_widgets = [
-                w for w in widgets if w["dashboardId"] == str(dashboard.id)
-            ]
+            dashboard_widgets = [w for w in widgets if w["dashboardId"] == str(dashboard.id)]
             result[dashboard] = {"widgets": dashboard_widgets}
 
         return result

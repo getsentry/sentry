@@ -282,9 +282,7 @@ class Endpoint(APIView):
 
         max_per_page = max(max_per_page, default_per_page)
         if per_page > max_per_page:
-            raise ParseError(
-                detail=f"Invalid per_page value. Cannot exceed {max_per_page}."
-            )
+            raise ParseError(detail=f"Invalid per_page value. Cannot exceed {max_per_page}.")
 
         return per_page
 

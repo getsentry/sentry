@@ -34,9 +34,7 @@ class PullRequestSerializer(Serializer):
             result[item] = {
                 "repository": serialized_repos.get(repository_id, {}),
                 "external_url": external_url,
-                "user": users_by_author.get(str(item.author_id), {})
-                if item.author_id
-                else {},
+                "user": users_by_author.get(str(item.author_id), {}) if item.author_id else {},
             }
 
         return result

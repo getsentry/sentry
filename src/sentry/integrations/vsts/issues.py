@@ -191,7 +191,9 @@ class VstsIssueSync(IssueSyncMixin):
             "title": work_item["fields"]["System.Title"],
             "description": work_item["fields"].get("System.Description"),
             "metadata": {
-                "display_name": "{}#{}".format(work_item["fields"]["System.AreaPath"], work_item["id"])
+                "display_name": "{}#{}".format(
+                    work_item["fields"]["System.AreaPath"], work_item["id"]
+                )
             },
         }
 

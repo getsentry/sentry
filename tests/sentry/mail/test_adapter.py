@@ -444,9 +444,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         team = self.create_team(organization=self.organization, members=[user, user2])
         project = self.create_project(teams=[team])
         event = self.store_event(data=self.make_event_data("foo.py"), project_id=project.id)
-        self.assert_notify(
-            event, [user.email, user2.email], ActionTargetType.TEAM, str(team.id)
-        )
+        self.assert_notify(event, [user.email, user2.email], ActionTargetType.TEAM, str(team.id))
 
     def test_notify_user(self):
         user = self.create_user(email="foo@example.com", is_active=True)
@@ -615,7 +613,9 @@ class MailAdapterGetSendToOwnersTest(BaseMailAdapterTest, TestCase):
             data=self.make_event_data("foo.cbl"), project_id=self.project.id
         )
         assert self.adapter.get_send_to_owners(event_all_users, self.project) == {
-            self.user.id, self.user2.id, self.user3.id
+            self.user.id,
+            self.user2.id,
+            self.user3.id,
         }
 
     def test_team(self):
@@ -623,16 +623,15 @@ class MailAdapterGetSendToOwnersTest(BaseMailAdapterTest, TestCase):
             data=self.make_event_data("foo.py"), project_id=self.project.id
         )
         assert self.adapter.get_send_to_owners(event_team, self.project) == {
-            self.user2.id, self.user3.id
+            self.user2.id,
+            self.user3.id,
         }
 
     def test_single_user(self):
         event_single_user = self.store_event(
             data=self.make_event_data("foo.jx"), project_id=self.project.id
         )
-        assert self.adapter.get_send_to_owners(event_single_user, self.project) == {
-            self.user2.id
-        }
+        assert self.adapter.get_send_to_owners(event_single_user, self.project) == {self.user2.id}
 
     def test_disable_alerts(self):
         # Make sure that disabling mail alerts works as expected
@@ -643,15 +642,14 @@ class MailAdapterGetSendToOwnersTest(BaseMailAdapterTest, TestCase):
             data=self.make_event_data("foo.cbl"), project_id=self.project.id
         )
         assert self.adapter.get_send_to_owners(event_all_users, self.project) == {
-            self.user.id, self.user3.id
+            self.user.id,
+            self.user3.id,
         }
 
 
 class MailAdapterGetSendToTeamTest(BaseMailAdapterTest, TestCase):
     def test_send_to_team(self):
-        assert {self.user.id} == self.adapter.get_send_to_team(
-            self.project, str(self.team.id)
-        )
+        assert {self.user.id} == self.adapter.get_send_to_team(self.project, str(self.team.id))
 
     def test_send_disabled(self):
         UserOption.objects.create(key="mail:alert", value=0, project=self.project, user=self.user)
@@ -678,15 +676,11 @@ class MailAdapterGetSendToTeamTest(BaseMailAdapterTest, TestCase):
 
 class MailAdapterGetSendToMemberTest(BaseMailAdapterTest, TestCase):
     def test_send_to_user(self):
-        assert {self.user.id} == self.adapter.get_send_to_member(
-            self.project, str(self.user.id)
-        )
+        assert {self.user.id} == self.adapter.get_send_to_member(self.project, str(self.user.id))
 
     def test_send_disabled_still_sends(self):
         UserOption.objects.create(key="mail:alert", value=0, project=self.project, user=self.user)
-        assert {self.user.id} == self.adapter.get_send_to_member(
-            self.project, str(self.user.id)
-        )
+        assert {self.user.id} == self.adapter.get_send_to_member(self.project, str(self.user.id))
 
     def test_invalid_user(self):
         assert set() == self.adapter.get_send_to_member(self.project, "900001")

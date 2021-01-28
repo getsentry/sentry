@@ -61,7 +61,8 @@ action_target_type_to_string = {
 string_to_action_target_type = {v: k for (k, v) in action_target_type_to_string.items()}
 dataset_valid_event_types = {
     QueryDatasets.EVENTS: {
-        SnubaQueryEventType.EventType.ERROR, SnubaQueryEventType.EventType.DEFAULT
+        SnubaQueryEventType.EventType.ERROR,
+        SnubaQueryEventType.EventType.DEFAULT,
     },
     QueryDatasets.TRANSACTIONS: {SnubaQueryEventType.EventType.TRANSACTION},
 }

@@ -33,9 +33,7 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
         try:
             search_type = SearchType(int(request.GET.get("type", 0)))
         except ValueError as e:
-            return Response(
-                {"detail": "Invalid input for `type`. Error: %s" % str(e)}, status=400
-            )
+            return Response({"detail": "Invalid input for `type`. Error: %s" % str(e)}, status=400)
         org_searches_q = Q(Q(owner=request.user) | Q(owner__isnull=True), organization=organization)
         global_searches_q = Q(is_global=True)
         saved_searches = list(

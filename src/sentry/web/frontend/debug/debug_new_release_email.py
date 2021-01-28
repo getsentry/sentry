@@ -41,9 +41,7 @@ class DebugNewReleaseEmailView(View):
         )
 
         release_links = [
-            absolute_uri(
-                f"/organizations/{org.slug}/releases/{release.version}/?project={p.id}"
-            )
+            absolute_uri(f"/organizations/{org.slug}/releases/{release.version}/?project={p.id}")
             for p in projects
         ]
 

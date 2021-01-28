@@ -49,7 +49,9 @@ class ProfileMiddleware:
 
         res = "      tottime\n"
         for item in results:
-            res += "{:4.1f}% {:7.3f} {}\n".format(100 * item[0] / total if total else 0, item[0], item[1])
+            res += "{:4.1f}% {:7.3f} {}\n".format(
+                100 * item[0] / total if total else 0, item[0], item[1]
+            )
 
         return res
 

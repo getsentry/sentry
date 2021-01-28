@@ -46,9 +46,7 @@ class VstsClient(AuthApiClient):
         #         }
         #     })
 
-        return self.patch(
-            f"https://{instance}/{project}/_apis/wit/workitems/$Bug", data=data
-        )
+        return self.patch(f"https://{instance}/{project}/_apis/wit/workitems/$Bug", data=data)
 
     def update_work_item(
         self, instance, id, title=UNSET, description=UNSET, link=UNSET, comment=UNSET

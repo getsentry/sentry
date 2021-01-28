@@ -31,9 +31,7 @@ class AbstractServerlessTest(APITestCase):
         self.login_as(self.user)
 
     def get_response(self, **kwargs):
-        return super().get_response(
-            self.organization.slug, self.integration.id, **kwargs
-        )
+        return super().get_response(self.organization.slug, self.integration.id, **kwargs)
 
     @property
     def sentry_dsn(self):

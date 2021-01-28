@@ -346,7 +346,9 @@ class IntegrationInstallation:
 
     def raise_error(self, exc, identity=None):
         if isinstance(exc, ApiUnauthorized):
-            raise InvalidIdentity(self.message_from_error(exc), identity=identity).with_traceback(sys.exc_info()[2])
+            raise InvalidIdentity(self.message_from_error(exc), identity=identity).with_traceback(
+                sys.exc_info()[2]
+            )
         elif isinstance(exc, ApiError):
             if exc.json:
                 error_fields = self.error_fields_from_json(exc.json)

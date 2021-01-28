@@ -109,7 +109,9 @@ class GitLabApiClient(ApiClient):
         """
         self.identity.get_provider().refresh_identity(
             self.identity,
-            refresh_token_url="{}{}".format(self.metadata["base_url"], GitLabApiClientPath.oauth_token),
+            refresh_token_url="{}{}".format(
+                self.metadata["base_url"], GitLabApiClientPath.oauth_token
+            ),
         )
 
     def get_user(self):

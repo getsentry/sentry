@@ -203,9 +203,7 @@ class Mediator:
     def _params(self):
         # These will be named ``_<name>`` on the class, so remove the ``_`` so
         # that it matches the name we'll be invoking on the Mediator instance.
-        return {
-            k[1:]: v for k, v in self.__class__.__dict__.items() if isinstance(v, Param)
-        }
+        return {k[1:]: v for k, v in self.__class__.__dict__.items() if isinstance(v, Param)}
 
     @memoize
     def _logging_name(self):

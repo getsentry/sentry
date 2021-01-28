@@ -387,9 +387,7 @@ class Factories:
                 message="placeholder commit message",
             )
 
-            release.update(
-                authors=[str(author.id)], commit_count=1, last_commit_id=commit.id
-            )
+            release.update(authors=[str(author.id)], commit_count=1, last_commit_id=commit.id)
 
         return release
 

@@ -14,9 +14,7 @@ class EncryptionManager:
     def __init__(self, schemes=()):
         for key, value in schemes:
             if not isinstance(key, str):
-                raise ValueError(
-                    f"Encryption scheme type must be a string. Value was: {value!r}"
-                )
+                raise ValueError(f"Encryption scheme type must be a string. Value was: {value!r}")
             if not hasattr(value, "encrypt") or not hasattr(value, "decrypt"):
                 raise ValueError(
                     "Encryption scheme value must have 'encrypt' and 'decrypt' callables. Value was: {!r}".format(

@@ -94,9 +94,7 @@ class DiscoverQuerySerializer(serializers.Serializer):
         if not requested_functions.issubset(valid_functions):
             invalid_functions = ", ".join(requested_functions - valid_functions)
 
-            raise serializers.ValidationError(
-                f"Invalid aggregate function - {invalid_functions}"
-            )
+            raise serializers.ValidationError(f"Invalid aggregate function - {invalid_functions}")
 
         return value
 

@@ -55,7 +55,9 @@ class AppleCrashReport:
 
         if name or signal:
             rv.append(
-                "Exception Type: {}{}".format(name or "Unknown", signal and (" (%s)" % signal) or "")
+                "Exception Type: {}{}".format(
+                    name or "Unknown", signal and (" (%s)" % signal) or ""
+                )
             )
 
         exc_name = get_path(mechanism_meta, "signal", "code_name")

@@ -85,5 +85,6 @@ class OrganizationUserIssuesSearchTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert len(response.data) == 2
         assert {r["project"]["slug"] for r in response.data} == {
-            self.project1.slug, self.project2.slug
+            self.project1.slug,
+            self.project2.slug,
         }

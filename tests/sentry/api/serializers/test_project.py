@@ -494,9 +494,11 @@ class BulkFetchProjectLatestReleases(TestCase):
         )
         other_project_release = self.create_release(self.other_project)
         assert set(bulk_fetch_project_latest_releases([self.project, self.other_project])) == {
-            release, other_project_release
+            release,
+            other_project_release,
         }
         release_2 = self.create_release(self.project)
         assert set(bulk_fetch_project_latest_releases([self.project, self.other_project])) == {
-            release_2, other_project_release
+            release_2,
+            other_project_release,
         }

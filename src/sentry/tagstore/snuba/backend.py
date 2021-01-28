@@ -217,9 +217,7 @@ class SnubaTagStorage(TagStorage):
         result = None
 
         if should_cache:
-            filtering_strings = [
-                f"{key}={value}" for key, value in filters.items()
-            ]
+            filtering_strings = [f"{key}={value}" for key, value in filters.items()]
             cache_key = "tagstore.__get_tag_keys:{}".format(
                 md5_text(*filtering_strings).hexdigest()
             )

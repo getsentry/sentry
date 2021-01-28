@@ -90,9 +90,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, {"environment": "prod"}, format="json")
         assert response.status_code == 200
         assert len(response.data) == 4
-        assert {tag["key"] for tag in response.data} == {
-            "foo", "biz", "environment", "level"
-        }
+        assert {tag["key"] for tag in response.data} == {"foo", "biz", "environment", "level"}
 
     def test_multi_env(self):
         min_ago = before_now(minutes=1)

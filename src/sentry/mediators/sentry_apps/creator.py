@@ -61,9 +61,7 @@ class Creator(Mediator):
 
     def _create_proxy_user(self):
         # need a proxy user name that will always be unique
-        return User.objects.create(
-            username=f"{self.slug}-{default_uuid()}", is_sentry_app=True
-        )
+        return User.objects.create(username=f"{self.slug}-{default_uuid()}", is_sentry_app=True)
 
     def _create_api_application(self):
         return ApiApplication.objects.create(

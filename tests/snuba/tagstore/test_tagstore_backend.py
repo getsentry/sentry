@@ -124,9 +124,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
             )
         )
         tags = [r.key for r in result]
-        assert set(tags) == {
-            "foo", "baz", "environment", "sentry:release", "sentry:user", "level"
-        }
+        assert set(tags) == {"foo", "baz", "environment", "sentry:release", "sentry:user", "level"}
 
         result.sort(key=lambda r: r.key)
         assert result[0].key == "baz"
@@ -182,7 +180,13 @@ class TagStorageTest(TestCase, SnubaTestCase):
 
     def test_get_tag_keys(self):
         expected_keys = {
-            "baz", "browser", "environment", "foo", "sentry:release", "sentry:user", "level"
+            "baz",
+            "browser",
+            "environment",
+            "foo",
+            "sentry:release",
+            "sentry:user",
+            "level",
         }
         keys = {
             k.key: k
@@ -226,9 +230,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
                 environment_ids=[self.proj1env1.id],
             )
         }
-        assert set(keys) == {
-            "baz", "environment", "foo", "sentry:release", "sentry:user", "level"
-        }
+        assert set(keys) == {"baz", "environment", "foo", "sentry:release", "sentry:user", "level"}
 
     def test_get_group_tag_value(self):
         with pytest.raises(GroupTagValueNotFound):
@@ -354,7 +356,8 @@ class TagStorageTest(TestCase, SnubaTestCase):
         assert len(result) == 2
         assert {v.group_id for v in result} == {self.proj1group1.id, self.proj1group2.id}
         assert {v.last_seen for v in result} == {
-            self.now - timedelta(seconds=1), self.now - timedelta(seconds=2)
+            self.now - timedelta(seconds=1),
+            self.now - timedelta(seconds=2),
         }
         result.sort(key=lambda x: x.last_seen)
         assert result[0].last_seen == self.now - timedelta(seconds=2)

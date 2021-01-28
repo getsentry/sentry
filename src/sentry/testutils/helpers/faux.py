@@ -81,9 +81,7 @@ class Faux:
         if actual == expected:
             return True
 
-        raise AssertionError(
-            f"Expected kwargs[{key}] to equal {expected!r}. Received {actual!r}."
-        )
+        raise AssertionError(f"Expected kwargs[{key}] to equal {expected!r}. Received {actual!r}.")
 
     def args_contain(self, value, **kwargs):
         if value in self.args:

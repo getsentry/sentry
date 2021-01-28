@@ -97,9 +97,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         """ Construct the columns needed to calculate high confidence trends """
         trend_column = self.trend_columns.get(baseline_function)
         if trend_column is None:
-            raise ParseError(
-                detail=f"{baseline_function} is not a supported trend function"
-            )
+            raise ParseError(detail=f"{baseline_function} is not a supported trend function")
 
         count_column = self.trend_columns["count_range"]
         percentage_column = self.trend_columns["percentage"]

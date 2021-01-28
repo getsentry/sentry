@@ -29,9 +29,7 @@ class ProjectPermission(OrganizationPermission):
     }
 
     def has_object_permission(self, request, view, project):
-        result = super().has_object_permission(
-            request, view, project.organization
-        )
+        result = super().has_object_permission(request, view, project.organization)
 
         if not result:
             return result

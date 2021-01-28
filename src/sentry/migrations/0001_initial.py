@@ -4133,7 +4133,8 @@ class Migration(migrations.Migration):
         migrations.AlterUniqueTogether(
             name="repository",
             unique_together={
-                ("organization_id", "provider", "external_id"), ("organization_id", "name")
+                ("organization_id", "provider", "external_id"),
+                ("organization_id", "name"),
             },
         ),
         migrations.AddField(
@@ -4237,9 +4238,7 @@ class Migration(migrations.Migration):
             name="monitor",
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(to="sentry.Monitor"),
         ),
-        migrations.AlterIndexTogether(
-            name="monitor", index_together={("type", "next_checkin")}
-        ),
+        migrations.AlterIndexTogether(name="monitor", index_together={("type", "next_checkin")}),
         migrations.AlterUniqueTogether(
             name="latestrelease", unique_together={("repository_id", "environment_id")}
         ),
@@ -4470,7 +4469,9 @@ class Migration(migrations.Migration):
         migrations.AlterIndexTogether(
             name="eventuser",
             index_together={
-                ("project_id", "username"), ("project_id", "ip_address"), ("project_id", "email")
+                ("project_id", "username"),
+                ("project_id", "ip_address"),
+                ("project_id", "email"),
             },
         ),
         migrations.AlterUniqueTogether(
@@ -4499,9 +4500,7 @@ class Migration(migrations.Migration):
             name="file",
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(to="sentry.File"),
         ),
-        migrations.AlterUniqueTogether(
-            name="event", unique_together={("project_id", "event_id")}
-        ),
+        migrations.AlterUniqueTogether(name="event", unique_together={("project_id", "event_id")}),
         migrations.AlterIndexTogether(name="event", index_together={("group_id", "datetime")}),
         migrations.AddField(
             model_name="environmentproject",
@@ -4645,13 +4644,9 @@ class Migration(migrations.Migration):
             name="useroption",
             unique_together={("user", "project", "key"), ("user", "organization", "key")},
         ),
-        migrations.AlterUniqueTogether(
-            name="userip", unique_together={("user", "ip_address")}
-        ),
+        migrations.AlterUniqueTogether(name="userip", unique_together={("user", "ip_address")}),
         migrations.AlterUniqueTogether(name="useremail", unique_together={("user", "email")}),
-        migrations.AlterUniqueTogether(
-            name="team", unique_together={("organization", "slug")}
-        ),
+        migrations.AlterUniqueTogether(name="team", unique_together={("organization", "slug")}),
         migrations.AlterUniqueTogether(
             name="servicehookproject", unique_together={("service_hook", "project_id")}
         ),
@@ -4675,12 +4670,8 @@ class Migration(migrations.Migration):
         migrations.AlterUniqueTogether(
             name="releaseheadcommit", unique_together={("repository_id", "release")}
         ),
-        migrations.AlterUniqueTogether(
-            name="releasefile", unique_together={("release", "ident")}
-        ),
-        migrations.AlterIndexTogether(
-            name="releasefile", index_together={("release", "name")}
-        ),
+        migrations.AlterUniqueTogether(name="releasefile", unique_together={("release", "ident")}),
+        migrations.AlterIndexTogether(name="releasefile", index_together={("release", "name")}),
         migrations.AlterUniqueTogether(
             name="releaseenvironment",
             unique_together={("organization", "release", "environment")},
@@ -4695,9 +4686,7 @@ class Migration(migrations.Migration):
             name="recentsearch",
             unique_together={("user", "organization", "type", "query_hash")},
         ),
-        migrations.AlterUniqueTogether(
-            name="rawevent", unique_together={("project", "event_id")}
-        ),
+        migrations.AlterUniqueTogether(name="rawevent", unique_together={("project", "event_id")}),
         migrations.AlterUniqueTogether(
             name="pullrequestcommit", unique_together={("pull_request", "commit")}
         ),
@@ -4707,25 +4696,22 @@ class Migration(migrations.Migration):
         migrations.AlterIndexTogether(
             name="pullrequest",
             index_together={
-                ("repository_id", "date_added"), ("organization_id", "merge_commit_sha")
+                ("repository_id", "date_added"),
+                ("organization_id", "merge_commit_sha"),
             },
         ),
         migrations.AlterUniqueTogether(
             name="promptsactivity",
             unique_together={("user", "feature", "organization_id", "project_id")},
         ),
-        migrations.AlterUniqueTogether(
-            name="projectteam", unique_together={("project", "team")}
-        ),
+        migrations.AlterUniqueTogether(name="projectteam", unique_together={("project", "team")}),
         migrations.AlterUniqueTogether(
             name="projectsymcachefile", unique_together={("project", "debug_file")}
         ),
         migrations.AlterUniqueTogether(
             name="projectredirect", unique_together={("organization", "redirect_slug")}
         ),
-        migrations.AlterUniqueTogether(
-            name="projectoption", unique_together={("project", "key")}
-        ),
+        migrations.AlterUniqueTogether(name="projectoption", unique_together={("project", "key")}),
         migrations.AlterUniqueTogether(
             name="projectintegration", unique_together={("project", "integration")}
         ),
@@ -4739,9 +4725,7 @@ class Migration(migrations.Migration):
         migrations.AlterUniqueTogether(
             name="projectbookmark", unique_together={("project", "user")}
         ),
-        migrations.AlterUniqueTogether(
-            name="project", unique_together={("organization", "slug")}
-        ),
+        migrations.AlterUniqueTogether(name="project", unique_together={("organization", "slug")}),
         migrations.AlterUniqueTogether(
             name="processingissue", unique_together={("project", "checksum", "type")}
         ),
@@ -4774,13 +4758,9 @@ class Migration(migrations.Migration):
             name="groupsubscription", unique_together={("group", "user")}
         ),
         migrations.AlterUniqueTogether(name="groupseen", unique_together={("user", "group")}),
-        migrations.AlterUniqueTogether(
-            name="grouprulestatus", unique_together={("rule", "group")}
-        ),
+        migrations.AlterUniqueTogether(name="grouprulestatus", unique_together={("rule", "group")}),
         migrations.AlterUniqueTogether(name="groupmeta", unique_together={("group", "key")}),
-        migrations.AlterUniqueTogether(
-            name="grouphash", unique_together={("project", "hash")}
-        ),
+        migrations.AlterUniqueTogether(name="grouphash", unique_together={("project", "hash")}),
         migrations.AlterUniqueTogether(
             name="groupenvironment", unique_together={("group", "environment")}
         ),
@@ -4793,12 +4773,8 @@ class Migration(migrations.Migration):
         migrations.AlterUniqueTogether(
             name="groupbookmark", unique_together={("project", "user", "group")}
         ),
-        migrations.AlterUniqueTogether(
-            name="group", unique_together={("project", "short_id")}
-        ),
-        migrations.AlterIndexTogether(
-            name="group", index_together={("project", "first_release")}
-        ),
+        migrations.AlterUniqueTogether(name="group", unique_together={("project", "short_id")}),
+        migrations.AlterIndexTogether(name="group", index_together={("project", "first_release")}),
         migrations.AlterUniqueTogether(
             name="fileblobowner", unique_together={("blob", "organization")}
         ),
@@ -4823,9 +4799,7 @@ class Migration(migrations.Migration):
         migrations.AlterUniqueTogether(
             name="environment", unique_together={("organization_id", "name")}
         ),
-        migrations.AlterUniqueTogether(
-            name="distribution", unique_together={("release", "name")}
-        ),
+        migrations.AlterUniqueTogether(name="distribution", unique_together={("release", "name")}),
         migrations.AlterUniqueTogether(
             name="discoversavedqueryproject",
             unique_together={("project", "discover_saved_query")},
@@ -4836,9 +4810,7 @@ class Migration(migrations.Migration):
         migrations.AlterUniqueTogether(
             name="commitfilechange", unique_together={("commit", "filename")}
         ),
-        migrations.AlterUniqueTogether(
-            name="commit", unique_together={("repository_id", "key")}
-        ),
+        migrations.AlterUniqueTogether(name="commit", unique_together={("repository_id", "key")}),
         migrations.AlterIndexTogether(
             name="commit", index_together={("repository_id", "date_added")}
         ),
@@ -4849,9 +4821,7 @@ class Migration(migrations.Migration):
             name="authidentity",
             unique_together={("auth_provider", "ident"), ("auth_provider", "user")},
         ),
-        migrations.AlterUniqueTogether(
-            name="authenticator", unique_together={("user", "type")}
-        ),
+        migrations.AlterUniqueTogether(name="authenticator", unique_together={("user", "type")}),
         migrations.AlterUniqueTogether(
             name="assistantactivity", unique_together={("user", "guide_id")}
         ),

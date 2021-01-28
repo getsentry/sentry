@@ -168,9 +168,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         selected_columns = []
         if get_sample:
             query_hash = md5(json.dumps(conditions).encode("utf-8")).hexdigest()[:8]
-            selected_columns.append(
-                ("cityHash64", (f"'{query_hash}'", "group_id"), "sample")
-            )
+            selected_columns.append(("cityHash64", (f"'{query_hash}'", "group_id"), "sample"))
             sort_field = "sample"
             orderby = [sort_field]
             referrer = "search_sample"
@@ -241,18 +239,18 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
     logger = logging.getLogger("sentry.search.postgressnuba")
     dependency_aggregations = {"priority": ["last_seen", "times_seen"]}
     postgres_only_fields = {
-            "query",
-            "status",
-            "for_review",
-            "owner",
-            "bookmarked_by",
-            "assigned_to",
-            "unassigned",
-            "linked",
-            "subscribed_by",
-            "active_at",
-            "first_release",
-            "first_seen",
+        "query",
+        "status",
+        "for_review",
+        "owner",
+        "bookmarked_by",
+        "assigned_to",
+        "unassigned",
+        "linked",
+        "subscribed_by",
+        "active_at",
+        "first_release",
+        "first_seen",
     }
     sort_strategies = {
         "date": "last_seen",

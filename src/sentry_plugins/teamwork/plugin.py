@@ -55,12 +55,8 @@ class TeamworkTaskForm(NewIssueForm):
             try:
                 tasklist_list = client.list_tasklists(data["project"])
             except RequestException as e:
-                raise forms.ValidationError(
-                    _("Error contacting Teamwork API: %s") % str(e)
-                )
-            self.fields["tasklist"].choices = [
-                (str(i["id"]), i["name"]) for i in tasklist_list
-            ]
+                raise forms.ValidationError(_("Error contacting Teamwork API: %s") % str(e))
+            self.fields["tasklist"].choices = [(str(i["id"]), i["name"]) for i in tasklist_list]
             self.fields["tasklist"].widget.choices = self.fields["tasklist"].choices
 
 

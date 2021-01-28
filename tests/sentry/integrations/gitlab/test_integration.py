@@ -34,7 +34,9 @@ class GitlabIntegrationTest(IntegrationTestCase):
 
     def setUp(self):
         super().setUp()
-        self.init_path_without_guide = "{}{}".format(self.init_path, "?completed_installation_guide")
+        self.init_path_without_guide = "{}{}".format(
+            self.init_path, "?completed_installation_guide"
+        )
 
     def assert_setup_flow(self, user_id="user_id_1"):
         resp = self.client.get(self.init_path)

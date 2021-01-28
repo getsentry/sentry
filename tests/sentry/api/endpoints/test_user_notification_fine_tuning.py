@@ -299,9 +299,10 @@ class UserNotificationFineTuningTest(APITestCase):
         resp = self.client.put(url, data=update)
         assert resp.status_code == 204
 
-        assert set(
-            UserOption.objects.get(user=self.user, key="reports:disabled-organizations").value
-        ) == set()
+        assert (
+            set(UserOption.objects.get(user=self.user, key="reports:disabled-organizations").value)
+            == set()
+        )
 
         # can disable
         update = {}
@@ -315,9 +316,10 @@ class UserNotificationFineTuningTest(APITestCase):
         update = {}
         update[self.org.id] = 1
         resp = self.client.put(url, data=update)
-        assert set(
-            UserOption.objects.get(user=self.user, key="reports:disabled-organizations").value
-        ) == set()
+        assert (
+            set(UserOption.objects.get(user=self.user, key="reports:disabled-organizations").value)
+            == set()
+        )
 
     def test_permissions(self):
         new_user = self.create_user(email="b@example.com")

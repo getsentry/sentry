@@ -925,7 +925,8 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert not alert_rule.snuba_query.subscriptions.filter(project=new_project).exists()
         update_alert_rule(alert_rule, include_all_projects=True)
         assert {sub.project for sub in alert_rule.snuba_query.subscriptions.all()} == {
-            new_project, orig_project
+            new_project,
+            orig_project,
         }
 
     def test_update_to_include_all_with_exclude(self):
@@ -938,7 +939,8 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             alert_rule, include_all_projects=True, excluded_projects=[excluded_project]
         )
         assert {sub.project for sub in alert_rule.snuba_query.subscriptions.all()} == {
-            orig_project, new_project
+            orig_project,
+            new_project,
         }
 
     def test_update_include_all_exclude_list(self):

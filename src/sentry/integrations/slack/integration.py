@@ -187,9 +187,7 @@ class SlackIntegrationProvider(IntegrationProvider):
         return integration
 
     def create_audit_log_entry(self, integration, organization, request, action, extra=None):
-        super().create_audit_log_entry(
-            integration, organization, request, action
-        )
+        super().create_audit_log_entry(integration, organization, request, action)
 
         if action == "upgrade":
             create_audit_entry(

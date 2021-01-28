@@ -255,9 +255,7 @@ class GitHubIssueBasicTest(TestCase):
 
         org_integration = self.integration.org_integration
         org_integration.config = {
-            "project_issue_defaults": {
-                str(group.project_id): {"repo": "getsentry/sentry"}
-            }
+            "project_issue_defaults": {str(group.project_id): {"repo": "getsentry/sentry"}}
         }
         org_integration.save()
         fields = self.integration.get_link_issue_config(group)
@@ -291,9 +289,7 @@ class GitHubIssueBasicTest(TestCase):
         group = event.group
         org_integration = self.integration.org_integration
         org_integration.config = {
-            "project_issue_defaults": {
-                str(group.project_id): {"repo": "getsentry/sentry"}
-            }
+            "project_issue_defaults": {str(group.project_id): {"repo": "getsentry/sentry"}}
         }
         org_integration.save()
         fields = self.integration.get_create_issue_config(group, self.user)

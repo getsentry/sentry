@@ -539,7 +539,8 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             else:
                 if projects:
                     project_choices = [
-                        (p.get("key"), "{} ({})".format(p.get("name"), p.get("key"))) for p in projects
+                        (p.get("key"), "{} ({})".format(p.get("name"), p.get("key")))
+                        for p in projects
                     ]
                     jira_project = jira_project or projects[0]["key"]
 

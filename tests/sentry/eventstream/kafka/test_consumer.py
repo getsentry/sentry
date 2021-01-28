@@ -283,7 +283,8 @@ def test_consumer_rebalance_from_partition_start(requires_kafka):
             len(assignments_received[consumer_a]) == 1
         ), "expected to receive partition assignment"
         assert {(i.topic, i.partition) for i in assignments_received[consumer_a][0]} == {
-            (topic, 0), (topic, 1)
+            (topic, 0),
+            (topic, 1),
         }
 
         assignments_received[consumer_a].pop()
@@ -413,7 +414,8 @@ def test_consumer_rebalance_from_committed_offset(requires_kafka):
             len(assignments_received[consumer_a]) == 1
         ), "expected to receive partition assignment"
         assert {(i.topic, i.partition) for i in assignments_received[consumer_a][0]} == {
-            (topic, 0), (topic, 1)
+            (topic, 0),
+            (topic, 1),
         }
 
         assignments_received[consumer_a].pop()
@@ -581,7 +583,8 @@ def test_consumer_rebalance_from_uncommitted_offset(requires_kafka):
             len(assignments_received[consumer_a]) == 1
         ), "expected to receive partition assignment"
         assert {(i.topic, i.partition) for i in assignments_received[consumer_a][0]} == {
-            (topic, 0), (topic, 1)
+            (topic, 0),
+            (topic, 1),
         }
         assignments_received[consumer_a].pop()
 

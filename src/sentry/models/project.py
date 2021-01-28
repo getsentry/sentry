@@ -157,9 +157,7 @@ class Project(Model, PendingDeletionMixin):
 
     def is_internal_project(self):
         for value in (settings.SENTRY_FRONTEND_PROJECT, settings.SENTRY_PROJECT):
-            if str(self.id) == str(value) or str(
-                self.slug
-            ) == str(value):
+            if str(self.id) == str(value) or str(self.slug) == str(value):
                 return True
         return False
 
@@ -263,11 +261,11 @@ class Project(Model, PendingDeletionMixin):
         members_to_check = {u for u in member_set if u not in alert_settings}
         if members_to_check:
             disabled = {
-                    uo.user_id
-                    for uo in UserOption.objects.filter(
-                        key="subscribe_by_default", user__in=members_to_check
-                    )
-                    if uo.value == "0"
+                uo.user_id
+                for uo in UserOption.objects.filter(
+                    key="subscribe_by_default", user__in=members_to_check
+                )
+                if uo.value == "0"
             }
             member_set = [x for x in member_set if x not in disabled]
 

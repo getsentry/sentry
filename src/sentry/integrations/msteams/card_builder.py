@@ -512,9 +512,7 @@ def build_group_actions(group, event, rules, integration):
         }
     else:
         teams_list = group.project.teams.all().order_by("slug")
-        teams = [
-            {"title": f"#{u.slug}", "value": f"team:{u.id}"} for u in teams_list
-        ]
+        teams = [{"title": f"#{u.slug}", "value": f"team:{u.id}"} for u in teams_list]
         teams = [{"title": "Me", "value": ME}] + teams
         assign_action = {
             "type": "Action.ShowCard",

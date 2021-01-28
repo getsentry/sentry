@@ -100,10 +100,7 @@ class Meta:
          - ``type`` is the error constant also used in EventError
          - ``data`` a dictionary of additional error infos
         """
-        return (
-            ([err, {}] if isinstance(err, str) else err)
-            for err in self.get().get("err") or ()
-        )
+        return (([err, {}] if isinstance(err, str) else err) for err in self.get().get("err") or ())
 
     def get_event_errors(self):
         """

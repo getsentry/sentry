@@ -127,7 +127,8 @@ class Migration(migrations.Migration):
                 migrations.AlterIndexTogether(
                     name="eventattachment",
                     index_together={
-                        ("project_id", "date_added"), ("project_id", "date_added", "file_id")
+                        ("project_id", "date_added"),
+                        ("project_id", "date_added", "file_id"),
                     },
                 ),
                 migrations.AlterIndexTogether(

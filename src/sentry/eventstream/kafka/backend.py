@@ -99,7 +99,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
             errors = [i for i in results if i.error is not None]
             if errors:
                 raise Exception(
-                    "Failed to commit {}/{} partitions: {!r}".format(len(errors), len(partitions), errors)
+                    "Failed to commit {}/{} partitions: {!r}".format(
+                        len(errors), len(partitions), errors
+                    )
                 )
 
             return results

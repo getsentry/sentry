@@ -197,9 +197,7 @@ def up(ctx, services, project, exclude, fast):
 
     for service in exclude:
         if service not in containers:
-            click.secho(
-                f"Service `{service}` is not known or not enabled.\n", err=True, fg="red"
-            )
+            click.secho(f"Service `{service}` is not known or not enabled.\n", err=True, fg="red")
             click.secho(
                 "Services that are available:\n" + "\n".join(containers.keys()) + "\n", err=True
             )
@@ -232,9 +230,7 @@ def _prepare_containers(project, silent=False):
         test_fn = options.pop("only_if", None)
         if test_fn and not test_fn(settings, sentry_options):
             if not silent:
-                click.secho(
-                    f"! Skipping {name} due to only_if condition", err=True, fg="cyan"
-                )
+                click.secho(f"! Skipping {name} due to only_if condition", err=True, fg="cyan")
             continue
 
         options["network"] = project

@@ -99,9 +99,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         assert self.issues_list.global_selection.get_selected_project_slug() == self.project_1.slug
 
         # Uses project id in URL
-        self.issues_list.visit_issue_list(
-            self.org.slug, query=f"?project={self.project_2.id}"
-        )
+        self.issues_list.visit_issue_list(self.org.slug, query=f"?project={self.project_2.id}")
         assert f"project={self.project_2.id}" in self.browser.current_url
         assert self.issues_list.global_selection.get_selected_project_slug() == self.project_2.slug
 
@@ -134,9 +132,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         """
         self.create_issues()
         # Issues list with project 1 selected
-        self.issues_list.visit_issue_list(
-            self.org.slug, query="?project=" + str(self.project_1.id)
-        )
+        self.issues_list.visit_issue_list(self.org.slug, query="?project=" + str(self.project_1.id))
         self.issues_list.visit_issue_list(self.org.slug)
         assert self.issues_list.global_selection.get_selected_project_slug() == self.project_1.slug
 
@@ -235,25 +231,17 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             self.issues_list.visit_issue_list(self.org.slug)
             assert "project=" not in self.browser.current_url
             assert self.issues_list.global_selection.get_selected_project_slug() == "My Projects"
-            assert (
-                self.browser.get_local_storage_item(f"global-selection:{self.org.slug}")
-                is None
-            )
+            assert self.browser.get_local_storage_item(f"global-selection:{self.org.slug}") is None
 
             # Uses project id in URL
-            self.issues_list.visit_issue_list(
-                self.org.slug, query=f"?project={self.project_2.id}"
-            )
+            self.issues_list.visit_issue_list(self.org.slug, query=f"?project={self.project_2.id}")
             assert f"project={self.project_2.id}" in self.browser.current_url
             assert (
                 self.issues_list.global_selection.get_selected_project_slug() == self.project_2.slug
             )
 
             # should not be in local storage
-            assert (
-                self.browser.get_local_storage_item(f"global-selection:{self.org.slug}")
-                is None
-            )
+            assert self.browser.get_local_storage_item(f"global-selection:{self.org.slug}") is None
 
             # reloads page with no project id in URL, remains "My Projects" because
             # there has been no explicit project selection via UI
@@ -332,9 +320,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         """
         mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
         self.create_issues()
-        self.issues_list.visit_issue_list(
-            self.org.slug, query=f"?project={self.project_2.id}"
-        )
+        self.issues_list.visit_issue_list(self.org.slug, query=f"?project={self.project_2.id}")
         self.issues_list.wait_for_issue()
 
         assert f"project={self.project_2.id}" in self.browser.current_url

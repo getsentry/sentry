@@ -120,9 +120,7 @@ class ProjectOwnership(Model):
             owners.sort(reverse=True)
             actors = {
                 key: val
-                for key, val in resolve_actors(
-                    {owner[2] for owner in owners}, project_id
-                ).items()
+                for key, val in resolve_actors({owner[2] for owner in owners}, project_id).items()
                 if val
             }
             actors = [actors[owner[2]] for owner in owners if owner[2] in actors][:limit]

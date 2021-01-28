@@ -134,9 +134,7 @@ class OrganizationSerializer(Serializer):
 
         # batch_has has found some features
         if batch_features:
-            for feature_name, active in batch_features.get(
-                f"organization:{obj.id}", {}
-            ).items():
+            for feature_name, active in batch_features.get(f"organization:{obj.id}", {}).items():
                 if active:
                     # Remove organization prefix
                     feature_list.add(feature_name[len(_ORGANIZATION_SCOPE_PREFIX) :])
@@ -287,8 +285,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "allowJoinRequests": bool(
                     obj.get_option("sentry:join_requests", JOIN_REQUESTS_DEFAULT)
                 ),
-                "relayPiiConfig": str(obj.get_option("sentry:relay_pii_config") or "")
-                or None,
+                "relayPiiConfig": str(obj.get_option("sentry:relay_pii_config") or "") or None,
                 "apdexThreshold": int(
                     obj.get_option("sentry:apdex_threshold", APDEX_THRESHOLD_DEFAULT)
                 ),
@@ -311,9 +308,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
 class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSerializer):
     def get_attrs(self, item_list, user, **kwargs):
-        return super().get_attrs(
-            item_list, user
-        )
+        return super().get_attrs(item_list, user)
 
     def _project_list(self, organization, access):
         member_projects = list(access.projects)
@@ -347,9 +342,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         from sentry.api.serializers.models.project import ProjectSummarySerializer
         from sentry.api.serializers.models.team import TeamSerializer
 
-        context = super().serialize(
-            obj, attrs, user, access
-        )
+        context = super().serialize(obj, attrs, user, access)
 
         team_list = self._team_list(obj, access)
         project_list = self._project_list(obj, access)

@@ -788,9 +788,7 @@ def histogram_query(
         for f in fields:
             measurement = get_measurement_name(f)
             if measurement is None:
-                raise InvalidSearchQuery(
-                    f"multihistogram expected all measurements, received: {f}"
-                )
+                raise InvalidSearchQuery(f"multihistogram expected all measurements, received: {f}")
             measurements.append(measurement)
         conditions.append([key_alias, "IN", measurements])
 

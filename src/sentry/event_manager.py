@@ -618,9 +618,7 @@ def _get_event_user_many(jobs, projects):
 @metrics.wraps("save_event.derive_plugin_tags_many")
 def _derive_plugin_tags_many(jobs, projects):
     # XXX: We ought to inline or remove this one for sure
-    plugins_for_projects = {
-        p.id: plugins.for_project(p, version=None) for p in projects.values()
-    }
+    plugins_for_projects = {p.id: plugins.for_project(p, version=None) for p in projects.values()}
 
     for job in jobs:
         for plugin in plugins_for_projects[job["project_id"]]:

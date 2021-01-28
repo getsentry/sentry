@@ -857,8 +857,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
-            HTTP_AUTHORIZATION=b"Basic "
-            + b64encode(f"{wrong_org_api_key.key}:".encode("utf-8")),
+            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{wrong_org_api_key.key}:".encode("utf-8")),
         )
         assert response.status_code == 403
 
@@ -867,8 +866,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
-            HTTP_AUTHORIZATION=b"Basic "
-            + b64encode(f"{good_api_key.key}:".encode("utf-8")),
+            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{good_api_key.key}:".encode("utf-8")),
         )
         assert response.status_code == 201, response.content
 
@@ -1535,11 +1533,17 @@ class ReleaseHeadCommitSerializerTest(TestCase):
 
     def test_commit_range_does_not_allow_empty_commits(self):
         serializer = ReleaseHeadCommitSerializer(
-            data={"commit": "{}..{}".format("", "b" * MAX_COMMIT_LENGTH), "repository": self.repo_name}
+            data={
+                "commit": "{}..{}".format("", "b" * MAX_COMMIT_LENGTH),
+                "repository": self.repo_name,
+            }
         )
         assert not serializer.is_valid()
         serializer = ReleaseHeadCommitSerializer(
-            data={"commit": "{}..{}".format("a" * MAX_COMMIT_LENGTH, ""), "repository": self.repo_name}
+            data={
+                "commit": "{}..{}".format("a" * MAX_COMMIT_LENGTH, ""),
+                "repository": self.repo_name,
+            }
         )
         assert not serializer.is_valid()
 

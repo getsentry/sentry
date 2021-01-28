@@ -2050,9 +2050,8 @@ class QueryTransformTest(TestCase):
                 3,
                 0,
             )
-        assert (
-            "multihistogram expected all measurements, received: transaction.duration"
-            in str(err)
+        assert "multihistogram expected all measurements, received: transaction.duration" in str(
+            err
         )
 
     @patch("sentry.snuba.discover.raw_query")

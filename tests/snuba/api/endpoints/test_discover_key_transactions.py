@@ -156,9 +156,7 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 400
         assert response.data == {
-            "non_field_errors": [
-                f"At most {MAX_KEY_TRANSACTIONS} Key Transactions can be added"
-            ]
+            "non_field_errors": [f"At most {MAX_KEY_TRANSACTIONS} Key Transactions can be added"]
         }
 
     def test_is_key_transaction(self):

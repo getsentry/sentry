@@ -19,9 +19,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
         return user
 
     def get_response(self, *args, **params):
-        return super().get_response(
-            *((self.organization.slug,) + args), **params
-        )
+        return super().get_response(*((self.organization.slug,) + args), **params)
 
     def test(self):
         self.login_as(self.member)
@@ -119,9 +117,7 @@ class DeleteOrganizationPinnedSearchTest(APITestCase):
         return user
 
     def get_response(self, *args, **params):
-        return super().get_response(
-            *((self.organization.slug,) + args), **params
-        )
+        return super().get_response(*((self.organization.slug,) + args), **params)
 
     def test(self):
         saved_search = SavedSearch.objects.create(

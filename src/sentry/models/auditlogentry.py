@@ -281,9 +281,7 @@ class AuditLogEntry(Model):
             return "created project {}".format(self.data["slug"])
         elif self.event == AuditLogEntryEvent.PROJECT_EDIT:
             return "edited project settings " + (
-                " ".join(
-                    [f" in {key} to {value}" for (key, value) in self.data.items()]
-                )
+                " ".join([f" in {key} to {value}" for (key, value) in self.data.items()])
             )
         elif self.event == AuditLogEntryEvent.PROJECT_REMOVE:
             return "removed project {}".format(self.data["slug"])
@@ -327,9 +325,7 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.SSO_DISABLE:
             return "disabled sso ({})".format(self.data["provider"])
         elif self.event == AuditLogEntryEvent.SSO_EDIT:
-            return "edited sso settings: " + (
-                ", ".join(f"{k} {v}" for k, v in self.data.items())
-            )
+            return "edited sso settings: " + (", ".join(f"{k} {v}" for k, v in self.data.items()))
         elif self.event == AuditLogEntryEvent.SSO_IDENTITY_LINK:
             return "linked their account to a new identity"
 

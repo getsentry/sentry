@@ -282,9 +282,7 @@ class MergingOffsetPaginator(OffsetPaginator):
         max_limit=MAX_LIMIT,
         on_results=None,
     ):
-        super().__init__(
-            queryset, max_limit=max_limit, on_results=on_results
-        )
+        super().__init__(queryset, max_limit=max_limit, on_results=on_results)
         self.data_load_func = data_load_func
         self.apply_to_queryset = apply_to_queryset
         self.key_from_model = key_from_model or (lambda x: x.id)

@@ -91,8 +91,7 @@ class OrganizationProjectsTest(APITestCase):
         self.login_as(user=self.user)
 
         projects = [
-            self.create_project(teams=[self.team], name=i, slug=f"project-{i}")
-            for i in range(3)
+            self.create_project(teams=[self.team], name=i, slug=f"project-{i}") for i in range(3)
         ]
         projects.sort(key=lambda project: project.slug)
 

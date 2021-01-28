@@ -124,9 +124,7 @@ def backfill_eventstream(apps, schema_editor):
             "Cannot migrate any event. If this is okay, re-run migrations with SENTRY_SKIP_EVENTS_BACKFILL_FOR_10 environment variable set to skip this step."
         )
 
-    print(  # noqa: B314
-        f"Event migration done. Migrated {processed} of {count} events.\n"
-    )
+    print(f"Event migration done. Migrated {processed} of {count} events.\n")  # noqa: B314
 
 
 class Migration(migrations.Migration):

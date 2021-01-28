@@ -76,8 +76,7 @@ def get_group_with_redirect(id_or_qualified_short_id, queryset=None, organizatio
         getter = queryset.get
 
     if not (
-        isinstance(id_or_qualified_short_id, int)  # noqa
-        or id_or_qualified_short_id.isdigit()
+        isinstance(id_or_qualified_short_id, int) or id_or_qualified_short_id.isdigit()  # noqa
     ):  # NOQA
         short_id = parse_short_id(id_or_qualified_short_id)
         if not short_id or not organization:
@@ -215,9 +214,7 @@ class GroupManager(BaseManager):
 
         # TODO(jess): this method maybe isn't even used?
         except HashDiscarded as e:
-            logger.info(
-                "discarded.hash", extra={"project_id": project, "description": str(e)}
-            )
+            logger.info("discarded.hash", extra={"project_id": project, "description": str(e)})
 
     def from_event_id(self, project, event_id):
         """

@@ -30,9 +30,9 @@ class Lock:
         try:
             self.backend.acquire(self.key, self.duration, self.routing_key)
         except Exception as error:
-            raise UnableToAcquireLock("Unable to acquire {!r} due to error: {}".format(self, error)) from 
+            raise UnableToAcquireLock("Unable to acquire {!r} due to error: {}".format(self, error)) from
                 error,
-            
+
 
         @contextmanager
         def releaser():

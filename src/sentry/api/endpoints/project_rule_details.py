@@ -15,9 +15,7 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
 
     def convert_args(self, request, rule_id, *args, **kwargs):
-        args, kwargs = super().convert_args(
-            request, *args, **kwargs
-        )
+        args, kwargs = super().convert_args(request, *args, **kwargs)
         project = kwargs["project"]
 
         if not rule_id.isdigit():

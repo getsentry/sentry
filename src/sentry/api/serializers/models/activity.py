@@ -51,12 +51,8 @@ class ActivitySerializer(Serializer):
         groups = apply_values(
             functools.partial(serialize, user=user),
             Group.objects.in_bulk(
-                {
-                    i.data["source_id"] for i in item_list if i.type == Activity.UNMERGE_DESTINATION
-                }
-                | {
-                    i.data["destination_id"] for i in item_list if i.type == Activity.UNMERGE_SOURCE
-                }
+                {i.data["source_id"] for i in item_list if i.type == Activity.UNMERGE_DESTINATION}
+                | {i.data["destination_id"] for i in item_list if i.type == Activity.UNMERGE_SOURCE}
             ),
         )
 

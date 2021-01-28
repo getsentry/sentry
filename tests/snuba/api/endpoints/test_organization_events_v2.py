@@ -2638,12 +2638,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             )
 
         count_unique = "count_unique(measurements.fcp)"
-        self.assert_measurement_condition_with_results(
-            f"{count_unique}:1", field=[count_unique]
-        )
-        self.assert_measurement_condition_without_results(
-            f"{count_unique}:0", field=[count_unique]
-        )
+        self.assert_measurement_condition_with_results(f"{count_unique}:1", field=[count_unique])
+        self.assert_measurement_condition_without_results(f"{count_unique}:0", field=[count_unique])
 
     def test_compare_numeric_aggregate(self):
         self.store_event(self.transaction_data, self.project.id)

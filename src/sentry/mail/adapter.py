@@ -468,9 +468,7 @@ class MailAdapter:
 
         email_cls = emails.get(activity.type)
         if not email_cls:
-            logger.debug(
-                f"No email associated with activity type `{activity.get_type_display()}`"
-            )
+            logger.debug(f"No email associated with activity type `{activity.get_type_display()}`")
             return
 
         email = email_cls(activity)

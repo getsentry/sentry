@@ -803,9 +803,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterUniqueTogether(
             name="groupredirect",
-            unique_together={
-                ("organization_id", "previous_short_id", "previous_project_slug")
-            },
+            unique_together={("organization_id", "previous_short_id", "previous_project_slug")},
         ),
         migrations.AlterIndexTogether(
             name="group", index_together={("project", "first_release"), ("project", "id")}
@@ -969,9 +967,7 @@ class Migration(migrations.Migration):
         migrations.AlterUniqueTogether(
             name="incidentsubscription", unique_together={("incident", "user")}
         ),
-        migrations.AlterUniqueTogether(
-            name="incidentseen", unique_together={("user", "incident")}
-        ),
+        migrations.AlterUniqueTogether(name="incidentseen", unique_together={("user", "incident")}),
         migrations.AlterUniqueTogether(
             name="incidentproject", unique_together={("project", "incident")}
         ),

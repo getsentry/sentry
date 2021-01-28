@@ -369,9 +369,7 @@ class BaseTSDB(Service):
             rollup,
             environment_ids=[environment_id] if environment_id is not None else None,
         )
-        sum_set = {
-            key: sum(p for _, p in points) for (key, points) in range_set.items()
-        }
+        sum_set = {key: sum(p for _, p in points) for (key, points) in range_set.items()}
         return sum_set
 
     def rollup(self, values, rollup):

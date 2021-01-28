@@ -51,9 +51,7 @@ class JiraIssueUpdatedWebhook(Endpoint):
         try:
             integration = get_integration_from_token(token)
         except ValueError as err:
-            logger.info(
-                "token-validation-error", extra={"token": token, "error": str(err)}
-            )
+            logger.info("token-validation-error", extra={"token": token, "error": str(err)})
             return self.respond(status=400)
 
         data = request.data

@@ -266,10 +266,10 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             eventstream.end_merge(eventstream_state)
 
         assert {
-                (gtv.value, gtv.times_seen)
-                for gtv in tagstore.get_group_tag_values(
-                    project.id, source.id, production_environment.id, "color"
-                )
+            (gtv.value, gtv.times_seen)
+            for gtv in tagstore.get_group_tag_values(
+                project.id, source.id, production_environment.id, "color"
+            )
         } == {("red", 6), ("green", 5), ("blue", 5)}
 
         similar_items = features.compare(source)
@@ -327,10 +327,10 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         ) == {("production", time_from_now(10), time_from_now(15))}
 
         assert {
-                (gtv.value, gtv.times_seen)
-                for gtv in tagstore.get_group_tag_values(
-                    project.id, destination.id, production_environment.id, "color"
-                )
+            (gtv.value, gtv.times_seen)
+            for gtv in tagstore.get_group_tag_values(
+                project.id, destination.id, production_environment.id, "color"
+            )
         } == {("red", 4), ("green", 3), ("blue", 3)}
 
         destination_event_ids = map(
@@ -350,15 +350,15 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 "environment", "first_seen", "last_seen"
             )
         ) == {
-                ("production", time_from_now(0), time_from_now(9)),
-                ("staging", time_from_now(16), time_from_now(16)),
+            ("production", time_from_now(0), time_from_now(9)),
+            ("staging", time_from_now(16), time_from_now(16)),
         }
 
         assert {
-                (gtk.value, gtk.times_seen)
-                for gtk in tagstore.get_group_tag_values(
-                    project.id, destination.id, production_environment.id, "color"
-                )
+            (gtk.value, gtk.times_seen)
+            for gtk in tagstore.get_group_tag_values(
+                project.id, destination.id, production_environment.id, "color"
+            )
         } == {("red", 4), ("blue", 3), ("green", 3)}
 
         rollup_duration = 3600

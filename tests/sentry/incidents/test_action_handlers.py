@@ -65,7 +65,8 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         )
         handler = EmailActionHandler(action, self.incident, self.project)
         assert set(handler.get_targets()) == {
-            (self.user.id, self.user.email), (new_user.id, new_user.email)
+            (self.user.id, self.user.email),
+            (new_user.id, new_user.email),
         }
 
     def test_team_alert_disabled(self):

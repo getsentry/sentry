@@ -303,29 +303,29 @@ class SearchVisitor(NodeVisitor):
     duration_keys = {"transaction.duration"}
     percentage_keys = {"percentage"}
     numeric_keys = {
-            "project_id",
-            "project.id",
-            "issue.id",
-            "stack.colno",
-            "stack.lineno",
-            "stack.stack_level",
-            "transaction.duration",
-            "apdex",
-            "p75",
-            "p95",
-            "p99",
-            "failure_rate",
-            "user_misery",
+        "project_id",
+        "project.id",
+        "issue.id",
+        "stack.colno",
+        "stack.lineno",
+        "stack.stack_level",
+        "transaction.duration",
+        "apdex",
+        "p75",
+        "p95",
+        "p99",
+        "failure_rate",
+        "user_misery",
     }
     date_keys = {
-            "start",
-            "end",
-            "first_seen",
-            "last_seen",
-            "time",
-            "timestamp",
-            "transaction.start_time",
-            "transaction.end_time",
+        "start",
+        "end",
+        "first_seen",
+        "last_seen",
+        "time",
+        "timestamp",
+        "transaction.start_time",
+        "transaction.end_time",
     }
     boolean_keys = {"error.handled", "error.unhandled", "stack.in_app", KEY_TRANSACTION_ALIAS}
 
@@ -647,9 +647,7 @@ class SearchVisitor(NodeVisitor):
 
         # if it matched search value instead, it's not a valid key
         if isinstance(search_key, SearchValue):
-            raise InvalidSearchQuery(
-                f'Invalid format for "has" search: {search_key.raw_value}'
-            )
+            raise InvalidSearchQuery(f'Invalid format for "has" search: {search_key.raw_value}')
 
         operator = "=" if self.is_negated(negation) else "!="
         return SearchFilter(search_key, operator, SearchValue(""))
@@ -1137,9 +1135,7 @@ def convert_search_boolean_to_snuba_query(terms, params=None):
             new_terms.append(term)
         prev = term
     if SearchBoolean.is_operator(term):
-        raise InvalidSearchQuery(
-            f"Condition is missing on the right side of '{term}' operator"
-        )
+        raise InvalidSearchQuery(f"Condition is missing on the right side of '{term}' operator")
     terms = new_terms
 
     # We put precedence on AND, which sort of counter-intuitevely means we have to split the query
@@ -1212,9 +1208,7 @@ def get_filter(query=None, params=None):
         try:
             parsed_terms = parse_search_query(query, allow_boolean=True, params=params)
         except ParseError as e:
-            raise InvalidSearchQuery(
-                f"Parse error: {e.expr.name} (column {e.column():d})"
-            )
+            raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
 
     kwargs = {
         "start": None,
@@ -1820,9 +1814,7 @@ class Function:
             try:
                 arguments[argument.name] = argument.normalize(column, params)
             except InvalidFunctionArgument as e:
-                raise InvalidSearchQuery(
-                    f"{field}: {argument.name} argument invalid: {e}"
-                )
+                raise InvalidSearchQuery(f"{field}: {argument.name} argument invalid: {e}")
 
         # populate any computed args
         for calculation in self.calculated_args:
@@ -1888,9 +1880,7 @@ class Function:
         if args_count != total_args_count:
             required_args_count = self.required_args_count
             if required_args_count == total_args_count:
-                raise InvalidSearchQuery(
-                    f"{field}: expected {total_args_count:g} argument(s)"
-                )
+                raise InvalidSearchQuery(f"{field}: expected {total_args_count:g} argument(s)")
             elif args_count < required_args_count:
                 raise InvalidSearchQuery(
                     f"{field}: expected at least {required_args_count:g} argument(s)"

@@ -107,9 +107,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url + "?query=!bar:baz", format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert {e["eventID"] for e in response.data} == {
-            event_1.event_id, event_2.event_id
-        }
+        assert {e["eventID"] for e in response.data} == {event_1.event_id, event_2.event_id}
 
     def test_search_event_by_id(self):
         self.login_as(user=self.user)
@@ -262,9 +260,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
-            [str(event_2.event_id)]
-        )
+        assert sorted(map(lambda x: x["eventID"], response.data)) == sorted([str(event_2.event_id)])
 
     def test_search_event_has_tags(self):
         self.login_as(user=self.user)
@@ -297,9 +293,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
         group = event_1.group
         assert group == event_2.group
 
-        response = self.client.get(
-            f"/api/0/issues/{group.id}/events/", data={"statsPeriod": "6d"}
-        )
+        response = self.client.get(f"/api/0/issues/{group.id}/events/", data={"statsPeriod": "6d"})
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
@@ -307,9 +301,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
             [str(event_1.event_id), str(event_2.event_id)]
         )
 
-        response = self.client.get(
-            f"/api/0/issues/{group.id}/events/", data={"statsPeriod": "2d"}
-        )
+        response = self.client.get(f"/api/0/issues/{group.id}/events/", data={"statsPeriod": "2d"})
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
@@ -319,9 +311,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         first_seen = timezone.now() - timedelta(days=5)
         group = self.create_group(first_seen=first_seen)
-        response = self.client.get(
-            f"/api/0/issues/{group.id}/events/", data={"statsPeriod": "lol"}
-        )
+        response = self.client.get(f"/api/0/issues/{group.id}/events/", data={"statsPeriod": "lol"})
         assert response.status_code == 400
 
     def test_invalid_query(self):

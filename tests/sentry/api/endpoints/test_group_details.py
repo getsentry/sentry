@@ -407,9 +407,7 @@ class GroupUpdateTest(APITestCase):
 
         url = f"/api/0/issues/{group.id}/"
 
-        response = self.client.put(
-            url, data={"assignedTo": f"team:{team.id}"}, format="json"
-        )
+        response = self.client.put(url, data={"assignedTo": f"team:{team.id}"}, format="json")
 
         assert response.status_code == 200, response.content
 
@@ -437,9 +435,7 @@ class GroupUpdateTest(APITestCase):
 
         url = f"/api/0/issues/{group.id}/"
 
-        response = self.client.put(
-            url, data={"assignedTo": f"team:{team.id}"}, format="json"
-        )
+        response = self.client.put(url, data={"assignedTo": f"team:{team.id}"}, format="json")
 
         assert response.status_code == 400, response.content
 

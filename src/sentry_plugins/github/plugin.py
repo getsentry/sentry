@@ -318,9 +318,7 @@ class GitHubRepositoryProvider(GitHubMixin, providers.RepositoryProvider):
             "active": True,
             "events": WEBHOOK_EVENTS,
             "config": {
-                "url": absolute_uri(
-                    f"/plugins/github/organizations/{organization.id}/webhook/"
-                ),
+                "url": absolute_uri(f"/plugins/github/organizations/{organization.id}/webhook/"),
                 "content_type": "json",
                 "secret": self.get_webhook_secret(organization),
             },

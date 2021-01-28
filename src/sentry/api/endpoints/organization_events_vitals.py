@@ -77,8 +77,6 @@ class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
                     total += group_count
 
                 results[vital]["total"] = total
-                results[vital]["p75"] = event_data.get(
-                    get_function_alias(f"p75({vital})")
-                )
+                results[vital]["p75"] = event_data.get(get_function_alias(f"p75({vital})"))
 
         return Response(results)

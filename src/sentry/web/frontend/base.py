@@ -83,9 +83,7 @@ class OrganizationMixin:
 
         if active_organization is None and organization_slug:
             try:
-                active_organization = next(
-                    o for o in organizations if o.slug == organization_slug
-                )
+                active_organization = next(o for o in organizations if o.slug == organization_slug)
             except StopIteration:
                 logger.info("Active organization [%s] not found in scope", organization_slug)
                 if is_implicit:

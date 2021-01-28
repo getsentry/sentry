@@ -23,9 +23,7 @@ class DeprecatedSettingWarning(DeprecationWarning):
         ]
 
         if self.removed_in_version:
-            chunks.append(
-                f"This setting will be removed in Sentry {self.removed_in_version}."
-            )
+            chunks.append(f"This setting will be removed in Sentry {self.removed_in_version}.")
 
         # TODO(tkaemming): This will be removed from the message in the future
         # when it's added to the API payload separately.
