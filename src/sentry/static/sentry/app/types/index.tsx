@@ -694,9 +694,9 @@ export type InboxReasonDetails = {
 };
 
 export type InboxDetails = {
+  reason_details: InboxReasonDetails;
   date_added?: string;
   reason?: number;
-  reason_details: InboxReasonDetails;
 };
 
 export type SuggestedOwnerReason = 'suspectCommit' | 'ownershipRule';
