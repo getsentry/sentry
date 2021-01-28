@@ -129,36 +129,43 @@ class WidgetCard extends React.Component<Props> {
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
       >
-        <StyledPanel isDragging={isDragging}>
-          <WidgetTitle>{widget.title}</WidgetTitle>
-          <WidgetQueries
-            api={api}
-            organization={organization}
-            widget={widget}
-            selection={selection}
-          >
-            {({tableResults, timeseriesResults, errorMessage, loading}) => {
-              return (
-                <React.Fragment>
-                  {typeof renderErrorMessage === 'function'
-                    ? renderErrorMessage(errorMessage)
-                    : null}
-                  <WidgetCardVisuals
-                    timeseriesResults={timeseriesResults}
-                    tableResults={tableResults}
-                    errorMessage={errorMessage}
-                    loading={loading}
-                    location={location}
-                    widget={widget}
-                    selection={selection}
-                    router={router}
-                  />
-                  {this.renderToolbar()}
-                </React.Fragment>
-              );
-            }}
-          </WidgetQueries>
-        </StyledPanel>
+        <div
+          style={{
+            backgroundColor: isDragging ? theme.innerBorder : undefined,
+            borderRadius: isDragging ? theme.borderRadius : undefined,
+          }}
+        >
+          <StyledPanel isDragging={isDragging}>
+            <WidgetTitle>{widget.title}</WidgetTitle>
+            <WidgetQueries
+              api={api}
+              organization={organization}
+              widget={widget}
+              selection={selection}
+            >
+              {({tableResults, timeseriesResults, errorMessage, loading}) => {
+                return (
+                  <React.Fragment>
+                    {typeof renderErrorMessage === 'function'
+                      ? renderErrorMessage(errorMessage)
+                      : null}
+                    <WidgetCardVisuals
+                      timeseriesResults={timeseriesResults}
+                      tableResults={tableResults}
+                      errorMessage={errorMessage}
+                      loading={loading}
+                      location={location}
+                      widget={widget}
+                      selection={selection}
+                      router={router}
+                    />
+                    {this.renderToolbar()}
+                  </React.Fragment>
+                );
+              }}
+            </WidgetQueries>
+          </StyledPanel>
+        </div>
       </ErrorBoundary>
     );
   }
