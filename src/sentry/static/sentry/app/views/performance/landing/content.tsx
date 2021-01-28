@@ -329,12 +329,10 @@ class LandingContent extends React.Component<Props, State> {
 
     return (
       <div>
-        <Feature
-          organization={organization}
-          features={['performance-landing-v2']}
-          renderDisabled={this.renderLandingV1}
-        >
-          {this.renderLandingV2()}
+        <Feature organization={organization} features={['performance-landing-v2']}>
+          {({hasFeature}) =>
+            hasFeature ? this.renderLandingV2() : this.renderLandingV1()
+          }
         </Feature>
       </div>
     );
