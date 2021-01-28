@@ -49,6 +49,7 @@ const mobile = [
   'flutter',
   'dart-flutter',
   'unity',
+  'dotnet-xamarin',
 ] as const;
 
 export const backend = [
