@@ -155,7 +155,7 @@ class SummaryContent extends React.Component<Props, State> {
       totalValues,
     } = this.props;
     const {incompatibleAlertNotice} = this.state;
-    const query = decodeScalar(location.query.query) || '';
+    const query = decodeScalar(location.query.query, '');
     const totalCount = totalValues.count;
     const slowDuration = totalValues?.p95;
 
@@ -297,8 +297,10 @@ function getTransactionsListSort(
   options: {p95: number}
 ): {selectedSort: DropdownOption; sortOptions: DropdownOption[]} {
   const sortOptions = getFilterOptions(options);
-  const urlParam =
-    decodeScalar(location.query.showTransactions) || TransactionFilterOptions.SLOW;
+  const urlParam = decodeScalar(
+    location.query.showTransactions,
+    TransactionFilterOptions.SLOW
+  );
   const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0];
   return {selectedSort, sortOptions};
 }
