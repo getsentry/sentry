@@ -223,7 +223,7 @@ class GroupEventDetails extends React.Component<Props, State> {
 
     // reprocessing
     const hasReprocessingV2Feature = organization.features?.includes('reprocessing-v2');
-    const {activity: activities, count} = group;
+    const {activity: activities, count, id: groupId} = group;
     const groupCount = Number(count);
     const mostRecentActivity = getGroupMostRecentActivity(activities);
     const reprocessStatus = getGroupReprocessingStatus(group, mostRecentActivity);
@@ -264,6 +264,7 @@ class GroupEventDetails extends React.Component<Props, State> {
                     <ReprocessedBox
                       reprocessActivity={mostRecentActivity as GroupActivityReprocess}
                       groupCount={groupCount}
+                      groupId={groupId}
                       orgSlug={organization.slug}
                     />
                   )}

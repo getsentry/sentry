@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from abc import ABCMeta, abstractmethod, abstractproperty
 
 import logging
@@ -213,8 +211,8 @@ class AbstractQueryExecutor:
         self, search_filter, converted_filter, project_ids, environment_ids=None
     ):
         """This method serves as a hook - after we convert the search_filter into a snuba compatible filter (which converts it in a general dataset ambigious method),
-            we may want to transform the query - maybe change the value (time formats, translate value into id (like turning Release `version` into `id`) or vice versa),  alias fields, etc.
-            By default, no transformation is done.
+        we may want to transform the query - maybe change the value (time formats, translate value into id (like turning Release `version` into `id`) or vice versa),  alias fields, etc.
+        By default, no transformation is done.
         """
         return converted_filter
 
@@ -243,7 +241,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         [
             "query",
             "status",
-            "needs_review",
+            "for_review",
             "owner",
             "bookmarked_by",
             "assigned_to",
@@ -305,6 +303,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
         if not end:
             end = now + ALLOWED_FUTURE_DELTA
+
+            metrics.incr("snuba.search.postgres_only")
 
             # This search is for some time window that ends with "now",
             # so if the requested sort is `date` (`last_seen`) and there

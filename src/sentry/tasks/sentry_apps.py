@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import logging
 
 from celery.task import current
@@ -100,8 +98,8 @@ def send_alert_event(event, rule, sentry_app_id):
 
     extra = {
         "sentry_app_id": sentry_app_id,
-        "project": project.slug,
-        "organization": organization.slug,
+        "project_slug": project.slug,
+        "organization_slug": organization.slug,
         "rule": rule,
     }
 
@@ -261,7 +259,7 @@ def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwa
     data = kwargs.get("data", {})
     data.update({"issue": serialize(issue)})
 
-    send_webhooks(installation=install, event=u"issue.{}".format(type), data=data, actor=user)
+    send_webhooks(installation=install, event="issue.{}".format(type), data=data, actor=user)
 
 
 def notify_sentry_app(event, futures):
@@ -314,7 +312,9 @@ def send_webhooks(installation, event, **kwargs):
 
         request_data = AppPlatformEvent(**kwargs)
         send_and_save_webhook_request(
-            installation.sentry_app, request_data, servicehook.sentry_app.webhook_url,
+            installation.sentry_app,
+            request_data,
+            servicehook.sentry_app.webhook_url,
         )
 
 

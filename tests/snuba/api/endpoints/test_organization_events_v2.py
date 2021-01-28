@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import six
-import mock
 
 from pytz import utc
 
@@ -15,8 +12,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 
 from sentry.utils import json
 from sentry.utils.samples import load_data
-from sentry.utils.compat.mock import patch
-from sentry.utils.compat import zip
+from sentry.utils.compat import zip, mock
 from sentry.utils.snuba import RateLimitExceeded, QueryIllegalTypeOfArgument, QueryExecutionError
 
 
@@ -90,7 +86,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             == "Parse error at 'hi \n ther' (column 4). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
 
-    @patch("sentry.snuba.discover.raw_query")
+    @mock.patch("sentry.snuba.discover.raw_query")
     def test_handling_snuba_errors(self, mock_query):
         mock_query.side_effect = RateLimitExceeded("test")
 
@@ -1956,7 +1952,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         query = {
             "field": ["event.type", "last_seen()", "latest_event()"],
-            "query": u"event.type:transaction last_seen():>1990-12-01T00:00:00",
+            "query": "event.type:transaction last_seen():>1990-12-01T00:00:00",
         }
         response = self.do_request(query, features=features)
         assert response.status_code == 200, response.content
@@ -2059,7 +2055,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         query = {
             "field": ["event.type", "latest_event()"],
-            "query": u"event.type:transaction",
+            "query": "event.type:transaction",
             "sort": "latest_event",
         }
         response = self.do_request(query, features=features)

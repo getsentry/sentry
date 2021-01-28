@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from rest_framework.response import Response
 
 import logging
@@ -38,7 +36,7 @@ class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
                 get_component_interaction_key(sentry_app, component.type)
                 for component in sentry_app.components.all()
             ],
-            **self._parse_args(request)
+            **self._parse_args(request),
         )
 
         return Response(

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
 
 from datetime import timedelta
 from django.utils import timezone
@@ -66,7 +65,10 @@ class PostProcessGroupTest(TestCase):
         )
         cache_key = write_event_to_cache(event)
         post_process_group(
-            is_new=True, is_regression=False, is_new_group_environment=True, cache_key=cache_key,
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            cache_key=cache_key,
         )
 
         mock_processor.assert_not_called()  # NOQA
@@ -102,6 +104,23 @@ class PostProcessGroupTest(TestCase):
             cache_key=cache_key,
             group_id=event.group_id,
         )
+        assert event_processing_store.get(cache_key) is None
+
+    def test_processing_cache_cleared_with_commits(self):
+        # Regression test to guard against suspect commit calculations breaking the
+        # cache
+        event = self.store_event(data={}, project_id=self.project.id)
+        cache_key = write_event_to_cache(event)
+
+        with self.feature("organizations:workflow-owners"):
+            self.create_commit(repo=self.create_repo())
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                cache_key=cache_key,
+                group_id=event.group_id,
+            )
         assert event_processing_store.get(cache_key) is None
 
     @patch("sentry.rules.processor.RuleProcessor")

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.rules.filters.assigned_to import AssignedToFilter
 from sentry.testutils.cases import RuleTestCase
 from sentry.models import GroupAssignee

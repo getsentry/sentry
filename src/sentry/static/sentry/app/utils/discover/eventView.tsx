@@ -17,6 +17,7 @@ import {TableColumn, TableColumnSort} from 'app/views/eventsV2/table/types';
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
 
 import {statsPeriodToDays} from '../dates';
+import {QueryResults, stringifyQueryObject, tokenizeSearch} from '../tokenizeSearch';
 
 import {getSortField} from './fieldRenderers';
 import {
@@ -242,6 +243,7 @@ class EventView {
   display: string | undefined;
   interval: string | undefined;
   createdBy: User | undefined;
+  additionalConditions: QueryResults; // This allows views to always add additional conditins to the query to get specific data. It should not show up in the UI unless explicitly called.
 
   constructor(props: {
     id: string | undefined;
@@ -258,6 +260,7 @@ class EventView {
     display: string | undefined;
     interval?: string;
     createdBy: User | undefined;
+    additionalConditions: QueryResults;
   }) {
     const fields: Field[] = Array.isArray(props.fields) ? props.fields : [];
     let sorts: Sort[] = Array.isArray(props.sorts) ? props.sorts : [];
@@ -288,6 +291,7 @@ class EventView {
     this.display = props.display;
     this.interval = props.interval;
     this.createdBy = props.createdBy;
+    this.additionalConditions = props.additionalConditions ?? new QueryResults([]);
   }
 
   static fromLocation(location: Location): EventView {
@@ -308,6 +312,7 @@ class EventView {
       display: decodeScalar(location.query.display),
       interval: decodeScalar(location.query.interval),
       createdBy: undefined,
+      additionalConditions: new QueryResults([]),
     });
   }
 
@@ -373,6 +378,7 @@ class EventView {
       yAxis: saved.yAxis,
       display: saved.display,
       createdBy: saved.createdBy,
+      additionalConditions: new QueryResults([]),
     });
   }
 
@@ -589,6 +595,7 @@ class EventView {
       display: this.display,
       interval: this.interval,
       createdBy: this.createdBy,
+      additionalConditions: this.additionalConditions,
     });
   }
 
@@ -849,7 +856,11 @@ class EventView {
     const queryParts: string[] = [];
 
     if (this.query) {
-      queryParts.push(this.query);
+      if (this.additionalConditions) {
+        queryParts.push(this.getQueryWithAdditionalConditions());
+      } else {
+        queryParts.push(this.query);
+      }
     }
 
     if (inputQuery) {
@@ -933,7 +944,7 @@ class EventView {
         field: [...new Set(fields)],
         sort,
         per_page: DEFAULT_PER_PAGE,
-        query: this.query,
+        query: this.getQueryWithAdditionalConditions(),
       }
     ) as EventQuery & LocationQuery;
 
@@ -1079,6 +1090,18 @@ class EventView {
     // after trying to find an enabled display mode and failing to find one,
     // we just use the default display mode
     return DisplayModes.DEFAULT;
+  }
+
+  getQueryWithAdditionalConditions() {
+    const {query} = this;
+    if (!this.additionalConditions) {
+      return query;
+    }
+    const conditions = tokenizeSearch(query);
+    Object.entries(this.additionalConditions.tagValues).forEach(([tag, tagValues]) => {
+      conditions.addTagValues(tag, tagValues);
+    });
+    return stringifyQueryObject(conditions);
   }
 }
 

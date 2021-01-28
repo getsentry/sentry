@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from .store import OptionsStore
 from .manager import OptionsManager
 from .manager import (  # NOQA

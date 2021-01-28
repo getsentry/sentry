@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from django.db import models
 from django.utils import timezone
 
@@ -125,6 +123,17 @@ PREBUILT_DASHBOARDS = {
                             "conditions": "error.handled:false",
                             "fields": ["count()"],
                         },
+                    ],
+                },
+                {
+                    "title": "Errors by Country",
+                    "displayType": "world_map",
+                    "queries": [
+                        {
+                            "name": "Error counts",
+                            "conditions": "event.type:error has:geo.country_code",
+                            "fields": ["count()"],
+                        }
                     ],
                 },
             ],

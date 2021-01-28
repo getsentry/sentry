@@ -76,7 +76,6 @@ instead of group deletion is:
 * Mark the group as deleted in Redis.
 * All reprocessed events are "just" inserted over the old ones.
 """
-from __future__ import absolute_import
 
 import hashlib
 import logging
@@ -86,16 +85,15 @@ import six
 
 from django.conf import settings
 
-from sentry import nodestore, features, eventstore, options
+from sentry import nodestore, eventstore, models, options
+from sentry.eventstore.models import Event
 from sentry.attachments import CachedAttachment, attachment_cache
-from sentry import models
 from sentry.utils import snuba
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.safe import set_path, get_path
 from sentry.utils.redis import redis_clusters
 from sentry.eventstore.processing import event_processing_store
 from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
-from sentry.eventstore.processing.base import _get_unprocessed_key
 
 logger = logging.getLogger("sentry.reprocessing")
 
@@ -107,9 +105,7 @@ GROUP_MODELS_TO_MIGRATE = DIRECT_GROUP_RELATED_MODELS + (models.Activity,)
 
 
 def _generate_unprocessed_event_node_id(project_id, event_id):
-    return hashlib.md5(
-        u"{}:{}:unprocessed".format(project_id, event_id).encode("utf-8")
-    ).hexdigest()
+    return hashlib.md5("{}:{}:unprocessed".format(project_id, event_id).encode("utf-8")).hexdigest()
 
 
 def save_unprocessed_event(project, event_id):
@@ -117,9 +113,6 @@ def save_unprocessed_event(project, event_id):
     Move event from event_processing_store into nodestore. Only call if event
     has outcome=accepted.
     """
-    if not features.has("organizations:reprocessing-v2", project.organization, actor=None):
-        return
-
     with sentry_sdk.start_span(
         op="sentry.reprocessing2.save_unprocessed_event.get_unprocessed_event"
     ):
@@ -134,48 +127,16 @@ def save_unprocessed_event(project, event_id):
         nodestore.set(node_id, data)
 
 
-def _should_capture_nodestore_stats(event_id):
-    """
-    Computes a sample rate consistent per-event ID.
-
-    event IDs are assumed to be random, so this is like random sampling but
-    gives the same value for the same event ID.
-    """
-
-    try:
-        assert event_id
-        rate = options.get("store.nodestore-stats-sample-rate") or 0
-        return (int(event_id, 16) % 10000) < (rate * 10000)
-    except Exception:
-        logger.exception("nodestore-stats.error")
-        return False
-
-
-def spawn_capture_nodestore_stats(cache_key, project_id, event_id):
-    if not _should_capture_nodestore_stats(event_id):
-        event_processing_store.delete_by_key(_get_unprocessed_key(cache_key))
-        return
-
-    from sentry.tasks.reprocessing2 import capture_nodestore_stats
-
-    capture_nodestore_stats.delay(cache_key=cache_key, project_id=project_id, event_id=event_id)
-
-
 def backup_unprocessed_event(project, data):
     """
     Backup unprocessed event payload into redis. Only call if event should be
     able to be reprocessed.
     """
 
-    if features.has(
-        "organizations:reprocessing-v2", project.organization, actor=None
-    ) or _should_capture_nodestore_stats(data.get("event_id")):
-        event_processing_store.store(data, unprocessed=True)
+    if options.get("store.reprocessing-force-disable"):
+        return
 
-
-def delete_unprocessed_events(project_id, event_ids):
-    node_ids = [_generate_unprocessed_event_node_id(project_id, event_id) for event_id in event_ids]
-    nodestore.delete_multi(node_ids)
+    event_processing_store.store(dict(data), unprocessed=True)
 
 
 def reprocess_event(project_id, event_id, start_time):
@@ -183,14 +144,12 @@ def reprocess_event(project_id, event_id, start_time):
     from sentry.tasks.store import preprocess_event_from_reprocessing
     from sentry.ingest.ingest_consumer import CACHE_TIMEOUT
 
-    # Take unprocessed data from old event and save it as unprocessed data
-    # under a new event ID. The second step happens in pre-process. We could
-    # save the "original event ID" instead and get away with writing less to
-    # nodestore, but doing it this way makes the logic slightly simpler.
-    node_id = _generate_unprocessed_event_node_id(project_id=project_id, event_id=event_id)
-
     with sentry_sdk.start_span(op="reprocess_events.nodestore.get"):
-        data = nodestore.get(node_id)
+        node_id = Event.generate_node_id(project_id, event_id)
+        data = nodestore.get(node_id, subkey="unprocessed")
+        if data is None:
+            node_id = _generate_unprocessed_event_node_id(project_id=project_id, event_id=event_id)
+            data = nodestore.get(node_id)
 
     with sentry_sdk.start_span(op="reprocess_events.eventstore.get"):
         event = eventstore.get_event_by_id(project_id, event_id)

@@ -1,30 +1,45 @@
-import React from 'react';
-
-import {ModalRenderProps} from 'app/actionCreators/modal';
 import {t} from 'app/locale';
-import {Organization} from 'app/types';
-import {DynamicSamplingRule} from 'app/types/dynamicSampling';
 
-type Props = ModalRenderProps & {
-  organization: Organization;
-  onSubmit: (rule: DynamicSamplingRule) => void;
-  platformDocLink?: string;
-};
+import Form from './form';
+import {Category} from './utils';
 
-type State = {};
+type Props = Form['props'];
 
-class ErrorRuleModal extends React.Component<Props, State> {
-  render() {
-    const {Header, Body, closeModal} = this.props;
+type State = Form['state'];
 
-    return (
-      <React.Fragment>
-        <Header closeButton onHide={closeModal}>
-          {t('Add a custom rule for errors')}
-        </Header>
-        <Body>{null}</Body>
-      </React.Fragment>
-    );
+class ErrorRuleModal extends Form<Props, State> {
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+    };
+  }
+
+  getModalTitle() {
+    return t('Add a custom rule for errors');
+  }
+
+  geTransactionFieldDescription() {
+    return {
+      label: t('Error'),
+      help: t('This is a description'),
+    };
+  }
+
+  getCategoryOptions() {
+    // TODO(PRISCILA): Enable the disabled options below as soon as the backend supports
+    // return [
+    //   [Category.RELEASES, t('Releases')],
+    // [Category.BROWSER_EXTENSIONS, t('Browser Extensions')],
+    // [Category.LOCALHOST, t('Localhost')],
+    // [Category.WEB_CRAWLERS, t('Web Crawlers')],
+    // [Category.LEGACY_BROWSERS, t('Legacy Browsers')],
+    // ] as Array<[string, string]>;
+
+    return [
+      [Category.RELEASES, t('Releases')],
+      [Category.ENVIRONMENTS, t('Environments')],
+      [Category.USERS, t('Users')],
+    ] as Array<[string, string]>;
   }
 }
 

@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 import pytest
 import random
 
@@ -609,8 +606,6 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             (10, 15, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 1)]),
             (15, 20, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 0)]),
             (20, 25, [("measurements.bar", 1), ("measurements.baz", 1), ("measurements.foo", 1)]),
-            (25, 30, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 0)]),
-            (30, 35, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 0)]),
         ]
         assert response.data == self.as_response_data(expected)
 
@@ -635,8 +630,6 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
             (10, 15, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 1)]),
             (15, 20, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 0)]),
             (20, 25, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 0)]),
-            (25, 30, [("measurements.bar", 0), ("measurements.baz", 0), ("measurements.foo", 0)]),
-            (30, 35, [("measurements.bar", 1), ("measurements.baz", 1), ("measurements.foo", 1)]),
         ]
         assert response.data == self.as_response_data(expected)
 
@@ -651,7 +644,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(query)
         assert response.status_code == 400
         assert response.data == {
-            "dataFilter": [u'"invalid" is not a valid choice.'],
+            "dataFilter": ['"invalid" is not a valid choice.'],
         }
 
     def test_histogram_all_data_filter(self):
@@ -681,7 +674,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
     def test_histogram_exclude_outliers_data_filter(self):
         specs = [
-            (0, 1, [("measurements.foo", 4)]),
+            (0, 0, [("measurements.foo", 4)]),
             (4000, 4001, [("measurements.foo", 1)]),
         ]
         self.populate_measurements(specs)
@@ -697,10 +690,6 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         expected = [
             (0, 1, [("measurements.foo", 4)]),
-            (1, 1, [("measurements.foo", 0)]),
-            (2, 2, [("measurements.foo", 0)]),
-            (3, 3, [("measurements.foo", 0)]),
-            (4, 4, [("measurements.foo", 0)]),
         ]
         assert response.data == self.as_response_data(expected)
 
@@ -781,14 +770,6 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         assert response.data == self.as_response_data(expected)
 
     def test_histogram_outlier_filtering_with_no_rows(self):
-        specs = [
-            (0, 1, [("transaction.duration", 0)]),
-            (1, 2, [("transaction.duration", 0)]),
-            (2, 3, [("transaction.duration", 0)]),
-            (3, 4, [("transaction.duration", 0)]),
-            (4, 5, [("transaction.duration", 0)]),
-        ]
-
         query = {
             "project": [self.project.id],
             "field": ["transaction.duration"],
@@ -798,5 +779,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(query)
         assert response.status_code == 200
-        expected = specs
+        expected = [
+            (0, 1, [("transaction.duration", 0)]),
+        ]
         assert response.data == self.as_response_data(expected)

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import sys
 
 from django.core.management.base import BaseCommand
@@ -34,6 +32,4 @@ class Command(BaseCommand):
                 password_hash.date_added = timezone.now()
                 password_hash.set_hash()
                 password_hash.save()
-            echo(
-                u"{} ({}) - {}".format(user.username, user.email, password_hash.get_absolute_url())
-            )
+            echo("{} ({}) - {}".format(user.username, user.email, password_hash.get_absolute_url()))

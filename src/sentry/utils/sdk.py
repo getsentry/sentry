@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import inspect
 import six
 
@@ -27,6 +25,7 @@ UNSAFE_FILES = (
 # URLs that should always be sampled
 SAMPLED_URL_NAMES = {
     "sentry-api-0-organization-releases",
+    "sentry-extensions-jira-issue-hook",
 }
 
 UNSAFE_TAG = "_unsafe"
@@ -232,7 +231,7 @@ def configure_sdk():
             RustInfoIntegration(),
             RedisIntegration(),
         ],
-        **sdk_options
+        **sdk_options,
     )
 
 

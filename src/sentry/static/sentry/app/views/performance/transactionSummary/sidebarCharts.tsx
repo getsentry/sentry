@@ -28,7 +28,7 @@ import {
 import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
-import {getTermHelp} from 'app/views/performance/data';
+import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 
 type Props = ReactRouter.WithRouterProps & {
   api: Client;
@@ -149,7 +149,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         {t('Apdex')}
         <QuestionTooltip
           position="top"
-          title={getTermHelp(organization, 'apdex')}
+          title={getTermHelp(organization, PERFORMANCE_TERM.APDEX)}
           size="sm"
         />
       </ChartTitle>
@@ -158,7 +158,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         {t('Failure Rate')}
         <QuestionTooltip
           position="top"
-          title={getTermHelp(organization, 'failureRate')}
+          title={getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE)}
           size="sm"
         />
       </ChartTitle>
@@ -167,7 +167,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         {t('TPM')}
         <QuestionTooltip
           position="top"
-          title={getTermHelp(organization, 'tpm')}
+          title={getTermHelp(organization, PERFORMANCE_TERM.TPM)}
           size="sm"
         />
       </ChartTitle>
@@ -191,7 +191,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
             {({results, errored, loading, reloading}) => {
               if (errored) {
                 return (
-                  <ErrorPanel>
+                  <ErrorPanel height="580px">
                     <IconWarning color="gray300" size="lg" />
                   </ErrorPanel>
                 );
@@ -205,7 +205,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
                 : [];
 
               return (
-                <TransitionChart loading={loading} reloading={reloading} height="550px">
+                <TransitionChart loading={loading} reloading={reloading} height="580px">
                   <TransparentLoadingMask visible={reloading} />
                   <LineChart {...zoomRenderProps} {...chartOptions} series={series} />
                 </TransitionChart>

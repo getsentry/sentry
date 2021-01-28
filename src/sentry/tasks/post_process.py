@@ -1,16 +1,14 @@
-from __future__ import absolute_import, print_function
-
 import logging
 import sentry_sdk
 
 from sentry import features
 from sentry.app import locks
-from sentry.utils.cache import cache
-from sentry.utils.locking import UnableToAcquireLock
 from sentry.exceptions import PluginError
 from sentry.signals import event_processed, issue_unignored
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
+from sentry.utils.cache import cache
+from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_project, bind_organization_context
 
@@ -20,7 +18,7 @@ logger = logging.getLogger("sentry")
 def _get_service_hooks(project_id):
     from sentry.models import ServiceHook
 
-    cache_key = u"servicehooks:1:{}".format(project_id)
+    cache_key = "servicehooks:1:{}".format(project_id)
     result = cache.get(cache_key)
 
     if result is None:
@@ -33,7 +31,7 @@ def _get_service_hooks(project_id):
 def _should_send_error_created_hooks(project):
     from sentry.models import ServiceHook, Organization
 
-    cache_key = u"servicehooks-error-created:1:{}".format(project.id)
+    cache_key = "servicehooks-error-created:1:{}".format(project.id)
     result = cache.get(cache_key)
 
     if result is None:
@@ -67,7 +65,7 @@ def _capture_stats(event, is_new):
         metrics.incr("events.unique", tags=tags, skip_internal=False)
 
     metrics.incr("events.processed", tags=tags, skip_internal=False)
-    metrics.incr(u"events.processed.{platform}".format(platform=platform), skip_internal=False)
+    metrics.incr("events.processed.{platform}".format(platform=platform), skip_internal=False)
     metrics.timing("events.size.data", event.size, tags=tags)
 
     # This is an experiment to understand whether we have, in production,
@@ -194,7 +192,8 @@ def post_process_group(
         data = event_processing_store.get(cache_key)
         if not data:
             logger.info(
-                "post_process.skipped", extra={"cache_key": cache_key, "reason": "missing_cache"},
+                "post_process.skipped",
+                extra={"cache_key": cache_key, "reason": "missing_cache"},
             )
             return
         event = Event(
@@ -245,10 +244,6 @@ def post_process_group(
 
         _capture_stats(event, is_new)
 
-        from sentry.reprocessing2 import spawn_capture_nodestore_stats
-
-        spawn_capture_nodestore_stats(cache_key, event.project_id, event.event_id)
-
         if event.group_id and is_reprocessed and is_new:
             add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
 
@@ -278,23 +273,43 @@ def post_process_group(
                     safe_execute(callback, event, futures, _with_transaction=False)
 
             try:
-                lock = locks.get("w-o:{}-d-l".format(event.group_id), duration=10,)
-                try:
-                    with lock.acquire():
-                        has_commit_key = "w-o:{}-h-c".format(event.project.organization_id)
-                        org_has_commit = cache.get(has_commit_key)
-                        if org_has_commit is None:
-                            org_has_commit = Commit.objects.filter(
-                                organization_id=event.project.organization_id
-                            ).exists()
-                            cache.set(has_commit_key, org_has_commit, 3600)
+                lock = locks.get(
+                    "w-o:{}-d-l".format(event.group_id),
+                    duration=10,
+                )
+                with lock.acquire():
+                    has_commit_key = "w-o:{}-h-c".format(event.project.organization_id)
+                    org_has_commit = cache.get(has_commit_key)
+                    if org_has_commit is None:
+                        org_has_commit = Commit.objects.filter(
+                            organization_id=event.project.organization_id
+                        ).exists()
+                        cache.set(has_commit_key, org_has_commit, 3600)
 
-                        if org_has_commit and features.has(
-                            "organizations:workflow-owners", event.project.organization,
-                        ):
-                            process_suspect_commits(event=event)
-                except UnableToAcquireLock:
-                    pass
+                    if org_has_commit and features.has(
+                        "organizations:workflow-owners",
+                        event.project.organization,
+                    ):
+                        group_cache_key = "w-o-i:g-{}".format(event.group_id)
+                        if cache.get(group_cache_key):
+                            metrics.incr(
+                                "sentry.tasks.process_suspect_commits.debounce",
+                                tags={"detail": "w-o-i:g debounce"},
+                            )
+                        else:
+                            from sentry.utils.committers import get_frame_paths
+
+                            cache.set(group_cache_key, True, 604800)  # 1 week in seconds
+                            event_frames = get_frame_paths(event.data)
+                            process_suspect_commits.delay(
+                                event_id=event.event_id,
+                                event_platform=event.platform,
+                                event_frames=event_frames,
+                                group_id=event.group_id,
+                                project_id=event.project_id,
+                            )
+            except UnableToAcquireLock:
+                pass
             except Exception:
                 logger.exception("Failed to process suspect commits")
 
@@ -414,5 +429,5 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
         group=event.group,
         expected_errors=(PluginError,),
         _with_transaction=False,
-        **kwargs
+        **kwargs,
     )
