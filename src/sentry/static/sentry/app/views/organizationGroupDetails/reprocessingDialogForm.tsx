@@ -101,6 +101,12 @@ class ReprocessingDialogForm extends React.Component<Props, State> {
               <ListItem key={index}>{impact}</ListItem>
             ))}
           </StyledList>
+          <Introduction>
+            For more information please refer to{' '}
+            <ExternalLink href="https://docs.sentry.io/product/error-monitoring/reprocessing/">
+              the documentation on reprocessing.
+            </ExternalLink>
+          </Introduction>
           <Form
             submitLabel={title}
             apiEndpoint={endpoint}
