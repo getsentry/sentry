@@ -2,6 +2,7 @@ import six
 
 from django.conf.urls import url
 from rest_framework.response import Response
+from requests.exceptions import HTTPError
 
 from sentry.exceptions import PluginError, PluginIdentityRequired
 from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint
@@ -205,11 +206,8 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
             self.raise_error(e)
         try:
             workspaces = client.get_workspaces()
-        except Exception as e:
-            if (
-                e.response.reason == "Bad Request"
-                and e.response.url == "https://app.asana.com/-/oauth_token"
-            ):
+        except HTTPError as e:
+            if e.response.status_code == 400:
                 raise PluginIdentityRequired(ERR_BEARER_EXPIRED)
         workspace_choices = self.get_workspace_choices(workspaces)
         workspace = self.get_option("workspace", kwargs["project"])
