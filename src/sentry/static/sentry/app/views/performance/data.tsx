@@ -268,6 +268,59 @@ function generateGenericPerformanceEventView(
     fields: [
       'key_transaction',
       'transaction',
+      'project',
+      'tpm()',
+      'p50()',
+      'p95()',
+      'failure_rate()',
+      `apdex(${organization.apdexThreshold})`,
+      'count_unique(user)',
+      `user_misery(${organization.apdexThreshold})`,
+    ],
+    version: 2,
+  };
+
+  if (!query.statsPeriod && !hasStartAndEnd) {
+    savedQuery.range = DEFAULT_STATS_PERIOD;
+  }
+  savedQuery.orderby = decodeScalar(query.sort) || '-tpm';
+
+  const searchQuery = decodeScalar(query.query) || '';
+  const conditions = tokenizeSearch(searchQuery);
+
+  // This is not an override condition since we want the duration to appear in the search bar as a default.
+  if (!conditions.hasTag('transaction.duration')) {
+    conditions.setTagValues('transaction.duration', ['<15m']);
+  }
+
+  // If there is a bare text search, we want to treat it as a search
+  // on the transaction name.
+  if (conditions.query.length > 0) {
+    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`]);
+    conditions.query = [];
+  }
+  savedQuery.query = stringifyQueryObject(conditions);
+
+  const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
+  eventView.additionalConditions.addTagValues('event.type', ['transaction']);
+  return eventView;
+}
+
+function generateBackendPerformanceEventView(
+  organization: LightWeightOrganization,
+  location: Location
+): EventView {
+  const {query} = location;
+
+  const hasStartAndEnd = query.start && query.end;
+  const savedQuery: NewQuery = {
+    id: undefined,
+    name: t('Performance'),
+    query: 'event.type:transaction',
+    projects: [],
+    fields: [
+      'key_transaction',
+      'transaction',
       'transaction.op',
       'project',
       'tpm()',
@@ -420,6 +473,7 @@ export function generatePerformanceEventView(organization, location, projects) {
     case LandingDisplayField.FRONTEND_OTHER:
       return generateFrontendOtherPerformanceEventView(organization, location);
     case LandingDisplayField.BACKEND:
+      return generateBackendPerformanceEventView(organization, location);
     default:
       return eventView;
   }
