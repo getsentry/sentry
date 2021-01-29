@@ -13,7 +13,7 @@ import {
 } from 'app/types/dynamicSampling';
 import Field from 'app/views/settings/components/forms/field';
 
-import {DOC_LINK} from '../utils';
+import {DYNAMIC_SAMPLING_DOC_LINK} from '../utils';
 
 import Form from './form';
 
@@ -91,7 +91,7 @@ class TransactionRuleModal extends Form<Props, State> {
           />
           {tct(
             'Include all related transactions by trace ID. This can span across multiple projects. All related errors will remain. [link:Learn more about tracing].',
-            {link: <ExternalLink href={DOC_LINK} />}
+            {link: <ExternalLink href={DYNAMIC_SAMPLING_DOC_LINK} />}
           )}
         </TracingWrapper>
       </Field>

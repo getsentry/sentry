@@ -24,7 +24,7 @@ import ErrorRuleModal from './modals/errorRuleModal';
 import TransactionRuleModal from './modals/transactionRuleModal';
 import {modalCss} from './modals/utils';
 import RulesPanel from './rulesPanel';
-import {DOC_LINK} from './utils';
+import {DYNAMIC_SAMPLING_DOC_LINK} from './utils';
 
 type Props = AsyncView['props'] & {
   project: Project;
@@ -104,16 +104,18 @@ class FiltersAndSampling extends AsyncView<Props, State> {
   }
 
   componentDidUpdate(_prevProps: Props, prevState: State) {
-    if (
-      !!prevState.projectDetails &&
-      (!isEqual(prevState.errorRules, this.state.errorRules) ||
-        !isEqual(prevState.transactionRules, this.state.transactionRules))
-    ) {
-      this.submitRules();
+    if (prevState.projectDetails !== this.state.projectDetails) {
+      this.getRules();
+      return;
     }
 
-    if (!isEqual(prevState.projectDetails, this.state.projectDetails)) {
-      this.getRules();
+    if (
+      !isEqual(
+        [...this.state.errorRules, ...this.state.transactionRules],
+        dynamicSampling.rules
+      )
+    ) {
+      this.submitRules();
     }
   }
 
@@ -237,7 +239,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
       if (rule.type === DynamicSamplingRuleType.ERROR) {
         this.setState(state => ({
           errorRules: state.errorRules.map(errorRule => {
-            if (isEqual(rule, errorRule)) {
+            if (rule === errorRule) {
               return newRule;
             }
             return errorRule;
@@ -247,20 +249,13 @@ class FiltersAndSampling extends AsyncView<Props, State> {
 
       this.setState(state => ({
         transactionRules: state.transactionRules.map(transactionRule => {
-          if (isEqual(rule, transactionRule)) {
+          if (rule === transactionRule) {
             return newRule;
           }
           return transactionRule;
         }),
       }));
 
-      return;
-    }
-
-    if (newRule.type === DynamicSamplingRuleType.ERROR) {
-      this.setState(state => ({
-        errorRules: [...state.errorRules, newRule],
-      }));
       return;
     }
 
@@ -272,14 +267,14 @@ class FiltersAndSampling extends AsyncView<Props, State> {
   handleDeleteRule = (rule: DynamicSamplingRule) => async () => {
     if (rule.type === DynamicSamplingRuleType.ERROR) {
       this.setState(state => ({
-        errorRules: state.errorRules.filter(errorRule => !isEqual(errorRule, rule)),
+        errorRules: state.errorRules.filter(errorRule => errorRule !== rule),
       }));
       return;
     }
 
     this.setState(state => ({
       transactionRules: state.transactionRules.filter(
-        transactionRule => !isEqual(transactionRule, rule)
+        transactionRule => transactionRule !== rule
       ),
     }));
   };
@@ -309,7 +304,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
           {tct(
             'Manage the inbound data you want to store. To change the sampling rate or rate limits, [link:update your SDK configuration]. The rules added below will apply on top of your SDK configuration.',
             {
-              link: <ExternalLink href={DOC_LINK} />,
+              link: <ExternalLink href={DYNAMIC_SAMPLING_DOC_LINK} />,
             }
           )}
         </TextBlock>
