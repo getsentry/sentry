@@ -34,6 +34,7 @@ type State = {
   isDragging: boolean;
   draggingIndex: undefined | number;
   draggingTargetIndex: undefined | number;
+  draggingOverWidget: Widget | undefined;
   top: undefined | number;
   left: undefined | number;
   ghostLeftOffset: number;
@@ -60,6 +61,7 @@ class Dashboard extends React.Component<Props, State> {
   state: State = {
     draggingIndex: undefined,
     draggingTargetIndex: undefined,
+    draggingOverWidget: undefined,
     isDragging: false,
     top: undefined,
     left: undefined,
@@ -234,13 +236,16 @@ class Dashboard extends React.Component<Props, State> {
       ghostDOM.style.top = `${getPointerPosition(event, 'pageY') - ghostTopOffset}px`;
     }
 
+    const widgets = this.shallowCloneWidgets();
+
     this.setState({
       isDragging: true,
       draggingIndex: index,
       draggingTargetIndex: index,
+      draggingOverWidget: widgets[index],
       top: getPointerPosition(event, 'pageY'),
       left: getPointerPosition(event, 'pageX'),
-      widgets: this.shallowCloneWidgets(),
+      widgets,
       ghostLeftOffset,
       ghostTopOffset,
     });
@@ -291,12 +296,30 @@ class Dashboard extends React.Component<Props, State> {
       return topStart <= top && top <= topEnd && leftStart <= left && left <= leftEnd;
     });
 
+    const previousDraggingOverWidget = this.state.draggingOverWidget;
+
+    if (targetIndex < 0 && previousDraggingOverWidget) {
+      this.setState({draggingOverWidget: undefined});
+    }
+
     if (targetIndex >= 0 && targetIndex !== draggingTargetIndex) {
       const nextWidgets = this.shallowCloneWidgets();
-      const removed = nextWidgets.splice(draggingIndex, 1);
-      nextWidgets.splice(targetIndex, 0, removed[0]);
+      const currentDraggedWidget = nextWidgets.splice(draggingIndex, 1)[0];
+      nextWidgets.splice(targetIndex, 0, currentDraggedWidget);
 
-      this.setState({draggingTargetIndex: targetIndex, widgets: nextWidgets});
+      // Widgets may be re-ordered as the ghost is being dragged over another widget.
+      // In this case, we cancel the additional widget re-order to prevent shuffling cycles.
+      const draggingOverWidget =
+        targetIndex >= 0 ? this.state.widgets[targetIndex] : undefined;
+      if (draggingOverWidget?.id === previousDraggingOverWidget?.id) {
+        return;
+      }
+
+      this.setState({
+        draggingTargetIndex: targetIndex,
+        draggingOverWidget,
+        widgets: nextWidgets,
+      });
     }
   };
 
@@ -339,6 +362,7 @@ class Dashboard extends React.Component<Props, State> {
       top: undefined,
       draggingIndex: undefined,
       draggingTargetIndex: undefined,
+      draggingOverWidget: undefined,
       ghostTopOffset: 0,
       ghostLeftOffset: 0,
       widgets: undefined,

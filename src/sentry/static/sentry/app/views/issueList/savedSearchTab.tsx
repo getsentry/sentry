@@ -38,7 +38,7 @@ function SavedSearchTab({
           <StyledQueryCount isTag count={queryCount} max={1000} />
         </React.Fragment>
       ) : (
-        t('More')
+        t('Saved Searches')
       )}
     </TitleWrapper>
   );

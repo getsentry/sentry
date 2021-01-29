@@ -31,13 +31,6 @@ type Props = {
 } & DefaultProps;
 
 class Pagination extends React.Component<Props> {
-  static propTypes = {
-    pageLinks: PropTypes.string,
-    to: PropTypes.string,
-    onCursor: PropTypes.func,
-    className: PropTypes.string,
-  };
-
   static contextTypes = {
     location: PropTypes.object,
   };

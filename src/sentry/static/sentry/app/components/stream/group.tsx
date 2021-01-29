@@ -32,6 +32,7 @@ import {
   GlobalSelection,
   Group,
   GroupReprocessing,
+  InboxDetails,
   NewQuery,
   Organization,
   User,
@@ -74,6 +75,7 @@ type Props = {
   query?: string;
   hasGuideAnchor?: boolean;
   memberList?: User[];
+  onMarkReviewed?: (itemIds: string[]) => void;
   // TODO(ts): higher order functions break defaultprops export types
 } & Partial<typeof defaultProps>;
 
@@ -145,7 +147,7 @@ class StreamGroup extends React.Component<Props, State> {
       const reviewed =
         state.reviewed ||
         ((query === Query.FOR_REVIEW || query === Query.FOR_REVIEW_OWNER) &&
-          state.data.inbox?.reason !== undefined &&
+          (state.data.inbox as InboxDetails)?.reason !== undefined &&
           data.inbox === false);
       return {data, reviewed};
     });
@@ -275,6 +277,7 @@ class StreamGroup extends React.Component<Props, State> {
       selection,
       organization,
       displayReprocessingLayout,
+      onMarkReviewed,
     } = this.props;
 
     const {period, start, end} = selection.datetime || {};
@@ -319,9 +322,14 @@ class StreamGroup extends React.Component<Props, State> {
             query={query}
             size="normal"
           />
-          <EventOrGroupExtraDetails organization={organization} data={data} />
+          <EventOrGroupExtraDetails
+            hasGuideAnchor={hasGuideAnchor}
+            organization={organization}
+            data={data}
+          />
         </GroupSummary>
         {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
+        {hasGuideAnchor && <GuideAnchor target="inbox_guide_issue" position="bottom" />}
         {withChart && !displayReprocessingLayout && (
           <ChartWrapper className="hidden-xs hidden-sm">
             {!data.filtered?.stats && !data.stats ? (
@@ -472,6 +480,7 @@ class StreamGroup extends React.Component<Props, State> {
                   group={data}
                   orgId={organization.slug}
                   selection={selection}
+                  onMarkReviewed={onMarkReviewed}
                   query={query}
                 />
               </ActionsWrapper>
@@ -499,7 +508,10 @@ const Wrapper = styled(PanelItem)<{reviewed: boolean; hasInbox: boolean}>`
       animation: tintRow 0.2s linear forwards;
       position: relative;
 
-      // A mask that fills the entire row and makes the text opaque. Doing this because opacity adds a stacking context in CSS so we need to apply it to another element.
+      /*
+       * A mask that fills the entire row and makes the text opaque. Doing this because
+       * opacity adds a stacking context in CSS so we need to apply it to another element.
+       */
       &:after {
         content: '';
         pointer-events: none;

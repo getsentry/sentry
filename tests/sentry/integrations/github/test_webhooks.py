@@ -29,8 +29,8 @@ class WebhookTest(APITestCase):
         assert response.status_code == 405
 
     def test_unregistered_event(self):
-        project = self.project  # force creation
-        url = "/extensions/github/webhook/".format(project.organization.id)
+        project = self.project  # noqa force creation
+        url = "/extensions/github/webhook/"
 
         secret = "b3002c3e321d4b7880360d397db2ccfd"
 

@@ -179,7 +179,6 @@ export type LightWeightOrganization = OrganizationSummary & {
   apdexThreshold: number;
   onboardingTasks: OnboardingTaskStatus[];
   trustedRelays: Relay[];
-  dynamicSampling: DynamicSamplingRules;
   role?: string;
 };
 
@@ -231,16 +230,19 @@ export type Project = {
   environments: string[];
 
   // XXX: These are part of the DetailedProject serializer
+  dynamicSampling: {
+    rules: DynamicSamplingRules;
+  };
   plugins: Plugin[];
   processingIssues: number;
   relayPiiConfig: string;
+  groupingEnhancementsBase: string;
+  groupingConfig: string;
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   builtinSymbolSources?: string[];
   stats?: TimeseriesValue[];
   transactionStats?: TimeseriesValue[];
   latestRelease?: Release;
-  groupingEnhancementsBase: string;
-  groupingConfig: string;
   options?: Record<string, boolean | string>;
 } & AvatarProject;
 
@@ -685,16 +687,18 @@ export type EventOrGroupType =
   | 'default'
   | 'transaction';
 
+export type InboxReasonDetails = {
+  until?: string | null;
+  count?: number | null;
+  window?: number | null;
+  user_count?: number | null;
+  user_window?: number | null;
+};
+
 export type InboxDetails = {
+  reason_details: InboxReasonDetails;
   date_added?: string;
   reason?: number;
-  reason_details?: {
-    until?: string;
-    count?: number;
-    window?: number;
-    user_count?: number;
-    user_window?: number;
-  };
 };
 
 export type SuggestedOwnerReason = 'suspectCommit' | 'ownershipRule';
@@ -972,7 +976,7 @@ export type BaseGroup = {
   type: EventOrGroupType;
   userReportCount: number;
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
-  inbox?: InboxDetails | null;
+  inbox?: InboxDetails | null | false;
   owners?: SuggestedOwner[] | null;
 };
 
@@ -1937,10 +1941,8 @@ export type AuthProvider = {
 };
 
 export type PromptActivity = {
-  data: {
-    snoozed_ts?: number;
-    dismissed_ts?: number;
-  };
+  snoozedTime?: number;
+  dismissedTime?: number;
 };
 
 export type ServerlessFunction = {

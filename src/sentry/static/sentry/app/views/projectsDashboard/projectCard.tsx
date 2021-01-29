@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import createReactClass from 'create-react-class';
-import PropTypes from 'prop-types';
 import Reflux from 'reflux';
 
 import {loadStatsForProject} from 'app/actionCreators/projects';
@@ -11,7 +10,6 @@ import Link from 'app/components/links/link';
 import BookmarkStar from 'app/components/projects/bookmarkStar';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {t, tn} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -30,12 +28,6 @@ type Props = {
 };
 
 class ProjectCard extends React.Component<Props> {
-  static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
-    project: SentryTypes.Project.isRequired,
-    hasProjectAccess: PropTypes.bool,
-  };
-
   componentDidMount() {
     const {organization, project, api} = this.props;
 
@@ -153,9 +145,6 @@ type ContainerState = {
 };
 
 const ProjectCardContainer = createReactClass<ContainerProps, ContainerState>({
-  propTypes: {
-    project: SentryTypes.Project,
-  },
   mixins: [Reflux.listenTo(ProjectsStatsStore, 'onProjectStoreUpdate') as any],
   getInitialState(): ContainerState {
     const {project} = this.props;

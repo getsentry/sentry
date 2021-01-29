@@ -1,7 +1,6 @@
 import React from 'react';
 import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
-import PropTypes from 'prop-types';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
@@ -17,7 +16,6 @@ import LoadingError from 'app/components/loadingError';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import TagsTable from 'app/components/tagsTable';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import {Organization, Project} from 'app/types';
 import {Event, EventTag} from 'app/types/event';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -41,12 +39,6 @@ type State = {
 } & AsyncComponent['state'];
 
 class EventDetailsContent extends AsyncComponent<Props, State> {
-  static propTypes: any = {
-    organization: SentryTypes.Organization.isRequired,
-    eventSlug: PropTypes.string.isRequired,
-    location: PropTypes.object.isRequired,
-  };
-
   state: State = {
     // AsyncComponent state
     loading: true,
@@ -82,7 +74,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     if (!event) {
       return '';
     }
-    const query = decodeScalar(location.query.query) || '';
+    const query = decodeScalar(location.query.query, '');
     const newQuery = {
       ...location.query,
       query: appendTagCondition(query, tag.key, tag.value),
@@ -118,7 +110,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
 
     const {isSidebarVisible} = this.state;
     const transactionName = event.title;
-    const query = decodeScalar(location.query.query) || '';
+    const query = decodeScalar(location.query.query, '');
 
     return (
       <React.Fragment>

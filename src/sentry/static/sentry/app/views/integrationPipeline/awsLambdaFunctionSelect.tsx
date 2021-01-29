@@ -126,7 +126,7 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
   render = () => {
     return (
       <React.Fragment>
-        <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/" />
+        <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws-lambda/" />
         <Wrapper>
           {this.state.submitting ? this.renderLoadingScreeen() : this.renderCore()}
         </Wrapper>
@@ -145,10 +145,11 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
 }
 
 const Wrapper = styled('div')`
-  margin: 100px 50px 50px 50px;
+  padding: 100px 50px 50px 50px;
 `;
 
-const StyledForm = styled(Form)`
+// TODO(ts): Understand why styled is not correctly inheriting props here
+const StyledForm = styled(Form)<Form['props']>`
   margin-top: 10px;
 `;
 

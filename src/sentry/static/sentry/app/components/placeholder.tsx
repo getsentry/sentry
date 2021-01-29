@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import space from 'app/styles/space';
 
@@ -45,12 +44,5 @@ const Placeholder = styled(({className, children, error, testId}: Props) => {
 `;
 
 Placeholder.defaultProps = defaultProps;
-
-Placeholder.propTypes = {
-  shape: PropTypes.oneOf(['rect', 'circle']),
-  width: PropTypes.string,
-  height: PropTypes.string,
-  bottomGutter: PropTypes.number as any,
-};
 
 export default Placeholder;

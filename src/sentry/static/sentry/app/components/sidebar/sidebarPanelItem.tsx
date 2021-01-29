@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import {t} from '../../locale';
 import ExternalLink from '../links/externalLink';
@@ -31,15 +30,6 @@ const SidebarPanelItem = ({hasSeen, title, image, message, link, cta}: Props) =>
     )}
   </SidebarPanelItemRoot>
 );
-
-SidebarPanelItem.propTypes = {
-  title: PropTypes.string,
-  image: PropTypes.string,
-  message: PropTypes.node,
-  link: PropTypes.string,
-  hasSeen: PropTypes.bool,
-  cta: PropTypes.string,
-};
 
 export default SidebarPanelItem;
 

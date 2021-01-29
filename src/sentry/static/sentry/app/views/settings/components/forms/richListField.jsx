@@ -20,7 +20,7 @@ const RichListProps = {
   /**
    * Configuration for the add item dropdown.
    */
-  addDropdown: PropTypes.shape(DropdownAutoComplete.propTypes).isRequired,
+  addDropdown: PropTypes.object.isRequired,
 
   /**
    * Render function to render an item.
@@ -196,7 +196,8 @@ class RichList extends React.PureComponent {
 
 export default class RichListField extends React.PureComponent {
   static propTypes = {
-    ...InputField.propTypes,
+    // TODO(ts)
+    // ...InputField.propTypes,
     ...RichListProps,
   };
 

@@ -41,8 +41,8 @@ class WebhookTest(APITestCase):
         assert response.status_code == 400
 
     def test_unregistered_event(self):
-        project = self.project  # force creation
-        url = "/extensions/github-enterprise/webhook/".format(project.organization.id)
+        project = self.project  # noqa force creation
+        url = "/extensions/github-enterprise/webhook/"
 
         response = self.client.post(
             path=url,

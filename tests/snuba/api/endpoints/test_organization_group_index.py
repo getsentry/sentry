@@ -86,9 +86,42 @@ class GroupListTest(APITestCase, SnubaTestCase):
         group = event.group
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(sort_by="trend", query="is:unresolved")
+        response = self.get_valid_response(sort="trend", query="is:unresolved")
         assert len(response.data) == 1
         assert response.data[0]["id"] == six.text_type(group.id)
+
+    def test_sort_by_inbox(self):
+        group_1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        ).group
+        inbox_1 = add_group_to_inbox(group_1, GroupInboxReason.NEW)
+        group_2 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        ).group
+        inbox_2 = add_group_to_inbox(group_2, GroupInboxReason.NEW)
+        inbox_2.update(date_added=inbox_1.date_added - timedelta(hours=1))
+
+        self.login_as(user=self.user)
+        response = self.get_valid_response(sort="inbox", query="is:for_review", limit=1)
+        print([rd["id"] for rd in response.data])
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == six.text_type(group_1.id)
+
+        header_links = parse_link_header(response["Link"])
+        cursor = [link for link in header_links.values() if link["rel"] == "next"][0]["cursor"]
+        response = self.get_response(sort="inbox", cursor=cursor, query="is:for_review", limit=1)
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == six.text_type(group_2.id)
 
     def test_trace_search(self):
         event = self.store_event(
