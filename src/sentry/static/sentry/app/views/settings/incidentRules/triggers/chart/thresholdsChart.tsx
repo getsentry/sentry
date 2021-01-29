@@ -5,7 +5,6 @@ import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 
 import Graphic from 'app/components/charts/components/graphic';
-import Legend from 'app/components/charts/components/legend';
 import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
 import space from 'app/styles/space';
 import {GlobalSelection} from 'app/types';
@@ -249,11 +248,11 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
       },
       {}
     );
-    const legend = Legend({
+    const legend = {
       right: 10,
       top: 0,
       selected,
-    });
+    };
 
     return (
       <LineChart

@@ -5,7 +5,6 @@ import PropTypes from 'prop-types';
 import {ReactEchartsRef, Series} from 'app/types/echarts';
 import theme from 'app/utils/theme';
 
-import Legend from './components/legend';
 import PieSeries from './series/pieSeries';
 import BaseChart from './baseChart';
 
@@ -133,7 +132,7 @@ class PieChart extends React.Component<Props> {
         }}
         {...props}
         options={{
-          legend: Legend({
+          legend: {
             orient: 'vertical',
             align: 'left',
             show: true,
@@ -146,7 +145,7 @@ class PieChart extends React.Component<Props> {
                   ? `(${seriesPercentages[name]}%)`
                   : ''
               }`,
-          }),
+          },
         }}
         series={[
           PieSeries({
