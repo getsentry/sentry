@@ -503,6 +503,8 @@ const Wrapper = styled(PanelItem)<{reviewed: boolean; hasInbox: boolean}>`
        * A mask that fills the entire row and makes the text opaque. Doing this because
        * opacity adds a stacking context in CSS so we need to apply it to another element.
        */
+      // A mask that fills the entire row and makes the text opaque.
+      // Doing this because opacity adds a stacking context in CSS so we need to apply it to another element.
       &:after {
         content: '';
         pointer-events: none;
