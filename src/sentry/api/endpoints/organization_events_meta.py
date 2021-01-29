@@ -4,7 +4,7 @@ import sentry_sdk
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
-from sentry import search
+from sentry import search, eventstore
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import OrganizationEventsEndpointBase, NoProjects
 from sentry.api.helpers.group_index import build_query_params_from_request
@@ -86,6 +86,104 @@ class OrganizationEventBaseline(OrganizationEventsEndpointBase):
         baseline_data = result["data"][0]
         baseline_data[baseline_alias] = baseline_value
         return Response(baseline_data)
+
+
+class OrganizationEventsTrace(OrganizationEventsEndpointBase):
+    def get(self, request, organization, trace_id):
+        if not self.has_feature(organization, request):
+            return Response(status=404)
+
+        try:
+            params = self.get_snuba_params(request, organization)
+        except NoProjects:
+            return Response(status=404)
+
+        # grab greatest grandparent, Separate query so we can guarantee
+        with self.handle_query_errors():
+            result = discover.query(
+                selected_columns=[
+                    "id",
+                    "timestamp",
+                    "transaction",
+                    "project_id",
+                    "trace.span",
+                ],
+                orderby=["-timestamp", "id"],
+                params=params,
+                query=f"event.type:transaction trace:{trace_id} !has:trace.parent_span",
+                limit=1,
+                referrer="experimental.api.trace-view.get_grandparent_id",
+            )
+            if len(result["data"]) == 0:
+                return Response(status=404)
+        ancestor = eventstore.get_event_by_id(
+            result["data"][0]["project_id"], result["data"][0]["id"]
+        )
+        ancestor_span_id = result["data"][0]["trace.span"]
+        transaction_map = {ancestor_span_id: result["data"][0]["transaction"]}
+        trace = {}
+        trace[ancestor_span_id] = {span["span_id"]: [] for span in ancestor.data.get("spans", [])}
+
+        # Get 100 events from snuba, and pray these help
+        with self.handle_query_errors():
+            result = discover.query(
+                selected_columns=[
+                    "id",
+                    "timestamp",
+                    "transaction",
+                    "project_id",
+                    "trace.span",
+                    "trace.parent_span",
+                ],
+                orderby=["-timestamp", "id"],
+                params=params,
+                query=f"event.type:transaction trace:{trace_id}",
+                limit=100,
+                referrer="experimental.api.trace-view.get_ids",
+            )
+            if len(result["data"]) == 0:
+                return Response(status=404)
+
+        project_map = {item["trace.parent_span"]: item for item in result["data"]}
+        project_map.update({item["trace.span"]: item for item in result["data"]})
+        transaction_map = {item["trace.span"]: item["transaction"] for item in result["data"]}
+        # TODO trace should either all be span ids or parent span ids
+        transaction_map.update(
+            {item["trace.parent_span"]: item["transaction"] for item in result["data"]}
+        )
+        with sentry_sdk.start_span(op="fill_children"):
+            self.fill_children(ancestor_span_id, project_map, trace)
+        with sentry_sdk.start_span(op="clean_up"):
+            self.clean_up(trace)
+        return Response(self.map_transaction(trace, transaction_map))
+
+    def fill_children(self, span_id, project_map, trace):
+        for child_id in trace[span_id].keys():
+            if child_id in project_map:
+                child = project_map[child_id]
+                child_event = eventstore.get_event_by_id(child["project_id"], child["id"])
+                if child_event:
+                    trace[span_id][child_id] = {
+                        span["span_id"]: [] for span in child_event.data.get("spans", [])
+                    }
+                    self.fill_children(child_id, project_map, trace[span_id])
+
+    def clean_up(self, trace):
+        # TODO do this in fill_children
+        to_delete = []
+        for item in trace.keys():
+            if len(trace[item]) == 0:
+                to_delete.append(item)
+            else:
+                self.clean_up(trace[item])
+        for item in to_delete:
+            del trace[item]
+
+    def map_transaction(self, trace, transaction_map):
+        return {
+            transaction_map.get(item): self.map_transaction(trace[item], transaction_map)
+            for item in trace.keys()
+        }
 
 
 UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')

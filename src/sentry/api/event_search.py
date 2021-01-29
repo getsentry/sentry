@@ -928,7 +928,8 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
 
         # Handle checks for existence
         if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
-            if search_filter.key.is_tag:
+            # Temp hack to fix parent_span="" queries
+            if search_filter.key.is_tag or name == "trace.parent_span":
                 return [name, search_filter.operator, value]
             else:
                 # If not a tag, we can just check that the column is null.
