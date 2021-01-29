@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
@@ -21,12 +20,6 @@ type State = {
 };
 
 class CustomResolutionModal extends React.Component<Props, State> {
-  static propTypes = {
-    onSelected: PropTypes.func.isRequired,
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string,
-  };
-
   state = {
     version: '',
   };

@@ -62,34 +62,6 @@ type Context = {
 };
 
 export default class Form extends React.Component<Props> {
-  static propTypes: any = {
-    cancelLabel: PropTypes.string,
-    onCancel: PropTypes.func,
-    onSubmit: PropTypes.func,
-    onSubmitSuccess: PropTypes.func,
-    onSubmitError: PropTypes.func,
-    onFieldChange: PropTypes.func,
-    submitDisabled: PropTypes.bool,
-    submitLabel: PropTypes.string,
-    submitPriority: PropTypes.string,
-    footerClass: PropTypes.string,
-    footerStyle: PropTypes.object,
-    extraButton: PropTypes.element,
-    initialData: PropTypes.object,
-    // Require changes before able to submit form
-    requireChanges: PropTypes.bool,
-    // Reset form when there are errors, after submit
-    resetOnError: PropTypes.bool,
-    hideFooter: PropTypes.bool,
-    allowUndo: PropTypes.bool,
-    // Save field on control blur
-    saveOnBlur: PropTypes.bool,
-    model: PropTypes.object,
-    apiMethod: PropTypes.string,
-    apiEndpoint: PropTypes.string,
-    'data-test-id': PropTypes.string,
-  };
-
   static childContextTypes = {
     saveOnBlur: PropTypes.bool.isRequired,
     form: PropTypes.object.isRequired,

@@ -4,7 +4,6 @@ import {WithRouterProps} from 'react-router/lib/withRouter';
 import {disablePlugin, enablePlugin, fetchPlugins} from 'app/actionCreators/plugins';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import {Organization, Plugin, Project} from 'app/types';
 import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 import withPlugins from 'app/utils/withPlugins';
@@ -24,12 +23,6 @@ type Props = WithRouterProps<{orgId: string; projectId: string}> & {
 };
 
 class ProjectPluginsContainer extends React.Component<Props> {
-  static propTypes: any = {
-    plugins: SentryTypes.PluginsStore,
-    organization: SentryTypes.Organization,
-    project: SentryTypes.Project,
-  };
-
   componentDidMount() {
     this.fetchData();
   }

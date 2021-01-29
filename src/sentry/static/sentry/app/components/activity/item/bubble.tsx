@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 type Props = {
   backgroundColor?: string;
@@ -44,10 +43,5 @@ const ActivityBubble = styled('div')<Props>`
     top: 13px;
   }
 `;
-
-ActivityBubble.propTypes = {
-  backgroundColor: PropTypes.string,
-  borderColor: PropTypes.string,
-};
 
 export default ActivityBubble;
