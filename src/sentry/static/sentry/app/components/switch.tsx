@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 type Props = {
   forwardRef?: React.Ref<HTMLButtonElement>;
@@ -9,6 +8,10 @@ type Props = {
   name?: string;
   size?: 'sm' | 'lg';
   isActive?: boolean;
+  /**
+   * Toggle color is always active.
+   */
+  forceActiveColor?: boolean;
   isLoading?: boolean;
   isDisabled?: boolean;
   toggle: React.HTMLProps<HTMLButtonElement>['onClick'];
@@ -18,6 +21,7 @@ const Switch = ({
   forwardRef,
   size = 'sm',
   isActive,
+  forceActiveColor,
   isLoading,
   isDisabled,
   toggle,
@@ -40,19 +44,14 @@ const Switch = ({
     size={size}
     data-test-id="switch"
   >
-    <Toggle isDisabled={isDisabled} isActive={isActive} size={size} />
+    <Toggle
+      isDisabled={isDisabled}
+      isActive={isActive}
+      forceActiveColor={forceActiveColor}
+      size={size}
+    />
   </SwitchButton>
 );
-
-Switch.propTypes = {
-  id: PropTypes.string,
-  forwardRef: PropTypes.any,
-  size: PropTypes.oneOf(['sm', 'lg']),
-  isActive: PropTypes.bool,
-  isLoading: PropTypes.bool,
-  isDisabled: PropTypes.bool,
-  toggle: PropTypes.func.isRequired,
-};
 
 type StyleProps = Partial<Props>;
 
@@ -98,7 +97,8 @@ const Toggle = styled('span')<StyleProps>`
   transform: translateX(${getTranslateX}px);
   width: ${getToggleSize}px;
   height: ${getToggleSize}px;
-  background: ${p => (p.isActive ? p.theme.active : p.theme.border)};
+  background: ${p =>
+    p.isActive || p.forceActiveColor ? p.theme.active : p.theme.border};
   opacity: ${p => (p.isDisabled ? 0.4 : null)};
 `;
 
