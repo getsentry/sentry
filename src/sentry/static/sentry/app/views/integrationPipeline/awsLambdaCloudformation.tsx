@@ -233,5 +233,5 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
 }
 
 const StyledList = styled(List)`
-  margin: 100px 50px 50px 50px;
+  padding: 100px 50px 50px 50px;
 `;

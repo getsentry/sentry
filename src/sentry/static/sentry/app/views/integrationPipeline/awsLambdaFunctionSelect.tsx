@@ -145,7 +145,7 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
 }
 
 const Wrapper = styled('div')`
-  margin: 100px 50px 50px 50px;
+  padding: 100px 50px 50px 50px;
 `;
 
 const StyledForm = styled(Form)`
