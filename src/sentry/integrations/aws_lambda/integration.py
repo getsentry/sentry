@@ -189,9 +189,13 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
         org_client = gen_aws_client(
             account_number, region, aws_external_id, service_name="organizations"
         )
-        account = org_client.describe_account(AccountId=account_number)["Account"]
-
-        integration_name = "{} {}".format(account["Name"], region)
+        try:
+            account = org_client.describe_account(AccountId=account_number)["Account"]
+            account_name = account["Name"]
+            integration_name = f"{account_name} {region}"
+        except org_client.exceptions.AccessDeniedException:
+            # if the customer won't let us access the org name, use the account number instead
+            integration_name = f"{account_number} {region}"
 
         external_id = "{}-{}".format(account_number, region)
 
