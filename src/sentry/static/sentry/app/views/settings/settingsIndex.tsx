@@ -4,7 +4,6 @@ import {RouteComponentProps} from 'react-router';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
-import PropTypes from 'prop-types';
 
 import {fetchOrganizationDetails} from 'app/actionCreators/organizations';
 import OrganizationAvatar from 'app/components/avatar/organizationAvatar';
@@ -15,7 +14,6 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {IconDocs, IconLock, IconStack, IconSupport} from 'app/icons';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import ConfigStore from 'app/stores/configStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {Organization} from 'app/types';
@@ -48,10 +46,6 @@ type Props = {
 } & RouteComponentProps<{}, {}>;
 
 class SettingsIndex extends React.Component<Props> {
-  static propTypes = {
-    organization: SentryTypes.Organization,
-  };
-
   componentDidUpdate(prevProps: Props) {
     const {organization} = this.props;
     if (prevProps.organization === organization) {
@@ -356,14 +350,6 @@ const SupportLinkComponent = <T extends boolean>({
     return <ExternalHomeLink isCentered={isCentered} href={href} {...props} />;
   }
   return <HomeLink to={to} {...props} />;
-};
-
-SupportLinkComponent.propTypes = {
-  isOnPremise: PropTypes.bool,
-  href: PropTypes.string,
-  to: PropTypes.string,
-  isCentered: PropTypes.bool,
-  children: PropTypes.node,
 };
 
 const AvatarContainer = styled('div')`

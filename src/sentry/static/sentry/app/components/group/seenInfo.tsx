@@ -30,18 +30,6 @@ type Props = {
 };
 
 class SeenInfo extends React.Component<Props> {
-  static propTypes = {
-    orgSlug: PropTypes.string.isRequired,
-    projectSlug: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
-    date: PropTypes.any,
-    dateGlobal: PropTypes.any,
-    release: PropTypes.shape({
-      version: PropTypes.string.isRequired,
-    }),
-    environment: PropTypes.string,
-  };
-
   static contextTypes = {
     organization: PropTypes.object,
   };

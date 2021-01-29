@@ -63,11 +63,6 @@ export default class AsyncComponent<
   P extends AsyncComponentProps = AsyncComponentProps,
   S extends AsyncComponentState = AsyncComponentState
 > extends React.Component<P, S> {
-  static propTypes: any = {
-    location: PropTypes.object,
-    router: PropTypes.object,
-  };
-
   static contextTypes = {
     router: PropTypes.object,
   };

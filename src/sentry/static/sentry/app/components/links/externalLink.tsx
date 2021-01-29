@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 type AnchorProps = React.HTMLProps<HTMLAnchorElement>;
 
@@ -15,9 +14,5 @@ const ExternalLink = React.forwardRef<HTMLAnchorElement, Props>(function Externa
   const anchorProps = openInNewTab ? {target: '_blank', rel: 'noreferrer noopener'} : {};
   return <a ref={ref} {...anchorProps} {...props} />;
 });
-
-ExternalLink.propTypes = {
-  openInNewTab: PropTypes.bool,
-};
 
 export default ExternalLink;

@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import FunctionName from 'app/components/events/interfaces/frame/functionName';
 import {t} from 'app/locale';
@@ -28,11 +27,6 @@ const ImageForBar = ({frame, onShowAllImages}: Props) => {
       </ResetAddressFilterCaption>
     </Wrapper>
   );
-};
-
-ImageForBar.propTypes = {
-  frame: PropTypes.object.isRequired,
-  onShowAllImages: PropTypes.func.isRequired,
 };
 
 const Wrapper = styled('div')`

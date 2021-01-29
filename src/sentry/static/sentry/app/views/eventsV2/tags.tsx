@@ -2,7 +2,6 @@ import React from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location, LocationDescriptor} from 'history';
-import PropTypes from 'prop-types';
 
 import {fetchTagFacets, Tag, TagSegment} from 'app/actionCreators/events';
 import {Client} from 'app/api';
@@ -13,7 +12,6 @@ import Placeholder from 'app/components/placeholder';
 import TagDistributionMeter from 'app/components/tagDistributionMeter';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -38,14 +36,6 @@ type State = {
 };
 
 class Tags extends React.Component<Props, State> {
-  static propTypes: any = {
-    api: PropTypes.object.isRequired,
-    organization: SentryTypes.Organization.isRequired,
-    location: PropTypes.object.isRequired,
-    eventView: PropTypes.object.isRequired,
-    confirmedQuery: PropTypes.bool,
-  };
-
   state: State = {
     loading: true,
     tags: [],

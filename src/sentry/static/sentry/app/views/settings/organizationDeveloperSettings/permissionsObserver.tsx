@@ -24,13 +24,6 @@ type State = {
 };
 
 export default class PermissionsObserver extends React.Component<Props, State> {
-  static propTypes = {
-    scopes: PropTypes.arrayOf(PropTypes.string).isRequired,
-    events: PropTypes.arrayOf(PropTypes.string).isRequired,
-    webhookDisabled: PropTypes.bool.isRequired,
-    appPublished: PropTypes.bool.isRequired,
-  };
-
   static contextTypes = {
     router: PropTypes.object.isRequired,
     form: PropTypes.object,

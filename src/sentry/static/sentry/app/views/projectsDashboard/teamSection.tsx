@@ -1,9 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import PageHeading from 'app/components/pageHeading';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {Project, Scope, Team} from 'app/types';
 
@@ -41,15 +39,6 @@ const TeamSection = ({team, projects, title, showBorder, orgId, access}: Props) 
       </ProjectCards>
     </TeamSectionWrapper>
   );
-};
-
-TeamSection.propTypes = {
-  team: SentryTypes.Team,
-  orgId: PropTypes.string,
-  showBorder: PropTypes.bool,
-  access: PropTypes.object,
-  title: PropTypes.node,
-  projects: PropTypes.array,
 };
 
 const ProjectCards = styled('div')`

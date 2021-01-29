@@ -2,7 +2,6 @@ import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
-import PropTypes from 'prop-types';
 
 import Tooltip from 'app/components/tooltip';
 import {PlatformKey} from 'app/data/platformCategories';
@@ -113,10 +112,6 @@ function PlatformList({
 }
 
 export default PlatformList;
-
-PlatformList.propTypes = {
-  platforms: PropTypes.array,
-};
 
 function getOverlapWidth(size: number) {
   return Math.round(size / 4);

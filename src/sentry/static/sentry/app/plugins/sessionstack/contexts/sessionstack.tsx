@@ -1,7 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import $ from 'jquery';
-import PropTypes from 'prop-types';
 
 const ASPECT_RATIO = 16 / 9;
 
@@ -18,10 +17,6 @@ type State = {
 };
 
 class SessionStackContextType extends React.Component<Props, State> {
-  propTypes = {
-    data: PropTypes.object.isRequired,
-  };
-
   state: State = {
     showIframe: false,
   };

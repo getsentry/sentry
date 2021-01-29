@@ -6,7 +6,8 @@ import SelectField from './selectField';
 
 class SelectAsyncField extends SelectField {
   static propTypes = {
-    ...SelectField.propTypes,
+    // TODO(ts)
+    // ...SelectField.propTypes,
     ...SelectAsyncControl.propTypes,
     /**
      * API endpoint URL
@@ -32,7 +33,8 @@ class SelectAsyncField extends SelectField {
   };
 
   static defaultProps = {
-    ...SelectField.defaultProps,
+    // TODO(ts)
+    // ...SelectField.defaultProps,
     placeholder: 'Start typing to search for an issue',
   };
 

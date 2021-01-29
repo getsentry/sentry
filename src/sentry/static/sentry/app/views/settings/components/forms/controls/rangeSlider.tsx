@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -64,56 +63,6 @@ type State = {
 };
 
 class RangeSlider extends React.Component<Props, State> {
-  static propTypes = {
-    name: PropTypes.string.isRequired,
-    /**
-     * min allowed value, not needed if using `allowedValues`
-     */
-    min: PropTypes.number,
-    /**
-     * max allowed value, not needed if using `allowedValues`
-     */
-    max: PropTypes.number,
-    /**
-     * String is a valid type here only for empty string
-     * Otherwise react complains:
-     * "`value` prop on `input` should not be null. Consider using an empty string to clear the component or `undefined` for uncontrolled components."
-     *
-     * And we want this to be a controlled input when value is empty
-     */
-    value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-    step: PropTypes.number,
-    disabled: PropTypes.bool,
-    onChange: PropTypes.func,
-
-    /**
-     * Render prop for slider's label
-     * Is passed the value as an argument
-     */
-    formatLabel: PropTypes.func,
-
-    /**
-     * Array of allowed values. Make sure `value` is in this list.
-     * THIS NEEDS TO BE SORTED
-     */
-    allowedValues: PropTypes.arrayOf(PropTypes.number),
-
-    /**
-     * Show custom input
-     */
-    showCustomInput: PropTypes.bool,
-
-    // Placeholder for custom input
-    placeholder: PropTypes.string,
-
-    /**
-     * This is called when *any* MouseUp or KeyUp event happens.
-     * Used for "smart" Fields to trigger a "blur" event. `onChange` can
-     * be triggered quite frequently
-     */
-    onBlur: PropTypes.func,
-  };
-
   state: State = {
     sliderValue: this.props.allowedValues
       ? // With `allowedValues` sliderValue will be the index to value in `allowedValues`

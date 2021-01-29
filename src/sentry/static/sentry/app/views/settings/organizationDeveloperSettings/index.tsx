@@ -7,7 +7,6 @@ import Button from 'app/components/button';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import {Organization, SentryApp} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import withOrganization from 'app/utils/withOrganization';
@@ -25,10 +24,6 @@ type State = AsyncView['state'] & {
 };
 
 class OrganizationDeveloperSettings extends AsyncView<Props, State> {
-  static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
-  };
-
   getTitle() {
     const {orgId} = this.props.params;
     return routeTitleGen(t('Developer Settings'), orgId, false);

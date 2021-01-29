@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import AnnotatedText from 'app/components/events/meta/annotatedText';
 import {getMeta} from 'app/components/events/meta/metaProxy';
@@ -68,10 +67,6 @@ const ContextSummaryGPU = ({data}: Props) => {
       </TextOverflow>
     </Item>
   );
-};
-
-ContextSummaryGPU.propTypes = {
-  data: PropTypes.object.isRequired,
 };
 
 export default ContextSummaryGPU;

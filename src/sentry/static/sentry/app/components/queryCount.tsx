@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import {defined} from 'app/utils';
 
@@ -44,12 +43,6 @@ const QueryCount = ({
       {!hideParens && <span>)</span>}
     </span>
   );
-};
-QueryCount.propTypes = {
-  count: PropTypes.number,
-  max: PropTypes.number,
-  hideIfEmpty: PropTypes.bool,
-  hideParens: PropTypes.bool,
 };
 
 export default QueryCount;

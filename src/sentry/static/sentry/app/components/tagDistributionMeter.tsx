@@ -3,7 +3,6 @@ import {Link} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
-import PropTypes from 'prop-types';
 
 import {TagSegment} from 'app/actionCreators/events';
 import Tooltip from 'app/components/tooltip';
@@ -36,25 +35,6 @@ type SegmentValue = {
 };
 
 export default class TagDistributionMeter extends React.Component<Props> {
-  static propTypes = {
-    title: PropTypes.string.isRequired,
-    totalValues: PropTypes.number,
-    isLoading: PropTypes.bool,
-    hasError: PropTypes.bool,
-    segments: PropTypes.arrayOf(
-      PropTypes.shape({
-        count: PropTypes.number.isRequired,
-        name: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.array]),
-        value: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.array]),
-        url: PropTypes.oneOfType([PropTypes.string, PropTypes.object]).isRequired,
-      })
-    ).isRequired,
-    renderEmpty: PropTypes.func,
-    renderLoading: PropTypes.func,
-    renderError: PropTypes.func,
-    onTagClick: PropTypes.func,
-  };
-
   static defaultProps: DefaultProps = {
     isLoading: false,
     hasError: false,

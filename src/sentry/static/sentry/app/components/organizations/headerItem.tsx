@@ -3,7 +3,6 @@ import {Link} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
-import PropTypes from 'prop-types';
 
 import Tooltip from 'app/components/tooltip';
 import {IconChevron, IconClose, IconInfo, IconLock, IconSettings} from 'app/icons';
@@ -29,18 +28,6 @@ type Props = {
   React.HTMLAttributes<HTMLDivElement>;
 
 class HeaderItem extends React.Component<Props> {
-  static propTypes = {
-    icon: PropTypes.element,
-    onClear: PropTypes.func,
-    hasChanges: PropTypes.bool,
-    hasSelected: PropTypes.bool,
-    isOpen: PropTypes.bool,
-    locked: PropTypes.bool,
-    lockedMessage: PropTypes.element,
-    settingsLink: PropTypes.string,
-    hint: PropTypes.string,
-  };
-
   static defaultProps: DefaultProps = {
     allowClear: true,
   };

@@ -36,31 +36,6 @@ export default class FormField<
   Props extends FormFieldProps = FormFieldProps,
   State extends FormFieldState = FormFieldState
 > extends React.PureComponent<Props, State> {
-  static propTypes = {
-    name: PropTypes.string.isRequired,
-    /** Inline style */
-    style: PropTypes.object,
-
-    label: PropTypes.node,
-
-    // This is actually used but eslint doesn't parse it correctly
-    // eslint-disable-next-line react/no-unused-prop-types
-    defaultValue: PropTypes.any,
-
-    disabled: PropTypes.bool,
-    disabledReason: PropTypes.string,
-    help: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
-    required: PropTypes.bool,
-    hideErrorMessage: PropTypes.bool,
-    className: PropTypes.string,
-
-    // the following should only be used without form context
-    onChange: PropTypes.func,
-    error: PropTypes.string, // eslint-disable-line react/no-unused-prop-types
-    value: PropTypes.any,
-    meta: PropTypes.any, // eslint-disable-line react/no-unused-prop-types
-  };
-
   static contextTypes = {
     form: PropTypes.object,
   };

@@ -8,7 +8,6 @@ import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
 import {t, tn} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 
@@ -70,11 +69,6 @@ function ProjectTeamAccess({organization, project}: Props) {
     </Section>
   );
 }
-
-ProjectTeamAccess.propTypes = {
-  organization: SentryTypes.Organization.isRequired,
-  project: SentryTypes.Project,
-};
 
 const Section = styled('section')`
   font-size: ${p => p.theme.fontSizeMedium};

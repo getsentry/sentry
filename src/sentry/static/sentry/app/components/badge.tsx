@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import space from 'app/styles/space';
 import theme from 'app/utils/theme';
@@ -37,10 +36,5 @@ const Badge = styled(({priority: _priority, text, ...props}: Props) => (
   position: relative;
   top: -1px;
 `;
-
-Badge.propTypes = {
-  text: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  priority: PropTypes.oneOf(['strong', 'new', 'highlight']),
-} as any;
 
 export default Badge;

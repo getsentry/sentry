@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
 
@@ -22,11 +21,6 @@ type Props = Omit<InterfaceProps, 'silentIfUnsupported' | 'flowMode'> & {
 };
 
 class U2fSign extends React.Component<Props> {
-  static propTypes = {
-    challengeData: PropTypes.object,
-    displayMode: PropTypes.string,
-  };
-
   static defaultProps = {
     displayMode: 'signin',
   };

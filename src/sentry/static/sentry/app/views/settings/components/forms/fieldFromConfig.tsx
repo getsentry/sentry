@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import {Scope} from 'app/types';
 
@@ -36,58 +35,6 @@ type Props = {
 };
 
 export default class FieldFromConfig extends React.Component<Props> {
-  static propTypes = {
-    field: PropTypes.shape({
-      name: PropTypes.string,
-      type: PropTypes.oneOf([
-        'array',
-        'boolean',
-        'choice',
-        'choice_mapper',
-        'custom',
-        'email',
-        'hidden',
-        'multichoice',
-        'number',
-        'radio',
-        'range',
-        'rich_list',
-        'secret',
-        'select',
-        'separator',
-        'string',
-        'text',
-        'textarea',
-        'url',
-        'table',
-        'project_mapper',
-        'sentry_project_selector',
-      ]),
-      required: PropTypes.bool,
-      multiline: PropTypes.bool,
-      label: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
-      placeholder: PropTypes.oneOfType([PropTypes.string, PropTypes.func]),
-      help: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
-      visible: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
-      disabled: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
-      /**
-       * Function to format the value displayed in the undo toast. May also be
-       * specified as false to disable showing the changed fields in the toast.
-       */
-      formatMessageValue: PropTypes.oneOfType([PropTypes.func, PropTypes.oneOf([false])]),
-      /**
-       * Should show a "return key" icon in input?
-       */
-      showReturnButton: PropTypes.bool,
-      /**
-       * Iff false, disable saveOnBlur for field, instead show a save/cancel button
-       */
-      saveOnBlur: PropTypes.bool,
-      getValue: PropTypes.func,
-      setValue: PropTypes.func,
-    }).isRequired,
-  };
-
   render() {
     const {field, ...otherProps} = this.props;
 

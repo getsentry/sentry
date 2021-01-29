@@ -1,11 +1,9 @@
 import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import UserAvatar from 'app/components/avatar/userAvatar';
 import Tooltip from 'app/components/tooltip';
-import SentryTypes from 'app/sentryTypes';
 import {AvatarUser} from 'app/types';
 
 const defaultProps = {
@@ -26,15 +24,6 @@ type Props = {
 } & DefaultProps;
 
 export default class AvatarList extends React.Component<Props> {
-  static propTypes = {
-    users: PropTypes.arrayOf(SentryTypes.User).isRequired,
-    avatarSize: PropTypes.number,
-    maxVisibleAvatars: PropTypes.number,
-    renderTooltip: PropTypes.func,
-    tooltipOptions: PropTypes.object,
-    typeMembers: PropTypes.string,
-  };
-
   static defaultProps = defaultProps;
 
   render() {

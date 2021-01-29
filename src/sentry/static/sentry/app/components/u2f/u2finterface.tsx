@@ -1,6 +1,5 @@
 import React from 'react';
 import * as Sentry from '@sentry/react';
-import PropTypes from 'prop-types';
 import u2f from 'u2f-api';
 
 import {t, tct} from 'app/locale';
@@ -25,13 +24,6 @@ type State = {
 };
 
 class U2fInterface extends React.Component<Props, State> {
-  static propTypes = {
-    challengeData: PropTypes.object.isRequired,
-    flowMode: PropTypes.string.isRequired,
-    onTap: PropTypes.func,
-    silentIfUnsupported: PropTypes.bool,
-  };
-
   static defaultProps = {
     silentIfUnsupported: false,
   };

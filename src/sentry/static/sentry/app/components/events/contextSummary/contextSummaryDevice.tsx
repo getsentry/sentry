@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import DeviceName from 'app/components/deviceName';
 import AnnotatedText from 'app/components/events/meta/annotatedText';
@@ -86,10 +85,6 @@ const ContextSummaryDevice = ({data}: Props) => {
       )}
     </Item>
   );
-};
-
-ContextSummaryDevice.propTypes = {
-  data: PropTypes.object.isRequired,
 };
 
 export default ContextSummaryDevice;

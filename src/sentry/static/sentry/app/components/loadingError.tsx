@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
@@ -21,11 +20,6 @@ type Props = DefaultProps & {
  * Renders an Alert box of type "error". Renders a "Retry" button only if a `onRetry` callback is defined.
  */
 class LoadingError extends React.Component<Props> {
-  static propTypes = {
-    onRetry: PropTypes.func,
-    message: PropTypes.string,
-  };
-
   static defaultProps: DefaultProps = {
     message: t('There was an error loading data.'),
   };

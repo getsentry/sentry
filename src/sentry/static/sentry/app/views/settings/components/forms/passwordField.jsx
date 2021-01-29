@@ -8,7 +8,8 @@ import InputField from 'app/views/settings/components/forms/inputField';
 // value propagation in all scenarios
 export default class PasswordField extends InputField {
   static propTypes = {
-    ...InputField.propTypes,
+    // TODO(ts)
+    // ...InputField.propTypes,
     hasSavedValue: PropTypes.bool,
     prefix: PropTypes.string,
   };

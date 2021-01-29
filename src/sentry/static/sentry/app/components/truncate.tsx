@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 type DefaultProps = {
   maxLength: number;
@@ -16,12 +15,6 @@ type State = {
 };
 
 class Truncate extends React.Component<Props, State> {
-  static propTypes = {
-    value: PropTypes.string.isRequired,
-    leftTrim: PropTypes.bool,
-    maxLength: PropTypes.number,
-  };
-
   static defaultProps: DefaultProps = {
     maxLength: 50,
     leftTrim: false,

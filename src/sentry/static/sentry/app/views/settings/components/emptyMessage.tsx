@@ -1,7 +1,6 @@
 import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import space from 'app/styles/space';
 import TextBlock from 'app/views/settings/components/text/textBlock';
@@ -55,15 +54,6 @@ const EmptyMessage = styled(
   font-size: ${p =>
     p.size && p.size === 'large' ? p.theme.fontSizeExtraLarge : p.theme.fontSizeLarge};
 `;
-
-EmptyMessage.propTypes = {
-  title: PropTypes.node,
-  description: PropTypes.node,
-  icon: PropTypes.node,
-  action: PropTypes.element,
-  // Currently only the `large` option changes the size - can add more size options as necessary
-  size: PropTypes.oneOf(['large', 'medium']),
-};
 
 const IconWrapper = styled('div')`
   color: ${p => p.theme.gray200};

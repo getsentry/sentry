@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
@@ -148,22 +147,6 @@ const InviteRequestRow = ({
       {hookRenderer}
     </InviteModalHook>
   );
-};
-
-InviteRequestRow.propTypes = {
-  inviteRequest: PropTypes.shape({
-    email: PropTypes.string,
-    id: PropTypes.string,
-    inviterName: PropTypes.string,
-    inviteStatus: PropTypes.string,
-    role: PropTypes.string,
-    teams: PropTypes.arrayOf(PropTypes.string),
-  }),
-  onApprove: PropTypes.func,
-  onDeny: PropTypes.func,
-  inviteRequestBusy: PropTypes.object,
-  allRoles: PropTypes.arrayOf(PropTypes.object),
-  allTeams: PropTypes.arrayOf(PropTypes.object),
 };
 
 const JoinRequestIndicator = styled(Tag)`

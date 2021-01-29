@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
-import PropTypes from 'prop-types';
 
 import DateTime from 'app/components/dateTime';
 import TimeSince from 'app/components/timeSince';
@@ -134,21 +133,6 @@ function ActivityItem({
     </ActivityItemWrapper>
   );
 }
-
-ActivityItem.propTypes = {
-  id: PropTypes.string,
-  date: PropTypes.oneOfType([PropTypes.instanceOf(Date), PropTypes.string]),
-  author: PropTypes.shape({
-    type: ActivityAvatar.propTypes.type,
-    user: ActivityAvatar.propTypes.user,
-  }),
-  avatarSize: PropTypes.number,
-  hideDate: PropTypes.bool,
-  showTime: PropTypes.bool,
-  header: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
-  footer: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
-  bubbleProps: PropTypes.shape(ActivityBubble.propTypes as any),
-};
 
 const ActivityItemWrapper = styled('div')`
   display: flex;

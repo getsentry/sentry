@@ -148,7 +148,8 @@ const Wrapper = styled('div')`
   padding: 100px 50px 50px 50px;
 `;
 
-const StyledForm = styled(Form)`
+// TODO(ts): Understand why styled is not correctly inheriting props here
+const StyledForm = styled(Form)<Form['props']>`
   margin-top: 10px;
 `;
 

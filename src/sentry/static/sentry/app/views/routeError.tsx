@@ -20,12 +20,6 @@ type Props = WithRouterProps & {
 };
 
 class RouteError extends React.Component<Props> {
-  static propTypes = {
-    disableLogSentry: PropTypes.bool,
-    disableReport: PropTypes.bool,
-    error: PropTypes.instanceOf(Error),
-  };
-
   static contextTypes = {
     organization: PropTypes.object,
     project: PropTypes.object,

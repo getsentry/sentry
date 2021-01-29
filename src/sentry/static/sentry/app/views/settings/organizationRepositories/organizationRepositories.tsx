@@ -1,6 +1,5 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router';
-import PropTypes from 'prop-types';
 
 import {Client} from 'app/api';
 import AlertLink from 'app/components/alertLink';
@@ -84,12 +83,6 @@ const OrganizationRepositories = ({itemList, onRepositoryChange, api, params}: P
       )}
     </div>
   );
-};
-
-OrganizationRepositories.propTypes = {
-  itemList: PropTypes.array,
-  api: PropTypes.object,
-  onRepositoryChange: PropTypes.func,
 };
 
 export default OrganizationRepositories;

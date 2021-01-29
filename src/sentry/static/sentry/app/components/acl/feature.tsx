@@ -1,7 +1,5 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
-import SentryTypes from 'app/sentryTypes';
 import HookStore from 'app/stores/hookStore';
 import {Config, Organization, Project} from 'app/types';
 import {FeatureDisabledHooks} from 'app/types/hooks';
@@ -90,17 +88,6 @@ type AllFeatures = {
  * Component to handle feature flags.
  */
 class Feature extends React.Component<Props> {
-  static propTypes = {
-    organization: SentryTypes.Organization,
-    project: SentryTypes.Project,
-    config: SentryTypes.Config.isRequired,
-    features: PropTypes.arrayOf(PropTypes.string.isRequired).isRequired,
-    requireAll: PropTypes.bool,
-    renderDisabled: PropTypes.oneOfType([PropTypes.func, PropTypes.bool]),
-    hookName: PropTypes.string as any,
-    children: PropTypes.oneOfType([PropTypes.func, PropTypes.node]),
-  };
-
   static defaultProps = {
     renderDisabled: false,
     requireAll: true,

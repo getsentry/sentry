@@ -4,7 +4,6 @@ import {Manager, Popper, PopperProps, Reference} from 'react-popper';
 import {keyframes} from '@emotion/core';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-import PropTypes from 'prop-types';
 
 import {fadeIn} from 'app/styles/animations';
 import space from 'app/styles/space';
@@ -69,19 +68,6 @@ type State = {
 };
 
 class Hovercard extends React.Component<Props, State> {
-  static propTypes = {
-    displayTimeout: PropTypes.number,
-    className: PropTypes.string,
-    containerClassName: PropTypes.string,
-    header: PropTypes.node,
-    body: PropTypes.node,
-    bodyClassName: PropTypes.string,
-    position: PropTypes.oneOf(VALID_DIRECTIONS),
-    show: PropTypes.bool,
-    tipColor: PropTypes.string,
-    offset: PropTypes.string,
-  };
-
   static defaultProps: DefaultProps = {
     displayTimeout: 100,
     position: 'top',

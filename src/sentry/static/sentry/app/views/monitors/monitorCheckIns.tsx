@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import Duration from 'app/components/duration';
@@ -27,10 +26,6 @@ type State = {
 } & AsyncComponent['state'];
 
 export default class MonitorCheckIns extends AsyncComponent<Props, State> {
-  static propTypes = {
-    monitor: PropTypes.object.isRequired,
-  };
-
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {monitor} = this.props;
     return [

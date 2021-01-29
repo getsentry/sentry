@@ -51,7 +51,6 @@ class GlobalModal extends React.Component<Props> {
     // Action creator
     closeModal();
 
-    // Read description in propTypes
     if (typeof onClose === 'function') {
       onClose();
     }

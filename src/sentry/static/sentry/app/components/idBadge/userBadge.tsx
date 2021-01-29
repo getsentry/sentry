@@ -1,9 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import UserAvatar from 'app/components/avatar/userAvatar';
-import SentryTypes from 'app/sentryTypes';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {AvatarUser} from 'app/types';
@@ -46,18 +44,6 @@ const UserBadge = ({
       </StyledNameAndEmail>
     </StyledUserBadge>
   );
-};
-
-UserBadge.propTypes = {
-  displayName: PropTypes.node,
-  displayEmail: PropTypes.node,
-  avatarSize: PropTypes.number,
-  /**
-   * Sometimes we may not have the member object (i.e. the current user, `ConfigStore.get('user')`,
-   * is an user, not a member)
-   */
-  user: SentryTypes.User,
-  hideEmail: PropTypes.bool,
 };
 
 const StyledUserBadge = styled('div')`

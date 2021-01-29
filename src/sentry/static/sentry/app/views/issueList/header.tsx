@@ -1,7 +1,6 @@
 import React from 'react';
 import {InjectedRouter, Link} from 'react-router';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import {openModal} from 'app/actionCreators/modal';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -165,11 +164,6 @@ function IssueListHeader({
 }
 
 export default withProjects(IssueListHeader);
-
-IssueListHeader.propTypes = {
-  projectIds: PropTypes.array.isRequired,
-  projects: PropTypes.array.isRequired,
-};
 
 const StyledLayoutTitle = styled(Layout.Title)`
   margin-top: ${space(0.5)};

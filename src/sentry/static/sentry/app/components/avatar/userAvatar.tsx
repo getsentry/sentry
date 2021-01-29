@@ -1,8 +1,6 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import BaseAvatar from 'app/components/avatar/baseAvatar';
-import SentryTypes from 'app/sentryTypes';
 import {Actor, AvatarUser} from 'app/types';
 import {userDisplayName} from 'app/utils/formatters';
 import {isRenderFunc} from 'app/utils/isRenderFunc';
@@ -30,13 +28,6 @@ function isActor(maybe: AvatarUser | Actor): maybe is Actor {
 }
 
 class UserAvatar extends React.Component<Props> {
-  static propTypes: any = {
-    user: SentryTypes.User,
-    gravatar: PropTypes.bool,
-    renderTooltip: PropTypes.func,
-    ...BaseAvatar.propTypes,
-  };
-
   static defaultProps = defaultProps;
 
   getType = (user: AvatarUser | Actor, gravatar: boolean | undefined) => {

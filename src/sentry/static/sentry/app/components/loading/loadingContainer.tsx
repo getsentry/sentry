@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import LoadingIndicator from 'app/components/loadingIndicator';
 import theme from 'app/utils/theme';
@@ -44,12 +43,6 @@ export default function LoadingContainer(props: Props) {
 }
 
 LoadingContainer.defaultProps = defaultProps;
-
-LoadingContainer.propTypes = {
-  isLoading: PropTypes.bool.isRequired,
-  isReloading: PropTypes.bool.isRequired,
-  children: PropTypes.node,
-};
 
 const Container = styled('div')`
   position: relative;

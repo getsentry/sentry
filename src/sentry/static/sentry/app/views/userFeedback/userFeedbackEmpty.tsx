@@ -1,12 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import PropTypes from 'prop-types';
 
 import Button from 'app/components/button';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {trackAdhocEvent, trackAnalyticsEvent} from 'app/utils/analytics';
@@ -23,11 +21,6 @@ type Props = {
 };
 
 class UserFeedbackEmpty extends React.Component<Props> {
-  static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
-    projectIds: PropTypes.arrayOf(PropTypes.string.isRequired),
-  };
-
   componentDidMount() {
     const {organization, projectIds} = this.props;
 

@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import ErrorLevel from 'app/components/events/errorLevel';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -35,14 +34,6 @@ const EventMessage = ({
     {annotations}
   </div>
 );
-
-EventMessage.propTypes = {
-  level: PropTypes.oneOf(['error', 'fatal', 'info', 'warning', 'sample']),
-  levelIndicatorSize: PropTypes.string,
-  message: PropTypes.node,
-  annotations: PropTypes.node,
-  className: PropTypes.string,
-};
 
 const StyledEventMessage = styled(EventMessage)`
   display: flex;

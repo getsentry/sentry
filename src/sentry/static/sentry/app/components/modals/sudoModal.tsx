@@ -125,7 +125,6 @@ class SudoModal extends React.Component<Props, State> {
           onSubmitSuccess={this.handleSuccess}
           onSubmitError={this.handleError}
           hideFooter={!user.hasPasswordAuth}
-          hideErrors
           resetOnError
         >
           <StyledInputField

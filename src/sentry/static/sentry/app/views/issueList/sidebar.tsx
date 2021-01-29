@@ -2,12 +2,10 @@ import React from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import map from 'lodash/map';
-import PropTypes from 'prop-types';
 
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {IconClose} from 'app/icons/iconClose';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {Tag, TagCollection} from 'app/types';
 import {objToQuery, QueryObj, queryToObj} from 'app/utils/stream';
@@ -32,14 +30,6 @@ type State = {
 };
 
 class IssueListSidebar extends React.Component<Props, State> {
-  static propTypes: any = {
-    tags: PropTypes.objectOf(SentryTypes.Tag).isRequired,
-    query: PropTypes.string,
-    onQueryChange: PropTypes.func.isRequired,
-    loading: PropTypes.bool,
-    tagValueLoader: PropTypes.func.isRequired,
-  };
-
   static defaultProps: DefaultProps = {
     tags: {},
     query: '',

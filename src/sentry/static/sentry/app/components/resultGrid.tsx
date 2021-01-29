@@ -1,7 +1,6 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
-import PropTypes from 'prop-types';
 
 import {Client, RequestOptions} from 'app/api';
 import DropdownLink from 'app/components/dropdownLink';
@@ -91,13 +90,6 @@ type SortByProps = {
 };
 
 class SortBy extends React.Component<SortByProps> {
-  static propTypes = {
-    options: PropTypes.array.isRequired,
-    path: PropTypes.string.isRequired,
-    location: PropTypes.object,
-    value: PropTypes.any,
-  };
-
   getCurrentSortLabel() {
     return this.props.options.find(([value]) => value === this.props.value)?.[1];
   }

@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import ActivityAuthor from 'app/components/activity/author';
 import ActivityItem from 'app/components/activity/item';
@@ -8,7 +7,6 @@ import Clipboard from 'app/components/clipboard';
 import Link from 'app/components/links/link';
 import {IconCopy} from 'app/icons';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {UserReport} from 'app/types';
 import {escape, nl2br} from 'app/utils';
@@ -21,13 +19,6 @@ type Props = {
 };
 
 class EventUserFeedback extends React.Component<Props> {
-  static propTypes = {
-    report: SentryTypes.UserReport.isRequired,
-    orgId: PropTypes.string.isRequired,
-    issueId: PropTypes.string.isRequired,
-    className: PropTypes.string,
-  };
-
   getUrl() {
     const {report, orgId, issueId} = this.props;
 

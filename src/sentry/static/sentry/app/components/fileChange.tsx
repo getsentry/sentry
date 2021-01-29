@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import AvatarList from 'app/components/avatar/avatarList';
 import FileIcon from 'app/components/fileIcon';
@@ -26,11 +25,6 @@ const FileChange = ({filename, authors, className}: Props) => (
     </div>
   </FileItem>
 );
-
-FileChange.propTypes = {
-  filename: PropTypes.string.isRequired,
-  authors: PropTypes.array.isRequired,
-};
 
 const FileItem = styled(ListGroupItem)`
   display: flex;

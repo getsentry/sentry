@@ -47,23 +47,6 @@ class Form<
   Props extends FormProps = FormProps,
   State extends FormClassState = FormClassState
 > extends React.Component<Props, State> {
-  static propTypes = {
-    cancelLabel: PropTypes.string,
-    onCancel: PropTypes.func,
-    onSubmit: PropTypes.func, //actually required but we cannot make it required because it's optional in apiForm
-    onSubmitSuccess: PropTypes.func,
-    onSubmitError: PropTypes.func,
-    submitDisabled: PropTypes.bool,
-    submitLabel: PropTypes.string,
-    footerClass: PropTypes.string,
-    extraButton: PropTypes.element,
-    initialData: PropTypes.object,
-    requireChanges: PropTypes.bool,
-    errorMessage: PropTypes.node,
-    hideErrors: PropTypes.bool,
-    resetOnError: PropTypes.bool,
-  };
-
   static childContextTypes = {
     form: PropTypes.object.isRequired,
   };

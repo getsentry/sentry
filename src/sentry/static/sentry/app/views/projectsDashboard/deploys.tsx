@@ -7,7 +7,6 @@ import TimeSince from 'app/components/timeSince';
 import Version from 'app/components/version';
 import {IconReleases} from 'app/icons';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {Deploy as DeployType, Project} from 'app/types';
 import getDynamicText from 'app/utils/getDynamicText';
@@ -49,10 +48,6 @@ const Deploys = ({project}: Props) => {
   );
 };
 
-Deploys.propTypes = {
-  project: SentryTypes.Project.isRequired,
-};
-
 export default Deploys;
 
 type DeployProps = Props & {
@@ -80,11 +75,6 @@ const Deploy = ({deploy, project}: DeployProps) => (
     </DeployTime>
   </React.Fragment>
 );
-
-Deploy.propTypes = {
-  deploy: SentryTypes.Deploy.isRequired,
-  project: SentryTypes.Project.isRequired,
-};
 
 const NoDeploys = () => (
   <GetStarted>

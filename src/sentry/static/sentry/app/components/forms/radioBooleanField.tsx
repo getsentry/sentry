@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import InputField from 'app/components/forms/inputField';
 import {defined} from 'app/utils';
@@ -11,13 +10,6 @@ type Props = {
 } & InputField['props'];
 
 export default class RadioBooleanField extends InputField<Props> {
-  static propTypes = {
-    ...InputField.propTypes,
-    yesLabel: PropTypes.string.isRequired,
-    noLabel: PropTypes.string.isRequired,
-    yesFirst: PropTypes.bool,
-  };
-
   static defaultProps = {
     ...InputField.defaultProps,
     yesLabel: 'Yes',

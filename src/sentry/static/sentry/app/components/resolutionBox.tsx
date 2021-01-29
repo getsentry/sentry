@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import UserAvatar from 'app/components/avatar/userAvatar';
 import CommitLink from 'app/components/commitLink';
@@ -78,11 +77,6 @@ function ResolutionBox({statusDetails, projectId}: Props) {
     </BannerContainer>
   );
 }
-
-ResolutionBox.propTypes = {
-  statusDetails: PropTypes.object.isRequired,
-  projectId: PropTypes.string.isRequired,
-};
 
 const StyledTimeSince = styled(TimeSince)`
   color: ${p => p.theme.gray300};

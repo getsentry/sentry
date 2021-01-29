@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import Button from 'app/components/button';
 import {t} from 'app/locale';
@@ -19,10 +18,6 @@ const MultipleSelectorSubmitRow = ({onSubmit, disabled = false}: Props) => (
     </SubmitButton>
   </SubmitButtonContainer>
 );
-
-MultipleSelectorSubmitRow.propTypes = {
-  onSubmit: PropTypes.func.isRequired,
-};
 
 const SubmitButtonContainer = styled('div')`
   display: flex;

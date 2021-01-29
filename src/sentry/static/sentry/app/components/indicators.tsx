@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import createReactClass from 'create-react-class';
 import {ThemeProvider} from 'emotion-theming';
 import {AnimatePresence} from 'framer-motion';
-import PropTypes from 'prop-types';
 import Reflux from 'reflux';
 
 import {Indicator, removeIndicator} from 'app/actionCreators/indicator';
@@ -24,18 +23,6 @@ type Props = {
 };
 
 class Indicators extends React.Component<Props> {
-  static propTypes = {
-    className: PropTypes.string,
-    items: PropTypes.arrayOf(
-      PropTypes.shape({
-        type: PropTypes.oneOf(['error', 'success', 'loading', 'undo', '']),
-        id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-        message: PropTypes.node,
-        options: PropTypes.object,
-      })
-    ),
-  };
-
   static defaultProps = {
     items: [],
   };

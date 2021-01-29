@@ -1066,7 +1066,6 @@ class IssueListOverview extends React.Component<Props, State> {
                     tags={tags}
                     query={query}
                     onQueryChange={this.onIssueListSidebarSearch}
-                    orgId={orgSlug}
                     tagValueLoader={this.tagValueLoader}
                   />
                 )}

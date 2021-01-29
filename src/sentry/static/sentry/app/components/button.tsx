@@ -3,7 +3,6 @@ import {Link} from 'react-router';
 import {css} from '@emotion/core';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import ExternalLink from 'app/components/links/externalLink';
 import Tooltip from 'app/components/tooltip';
@@ -44,61 +43,6 @@ type ButtonProps = Omit<React.HTMLProps<ButtonElement>, keyof Props | 'ref'> & P
 type Url = ButtonProps['to'] | ButtonProps['href'];
 
 class BaseButton extends React.Component<ButtonProps, {}> {
-  static propTypes: any = {
-    priority: PropTypes.oneOf([
-      'default',
-      'primary',
-      'danger',
-      'link',
-      'success',
-      'form',
-    ]),
-    size: PropTypes.oneOf(['zero', 'xsmall', 'small']),
-    disabled: PropTypes.bool,
-    busy: PropTypes.bool,
-    /**
-     * Use this prop if button is a react-router link
-     */
-    to: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
-    /**
-     * Use this prop if button should use a normal (non-react-router) link
-     */
-    href: PropTypes.string,
-    /**
-     * A react node to use as the icons. Generally pulled from app/icons
-     */
-    icon: PropTypes.node,
-    /**
-     * Tooltip text
-     */
-    title: PropTypes.string,
-    /**
-     * Is an external link? (Will open in new tab)
-     */
-    external: PropTypes.bool,
-    /**
-     * Button with a border
-     */
-    borderless: PropTypes.bool,
-    /**
-     * Text aligment, takes justify-content properties.
-     */
-    align: PropTypes.oneOf(['center', 'left', 'right']),
-    /**
-     * Label for screen-readers (`aria-label`).
-     * `children` will be used by default (only if it is a string), but this property takes priority.
-     */
-    label: PropTypes.string,
-    /**
-     * Passed down to built-in tooltip component
-     */
-    tooltipProps: PropTypes.object,
-
-    onClick: PropTypes.func,
-
-    forwardRef: PropTypes.any,
-  };
-
   static defaultProps: ButtonProps = {
     disabled: false,
     align: 'center',
@@ -199,8 +143,6 @@ const Button = React.forwardRef<ButtonElement, ButtonProps>((props, ref) => (
   <BaseButton forwardRef={ref} {...props} />
 ));
 
-// Some components use Button's propTypes
-Button.propTypes = Button.propTypes;
 Button.displayName = 'Button';
 
 export default Button;

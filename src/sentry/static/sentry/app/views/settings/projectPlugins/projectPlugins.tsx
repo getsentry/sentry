@@ -1,6 +1,5 @@
 import React, {Component} from 'react';
 import {WithRouterProps} from 'react-router';
-import PropTypes from 'prop-types';
 
 import Access from 'app/components/acl/access';
 import Link from 'app/components/links/link';
@@ -13,7 +12,6 @@ import {
   PanelItem,
 } from 'app/components/panels';
 import {t, tct} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import {Plugin, Project} from 'app/types';
 import RouteError from 'app/views/routeError';
 
@@ -28,15 +26,6 @@ type Props = {
 } & WithRouterProps<{orgId: string}>;
 
 class ProjectPlugins extends Component<Props> {
-  static propTypes = {
-    plugins: PropTypes.arrayOf(SentryTypes.PluginShape),
-    loading: PropTypes.bool,
-    error: PropTypes.any,
-    onChange: PropTypes.func,
-    onError: PropTypes.func,
-    routes: PropTypes.array,
-  };
-
   render() {
     const {plugins, loading, error, onChange, routes, params, project} = this.props;
     const {orgId} = this.props.params;

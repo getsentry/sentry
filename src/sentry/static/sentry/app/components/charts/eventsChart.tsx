@@ -3,7 +3,6 @@ import {InjectedRouter} from 'react-router/lib/Router';
 import {EChartOption} from 'echarts/lib/echarts';
 import {Query} from 'history';
 import isEqual from 'lodash/isEqual';
-import PropTypes from 'prop-types';
 
 import {Client} from 'app/api';
 import AreaChart from 'app/components/charts/areaChart';
@@ -60,26 +59,6 @@ type State = {
 };
 
 class Chart extends React.Component<ChartProps, State> {
-  static propTypes = {
-    loading: PropTypes.bool,
-    reloading: PropTypes.bool,
-    releaseSeries: PropTypes.array,
-    zoomRenderProps: PropTypes.object,
-    timeseriesData: PropTypes.array,
-    showLegend: PropTypes.bool,
-    previousTimeseriesData: PropTypes.object,
-    currentSeriesName: PropTypes.string,
-    previousSeriesName: PropTypes.string,
-    seriesTransformer: PropTypes.func,
-    showDaily: PropTypes.bool,
-    yAxis: PropTypes.string,
-    stacked: PropTypes.bool,
-    colors: PropTypes.array,
-    disableableSeries: PropTypes.array,
-    legendOptions: PropTypes.object,
-    chartOptions: PropTypes.object,
-  };
-
   state: State = {
     seriesSelection: {},
     forceUpdate: false,
@@ -339,38 +318,6 @@ type ChartDataProps = {
 };
 
 class EventsChart extends React.Component<Props> {
-  static propTypes = {
-    api: PropTypes.object,
-    projects: PropTypes.arrayOf(PropTypes.number),
-    environments: PropTypes.arrayOf(PropTypes.string),
-    period: PropTypes.string,
-    query: PropTypes.string,
-    start: PropTypes.instanceOf(Date),
-    end: PropTypes.instanceOf(Date),
-    utc: PropTypes.bool,
-    router: PropTypes.object,
-    showLegend: PropTypes.bool,
-    yAxis: PropTypes.string,
-    disablePrevious: PropTypes.bool,
-    disableReleases: PropTypes.bool,
-    emphasizeReleases: PropTypes.array,
-    currentSeriesName: PropTypes.string,
-    previousSeriesName: PropTypes.string,
-    seriesTransformer: PropTypes.func,
-    topEvents: PropTypes.number,
-    field: PropTypes.arrayOf(PropTypes.string),
-    showDaily: PropTypes.bool,
-    orderby: PropTypes.string,
-    confirmedQuery: PropTypes.bool,
-    colors: PropTypes.array,
-    preserveReleaseQueryParams: PropTypes.bool,
-    releaseQueryExtras: PropTypes.object,
-    disableableSeries: PropTypes.array,
-    chartHeader: PropTypes.object,
-    legendOptions: PropTypes.object,
-    chartOptions: PropTypes.object,
-  };
-
   render() {
     const {
       api,

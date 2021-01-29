@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import createReactClass from 'create-react-class';
-import PropTypes from 'prop-types';
 import Reflux from 'reflux';
 
 import SettingsBreadcrumbActions from 'app/actions/settingsBreadcrumbActions';
@@ -33,13 +32,6 @@ type Props = {
 };
 
 class SettingsBreadcrumb extends React.Component<Props> {
-  static propTypes = {
-    routes: PropTypes.array,
-    // pathMap maps stringifed routes to a breadcrumb title. This property is
-    // provided by the SettingsBreadcrumbStore.
-    pathMap: PropTypes.object,
-  };
-
   static contextTypes = {
     organization: SentryTypes.Organization,
   };

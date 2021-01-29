@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import intersection from 'lodash/intersection';
-import PropTypes from 'prop-types';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
@@ -62,10 +61,6 @@ type Props = ModalRenderProps & {
 };
 
 export default class SentryAppPublishRequestModal extends React.Component<Props> {
-  static propTypes = {
-    app: PropTypes.object.isRequired,
-  };
-
   form = new PublishRequestFormModel();
 
   get formFields() {

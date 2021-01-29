@@ -8,7 +8,6 @@ import SearchBar from 'app/components/searchBar';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {IconWarning} from 'app/icons';
 import {t, tn} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
@@ -39,11 +38,6 @@ type State = {
 };
 
 class SpansInterface extends React.Component<Props, State> {
-  static propTypes = {
-    event: SentryTypes.Event.isRequired,
-    organization: SentryTypes.Organization.isRequired,
-  };
-
   state: State = {
     searchQuery: undefined,
     parsedTrace: parseTrace(this.props.event),

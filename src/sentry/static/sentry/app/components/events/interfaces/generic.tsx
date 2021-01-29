@@ -1,5 +1,4 @@
 import React, {Component} from 'react';
-import PropTypes from 'prop-types';
 
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -30,11 +29,6 @@ type State = {
 } & Pick<Props, 'data'>;
 
 export default class GenericInterface extends Component<Props, State> {
-  static propTypes = {
-    type: PropTypes.string.isRequired,
-    data: PropTypes.object.isRequired,
-  };
-
   state: State = {
     view: 'report',
     data: this.props.data,

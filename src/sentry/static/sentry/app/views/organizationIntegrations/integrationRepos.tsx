@@ -35,9 +35,6 @@ type State = AsyncComponent['state'] & {
 };
 
 export default class IntegrationRepos extends AsyncComponent<Props, State> {
-  static propTypes = {
-    integration: PropTypes.object.isRequired,
-  };
   static contextTypes = {
     organization: PropTypes.object.isRequired,
     router: PropTypes.object,

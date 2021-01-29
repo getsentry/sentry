@@ -2,7 +2,6 @@ import React from 'react';
 import {Link, RouteComponentProps} from 'react-router';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
@@ -35,11 +34,6 @@ type State = {
 };
 
 class RuleRow extends React.Component<Props, State> {
-  static propTypes: any = {
-    data: PropTypes.object.isRequired,
-    canEdit: PropTypes.bool,
-  };
-
   state = {loading: false, error: false};
 
   renderIssueRule(data: IssueAlertRule) {
