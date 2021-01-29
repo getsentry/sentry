@@ -367,7 +367,6 @@ class GroupSerializerBase(Serializer):
         )
         merge_list_dictionaries(annotations_by_group_id, local_annotations_by_group_id)
 
-        snuba_stats = {}
         snuba_stats = self._get_group_snuba_stats(item_list, seen_stats)
 
         for item in item_list:
