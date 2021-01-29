@@ -1934,10 +1934,8 @@ export type AuthProvider = {
 };
 
 export type PromptActivity = {
-  data: {
-    snoozed_ts?: number;
-    dismissed_ts?: number;
-  };
+  snoozedTime?: number;
+  dismissedTime?: number;
 };
 
 export type ServerlessFunction = {

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
 import omit from 'lodash/omit';
 
-import {promptsUpdate} from 'app/actionCreators/prompts';
+import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -111,14 +111,12 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     }
 
     // Check if they have already seen the prompt for the alert stream
-    const prompt = await this.api.requestPromise('/promptsactivity/', {
-      query: {
-        organization_id: organization.id,
-        feature: 'alert_stream',
-      },
+    const prompt = await promptsCheck(this.api, {
+      organizationId: organization.id,
+      feature: 'alert_stream',
     });
 
-    const firstVisitShown = !prompt?.data?.dismissed_ts;
+    const firstVisitShown = !prompt?.dismissedTime;
 
     if (firstVisitShown) {
       // Prompt has not been seen, mark the prompt as seen immediately so they
