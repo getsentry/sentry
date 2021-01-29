@@ -25,7 +25,7 @@ describe('GroupActivity', function () {
     });
   });
 
-  function createWrapper({activity} = {}) {
+  function createWrapper({activity, organization: additionalOrg} = {}) {
     const group = TestStubs.Group({
       id: '1337',
       activity: activity || [
@@ -34,6 +34,7 @@ describe('GroupActivity', function () {
       project,
     });
     const {organization, routerContext} = initializeOrg({
+      organization: additionalOrg,
       group,
     });
     return mountWithTheme(
@@ -54,6 +55,9 @@ describe('GroupActivity', function () {
 
   it('renders a marked reviewed activity', function () {
     const wrapper = createWrapper({
+      organization: {
+        features: ['inbox'],
+      },
       activity: [
         {type: 'mark_reviewed', id: 'reviewed-1', data: {}, user: TestStubs.User()},
       ],

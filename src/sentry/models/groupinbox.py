@@ -32,6 +32,12 @@ class GroupInboxReason(Enum):
     REPROCESSED = 4
 
 
+class GroupInboxRemoveAction(Enum):
+    RESOLVED = "resolved"
+    IGNORED = "ignored"
+    MARK_REVIEWED = "mark_reviewed"
+
+
 class GroupInbox(Model):
     """
     A Group that is in the inbox.
@@ -89,7 +95,7 @@ def remove_group_from_inbox(group, action=None, user=None):
         group_inbox = GroupInbox.objects.get(group=group)
         group_inbox.delete()
 
-        if user is not None:
+        if action is GroupInboxRemoveAction.mark_reviewed and user is not None:
             Activity.objects.create(
                 project_id=group_inbox.group.project.id,
                 group_id=group_inbox.group.id,
@@ -102,7 +108,7 @@ def remove_group_from_inbox(group, action=None, user=None):
             project=group_inbox.group.project,
             user=user,
             sender="remove_group_from_inbox",
-            action=action,
+            action=action.value,
             inbox_date_added=group_inbox.date_added,
         )
     except GroupInbox.DoesNotExist:
