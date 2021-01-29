@@ -16,12 +16,15 @@ import Status from './status';
 
 type Props = {
   image: Image & {status: ImageStatus};
-  onOpenImageDetailsModal: (code_id: Image['code_id']) => void;
+  onOpenImageDetailsModal: (
+    code_id: Image['code_id'],
+    debug_id: Image['debug_id']
+  ) => void;
   style?: React.CSSProperties;
 };
 
 function DebugImage({image, onOpenImageDetailsModal, style}: Props) {
-  const {unwind_status, debug_status, code_file, code_id, status} = image;
+  const {unwind_status, debug_status, debug_id, code_file, code_id, status} = image;
 
   const fileName = getFileName(code_file);
   const imageAddress = <Address image={image} />;
@@ -32,7 +35,7 @@ function DebugImage({image, onOpenImageDetailsModal, style}: Props) {
         <Status status={status} />
       </StatusColumn>
       <ImageColumn>
-        <FileName>{fileName}</FileName>
+        {fileName && <FileName>{fileName}</FileName>}
         <ImageAddress>{imageAddress}</ImageAddress>
       </ImageColumn>
       <Column>
@@ -42,14 +45,14 @@ function DebugImage({image, onOpenImageDetailsModal, style}: Props) {
         <Button
           size="xsmall"
           icon={<IconStack size="xs" />}
-          onClick={() => onOpenImageDetailsModal(code_id)}
+          onClick={() => onOpenImageDetailsModal(code_id, debug_id)}
         >
           {t('View')}
         </Button>
         <Button
           size="xsmall"
           icon={<IconStack size="xs" />}
-          onClick={() => onOpenImageDetailsModal(code_id)}
+          onClick={() => onOpenImageDetailsModal(code_id, debug_id)}
           label={t('View')}
         />
       </DebugFilesColumn>
