@@ -51,7 +51,7 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
     const {organization, projectId, image} = this.props;
 
     if (!image) {
-      return [['', '']];
+      return [];
     }
 
     const {debug_id, candidates = []} = image;
