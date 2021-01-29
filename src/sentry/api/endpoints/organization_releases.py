@@ -6,7 +6,7 @@ from django.db.models.functions import Coalesce
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
-from sentry import analytics
+from sentry import analytics, features
 
 from sentry.api.bases import NoProjects
 from sentry.api.base import EnvironmentMixin, ReleaseAnalyticsMixin
