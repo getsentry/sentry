@@ -967,7 +967,7 @@ export type BaseGroup = {
   type: EventOrGroupType;
   userReportCount: number;
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
-  inbox?: InboxDetails | null;
+  inbox?: InboxDetails | null | false;
   owners?: SuggestedOwner[] | null;
 };
 
