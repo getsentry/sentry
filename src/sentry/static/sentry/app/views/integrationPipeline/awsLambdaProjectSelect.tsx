@@ -42,7 +42,7 @@ export default class AwsLambdaProjectSelect extends React.Component<Props> {
     // TODO: Add logic if no projects
     return (
       <React.Fragment>
-        <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/" />
+        <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws-lambda/" />
         <StyledList symbol="colored-numeric">
           <React.Fragment />
           <ListItem>
