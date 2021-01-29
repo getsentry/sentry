@@ -11,18 +11,10 @@ import {truncationFormatter} from '../utils';
 type ChartProps = React.ComponentProps<typeof BaseChart>;
 
 export default function Legend(
-  props: ChartProps['legend'] & {theme?: Theme} = {}
+  props: ChartProps['legend'] & {theme: Theme}
 ): EChartOption.Legend {
   const {truncate, theme, textStyle, ...rest} = props ?? {};
   const formatter = (value: string) => truncationFormatter(value, truncate ?? 0);
-
-  const newTextStyle = {
-    color: theme?.textColor,
-    verticalAlign: 'top',
-    fontSize: 11,
-    fontFamily: 'Rubik',
-    ...textStyle,
-  };
 
   const legend = {
     show: true,
@@ -34,15 +26,16 @@ export default function Legend(
     itemWidth: 8,
     itemGap: 12,
     align: 'left' as const,
-    textStyle: newTextStyle,
-    inactiveColor: theme?.inactive,
+    textStyle: {
+      color: theme.textColor,
+      verticalAlign: 'top',
+      fontSize: 11,
+      fontFamily: theme.text.family,
+      ...textStyle,
+    },
+    inactiveColor: theme.inactive,
     ...rest,
   };
-
-  if (theme === undefined) {
-    delete newTextStyle.color;
-    delete legend.inactiveColor;
-  }
 
   return legend;
 }

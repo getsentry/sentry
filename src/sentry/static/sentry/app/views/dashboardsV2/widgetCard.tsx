@@ -8,7 +8,6 @@ import {Client} from 'app/api';
 import AreaChart from 'app/components/charts/areaChart';
 import BarChart from 'app/components/charts/barChart';
 import ChartZoom from 'app/components/charts/chartZoom';
-import Legend from 'app/components/charts/components/legend';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import LineChart from 'app/components/charts/lineChart';
 import SimpleTableChart from 'app/components/charts/simpleTableChart';
@@ -420,7 +419,7 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
       );
     }
 
-    const legend = Legend({
+    const legend = {
       right: 0,
       top: 3,
       type: 'plain',
@@ -435,7 +434,7 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
         }
         return seriesName;
       },
-    });
+    };
 
     const axisField = widget.queries[0]?.fields?.[0] ?? 'count()';
     const chartOptions = {

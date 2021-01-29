@@ -5,7 +5,6 @@ import isEqual from 'lodash/isEqual';
 
 import AreaChart from 'app/components/charts/areaChart';
 import {ZoomRenderProps} from 'app/components/charts/chartZoom';
-import Legend from 'app/components/charts/components/legend';
 import LineChart from 'app/components/charts/lineChart';
 import StackedAreaChart from 'app/components/charts/stackedAreaChart';
 import {getSeriesSelection} from 'app/components/charts/utils';
@@ -202,7 +201,7 @@ class HealthChart extends React.Component<Props> {
 
     const Chart = this.getChart();
 
-    const legend = Legend({
+    const legend = {
       right: 10,
       top: 0,
       data: timeseriesData.map(d => d.seriesName).reverse(),
@@ -220,7 +219,7 @@ class HealthChart extends React.Component<Props> {
           return ['<div class="tooltip-description">', seriesNameDesc, '</div>'].join('');
         },
       },
-    });
+    };
 
     return (
       <React.Fragment>
