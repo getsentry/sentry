@@ -11,6 +11,7 @@ import MarkLine from 'app/components/charts/components/markLine';
 import MarkPoint from 'app/components/charts/components/markPoint';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import DiscoverButton from 'app/components/discoverButton';
+import Placeholder from 'app/components/placeholder';
 import Tag from 'app/components/tag';
 import {FIRE_SVG_PATH} from 'app/icons/iconFire';
 import {t} from 'app/locale';
@@ -25,6 +26,7 @@ import {
   formatPercentage,
   getDuration,
 } from 'app/utils/formatters';
+import getDynamicText from 'app/utils/getDynamicText';
 import theme from 'app/utils/theme';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 
@@ -191,7 +193,12 @@ class VitalCard extends React.Component<Props, State> {
             <StyledTag>{t('Fail')}</StyledTag>
           )}
         </SummaryHeading>
-        <StatNumber>{this.getFormattedStatNumber()}</StatNumber>
+        <StatNumber>
+          {getDynamicText({
+            value: this.getFormattedStatNumber(),
+            fixed: '\u2014',
+          })}
+        </StatNumber>
         <Description>{description}</Description>
         <div>
           <DiscoverButton
@@ -311,16 +318,26 @@ class VitalCard extends React.Component<Props, State> {
                 />
               </PercentContainer>
             </Feature>
-            <BarChart
-              series={allSeries}
-              xAxis={xAxis}
-              yAxis={yAxis}
-              colors={colors}
-              onRendered={this.handleRendered}
-              grid={{left: space(3), right: space(3), top: space(3), bottom: space(1.5)}}
-              stacked
-              {...zoomRenderProps}
-            />
+            {getDynamicText({
+              value: (
+                <BarChart
+                  series={allSeries}
+                  xAxis={xAxis}
+                  yAxis={yAxis}
+                  colors={colors}
+                  onRendered={this.handleRendered}
+                  grid={{
+                    left: space(3),
+                    right: space(3),
+                    top: space(3),
+                    bottom: space(1.5),
+                  }}
+                  stacked
+                  {...zoomRenderProps}
+                />
+              ),
+              fixed: <Placeholder testId="skeleton-ui" height="200px" />,
+            })}
           </Container>
         )}
       </BarChartZoom>
