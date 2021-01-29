@@ -85,7 +85,7 @@ function IssueListHeader({
         </StyledHeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
-            <Tooltip title="Give us feedback via email about the new Issues experience">
+            <Tooltip title="You’re seeing the new issues experience because you’ve opted to be an early adopter of new features. Send us feedback via email">
               <Button
                 size="small"
                 href="mailto:workflow-feedback@sentry.io?subject=Issues Feedback"
