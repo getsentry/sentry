@@ -169,7 +169,7 @@ export default class Form extends React.Component<Props> {
     return (
       <form
         onSubmit={this.onSubmit}
-        className={className ?? 'form-stackd'}
+        className={className ?? 'form-stacked'}
         data-test-id={this.props['data-test-id']}
       >
         <div>
