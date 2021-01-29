@@ -67,7 +67,6 @@ jobs:
         run: |
           python -m venv .venv
           source .venv/bin/activate
-          pip install wheel  # GitHub Actions does not have `wheel` installed by default
           make install-py-dev
           make setup-git
           curl https://get.volta.sh | bash
