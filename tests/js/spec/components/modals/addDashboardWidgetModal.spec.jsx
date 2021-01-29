@@ -305,6 +305,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       widget.displayType
     );
     expect(wrapper.find('WidgetQueryForm')).toHaveLength(1);
+    // Should have an orderby select
+    expect(wrapper.find('WidgetQueryForm SelectControl[name="orderby"]')).toHaveLength(1);
 
     // Add a column, and choose a value,
     wrapper.find('button[aria-label="Add a Column"]').simulate('click');

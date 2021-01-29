@@ -12,6 +12,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, SavedQuery, SelectValue} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {getAggregateAlias} from 'app/utils/discover/fields';
 import {Widget, WidgetQuery} from 'app/views/dashboardsV2/types';
 import SearchBar from 'app/views/events/searchBar';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
@@ -20,6 +21,16 @@ import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup'
 import Field from 'app/views/settings/components/forms/field';
 
 import WidgetQueryFields, {QueryFieldWrapper} from './widgetQueryFields';
+
+const generateOrderOptions = (fields: string[]): SelectValue<string>[] => {
+  const options: SelectValue<string>[] = [];
+  fields.forEach(field => {
+    const alias = getAggregateAlias(field);
+    options.push({label: t('%s asc', field), value: alias});
+    options.push({label: t('%s desc', field), value: `-${alias}`});
+  });
+  return options;
+};
 
 type Props = {
   api: Client;
@@ -213,7 +224,7 @@ class WidgetQueryForm extends React.Component<Props, State> {
         {canRemove && (
           <Field
             data-test-id="Query Name"
-            label="Y-Axis"
+            label={t('Query name')}
             inline={false}
             flexibleControlStateSize
             stacked
@@ -235,6 +246,27 @@ class WidgetQueryForm extends React.Component<Props, State> {
           fields={widgetQuery.fields}
           onChange={this.handleFieldsChange}
         />
+        {displayType === 'table' && (
+          <Field
+            label={t('Order by')}
+            inline={false}
+            flexibleControlStateSize
+            stacked
+            error={errors?.orderby}
+          >
+            <SelectControl
+              value={widgetQuery.orderby}
+              name="orderby"
+              options={generateOrderOptions(widgetQuery.fields)}
+              onChange={(option: SelectValue<string>) =>
+                this.handleFieldChange('orderby')(option.value)
+              }
+              onSelectResetsInput={false}
+              onCloseResetsInput={false}
+              onBlurResetsInput={false}
+            />
+          </Field>
+        )}
       </QueryWrapper>
     );
   }
