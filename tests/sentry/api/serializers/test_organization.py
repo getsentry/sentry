@@ -29,6 +29,7 @@ class OrganizationSerializerTest(TestCase):
             "discover-basic",
             "discover-query",
             "event-attachments",
+            "event-attachments-viewer",
             "integrations-alert-rule",
             "integrations-chat-unfurl",
             "integrations-event-hooks",
@@ -44,6 +45,7 @@ class OrganizationSerializerTest(TestCase):
             "sso-basic",
             "sso-saml2",
             "symbol-sources",
+            "unhandled-issue-flag",
         }
 
     @mock.patch("sentry.features.batch_has")
