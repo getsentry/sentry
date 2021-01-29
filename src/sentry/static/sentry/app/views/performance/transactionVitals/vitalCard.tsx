@@ -11,6 +11,7 @@ import MarkLine from 'app/components/charts/components/markLine';
 import MarkPoint from 'app/components/charts/components/markPoint';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import DiscoverButton from 'app/components/discoverButton';
+import Placeholder from 'app/components/placeholder';
 import Tag from 'app/components/tag';
 import {FIRE_SVG_PATH} from 'app/icons/iconFire';
 import {t} from 'app/locale';
@@ -335,7 +336,7 @@ class VitalCard extends React.Component<Props, State> {
                   {...zoomRenderProps}
                 />
               ),
-              fixed: 'Web Vitals Histogram',
+              fixed: <Placeholder testId="skeleton-ui" height="200px" />,
             })}
           </Container>
         )}
