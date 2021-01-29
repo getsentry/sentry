@@ -9,10 +9,16 @@ type PromptsUpdateParams = {
    * The numeric project ID as a string
    */
   projectId?: string;
+  /**
+   * The prompt feature name
+   */
   feature: string;
   status: 'snoozed' | 'dismissed';
 };
 
+/**
+ * Update the status of a prompt
+ */
 export function promptsUpdate(api: Client, params: PromptsUpdateParams) {
   return api.requestPromise('/promptsactivity/', {
     method: 'PUT',
@@ -23,4 +29,49 @@ export function promptsUpdate(api: Client, params: PromptsUpdateParams) {
       status: params.status,
     },
   });
+}
+
+type PromptCheckParams = {
+  /**
+   * The numeric organization ID as a string
+   */
+  organizationId: string;
+  /**
+   * The numeric project ID as a string
+   */
+  projectId?: string;
+  /**
+   * The prompt feature name
+   */
+  feature: string;
+};
+
+export type PromptResponse = {
+  data?: {
+    snoozed_ts?: number;
+    dismissed_ts?: number;
+  };
+};
+
+/**
+ * Get the status of a prompt
+ */
+export async function promptsCheck(api: Client, params: PromptCheckParams) {
+  const query = {
+    feature: params.feature,
+    organization_id: params.organizationId,
+    ...(params.projectId === undefined ? {} : {project_id: params.projectId}),
+  };
+
+  const response: PromptResponse = await api.requestPromise('/promptsactivity/', {query});
+  const data = response?.data;
+
+  if (!data) {
+    return null;
+  }
+
+  return {
+    dismissedTime: data.dismissed_ts,
+    snoozedTime: data.snoozed_ts,
+  };
 }
