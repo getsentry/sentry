@@ -369,7 +369,8 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
 
 export default ProjectFiltersSettings;
 
-const NestedForm = styled(Form)`
+// TODO(ts): Understand why styled is not correctly inheriting props here
+const NestedForm = styled(Form)<Form['props']>`
   flex: 1;
 `;
 

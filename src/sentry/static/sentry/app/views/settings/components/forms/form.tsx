@@ -43,6 +43,7 @@ type Props = {
   model?: FormModel;
   // if set to true, preventDefault is not called
   skipPreventDefault?: boolean;
+  additionalFieldProps?: {[key: string]: any};
   'data-test-id'?: string;
 
   onCancel?: (e: React.MouseEvent) => void;
@@ -65,17 +66,6 @@ export default class Form extends React.Component<Props> {
   static childContextTypes = {
     saveOnBlur: PropTypes.bool.isRequired,
     form: PropTypes.object.isRequired,
-  };
-
-  static defaultProps = {
-    cancelLabel: t('Cancel'),
-    submitLabel: t('Save Changes'),
-    submitDisabled: false,
-    submitPriority: 'primary' as 'primary',
-    className: 'form-stacked',
-    requireChanges: false,
-    allowUndo: false,
-    saveOnBlur: false,
   };
 
   constructor(props: Props, context: Context) {
@@ -179,7 +169,7 @@ export default class Form extends React.Component<Props> {
     return (
       <form
         onSubmit={this.onSubmit}
-        className={className}
+        className={className ?? 'form-stackd'}
         data-test-id={this.props['data-test-id']}
       >
         <div>
@@ -203,7 +193,7 @@ export default class Form extends React.Component<Props> {
                       onClick={onCancel}
                       style={{marginLeft: 5}}
                     >
-                      {cancelLabel}
+                      {cancelLabel ?? t('Cancel')}
                     </Button>
                   )}
                 </Observer>
@@ -213,7 +203,7 @@ export default class Form extends React.Component<Props> {
                 {() => (
                   <Button
                     data-test-id="form-submit"
-                    priority={submitPriority}
+                    priority={submitPriority ?? 'primary'}
                     disabled={
                       this.model.isError ||
                       this.model.isSaving ||
@@ -222,7 +212,7 @@ export default class Form extends React.Component<Props> {
                     }
                     type="submit"
                   >
-                    {submitLabel}
+                    {submitLabel ?? t('Save Changes')}
                   </Button>
                 )}
               </Observer>
