@@ -5,7 +5,7 @@ import six
 from botocore.exceptions import ClientError
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import options
+from sentry import options, analytics
 from sentry.api.serializers import serialize
 from sentry.integrations import (
     IntegrationInstallation,
@@ -369,8 +369,18 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
                     },
                 )
 
+        analytics.record(
+            "integrations.serverless_setup",
+            user_id=request.user.id,
+            organization_id=organization.id,
+            integration="aws_lambda",
+            success_count=success_count,
+            failure_count=len(failures),
+        )
+
         # if we have failures, show them to the user
         # otherwise, finish
+
         if failures:
             return self.render_react_view(
                 request,
