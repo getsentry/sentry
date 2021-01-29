@@ -1,5 +1,4 @@
 import logging
-import re
 import six
 
 from botocore.exceptions import ClientError
@@ -31,7 +30,10 @@ from .utils import (
     enable_single_lambda,
     disable_single_lambda,
     get_dsn_for_project,
+    get_invalid_layer_name,
+    wrap_lambda_updater,
     ALL_AWS_REGIONS,
+    INVALID_LAYER_TEXT,
 )
 
 logger = logging.getLogger("sentry.integrations.aws_lambda")
@@ -122,6 +124,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
 
         return map(self.serialize_lambda_function, functions)
 
+    @wrap_lambda_updater()
     def enable_function(self, target):
         function = self.get_one_lambda_function(target)
         layer_arn = get_latest_layer_for_function(function)
@@ -135,6 +138,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
 
         return self.get_serialized_lambda_function(target)
 
+    @wrap_lambda_updater()
     def disable_function(self, target):
         function = self.get_one_lambda_function(target)
         layer_arn = get_latest_layer_for_function(function)
@@ -143,6 +147,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
 
         return self.get_serialized_lambda_function(target)
 
+    @wrap_lambda_updater()
     def update_function_to_latest_version(self, target):
         function = self.get_one_lambda_function(target)
         layer_arn = get_latest_layer_for_function(function)
@@ -348,13 +353,11 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
                 enable_single_lambda(lambda_client, function, sentry_project_dsn, layer_arn)
                 success_count += 1
             except Exception as e:
+                # need to make sure we catch any error to continue to the next function
                 err_message = six.text_type(e)
-                match = re.search(
-                    "Layer version arn:aws:lambda:[^:]+:\d+:layer:([^:]+):\d+ does not exist",
-                    err_message,
-                )
-                if match:
-                    err_message = _("Invalid existing layer %s") % match[1]
+                invalid_layer = get_invalid_layer_name(err_message)
+                if invalid_layer:
+                    err_message = _(INVALID_LAYER_TEXT) % invalid_layer
                 else:
                     err_message = _("Unkown Error")
                 failures.append({"name": function["FunctionName"], "error": err_message})

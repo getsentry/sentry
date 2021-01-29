@@ -1,4 +1,5 @@
 import six
+
 from rest_framework import serializers
 
 from sentry.api.bases.organization import OrganizationIntegrationsPermission
@@ -51,7 +52,6 @@ class OrganizationIntegrationServerlessFunctionsEndpoint(OrganizationIntegration
         action = data["action"]
         target = data["target"]
 
-        # TODO(Steve): error handling
         try:
             resp = None
             if action == "enable":
@@ -61,5 +61,5 @@ class OrganizationIntegrationServerlessFunctionsEndpoint(OrganizationIntegration
             elif action == "updateVersion":
                 resp = install.update_function_to_latest_version(target)
             return self.respond(resp)
-        except Exception as e:
-            raise e
+        except IntegrationError as e:
+            return self.respond({"detail": six.text_type(e)}, status=400)
