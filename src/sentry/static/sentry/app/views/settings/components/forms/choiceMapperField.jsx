@@ -12,11 +12,12 @@ import space from 'app/styles/space';
 import {defined, objectIsEmpty} from 'app/utils';
 import InputField from 'app/views/settings/components/forms/inputField';
 
-const selectControlShape = PropTypes.shape(SelectControl.propTypes);
+const selectControlShape = PropTypes.object;
 
 export default class ChoiceMapper extends React.Component {
   static propTypes = {
-    ...InputField.propTypes,
+    // TODO(ts)
+    // ...InputField.propTypes,
     /**
      * Text used for the 'add row' button.
      */
@@ -24,7 +25,7 @@ export default class ChoiceMapper extends React.Component {
     /**
      * Configuration for the add item dropdown.
      */
-    addDropdown: PropTypes.shape(DropdownAutoComplete.propTypes).isRequired,
+    addDropdown: PropTypes.object.isRequired,
     /**
      * The label to show above the row name selected from the dropdown.
      */
