@@ -165,7 +165,7 @@ type OrganizationHeaderComponentHook = (org: Organization) => React.ReactNode;
 /**
  * A FeatureDisabledHook returns a react element when a feature is not enabled.
  */
-export type FeatureDisabledHook = (opts: {
+type FeatureDisabledHook = (opts: {
   /**
    * The organization that is associated to this feature.
    */
