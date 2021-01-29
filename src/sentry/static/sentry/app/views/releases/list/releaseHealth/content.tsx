@@ -221,6 +221,7 @@ const Content = ({
                       orgSlug={orgSlug}
                       project={project}
                       releaseVersion={releaseVersion}
+                      location={location}
                     />
                   </ViewColumn>
                 </Layout>
