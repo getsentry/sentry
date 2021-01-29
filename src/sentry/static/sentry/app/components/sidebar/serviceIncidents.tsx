@@ -43,14 +43,7 @@ class ServiceIncidents extends React.Component<Props, State> {
   }
 
   render() {
-    const {
-      currentPanel,
-      showPanel,
-      onShowPanel,
-      hidePanel,
-      collapsed,
-      orientation,
-    } = this.props;
+    const {currentPanel, onShowPanel, hidePanel, collapsed, orientation} = this.props;
     const {status} = this.state;
 
     if (!status) {
@@ -75,7 +68,7 @@ class ServiceIncidents extends React.Component<Props, State> {
           label={t('Service status')}
           onClick={onShowPanel}
         />
-        {showPanel && active && status && (
+        {active && status && (
           <SidebarPanel
             orientation={orientation}
             title={t('Recent status updates')}

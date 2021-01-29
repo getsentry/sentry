@@ -55,8 +55,7 @@ type Props = {
 
 type State = {
   horizontal: boolean;
-  showPanel: boolean;
-  currentPanel: SidebarPanelKey;
+  currentPanel: SidebarPanelKey | '';
 };
 
 class Sidebar extends React.Component<Props, State> {
@@ -76,14 +75,13 @@ class Sidebar extends React.Component<Props, State> {
   state: State = {
     horizontal: false,
     currentPanel: '',
-    showPanel: false,
   };
 
   componentDidMount() {
     document.body.classList.add('body-sidebar');
     document.addEventListener('click', this.panelCloseHandler);
 
-    this.hashChangeHandler();
+    this.checkHash();
     this.doCollapse(this.props.collapsed);
   }
 
@@ -156,9 +154,9 @@ class Sidebar extends React.Component<Props, State> {
     }
   };
 
-  hashChangeHandler = () => {
+  checkHash = () => {
     if (window.location.hash === '#welcome') {
-      this.togglePanel('todos');
+      this.togglePanel(SidebarPanelKey.OnboardingWizard);
     }
   };
 
@@ -174,10 +172,7 @@ class Sidebar extends React.Component<Props, State> {
       return;
     }
 
-    this.setState({
-      showPanel: false,
-      currentPanel: '',
-    });
+    this.setState({currentPanel: ''});
   };
 
   // Keep the global selection querystring values in the path
@@ -215,12 +210,7 @@ class Sidebar extends React.Component<Props, State> {
   };
 
   // Show slideout panel
-  showPanel = (panel: SidebarPanelKey) => {
-    this.setState({
-      showPanel: true,
-      currentPanel: panel,
-    });
-  };
+  showPanel = (panel: SidebarPanelKey) => this.setState({currentPanel: panel});
 
   togglePanel = (panel: SidebarPanelKey) => {
     if (this.state.currentPanel === panel) {
@@ -292,7 +282,7 @@ class Sidebar extends React.Component<Props, State> {
 
   render() {
     const {organization, collapsed} = this.props;
-    const {currentPanel, showPanel, horizontal} = this.state;
+    const {currentPanel, horizontal} = this.state;
     const config = ConfigStore.getConfig();
     const user = ConfigStore.get('user');
     const hasPanel = !!currentPanel;
@@ -591,8 +581,7 @@ class Sidebar extends React.Component<Props, State> {
               <OnboardingStatus
                 org={organization}
                 currentPanel={currentPanel}
-                onShowPanel={() => this.togglePanel('todos')}
-                showPanel={showPanel}
+                onShowPanel={() => this.togglePanel(SidebarPanelKey.OnboardingWizard)}
                 hidePanel={this.hidePanel}
                 {...sidebarItemProps}
               />
@@ -613,18 +602,16 @@ class Sidebar extends React.Component<Props, State> {
               <Broadcasts
                 orientation={orientation}
                 collapsed={collapsed}
-                showPanel={showPanel}
                 currentPanel={currentPanel}
-                onShowPanel={() => this.togglePanel('broadcasts')}
+                onShowPanel={() => this.togglePanel(SidebarPanelKey.Broadcasts)}
                 hidePanel={this.hidePanel}
                 organization={organization}
               />
               <ServiceIncidents
                 orientation={orientation}
                 collapsed={collapsed}
-                showPanel={showPanel}
                 currentPanel={currentPanel}
-                onShowPanel={() => this.togglePanel('statusupdate')}
+                onShowPanel={() => this.togglePanel(SidebarPanelKey.StatusUpdate)}
                 hidePanel={this.hidePanel}
               />
             </SidebarSection>

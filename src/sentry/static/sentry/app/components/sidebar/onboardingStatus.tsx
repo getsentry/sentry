@@ -15,7 +15,7 @@ import {OnboardingTaskStatus, Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import theme, {Theme} from 'app/utils/theme';
 
-import {CommonSidebarProps} from './types';
+import {CommonSidebarProps, SidebarPanelKey} from './types';
 
 type Props = CommonSidebarProps & {
   org: Organization;
@@ -42,7 +42,7 @@ class OnboardingStatus extends React.Component<Props> {
   };
 
   render() {
-    const {collapsed, org, currentPanel, orientation, hidePanel, showPanel} = this.props;
+    const {collapsed, org, currentPanel, orientation, hidePanel} = this.props;
 
     if (!(org.features && org.features.includes('onboarding'))) {
       return null;
@@ -61,7 +61,7 @@ class OnboardingStatus extends React.Component<Props> {
         !task.completionSeen
     );
 
-    const isActive = showPanel && currentPanel === 'todos';
+    const isActive = currentPanel === SidebarPanelKey.OnboardingWizard;
 
     if (doneTasks.length >= allDisplayedTasks.length && !isActive) {
       return null;
