@@ -22,7 +22,6 @@ import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {AvatarProject, Organization, Project} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {formatPercentage, getDuration} from 'app/utils/formatters';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
@@ -40,13 +39,14 @@ import TrendsDiscoverQuery from './trendsDiscoverQuery';
 import {
   NormalizedTrendsTransaction,
   TrendChangeType,
+  TrendColumnField,
   TrendFunctionField,
   TrendsStats,
   TrendView,
 } from './types';
 import {
-  getCurrentConfidenceLevel,
   getCurrentTrendFunction,
+  getCurrentTrendParameter,
   getSelectedQueryKey,
   getTrendProjectId,
   modifyTrendView,
@@ -63,6 +63,7 @@ type Props = {
   organization: Organization;
   trendChangeType: TrendChangeType;
   previousTrendFunction?: TrendFunctionField;
+  previousTrendColumn?: TrendColumnField;
   trendView: TrendView;
   location: Location;
   projects: Project[];
@@ -166,12 +167,6 @@ function handleFilterTransaction(location: Location, transaction: string) {
 
   const query = stringifyQueryObject(conditions);
 
-  trackAnalyticsEvent({
-    eventKey: 'performance_views.trends.hide_transaction',
-    eventName: 'Performance Views: Hide Transaction',
-    confidence_level: getCurrentConfidenceLevel(location).label,
-  });
-
   browserHistory.push({
     pathname: location.pathname,
     query: {
@@ -181,27 +176,21 @@ function handleFilterTransaction(location: Location, transaction: string) {
   });
 }
 
-function handleSummaryClick(confidenceLevel: string) {
-  trackAnalyticsEvent({
-    eventKey: 'performance_views.trends.summary',
-    eventName: 'Performance Views: Summary Navigation',
-    confidence_level: confidenceLevel,
-  });
-}
-
 function handleFilterDuration(location: Location, value: number, symbol: FilterSymbols) {
-  const durationTag = 'transaction.duration';
+  const durationTag = getCurrentTrendParameter(location).column;
   const queryString = decodeScalar(location.query.query);
   const conditions = tokenizeSearch(queryString || '');
 
   const existingValues = conditions.getTagValues(durationTag);
   const alternateSymbol = symbol === FilterSymbols.GREATER_THAN_EQUALS ? '>' : '<';
 
-  existingValues.forEach(existingValue => {
-    if (existingValue.startsWith(symbol) || existingValue.startsWith(alternateSymbol)) {
-      conditions.removeTagValue(durationTag, existingValue);
-    }
-  });
+  if (existingValues) {
+    existingValues.forEach(existingValue => {
+      if (existingValue.startsWith(symbol) || existingValue.startsWith(alternateSymbol)) {
+        conditions.removeTagValue(durationTag, existingValue);
+      }
+    });
+  }
 
   conditions.addTagValues(durationTag, [`${symbol}${value}`]);
 
@@ -222,6 +211,7 @@ function ChangedTransactions(props: Props) {
     location,
     trendChangeType,
     previousTrendFunction,
+    previousTrendColumn,
     organization,
     projects,
     setError,
@@ -245,6 +235,7 @@ function ChangedTransactions(props: Props) {
     >
       {({isLoading, trendsData, pageLinks}) => {
         const trendFunction = getCurrentTrendFunction(location);
+        const trendParameter = getCurrentTrendParameter(location);
         const events = normalizeTrends(
           (trendsData && trendsData.events && trendsData.events.data) || []
         );
@@ -260,7 +251,10 @@ function ChangedTransactions(props: Props) {
         const currentTrendFunction =
           isLoading && previousTrendFunction
             ? previousTrendFunction
-            : trendFunction.field;
+            : trendFunction.aggregation;
+
+        const currentTrendColumn =
+          isLoading && previousTrendColumn ? previousTrendColumn : trendParameter.column;
 
         const titleTooltipContent = t(
           'This compares the baseline (%s) of the past with the present.',
@@ -302,6 +296,7 @@ function ChangedTransactions(props: Props) {
                         <TrendsListItem
                           api={api}
                           currentTrendFunction={currentTrendFunction}
+                          currentTrendColumn={currentTrendColumn}
                           trendView={props.trendView}
                           organization={organization}
                           transaction={transaction}
@@ -341,7 +336,8 @@ type TrendsListItemProps = {
   organization: Organization;
   transaction: NormalizedTrendsTransaction;
   trendChangeType: TrendChangeType;
-  currentTrendFunction: TrendFunctionField;
+  currentTrendFunction: string;
+  currentTrendColumn: string;
   transactions: NormalizedTrendsTransaction[];
   projects: Project[];
   location: Location;
@@ -356,6 +352,7 @@ function TrendsListItem(props: TrendsListItemProps) {
     transactions,
     trendChangeType,
     currentTrendFunction,
+    currentTrendColumn,
     index,
     location,
     projects,
@@ -392,7 +389,8 @@ function TrendsListItem(props: TrendsListItemProps) {
   );
 
   const percentChangeExplanation = t(
-    'Over this period, the duration for %s has %s %s from %s to %s',
+    'Over this period, the %s for %s has %s %s from %s to %s',
+    currentTrendColumn,
     currentTrendFunction,
     trendChangeType === TrendChangeType.IMPROVED ? t('decreased') : t('increased'),
     absolutePercentChange,
@@ -514,11 +512,9 @@ const TransactionSummaryLink = (props: TransactionSummaryLinkProps) => {
     trendView: eventView,
     transaction,
     projects,
-    location,
     currentTrendFunction,
+    currentTrendColumn,
   } = props;
-  const confidenceLevel = getCurrentConfidenceLevel(location).label;
-
   const summaryView = eventView.clone();
   const projectID = getTrendProjectId(transaction, projects);
   const target = transactionSummaryRouteWithQuery({
@@ -527,14 +523,11 @@ const TransactionSummaryLink = (props: TransactionSummaryLinkProps) => {
     query: summaryView.generateQueryStringObject(),
     projectID,
     display: DisplayModes.TREND,
-    trendDisplay: currentTrendFunction,
+    trendFunction: currentTrendFunction,
+    trendColumn: currentTrendColumn,
   });
 
-  return (
-    <ItemTransactionName to={target} onClick={() => handleSummaryClick(confidenceLevel)}>
-      {transaction.transaction}
-    </ItemTransactionName>
-  );
+  return <ItemTransactionName to={target}>{transaction.transaction}</ItemTransactionName>;
 };
 
 const TransactionsListContainer = styled('div')`

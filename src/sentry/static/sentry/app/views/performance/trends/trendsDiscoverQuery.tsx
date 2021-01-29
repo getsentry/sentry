@@ -12,7 +12,11 @@ import {
   TrendsQuery,
   TrendView,
 } from 'app/views/performance/trends/types';
-import {getCurrentTrendFunction} from 'app/views/performance/trends/utils';
+import {
+  generateTrendFunctionAsString,
+  getCurrentTrendFunction,
+  getCurrentTrendParameter,
+} from 'app/views/performance/trends/utils';
 
 export type TrendsRequest = {
   trendChangeType?: TrendChangeType;
@@ -43,7 +47,11 @@ export function getTrendsRequestPayload(props: RequestProps) {
   const {eventView} = props;
   const apiPayload: TrendsQuery = eventView?.getEventsAPIPayload(props.location);
   const trendFunction = getCurrentTrendFunction(props.location);
-  apiPayload.trendFunction = trendFunction.field;
+  const trendParameter = getCurrentTrendParameter(props.location);
+  apiPayload.trendFunction = generateTrendFunctionAsString(
+    trendFunction.aggregation,
+    trendParameter.column
+  );
   apiPayload.trendType = eventView?.trendType;
   apiPayload.interval = eventView?.interval;
   apiPayload.middle = eventView?.middle;

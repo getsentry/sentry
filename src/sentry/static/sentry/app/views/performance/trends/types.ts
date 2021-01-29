@@ -25,12 +25,12 @@ export type TrendFunction = {
   alias: string;
   chartLabel: string;
   legendLabel: string;
+  aggregation: string;
 };
 
-export type ConfidenceLevel = {
+export type TrendParameter = {
   label: string;
-  min?: number;
-  max?: number;
+  column: string;
 };
 
 export enum TrendChangeType {
@@ -39,11 +39,19 @@ export enum TrendChangeType {
 }
 
 export enum TrendFunctionField {
-  P50 = 'p50()',
-  P75 = 'p75()',
-  P95 = 'p95()',
-  P99 = 'p99()',
-  AVG = 'avg(transaction.duration)',
+  P50 = 'p50',
+  P75 = 'p75',
+  P95 = 'p95',
+  P99 = 'p99',
+  AVG = 'avg',
+}
+
+export enum TrendColumnField {
+  DURATION = 'transaction.duration',
+  LCP = 'measurements.lcp',
+  FCP = 'measurements.fcp',
+  FID = 'measurements.fid',
+  CLS = 'measurements.cls',
 }
 
 export type TrendStat = {
