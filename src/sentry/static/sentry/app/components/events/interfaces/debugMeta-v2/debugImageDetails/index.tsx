@@ -26,7 +26,7 @@ type Props = AsyncComponent['props'] &
   ModalRenderProps & {
     projectId: Project['id'];
     organization: Organization;
-    image: Image;
+    image?: Image;
   };
 
 type State = AsyncComponent['state'] & {
@@ -49,6 +49,11 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, projectId, image} = this.props;
+
+    if (!image) {
+      return [['', '']];
+    }
+
     const {debug_id, candidates = []} = image;
     const {builtinSymbolSources} = this.state || {};
 
@@ -82,7 +87,7 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
   getCandidates() {
     const {debugFiles, loading} = this.state;
     const {image} = this.props;
-    const {candidates = []} = image;
+    const {candidates = []} = image ?? {};
 
     if (!debugFiles || loading) {
       return candidates;
@@ -158,13 +163,13 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
     const {Header, Body, Footer, image, organization, projectId} = this.props;
     const {loading, builtinSymbolSources} = this.state;
 
-    const {debug_id, debug_file, code_file, code_id, arch: architecture} = image;
+    const {debug_id, debug_file, code_file, code_id, arch: architecture} = image ?? {};
 
     const candidates = this.getCandidates();
     const baseUrl = this.api.baseUrl;
 
     const title = getFileName(code_file);
-    const imageAddress = <Address image={image} />;
+    const imageAddress = image ? <Address image={image} /> : undefined;
 
     return (
       <React.Fragment>
@@ -179,13 +184,13 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
               <Value coloredBg>{debug_id ?? <NotAvailable />}</Value>
 
               <Label>{t('Debug File')}</Label>
-              <Value>{debug_file}</Value>
+              <Value>{debug_file ?? <NotAvailable />}</Value>
 
               <Label coloredBg>{t('Code ID')}</Label>
-              <Value coloredBg>{code_id}</Value>
+              <Value coloredBg>{code_id ?? <NotAvailable />}</Value>
 
               <Label>{t('Code File')}</Label>
-              <Value>{code_file}</Value>
+              <Value>{code_file ?? <NotAvailable />}</Value>
 
               <Label coloredBg>{t('Architecture')}</Label>
               <Value coloredBg>{architecture ?? <NotAvailable />}</Value>

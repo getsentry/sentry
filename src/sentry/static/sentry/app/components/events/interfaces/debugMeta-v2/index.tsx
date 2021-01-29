@@ -37,6 +37,7 @@ import layout from './layout';
 import {combineStatus, getFileName, normalizeId} from './utils';
 
 export const PANEL_MAX_HEIGHT = 400;
+const IMAGE_INFO_UNAVAILABLE = '-1';
 
 type DefaultProps = {
   data: {
@@ -203,18 +204,20 @@ class DebugMeta extends React.PureComponent<Props, State> {
   openImageDetailsModal() {
     const {location, organization, projectId, data} = this.props;
     const {query} = location;
-    const {imageId} = query;
 
-    if (!imageId) {
+    const {imageCodeId, imageDebugId} = query;
+
+    if (!imageCodeId && !imageDebugId) {
       return;
     }
 
     const {images} = data;
-    const image = images.find(({code_id}) => code_id === imageId);
-
-    if (!image) {
-      return;
-    }
+    const image =
+      imageCodeId !== IMAGE_INFO_UNAVAILABLE || imageDebugId !== IMAGE_INFO_UNAVAILABLE
+        ? images.find(
+            ({code_id, debug_id}) => code_id === imageCodeId || debug_id === imageDebugId
+          )
+        : undefined;
 
     openModal(
       modalProps => (
@@ -353,12 +356,19 @@ class DebugMeta extends React.PureComponent<Props, State> {
     }));
   };
 
-  handleOpenImageDetailsModal = (code_id: Image['code_id']) => {
+  handleOpenImageDetailsModal = (
+    code_id: Image['code_id'],
+    debug_id: Image['debug_id']
+  ) => {
     const {location, router} = this.props;
 
     router.push({
       ...location,
-      query: {...location.query, imageId: code_id},
+      query: {
+        ...location.query,
+        imageCodeId: code_id ?? IMAGE_INFO_UNAVAILABLE,
+        imageDebugId: debug_id ?? IMAGE_INFO_UNAVAILABLE,
+      },
     });
   };
 
@@ -367,7 +377,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
 
     router.push({
       ...location,
-      query: {...location.query, imageId: undefined},
+      query: {...location.query, imageCodeId: undefined, imageDebugId: undefined},
     });
   };
 
@@ -395,9 +405,9 @@ class DebugMeta extends React.PureComponent<Props, State> {
     const {filteredImagesByFilter: images, panelTableHeight} = this.state;
 
     if (!panelTableHeight) {
-      return images.map(image => (
+      return images.map((image, index) => (
         <DebugImage
-          key={image.debug_file}
+          key={index}
           image={image}
           onOpenImageDetailsModal={this.handleOpenImageDetailsModal}
         />
