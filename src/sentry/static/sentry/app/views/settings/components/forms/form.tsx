@@ -64,8 +64,8 @@ type Context = {
 
 export default class Form extends React.Component<Props> {
   static childContextTypes = {
-    saveOnBlur: PropTypes.bool.isRequired,
-    form: PropTypes.object.isRequired,
+    saveOnBlur: PropTypes.bool,
+    form: PropTypes.object,
   };
 
   constructor(props: Props, context: Context) {
