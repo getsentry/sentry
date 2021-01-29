@@ -17,6 +17,7 @@ import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask
 import {getSeriesSelection} from 'app/components/charts/utils';
 import WorldMapChart from 'app/components/charts/worldMapChart';
 import ErrorBoundary from 'app/components/errorBoundary';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import {IconDelete, IconEdit, IconGrabbable, IconWarning} from 'app/icons';
@@ -86,12 +87,14 @@ class WidgetCard extends React.Component<Props> {
     return (
       <ToolbarPanel>
         <IconContainer data-component="icon-container">
-          <StyledIconGrabbable
-            color="gray500"
-            size="md"
-            onMouseDown={event => startWidgetDrag(event)}
-            onTouchStart={event => startWidgetDrag(event)}
-          />
+          <IconClick>
+            <StyledIconGrabbable
+              color="gray500"
+              size="md"
+              onMouseDown={event => startWidgetDrag(event)}
+              onTouchStart={event => startWidgetDrag(event)}
+            />
+          </IconClick>
           <IconClick
             data-test-id="widget-edit"
             onClick={() => {
@@ -128,36 +131,43 @@ class WidgetCard extends React.Component<Props> {
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
       >
-        <StyledPanel isDragging={isDragging}>
-          <WidgetTitle>{widget.title}</WidgetTitle>
-          <WidgetQueries
-            api={api}
-            organization={organization}
-            widget={widget}
-            selection={selection}
-          >
-            {({tableResults, timeseriesResults, errorMessage, loading}) => {
-              return (
-                <React.Fragment>
-                  {typeof renderErrorMessage === 'function'
-                    ? renderErrorMessage(errorMessage)
-                    : null}
-                  <WidgetCardVisuals
-                    timeseriesResults={timeseriesResults}
-                    tableResults={tableResults}
-                    errorMessage={errorMessage}
-                    loading={loading}
-                    location={location}
-                    widget={widget}
-                    selection={selection}
-                    router={router}
-                  />
-                  {this.renderToolbar()}
-                </React.Fragment>
-              );
-            }}
-          </WidgetQueries>
-        </StyledPanel>
+        <div
+          style={{
+            backgroundColor: isDragging ? theme.innerBorder : undefined,
+            borderRadius: isDragging ? theme.borderRadius : undefined,
+          }}
+        >
+          <StyledPanel isDragging={isDragging}>
+            <WidgetTitle>{widget.title}</WidgetTitle>
+            <WidgetQueries
+              api={api}
+              organization={organization}
+              widget={widget}
+              selection={selection}
+            >
+              {({tableResults, timeseriesResults, errorMessage, loading}) => {
+                return (
+                  <React.Fragment>
+                    {typeof renderErrorMessage === 'function'
+                      ? renderErrorMessage(errorMessage)
+                      : null}
+                    <WidgetCardVisuals
+                      timeseriesResults={timeseriesResults}
+                      tableResults={tableResults}
+                      errorMessage={errorMessage}
+                      loading={loading}
+                      location={location}
+                      widget={widget}
+                      selection={selection}
+                      router={router}
+                    />
+                    {this.renderToolbar()}
+                  </React.Fragment>
+                );
+              }}
+            </WidgetQueries>
+          </StyledPanel>
+        </div>
       </ErrorBoundary>
     );
   }
@@ -211,13 +221,14 @@ const IconContainer = styled('div')`
   > * + * {
     margin-left: 50px;
   }
-
-  svg {
-    background: ${p => p.theme.background};
-  }
 `;
 
 const IconClick = styled('div')`
+  background: ${p => p.theme.background};
+  padding: ${space(0.5)};
+  border-radius: ${p => p.theme.borderRadius};
+  line-height: 0.9;
+
   &:hover {
     cursor: pointer;
   }
@@ -230,13 +241,16 @@ const StyledIconGrabbable = styled(IconGrabbable)`
 `;
 
 const WidgetTitle = styled(HeaderTitle)`
-  padding: ${space(1)} ${space(2)} 0;
+  padding: ${space(1)} ${space(2)};
   width: 100%;
+`;
+const ChartWrapper = styled('div')`
+  padding: 0 ${space(2)} ${space(2)};
 `;
 
 const StyledSimpleTableChart = styled(SimpleTableChart)`
   /* align with other card charts */
-  height: 190px;
+  height: 216px;
 `;
 
 type WidgetCardVisualsProps = Pick<ReactRouter.WithRouterProps, 'router'> &
@@ -328,7 +342,7 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
     if (widget.displayType === 'table') {
       return (
         <TransitionChart loading={loading} reloading={loading}>
-          <TransparentLoadingMask visible={loading} />
+          <LoadingScreen loading={loading} />
           {this.tableResultComponent({tableResults, loading, errorMessage})}
         </TransitionChart>
       );
@@ -393,20 +407,22 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
 
       return (
         <TransitionChart loading={loading} reloading={loading}>
-          <TransparentLoadingMask visible={loading} />
-          {getDynamicText({
-            value: this.chartComponent({
-              series,
-            }),
-            fixed: <Placeholder height="200px" testId="skeleton-ui" />,
-          })}
+          <LoadingScreen loading={loading} />
+          <ChartWrapper>
+            {getDynamicText({
+              value: this.chartComponent({
+                series,
+              }),
+              fixed: <Placeholder height="200px" testId="skeleton-ui" />,
+            })}
+          </ChartWrapper>
         </TransitionChart>
       );
     }
 
     const legend = Legend({
-      right: 10,
-      top: 5,
+      right: 0,
+      top: 3,
       type: 'plain',
       selected: getSeriesSelection(location),
       theme,
@@ -425,10 +441,10 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
     const axisField = widget.queries[0]?.fields?.[0] ?? 'count()';
     const chartOptions = {
       grid: {
-        left: space(3),
-        right: space(3),
-        top: space(2),
-        bottom: space(3),
+        left: 0,
+        right: 0,
+        top: space(3),
+        bottom: 0,
       },
       seriesOptions: {
         showSymbol: false,
@@ -470,16 +486,18 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
 
           return (
             <TransitionChart loading={loading} reloading={loading}>
-              <TransparentLoadingMask visible={loading} />
-              {getDynamicText({
-                value: this.chartComponent({
-                  ...zoomRenderProps,
-                  ...chartOptions,
-                  legend,
-                  series,
-                }),
-                fixed: <Placeholder height="200px" testId="skeleton-ui" />,
-              })}
+              <LoadingScreen loading={loading} />
+              <ChartWrapper>
+                {getDynamicText({
+                  value: this.chartComponent({
+                    ...zoomRenderProps,
+                    ...chartOptions,
+                    legend,
+                    series,
+                  }),
+                  fixed: <Placeholder height="200px" testId="skeleton-ui" />,
+                })}
+              </ChartWrapper>
             </TransitionChart>
           );
         }}
@@ -487,3 +505,22 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
     );
   }
 }
+
+const StyledTransparentLoadingMask = styled(props => (
+  <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
+))`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;
+
+const LoadingScreen = ({loading}: {loading: boolean}) => {
+  if (!loading) {
+    return null;
+  }
+  return (
+    <StyledTransparentLoadingMask visible={loading}>
+      <LoadingIndicator mini />
+    </StyledTransparentLoadingMask>
+  );
+};

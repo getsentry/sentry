@@ -5,7 +5,7 @@ import six
 from botocore.exceptions import ClientError
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import options
+from sentry import options, analytics
 from sentry.api.serializers import serialize
 from sentry.integrations import (
     IntegrationInstallation,
@@ -37,7 +37,7 @@ from .utils import (
 logger = logging.getLogger("sentry.integrations.aws_lambda")
 
 DESCRIPTION = """
-The AWS Lambda integration will automatically instrument your Lambda functions without any code changes. All you need to do is run a CloudFormation stack that we provide to get started. Note, currently only Node runtimes are supported.
+The AWS Lambda integration will automatically instrument your Lambda functions without any code changes. We use CloudFormation Stack ([Learn more about CloudFormation](https://aws.amazon.com/cloudformation/)) to create Sentry role and enable errors and transactions capture from your Lambda functions.
 """
 
 
@@ -164,7 +164,6 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
 class AwsLambdaIntegrationProvider(IntegrationProvider):
     key = "aws_lambda"
     name = "AWS Lambda"
-    requires_feature_flag = True
     metadata = metadata
     integration_cls = AwsLambdaIntegration
     features = frozenset([IntegrationFeatures.SERVERLESS])
@@ -370,8 +369,18 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
                     },
                 )
 
+        analytics.record(
+            "integrations.serverless_setup",
+            user_id=request.user.id,
+            organization_id=organization.id,
+            integration="aws_lambda",
+            success_count=success_count,
+            failure_count=len(failures),
+        )
+
         # if we have failures, show them to the user
         # otherwise, finish
+
         if failures:
             return self.render_react_view(
                 request,

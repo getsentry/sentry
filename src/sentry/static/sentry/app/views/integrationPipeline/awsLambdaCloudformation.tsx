@@ -8,6 +8,7 @@ import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import {t} from 'app/locale';
 import {uniqueId} from 'app/utils/guid';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import TextField from 'app/views/settings/components/forms/textField';
 
@@ -144,6 +145,16 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
     return !!region && testAccountNumber(accountNumber || '') && !!awsExternalId;
   }
 
+  trackOpenCloudFormation = () => {
+    //TODO: add org to trackIntegrationEvent call
+    trackIntegrationEvent({
+      eventKey: 'integrations.cloudformation_link_clicked',
+      eventName: 'Integrations: CloudFormation Link Clicked',
+      integration: 'aws_lambda',
+      integration_type: 'first_party',
+    });
+  };
+
   render = () => {
     const {initialStepNumber} = this.props;
     const {
@@ -158,9 +169,11 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
         <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/" />
         <StyledList symbol="colored-numeric" initialCounterValue={initialStepNumber}>
           <ListItem>
-            <h4>{t("Add Sentry's CloudFormation to your AWS")}</h4>
-            <ExternalLink href={this.cloudformationUrl}>
-              {t('Create Cloudformation Stack')}
+            <ExternalLink
+              onClick={this.trackOpenCloudFormation}
+              href={this.cloudformationUrl}
+            >
+              <h3>{t("Add Sentry's CloudFormation to your AWS")}</h3>
             </ExternalLink>
             <p>{t('After the stack has been created, continue to the next step')}</p>
           </ListItem>
@@ -220,5 +233,5 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
 }
 
 const StyledList = styled(List)`
-  margin: 100px 50px 50px 50px;
+  padding: 100px 50px 50px 50px;
 `;

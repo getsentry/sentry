@@ -257,8 +257,8 @@ class Chart extends React.Component<Props> {
     const end = props.end ? getUtcToLocalDateObject(props.end) : null;
     const utc = decodeScalar(router.location.query.utc) !== 'false';
 
-    const seriesSelection = (
-      decodeList(location.query[getUnselectedSeries(trendChangeType)]) ?? []
+    const seriesSelection = decodeList(
+      location.query[getUnselectedSeries(trendChangeType)]
     ).reduce((selection, metric) => {
       selection[metric] = false;
       return selection;
@@ -312,7 +312,7 @@ class Chart extends React.Component<Props> {
     };
 
     return (
-      <ChartZoom router={router} period={statsPeriod}>
+      <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
         {zoomRenderProps => {
           const smoothedSeries = smoothedResults
             ? smoothedResults.map(values => {

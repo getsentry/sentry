@@ -227,4 +227,6 @@ const storeConfig: Reflux.StoreDefinition & Internals & ProjectsStoreInterface =
 
 type ProjectsStore = Reflux.Store & ProjectsStoreInterface;
 
-export default Reflux.createStore(storeConfig) as ProjectsStore;
+const ProjectsStore = Reflux.createStore(storeConfig) as ProjectsStore;
+
+export default ProjectsStore;
