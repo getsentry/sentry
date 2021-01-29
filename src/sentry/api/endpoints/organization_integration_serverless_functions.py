@@ -52,7 +52,6 @@ class OrganizationIntegrationServerlessFunctionsEndpoint(OrganizationIntegration
         action = data["action"]
         target = data["target"]
 
-        # TODO(Steve): error handling
         try:
             resp = None
             if action == "enable":
@@ -64,5 +63,3 @@ class OrganizationIntegrationServerlessFunctionsEndpoint(OrganizationIntegration
             return self.respond(resp)
         except IntegrationError as e:
             return self.respond({"detail": six.text_type(e)}, status=400)
-        except Exception as e:
-            raise e
