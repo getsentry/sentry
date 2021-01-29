@@ -1,20 +1,20 @@
 import * as Sentry from '@sentry/react';
 
 import {t} from 'app/locale';
-import {DynamicSamplingConditionOperator} from 'app/types/dynamicSampling';
+import {DynamicSamplingInnerOperator} from 'app/types/dynamicSampling';
 
-export function getOperatorLabel(operator: DynamicSamplingConditionOperator) {
+export function getInnerOperatorLabel(operator: DynamicSamplingInnerOperator) {
   switch (operator) {
-    case DynamicSamplingConditionOperator.GLOB_MATCH:
+    case DynamicSamplingInnerOperator.GLOB_MATCH:
       return t('Release');
-    case DynamicSamplingConditionOperator.EQUAL:
-      return t('User');
-    case DynamicSamplingConditionOperator.STR_EQUAL_NO_CASE:
+    case DynamicSamplingInnerOperator.EQUAL:
       return t('Enviroment');
     default: {
       Sentry.withScope(scope => {
         scope.setLevel(Sentry.Severity.Warning);
-        Sentry.captureException(new Error('Unknown dynamic sampling condition operator'));
+        Sentry.captureException(
+          new Error('Unknown dynamic sampling condition inner operator')
+        );
       });
       return null; //this shall never happen
     }

@@ -1,7 +1,6 @@
 import {css} from '@emotion/core';
 
 import {t} from 'app/locale';
-import {DynamicSamplingConditionOperator} from 'app/types/dynamicSampling';
 import theme from 'app/utils/theme';
 
 export const modalCss = css`
@@ -16,19 +15,6 @@ export const modalCss = css`
     }
   }
 `;
-
-export function getMatchFieldDescription(condition: DynamicSamplingConditionOperator) {
-  switch (condition) {
-    case DynamicSamplingConditionOperator.STR_EQUAL_NO_CASE:
-      return {label: t('Match Environments'), description: 'this is a description'};
-    case DynamicSamplingConditionOperator.GLOB_MATCH:
-      return {label: t('Match Releases'), description: 'this is a description'};
-    case DynamicSamplingConditionOperator.EQUAL:
-      return {label: t('Match Users'), description: 'this is a description'};
-    default:
-      return {};
-  }
-}
 
 export const LEGACY_BROWSER_LIST = {
   ie_pre_9: {
@@ -64,13 +50,3 @@ export const LEGACY_BROWSER_LIST = {
     title: t('Android Version 3 and lower'),
   },
 };
-
-export enum Category {
-  RELEASES = 'releases',
-  ENVIRONMENTS = 'environments',
-  USERS = 'users',
-  BROWSER_EXTENSIONS = 'browser_extensions',
-  LOCALHOST = 'localhost',
-  WEB_CRAWLERS = 'web_crawlers',
-  LEGACY_BROWSERS = 'legacy_browsers',
-}

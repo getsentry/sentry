@@ -1,14 +1,3 @@
-import {PlatformKey} from 'app/data/platformCategories';
-
-export function getPlatformDocLink(platform?: PlatformKey) {
-  switch (platform) {
-    case 'rust':
-      return 'https://docs.sentry.io/platforms/rust/configuration/filtering/';
-    case 'javascript':
-      return 'https://docs.sentry.io/platforms/javascript/configuration/filtering/#sampling-error-events';
-    case 'ruby':
-      return 'https://docs.sentry.io/platforms/ruby/configuration/filtering/';
-    default:
-      return undefined;
-  }
-}
+// TODO(PRISCILA): Update this link as soon as we have one for dynamic sampling
+export const DYNAMIC_SAMPLING_DOC_LINK =
+  'https://docs.sentry.io/product/data-management-settings/filtering/';

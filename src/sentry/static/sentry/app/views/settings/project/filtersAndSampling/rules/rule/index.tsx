@@ -17,14 +17,14 @@ type Props = {
 };
 
 function Rule({rule, onEditRule, onDeleteRule, disabled}: Props) {
-  const {ty, condition, sampleRate} = rule;
+  const {type, condition, sampleRate} = rule;
   return (
     <React.Fragment>
       <Column>
         <StyledIconGrabbable disabled={disabled} />
       </Column>
       <Column>
-        <Type type={ty} />
+        <Type type={type} />
       </Column>
       <Column>
         <Conditions condition={condition} />

@@ -5,13 +5,18 @@ import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
-import {DynamicSamplingRule} from 'app/types/dynamicSampling';
+import {
+  DynamicSamplingConditionLogicalInner,
+  DynamicSamplingConditionMultiple,
+  DynamicSamplingInnerName,
+  DynamicSamplingInnerOperator,
+  DynamicSamplingRule,
+} from 'app/types/dynamicSampling';
 import {defined} from 'app/utils';
 import NumberField from 'app/views/settings/components/forms/numberField';
 import RadioField from 'app/views/settings/components/forms/radioField';
 
 import ConditionFields from './conditionFields';
-import {Category} from './utils';
 
 enum Transaction {
   ALL = 'all',
@@ -28,7 +33,7 @@ type Conditions = React.ComponentProps<typeof ConditionFields>['conditions'];
 type Props = ModalRenderProps & {
   organization: Organization;
   onSubmit: (rule: DynamicSamplingRule) => void;
-  platformDocLink?: string;
+  rule?: DynamicSamplingRule;
 };
 
 type State = {
@@ -54,22 +59,64 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
   }
 
   getDefaultState(): State {
+    const {rule} = this.props;
+
+    if (rule) {
+      const {condition: conditions, sampleRate} = rule as DynamicSamplingRule;
+
+      const {inner} = conditions as DynamicSamplingConditionMultiple;
+
+      return {
+        transaction: !inner.length ? Transaction.ALL : Transaction.MATCH_CONDITIONS,
+        conditions: inner.map(({name, value}) => ({
+          category: name,
+          match: value.join(' '),
+        })),
+        sampleRate,
+      };
+    }
+
     return {
       transaction: Transaction.ALL,
       conditions: [],
     };
   }
 
-  handleAddCondition = () => {
-    this.setState(prevState => ({
-      conditions: [
-        ...prevState.conditions,
-        {
-          category: Category.RELEASES,
-          match: '',
-        },
-      ],
-    }));
+  getNewCondition(condition: Conditions[0]): DynamicSamplingConditionLogicalInner {
+    const commonValues = {
+      name: condition.category,
+      value: condition.match.split(' ').filter(match => !!match),
+    };
+
+    if (
+      condition.category === DynamicSamplingInnerName.EVENT_RELEASE ||
+      condition.category === DynamicSamplingInnerName.TRACE_RELEASE
+    ) {
+      return {
+        ...commonValues,
+        op: DynamicSamplingInnerOperator.GLOB_MATCH,
+      };
+    }
+
+    return {
+      ...commonValues,
+      op: DynamicSamplingInnerOperator.EQUAL,
+      ignoreCase: true,
+    };
+  }
+
+  handleChange = <T extends keyof S>(field: T, value: S[T]) => {
+    this.setState(prevState => ({...prevState, [field]: value}));
+  };
+
+  handleSubmit = async (): Promise<never | void> => {
+    // Children have to implement this
+    throw new Error('Not implemented');
+  };
+
+  handleAddCondition = (): never | void => {
+    // Children have to implement this
+    throw new Error('Not implemented');
   };
 
   handleChangeCondition = <T extends keyof Conditions[0]>(
@@ -96,22 +143,6 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
     this.setState({conditions: newConditions});
   };
 
-  handleChange = <T extends keyof S>(field: T, value: S[T]) => {
-    this.setState(prevState => ({...prevState, [field]: value}));
-  };
-
-  handleSubmit = async () => {
-    const {sampleRate} = this.state;
-
-    if (!defined(sampleRate)) {
-      return;
-    }
-
-    // TODO(PRISCILA): Finalize this logic according to the new structure
-  };
-
-  handleSubmitSuccess = () => {};
-
   getModalTitle() {
     return '';
   }
@@ -127,8 +158,9 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
     return null;
   }
 
-  getCategoryOptions(): Array<[string, string]> {
-    return [['', '']];
+  getCategoryOptions(): Array<[DynamicSamplingInnerName, string]> {
+    // Children have to implement this
+    throw new Error('Not implemented');
   }
 
   render() {
@@ -142,7 +174,7 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
       !defined(sampleRate) ||
       (!!conditions.length &&
         !!conditions.find(condition => {
-          if (condition.category !== Category.LEGACY_BROWSERS) {
+          if (condition.category !== DynamicSamplingInnerName.LEGACY_BROWSERS) {
             return !condition.match;
           }
           return false;
@@ -182,6 +214,7 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
             onChange={value =>
               this.handleChange('sampleRate', value ? Number(value) : undefined)
             }
+            value={sampleRate}
             inline={false}
             hideControlState
             showHelpInTooltip

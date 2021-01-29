@@ -179,7 +179,6 @@ export type LightWeightOrganization = OrganizationSummary & {
   apdexThreshold: number;
   onboardingTasks: OnboardingTaskStatus[];
   trustedRelays: Relay[];
-  dynamicSampling: DynamicSamplingRules;
   role?: string;
 };
 
@@ -231,16 +230,19 @@ export type Project = {
   environments: string[];
 
   // XXX: These are part of the DetailedProject serializer
+  dynamicSampling: {
+    rules: DynamicSamplingRules;
+  };
   plugins: Plugin[];
   processingIssues: number;
   relayPiiConfig: string;
+  groupingEnhancementsBase: string;
+  groupingConfig: string;
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   builtinSymbolSources?: string[];
   stats?: TimeseriesValue[];
   transactionStats?: TimeseriesValue[];
   latestRelease?: Release;
-  groupingEnhancementsBase: string;
-  groupingConfig: string;
   options?: Record<string, boolean | string>;
 } & AvatarProject;
 

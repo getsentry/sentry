@@ -1,7 +1,12 @@
 import {t} from 'app/locale';
+import {
+  DynamicSamplingConditionOperator,
+  DynamicSamplingInnerName,
+  DynamicSamplingRule,
+  DynamicSamplingRuleType,
+} from 'app/types/dynamicSampling';
 
 import Form from './form';
-import {Category} from './utils';
 
 type Props = Form['props'];
 
@@ -15,6 +20,12 @@ class ErrorRuleModal extends Form<Props, State> {
   }
 
   getModalTitle() {
+    const {rule} = this.props;
+
+    if (rule) {
+      return t('Edit a custom rule for errors');
+    }
+
     return t('Add a custom rule for errors');
   }
 
@@ -25,22 +36,46 @@ class ErrorRuleModal extends Form<Props, State> {
     };
   }
 
-  getCategoryOptions() {
-    // TODO(PRISCILA): Enable the disabled options below as soon as the backend supports
-    // return [
-    //   [Category.RELEASES, t('Releases')],
-    // [Category.BROWSER_EXTENSIONS, t('Browser Extensions')],
-    // [Category.LOCALHOST, t('Localhost')],
-    // [Category.WEB_CRAWLERS, t('Web Crawlers')],
-    // [Category.LEGACY_BROWSERS, t('Legacy Browsers')],
-    // ] as Array<[string, string]>;
-
+  getCategoryOptions(): Array<[DynamicSamplingInnerName, string]> {
     return [
-      [Category.RELEASES, t('Releases')],
-      [Category.ENVIRONMENTS, t('Environments')],
-      [Category.USERS, t('Users')],
-    ] as Array<[string, string]>;
+      [DynamicSamplingInnerName.EVENT_RELEASE, t('Releases')],
+      [DynamicSamplingInnerName.EVENT_ENVIRONMENT, t('Environments')],
+      [DynamicSamplingInnerName.EVENT_USER_SEGMENT, t('Users')],
+    ];
   }
+
+  handleAddCondition = () => {
+    this.setState(state => ({
+      conditions: [
+        ...state.conditions,
+        {
+          category: DynamicSamplingInnerName.EVENT_RELEASE,
+          match: '',
+        },
+      ],
+    }));
+  };
+
+  handleSubmit = async () => {
+    const {sampleRate, conditions} = this.state;
+
+    if (!sampleRate) {
+      return;
+    }
+
+    const newRule: DynamicSamplingRule = {
+      type: DynamicSamplingRuleType.ERROR,
+      condition: {
+        op: DynamicSamplingConditionOperator.AND,
+        inner: conditions.map(this.getNewCondition),
+      },
+      sampleRate,
+    };
+
+    const {onSubmit, closeModal} = this.props;
+    onSubmit(newRule);
+    closeModal();
+  };
 }
 
 export default ErrorRuleModal;
