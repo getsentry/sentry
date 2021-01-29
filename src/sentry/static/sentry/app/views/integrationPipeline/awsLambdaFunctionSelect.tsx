@@ -126,7 +126,7 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
   render = () => {
     return (
       <React.Fragment>
-        <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/" />
+        <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws-lambda/" />
         <Wrapper>
           {this.state.submitting ? this.renderLoadingScreeen() : this.renderCore()}
         </Wrapper>
