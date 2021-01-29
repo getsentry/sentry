@@ -539,7 +539,14 @@ def bulk_fetch_project_latest_releases(projects):
     )
 
 
-class DetailedProjectSerializer(ProjectWithTeamSerializer):
+class ProjectOptionsSerializerMixin(object):
+    """The project details serializer returns the options and additional
+    information.  For external tools and API consumers it is preferrable to
+    know which values are settings and which ones are real project details.
+    For this reason we extract the options serializer out so that you can
+    provide just the configurable options into a separate API response.
+    """
+
     OPTION_KEYS = frozenset(
         [
             # we need the epoch to fill in the defaults correctly
@@ -553,11 +560,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:builtin_symbol_sources",
             "sentry:symbol_sources",
             "sentry:sensitive_fields",
-            "sentry:csp_ignored_sources_defaults",
-            "sentry:csp_ignored_sources",
             "sentry:default_environment",
-            "sentry:reprocessing_active",
-            "sentry:blacklisted_ips",
             "sentry:releases",
             "sentry:error_messages",
             "sentry:scrape_javascript",
@@ -570,11 +573,94 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:grouping_enhancements_base",
             "sentry:fingerprinting_rules",
             "sentry:relay_pii_config",
-            "feedback:branding",
             "digests:mail:minimum_delay",
             "digests:mail:maximum_delay",
             "mail:subject_prefix",
             "mail:subject_template",
+        ]
+    )
+
+    def get_options_for_projects(self, projects):
+        queryset = ProjectOption.objects.filter(project__in=projects, key__in=self.OPTION_KEYS)
+        options_by_project = defaultdict(dict)
+        for option in queryset.iterator():
+            options_by_project[option.project_id][option.key] = option.value
+
+        attrs = {}
+        for project in projects:
+            attrs[project.id] = options_by_project[project.id]
+
+        return attrs
+
+    def serialize_options_for_project(self, project, values):
+        def get_value_with_default(key, hardcoded_default=None, wrap=None):
+            value = values.get(key)
+            if value is None:
+                if hardcoded_default is not None:
+                    if callable(hardcoded_default):
+                        value = hardcoded_default()
+                    else:
+                        value = hardcoded_default
+                else:
+                    value = projectoptions.get_well_known_default(
+                        key, epoch=values.get("sentry:option-epoch")
+                    )
+            if wrap is not None:
+                value = wrap(value)
+            return value
+
+        return {
+            "digestsMinDelay": get_value_with_default(
+                "digests:mail:minimum_delay", digests.minimum_delay
+            ),
+            "digestsMaxDelay": get_value_with_default(
+                "digests:mail:maximum_delay", digests.maximum_delay
+            ),
+            "subjectPrefix": get_value_with_default(
+                "mail:subject_prefix", options.get("mail.subject-prefix")
+            ),
+            "allowedDomains": get_value_with_default("sentry:origins", ["*"]),
+            "resolveAge": get_value_with_default("sentry:resolve_age", 0, wrap=int),
+            "dataScrubber": get_value_with_default("sentry:scrub_data", True, wrap=bool),
+            "dataScrubberDefaults": get_value_with_default(
+                "sentry:scrub_defaults", True, wrap=bool
+            ),
+            "safeFields": get_value_with_default("sentry:safe_fields", []),
+            "storeCrashReports": get_value_with_default(
+                "sentry:store_crash_reports",
+                wrap=lambda x: convert_crashreport_count(x, allow_none=True),
+            ),
+            "sensitiveFields": get_value_with_default("sentry:sensitive_fields", []),
+            "subjectTemplate": get_value_with_default(
+                "mail:subject_template", DEFAULT_SUBJECT_TEMPLATE.template
+            ),
+            "securityToken": get_value_with_default("sentry:token", project.get_security_token()),
+            "securityTokenHeader": get_value_with_default("sentry:token_header"),
+            "verifySSL": get_value_with_default("sentry:verify_ssl", False, wrap=bool),
+            "scrubIPAddresses": get_value_with_default("sentry:scrub_ip_address", False, wrap=bool),
+            "scrapeJavaScript": get_value_with_default("sentry:scrape_javascript", True, wrap=bool),
+            "groupingConfig": get_value_with_default("sentry:grouping_config"),
+            "groupingEnhancements": get_value_with_default("sentry:grouping_enhancements"),
+            "groupingEnhancementsBase": get_value_with_default("sentry:grouping_enhancements_base"),
+            "fingerprintingRules": get_value_with_default("sentry:fingerprinting_rules"),
+            "defaultEnvironment": get_value_with_default("sentry:default_environment"),
+            "relayPiiConfig": get_value_with_default("sentry:relay_pii_config"),
+            "builtinSymbolSources": get_value_with_default("sentry:builtin_symbol_sources"),
+            "symbolSources": get_value_with_default("sentry:symbol_sources"),
+        }
+
+
+class DetailedProjectSerializer(ProjectWithTeamSerializer, ProjectOptionsSerializerMixin):
+    # we fetch some extra keys for the legacy options
+    OPTIONS_KEYS = ProjectOptionsSerializerMixin.OPTION_KEYS | frozenset(
+        [
+            "sentry:csp_ignored_sources_defaults",
+            "sentry:csp_ignored_sources",
+            "sentry:reprocessing_active",
+            "filters:blacklisted_ips",
+            "filters:{}".format(FilterTypes.RELEASES),
+            "filters:{}".format(FilterTypes.ERROR_MESSAGES),
+            "feedback:branding",
         ]
     )
 
@@ -593,10 +679,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         for project_id, num_issues in num_issues_projects:
             processing_issues_by_project[project_id] = num_issues
 
-        queryset = ProjectOption.objects.filter(project__in=item_list, key__in=self.OPTION_KEYS)
-        options_by_project = defaultdict(dict)
-        for option in queryset.iterator():
-            options_by_project[option.project_id][option.key] = option.value
+        options_by_project_id = self.get_options_for_projects(item_list)
 
         orgs = {d["id"]: d for d in serialize(list(set(i.organization for i in item_list)), user)}
 
@@ -611,7 +694,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 {
                     "latest_release": latest_releases.get(item.id),
                     "org": orgs[six.text_type(item.organization_id)],
-                    "options": options_by_project[item.id],
+                    "options": options_by_project_id[item.id],
                     "processing_issues": processing_issues_by_project.get(item.id, 0),
                 }
             )
@@ -619,14 +702,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
 
     def serialize(self, obj, attrs, user):
         from sentry.plugins.base import plugins
-
-        def get_value_with_default(key):
-            value = attrs["options"].get(key)
-            if value is not None:
-                return value
-            return projectoptions.get_well_known_default(
-                key, epoch=attrs["options"].get("sentry:option-epoch")
-            )
 
         data = super(DetailedProjectSerializer, self).serialize(obj, attrs, user)
         data.update(
@@ -653,37 +728,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                     ),
                     "feedback:branding": attrs["options"].get("feedback:branding", "1") == "1",
                 },
-                "digestsMinDelay": attrs["options"].get(
-                    "digests:mail:minimum_delay", digests.minimum_delay
-                ),
-                "digestsMaxDelay": attrs["options"].get(
-                    "digests:mail:maximum_delay", digests.maximum_delay
-                ),
-                "subjectPrefix": attrs["options"].get(
-                    "mail:subject_prefix", options.get("mail.subject-prefix")
-                ),
-                "allowedDomains": attrs["options"].get("sentry:origins", ["*"]),
-                "resolveAge": int(attrs["options"].get("sentry:resolve_age", 0)),
-                "dataScrubber": bool(attrs["options"].get("sentry:scrub_data", True)),
-                "dataScrubberDefaults": bool(attrs["options"].get("sentry:scrub_defaults", True)),
-                "safeFields": attrs["options"].get("sentry:safe_fields", []),
-                "storeCrashReports": convert_crashreport_count(
-                    attrs["options"].get("sentry:store_crash_reports"), allow_none=True
-                ),
-                "sensitiveFields": attrs["options"].get("sentry:sensitive_fields", []),
-                "subjectTemplate": attrs["options"].get("mail:subject_template")
-                or DEFAULT_SUBJECT_TEMPLATE.template,
-                "securityToken": attrs["options"].get("sentry:token") or obj.get_security_token(),
-                "securityTokenHeader": attrs["options"].get("sentry:token_header"),
-                "verifySSL": bool(attrs["options"].get("sentry:verify_ssl", False)),
-                "scrubIPAddresses": bool(attrs["options"].get("sentry:scrub_ip_address", False)),
-                "scrapeJavaScript": bool(attrs["options"].get("sentry:scrape_javascript", True)),
-                "groupingConfig": get_value_with_default("sentry:grouping_config"),
-                "groupingEnhancements": get_value_with_default("sentry:grouping_enhancements"),
-                "groupingEnhancementsBase": get_value_with_default(
-                    "sentry:grouping_enhancements_base"
-                ),
-                "fingerprintingRules": get_value_with_default("sentry:fingerprinting_rules"),
                 "organization": attrs["org"],
                 "plugins": serialize(
                     [
@@ -696,13 +740,22 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 ),
                 "platforms": attrs["platforms"],
                 "processingIssues": attrs["processing_issues"],
-                "defaultEnvironment": attrs["options"].get("sentry:default_environment"),
-                "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
-                "builtinSymbolSources": get_value_with_default("sentry:builtin_symbol_sources"),
-                "symbolSources": attrs["options"].get("sentry:symbol_sources"),
             }
         )
+        data.update(self.serialize_options_for_project(obj, attrs["options"]))
         return data
+
+
+class ProjectsSettingsSerializer(Serializer, ProjectOptionsSerializerMixin):
+    def get_attrs(self, item_list, user):
+        options_by_project_id = self.get_options_for_projects(item_list)
+        attrs = {}
+        for item in item_list:
+            attrs[item] = options_by_project_id.get(item.id) or {}
+        return attrs
+
+    def serialize(self, obj, attrs, user):
+        return self.serialize_options_for_project(obj, attrs)
 
 
 class SharedProjectSerializer(Serializer):
