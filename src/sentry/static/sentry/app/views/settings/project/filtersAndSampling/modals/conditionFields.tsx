@@ -5,21 +5,21 @@ import Button from 'app/components/button';
 import {IconAdd, IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {DynamicSamplingInnerName} from 'app/types/dynamicSampling';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import TextField from 'app/views/settings/components/forms/textField';
 
 import LegacyBrowsersField from './legacyBrowsersField';
-import {Category} from './utils';
 
 type Condition = {
-  category: Category;
+  category: DynamicSamplingInnerName;
   match: string;
   legacyBrowsers?: Array<string>;
 };
 
 type Props = {
   conditions: Array<Condition>;
-  categoryOptions: Array<[string, string]>;
+  categoryOptions: Array<[DynamicSamplingInnerName, string]>;
   onAdd: () => void;
   onDelete: (index: number) => () => void;
   onChange: <T extends keyof Condition>(
@@ -40,13 +40,13 @@ function ConditionFields({
     <React.Fragment>
       {conditions.map(({match, category}, index) => {
         const displayDescription = index === 0;
-        const showLegacyBrowsers = category === Category.LEGACY_BROWSERS;
+        const showLegacyBrowsers = category === DynamicSamplingInnerName.LEGACY_BROWSERS;
         return (
           <Fields key={index}>
             <SelectField
               label={displayDescription ? t('Category') : undefined}
               help={displayDescription ? t('This is a description') : undefined}
-              name="category"
+              name={`category-${index}`}
               value={category}
               onChange={value => onChange(index, 'category', value)}
               choices={categoryOptions}
@@ -62,7 +62,7 @@ function ConditionFields({
               placeholder={
                 showLegacyBrowsers ? t('No match condition') : 'ex. 1* or [I3].[0-9].*'
               }
-              name="match"
+              name={`match-${index}`}
               value={match}
               onChange={value => onChange(index, 'match', value)}
               disabled={showLegacyBrowsers}
