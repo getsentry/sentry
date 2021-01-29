@@ -65,7 +65,6 @@ class ProjectPluginsContainer extends React.Component<Props> {
 
         <ProjectPlugins
           {...this.props}
-          onError={this.fetchData}
           onChange={this.handleChange}
           loading={loading}
           error={error}
