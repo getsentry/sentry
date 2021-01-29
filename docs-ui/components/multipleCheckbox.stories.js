@@ -1,27 +1,26 @@
 import React from 'react';
 import {action} from '@storybook/addon-actions';
-import {withInfo} from '@storybook/addon-info';
 
 import MultipleCheckbox from 'app/views/settings/components/forms/controls/multipleCheckbox';
 
 export default {
   title: 'Core/Forms/Controls',
-};
-
-export const _MultipleCheckbox = () => (
-  <MultipleCheckbox
-    choices={[
+  component: MultipleCheckbox,
+  args: {
+    choices: [
       ['foo', 'Foo'],
       ['bar', 'Bar'],
       ['baz', 'Baz'],
       ['quux', 'Quux'],
-    ]}
-    value={['bar']}
-    onChange={(v, e) => {
+    ],
+    value: ['bar'],
+    onChange: (v, e) => {
       action('MultipleCheckbox change')(v, e);
-    }}
-  />
-);
+    },
+  },
+};
+
+export const _MultipleCheckbox = ({...args}) => <MultipleCheckbox {...args} />;
 
 _MultipleCheckbox.storyName = 'MultipleCheckbox';
 _MultipleCheckbox.parameters = {
