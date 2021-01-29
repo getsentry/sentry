@@ -18,6 +18,7 @@ import {getSeriesSelection} from 'app/components/charts/utils';
 import WorldMapChart from 'app/components/charts/worldMapChart';
 import ErrorBoundary from 'app/components/errorBoundary';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
 import {Panel} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import {IconDelete, IconEdit, IconGrabbable, IconWarning} from 'app/icons';
@@ -63,7 +64,7 @@ class WidgetCard extends React.Component<Props> {
   shouldComponentUpdate(nextProps: Props): boolean {
     if (
       !isEqual(nextProps.widget, this.props.widget) ||
-      !isEqual(nextProps.selection, this.props.selection) ||
+      !isSelectionEqual(nextProps.selection, this.props.selection) ||
       this.props.isEditing !== nextProps.isEditing ||
       this.props.isDragging !== nextProps.isDragging ||
       this.props.hideToolbar !== nextProps.hideToolbar

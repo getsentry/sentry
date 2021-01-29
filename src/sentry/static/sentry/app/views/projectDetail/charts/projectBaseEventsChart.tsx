@@ -1,11 +1,11 @@
 import React from 'react';
 import * as Sentry from '@sentry/react';
 import {withTheme} from 'emotion-theming';
-import isEqual from 'lodash/isEqual';
 
 import {fetchTotalCount} from 'app/actionCreators/events';
 import EventsChart from 'app/components/charts/eventsChart';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {t} from 'app/locale';
 import {GlobalSelection} from 'app/types';
@@ -32,7 +32,7 @@ class ProjectBaseEventsChart extends React.Component<Props> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (!isEqual(this.props.selection, prevProps.selection)) {
+    if (!isSelectionEqual(this.props.selection, prevProps.selection)) {
       this.fetchTotalCount();
     }
   }
