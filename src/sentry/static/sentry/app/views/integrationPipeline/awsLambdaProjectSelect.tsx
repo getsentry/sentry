@@ -57,7 +57,9 @@ export default class AwsLambdaProjectSelect extends React.Component<Props> {
                 flexibleControlStateSize
                 stacked
               />
-              <Alert type="info">{t('Currently only supports Node runtimes')}</Alert>
+              <Alert type="info">
+                {t('Currently only supports Node Lambda functions')}
+              </Alert>
             </Form>
           </ListItem>
         </StyledList>
@@ -76,7 +78,7 @@ export default class AwsLambdaProjectSelect extends React.Component<Props> {
 }
 
 const StyledList = styled(List)`
-  margin: 100px 50px 50px 50px;
+  padding: 100px 50px 50px 50px;
 `;
 
 const StyledSentryProjectSelectorField = styled(SentryProjectSelectorField)`

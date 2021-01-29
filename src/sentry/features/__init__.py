@@ -79,7 +79,6 @@ default_manager.add("organizations:integrations-incident-management", Organizati
 default_manager.add("organizations:integrations-ticket-rules", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-vsts-limited-scopes", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-stacktrace-link", OrganizationFeature)  # NOQA
-default_manager.add("organizations:integrations-aws_lambda", OrganizationFeature)  # NOQA
 default_manager.add("organizations:slack-allow-workspace", OrganizationFeature)  # NOQA
 default_manager.add("organizations:internal-catchall", OrganizationFeature)  # NOQA
 default_manager.add("organizations:invite-members", OrganizationFeature)  # NOQA

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.sdk_updates import SdkIndexState
 
 from django.core.urlresolvers import reverse

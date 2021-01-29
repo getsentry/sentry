@@ -307,7 +307,7 @@ export type AggregationOutputType = Extract<
   'number' | 'integer' | 'date' | 'duration' | 'percentage' | 'string'
 >;
 
-export type PlotType = 'line' | 'area';
+export type PlotType = 'bar' | 'line' | 'area';
 
 type DefaultValueInputs = {
   parameter: AggregateParameter;

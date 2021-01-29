@@ -103,7 +103,11 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
     const isResolved = alert.status === IncidentStatus.CLOSED;
     const isWarning = alert.status === IncidentStatus.WARNING;
 
-    const color = isResolved ? theme.gray200 : isWarning ? theme.yellow300 : theme.red300;
+    const color = isResolved
+      ? theme.green300
+      : isWarning
+      ? theme.yellow300
+      : theme.red300;
     const Icon = isResolved ? IconCheckmark : isWarning ? IconWarning : IconFire;
 
     return (
@@ -213,20 +217,18 @@ const AlertIconWrapper = styled('div')`
 `;
 
 const AlertDetails = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
   margin-left: ${space(2)};
   ${overflowEllipsis}
 `;
 
-const AlertTitle = styled('h5')`
-  font-size: ${p => p.theme.fontSizeLarge};
+const AlertTitle = styled('div')`
   font-weight: 400;
-  margin-bottom: ${space(0.25)};
   overflow: hidden;
   text-overflow: ellipsis;
 `;
 
 const AlertDate = styled('span')<{color: string}>`
-  font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.color};
 `;
 

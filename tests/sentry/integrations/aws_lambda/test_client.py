@@ -58,7 +58,6 @@ class AwsLambdaClientTest(TestCase):
                             "Action": [
                                 "lambda:ListFunctions",
                                 "lambda:GetLayerVersion",
-                                "iam:PassRole",
                                 "organizations:DescribeAccount",
                             ],
                             "Resource": "*",

@@ -65,7 +65,8 @@ export type SingleIntegrationEvent = {
     | 'integrations.reauth_start'
     | 'integrations.reauth_complete'
     | 'integrations.request_install'
-    | 'integrations.code_mappings_viewed';
+    | 'integrations.code_mappings_viewed'
+    | 'integrations.cloudformation_link_clicked';
   eventName:
     | 'Integrations: Install Modal Opened' //TODO: remove
     | 'Integrations: Installation Start'
@@ -84,7 +85,8 @@ export type SingleIntegrationEvent = {
     | 'Integrations: Reauth Start'
     | 'Integrations: Reauth Complete'
     | 'Integrations: Request Install'
-    | 'Integrations: Code Mappings Viewed';
+    | 'Integrations: Code Mappings Viewed'
+    | 'Integrations: CloudFormation Link Clicked';
   integration: string; //the slug
   integration_type: IntegrationType;
   already_installed?: boolean;

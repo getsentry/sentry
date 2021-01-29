@@ -374,11 +374,11 @@ class ReleasesList extends AsyncView<Props, State> {
 }
 
 const SortAndFilterWrapper = styled('div')`
-  display: grid;
+  display: inline-grid;
   grid-gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: 1fr repeat(3, auto);
   }
 `;
