@@ -137,16 +137,14 @@ class FancyBlob(Blob):
         self.download_url = download_url
         super(FancyBlob, self).__init__(*args, **kwargs)
 
-    def _get_download_url(self):
-        if self.media_link is None:
-            download_url = "{download_url}/download/storage/v1{path}?alt=media".format(
-                download_url=self.download_url, path=self.path
-            )
-            if self.generation is not None:
-                download_url += "&generation={:d}".format(self.generation)
-            return download_url
-        else:
-            return self.media_link
+    def _get_download_url(self, *args, **kwargs):
+        # media_link is for public objects; we completely ignore it.
+        download_url = "{download_url}/download/storage/v1{path}?alt=media".format(
+            download_url=self.download_url, path=self.path
+        )
+        if self.generation is not None:
+            download_url += "&generation={:d}".format(self.generation)
+        return download_url
 
 
 class GoogleCloudFile(File):
