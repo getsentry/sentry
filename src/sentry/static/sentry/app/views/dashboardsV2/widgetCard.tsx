@@ -389,7 +389,7 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
     if (widget.displayType === 'big_number') {
       return (
         <TransitionChart loading={loading} reloading={loading}>
-          <TransparentLoadingMask visible={loading} />
+          <LoadingScreen loading={loading} />
           {this.bigNumberComponent({tableResults, loading, errorMessage})}
         </TransitionChart>
       );
