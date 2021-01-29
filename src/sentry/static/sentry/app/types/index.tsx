@@ -687,16 +687,18 @@ export type EventOrGroupType =
   | 'default'
   | 'transaction';
 
+export type InboxReasonDetails = {
+  until?: string | null;
+  count?: number | null;
+  window?: number | null;
+  user_count?: number | null;
+  user_window?: number | null;
+};
+
 export type InboxDetails = {
+  reason_details: InboxReasonDetails;
   date_added?: string;
   reason?: number;
-  reason_details?: {
-    until?: string;
-    count?: number;
-    window?: number;
-    user_count?: number;
-    user_window?: number;
-  };
 };
 
 export type SuggestedOwnerReason = 'suspectCommit' | 'ownershipRule';
@@ -967,7 +969,7 @@ export type BaseGroup = {
   type: EventOrGroupType;
   userReportCount: number;
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
-  inbox?: InboxDetails | null;
+  inbox?: InboxDetails | null | false;
   owners?: SuggestedOwner[] | null;
 };
 
