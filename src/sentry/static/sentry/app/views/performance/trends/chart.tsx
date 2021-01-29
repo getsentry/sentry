@@ -68,11 +68,6 @@ function getLegend(trendFunction: string) {
     top: 0,
     itemGap: 12,
     align: 'left' as const,
-    textStyle: {
-      verticalAlign: 'top',
-      fontSize: 11,
-      fontFamily: theme.text.family,
-    },
     data: [
       {
         name: 'Baseline',
