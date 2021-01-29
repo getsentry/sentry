@@ -231,7 +231,7 @@ class IssueListOverview extends React.Component<Props, State> {
     // If any important url parameter changed or saved search changed
     // reload data.
     if (
-      !isEqual(prevProps.selection, this.props.selection) ||
+      selectionChanged ||
       prevQuery.cursor !== newQuery.cursor ||
       prevQuery.sort !== newQuery.sort ||
       prevQuery.query !== newQuery.query ||
