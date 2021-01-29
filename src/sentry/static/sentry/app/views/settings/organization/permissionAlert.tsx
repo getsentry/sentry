@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import Access from 'app/components/acl/access';
 import Alert from 'app/components/alert';
@@ -22,9 +21,5 @@ const PermissionAlert = ({access = ['org:write'], ...props}: Props) => (
     }
   </Access>
 );
-
-PermissionAlert.propTypes = {
-  access: PropTypes.arrayOf(PropTypes.string),
-};
 
 export default PermissionAlert;

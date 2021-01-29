@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
-import PropTypes from 'prop-types';
 
 import PluginComponentBase from 'app/components/bases/pluginComponentBase';
 import {Form, FormState} from 'app/components/forms';
@@ -34,12 +33,6 @@ class PluginSettings<
   P extends Props = Props,
   S extends State = State
 > extends PluginComponentBase<P, S> {
-  static propTypes: any = {
-    organization: PropTypes.object.isRequired,
-    project: PropTypes.object.isRequired,
-    plugin: PropTypes.object.isRequired,
-  };
-
   constructor(props: P, context: any) {
     super(props, context);
 

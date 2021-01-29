@@ -1,10 +1,8 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import Alert from 'app/components/alert';
 import {IconInfo} from 'app/icons';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import {Config, Organization, Scope} from 'app/types';
 import {isRenderFunc} from 'app/utils/isRenderFunc';
 import withConfig from 'app/utils/withConfig';
@@ -75,15 +73,6 @@ type Props = {
  * Component to handle access restrictions.
  */
 class Access extends React.Component<Props> {
-  static propTypes: any = {
-    organization: SentryTypes.Organization,
-    access: PropTypes.arrayOf(PropTypes.string),
-    requireAll: PropTypes.bool,
-    isSuperuser: PropTypes.bool,
-    renderNoAccessMessage: PropTypes.oneOfType([PropTypes.func, PropTypes.bool]),
-    children: PropTypes.oneOfType([PropTypes.func, PropTypes.node]),
-  };
-
   static defaultProps = defaultProps;
 
   render() {
