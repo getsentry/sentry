@@ -96,6 +96,7 @@ const ImageColumn = styled(Column)`
   overflow: hidden;
   flex-direction: column;
   align-items: flex-start;
+  justify-content: center;
 `;
 
 const ImageAddress = styled('div')`

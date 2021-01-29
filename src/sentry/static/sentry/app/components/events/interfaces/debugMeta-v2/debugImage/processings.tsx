@@ -48,5 +48,6 @@ const StyledProcessingList = styled(ProcessingList)`
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
     grid-auto-flow: column;
+    grid-gap: ${space(1.5)};
   }
 `;

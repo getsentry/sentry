@@ -12,7 +12,7 @@ display: grid;
   }
 }
 
-grid-template-columns: 0.5fr 1fr 0.5fr ${scrollbarWidth ? `${scrollbarWidth}px` : `0fr`};
+grid-template-columns: 1fr 1.5fr 0.7fr ${scrollbarWidth ? `${scrollbarWidth}px` : `0fr`};
 
 @media (min-width: ${theme.breakpoints[0]}) {
   > *:nth-child(4n-1) {

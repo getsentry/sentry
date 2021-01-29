@@ -517,6 +517,12 @@ export default withRouter(DebugMeta);
 const StyledEventDataSection = styled(EventDataSection)`
   padding-bottom: ${space(4)};
 
+  > * :nth-child(1) {
+    > *:nth-child(2) {
+      min-width: calc(100% - 45%);
+    }
+  }
+
   /* to increase specificity */
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     padding-bottom: ${space(2)};
@@ -575,12 +581,9 @@ const Search = styled('div')`
   display: flex;
   width: 100%;
   margin-top: ${space(1)};
-  @media (min-width: ${props => props.theme.breakpoints[1]}) {
-    width: 400px;
+
+  @media (min-width: ${props => props.theme.breakpoints[0]}) {
     margin-top: 0;
-  }
-  @media (min-width: ${props => props.theme.breakpoints[3]}) {
-    width: 600px;
   }
 `;
 
