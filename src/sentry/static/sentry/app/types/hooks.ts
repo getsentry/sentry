@@ -1,6 +1,6 @@
 import {Route} from 'react-router';
 
-import FeatureDisabled from 'app/components/acl/featureDisabled';
+import {ChildrenRenderFn} from 'app/components/acl/feature';
 import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
 import SelectorItems from 'app/components/organizations/timeRangeSelector/dateRange/selectorItems';
 import SidebarItem from 'app/components/sidebar/sidebarItem';
@@ -165,7 +165,7 @@ type OrganizationHeaderComponentHook = (org: Organization) => React.ReactNode;
 /**
  * A FeatureDisabledHook returns a react element when a feature is not enabled.
  */
-type FeatureDisabledHook = (opts: {
+export type FeatureDisabledHook = (opts: {
   /**
    * The organization that is associated to this feature.
    */
@@ -179,7 +179,11 @@ type FeatureDisabledHook = (opts: {
    */
   hasFeature: boolean;
 
-  children: FeatureDisabled['props']['children'];
+  /**
+   * Children can either be a node, or a function that accepts a renderDisabled prop containing
+   * a function/component to render when the feature is not enabled.
+   */
+  children: React.ReactNode | ChildrenRenderFn;
 
   /**
    * The project that is associated to this feature.
