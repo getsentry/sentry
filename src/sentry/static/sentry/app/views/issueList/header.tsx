@@ -6,11 +6,10 @@ import {openModal} from 'app/actionCreators/modal';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import ContextPickerModalContainer from 'app/components/contextPickerModal';
 import * as Layout from 'app/components/layouts/thirds';
 import QueryCount from 'app/components/queryCount';
 import Tooltip from 'app/components/tooltip';
-import {IconPause, IconPlay, IconUser} from 'app/icons';
+import {IconPause, IconPlay} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -38,24 +37,14 @@ function IssueListHeader({
   query,
   queryCount,
   queryCounts,
-  orgSlug,
-  projectIds,
   realtimeActive,
   onRealtimeChange,
   onSavedSearchSelect,
   onSavedSearchDelete,
   savedSearchList,
-  projects,
   router,
   displayReprocessingTab,
 }: Props) {
-  const selectedProjectSlugs = projectIds
-    .map(projectId => projects.find(project => project.id === projectId)?.slug)
-    .filter(selectedProjectSlug => !!selectedProjectSlug) as Array<string>;
-
-  const selectedProjectSlug =
-    selectedProjectSlugs.length === 1 ? selectedProjectSlugs[0] : undefined;
-
   const tabs = getTabs(organization);
   const visibleTabs = displayReprocessingTab
     ? tabs
@@ -96,23 +85,14 @@ function IssueListHeader({
         </StyledHeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
-            <Tooltip title="Give us feedback via email about these changes to Issues">
-              <Button size="small" href="mailto:workflow-feedback@sentry.io">
+            <Tooltip title="Give us feedback via email about the new Issues experience">
+              <Button
+                size="small"
+                href="mailto:workflow-feedback@sentry.io?subject=Issues Feedback"
+              >
                 Give Feedback
               </Button>
             </Tooltip>
-            <Button
-              size="small"
-              icon={<IconUser size="xs" />}
-              to={
-                selectedProjectSlug
-                  ? `/settings/${orgSlug}/projects/${selectedProjectSlug}/ownership/`
-                  : undefined
-              }
-              onClick={selectedProjectSlug ? undefined : handleSelectProject('ownership')}
-            >
-              {t('Issue Owners')}
-            </Button>
             <Button
               size="small"
               title={t('%s real-time updates', realtimeActive ? t('Pause') : t('Enable'))}
