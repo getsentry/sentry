@@ -102,10 +102,14 @@ class ReprocessingDialogForm extends React.Component<Props, State> {
             ))}
           </StyledList>
           <Introduction>
-            For more information please refer to{' '}
-            <ExternalLink href="https://docs.sentry.io/product/error-monitoring/reprocessing/">
-              the documentation on reprocessing.
-            </ExternalLink>
+            {tct(
+              'For more information please refer to [link:the documentation on reprocessing.]',
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/error-monitoring/reprocessing/" />
+                ),
+              }
+            )}
           </Introduction>
           <Form
             submitLabel={title}
