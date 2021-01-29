@@ -67,7 +67,7 @@ function SingleFailure(errorDetail: ErrorDetail) {
 }
 
 const Wrapper = styled('div')`
-  margin: 100px 50px 50px 50px;
+  padding: 100px 50px 50px 50px;
 `;
 
 const StyledRow = styled(PanelItem)`
