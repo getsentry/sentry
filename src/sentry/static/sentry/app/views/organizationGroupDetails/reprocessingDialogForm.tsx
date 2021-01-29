@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
+import ExternalLink from 'app/components/links/externalLink';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import {t, tct} from 'app/locale';
@@ -15,15 +16,20 @@ import RadioField from 'app/views/settings/components/forms/radioField';
 
 const impacts = [
   tct(
-    '[strong:Reprocessing creates new events.] This may temporarily affect event counts in both Discover and the Issue Stream.',
+    '[strong:Data glitches.] During reprocessing you may observe temporary data inconsistencies across the entire product. Those inconsistencies disappear the moment reprocessing is complete.',
     {strong: <strong />}
   ),
   tct(
-    '[strong:Store Native crash reports to reprocess Minidump crash reports.] Note that this requires attachment storage.',
-    {strong: <strong />}
+    '[strong:Attachment storage needs to be enabled.] If your events come from minidumps or unreal crash reports, you must have [link:attachment storage] enabled.',
+    {
+      strong: <strong />,
+      link: (
+        <ExternalLink href="https://docs.sentry.io/platforms/native/enriching-events/attachments/#crash-reports-and-privacy" />
+      ),
+    }
   ),
   tct(
-    '[strong:Reprocessed events count towards your organization’s quota.] Rate limits and spike protection don’t apply to reprocessed events.',
+    "[strong:Quota applies.] Every event you choose to reprocess will count against your plan's quota a second time. Rate limits and spike protection do not apply.",
     {strong: <strong />}
   ),
   t('Please wait one hour before attempting to reprocess missing debug files.'),
@@ -95,6 +101,16 @@ class ReprocessingDialogForm extends React.Component<Props, State> {
               <ListItem key={index}>{impact}</ListItem>
             ))}
           </StyledList>
+          <Introduction>
+            {tct(
+              'For more information please refer to [link:the documentation on reprocessing.]',
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/error-monitoring/reprocessing/" />
+                ),
+              }
+            )}
+          </Introduction>
           <Form
             submitLabel={title}
             apiEndpoint={endpoint}

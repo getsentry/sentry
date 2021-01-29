@@ -1,16 +1,17 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {
   DynamicSamplingCondition,
-  DynamicSamplingConditionLogicalNot,
-  DynamicSamplingConditionLogicalOthers,
+  DynamicSamplingConditionMultiple,
+  DynamicSamplingConditionNegation,
   DynamicSamplingConditionOperator,
-  DynamicSamplingConditionOthers,
 } from 'app/types/dynamicSampling';
 
-import {getOperatorLabel} from './utils';
+import {getInnerOperatorLabel} from './utils';
 
 type Props = {
   condition: DynamicSamplingCondition;
@@ -34,15 +35,19 @@ function Conditions({condition}: Props) {
     return <Value>{String(value)}</Value>;
   }
 
-  switch (condition.operator) {
+  switch (condition.op) {
     case DynamicSamplingConditionOperator.AND:
     case DynamicSamplingConditionOperator.OR: {
-      const {inner: conditions} = condition as DynamicSamplingConditionLogicalOthers;
+      const {inner} = condition as DynamicSamplingConditionMultiple;
+      if (!inner.length) {
+        return <Label>{t('All')}</Label>;
+      }
+
       return (
         <Wrapper>
-          {conditions.map(({operator, value}, index) => (
+          {inner.map(({op, value}, index) => (
             <div key={index}>
-              <Label>{getOperatorLabel(operator)}</Label>
+              <Label>{getInnerOperatorLabel(op)}</Label>
               {getConvertedValue(value)}
             </div>
           ))}
@@ -50,23 +55,21 @@ function Conditions({condition}: Props) {
       );
     }
     case DynamicSamplingConditionOperator.NOT: {
-      const {inner} = condition as DynamicSamplingConditionLogicalNot;
-      const {operator, value} = inner;
+      const {inner} = condition as DynamicSamplingConditionNegation;
+      const {op, value} = inner;
       return (
         <div>
-          <Label>{getOperatorLabel(operator)}</Label>
+          <Label>{getInnerOperatorLabel(op)}</Label>
           {getConvertedValue(value)}
         </div>
       );
     }
     default: {
-      const {operator, value} = condition as DynamicSamplingConditionOthers;
-      return (
-        <div>
-          <Label>{getOperatorLabel(operator)}</Label>
-          {getConvertedValue(value)}
-        </div>
-      );
+      Sentry.withScope(scope => {
+        scope.setLevel(Sentry.Severity.Warning);
+        Sentry.captureException(new Error('Unknown dynamic sampling condition op'));
+      });
+      return null; //this shall not happen
     }
   }
 }
