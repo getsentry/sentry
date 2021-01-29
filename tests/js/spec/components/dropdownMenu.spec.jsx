@@ -49,9 +49,10 @@ describe('DropdownMenu', function () {
   it('closes dropdown when clicking outside of menu', async function () {
     wrapper.find('button').simulate('click');
     // Simulate click on document
-    const evt = document.createEvent('HTMLEvents');
-    evt.initEvent('click', false, true);
-    document.body.dispatchEvent(evt);
+    const event = document.createEvent('HTMLEvents');
+    event.initEvent('click', false, true);
+    document.body.dispatchEvent(event);
+
     jest.runAllTimers();
     await Promise.resolve();
     wrapper.update();
