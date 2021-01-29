@@ -153,6 +153,14 @@ type IntegrationStacktraceLinkEvent = {
   error_reason?: 'file_not_found' | 'stack_root_mismatch';
 };
 
+type IntegrationInstalltionInputValueChangeEvent = {
+  eventKey: 'integrations.installation_input_value_changed';
+  eventName: 'Integrations: Installation Input Value Changed';
+  integration: string; //the slug
+  integration_type: IntegrationType;
+  field_name: string;
+};
+
 type IntegrationsEventParams = (
   | MultipleIntegrationsEvent
   | SingleIntegrationEvent
@@ -161,6 +169,7 @@ type IntegrationsEventParams = (
   | IntegrationStacktraceLinkEvent
   | IntegrationServerlessFunctionsViewed
   | IntegrationServerlessFunctionAction
+  | IntegrationInstalltionInputValueChangeEvent
 ) & {
   view?:
     | 'external_install'
@@ -169,7 +178,8 @@ type IntegrationsEventParams = (
     | 'integrations_directory'
     | 'integrations_directory_integration_detail'
     | 'stacktrace_issue_details'
-    | 'integration_configuration_detail';
+    | 'integration_configuration_detail'
+    | 'onboarding';
   project_id?: string;
 } & Parameters<Hooks['analytics:track-event']>[0];
 
