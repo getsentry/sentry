@@ -78,7 +78,7 @@ export default class AwsLambdaProjectSelect extends React.Component<Props> {
 }
 
 const StyledList = styled(List)`
-  margin: 100px 50px 50px 50px;
+  padding: 100px 50px 50px 50px;
 `;
 
 const StyledSentryProjectSelectorField = styled(SentryProjectSelectorField)`
