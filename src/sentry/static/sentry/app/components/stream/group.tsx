@@ -32,6 +32,7 @@ import {
   GlobalSelection,
   Group,
   GroupReprocessing,
+  InboxDetails,
   NewQuery,
   Organization,
   User,
@@ -146,7 +147,7 @@ class StreamGroup extends React.Component<Props, State> {
       const reviewed =
         state.reviewed ||
         ((query === Query.FOR_REVIEW || query === Query.FOR_REVIEW_OWNER) &&
-          state.data.inbox?.reason !== undefined &&
+          (state.data.inbox as InboxDetails)?.reason !== undefined &&
           data.inbox === false);
       return {data, reviewed};
     });
