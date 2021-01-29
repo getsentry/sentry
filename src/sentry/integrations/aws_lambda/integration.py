@@ -138,6 +138,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
 
         return self.get_serialized_lambda_function(target)
 
+    @wrap_lambda_updater()
     def disable_function(self, target):
         function = self.get_one_lambda_function(target)
         layer_arn = get_latest_layer_for_function(function)
@@ -146,6 +147,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
 
         return self.get_serialized_lambda_function(target)
 
+    @wrap_lambda_updater()
     def update_function_to_latest_version(self, target):
         function = self.get_one_lambda_function(target)
         layer_arn = get_latest_layer_for_function(function)
