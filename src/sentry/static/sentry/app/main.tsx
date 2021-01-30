@@ -6,6 +6,7 @@ import routes from 'app/routes';
 import ThemeAndStyleProvider from './themeAndStyleProvider';
 
 export default function Main() {
+  // Testing
   return (
     <ThemeAndStyleProvider>
       <Router history={browserHistory}>{routes()}</Router>
