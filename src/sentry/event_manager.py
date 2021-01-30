@@ -521,7 +521,6 @@ def _pull_out_data(jobs, projects):
         data = job["data"]
 
         # Pull the toplevel data we're interested in
-        job["culprit"] = get_culprit(data)
 
         transaction_name = data.get("transaction")
         if transaction_name:
@@ -656,7 +655,12 @@ def _materialize_metadata_many(jobs):
         # picks up the data right from the snuba topic.  For most usage
         # however the data is dynamically overridden by Event.title and
         # Event.location (See Event.as_dict)
+        #
+        # We also need to ensure the culprit is accurately reflected at
+        # the point of metadata materialization as we need to ensure that
+        # processing happens before.
         data = job["data"]
+        job["culprit"] = get_culprit(data)
         job["materialized_metadata"] = metadata = materialize_metadata(data)
         data.update(metadata)
         data["culprit"] = job["culprit"]

@@ -588,6 +588,47 @@ class EventManagerTest(TestCase):
         assert event1.transaction is None
         assert event1.culprit == "foobar"
 
+    def test_culprit_after_stacktrace_processing(self):
+        from sentry.grouping.enhancer import Enhancements
+
+        enhancement = Enhancements.from_config_string(
+            """
+            function:in_app_function +app
+            function:not_in_app_function -app
+            """,
+        )
+
+        manager = EventManager(
+            make_event(
+                platform="native",
+                exception={
+                    "values": [
+                        {
+                            "type": "Hello",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": "not_in_app_function",
+                                    },
+                                    {
+                                        "function": "in_app_function",
+                                    },
+                                ]
+                            },
+                        }
+                    ]
+                },
+            )
+        )
+        manager.normalize()
+        manager.get_data()["grouping_config"] = {
+            "enhancements": enhancement.dumps(),
+            "id": "legacy:2019-03-12",
+        }
+        event1 = manager.save(1)
+        assert event1.transaction is None
+        assert event1.culprit == "in_app_function"
+
     def test_inferred_culprit_from_empty_stacktrace(self):
         manager = EventManager(make_event(stacktrace={"frames": []}))
         manager.normalize()
