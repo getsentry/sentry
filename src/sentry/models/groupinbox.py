@@ -96,7 +96,7 @@ def remove_group_from_inbox(group, action=None, user=None):
         group_inbox = GroupInbox.objects.get(group=group)
         group_inbox.delete()
 
-        if action is GroupInboxRemoveAction.mark_reviewed and user is not None:
+        if action is GroupInboxRemoveAction.MARK_REVIEWED and user is not None:
             Activity.objects.create(
                 project_id=group_inbox.group.project.id,
                 group_id=group_inbox.group.id,

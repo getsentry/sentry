@@ -1,5 +1,12 @@
 from sentry.testutils import TestCase
-from sentry.models import add_group_to_inbox, GroupInbox, GroupInboxReason, remove_group_from_inbox
+from sentry.models import (
+    Activity,
+    add_group_to_inbox,
+    GroupInbox,
+    GroupInboxReason,
+    GroupInboxRemoveAction,
+    remove_group_from_inbox,
+)
 from sentry.utils.compat.mock import patch
 
 
@@ -23,10 +30,13 @@ class GroupInboxTestCase(TestCase):
         assert GroupInbox.objects.filter(
             group=self.group, reason=GroupInboxReason.NEW.value
         ).exists()
-        remove_group_from_inbox(self.group)
+        remove_group_from_inbox(
+            self.group, user=self.user, action=GroupInboxRemoveAction.MARK_REVIEWED
+        )
         assert not GroupInbox.objects.filter(
             group=self.group, reason=GroupInboxReason.NEW.value
         ).exists()
+        assert Activity.objects.count() == 1
         assert inbox_out.called
 
     def test_invalid_reason_details(self):
