@@ -8,7 +8,7 @@ from django.db import migrations
 from django.utils import timezone
 
 from sentry import nodestore, options
-from sentry.eventstore.models import Event as NewEvent
+from sentry.eventstore.models import Event as NewEvent, Group as NewGroup
 from sentry.utils.dates import to_timestamp
 
 
@@ -79,7 +79,7 @@ def backfill_eventstream(apps, schema_editor):
 
         try:
             group = event.group
-        except Group.DoesNotExist:
+        except (Group.DoesNotExist, NewGroup.DoesNotExist):
             group = None
 
         if event.project is None or group is None or len(event.data) == 0:
