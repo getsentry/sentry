@@ -179,7 +179,8 @@ type IntegrationsEventParams = (
     | 'integrations_directory_integration_detail'
     | 'stacktrace_issue_details'
     | 'integration_configuration_detail'
-    | 'onboarding';
+    | 'onboarding'
+    | 'project_creation';
   project_id?: string;
 } & Parameters<Hooks['analytics:track-event']>[0];
 
@@ -418,4 +419,10 @@ export const getIntegrationIcon = (integrationType?: string, size?: string) => {
     default:
       return <IconGeneric size={iconSize} />;
   }
+};
+
+//used for project creation and onboarding
+//determines what integration maps to what project platform
+export const platfromToIntegrationMap = {
+  'node-awslambda': 'aws_lambda',
 };

@@ -19,9 +19,11 @@ type Props = {
     view:
       | 'integrations_directory_integration_detail'
       | 'integrations_directory'
-      | 'onboarding';
+      | 'onboarding'
+      | 'project_creation';
     already_installed: boolean;
   };
+  modalParams?: {[key: string]: string};
 };
 
 export default class AddIntegration extends React.Component<Props> {
@@ -82,7 +84,7 @@ export default class AddIntegration extends React.Component<Props> {
     const {url, width, height} = this.props.provider.setupDialog;
     const {left, top} = this.computeCenteredWindow(width, height);
 
-    const query: {[key: string]: string} = {...urlParams};
+    let query: {[key: string]: string} = {...urlParams};
 
     if (integrationId) {
       query.integration_id = integrationId;
@@ -90,6 +92,10 @@ export default class AddIntegration extends React.Component<Props> {
 
     if (this.props.account) {
       query.account = this.props.account;
+    }
+
+    if (this.props.modalParams) {
+      query = {...query, ...this.props.modalParams};
     }
 
     const installUrl = `${url}?${queryString.stringify(query)}`;
