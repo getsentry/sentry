@@ -11,7 +11,6 @@ import {
   nextStep,
   recordFinish,
   registerAnchor,
-  toStep,
   unregisterAnchor,
 } from 'app/actionCreators/guides';
 import {Guide} from 'app/components/assistant/types';
@@ -30,7 +29,6 @@ type Props = {
   to?: {
     pathname: string;
     query: Query;
-    step: number;
   };
 };
 
@@ -108,12 +106,8 @@ const GuideAnchor = createReactClass<Props, State>({
   },
 
   handleNextStep(e: React.MouseEvent) {
-    if (this.props.to) {
-      toStep(this.props.to.step);
-    } else {
-      e.stopPropagation();
-      nextStep();
-    }
+    e.stopPropagation();
+    nextStep();
   },
 
   handleDismiss(e: React.MouseEvent) {
@@ -144,6 +138,7 @@ const GuideAnchor = createReactClass<Props, State>({
               <StyledButton
                 size="small"
                 href="#" // to clear `#assistant` from the url
+                to={to}
                 onClick={this.handleFinish}
               >
                 {currentStep.nextText ||
@@ -156,9 +151,10 @@ const GuideAnchor = createReactClass<Props, State>({
                     priority="primary"
                     size="small"
                     href="#" // to clear `#assistant` from the url
+                    to={to}
                     onClick={this.handleDismiss}
                   >
-                    {t('Dismiss')}
+                    {currentStep.dismissText || t('Dismiss')}
                   </DismissButton>
                 )}
                 <StyledButton size="small" onClick={this.handleNextStep} to={to}>

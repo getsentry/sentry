@@ -9,6 +9,7 @@ export type GuideStep = {
   target?: string;
   description: React.ReactNode;
   nextText?: string;
+  dismissText?: string;
   cantDismiss?: boolean;
 };
 

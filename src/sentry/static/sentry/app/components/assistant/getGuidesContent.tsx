@@ -101,20 +101,6 @@ export default function getGuidesContent(): GuidesContent {
       ],
     },
     {
-      guide: 'dynamic_counts',
-      requiredTargets: ['dynamic_counts'],
-      steps: [
-        {
-          title: t('These counts have changed'),
-          target: 'dynamic_counts',
-          description: t(
-            `These numbers and the bar chart now respect the time selected and any search
-            filters you've applied. You can hover to see the totals.`
-          ),
-        },
-      ],
-    },
-    {
       guide: 'inbox_guide',
       requiredTargets: ['inbox_guide_tab'],
       steps: [
@@ -124,46 +110,48 @@ export default function getGuidesContent(): GuidesContent {
             `For Review lets you focus on new and reopened issues that are
             assigned to your team.`
           ),
+          dismissText: t(`Later`),
           nextText: t(`Take a Look`),
         },
+      ],
+    },
+    {
+      guide: 'for_review_guide',
+      requiredTargets: ['for_review_guide_tab'],
+      steps: [
         {
-          target: 'inbox_guide_issue',
+          target: 'for_review_guide_tab',
           description: t(
-            `These issues give you a lightweight way to review things and ensure
-            that nothing new has happened in the last 7 days.`
+            `For Review is a list of Unresolved issues that are new or have
+            reopened in the last 7 days.`
           ),
           cantDismiss: true,
         },
         {
           target: 'inbox_guide_reason',
-          description: t(
-            `These labels explain why an issue needs attention. When you mark the
-            issue as reviewed, it removes the label and moves the issue to Unresolved.`
-          ),
+          description: t(`These labels explain why an issue needs review.`),
           cantDismiss: true,
         },
         {
           target: 'inbox_guide_review',
           description: t(
-            `Mark as Reviewed lets you get to Inbox Zero so that your team knows
-            which issues need attention.`
+            `When you mark an issue reviewed, it removes the label from the
+            issue and removes the issue from this list.`
           ),
           nextText: t(`Wow there's more tutorial, huh?`),
           cantDismiss: true,
         },
         {
           target: 'inbox_guide_ignore',
-          description: t(
-            `Resolving or ignoring an issue also marks an issue as reviewed.`
-          ),
+          description: t(`Resolving or ignoring an issue implicitly marks it reviewed.`),
           nextText: t(`Next, ugh`),
           cantDismiss: true,
         },
         {
           target: 'inbox_guide_issue',
           description: t(
-            `An issue will automatically be reviewed after 7 days so this list never
-            gets too overwhelming.`
+            `If you don’t take action for 7 days on an issue that needs
+            review, Sentry automatically marks it reviewed.`
           ),
           nextText: t(`Got it`),
         },
