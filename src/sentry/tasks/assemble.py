@@ -176,6 +176,7 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
     from sentry.utils.zip import safe_extract_zip
     from sentry.models import File, Organization, Release, ReleaseFile
 
+    scratchpad = None
     delete_bundle = False
 
     try:
@@ -293,7 +294,8 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
     else:
         set_assemble_status(AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.OK)
     finally:
-        shutil.rmtree(scratchpad)
+        if scratchpad:
+            shutil.rmtree(scratchpad)
         if delete_bundle:
             bundle.delete()
 
