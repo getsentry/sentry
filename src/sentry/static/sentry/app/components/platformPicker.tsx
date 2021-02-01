@@ -59,7 +59,7 @@ class PlatformPicker extends React.Component<Props, State> {
 
     const filtered = platforms
       .filter(this.state.filter ? subsetMatch : categoryMatch)
-      .sort((a, b) => a.id.localeCompare(b.id));
+      .sort((a, b) => a.name.localeCompare(b.name));
 
     return this.props.showOther ? filtered : filtered.filter(({id}) => id !== 'other');
   }

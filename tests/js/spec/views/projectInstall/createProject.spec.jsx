@@ -85,11 +85,11 @@ describe('CreateProject', function () {
 
     let node = wrapper.find('PlatformCard').first();
     node.simulate('click');
-    expect(wrapper.find('ProjectNameInput input').props().value).toBe('iOS');
+    expect(wrapper.find('ProjectNameInput input').props().value).toBe('.NET');
 
     node = wrapper.find('PlatformCard').last();
     node.simulate('click');
-    expect(wrapper.find('ProjectNameInput input').props().value).toBe('Rails');
+    expect(wrapper.find('ProjectNameInput input').props().value).toBe('Vue');
 
     //but not replace it when project name is something else:
     wrapper.setState({projectName: 'another'});
