@@ -1,5 +1,7 @@
 from sentry.utils.compat import mock
+from sentry.testutils.helpers import Feature
 import six
+import pytest
 
 from django.core.urlresolvers import reverse
 
@@ -20,8 +22,30 @@ from sentry.models import (
     AuditLogEntry,
     AuditLogEntryEvent,
 )
+from sentry.api.endpoints.project_details import (
+    DynamicSamplingRuleSerializer,
+    DynamicSamplingConditionSerializer,
+)
 from sentry.testutils import APITestCase
 from sentry.utils.compat import zip
+
+
+def _dyn_sampling_data():
+    return {
+        "rules": [
+            {
+                "sampleRate": 0.7,
+                "type": "trace",
+                "condition": {
+                    "op": "and",
+                    "inner": [
+                        {"op": "eq", "ignoreCase": True, "name": "field1", "value": ["val"]},
+                        {"op": "glob", "name": "field1", "value": ["val"]},
+                    ],
+                },
+            }
+        ]
+    }
 
 
 class ProjectDetailsTest(APITestCase):
@@ -59,6 +83,18 @@ class ProjectDetailsTest(APITestCase):
         response = self.client.get(url + "?include=stats")
         assert response.status_code == 200
         assert response.data["stats"]["unresolved"] == 1
+
+    def test_with_dynamic_sampling_rules(self):
+        project = self.project  # force creation
+        project.update_option("sentry:dynamic_sampling", _dyn_sampling_data())
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert response.data["dynamicSampling"] == _dyn_sampling_data()
 
     def test_project_renamed_302(self):
         project = self.create_project()
@@ -538,6 +574,30 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("digests:mail:minimum_delay") == min_delay
         assert self.project.get_option("digests:mail:maximum_delay") == max_delay
 
+    def test_dynamic_sampling_requires_feature_enabled(self):
+        resp = self.client.put(self.path, data={"dynamicSampling": _dyn_sampling_data()})
+        assert resp.status_code == 403
+
+    def test_setting_dynamic_sampling_rules(self):
+        """
+        Test that we can set sampling rules
+        """
+        with Feature({"organizations:filters-and-sampling": True}):
+            resp = self.client.put(self.path, data={"dynamicSampling": _dyn_sampling_data()})
+            assert resp.status_code == 200, resp.content
+        assert self.project.get_option("sentry:dynamic_sampling") == _dyn_sampling_data()
+
+    def test_setting_dynamic_sampling_rules_roundtrip(self):
+        """
+        Tests that we get the same dynamic sampling rules that previously set
+        """
+        with Feature({"organizations:filters-and-sampling": True}):
+            resp = self.client.put(self.path, data={"dynamicSampling": _dyn_sampling_data()})
+            assert resp.status_code == 200, resp.content
+        response = self.client.get(self.path)
+        assert response.status_code == 200
+        assert response.data["dynamicSampling"] == _dyn_sampling_data()
+
 
 class CopyProjectSettingsTest(APITestCase):
     def setUp(self):
@@ -783,3 +843,56 @@ class ProjectDeleteTest(APITestCase):
         assert not mock_delete_project.delay.mock_calls
 
         assert response.status_code == 403
+
+
+@pytest.mark.parametrize(
+    "condition",
+    (
+        {"op": "and", "inner": []},
+        {"op": "and", "inner": [{"op": "and", "inner": []}]},
+        {"op": "or", "inner": []},
+        {"op": "or", "inner": [{"op": "or", "inner": []}]},
+        {"op": "not", "inner": {"op": "or", "inner": []}},
+        {"op": "eq", "ignoreCase": True, "name": "field1", "value": ["val"]},
+        {"op": "eq", "name": "field1", "value": ["val"]},
+        {"op": "glob", "name": "field1", "value": ["val"]},
+    ),
+)
+def test_condition_serializer_ok(condition):
+    serializer = DynamicSamplingConditionSerializer(data=condition)
+    assert serializer.is_valid()
+    assert serializer.validated_data == condition
+
+
+@pytest.mark.parametrize(
+    "condition",
+    (
+        {"inner": []},
+        {"op": "and"},
+        {"op": "or"},
+        {"op": "eq", "value": ["val"]},
+        {"op": "eq", "name": "field1"},
+        {"op": "glob", "value": ["val"]},
+        {"op": "glob", "name": "field1"},
+    ),
+)
+def test_bad_condition_serialization(condition):
+    serializer = DynamicSamplingConditionSerializer(data=condition)
+    assert not serializer.is_valid()
+
+
+def test_rule_serializer():
+    data = {
+        "sampleRate": 0.7,
+        "type": "trace",
+        "condition": {
+            "op": "and",
+            "inner": [
+                {"op": "eq", "ignoreCase": True, "name": "field1", "value": ["val"]},
+                {"op": "glob", "name": "field1", "value": ["val"]},
+            ],
+        },
+    }
+    serializer = DynamicSamplingRuleSerializer(data=data)
+    assert serializer.is_valid()
+    assert data == serializer.validated_data
