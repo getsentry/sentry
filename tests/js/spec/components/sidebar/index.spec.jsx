@@ -21,7 +21,7 @@ describe('Sidebar', function () {
         organization={organization}
         user={user}
         router={router}
-        location={router.location}
+        location={{...router.location, ...{pathname: '/test/'}}}
         {...props}
       />,
       routerContext
@@ -328,11 +328,19 @@ describe('Sidebar', function () {
       wrapper.update();
       expect(wrapper.find('SidebarPanel')).toHaveLength(1);
 
+      const prevProps = wrapper.props();
+
       wrapper.setProps({
-        location: {
-          pathname: 'new-path-name',
-        },
+        location: {...router.location, pathname: 'new-path-name'},
       });
+
+      // XXX(epurkhsier): Due to a bug in enzyme [0], componentDidUpdate is not
+      // called after props have updated, it still receives _old_ `this.props`.
+      // We manually call it here after the props have been correctly updated.
+      //
+      // [0]: https://github.com/enzymejs/enzyme/issues/2197
+      wrapper.instance().componentDidUpdate(prevProps);
+
       wrapper.update();
       expect(wrapper.find('SidebarPanel')).toHaveLength(0);
     });
