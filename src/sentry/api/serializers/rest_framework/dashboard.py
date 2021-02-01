@@ -82,7 +82,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
 
     def _get_attr(self, data, attr, empty_value=None):
         value = data.get(attr)
-        if value:
+        if value is not None:
             return value
         if self.instance:
             return getattr(self.instance, attr)
