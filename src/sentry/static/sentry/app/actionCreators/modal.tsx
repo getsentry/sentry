@@ -189,6 +189,7 @@ export type SentryAppDetailsModalOptions = {
 };
 
 type DebugFileSourceModalOptions = {
+  sourceConfig?: Record<string, string>;
   sourceType: DebugFileSource;
   onSave: (data: Record<string, string>) => void;
 };
