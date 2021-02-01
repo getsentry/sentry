@@ -7,7 +7,6 @@ import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import * as Layout from 'app/components/layouts/thirds';
 import QueryCount from 'app/components/queryCount';
-import Tooltip from 'app/components/tooltip';
 import {IconPause, IconPlay} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -60,14 +59,15 @@ function IssueListHeader({
         </StyledHeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
-            <Tooltip title="You’re seeing the new issues experience because you’ve opted to be an early adopter of new features. Send us feedback via email">
-              <Button
-                size="small"
-                href="mailto:workflow-feedback@sentry.io?subject=Issues Feedback"
-              >
-                Give Feedback
-              </Button>
-            </Tooltip>
+            <Button
+              title={t(
+                'You’re seeing the new issues experience because you’ve opted to be an early adopter of new features. Send us feedback via email'
+              )}
+              size="small"
+              href="mailto:workflow-feedback@sentry.io?subject=Issues Feedback"
+            >
+              Give Feedback
+            </Button>
             <Button
               size="small"
               title={t('%s real-time updates', realtimeActive ? t('Pause') : t('Enable'))}
