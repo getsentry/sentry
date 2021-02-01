@@ -66,6 +66,7 @@ const newQuery = {
   name: '',
   fields: ['count()'],
   conditions: '',
+  orderby: '',
 };
 
 function mapErrors(

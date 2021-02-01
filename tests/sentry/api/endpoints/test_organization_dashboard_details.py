@@ -454,7 +454,27 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         }
         response = self.client.put(self.url(self.dashboard.id), data=data)
         assert response.status_code == 400, response.data
-        assert "You cannot use a query not owned by this widget"
+        assert "You cannot use a query not owned by this widget" in response.data
+
+    def test_update_widget_invalid_orderby(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "id": six.text_type(self.widget_1.id),
+                    "queries": [
+                        {
+                            "fields": ["title", "count()"],
+                            "conditions": "",
+                            "orderby": "message",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.client.put(self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert b"Cannot order by a field" in response.content
 
     def test_remove_widget_and_add_new(self):
         # Remove a widget from the middle of the set and put a new widget there

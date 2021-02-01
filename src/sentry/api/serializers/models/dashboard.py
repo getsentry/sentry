@@ -50,6 +50,7 @@ class DashboardWidgetQuerySerializer(Serializer):
             "name": obj.name,
             "fields": obj.fields,
             "conditions": six.text_type(obj.conditions),
+            "orderby": six.text_type(obj.orderby),
             "widgetId": six.text_type(obj.widget_id),
         }
 
