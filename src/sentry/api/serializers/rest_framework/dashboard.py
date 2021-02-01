@@ -127,7 +127,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
 class DashboardDetailsSerializer(CamelSnakeSerializer):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
-    title = serializers.CharField(required=False)
+    title = serializers.CharField(required=False, max_length=255)
     widgets = DashboardWidgetSerializer(many=True, required=False)
 
     validate_id = validate_id
@@ -276,4 +276,4 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
 
 
 class DashboardSerializer(DashboardDetailsSerializer):
-    title = serializers.CharField(required=True)
+    title = serializers.CharField(required=True, max_length=255)

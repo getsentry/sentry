@@ -386,7 +386,7 @@ describe('Performance > Trends', function () {
         }),
       });
     }
-  });
+  }, 10000);
 
   it('choosing a confidence level changes location', async function () {
     const projects = [TestStubs.Project()];
@@ -414,7 +414,7 @@ describe('Performance > Trends', function () {
         }),
       });
     }
-  });
+  }, 10000);
 
   it('trend functions in location make api calls', async function () {
     const projects = [TestStubs.Project(), TestStubs.Project()];

@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import AvatarList from 'app/components/avatar/avatarList';
 import {t, tn} from 'app/locale';
@@ -33,10 +32,6 @@ const ReleaseStats = ({release, withHeading = true}: Props) => {
       </span>
     </div>
   );
-};
-
-ReleaseStats.propTypes = {
-  release: PropTypes.object,
 };
 
 const ReleaseSummaryHeading = styled('div')`

@@ -8,7 +8,6 @@ import {Client} from 'app/api';
 import AreaChart from 'app/components/charts/areaChart';
 import BarChart from 'app/components/charts/barChart';
 import ChartZoom from 'app/components/charts/chartZoom';
-import Legend from 'app/components/charts/components/legend';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import LineChart from 'app/components/charts/lineChart';
 import SimpleTableChart from 'app/components/charts/simpleTableChart';
@@ -26,6 +25,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
+import {getFieldFormatter} from 'app/utils/discover/fieldRenderers';
 import {getAggregateArg, getMeasurementSlug} from 'app/utils/discover/fields';
 import getDynamicText from 'app/utils/getDynamicText';
 import theme from 'app/utils/theme';
@@ -198,6 +198,7 @@ const StyledPanel = styled(Panel, {
   visibility: ${p => (p.isDragging ? 'hidden' : 'visible')};
   /* If a panel overflows due to a long title stretch its grid sibling */
   height: 100%;
+  min-height: 110px;
 `;
 
 const ToolbarPanel = styled('div')`
@@ -321,6 +322,42 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
     });
   }
 
+  bigNumberComponent({
+    loading,
+    errorMessage,
+    tableResults,
+  }: TableResultProps): React.ReactNode {
+    if (errorMessage) {
+      return (
+        <ErrorPanel>
+          <IconWarning color="gray500" size="lg" />
+        </ErrorPanel>
+      );
+    }
+
+    if (typeof tableResults === 'undefined' || loading) {
+      return <BigNumber>{'\u2014'}</BigNumber>;
+    }
+
+    return tableResults.map(result => {
+      const tableMeta = result.meta ?? {};
+      const fields = Object.keys(tableMeta ?? {});
+
+      const field = fields[0];
+
+      if (!field || !result.data.length) {
+        return <BigNumber key={`big_number:${result.title}`}>{'\u2014'}</BigNumber>;
+      }
+
+      const dataRow = result.data[0];
+      const fieldRenderer = getFieldFormatter(field, tableMeta);
+
+      const rendered = fieldRenderer(dataRow);
+
+      return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
+    });
+  }
+
   chartComponent(chartProps): React.ReactNode {
     const {widget} = this.props;
 
@@ -345,6 +382,15 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
         <TransitionChart loading={loading} reloading={loading}>
           <LoadingScreen loading={loading} />
           {this.tableResultComponent({tableResults, loading, errorMessage})}
+        </TransitionChart>
+      );
+    }
+
+    if (widget.displayType === 'big_number') {
+      return (
+        <TransitionChart loading={loading} reloading={loading}>
+          <LoadingScreen loading={loading} />
+          {this.bigNumberComponent({tableResults, loading, errorMessage})}
         </TransitionChart>
       );
     }
@@ -421,12 +467,11 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
       );
     }
 
-    const legend = Legend({
+    const legend = {
       right: 0,
       top: 3,
       type: 'plain',
       selected: getSeriesSelection(location),
-      theme,
       formatter: (seriesName: string) => {
         const arg = getAggregateArg(seriesName);
         if (arg !== null) {
@@ -437,7 +482,7 @@ class WidgetCardVisuals extends React.Component<WidgetCardVisualsProps> {
         }
         return seriesName;
       },
-    });
+    };
 
     const axisField = widget.queries[0]?.fields?.[0] ?? 'count()';
     const chartOptions = {
@@ -525,3 +570,12 @@ const LoadingScreen = ({loading}: {loading: boolean}) => {
     </StyledTransparentLoadingMask>
   );
 };
+
+const BigNumber = styled('div')`
+  font-size: 32px;
+  margin-top: ${space(1)};
+  padding: ${space(1)} ${space(2)} ${space(2)};
+  * {
+    text-align: left !important;
+  }
+`;

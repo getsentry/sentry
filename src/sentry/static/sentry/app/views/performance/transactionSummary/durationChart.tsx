@@ -6,7 +6,6 @@ import {Location, Query} from 'history';
 import {Client} from 'app/api';
 import AreaChart from 'app/components/charts/areaChart';
 import ChartZoom from 'app/components/charts/chartZoom';
-import Legend from 'app/components/charts/components/legend';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
@@ -86,12 +85,11 @@ class DurationChart extends React.Component<Props> {
     const end = this.props.end ? getUtcToLocalDateObject(this.props.end) : null;
     const utc = decodeScalar(router.location.query.utc) !== 'false';
 
-    const legend = Legend({
+    const legend = {
       right: 10,
       top: 0,
       selected: getSeriesSelection(location),
-      theme,
-    });
+    };
 
     const datetimeSelection = {
       start,
