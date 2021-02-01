@@ -94,20 +94,26 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     with configure_scope() as scope:
         scope.set_tag("project", project_id)
 
-    project = Project.objects.filter(id=project_id).get()
-    set_assemble_status(AssembleTask.DIF, project.id, checksum, ChunkFileState.ASSEMBLING)
+    delete_file = False
 
-    # Assemble the chunks into a temporary file
-    rv = assemble_file(AssembleTask.DIF, project, name, checksum, chunks, file_type="project.dif")
-
-    # If not file has been created this means that the file failed to
-    # assemble because of bad input data.  Return.
-    if rv is None:
-        return
-
-    file, temp_file = rv
-    delete_file = True
     try:
+        project = Project.objects.filter(id=project_id).get()
+        set_assemble_status(AssembleTask.DIF, project_id, checksum, ChunkFileState.ASSEMBLING)
+
+        # Assemble the chunks into a temporary file
+        rv = assemble_file(
+            AssembleTask.DIF, project, name, checksum, chunks, file_type="project.dif"
+        )
+
+        # If not file has been created this means that the file failed to
+        # assemble because of bad input data. In this case, assemble_file
+        # has set the assemble status already.
+        if rv is None:
+            return
+
+        file, temp_file = rv
+        delete_file = True
+
         with temp_file:
             # We only permit split difs to hit this endpoint.  The
             # client is required to split them up first or we error.
@@ -117,14 +123,14 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
                 )
             except BadDif as e:
                 set_assemble_status(
-                    AssembleTask.DIF, project.id, checksum, ChunkFileState.ERROR, detail=e.args[0]
+                    AssembleTask.DIF, project_id, checksum, ChunkFileState.ERROR, detail=e.args[0]
                 )
                 return
 
             if len(result) != 1:
                 detail = "Object contains %s architectures (1 expected)" % len(result)
                 set_assemble_status(
-                    AssembleTask.DIF, project.id, checksum, ChunkFileState.ERROR, detail=detail
+                    AssembleTask.DIF, project_id, checksum, ChunkFileState.ERROR, detail=detail
                 )
                 return
 
@@ -140,7 +146,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     except BaseException:
         set_assemble_status(
             AssembleTask.DIF,
-            project.id,
+            project_id,
             checksum,
             ChunkFileState.ERROR,
             detail="internal server error",
@@ -148,7 +154,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
         logger.error("failed to assemble dif", exc_info=True)
     else:
         set_assemble_status(
-            AssembleTask.DIF, project.id, checksum, ChunkFileState.OK, detail=serialize(dif)
+            AssembleTask.DIF, project_id, checksum, ChunkFileState.OK, detail=serialize(dif)
         )
     finally:
         if delete_file:
@@ -170,35 +176,37 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
     from sentry.utils.zip import safe_extract_zip
     from sentry.models import File, Organization, Release, ReleaseFile
 
-    organization = Organization.objects.get_from_cache(pk=org_id)
-
-    bind_organization_context(organization)
-
-    set_assemble_status(AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.ASSEMBLING)
-
-    # Assemble the chunks into a temporary file
-    rv = assemble_file(
-        AssembleTask.ARTIFACTS,
-        organization,
-        "release-artifacts.zip",
-        checksum,
-        chunks,
-        file_type="release.bundle",
-    )
-
-    # If not file has been created this means that the file failed to
-    # assemble because of bad input data.  Return.
-    if rv is None:
-        return
-
-    bundle, temp_file = rv
-    scratchpad = tempfile.mkdtemp()
-
-    # Initially, always delete the bundle file. Later on, we can start to store
-    # the artifact bundle as a release file.
-    delete_bundle = True
+    delete_bundle = False
 
     try:
+        organization = Organization.objects.get_from_cache(pk=org_id)
+        bind_organization_context(organization)
+
+        set_assemble_status(AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.ASSEMBLING)
+
+        # Assemble the chunks into a temporary file
+        rv = assemble_file(
+            AssembleTask.ARTIFACTS,
+            organization,
+            "release-artifacts.zip",
+            checksum,
+            chunks,
+            file_type="release.bundle",
+        )
+
+        # If not file has been created this means that the file failed to
+        # assemble because of bad input data. In this case, assemble_file
+        # has set the assemble status already.
+        if rv is None:
+            return
+
+        bundle, temp_file = rv
+        scratchpad = tempfile.mkdtemp()
+
+        # Initially, always delete the bundle file. Later on, we can start to store
+        # the artifact bundle as a release file.
+        delete_bundle = True
+
         try:
             safe_extract_zip(temp_file, scratchpad, strip_toplevel=False)
         except BaseException:
