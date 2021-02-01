@@ -24,13 +24,13 @@ from sentry.utils.safe import safe_execute
 logger = logging.getLogger("sentry.integrations.sentry_app")
 
 
-def build_incident_attachment(incident, metric_value=None):
+def build_incident_attachment(action, incident, metric_value=None):
     from sentry.api.serializers.rest_framework.base import (
         camel_to_snake_case,
         convert_dict_key_case,
     )
 
-    data = incident_attachment_info(incident, metric_value)
+    data = incident_attachment_info(incident, metric_value, action=action)
     return {
         "metric_alert": convert_dict_key_case(
             serialize(incident, serializer=IncidentSerializer()), camel_to_snake_case

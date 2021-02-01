@@ -83,7 +83,7 @@ def send_incident_alert_notification(action, incident, metric_value):
 
     channel = action.target_identifier
     integration = action.integration
-    attachment = build_incident_attachment(incident, metric_value)
+    attachment = build_incident_attachment(action, incident, metric_value)
     client = MsTeamsClient(integration)
     try:
         client.send_card(channel, attachment)

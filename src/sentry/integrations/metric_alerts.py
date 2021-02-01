@@ -1,7 +1,7 @@
 from datetime import timedelta
 from django.core.urlresolvers import reverse
 
-from sentry.incidents.logic import get_incident_aggregates
+from sentry.incidents.logic import get_incident_aggregates, CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models import IncidentStatus, IncidentTrigger, INCIDENT_STATUS
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
@@ -11,12 +11,28 @@ QUERY_AGGREGATION_DISPLAY = {
     "count_unique(tags[sentry:user])": "users affected",
 }
 
-# TODO: Fix all the places that call this function.
-def incident_attachment_info(incident, trigger, metric_value=None):
+
+# TODO(Chris F.): Fix all the places that call this function so that they pass "method" and "action".
+def incident_attachment_info(incident, metric_value=None, action=None, method=None):
     logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
     alert_rule = incident.alert_rule
-    # TODO: Get status from trigger label (?)
-    status = INCIDENT_STATUS[IncidentStatus(incident.status)]
+
+    if action and method:
+        # Get status from trigger if available
+        trigger = action.alert_rule_trigger
+        incident_status = (
+            IncidentStatus.CLOSED
+            if method == "resolve"
+            else (
+                IncidentStatus.CRITICAL
+                if trigger.label == CRITICAL_TRIGGER_LABEL
+                else IncidentStatus.WARNING
+            )
+        )
+    else:
+        incident_status = incident.status
+
+    status = INCIDENT_STATUS[IncidentStatus(incident_status)]
 
     agg_text = QUERY_AGGREGATION_DISPLAY.get(
         alert_rule.snuba_query.aggregate, alert_rule.snuba_query.aggregate

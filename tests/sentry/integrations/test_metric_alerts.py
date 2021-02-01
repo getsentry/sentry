@@ -4,6 +4,7 @@ from datetime import timedelta
 from sentry.testutils import TestCase, BaseIncidentsTest
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.incidents.models import IncidentStatus, IncidentTrigger
+from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 
 
 class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
@@ -18,8 +19,12 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
             status=IncidentStatus.CLOSED.value,
             date_started=date_started,
         )
+        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=incident
+        )
         metric_value = 123
-        data = incident_attachment_info(incident, metric_value)
+        data = incident_attachment_info(action, incident, metric_value)
 
         assert data["title"] == "Resolved: {}".format(alert_rule.name)
         assert data["status"] == "Resolved"
@@ -51,16 +56,44 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
             date_started=date_started,
             query="",
         )
-
-        self.create_alert_rule_trigger_action(triggered_for_incident=incident)
+        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=incident
+        )
 
         incident_trigger = (
             IncidentTrigger.objects.filter(incident=incident).order_by("-date_modified").first()
         )
         incident_trigger.update(date_modified=now)
 
-        data = incident_attachment_info(incident)
+        # Test the trigger "firing"
+        data = incident_attachment_info(action, incident, method="fire")
+        assert data["title"] == "Critical: {}".format(
+            alert_rule.name
+        )  # Pulls from trigger, not incident
+        assert data["status"] == "Critical"  # Should pull from the action/trigger.
+        assert data["text"] == "4 events in the last 10 minutes\nFilter: level:error"
+        assert data["ts"] == date_started
+        assert data["title_link"] == "http://testserver/organizations/baz/alerts/1/"
+        assert (
+            data["logo_url"]
+            == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
+        )
 
+        # Test the trigger "resolving"
+        data = incident_attachment_info(action, incident, method="resolve")
+        assert data["title"] == "Resolved: {}".format(alert_rule.name)
+        assert data["status"] == "Resolved"
+        assert data["text"] == "4 events in the last 10 minutes\nFilter: level:error"
+        assert data["ts"] == date_started
+        assert data["title_link"] == "http://testserver/organizations/baz/alerts/1/"
+        assert (
+            data["logo_url"]
+            == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
+        )
+
+        # No trigger passed, uses incident as fallback
+        data = incident_attachment_info(action, incident)
         assert data["title"] == "Resolved: {}".format(alert_rule.name)
         assert data["status"] == "Resolved"
         assert data["text"] == "4 events in the last 10 minutes\nFilter: level:error"

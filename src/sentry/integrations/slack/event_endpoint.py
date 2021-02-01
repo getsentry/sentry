@@ -78,7 +78,10 @@ def unfurl_incidents(integration, incident_map, event_id_by_url=None):
         return {}
 
     return {
-        v: build_incident_attachment(results[k])
+        v: build_incident_attachment(
+            action=None,
+            incident=results[k],
+        )
         for k, v in six.iteritems(incident_map)
         if k in results
     }

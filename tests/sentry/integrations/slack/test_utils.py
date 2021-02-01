@@ -4,6 +4,7 @@ import responses
 from django.core.urlresolvers import reverse
 import pytest
 
+from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.integrations.slack.utils import (
     build_group_attachment,
     build_incident_attachment,
@@ -181,10 +182,14 @@ class BuildIncidentAttachmentTest(TestCase):
         logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=2)
+        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=incident
+        )
         title = "{}: {}".format("Resolved", alert_rule.name)
-        assert build_incident_attachment(incident) == {
+        assert build_incident_attachment(action, incident) == {
             "fallback": title,
-            "title": title,
+            "title": title,  # FALSE, should pull from incident
             "title_link": absolute_uri(
                 reverse(
                     "sentry-metric-alert",
@@ -210,7 +215,11 @@ class BuildIncidentAttachmentTest(TestCase):
         incident = self.create_incident(alert_rule=alert_rule, status=2)
         title = "{}: {}".format("Resolved", alert_rule.name)
         metric_value = 5000
-        assert build_incident_attachment(incident, metric_value=metric_value) == {
+        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=incident
+        )
+        assert build_incident_attachment(action, incident, metric_value=metric_value) == {
             "fallback": title,
             "title": title,
             "title_link": absolute_uri(
