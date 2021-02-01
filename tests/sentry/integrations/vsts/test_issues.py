@@ -403,6 +403,13 @@ class VstsIssueSyncTest(VstsIssueBase):
         assert should_unresolve is True
 
     @responses.activate
+    def test_should_not_unresolve_resolved_to_closed(self):
+        should_unresolve = self.integration.should_unresolve(
+            {"project": self.project_id_with_states, "old_state": "Resolved", "new_state": "Closed"}
+        )
+        assert should_unresolve is False
+
+    @responses.activate
     def test_should_unresolve_new(self):
         should_unresolve = self.integration.should_unresolve(
             {"project": self.project_id_with_states, "old_state": None, "new_state": "New"}
