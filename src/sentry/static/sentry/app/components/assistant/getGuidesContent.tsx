@@ -112,6 +112,7 @@ export default function getGuidesContent(): GuidesContent {
           ),
           dismissText: t(`Later`),
           nextText: t(`Take a Look`),
+          hasNextGuide: true,
         },
       ],
     },

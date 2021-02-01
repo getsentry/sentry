@@ -11,6 +11,7 @@ export type GuideStep = {
   nextText?: string;
   dismissText?: string;
   cantDismiss?: boolean;
+  hasNextGuide?: boolean;
 };
 
 export type Guide = {

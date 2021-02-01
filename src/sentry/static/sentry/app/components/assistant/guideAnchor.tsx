@@ -135,15 +135,26 @@ const GuideAnchor = createReactClass<Props, State>({
         <GuideAction>
           <div>
             {lastStep ? (
-              <StyledButton
-                size="small"
-                href="#" // to clear `#assistant` from the url
-                to={to}
-                onClick={this.handleFinish}
-              >
-                {currentStep.nextText ||
-                  (hasManySteps ? t('Enough Already') : t('Got It'))}
-              </StyledButton>
+              <React.Fragment>
+                {currentStep.hasNextGuide && (
+                  <DismissButton
+                    size="small"
+                    href="#" // to clear `#assistant` from the url
+                    onClick={this.handleFinish}
+                  >
+                    {currentStep.dismissText || t('Dismiss')}
+                  </DismissButton>
+                )}
+                <StyledButton
+                  size="small"
+                  href="#" // to clear `#assistant` from the url
+                  to={to}
+                  onClick={this.handleFinish}
+                >
+                  {currentStep.nextText ||
+                    (hasManySteps ? t('Enough Already') : t('Got It'))}
+                </StyledButton>
+              </React.Fragment>
             ) : (
               <React.Fragment>
                 {!currentStep.cantDismiss && (
