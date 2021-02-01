@@ -995,12 +995,12 @@ def format_search_filter(term, params):
         # A blank term value means that this is a has filter
         group_ids = to_list(value)
     elif name == ISSUE_ALIAS:
+        operator = term.operator
         if value == "unknown":
             # `unknown` is a special value for when there is no issue associated with the event
             operator = "=" if term.operator == "=" else "!="
             value = ""
         elif value != "" and params and "organization_id" in params:
-            operator = term.operator
             try:
                 group = Group.objects.by_qualified_short_id(params["organization_id"], value)
             except Exception:
