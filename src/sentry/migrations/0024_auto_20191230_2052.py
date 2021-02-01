@@ -8,7 +8,6 @@ from django.db import migrations
 from django.utils import timezone
 
 from sentry import nodestore, options
-from sentry.models import Group as NewGroup
 from sentry.eventstore.models import Event as NewEvent
 from sentry.utils.dates import to_timestamp
 
