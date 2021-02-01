@@ -5,6 +5,8 @@ import styled from '@emotion/styled';
 import createReactClass from 'create-react-class';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
+import {IReactionDisposer, reaction} from 'mobx';
+import {observer} from 'mobx-react';
 import * as queryString from 'query-string';
 import Reflux from 'reflux';
 
@@ -31,6 +33,7 @@ import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import HookStore from 'app/stores/hookStore';
 import PreferencesStore from 'app/stores/preferencesStore';
+import sidebarPanelStore from 'app/stores/sidebarPanelStore';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
@@ -55,9 +58,9 @@ type Props = {
 
 type State = {
   horizontal: boolean;
-  currentPanel: SidebarPanelKey | '';
 };
 
+@observer
 class Sidebar extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -74,12 +77,21 @@ class Sidebar extends React.Component<Props, State> {
 
   state: State = {
     horizontal: false,
-    currentPanel: '',
   };
 
   componentDidMount() {
     document.body.classList.add('body-sidebar');
-    document.addEventListener('click', this.panelCloseHandler);
+
+    // We do not want to consider clicks outside of the panel until the panel
+    // has been activated, otherwise we may immediately close the panel due to an
+    // outside click that _opened_ the panel
+    reaction(
+      () => sidebarPanelStore.activePanel,
+      panel =>
+        panel !== ''
+          ? document.addEventListener('click', this.panelCloseHandler)
+          : document.removeEventListener('click', this.panelCloseHandler)
+    );
 
     this.checkHash();
     this.doCollapse(this.props.collapsed);
@@ -112,7 +124,7 @@ class Sidebar extends React.Component<Props, State> {
 
     // Close active panel if we navigated anywhere
     if (location?.pathname !== prevProps.location?.pathname) {
-      this.hidePanel();
+      sidebarPanelStore.hidePanel();
     }
 
     // Collapse
@@ -122,17 +134,17 @@ class Sidebar extends React.Component<Props, State> {
   }
 
   componentWillUnmount() {
-    document.removeEventListener('click', this.panelCloseHandler);
     document.body.classList.remove('body-sidebar');
 
-    if (this.mq) {
-      this.mq.removeListener(this.handleMediaQueryChange);
-      this.mq = null;
-    }
+    this.disposePanelHiderReaction?.();
+
+    this.mq?.removeListener?.(this.handleMediaQueryChange);
+    this.mq = null;
   }
 
   mq: MediaQueryList | null = null;
   sidebarRef = React.createRef<HTMLDivElement>();
+  disposePanelHiderReaction: IReactionDisposer | null = null;
 
   doCollapse(collapsed: boolean) {
     if (collapsed) {
@@ -154,7 +166,7 @@ class Sidebar extends React.Component<Props, State> {
 
   checkHash = () => {
     if (window.location.hash === '#welcome') {
-      this.togglePanel(SidebarPanelKey.OnboardingWizard);
+      sidebarPanelStore.activatePanel(SidebarPanelKey.OnboardingWizard);
     }
   };
 
@@ -162,15 +174,6 @@ class Sidebar extends React.Component<Props, State> {
     this.setState({
       horizontal: changed.matches,
     });
-  };
-
-  // Hide slideout panel
-  hidePanel = () => {
-    if (this.state.currentPanel === '') {
-      return;
-    }
-
-    this.setState({currentPanel: ''});
   };
 
   // Keep the global selection querystring values in the path
@@ -204,21 +207,14 @@ class Sidebar extends React.Component<Props, State> {
       browserHistory.push({pathname, query});
     }
 
-    this.hidePanel();
-  };
-
-  // Show slideout panel
-  showPanel = (panel: SidebarPanelKey) => this.setState({currentPanel: panel});
-
-  togglePanel = (panel: SidebarPanelKey) => {
-    if (this.state.currentPanel === panel) {
-      this.hidePanel();
-    } else {
-      this.showPanel(panel);
-    }
+    sidebarPanelStore.hidePanel();
   };
 
   panelCloseHandler = (evt: MouseEvent) => {
+    if (sidebarPanelStore.activePanel === '') {
+      return;
+    }
+
     if (!(evt.target instanceof Element)) {
       return;
     }
@@ -230,11 +226,12 @@ class Sidebar extends React.Component<Props, State> {
 
     // Ignore if click occurs within the sidebar panel
     const panel = getSidebarPanelContainer();
+
     if (panel && panel.contains(evt.target)) {
       return;
     }
 
-    this.hidePanel();
+    sidebarPanelStore.hidePanel();
   };
 
   /**
@@ -280,8 +277,11 @@ class Sidebar extends React.Component<Props, State> {
 
   render() {
     const {organization, collapsed} = this.props;
-    const {currentPanel, horizontal} = this.state;
+    const {horizontal} = this.state;
+
     const config = ConfigStore.getConfig();
+    const currentPanel = sidebarPanelStore.activePanel;
+
     const user = ConfigStore.get('user');
     const hasPanel = !!currentPanel;
     const orientation: SidebarOrientation = horizontal ? 'top' : 'left';
@@ -298,7 +298,7 @@ class Sidebar extends React.Component<Props, State> {
       <SidebarItem
         {...sidebarItemProps}
         index
-        onClick={this.hidePanel}
+        onClick={() => sidebarPanelStore.hidePanel()}
         icon={<IconProject size="md" />}
         label={t('Projects')}
         to={`/organizations/${organization.slug}/projects/`}
@@ -352,7 +352,7 @@ class Sidebar extends React.Component<Props, State> {
       >
         <SidebarItem
           {...sidebarItemProps}
-          onClick={this.hidePanel}
+          onClick={() => sidebarPanelStore.hidePanel()}
           icon={<IconTelescope size="md" />}
           label={t('Discover')}
           to={`/organizations/${organization.slug}/discover/`}
@@ -499,7 +499,7 @@ class Sidebar extends React.Component<Props, State> {
     const activity = hasOrganization && (
       <SidebarItem
         {...sidebarItemProps}
-        onClick={this.hidePanel}
+        onClick={() => sidebarPanelStore.hidePanel()}
         icon={<IconActivity size="md" />}
         label={t('Activity')}
         to={`/organizations/${organization.slug}/activity/`}
@@ -510,7 +510,7 @@ class Sidebar extends React.Component<Props, State> {
     const stats = hasOrganization && (
       <SidebarItem
         {...sidebarItemProps}
-        onClick={this.hidePanel}
+        onClick={() => sidebarPanelStore.hidePanel()}
         icon={<IconStats size="md" />}
         label={t('Stats')}
         to={`/organizations/${organization.slug}/stats/`}
@@ -521,7 +521,7 @@ class Sidebar extends React.Component<Props, State> {
     const settings = hasOrganization && (
       <SidebarItem
         {...sidebarItemProps}
-        onClick={this.hidePanel}
+        onClick={() => sidebarPanelStore.hidePanel()}
         icon={<IconSettings size="md" />}
         label={t('Settings')}
         to={`/settings/${organization.slug}/`}
@@ -579,8 +579,10 @@ class Sidebar extends React.Component<Props, State> {
               <OnboardingStatus
                 org={organization}
                 currentPanel={currentPanel}
-                onShowPanel={() => this.togglePanel(SidebarPanelKey.OnboardingWizard)}
-                hidePanel={this.hidePanel}
+                onShowPanel={() =>
+                  sidebarPanelStore.activatePanel(SidebarPanelKey.OnboardingWizard)
+                }
+                hidePanel={() => sidebarPanelStore.hidePanel()}
                 {...sidebarItemProps}
               />
             </SidebarSection>
@@ -594,23 +596,27 @@ class Sidebar extends React.Component<Props, State> {
               <SidebarHelp
                 orientation={orientation}
                 collapsed={collapsed}
-                hidePanel={this.hidePanel}
+                hidePanel={() => sidebarPanelStore.hidePanel()}
                 organization={organization}
               />
               <Broadcasts
                 orientation={orientation}
                 collapsed={collapsed}
                 currentPanel={currentPanel}
-                onShowPanel={() => this.togglePanel(SidebarPanelKey.Broadcasts)}
-                hidePanel={this.hidePanel}
+                onShowPanel={() =>
+                  sidebarPanelStore.activatePanel(SidebarPanelKey.Broadcasts)
+                }
+                hidePanel={() => sidebarPanelStore.hidePanel()}
                 organization={organization}
               />
               <ServiceIncidents
                 orientation={orientation}
                 collapsed={collapsed}
                 currentPanel={currentPanel}
-                onShowPanel={() => this.togglePanel(SidebarPanelKey.StatusUpdate)}
-                hidePanel={this.hidePanel}
+                onShowPanel={() =>
+                  sidebarPanelStore.activatePanel(SidebarPanelKey.StatusUpdate)
+                }
+                hidePanel={() => sidebarPanelStore.hidePanel()}
               />
             </SidebarSection>
 
