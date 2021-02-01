@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 import uuid
 
@@ -59,11 +57,11 @@ def get_filter_settings(project):
         filter_settings[filter_id] = settings
 
     if features.has("projects:custom-inbound-filters", project):
-        invalid_releases = project.get_option(u"sentry:{}".format(FilterTypes.RELEASES))
+        invalid_releases = project.get_option("sentry:{}".format(FilterTypes.RELEASES))
         if invalid_releases:
             filter_settings["releases"] = {"releases": invalid_releases}
 
-        error_messages = project.get_option(u"sentry:{}".format(FilterTypes.ERROR_MESSAGES))
+        error_messages = project.get_option("sentry:{}".format(FilterTypes.ERROR_MESSAGES))
         if error_messages:
             filter_settings["errorMessages"] = {"patterns": error_messages}
 
@@ -132,6 +130,14 @@ def get_project_config(project, full_config=True, project_keys=None):
             "organizationId": project.organization_id,
             "projectId": project.id,  # XXX: Unused by Relay, required by Python store
         }
+    allow_dynamic_sampling = features.has(
+        "organizations:filters-and-sampling",
+        project.organization,
+    )
+    if allow_dynamic_sampling:
+        dynamic_sampling = project.get_option("sentry:dynamic_sampling")
+        if dynamic_sampling is not None:
+            cfg["config"]["dynamicSampling"] = dynamic_sampling
 
     if not full_config:
         # This is all we need for external Relay processors
@@ -277,7 +283,7 @@ def _load_filter_settings(flt, project):
         default options for the filter will be returned
     """
     filter_id = flt.id
-    filter_key = u"filters:{}".format(filter_id)
+    filter_key = "filters:{}".format(filter_id)
     setting = project.get_option(filter_key)
 
     return _filter_option_to_config_setting(flt, setting)

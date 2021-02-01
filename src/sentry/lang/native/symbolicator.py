@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import sys
 import jsonschema
 import logging
@@ -60,7 +58,7 @@ HTTP_SOURCE_SCHEMA = {
         url={"type": "string"},
         username={"type": "string"},
         password={"type": "string"},
-        **COMMON_SOURCE_PROPERTIES
+        **COMMON_SOURCE_PROPERTIES,
     ),
     "required": ["type", "id", "url", "layout"],
     "additionalProperties": False,
@@ -75,7 +73,7 @@ S3_SOURCE_SCHEMA = {
         access_key={"type": "string"},
         secret_key={"type": "string"},
         prefix={"type": "string"},
-        **COMMON_SOURCE_PROPERTIES
+        **COMMON_SOURCE_PROPERTIES,
     ),
     "required": ["type", "id", "bucket", "region", "access_key", "secret_key", "layout"],
     "additionalProperties": False,
@@ -89,7 +87,7 @@ GCS_SOURCE_SCHEMA = {
         client_email={"type": "string"},
         private_key={"type": "string"},
         prefix={"type": "string"},
-        **COMMON_SOURCE_PROPERTIES
+        **COMMON_SOURCE_PROPERTIES,
     ),
     "required": ["type", "id", "bucket", "client_email", "private_key", "layout"],
     "additionalProperties": False,
@@ -102,7 +100,7 @@ SOURCES_SCHEMA = {
 
 
 def _task_id_cache_key_for_event(project_id, event_id):
-    return u"symbolicator:{1}:{0}".format(project_id, event_id)
+    return "symbolicator:{1}:{0}".format(project_id, event_id)
 
 
 class Symbolicator(object):
@@ -183,7 +181,8 @@ class Symbolicator(object):
 
     def process_applecrashreport(self, report):
         return self._process(
-            lambda: self.sess.upload_applecrashreport(report), "process_applecrashreport",
+            lambda: self.sess.upload_applecrashreport(report),
+            "process_applecrashreport",
         )
 
     def process_payload(self, stacktraces, modules, signal=None):

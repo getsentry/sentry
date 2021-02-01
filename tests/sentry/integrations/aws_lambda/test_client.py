@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import boto3
 
 from sentry.integrations.aws_lambda.client import gen_aws_client
@@ -13,11 +11,8 @@ class AwsLambdaClientTest(TestCase):
     @patch.object(boto3, "Session")
     @patch.object(boto3, "client")
     def test_simple(self, mock_get_client, mock_get_session):
-        arn = (
-            "arn:aws:cloudformation:us-west-1:599817902985:stack/"
-            "Sentry-Monitoring-Stack-Filter/e42083d0-3e3f-11eb-b66a-0ac9b5db7f30"
-        )
-
+        account_number = "599817902985"
+        region = "us-west-1"
         aws_external_id = "124-343"
 
         mock_client = Mock()
@@ -34,7 +29,7 @@ class AwsLambdaClientTest(TestCase):
 
         mock_get_session.return_value = mock_session
 
-        assert "expected_output" == gen_aws_client(arn, aws_external_id)
+        assert "expected_output" == gen_aws_client(account_number, region, aws_external_id)
 
         mock_get_client.assert_called_once_with(
             service_name="sts",
@@ -63,7 +58,6 @@ class AwsLambdaClientTest(TestCase):
                             "Action": [
                                 "lambda:ListFunctions",
                                 "lambda:GetLayerVersion",
-                                "iam:PassRole",
                                 "organizations:DescribeAccount",
                             ],
                             "Resource": "*",

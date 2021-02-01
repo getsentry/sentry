@@ -1,4 +1,8 @@
-from __future__ import absolute_import
+import re
+import six
+
+from django.utils.translation import ugettext_lazy as _
+from functools import wraps
 
 from sentry import options
 
@@ -8,7 +12,27 @@ from sentry.utils.compat import filter, map
 
 SUPPORTED_RUNTIMES = ["nodejs12.x", "nodejs10.x"]
 
+INVALID_LAYER_TEXT = "Invalid existing layer %s"
+
 DEFAULT_NUM_RETRIES = 3
+
+ALL_AWS_REGIONS = [
+    "us-east-1",
+    "us-east-2",
+    "us-west-1",
+    "us-west-2",
+    "ap-south-1",
+    "ap-southeast-1",
+    "ap-southeast-2",
+    "ap-northeast-1",
+    "ap-northeast-2",
+    "ca-central-1",
+    "eu-central-1",
+    "eu-west-1",
+    "eu-west-2",
+    "eu-west-3",
+    "sa-east-1",
+]
 
 
 # Taken from: https://gist.github.com/gene1wood/5299969edc4ef21d8efcfea52158dd40
@@ -31,16 +55,8 @@ def parse_arn(arn):
     return result
 
 
-def check_arn_is_valid_cloudformation_stack(arn):
-    try:
-        parsed = parse_arn(arn)
-    except Exception:
-        return False
-    return parsed["service"] == "cloudformation"
-
-
 def _get_aws_node_arn(region):
-    return u"arn:aws:lambda:{}:{}:layer:{}:{}".format(
+    return "arn:aws:lambda:{}:{}:layer:{}:{}".format(
         region,
         options.get("aws-lambda.account-number"),
         options.get("aws-lambda.node.layer-name"),
@@ -107,7 +123,10 @@ def get_supported_functions(lambda_client):
     for page in response_iterator:
         functions += page["Functions"]
 
-    return filter(lambda x: x.get("Runtime") in SUPPORTED_RUNTIMES, functions,)
+    return filter(
+        lambda x: x.get("Runtime") in SUPPORTED_RUNTIMES,
+        functions,
+    )
 
 
 def get_dsn_for_project(organization_id, project_id):
@@ -162,7 +181,10 @@ def disable_single_lambda(lambda_client, function, layer_arn):
             del env_variables[env_name]
 
     return update_lambda_with_retries(
-        lambda_client, FunctionName=name, Layers=layers, Environment={"Variables": env_variables},
+        lambda_client,
+        FunctionName=name,
+        Layers=layers,
+        Environment={"Variables": env_variables},
     )
 
 
@@ -180,3 +202,43 @@ def update_lambda_with_retries(lambda_client, **kwargs):
             kwargs["num_retries"] = num_retries - 1
             return update_lambda_with_retries(lambda_client, **kwargs)
         raise
+
+
+def get_invalid_layer_name(err_message):
+    """
+    Check to see if an error matches the invalid layer message
+    :param err_message: error string
+    :return the layer name if it's a invalid layer
+    """
+    match = re.search(
+        "Layer version arn:aws:lambda:[^:]+:\d+:layer:([^:]+):\d+ does not exist",
+        err_message,
+    )
+    if match:
+        return match[1]
+    return None
+
+
+def wrap_lambda_updater():
+    """
+    Wraps any function that updates a layer
+    Throws an IntegrationError for specific known errors
+    """
+
+    def inner(func):
+        @wraps(func)
+        def wrapped(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                err_message = six.text_type(e)
+                invalid_layer = get_invalid_layer_name(err_message)
+                # only have one specific error to catch
+                if invalid_layer:
+                    raise IntegrationError(_(INVALID_LAYER_TEXT) % invalid_layer)
+                # otherwise, re-raise the original error
+                raise
+
+        return wrapped
+
+    return inner

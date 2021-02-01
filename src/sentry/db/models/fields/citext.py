@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.db import connections, models
 from django.db.models.signals import pre_migrate
 

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 
 from sentry.models import ProjectKey
@@ -73,3 +71,26 @@ def test_project_config_uses_filter_features(default_project, insta_snapshot, ha
         else:
             assert cfg_releases is None
             assert cfg_error_messages is None
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("has_dyn_sampling", [False, True])
+@pytest.mark.parametrize("full_config", [False, True])
+def test_project_config_uses_filters_and_sampling_feature(
+    default_project, insta_snapshot, dyn_sampling_data, has_dyn_sampling, full_config
+):
+    """
+    Tests that dynamic sampling information is retrieved for both "full config" and "restricted config"
+    but only when the organization has "organizations:filter-and-sampling" feature enabled.
+    """
+    default_project.update_option("sentry:dynamic_sampling", dyn_sampling_data())
+
+    with Feature({"organizations:filters-and-sampling": has_dyn_sampling}):
+        cfg = get_project_config(default_project, full_config=full_config)
+        cfg = cfg.to_dict()
+        dynamic_sampling = get_path(cfg, "config", "dynamicSampling")
+
+        if has_dyn_sampling:
+            assert dynamic_sampling == dyn_sampling_data()
+        else:
+            assert dynamic_sampling is None

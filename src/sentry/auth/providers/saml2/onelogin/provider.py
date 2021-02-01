@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from django import forms
 
 from sentry.auth.providers.saml2.provider import SAML2Provider, Attributes

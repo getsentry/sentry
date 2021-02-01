@@ -13,17 +13,18 @@ type Props = {
   rule: DynamicSamplingRule;
   onEditRule: () => void;
   onDeleteRule: () => void;
+  disabled: boolean;
 };
 
-function Rule({rule, onEditRule, onDeleteRule}: Props) {
-  const {ty, condition, sampleRate} = rule;
+function Rule({rule, onEditRule, onDeleteRule, disabled}: Props) {
+  const {type, condition, sampleRate} = rule;
   return (
     <React.Fragment>
       <Column>
-        <IconGrabbable />
+        <StyledIconGrabbable disabled={disabled} />
       </Column>
       <Column>
-        <Type type={ty} />
+        <Type type={type} />
       </Column>
       <Column>
         <Conditions condition={condition} />
@@ -32,7 +33,11 @@ function Rule({rule, onEditRule, onDeleteRule}: Props) {
         <SampleRate sampleRate={sampleRate} />
       </CenteredColumn>
       <Column>
-        <Actions onEditRule={onEditRule} onDeleteRule={onDeleteRule} disabled={false} />
+        <Actions
+          onEditRule={onEditRule}
+          onDeleteRule={onDeleteRule}
+          disabled={disabled}
+        />
       </Column>
     </React.Fragment>
   );
@@ -48,4 +53,8 @@ const Column = styled('div')`
 const CenteredColumn = styled(Column)`
   text-align: center;
   justify-content: center;
+`;
+
+const StyledIconGrabbable = styled(IconGrabbable)<{disabled: boolean}>`
+  ${p => p.disabled && `color: ${p.theme.disabled}`}
 `;

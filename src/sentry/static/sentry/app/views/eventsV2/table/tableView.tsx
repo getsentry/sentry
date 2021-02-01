@@ -43,6 +43,7 @@ export type TableViewProps = {
   isLoading: boolean;
   error: string | null;
 
+  isFirstPage: boolean;
   eventView: EventView;
   tableData: TableData | null | undefined;
   tagKeys: null | string[];
@@ -199,7 +200,7 @@ class TableView extends React.Component<TableViewProps> {
     rowIndex: number,
     columnIndex: number
   ): React.ReactNode => {
-    const {eventView, location, organization, tableData} = this.props;
+    const {isFirstPage, eventView, location, organization, tableData} = this.props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -236,7 +237,7 @@ class TableView extends React.Component<TableViewProps> {
 
     return (
       <React.Fragment>
-        {isTopEvents && rowIndex < TOP_N && columnIndex === 0 ? (
+        {isFirstPage && isTopEvents && rowIndex < TOP_N && columnIndex === 0 ? (
           <TopResultsIndicator count={count} index={rowIndex} />
         ) : null}
         <CellAction

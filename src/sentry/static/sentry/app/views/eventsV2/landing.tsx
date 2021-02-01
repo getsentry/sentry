@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
-import PropTypes from 'prop-types';
 import {stringify} from 'query-string';
 
 import Feature from 'app/components/acl/feature';
@@ -18,7 +17,6 @@ import SearchBar from 'app/components/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import Switch from 'app/components/switch';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import ConfigStore from 'app/stores/configStore';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
@@ -64,12 +62,6 @@ type State = {
 } & AsyncComponent['state'];
 
 class DiscoverLanding extends AsyncComponent<Props, State> {
-  static propTypes: any = {
-    organization: SentryTypes.Organization.isRequired,
-    location: PropTypes.object.isRequired,
-    router: PropTypes.object.isRequired,
-  };
-
   mq = window.matchMedia?.(`(max-width: ${theme.breakpoints[1]})`);
 
   state: State = {
@@ -110,13 +102,13 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   getSavedQuerySearchQuery(): string {
     const {location} = this.props;
 
-    return String(decodeScalar(location.query.query) || '').trim();
+    return decodeScalar(location.query.query, '').trim();
   }
 
   getActiveSort() {
     const {location} = this.props;
 
-    const urlSort = location.query.sort ? decodeScalar(location.query.sort) : 'myqueries';
+    const urlSort = decodeScalar(location.query.sort, 'myqueries');
     return SORT_OPTIONS.find(item => item.value === urlSort) || SORT_OPTIONS[0];
   }
 
@@ -157,10 +149,10 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
       }
     }
 
-    const queryParams = {
+    const queryParams: Location['query'] = {
       cursor,
       query: `version:2 name:"${searchQuery}"`,
-      per_page: perPage,
+      per_page: perPage.toString(),
       sortBy: this.getActiveSort().value,
     };
     if (!cursor) {

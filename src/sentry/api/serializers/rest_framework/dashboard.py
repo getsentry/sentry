@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.db.models import Max
 from rest_framework import serializers
 
@@ -58,13 +56,13 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
             resolve_field_list(fields, snuba_filter)
             return fields
         except InvalidSearchQuery as err:
-            raise serializers.ValidationError(u"Invalid fields: {}".format(err))
+            raise serializers.ValidationError("Invalid fields: {}".format(err))
 
     def validate_conditions(self, conditions):
         try:
             get_filter(conditions)
         except InvalidSearchQuery as err:
-            raise serializers.ValidationError(u"Invalid conditions: {}".format(err))
+            raise serializers.ValidationError("Invalid conditions: {}".format(err))
         return conditions
 
     def validate(self, data):
@@ -78,11 +76,11 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
 class DashboardWidgetSerializer(CamelSnakeSerializer):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
-    title = serializers.CharField(required=False)
+    title = serializers.CharField(required=False, max_length=255)
     display_type = serializers.ChoiceField(
         choices=DashboardWidgetDisplayTypes.as_text_choices(), required=False
     )
-    interval = serializers.CharField(required=False)
+    interval = serializers.CharField(required=False, max_length=10)
     queries = DashboardWidgetQuerySerializer(many=True, required=False)
 
     def validate_display_type(self, display_type):
@@ -113,7 +111,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer):
 class DashboardDetailsSerializer(CamelSnakeSerializer):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
-    title = serializers.CharField(required=False)
+    title = serializers.CharField(required=False, max_length=255)
     widgets = DashboardWidgetSerializer(many=True, required=False)
 
     validate_id = validate_id
@@ -259,4 +257,4 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
 
 
 class DashboardSerializer(DashboardDetailsSerializer):
-    title = serializers.CharField(required=True)
+    title = serializers.CharField(required=True, max_length=255)

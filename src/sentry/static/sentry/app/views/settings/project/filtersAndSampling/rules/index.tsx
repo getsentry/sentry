@@ -12,9 +12,10 @@ type Props = {
   rules: Array<DynamicSamplingRule>;
   onEditRule: (rule: DynamicSamplingRule) => () => void;
   onDeleteRule: (rule: DynamicSamplingRule) => () => void;
+  disabled: boolean;
 };
 
-function Rules({rules, onEditRule, onDeleteRule}: Props) {
+function Rules({rules, onEditRule, onDeleteRule, disabled}: Props) {
   return (
     <StyledPanelTable
       headers={['', t('Event Type'), t('Category'), t('Sampling Rate'), '']}
@@ -27,6 +28,7 @@ function Rules({rules, onEditRule, onDeleteRule}: Props) {
           rule={rule}
           onEditRule={onEditRule(rule)}
           onDeleteRule={onDeleteRule(rule)}
+          disabled={disabled}
         />
       ))}
     </StyledPanelTable>
@@ -52,9 +54,11 @@ const StyledPanelTable = styled(PanelTable)`
       }
     }
 
-    :nth-child(5n - 4),
-    :nth-child(5n - 3) {
-      display: none;
+    @media (max-width: ${p => p.theme.breakpoints[0]}) {
+      :nth-child(5n - 4),
+      :nth-child(5n - 3) {
+        display: none;
+      }
     }
 
     :nth-child(5n) {
@@ -65,13 +69,6 @@ const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1.5fr 1fr max-content;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    > * {
-      :nth-child(5n - 4),
-      :nth-child(5n - 3) {
-        display: flex;
-      }
-    }
-
     grid-template-columns: max-content 1fr 1.5fr 1fr max-content;
   }
 

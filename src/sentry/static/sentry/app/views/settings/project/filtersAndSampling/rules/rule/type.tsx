@@ -12,7 +12,7 @@ type Props = {
 function Type({type}: Props) {
   switch (type) {
     case DynamicSamplingRuleType.ERROR:
-      return <ErrorLabel>{t('Error')}</ErrorLabel>;
+      return <ErrorLabel>{t('Errors only')}</ErrorLabel>;
     case DynamicSamplingRuleType.TRANSACTION:
       return <TransactionLabel>{t('Individual transactions')}</TransactionLabel>;
     case DynamicSamplingRuleType.TRACE:
@@ -34,7 +34,6 @@ const ErrorLabel = styled('div')`
   white-space: pre-wrap;
 `;
 
-const TransactionLabel = styled('div')`
+const TransactionLabel = styled(ErrorLabel)`
   color: ${p => p.theme.linkColor};
-  white-space: pre-wrap;
 `;

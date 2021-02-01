@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import pytz
 import six
 
@@ -76,12 +74,12 @@ class MonitorStatus(ObjectStatus):
     @classmethod
     def as_choices(cls):
         return (
-            (cls.ACTIVE, u"active"),
-            (cls.DISABLED, u"disabled"),
-            (cls.PENDING_DELETION, u"pending_deletion"),
-            (cls.DELETION_IN_PROGRESS, u"deletion_in_progress"),
-            (cls.OK, u"ok"),
-            (cls.ERROR, u"error"),
+            (cls.ACTIVE, "active"),
+            (cls.DISABLED, "disabled"),
+            (cls.PENDING_DELETION, "pending_deletion"),
+            (cls.DELETION_IN_PROGRESS, "deletion_in_progress"),
+            (cls.OK, "ok"),
+            (cls.ERROR, "error"),
         )
 
 

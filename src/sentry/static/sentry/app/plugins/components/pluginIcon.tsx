@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import amixr from 'sentry-images/logos/logo-amixr.svg';
 import asana from 'sentry-images/logos/logo-asana.svg';
@@ -136,11 +135,6 @@ const PluginIcon = styled('div')<Props>`
 PluginIcon.defaultProps = {
   pluginId: '_default',
   size: 20,
-};
-
-PluginIcon.propTypes = {
-  pluginId: PropTypes.string,
-  size: PropTypes.number,
 };
 
 export default PluginIcon;

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from abc import ABCMeta, abstractmethod, abstractproperty
 
 import logging
@@ -12,7 +10,11 @@ from hashlib import md5
 from django.utils import timezone
 
 from sentry import options
-from sentry.api.event_search import convert_search_filter_to_snuba_query, DateArg
+from sentry.api.event_search import (
+    convert_search_filter_to_snuba_query,
+    DateArg,
+    InvalidSearchQuery,
+)
 from sentry.api.paginator import DateTimePaginator, SequencePaginator, Paginator
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.models import Group
@@ -25,12 +27,12 @@ def get_search_filter(search_filters, name, operator):
     multiple values are found, returns the most restrictive value
     :param search_filters: collection of `SearchFilter` objects
     :param name: Name of the field to find
-    :param operator: '<' or '>'
+    :param operator: '<', '>' or '='
     :return: The value of the field if found, else None
     """
     if not search_filters:
         return None
-    assert operator in ("<", ">")
+    assert operator in ("<", ">", "=")
     comparator = max if operator.startswith(">") else min
     found_val = None
     for search_filter in search_filters:
@@ -213,8 +215,8 @@ class AbstractQueryExecutor:
         self, search_filter, converted_filter, project_ids, environment_ids=None
     ):
         """This method serves as a hook - after we convert the search_filter into a snuba compatible filter (which converts it in a general dataset ambigious method),
-            we may want to transform the query - maybe change the value (time formats, translate value into id (like turning Release `version` into `id`) or vice versa),  alias fields, etc.
-            By default, no transformation is done.
+        we may want to transform the query - maybe change the value (time formats, translate value into id (like turning Release `version` into `id`) or vice versa),  alias fields, etc.
+        By default, no transformation is done.
         """
         return converted_filter
 
@@ -243,7 +245,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         [
             "query",
             "status",
-            "needs_review",
+            "for_review",
             "owner",
             "bookmarked_by",
             "assigned_to",
@@ -262,6 +264,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "priority": "priority",
         "user": "user_count",
         "trend": "trend",
+        # We don't need a corresponding snuba field here, since this sort only happens
+        # in Postgres
+        "inbox": "",
     }
 
     aggregation_defs = {
@@ -306,6 +311,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         if not end:
             end = now + ALLOWED_FUTURE_DELTA
 
+            metrics.incr("snuba.search.postgres_only")
+
             # This search is for some time window that ends with "now",
             # so if the requested sort is `date` (`last_seen`) and there
             # are no other Snuba-based search predicates, we can simply
@@ -349,6 +356,35 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # in the future we should find a way to notify the user that their search
             # is invalid.
             return self.empty_result
+
+        # This search is specific to Inbox. If we're using inbox sort and only querying
+        # postgres then we can use this sort method. Otherwise if we need to go to Snuba,
+        # fail.
+        if (
+            sort_by == "inbox"
+            and get_search_filter(search_filters, "for_review", "=")
+            # This handles tags and date parameters for search filters.
+            and not [
+                sf
+                for sf in search_filters
+                if sf.key.name not in self.postgres_only_fields.union(["date"])
+            ]
+        ):
+            # We just filter on `GroupInbox.date_added` here, and don't filter by date
+            # on the group. This keeps the query simpler and faster in some edge cases,
+            # and date_added is a good enough proxy when we're using this sort.
+            group_queryset = group_queryset.filter(
+                groupinbox__date_added__gte=start,
+                groupinbox__date_added__lte=end,
+            )
+            group_queryset = group_queryset.extra(
+                select={"inbox_date": "sentry_groupinbox.date_added"},
+            ).order_by("-inbox_date")
+            paginator = DateTimePaginator(group_queryset, "-inbox_date", **paginator_options)
+            return paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
+
+        if sort_by == "inbox":
+            raise InvalidSearchQuery(f"Sort key '{sort_by}' only supported for inbox search")
 
         # Here we check if all the django filters reduce the set of groups down
         # to something that we can send down to Snuba in a `group_id IN (...)`

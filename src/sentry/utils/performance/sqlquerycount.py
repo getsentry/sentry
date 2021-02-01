@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 import six
 import threading
@@ -69,7 +67,7 @@ class SqlQueryCountMonitor(object):
         max_queries=DEFAULT_MAX_QUERIES,
         max_dupes=DEFAULT_MAX_DUPES,
         logger=None,
-        **kwargs
+        **kwargs,
     ):
         self.context = context
         self.max_queries = max_queries

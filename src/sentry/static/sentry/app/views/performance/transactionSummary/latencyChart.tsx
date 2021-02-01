@@ -197,7 +197,7 @@ class LatencyChart extends React.Component<Props, State> {
       location
     );
 
-    const min = parseInt(decodeScalar(location.query.startDuration) ?? '0', 10);
+    const min = parseInt(decodeScalar(location.query.startDuration, '0'), 10);
 
     return (
       <React.Fragment>
@@ -218,7 +218,7 @@ class LatencyChart extends React.Component<Props, State> {
           numBuckets={NUM_BUCKETS}
           fields={['transaction.duration']}
           min={min}
-          dataFilter="all"
+          dataFilter="exclude_outliers"
         >
           {({histograms, isLoading, error}) => {
             if (isLoading) {

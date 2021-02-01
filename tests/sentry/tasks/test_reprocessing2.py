@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from time import time
 import pytest
 import uuid
@@ -33,6 +31,7 @@ def reprocessing_feature(monkeypatch):
 @pytest.fixture
 def process_and_save(default_project, task_runner):
     def inner(data, seconds_ago=1):
+        data.setdefault("platform", "native")
         data.setdefault("timestamp", iso_format(before_now(seconds=seconds_ago)))
         mgr = EventManager(data=data, project=default_project)
         mgr.normalize()
@@ -309,7 +308,9 @@ def test_attachments_and_userfeedback(
             )
 
         UserReport.objects.create(
-            project_id=default_project.id, event_id=evt.event_id, name="User",
+            project_id=default_project.id,
+            event_id=evt.event_id,
+            name="User",
         )
 
     with burst_task_runner() as burst:
@@ -338,7 +339,11 @@ def test_attachments_and_userfeedback(
 @pytest.mark.django_db
 @pytest.mark.snuba
 def test_nodestore_missing(
-    default_project, reset_snuba, process_and_save, burst_task_runner, monkeypatch,
+    default_project,
+    reset_snuba,
+    process_and_save,
+    burst_task_runner,
+    monkeypatch,
 ):
     event_id = process_and_save({"message": "hello world"})
     event = eventstore.get_event_by_id(default_project.id, event_id)

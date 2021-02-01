@@ -1,6 +1,5 @@
-from __future__ import absolute_import
-
 import logging
+from requests.exceptions import ReadTimeout, ConnectionError
 import six
 import sentry
 
@@ -123,4 +122,10 @@ class WebHooksPlugin(notify.NotificationPlugin):
         payload = self.get_group_data(group, event, triggering_rules)
         for url in self.get_webhook_urls(group.project):
             # TODO: Use API client with raise_error
-            safe_execute(self.send_webhook, url, payload, _with_transaction=False)
+            safe_execute(
+                self.send_webhook,
+                url,
+                payload,
+                _with_transaction=False,
+                expected_errors=(ReadTimeout, ConnectionError),
+            )

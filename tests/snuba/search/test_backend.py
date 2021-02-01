@@ -1,13 +1,13 @@
-from __future__ import absolute_import
 import uuid
 
-from sentry.utils.compat import mock
+import pytest
 import pytz
 from datetime import datetime, timedelta
 from django.utils import timezone
 from hashlib import md5
 
 from sentry import options
+from sentry.api.event_search import InvalidSearchQuery
 from sentry.api.issue_search import convert_query_values, IssueSearchVisitor, parse_search_query
 from sentry.models import (
     Environment,
@@ -19,9 +19,11 @@ from sentry.models import (
     GroupSubscription,
     Integration,
 )
+from sentry.models.groupinbox import add_group_to_inbox, GroupInboxReason
 from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
 from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat import mock
 from sentry.utils.snuba import Dataset, SENTRY_SNUBA_MAP, SnubaError
 
 
@@ -164,7 +166,9 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(event.group.organization, self.user)
         self.create_integration_external_issue(
-            group=event.group, integration=integration, key="APP-123",
+            group=event.group,
+            integration=integration,
+            key="APP-123",
         )
         return event.group
 
@@ -221,7 +225,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             sort_by=sort_by,
             date_from=date_from,
             date_to=date_to,
-            **kwargs
+            **kwargs,
         )
 
     def test_query(self):
@@ -1023,7 +1027,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 ["uniq", "group_id", "total"],
             ],
             having=[["last_seen", ">=", Any(int)]],
-            **common_args
+            **common_args,
         )
 
         self.make_query(search_filter_query="foo", sort_by="priority")
@@ -1037,7 +1041,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 ["uniq", "group_id", "total"],
             ],
             having=[],
-            **common_args
+            **common_args,
         )
 
         self.make_query(search_filter_query="times_seen:5 foo", sort_by="freq")
@@ -1046,7 +1050,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             orderby=["-times_seen", "group_id"],
             aggregations=[["count()", "", "times_seen"], ["uniq", "group_id", "total"]],
             having=[["times_seen", "=", 5]],
-            **common_args
+            **common_args,
         )
 
         self.make_query(search_filter_query="foo", sort_by="user")
@@ -1058,7 +1062,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 ["uniq", "tags[sentry:user]", "user_count"],
             ],
             having=[],
-            **common_args
+            **common_args,
         )
 
     def test_pre_and_post_filtering(self):
@@ -1439,6 +1443,60 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         # These will be arbitrarily ordered since their trend values are all 0
         assert set(results[2:]) == set([self.group2, no_before_group, no_after_group])
 
+    def test_sort_inbox(self):
+        start = self.group1.first_seen - timedelta(days=1)
+        inbox_group_1 = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group1"],
+                "event_id": "2" * 32,
+                "message": "something",
+                "timestamp": iso_format(self.base_datetime),
+            },
+            project_id=self.project.id,
+        ).group
+        inbox_1 = add_group_to_inbox(inbox_group_1, GroupInboxReason.NEW)
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group2"],
+                "event_id": "3" * 32,
+                "message": "something",
+                "timestamp": iso_format(self.base_datetime),
+            },
+            project_id=self.project.id,
+        ).group
+
+        inbox_group_2 = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group3"],
+                "event_id": "4" * 32,
+                "message": "something",
+                "timestamp": iso_format(self.base_datetime),
+            },
+            project_id=self.project.id,
+        ).group
+        inbox_2 = add_group_to_inbox(inbox_group_2, GroupInboxReason.NEW)
+        inbox_2.update(date_added=inbox_1.date_added - timedelta(hours=1))
+
+        results = self.make_query(
+            [self.project, self.create_project()],
+            sort_by="inbox",
+            date_from=start,
+            search_filter_query="is:unresolved is:for_review",
+        )
+        assert results.results == [inbox_group_1, inbox_group_2]
+
+    def test_sort_inbox_invalid(self):
+        with pytest.raises(InvalidSearchQuery):
+            self.make_query([self.project], sort_by="inbox")
+
+        with pytest.raises(InvalidSearchQuery):
+            self.make_query(
+                [self.project], sort_by="inbox", search_filter_query="is:for_review abc:no_tags"
+            )
+
+        with pytest.raises(InvalidSearchQuery):
+            self.make_query([self.project], sort_by="inbox", search_filter_query="!is:for_review")
+
     def test_first_release_any_or_no_environments(self):
         # test scenarios for tickets:
         # SEN-571
@@ -1511,7 +1569,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        assert group_b_event_1.get_environment().name == u""  # has no environment
+        assert group_b_event_1.get_environment().name == ""  # has no environment
 
         group_b = group_b_event_1.group
 
@@ -1526,7 +1584,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        assert group_c_event_1.get_environment().name == u""  # has no environment
+        assert group_c_event_1.get_environment().name == ""  # has no environment
 
         group_c = group_c_event_1.group
 

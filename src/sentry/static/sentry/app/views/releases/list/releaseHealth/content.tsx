@@ -73,8 +73,8 @@ const Content = ({
               </DailyColumn>
             </React.Fragment>
           )}
-          <CrashIssueColumn>{t('Crashes')}</CrashIssueColumn>
-          <CrashIssueColumn>{t('New Issues')}</CrashIssueColumn>
+          <CrashesColumn>{t('Crashes')}</CrashesColumn>
+          <NewIssuesColumn>{t('New Issues')}</NewIssuesColumn>
           <ViewColumn />
         </Layout>
       </Header>
@@ -186,7 +186,7 @@ const Content = ({
                     )}
                   </DailyColumn>
 
-                  <CrashIssueColumn>
+                  <CrashesColumn>
                     {showPlaceholders ? (
                       <StyledPlaceholder width="30px" />
                     ) : hasHealthData && defined(sessionsCrashed) ? (
@@ -204,9 +204,9 @@ const Content = ({
                     ) : (
                       <NotAvailable />
                     )}
-                  </CrashIssueColumn>
+                  </CrashesColumn>
 
-                  <CrashIssueColumn>
+                  <NewIssuesColumn>
                     <Tooltip title={t('Open in Issues')}>
                       <GlobalSelectionLink
                         to={getReleaseNewIssuesUrl(orgSlug, project.id, releaseVersion)}
@@ -214,13 +214,14 @@ const Content = ({
                         <Count value={newGroups || 0} />
                       </GlobalSelectionLink>
                     </Tooltip>
-                  </CrashIssueColumn>
+                  </NewIssuesColumn>
 
                   <ViewColumn>
                     <ProjectLink
                       orgSlug={orgSlug}
                       project={project}
                       releaseVersion={releaseVersion}
+                      location={location}
                     />
                   </ViewColumn>
                 </Layout>
@@ -276,7 +277,7 @@ const ProjectRow = styled(PanelItem)`
 
 const Layout = styled('div')`
   display: grid;
-  grid-template-columns: 1fr 1fr 0.5fr;
+  grid-template-columns: 1fr 1.4fr 0.6fr 0.7fr;
   grid-column-gap: ${space(1)};
   align-items: center;
   width: 100%;
@@ -299,6 +300,12 @@ const Column = styled('div')`
   line-height: 20px;
 `;
 
+const NewIssuesColumn = styled(Column)`
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    text-align: right;
+  }
+`;
+
 const AdoptionColumn = styled(Column)`
   display: none;
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
@@ -316,7 +323,9 @@ const AdoptionWrapper = styled('span')`
 `;
 
 const SessionsColumn = styled(Column)`
-  text-align: center;
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    text-align: center;
+  }
 `;
 
 const DailyColumn = styled(Column)`
@@ -329,7 +338,7 @@ const DailyColumn = styled(Column)`
   }
 `;
 
-const CrashIssueColumn = styled(Column)`
+const CrashesColumn = styled(Column)`
   display: none;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {

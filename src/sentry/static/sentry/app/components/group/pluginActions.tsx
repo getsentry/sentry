@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps, openModal} from 'app/actionCreators/modal';
@@ -8,7 +7,6 @@ import IssueSyncListElement from 'app/components/issueSyncListElement';
 import NavTabs from 'app/components/navTabs';
 import {t, tct} from 'app/locale';
 import plugins from 'app/plugins';
-import SentryTypes from 'app/sentryTypes';
 import {Group, Organization, Plugin, Project} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -39,14 +37,6 @@ type State = {
 };
 
 class PluginActions extends React.Component<Props, State> {
-  static propTypes: any = {
-    api: PropTypes.object,
-    group: SentryTypes.Group.isRequired,
-    organization: SentryTypes.Organization.isRequired,
-    project: SentryTypes.Project.isRequired,
-    plugin: PropTypes.object.isRequired,
-  };
-
   state: State = {
     issue: null,
     pluginLoading: false,

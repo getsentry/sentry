@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from .base import *  # NOQA
 from .handler import *  # NOQA
 from .manager import *  # NOQA
@@ -82,7 +80,6 @@ default_manager.add("organizations:integrations-incident-management", Organizati
 default_manager.add("organizations:integrations-ticket-rules", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-vsts-limited-scopes", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-stacktrace-link", OrganizationFeature)  # NOQA
-default_manager.add("organizations:integrations-aws_lambda", OrganizationFeature)  # NOQA
 default_manager.add("organizations:slack-allow-workspace", OrganizationFeature)  # NOQA
 default_manager.add("organizations:internal-catchall", OrganizationFeature)  # NOQA
 default_manager.add("organizations:invite-members", OrganizationFeature)  # NOQA
@@ -95,6 +92,7 @@ default_manager.add("organizations:org-subdomains", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-view", OrganizationFeature)  # NOQA
 default_manager.add("organizations:project-detail", OrganizationFeature)  # NOQA
 default_manager.add("organizations:relay", OrganizationFeature)  # NOQA
+default_manager.add("organizations:releases-top-charts", OrganizationFeature)  # NOQA
 default_manager.add("organizations:reprocessing-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:rule-page", OrganizationFeature)  # NOQA
 default_manager.add("organizations:set-grouping-config", OrganizationFeature)  # NOQA

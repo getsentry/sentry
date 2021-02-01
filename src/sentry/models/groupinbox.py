@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import jsonschema
 import logging
 
@@ -50,6 +48,7 @@ class GroupInbox(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_groupinbox"
+        index_together = (("project", "date_added"),)
 
 
 def add_group_to_inbox(group, reason, reason_details=None):
@@ -73,13 +72,15 @@ def add_group_to_inbox(group, reason, reason_details=None):
         },
     )
 
-    inbox_in.send_robust(
-        project=group.project,
-        user=None,
-        group=group,
-        sender="add_group_to_inbox",
-        reason=reason.name.lower(),
-    )
+    # Ignore new issues, too many events
+    if reason is not GroupInboxReason.NEW:
+        inbox_in.send_robust(
+            project=group.project,
+            user=None,
+            group=group,
+            sender="add_group_to_inbox",
+            reason=reason.name.lower(),
+        )
     return group_inbox
 
 

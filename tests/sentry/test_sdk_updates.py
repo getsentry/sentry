@@ -1,18 +1,16 @@
-from __future__ import absolute_import
-
 import pytest
 
 from sentry.sdk_updates import SdkSetupState, SdkIndexState, get_suggested_updates
 
 
-PYTHON_INDEX_STATE = SdkIndexState(sdk_versions={"sentry.python": "0.9.0"})
+PYTHON_INDEX_STATE = SdkIndexState(sdk_versions={"sentry.python": "0.9.1"})
 
 DOTNET_INDEX_STATE = SdkIndexState(sdk_versions={"sentry.dotnet": "1.2.0"})
 
 
 def test_too_old_django():
     setup = SdkSetupState(
-        sdk_name="sentry.python", sdk_version="0.9.0", integrations=[], modules={"django": "1.3"}
+        sdk_name="sentry.python", sdk_version="0.9.1", integrations=[], modules={"django": "1.3"}
     )
     assert list(get_suggested_updates(setup, PYTHON_INDEX_STATE)) == []
 
@@ -31,7 +29,7 @@ def test_too_old_sdk():
                     "integrationUrl": "https://docs.sentry.io/platforms/python/django/",
                 }
             ],
-            "newSdkVersion": "0.9.0",
+            "newSdkVersion": "0.9.1",
             "sdkName": "sentry.python",
             "sdkUrl": None,
             "type": "updateSdk",
@@ -39,9 +37,18 @@ def test_too_old_sdk():
     ]
 
 
+def test_ignore_patch_version():
+    setup = SdkSetupState(
+        sdk_name="sentry.python", sdk_version="0.9.0", integrations=[], modules={}
+    )
+    assert (
+        len(list(get_suggested_updates(setup, PYTHON_INDEX_STATE, ignore_patch_version=True))) == 0
+    )
+
+
 def test_enable_django_integration():
     setup = SdkSetupState(
-        sdk_name="sentry.python", sdk_version="0.9.0", integrations=[], modules={"django": "1.8"}
+        sdk_name="sentry.python", sdk_version="0.9.1", integrations=[], modules={"django": "1.8"}
     )
     assert list(get_suggested_updates(setup, PYTHON_INDEX_STATE)) == [
         {
@@ -60,7 +67,7 @@ def test_update_sdk():
     assert list(get_suggested_updates(setup, PYTHON_INDEX_STATE)) == [
         {
             "enables": [],
-            "newSdkVersion": "0.9.0",
+            "newSdkVersion": "0.9.1",
             "sdkName": "sentry.python",
             "sdkUrl": None,
             "type": "updateSdk",
@@ -92,7 +99,7 @@ def test_enable_two_integrations():
                     "integrationUrl": "https://docs.sentry.io/platforms/python/flask/",
                 },
             ],
-            "newSdkVersion": "0.9.0",
+            "newSdkVersion": "0.9.1",
             "sdkName": "sentry.python",
             "sdkUrl": None,
             "type": "updateSdk",

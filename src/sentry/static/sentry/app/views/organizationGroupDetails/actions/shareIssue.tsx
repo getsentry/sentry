@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import ActionButton from 'app/components/actions/button';
 import AutoSelectText from 'app/components/autoSelectText';
@@ -95,15 +94,6 @@ type Props = {
 };
 
 class ShareIssue extends React.Component<Props> {
-  static propTypes = {
-    loading: PropTypes.bool.isRequired,
-    isShared: PropTypes.bool,
-    shareUrl: PropTypes.string,
-    onToggle: PropTypes.func.isRequired,
-    onReshare: PropTypes.func.isRequired,
-    disabled: PropTypes.bool,
-  };
-
   hasConfirmModal = false;
 
   handleToggleShare = (e: React.MouseEvent<HTMLButtonElement>) => {

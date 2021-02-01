@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 from collections import defaultdict, OrderedDict
 
@@ -180,7 +178,7 @@ def migrate_events(
         destination = Group.objects.create(
             project_id=project.id,
             short_id=project.next_short_id(),
-            **get_group_creation_attributes(caches, events)
+            **get_group_creation_attributes(caches, events),
         )
 
         destination_id = destination.id

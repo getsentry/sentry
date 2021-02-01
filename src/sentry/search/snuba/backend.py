@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from abc import ABCMeta, abstractmethod
 import functools
 import six
@@ -15,7 +13,6 @@ from sentry.models import (
     GroupEnvironment,
     Group,
     GroupAssignee,
-    GroupInbox,
     GroupLink,
     GroupOwner,
     GroupStatus,
@@ -125,14 +122,11 @@ def first_release_all_environments_filter(version, projects):
 
 
 def inbox_filter(inbox, projects):
-    organization_id = projects[0].organization_id
-    query = Q(
-        id__in=GroupInbox.objects.filter(
-            organization_id=organization_id, project_id__in=[p.id for p in projects]
-        ).values_list("group_id", flat=True)
-    )
+    query = Q(groupinbox__id__isnull=False)
     if not inbox:
         query = ~query
+    else:
+        query = query & Q(groupinbox__project_id__in=[p.id for p in projects])
     return query
 
 
@@ -184,7 +178,7 @@ def owner_filter(owner, projects):
         else:
             return owner_query
 
-    raise InvalidSearchQuery(u"Unsupported owner type.")
+    raise InvalidSearchQuery("Unsupported owner type.")
 
 
 class Condition(object):
@@ -206,7 +200,7 @@ class QCallbackCondition(Condition):
         q = self.callback(value)
         if search_filter.operator not in ("=", "!="):
             raise InvalidSearchQuery(
-                u"Operator {} not valid for search {}".format(search_filter.operator, search_filter)
+                "Operator {} not valid for search {}".format(search_filter.operator, search_filter)
             )
         queryset_method = queryset.filter if search_filter.operator == "=" else queryset.exclude
         queryset = queryset_method(q)
@@ -307,7 +301,7 @@ class SnubaSearchBackendBase(SearchBackend):
 
         # ensure sort strategy is supported by executor
         if not query_executor.has_sort_strategy(sort_by):
-            raise InvalidSearchQuery(u"Sort key '{}' not supported.".format(sort_by))
+            raise InvalidSearchQuery("Sort key '{}' not supported.".format(sort_by))
 
         return query_executor.query(
             projects=projects,
@@ -403,7 +397,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                 )
             ),
             "active_at": ScalarCondition("active_at"),
-            "needs_review": QCallbackCondition(functools.partial(inbox_filter, projects=projects)),
+            "for_review": QCallbackCondition(functools.partial(inbox_filter, projects=projects)),
             "owner": QCallbackCondition(functools.partial(owner_filter, projects=projects)),
         }
 

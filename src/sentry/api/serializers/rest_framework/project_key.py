@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from rest_framework import serializers
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.loader.browsersdkversion import get_browser_sdk_version_choices

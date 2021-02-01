@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from sentry.projectoptions import register
 
 # latest epoch
@@ -31,10 +30,10 @@ register(
     key="sentry:grouping_enhancements_base",
     epoch_defaults={1: LEGACY_GROUPING_ENHANCEMENTS_BASE, 3: DEFAULT_GROUPING_ENHANCEMENTS_BASE},
 )
-register(key="sentry:grouping_enhancements", default=u"")
+register(key="sentry:grouping_enhancements", default="")
 
 # server side fingerprinting defaults.
-register(key="sentry:fingerprinting_rules", default=u"")
+register(key="sentry:fingerprinting_rules", default="")
 
 # The JavaScript loader version that is the project default.  This option
 # is expected to be never set but the epoch defaults are used if no
@@ -60,3 +59,6 @@ register(key="filters:browser-extensions", epoch_defaults={1: "0"})
 
 # Default legacy-browsers filter
 register(key="filters:localhost", epoch_defaults={1: "0"})
+
+# Default dynamic sampling rules
+register(key="sentry:dynamicSampling", epoch_defaults={1: []})

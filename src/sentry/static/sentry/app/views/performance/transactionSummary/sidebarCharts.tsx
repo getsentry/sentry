@@ -28,7 +28,7 @@ import {
 import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
-import {getTermHelp} from 'app/views/performance/data';
+import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 
 type Props = ReactRouter.WithRouterProps & {
   api: Client;
@@ -149,7 +149,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         {t('Apdex')}
         <QuestionTooltip
           position="top"
-          title={getTermHelp(organization, 'apdex')}
+          title={getTermHelp(organization, PERFORMANCE_TERM.APDEX)}
           size="sm"
         />
       </ChartTitle>
@@ -158,7 +158,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         {t('Failure Rate')}
         <QuestionTooltip
           position="top"
-          title={getTermHelp(organization, 'failureRate')}
+          title={getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE)}
           size="sm"
         />
       </ChartTitle>
@@ -167,12 +167,19 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         {t('TPM')}
         <QuestionTooltip
           position="top"
-          title={getTermHelp(organization, 'tpm')}
+          title={getTermHelp(organization, PERFORMANCE_TERM.TPM)}
           size="sm"
         />
       </ChartTitle>
 
-      <ChartZoom router={router} period={statsPeriod} xAxisIndex={[0, 1, 2]}>
+      <ChartZoom
+        router={router}
+        period={statsPeriod}
+        start={start}
+        end={end}
+        utc={utc}
+        xAxisIndex={[0, 1, 2]}
+      >
         {zoomRenderProps => (
           <EventsRequest
             api={api}

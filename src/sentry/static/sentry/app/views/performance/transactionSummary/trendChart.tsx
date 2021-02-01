@@ -12,6 +12,7 @@ import ReleaseSeries from 'app/components/charts/releaseSeries';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {getInterval, getSeriesSelection} from 'app/components/charts/utils';
+import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
@@ -93,16 +94,6 @@ class TrendChart extends React.Component<Props> {
     const legend = {
       right: 10,
       top: 0,
-      icon: 'circle',
-      itemHeight: 8,
-      itemWidth: 8,
-      itemGap: 12,
-      align: 'left' as const,
-      textStyle: {
-        verticalAlign: 'top',
-        fontSize: 11,
-        fontFamily: 'Rubik',
-      },
       selected: getSeriesSelection(location, 'trendsUnselectedSeries'),
     };
 
@@ -228,7 +219,7 @@ class TrendChart extends React.Component<Props> {
                               series={[...series, ...smoothedSeries, ...releaseSeries]}
                             />
                           ),
-                          fixed: 'Trend Chart',
+                          fixed: <Placeholder height="200px" testId="skeleton-ui" />,
                         })}
                       </TransitionChart>
                     )}

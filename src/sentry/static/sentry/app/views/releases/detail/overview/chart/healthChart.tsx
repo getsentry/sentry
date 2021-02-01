@@ -204,21 +204,12 @@ class HealthChart extends React.Component<Props> {
     const legend = {
       right: 10,
       top: 0,
-      icon: 'circle',
-      itemHeight: 8,
-      itemWidth: 8,
-      itemGap: 12,
-      align: 'left' as const,
-      textStyle: {
-        verticalAlign: 'top',
-        fontSize: 11,
-        fontFamily: 'Rubik',
-      },
       data: timeseriesData.map(d => d.seriesName).reverse(),
       selected: getSeriesSelection(location),
       tooltip: {
         show: true,
-        formatter: (params): string => {
+        // TODO(ts) tooltip.formatter has incorrect types in echarts 4
+        formatter: (params: any): string => {
           const seriesNameDesc = this.getLegendTooltipDescription(params.name ?? '');
 
           if (!seriesNameDesc) {

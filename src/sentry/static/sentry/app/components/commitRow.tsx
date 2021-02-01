@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import {openInviteMembersModal} from 'app/actionCreators/modal';
 import UserAvatar from 'app/components/avatar/userAvatar';
@@ -21,11 +20,6 @@ type Props = {
 };
 
 class CommitRow extends React.Component<Props> {
-  static propTypes = {
-    commit: PropTypes.object,
-    customAvatar: PropTypes.node,
-  };
-
   renderMessage(message: Commit['message']): string {
     if (!message) {
       return t('No message provided');

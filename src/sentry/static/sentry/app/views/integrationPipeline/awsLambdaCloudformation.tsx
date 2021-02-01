@@ -1,19 +1,20 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 import * as qs from 'query-string';
 
 import {addErrorMessage, addLoadingMessage} from 'app/actionCreators/indicator';
-import Button from 'app/components/actions/button';
-import Alert from 'app/components/alert';
+import ExternalLink from 'app/components/links/externalLink';
+import List from 'app/components/list';
+import ListItem from 'app/components/list/listItem';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 import {uniqueId} from 'app/utils/guid';
-import StepHeading from 'app/views/onboarding/components/stepHeading';
-import FieldErrorReason from 'app/views/settings/components/forms/field/fieldErrorReason';
-import TextareaField from 'app/views/settings/components/forms/textareaField';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import SelectField from 'app/views/settings/components/forms/selectField';
+import TextField from 'app/views/settings/components/forms/textField';
 
 import FooterWithButtons from './components/footerWithButtons';
-import IconGroup from './components/iconGroup';
+import HeaderWithHelp from './components/headerWithHelp';
 
 // let the browser generate and store the external ID
 // this way the same user always has the same external ID if they restart the pipeline
@@ -27,26 +28,33 @@ const getAwsExternalId = () => {
   return awsExternalId;
 };
 
-const cloudformationRegex = /arn:aws:cloudformation:\S+:\d+:stack+\/\S+/;
-const testArn = (arn: string) => cloudformationRegex.test(arn);
+const accountNumberRegex = /^\d{12}$/;
+const testAccountNumber = (arn: string) => accountNumberRegex.test(arn);
 
 type Props = {
   baseCloudformationUrl: string;
   templateUrl: string;
   stackName: string;
-  arn?: string;
+  regionList: string[];
+  initialStepNumber: number;
+  accountNumber?: string;
+  region?: string;
   error?: string;
 };
 
 type State = {
-  arn?: string;
-  syncError?: string;
+  awsExternalId?: string;
+  accountNumber?: string;
+  region?: string;
+  accountNumberError?: string;
   submitting?: boolean;
 };
 
 export default class AwsLambdaCloudformation extends React.Component<Props, State> {
   state: State = {
-    arn: this.props.arn,
+    accountNumber: this.props.accountNumber,
+    region: this.props.region,
+    awsExternalId: getAwsExternalId(),
   };
 
   componentDidMount() {
@@ -58,11 +66,12 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
   }
 
   get initialData() {
-    const {arn} = this.props;
-    const awsExternalId = getAwsExternalId();
+    const {region, accountNumber} = this.props;
+    const {awsExternalId} = this.state;
     return {
       awsExternalId,
-      arn,
+      region,
+      accountNumber,
     };
   }
 
@@ -70,7 +79,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
     // generarate the cloudformation URL using the params we get from the server
     // and the external id we generate
     const {baseCloudformationUrl, templateUrl, stackName} = this.props;
-    const awsExternalId = getAwsExternalId();
+    const {awsExternalId} = this.state;
     const query = qs.stringify({
       templateURL: templateUrl,
       stackName,
@@ -79,12 +88,17 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
     return `${baseCloudformationUrl}?${query}`;
   }
 
+  get regionOptions() {
+    return this.props.regionList.map(region => ({value: region, label: region}));
+  }
+
   handleSubmit = (e: React.MouseEvent) => {
     this.setState({submitting: true});
     e.preventDefault();
-    const {arn} = this.state;
+    const {accountNumber, region} = this.state;
     const data = {
-      arn,
+      accountNumber,
+      region,
       awsExternalId: getAwsExternalId(),
     };
     addLoadingMessage(t('Submitting\u2026'));
@@ -98,106 +112,142 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
     window.location.assign(newUrl);
   };
 
-  validateArn = (value: string) => {
-    // validate the ARN matches a cloudformation stack
-    let syncError = '';
+  validateAccountNumber = (value: string) => {
+    // validate the account number
+    let accountNumberError = '';
     if (!value) {
-      syncError = t('ARN required');
-    } else if (!testArn(value)) {
-      syncError = t('Invalid ARN');
+      accountNumberError = t('Account number required');
+    } else if (!testAccountNumber(value)) {
+      accountNumberError = t('Invalid account number');
     }
-    this.setState({syncError});
+    this.setState({accountNumberError});
   };
 
-  handleChangeArn = (arn: string) => {
-    // reset the error if we ever get a valid ARN
-    if (testArn(arn)) {
-      this.setState({syncError: ''});
+  handleChangeArn = (accountNumber: string) => {
+    this.debouncedTrackValueChanged('accountNumber');
+    // reset the error if we ever get a valid account number
+    if (testAccountNumber(accountNumber)) {
+      this.setState({accountNumberError: ''});
     }
-    this.setState({arn});
+    this.setState({accountNumber});
   };
 
-  get arnValid() {
-    return testArn(this.state.arn || '');
+  hanldeChangeRegion = (region: string) => {
+    this.debouncedTrackValueChanged('region');
+    this.setState({region});
+  };
+
+  handleChangeExternalId = (awsExternalId: string) => {
+    this.debouncedTrackValueChanged('awsExternalId');
+    awsExternalId = awsExternalId.trim();
+    window.localStorage.setItem(ID_NAME, awsExternalId);
+    this.setState({awsExternalId});
+  };
+
+  get formValid() {
+    const {accountNumber, region, awsExternalId} = this.state;
+    return !!region && testAccountNumber(accountNumber || '') && !!awsExternalId;
   }
 
-  renderInstructions = () => {
-    return (
-      <InstructionWrapper>
-        <StyledStepHeading step={1}>
-          {t("Add Sentry's CloudFormation to your AWS")}
-        </StyledStepHeading>
-        <GoToAWSWrapper>
-          <Button priority="primary" external href={this.cloudformationUrl}>
-            {t('Go to AWS')}
-          </Button>
-        </GoToAWSWrapper>
-        <StyledStepHeading step={2}>
-          {t('Enter the ARN Value from AWS')}
-        </StyledStepHeading>
-      </InstructionWrapper>
-    );
+  //debounce so we don't send a request on every input change
+  debouncedTrackValueChanged = debounce((fieldName: string) => {
+    //TODO: add org to trackIntegrationEvent call
+    trackIntegrationEvent({
+      eventKey: 'integrations.installation_input_value_changed',
+      eventName: 'Integrations: Installation Input Value Changed',
+      integration: 'aws_lambda',
+      integration_type: 'first_party',
+      field_name: fieldName,
+    });
+  }, 200);
+
+  trackOpenCloudFormation = () => {
+    //TODO: add org to trackIntegrationEvent call
+    trackIntegrationEvent({
+      eventKey: 'integrations.cloudformation_link_clicked',
+      eventName: 'Integrations: CloudFormation Link Clicked',
+      integration: 'aws_lambda',
+      integration_type: 'first_party',
+    });
   };
 
   render = () => {
-    const {arn, syncError, submitting} = this.state;
+    const {initialStepNumber} = this.props;
+    const {
+      accountNumber,
+      region,
+      accountNumberError,
+      submitting,
+      awsExternalId,
+    } = this.state;
     return (
-      <div>
-        <StyledAlert type="info">
-          {t('It might take a minute for the CloudFormation stack to be created')}
-        </StyledAlert>
-        <IconGroup pluginId="aws_lambda" />
-        <InstallSentry>{t('Install Sentry on your AWS Account')}</InstallSentry>
-        {this.renderInstructions()}
-        <StyledTextareaField
-          name="arn"
-          placeholder="arn:aws:cloudformation:us-east-2:599817902985:stack/Sentry-Monitoring-Stack-Filter/a3644150-5560-11eb-b6e6-0abd43d40ad8"
-          value={arn}
-          onChange={this.handleChangeArn}
-          onBlur={this.validateArn}
-          error={syncError}
-          inline={false}
-          autosize
-        />
+      <React.Fragment>
+        <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws-lambda/" />
+        <StyledList symbol="colored-numeric" initialCounterValue={initialStepNumber}>
+          <ListItem>
+            <ExternalLink
+              onClick={this.trackOpenCloudFormation}
+              href={this.cloudformationUrl}
+            >
+              <h3>{t("Add Sentry's CloudFormation to your AWS")}</h3>
+            </ExternalLink>
+            <p>{t('After the stack has been created, continue to the next step')}</p>
+          </ListItem>
+          <ListItem>
+            <h4>{t('Add AWS Account Information')}</h4>
+            <TextField
+              name="accountNumber"
+              value={accountNumber}
+              onChange={this.handleChangeArn}
+              onBlur={this.validateAccountNumber}
+              error={accountNumberError}
+              inline={false}
+              stacked
+              label={t('AWS Account Number')}
+              showHelpInTooltip
+              help={t(
+                'Your account number can be found on the right side of the header in AWS'
+              )}
+            />
+            <SelectField
+              name="region"
+              value={region}
+              onChange={this.hanldeChangeRegion}
+              options={this.regionOptions}
+              allowClear={false}
+              inline={false}
+              stacked
+              label={t('AWS Region')}
+              showHelpInTooltip
+              help={t(
+                'Your current region can be found on the right side of the header in AWS'
+              )}
+            />
+            <TextField
+              name="awsExternalId"
+              value={awsExternalId}
+              onChange={this.handleChangeExternalId}
+              inline={false}
+              stacked
+              error={awsExternalId ? '' : t('External ID Required')}
+              label={t('External ID')}
+              showHelpInTooltip
+              help={t(
+                'Do not edit unless you are copying from a previously created CloudFormation stack'
+              )}
+            />
+          </ListItem>
+        </StyledList>
         <FooterWithButtons
-          docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/"
           buttonText={t('Next')}
           onClick={this.handleSubmit}
-          disabled={submitting || !this.arnValid}
+          disabled={submitting || !this.formValid}
         />
-      </div>
+      </React.Fragment>
     );
   };
 }
 
-const InstructionWrapper = styled('div')`
-  margin-left: 20px;
-`;
-
-const StyledStepHeading = styled(StepHeading)`
-  font-weight: normal;
-  font-size: ${p => p.theme.fontSizeLarge};
-  margin: 10px 0 0 0;
-`;
-
-const StyledTextareaField = styled(TextareaField)`
-  padding: ${space(1)} 65px;
-  ${FieldErrorReason} {
-    right: 67px;
-  }
-  border-bottom: none;
-`;
-
-const InstallSentry = styled('div')`
-  font-size: ${p => p.theme.headerFontSize};
-  margin: 20px;
-  text-align: center;
-`;
-
-const GoToAWSWrapper = styled('div')`
-  margin-left: 46px;
-`;
-
-const StyledAlert = styled(Alert)`
-  border-radius: 0;
+const StyledList = styled(List)`
+  padding: 100px 50px 50px 50px;
 `;

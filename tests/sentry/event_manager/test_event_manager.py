@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import, print_function
 
 import logging
 from sentry.utils.compat import mock
@@ -328,7 +327,9 @@ class EventManagerTest(TestCase):
         repo = self.create_repo(project=group.project)
         for key in ["a", "b", "c"]:
             commit = Commit.objects.create(
-                organization_id=group.project.organization_id, repository_id=repo.id, key=key * 40,
+                organization_id=group.project.organization_id,
+                repository_id=repo.id,
+                key=key * 40,
             )
             GroupLink.objects.create(
                 group_id=group.id,
@@ -587,6 +588,47 @@ class EventManagerTest(TestCase):
         assert event1.transaction is None
         assert event1.culprit == "foobar"
 
+    def test_culprit_after_stacktrace_processing(self):
+        from sentry.grouping.enhancer import Enhancements
+
+        enhancement = Enhancements.from_config_string(
+            """
+            function:in_app_function +app
+            function:not_in_app_function -app
+            """,
+        )
+
+        manager = EventManager(
+            make_event(
+                platform="native",
+                exception={
+                    "values": [
+                        {
+                            "type": "Hello",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": "not_in_app_function",
+                                    },
+                                    {
+                                        "function": "in_app_function",
+                                    },
+                                ]
+                            },
+                        }
+                    ]
+                },
+            )
+        )
+        manager.normalize()
+        manager.get_data()["grouping_config"] = {
+            "enhancements": enhancement.dumps(),
+            "id": "legacy:2019-03-12",
+        }
+        event1 = manager.save(1)
+        assert event1.transaction is None
+        assert event1.culprit == "in_app_function"
+
     def test_inferred_culprit_from_empty_stacktrace(self):
         manager = EventManager(make_event(stacktrace={"frames": []}))
         manager.normalize()
@@ -727,28 +769,37 @@ class EventManagerTest(TestCase):
             tsdb.models.users_affected_by_group, (event.group.id,), event.datetime, event.datetime
         ) == {event.group.id: 1}
 
-        assert tsdb.get_distinct_counts_totals(
-            tsdb.models.users_affected_by_project,
-            (event.project.id,),
-            event.datetime,
-            event.datetime,
-        ) == {event.project.id: 1}
+        assert (
+            tsdb.get_distinct_counts_totals(
+                tsdb.models.users_affected_by_project,
+                (event.project.id,),
+                event.datetime,
+                event.datetime,
+            )
+            == {event.project.id: 1}
+        )
 
-        assert tsdb.get_distinct_counts_totals(
-            tsdb.models.users_affected_by_group,
-            (event.group.id,),
-            event.datetime,
-            event.datetime,
-            environment_id=environment_id,
-        ) == {event.group.id: 1}
+        assert (
+            tsdb.get_distinct_counts_totals(
+                tsdb.models.users_affected_by_group,
+                (event.group.id,),
+                event.datetime,
+                event.datetime,
+                environment_id=environment_id,
+            )
+            == {event.group.id: 1}
+        )
 
-        assert tsdb.get_distinct_counts_totals(
-            tsdb.models.users_affected_by_project,
-            (event.project.id,),
-            event.datetime,
-            event.datetime,
-            environment_id=environment_id,
-        ) == {event.project.id: 1}
+        assert (
+            tsdb.get_distinct_counts_totals(
+                tsdb.models.users_affected_by_project,
+                (event.project.id,),
+                event.datetime,
+                event.datetime,
+                environment_id=environment_id,
+            )
+            == {event.project.id: 1}
+        )
 
         euser = EventUser.objects.get(project_id=self.project.id, ident="1")
         assert event.get_tag("sentry:user") == euser.tag_value
@@ -784,12 +835,12 @@ class EventManagerTest(TestCase):
         assert euser.ip_address is None
 
     def test_event_user_unicode_identifier(self):
-        manager = EventManager(make_event(**{"user": {"username": u"foô"}}))
+        manager = EventManager(make_event(**{"user": {"username": "foô"}}))
         manager.normalize()
         with self.tasks():
             manager.save(self.project.id)
         euser = EventUser.objects.get(project_id=self.project.id)
-        assert euser.username == u"foô"
+        assert euser.username == "foô"
 
     def test_environment(self):
         manager = EventManager(make_event(**{"environment": "beta"}))

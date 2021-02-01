@@ -168,6 +168,8 @@ const DashboardSelect = styled('div')`
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
+  flex-shrink: 0;
+
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-auto-flow: row;
     grid-row-gap: ${space(1)};
