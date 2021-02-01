@@ -10,6 +10,7 @@ describe('SentryAppExternalIssueActions', () => {
   let component;
   let sentryApp;
   let install;
+  let submitUrl;
   let externalIssue;
   let wrapper;
 
@@ -26,6 +27,7 @@ describe('SentryAppExternalIssueActions', () => {
     //unable to use the selectByValue here so remove the select option
     component.schema.create.required_fields.pop();
     install = TestStubs.SentryAppInstallation({sentryApp});
+    submitUrl = `/sentry-app-installations/${install.uuid}/external-issue-actions/`;
     externalIssue = TestStubs.PlatformExternalIssue({
       groupId: group.id,
       serviceType: component.sentryApp.slug,
@@ -105,7 +107,7 @@ describe('SentryAppExternalIssueActions', () => {
 
     it('links to an existing Issue', async () => {
       const request = MockApiClient.addMockResponse({
-        url: `/sentry-app-installations/${install.uuid}/external-issues/`,
+        url: submitUrl,
         method: 'POST',
         body: externalIssue,
       });
@@ -122,7 +124,7 @@ describe('SentryAppExternalIssueActions', () => {
       wrapper.find('Form form').simulate('submit');
 
       expect(request).toHaveBeenCalledWith(
-        `/sentry-app-installations/${install.uuid}/external-issues/`,
+        submitUrl,
         expect.objectContaining({
           data: expect.objectContaining({
             action: 'link',
@@ -135,7 +137,7 @@ describe('SentryAppExternalIssueActions', () => {
 
     it('creates a new Issue', async () => {
       const request = MockApiClient.addMockResponse({
-        url: `/sentry-app-installations/${install.uuid}/external-issues/`,
+        url: submitUrl,
         method: 'POST',
         body: externalIssue,
       });
@@ -152,7 +154,7 @@ describe('SentryAppExternalIssueActions', () => {
       wrapper.find('Form form').simulate('submit');
 
       expect(request).toHaveBeenCalledWith(
-        `/sentry-app-installations/${install.uuid}/external-issues/`,
+        submitUrl,
         expect.objectContaining({
           data: expect.objectContaining({
             action: 'create',
