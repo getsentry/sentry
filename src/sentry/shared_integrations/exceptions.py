@@ -103,3 +103,7 @@ class IgnorableSentryAppError(RequestException):
 
 class ClientError(RequestException):
     """4xx Error Occurred"""
+
+    def __init__(self, status_code, url, response=None):
+        http_error_msg = "%s Client Error: for url: %s" % (status_code, url)
+        super(ClientError, self).__init__(http_error_msg, response=response)
