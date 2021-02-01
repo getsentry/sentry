@@ -2,7 +2,6 @@ import React from 'react';
 import {InjectedRouter, Link} from 'react-router';
 import styled from '@emotion/styled';
 
-import {openModal} from 'app/actionCreators/modal';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -52,30 +51,6 @@ function IssueListHeader({
   const savedSearchTabActive = !visibleTabs.some(([tabQuery]) => tabQuery === query);
   // Remove cursor and page when switching tabs
   const {cursor: _, page: __, ...queryParms} = router?.location?.query ?? {};
-
-  function handleSelectProject(settingsPage: string) {
-    return function (event: React.MouseEvent) {
-      event.preventDefault();
-
-      openModal(modalProps => (
-        <ContextPickerModalContainer
-          {...modalProps}
-          nextPath={`/settings/${orgSlug}/projects/:projectId/${settingsPage}/`}
-          needProject
-          needOrg={false}
-          onFinish={path => {
-            modalProps.closeModal();
-            router.push(path);
-          }}
-          projectSlugs={
-            !!selectedProjectSlugs.length
-              ? selectedProjectSlugs
-              : projects.map(p => p.slug)
-          }
-        />
-      ));
-    };
-  }
 
   return (
     <React.Fragment>
