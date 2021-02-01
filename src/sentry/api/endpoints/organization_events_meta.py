@@ -98,32 +98,6 @@ class OrganizationEventsTrace(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response(status=404)
 
-        # grab greatest grandparent, Separate query so we can guarantee
-        with self.handle_query_errors():
-            result = discover.query(
-                selected_columns=[
-                    "id",
-                    "timestamp",
-                    "transaction",
-                    "project_id",
-                    "trace.span",
-                ],
-                orderby=["-timestamp", "id"],
-                params=params,
-                query=f"event.type:transaction trace:{trace_id} !has:trace.parent_span",
-                limit=1,
-                referrer="experimental.api.trace-view.get_grandparent_id",
-            )
-            if len(result["data"]) == 0:
-                return Response(status=404)
-        ancestor = eventstore.get_event_by_id(
-            result["data"][0]["project_id"], result["data"][0]["id"]
-        )
-        ancestor_span_id = result["data"][0]["trace.span"]
-        transaction_map = {ancestor_span_id: result["data"][0]["transaction"]}
-        trace = {}
-        trace[ancestor_span_id] = {span["span_id"]: [] for span in ancestor.data.get("spans", [])}
-
         # Get 100 events from snuba, and pray these help
         with self.handle_query_errors():
             result = discover.query(
@@ -135,7 +109,7 @@ class OrganizationEventsTrace(OrganizationEventsEndpointBase):
                     "trace.span",
                     "trace.parent_span",
                 ],
-                orderby=["-timestamp", "id"],
+                orderby=["-timestamp", "trace.parent_span", "id"],
                 params=params,
                 query=f"event.type:transaction trace:{trace_id}",
                 limit=100,
@@ -143,6 +117,13 @@ class OrganizationEventsTrace(OrganizationEventsEndpointBase):
             )
             if len(result["data"]) == 0:
                 return Response(status=404)
+
+        root_data = [item for item in result["data"] if item["trace.parent_span"] == ""][0]
+        root = eventstore.get_event_by_id(root_data["project_id"], root_data["id"])
+        root_span_id = root_data["trace.span"]
+        transaction_map = {root_span_id: root_data["transaction"]}
+        trace = {}
+        trace[root_span_id] = {span["span_id"]: [] for span in root.data.get("spans", [])}
 
         project_map = {item["trace.parent_span"]: item for item in result["data"]}
         project_map.update({item["trace.span"]: item for item in result["data"]})
@@ -152,12 +133,12 @@ class OrganizationEventsTrace(OrganizationEventsEndpointBase):
             {item["trace.parent_span"]: item["transaction"] for item in result["data"]}
         )
         with sentry_sdk.start_span(op="fill_children"):
-            self.fill_children(ancestor_span_id, project_map, trace)
-        with sentry_sdk.start_span(op="clean_up"):
-            self.clean_up(trace)
+            self.fill_children(root_span_id, project_map, trace)
         return Response(self.map_transaction(trace, transaction_map))
 
     def fill_children(self, span_id, project_map, trace):
+        to_delete = []
+
         for child_id in trace[span_id].keys():
             if child_id in project_map:
                 child = project_map[child_id]
@@ -167,17 +148,10 @@ class OrganizationEventsTrace(OrganizationEventsEndpointBase):
                         span["span_id"]: [] for span in child_event.data.get("spans", [])
                     }
                     self.fill_children(child_id, project_map, trace[span_id])
-
-    def clean_up(self, trace):
-        # TODO do this in fill_children
-        to_delete = []
-        for item in trace.keys():
-            if len(trace[item]) == 0:
-                to_delete.append(item)
             else:
-                self.clean_up(trace[item])
+                to_delete.append(child_id)
         for item in to_delete:
-            del trace[item]
+            del trace[span_id][item]
 
     def map_transaction(self, trace, transaction_map):
         return {
