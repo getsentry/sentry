@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import createReactClass from 'create-react-class';
 import {Query} from 'history';
-import PropTypes from 'prop-types';
 import Reflux from 'reflux';
 
 import {
@@ -49,18 +48,6 @@ type State = {
  * be shown on the page.
  */
 const GuideAnchor = createReactClass<Props, State>({
-  propTypes: {
-    target: PropTypes.string,
-    position: PropTypes.string,
-    disabled: PropTypes.bool,
-    offset: PropTypes.string,
-    to: PropTypes.shape({
-      pathname: PropTypes.string,
-      query: PropTypes.object,
-      step: PropTypes.number,
-    }),
-  },
-
   mixins: [Reflux.listenTo(GuideStore, 'onGuideStateChange') as any],
 
   getInitialState() {

@@ -1,13 +1,11 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {update} from 'app/actionCreators/projects';
 import {Client} from 'app/api';
 import {IconStar} from 'app/icons';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
 import withApi from 'app/utils/withApi';
@@ -62,16 +60,6 @@ const BookmarkStar = ({
       className={className}
     />
   );
-};
-
-BookmarkStar.propTypes = {
-  api: PropTypes.any.isRequired,
-  /* used to override when under local state */
-  isBookmarked: PropTypes.bool,
-  className: PropTypes.string,
-  organization: SentryTypes.Organization.isRequired,
-  project: SentryTypes.Project.isRequired,
-  onToggle: PropTypes.func,
 };
 
 const Star = styled(IconStar, {shouldForwardProp: p => p !== 'isBookmarked'})<{

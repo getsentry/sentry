@@ -8,6 +8,7 @@ import {
   getInterval,
   isMultiSeriesStats,
 } from 'app/components/charts/utils';
+import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
 import {t} from 'app/locale';
 import {
   EventsStats,
@@ -19,7 +20,10 @@ import {Series} from 'app/types/echarts';
 import {getUtcDateString, parsePeriodToHours} from 'app/utils/dates';
 import {TableData} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
-import {doDiscoverQuery} from 'app/utils/discover/genericDiscoverQuery';
+import {
+  DiscoverQueryRequestParams,
+  doDiscoverQuery,
+} from 'app/utils/discover/genericDiscoverQuery';
 
 import {Widget, WidgetQuery} from './types';
 
@@ -120,7 +124,7 @@ class WidgetQueries extends React.Component<Props, State> {
       !isEqual(widget.interval, prevProps.widget.interval) ||
       !isEqual(widget.queries, prevProps.widget.queries) ||
       !isEqual(widget.displayType, prevProps.widget.displayType) ||
-      !isEqual(selection, prevProps.selection)
+      !isSelectionEqual(selection, prevProps.selection)
     ) {
       this.fetchData();
     }
@@ -149,13 +153,17 @@ class WidgetQueries extends React.Component<Props, State> {
         end: end ? getUtcDateString(end) : undefined,
       });
 
-      let url;
-      const params: any = {
+      let url: string = '';
+      const params: DiscoverQueryRequestParams = {
         per_page: 5,
       };
       if (widget.displayType === 'table') {
         url = `/organizations/${organization.slug}/eventsv2/`;
         params.referrer = 'api.dashboards.tablewidget';
+      } else if (widget.displayType === 'big_number') {
+        url = `/organizations/${organization.slug}/eventsv2/`;
+        params.per_page = 1;
+        params.referrer = 'api.dashboards.bignumberwidget';
       } else if (widget.displayType === 'world_map') {
         url = `/organizations/${organization.slug}/events-geo/`;
         delete params.per_page;
@@ -201,7 +209,7 @@ class WidgetQueries extends React.Component<Props, State> {
 
     this.setState({loading: true, errorMessage: undefined});
 
-    if (['table', 'world_map'].includes(widget.displayType)) {
+    if (['table', 'world_map', 'big_number'].includes(widget.displayType)) {
       this.fetchEventData();
     } else {
       this.setState({timeseriesResults: []});

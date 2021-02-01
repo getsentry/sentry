@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import BooleanField from 'app/components/forms/booleanField';
 import EmailField from 'app/components/forms/emailField';
@@ -127,14 +126,6 @@ const GenericField = ({
     default:
       return null;
   }
-};
-
-GenericField.propTypes = {
-  config: PropTypes.object.isRequired,
-  formData: PropTypes.object,
-  formErrors: PropTypes.object,
-  formState: PropTypes.string.isRequired,
-  onChange: PropTypes.func,
 };
 
 export default GenericField;

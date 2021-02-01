@@ -11,6 +11,7 @@ import MarkLine from 'app/components/charts/components/markLine';
 import MarkPoint from 'app/components/charts/components/markPoint';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import DiscoverButton from 'app/components/discoverButton';
+import Placeholder from 'app/components/placeholder';
 import Tag from 'app/components/tag';
 import {FIRE_SVG_PATH} from 'app/icons/iconFire';
 import {t} from 'app/locale';
@@ -25,16 +26,18 @@ import {
   formatPercentage,
   getDuration,
 } from 'app/utils/formatters';
+import getDynamicText from 'app/utils/getDynamicText';
 import theme from 'app/utils/theme';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {VitalData} from 'app/views/performance/vitalDetail/vitalsCardsDiscoverQuery';
 
+import {VitalBar} from '../landing/vitalsCards';
 import {
   VitalState,
   vitalStateColors,
   webVitalMeh,
   webVitalPoor,
 } from '../vitalDetail/utils';
-import VitalInfo from '../vitalDetail/vitalInfo';
 
 import {NUM_BUCKETS, PERCENTILE} from './constants';
 import {Card, CardSectionHeading, CardSummary, Description, StatNumber} from './styles';
@@ -48,8 +51,7 @@ type Props = {
   error: boolean;
   vital: WebVital;
   vitalDetails: Vital;
-  summary: number | null;
-  failureRate: number;
+  summaryData: VitalData | null;
   chartData: HistogramData[];
   colors: [string];
   eventView: EventView;
@@ -128,8 +130,21 @@ class VitalCard extends React.Component<Props, State> {
     });
   };
 
+  get summary() {
+    const {summaryData} = this.props;
+    return summaryData?.p75 ?? null;
+  }
+
+  get failureRate() {
+    const {summaryData} = this.props;
+    const numerator = summaryData?.poor ?? 0;
+    const denominator = summaryData?.total ?? 0;
+    return denominator <= 0 ? 0 : numerator / denominator;
+  }
+
   getFormattedStatNumber() {
-    const {summary, vitalDetails: vital} = this.props;
+    const {vitalDetails: vital} = this.props;
+    const summary = this.summary;
     const {type} = vital;
 
     return summary === null
@@ -140,15 +155,8 @@ class VitalCard extends React.Component<Props, State> {
   }
 
   renderSummary() {
-    const {
-      summary,
-      vitalDetails: vital,
-      colors,
-      eventView,
-      organization,
-      min,
-      max,
-    } = this.props;
+    const {vitalDetails: vital, colors, eventView, organization, min, max} = this.props;
+    const summary = this.summary;
     const {slug, name, description, failureThreshold} = vital;
 
     const column = `measurements.${slug}`;
@@ -191,7 +199,12 @@ class VitalCard extends React.Component<Props, State> {
             <StyledTag>{t('Fail')}</StyledTag>
           )}
         </SummaryHeading>
-        <StatNumber>{this.getFormattedStatNumber()}</StatNumber>
+        <StatNumber>
+          {getDynamicText({
+            value: this.getFormattedStatNumber(),
+            fixed: '\u2014',
+          })}
+        </StatNumber>
         <Description>{description}</Description>
         <div>
           <DiscoverButton
@@ -237,13 +250,12 @@ class VitalCard extends React.Component<Props, State> {
   renderHistogram() {
     const {
       location,
-      organization,
       isLoading,
+      summaryData,
       error,
       colors,
       vital,
       vitalDetails,
-      eventView,
       precision = 0,
     } = this.props;
     const {slug} = vitalDetails;
@@ -284,6 +296,9 @@ class VitalCard extends React.Component<Props, State> {
       }
     }
 
+    const vitalData =
+      !isLoading && !error && summaryData !== null ? {[vital]: summaryData} : {};
+
     return (
       <BarChartZoom
         minZoomWidth={10 ** -precision * NUM_BUCKETS}
@@ -299,28 +314,37 @@ class VitalCard extends React.Component<Props, State> {
             <TransparentLoadingMask visible={isLoading} />
             <Feature features={['organizations:performance-vitals-overview']}>
               <PercentContainer>
-                <VitalInfo
-                  eventView={eventView}
-                  organization={organization}
-                  location={location}
+                <VitalBar
+                  isLoading={isLoading}
+                  data={vitalData}
                   vital={vital}
-                  hideBar
-                  hideStates
-                  hideVitalPercentNames
-                  hideDurationDetail
+                  showBar={false}
+                  showStates={false}
+                  showVitalPercentNames={false}
+                  showDurationDetail={false}
                 />
               </PercentContainer>
             </Feature>
-            <BarChart
-              series={allSeries}
-              xAxis={xAxis}
-              yAxis={yAxis}
-              colors={colors}
-              onRendered={this.handleRendered}
-              grid={{left: space(3), right: space(3), top: space(3), bottom: space(1.5)}}
-              stacked
-              {...zoomRenderProps}
-            />
+            {getDynamicText({
+              value: (
+                <BarChart
+                  series={allSeries}
+                  xAxis={xAxis}
+                  yAxis={yAxis}
+                  colors={colors}
+                  onRendered={this.handleRendered}
+                  grid={{
+                    left: space(3),
+                    right: space(3),
+                    top: space(3),
+                    bottom: space(1.5),
+                  }}
+                  stacked
+                  {...zoomRenderProps}
+                />
+              ),
+              fixed: <Placeholder testId="skeleton-ui" height="200px" />,
+            })}
           </Container>
         )}
       </BarChartZoom>
@@ -400,7 +424,8 @@ class VitalCard extends React.Component<Props, State> {
   }
 
   getBaselineSeries() {
-    const {chartData, summary} = this.props;
+    const {chartData} = this.props;
+    const summary = this.summary;
     if (summary === null || this.state.refPixelRect === null) {
       return null;
     }
@@ -472,7 +497,8 @@ class VitalCard extends React.Component<Props, State> {
   }
 
   getFailureSeries() {
-    const {chartData, vitalDetails: vital, failureRate} = this.props;
+    const {chartData, vitalDetails: vital} = this.props;
+    const failureRate = this.failureRate;
     const {failureThreshold, type} = vital;
     if (this.state.refDataRect === null || this.state.refPixelRect === null) {
       return null;

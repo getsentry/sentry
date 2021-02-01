@@ -12,7 +12,6 @@ export {default as HiddenField} from './hiddenField';
 export {default as InputField} from './inputField';
 export {default as JSONForm} from './jsonForm';
 export {default as NumberField} from './numberField';
-export {default as PasswordField} from './passwordField';
 export {default as RadioBooleanField} from './radioBooleanField';
 export {default as RangeField} from './rangeField';
 export {default as RichListField} from './richListField';

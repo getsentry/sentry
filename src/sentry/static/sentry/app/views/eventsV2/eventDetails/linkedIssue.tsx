@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -30,11 +29,6 @@ class LinkedIssue extends AsyncComponent<
   Props & AsyncComponent['props'],
   State & AsyncComponent['state']
 > {
-  static propTypes = {
-    groupId: PropTypes.string.isRequired,
-    eventId: PropTypes.string.isRequired,
-  };
-
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {groupId} = this.props;
     const groupUrl = `/issues/${groupId}/`;

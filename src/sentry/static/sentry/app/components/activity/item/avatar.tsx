@@ -1,11 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import UserAvatar from 'app/components/avatar/userAvatar';
 import Placeholder from 'app/components/placeholder';
 import {IconSentry} from 'app/icons';
-import SentryTypes from 'app/sentryTypes';
 import {AvatarUser} from 'app/types';
 
 type Props = {
@@ -38,12 +36,6 @@ function ActivityAvatar({className, type, user, size = 38}: Props) {
     />
   );
 }
-
-ActivityAvatar.propTypes = {
-  user: SentryTypes.User,
-  type: PropTypes.oneOf(['system', 'user']),
-  size: PropTypes.number,
-};
 
 export default ActivityAvatar;
 

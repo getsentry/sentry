@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import {Change, diffChars, diffLines, diffWords} from 'diff';
-import PropTypes from 'prop-types';
 
 const diffFnMap = {
   chars: diffChars,
@@ -69,12 +68,6 @@ const SplitDiff = ({className, type = 'lines', base, target}: Props) => {
       </SplitBody>
     </SplitTable>
   );
-};
-
-SplitDiff.propTypes = {
-  base: PropTypes.string,
-  target: PropTypes.string,
-  type: PropTypes.oneOf(['lines', 'words', 'chars']),
 };
 
 const SplitTable = styled('table')`

@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import PropTypes from 'prop-types';
 
 import ErrorBoundary from 'app/components/errorBoundary';
 import EventContexts from 'app/components/events/contexts';
@@ -22,7 +21,6 @@ import EventSdkUpdates from 'app/components/events/sdkUpdates';
 import {DataSection} from 'app/components/events/styles';
 import EventUserFeedback from 'app/components/events/userFeedback';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {Group, Organization, Project, SharedViewOrganization} from 'app/types';
 import {Entry, Event} from 'app/types/event';
@@ -53,24 +51,6 @@ type Props = {
 } & typeof defaultProps;
 
 class EventEntries extends React.Component<Props> {
-  static propTypes = {
-    // Custom shape because shared view doesn't get id.
-    organization: PropTypes.shape({
-      id: PropTypes.string,
-      slug: PropTypes.string.isRequired,
-      features: PropTypes.arrayOf(PropTypes.string),
-    }).isRequired,
-    event: SentryTypes.Event.isRequired,
-
-    group: SentryTypes.Group,
-    project: PropTypes.object.isRequired,
-    // TODO(dcramer): ideally isShare would be replaced with simple permission
-    // checks
-    isShare: PropTypes.bool,
-    showExampleCommit: PropTypes.bool,
-    showTagSummary: PropTypes.bool,
-  };
-
   static defaultProps = defaultProps;
 
   componentDidMount() {
