@@ -2,7 +2,7 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {findOption, openMenu, selectByLabel} from 'sentry-test/select-new';
+import {selectByLabel} from 'sentry-test/select-new';
 
 import AddDashboardWidgetModal from 'app/components/modals/addDashboardWidgetModal';
 import TagStore from 'app/stores/tagStore';
@@ -49,19 +49,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     {name: 'browser.name', key: 'browser.name'},
     {name: 'custom-field', key: 'custom-field'},
   ];
-  const discoverQuery = TestStubs.DiscoverSavedQuery({
-    name: 'Users with errors',
-    query: 'event.type: error',
-    fields: ['title', 'count_unique(user)'],
-    yAxis: 'count_unique(user)',
-  });
 
   beforeEach(function () {
     TagStore.onLoadTagsSuccess(tags);
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/discover/saved/',
-      body: [discoverQuery],
-    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/widgets/',
       method: 'POST',
@@ -185,39 +175,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     // Nested object error should display
     const conditionError = wrapper.find('WidgetQueryForm FieldErrorReason');
     expect(conditionError).toHaveLength(1);
-  });
-
-  it('can set query state using discover queries', async function () {
-    let widget = undefined;
-    const wrapper = mountModal({
-      initialData,
-      onAddWidget: data => {
-        widget = data;
-      },
-    });
-    // Choose existing query source
-    wrapper.find('RadioGroup input[aria-label="existing"]').simulate('change');
-    await wrapper.update();
-
-    openMenu(wrapper, {name: 'discoverQuery', control: true});
-
-    // Multiple updates for react-select.
-    await wrapper.update();
-    await wrapper.update();
-    await wrapper.update();
-
-    findOption(
-      wrapper,
-      {label: 'Users with errors'},
-      {name: 'discoverQuery', control: true}
-    )
-      .at(0)
-      .simulate('click');
-
-    await clickSubmit(wrapper);
-
-    expect(widget.queries[0].conditions).toEqual(discoverQuery.query);
-    expect(widget.queries[0].fields).toEqual([discoverQuery.yAxis]);
   });
 
   it('can edit a widget', async function () {
