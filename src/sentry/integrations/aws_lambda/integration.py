@@ -247,6 +247,7 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
         curr_step = 0 if pipeline.fetch_state("skipped_project_select") else 1
 
         def render_response(error=None):
+            serialized_organization = serialize(pipeline.organization, request.user)
             template_url = options.get("aws-lambda.cloudformation-url")
             context = {
                 "baseCloudformationUrl": "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review",
@@ -257,6 +258,7 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
                 "region": pipeline.fetch_state("region"),
                 "error": error,
                 "initialStepNumber": curr_step,
+                "organization": serialized_organization,
             }
             return self.render_react_view(request, "awsLambdaCloudformation", context)
 
