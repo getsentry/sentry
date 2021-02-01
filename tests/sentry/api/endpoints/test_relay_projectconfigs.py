@@ -11,6 +11,7 @@ from sentry.constants import ObjectStatus
 from sentry.utils import safe, json
 from sentry.models.relay import Relay
 from sentry.models import Project
+from sentry.testutils.helpers import Feature
 
 from sentry_relay.auth import generate_key_pair
 
@@ -165,6 +166,22 @@ def test_internal_relays_should_receive_full_configs(
     assert cfg["config"]["eventRetention"] == quotas.get_event_retention(
         default_project.organization
     )
+
+
+@pytest.mark.django_db
+def test_relays_dyamic_sampling(client, call_endpoint, default_project, dyn_sampling_data):
+    """
+    Tests that dynamic sampling configuration set in project details are retrieved in relay configs
+    """
+    default_project.update_option("sentry:dynamic_sampling", dyn_sampling_data())
+
+    with Feature({"organizations:filters-and-sampling": True}):
+        result, status_code = call_endpoint(full_config=False)
+        assert status_code < 400
+        dynamic_sampling = safe.get_path(
+            result, "configs", six.text_type(default_project.id), "config", "dynamicSampling"
+        )
+        assert dynamic_sampling == dyn_sampling_data()
 
 
 @pytest.mark.django_db
