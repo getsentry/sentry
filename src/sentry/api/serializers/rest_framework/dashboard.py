@@ -55,7 +55,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
     def validate(self, data):
         if not data.get("id"):
             keys = set(data.keys())
-            if keys.intersection(self.required_for_create) != self.required_for_create:
+            if self.required_for_create - keys:
                 raise serializers.ValidationError(
                     {
                         "fields": "fields are required during creation.",
