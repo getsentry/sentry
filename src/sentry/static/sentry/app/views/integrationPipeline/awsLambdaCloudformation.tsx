@@ -8,6 +8,7 @@ import ExternalLink from 'app/components/links/externalLink';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import {t} from 'app/locale';
+import {Organization} from 'app/types';
 import {uniqueId} from 'app/utils/guid';
 import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 import SelectField from 'app/views/settings/components/forms/selectField';
@@ -37,6 +38,7 @@ type Props = {
   stackName: string;
   regionList: string[];
   initialStepNumber: number;
+  organization: Organization;
   accountNumber?: string;
   region?: string;
   error?: string;
@@ -151,24 +153,28 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
 
   //debounce so we don't send a request on every input change
   debouncedTrackValueChanged = debounce((fieldName: string) => {
-    //TODO: add org to trackIntegrationEvent call
-    trackIntegrationEvent({
-      eventKey: 'integrations.installation_input_value_changed',
-      eventName: 'Integrations: Installation Input Value Changed',
-      integration: 'aws_lambda',
-      integration_type: 'first_party',
-      field_name: fieldName,
-    });
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.installation_input_value_changed',
+        eventName: 'Integrations: Installation Input Value Changed',
+        integration: 'aws_lambda',
+        integration_type: 'first_party',
+        field_name: fieldName,
+      },
+      this.props.organization
+    );
   }, 200);
 
   trackOpenCloudFormation = () => {
-    //TODO: add org to trackIntegrationEvent call
-    trackIntegrationEvent({
-      eventKey: 'integrations.cloudformation_link_clicked',
-      eventName: 'Integrations: CloudFormation Link Clicked',
-      integration: 'aws_lambda',
-      integration_type: 'first_party',
-    });
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.cloudformation_link_clicked',
+        eventName: 'Integrations: CloudFormation Link Clicked',
+        integration: 'aws_lambda',
+        integration_type: 'first_party',
+      },
+      this.props.organization
+    );
   };
 
   render = () => {
