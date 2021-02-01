@@ -280,7 +280,7 @@ class BitbucketIssueTest(APITestCase):
 
         responses.add(
             responses.POST,
-            "https://api.bitbucket.org/2.0/repositories/{repo}/issues".format(repo=repo),
+            f"https://api.bitbucket.org/2.0/repositories/{repo}/issues",
             json={"id": id, "title": title, "content": {"html": content}},
         )
         installation = self.integration.get_installation(self.organization.id)

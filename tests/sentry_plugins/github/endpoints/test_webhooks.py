@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import six
 
 from datetime import datetime
@@ -30,7 +28,7 @@ class WebhookTest(APITestCase):
     def test_get(self):
         project = self.project  # force creation
 
-        url = "/plugins/github/organizations/{}/webhook/".format(project.organization.id)
+        url = f"/plugins/github/organizations/{project.organization.id}/webhook/"
 
         response = self.client.get(url)
 
@@ -38,7 +36,7 @@ class WebhookTest(APITestCase):
 
     def test_unregistered_event(self):
         project = self.project  # force creation
-        url = "/plugins/github/organizations/{}/webhook/".format(project.organization.id)
+        url = f"/plugins/github/organizations/{project.organization.id}/webhook/"
 
         secret = "b3002c3e321d4b7880360d397db2ccfd"
 
@@ -60,7 +58,7 @@ class WebhookTest(APITestCase):
     def test_invalid_signature_event(self):
         project = self.project  # force creation
 
-        url = "/plugins/github/organizations/{}/webhook/".format(project.organization.id)
+        url = f"/plugins/github/organizations/{project.organization.id}/webhook/"
 
         secret = "2d7565c3537847b789d6995dca8d9f84"
 
@@ -84,7 +82,7 @@ class PushEventWebhookTest(APITestCase):
     def test_simple(self):
         project = self.project  # force creation
 
-        url = "/plugins/github/organizations/{}/webhook/".format(project.organization.id)
+        url = f"/plugins/github/organizations/{project.organization.id}/webhook/"
 
         secret = "b3002c3e321d4b7880360d397db2ccfd"
 
@@ -139,7 +137,7 @@ class PushEventWebhookTest(APITestCase):
     def test_anonymous_lookup(self):
         project = self.project  # force creation
 
-        url = "/plugins/github/organizations/{}/webhook/".format(project.organization.id)
+        url = f"/plugins/github/organizations/{project.organization.id}/webhook/"
 
         secret = "b3002c3e321d4b7880360d397db2ccfd"
 
@@ -344,7 +342,7 @@ class PullRequestEventWebhook(APITestCase):
     def test_opened(self):
         project = self.project  # force creation
 
-        url = "/plugins/github/organizations/{}/webhook/".format(project.organization.id)
+        url = f"/plugins/github/organizations/{project.organization.id}/webhook/"
 
         secret = "b3002c3e321d4b7880360d397db2ccfd"
 
@@ -386,7 +384,7 @@ class PullRequestEventWebhook(APITestCase):
     def test_edited(self):
         project = self.project  # force creation
 
-        url = "/plugins/github/organizations/{}/webhook/".format(project.organization.id)
+        url = f"/plugins/github/organizations/{project.organization.id}/webhook/"
 
         secret = "b3002c3e321d4b7880360d397db2ccfd"
 
@@ -426,7 +424,7 @@ class PullRequestEventWebhook(APITestCase):
     def test_closed(self):
         project = self.project  # force creation
 
-        url = "/plugins/github/organizations/{}/webhook/".format(project.organization.id)
+        url = f"/plugins/github/organizations/{project.organization.id}/webhook/"
 
         secret = "b3002c3e321d4b7880360d397db2ccfd"
 

@@ -8,7 +8,7 @@ from sentry.models import Group
 
 
 def format_project_event(project_slug, event_id):
-    return "{}:{}".format(project_slug, event_id)
+    return f"{project_slug}:{event_id}"
 
 
 class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):

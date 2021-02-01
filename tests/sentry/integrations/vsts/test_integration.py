@@ -73,7 +73,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         accessible_repo = Repository.objects.create(
             organization_id=self.organization.id,
             name=self.project_a["name"],
-            url="{}/_git/{}".format(self.vsts_base_url, self.repo_name),
+            url=f"{self.vsts_base_url}/_git/{self.repo_name}",
             provider="visualstudio",
             external_id=self.repo_id,
             config={"name": self.project_a["name"], "project": self.project_a["name"]},

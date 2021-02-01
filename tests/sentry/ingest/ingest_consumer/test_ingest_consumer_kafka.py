@@ -30,7 +30,7 @@ def get_test_message(default_project):
         now = datetime.datetime.now()
         # the event id should be 32 digits
         event_id = "{}".format(now.strftime("000000000000%Y%m%d%H%M%S%f"))
-        message_text = "some message {}".format(event_id)
+        message_text = f"some message {event_id}"
         project_id = project.id  # must match the project id set up by the test fixtures
         if type == "transaction":
             event = {

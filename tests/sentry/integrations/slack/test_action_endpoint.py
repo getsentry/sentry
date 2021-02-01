@@ -125,7 +125,7 @@ class StatusActionTest(BaseEventTest):
         assert resp.status_code == 200, resp.content
         assert self.group1.get_status() == GroupStatus.IGNORED
 
-        expect_status = "*Issue ignored by <@{}>*".format(self.identity.external_id)
+        expect_status = f"*Issue ignored by <@{self.identity.external_id}>*"
         assert resp.data["text"].endswith(expect_status), resp.data["text"]
 
     def test_ignore_issue_with_additional_user_auth(self):
@@ -143,7 +143,7 @@ class StatusActionTest(BaseEventTest):
         assert resp.status_code == 200, resp.content
         assert self.group1.get_status() == GroupStatus.IGNORED
 
-        expect_status = "*Issue ignored by <@{}>*".format(self.identity.external_id)
+        expect_status = f"*Issue ignored by <@{self.identity.external_id}>*"
         assert resp.data["text"].endswith(expect_status), resp.data["text"]
 
     def test_assign_issue(self):
@@ -153,7 +153,7 @@ class StatusActionTest(BaseEventTest):
         # Assign to user
         status_action = {
             "name": "assign",
-            "selected_options": [{"value": "user:{}".format(user2.id)}],
+            "selected_options": [{"value": f"user:{user2.id}"}],
         }
 
         resp = self.post_webhook(action_data=[status_action])
@@ -168,7 +168,7 @@ class StatusActionTest(BaseEventTest):
         # Assign to team
         status_action = {
             "name": "assign",
-            "selected_options": [{"value": "team:{}".format(self.team.id)}],
+            "selected_options": [{"value": f"team:{self.team.id}"}],
         }
 
         resp = self.post_webhook(action_data=[status_action])
@@ -196,7 +196,7 @@ class StatusActionTest(BaseEventTest):
 
         status_action = {
             "name": "assign",
-            "selected_options": [{"value": "user:{}".format(user2.id)}],
+            "selected_options": [{"value": f"user:{user2.id}"}],
         }
 
         resp = self.post_webhook(action_data=[status_action])
@@ -243,7 +243,7 @@ class StatusActionTest(BaseEventTest):
 
         status_action = {
             "name": "assign",
-            "selected_options": [{"value": "user:{}".format(self.user.id)}],
+            "selected_options": [{"value": f"user:{self.user.id}"}],
         }
 
         resp = self.post_webhook(action_data=[status_action])
@@ -307,7 +307,7 @@ class StatusActionTest(BaseEventTest):
 
         update_data = json.loads(responses.calls[1].request.body)
 
-        expect_status = "*Issue resolved by <@{}>*".format(self.identity.external_id)
+        expect_status = f"*Issue resolved by <@{self.identity.external_id}>*"
         assert update_data["text"].endswith(expect_status)
 
     def test_permission_denied(self):

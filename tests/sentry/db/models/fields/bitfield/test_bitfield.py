@@ -225,7 +225,7 @@ class BitFieldTest(TestCase):
 
         BitFieldTestModel.objects.filter(pk=instance.pk).update(
             flags=bitor(
-                F("flags"), ((~BitFieldTestModel.flags.FLAG_0 | BitFieldTestModel.flags.FLAG_3))
+                F("flags"), (~BitFieldTestModel.flags.FLAG_0 | BitFieldTestModel.flags.FLAG_3)
             )
         )
         instance = BitFieldTestModel.objects.get(pk=instance.pk)

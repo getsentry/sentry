@@ -203,7 +203,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="Get Sentry / Example Repo",
-            external_id="{}:{}".format(instance, external_id),
+            external_id=f"{instance}:{external_id}",
             url="https://gitlab.example.com/getsentry/projects/example-repo",
             config={"project_id": external_id, "path": "getsentry/example-repo"},
             provider="integrations:gitlab",
@@ -235,7 +235,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="Get Sentry / Example Repo",
-            external_id="{}:{}".format(instance, external_id),
+            external_id=f"{instance}:{external_id}",
             url="https://gitlab.example.com/getsentry/projects/example-repo",
             config={"project_id": external_id, "path": "getsentry/example-repo"},
             provider="integrations:gitlab",
@@ -265,7 +265,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="Get Sentry / Example Repo",
-            external_id="{}:{}".format(instance, external_id),
+            external_id=f"{instance}:{external_id}",
             url="https://gitlab.example.com/getsentry/projects/example-repo",
             config={"project_id": external_id, "path": "getsentry/example-repo"},
             provider="integrations:gitlab",

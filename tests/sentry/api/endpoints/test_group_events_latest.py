@@ -40,7 +40,7 @@ class GroupEventsLatestEndpointTest(APITestCase, SnubaTestCase):
         )
 
     def test_get_simple(self):
-        url = "/api/0/issues/{}/events/latest/".format(self.event_a.group.id)
+        url = f"/api/0/issues/{self.event_a.group.id}/events/latest/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -49,7 +49,7 @@ class GroupEventsLatestEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["nextEventID"] is None
 
     def test_get_with_environment(self):
-        url = "/api/0/issues/{}/events/latest/".format(self.event_a.group.id)
+        url = f"/api/0/issues/{self.event_a.group.id}/events/latest/"
         response = self.client.get(url, format="json", data={"environment": ["production"]})
 
         assert response.status_code == 200, response.content

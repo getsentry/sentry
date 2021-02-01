@@ -94,7 +94,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
                     "user": {
                         # change every 55 min so some hours have 1 user, some have 2
                         "id": "user{}".format(r // 3300),
-                        "email": "user{}@sentry.io".format(r),
+                        "email": f"user{r}@sentry.io",
                     },
                     "release": six.text_type(r // 3600) * 10,  # 1 per hour,
                 },

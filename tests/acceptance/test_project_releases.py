@@ -13,7 +13,7 @@ class ProjectReleasesTest(AcceptanceTestCase):
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.login_as(self.user)
-        self.path = "/{}/{}/releases/".format(self.org.slug, self.project.slug)
+        self.path = f"/{self.org.slug}/{self.project.slug}/releases/"
 
     @pytest.mark.skip(reason="Sentry 9 only")
     def test_with_releases(self):

@@ -101,7 +101,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         integration = Integration.objects.get(provider="vsts")
         responses.add_callback(
             responses.GET,
-            "https://{}.visualstudio.com/_apis/projects".format(self.vsts_account_name.lower()),
+            f"https://{self.vsts_account_name.lower()}.visualstudio.com/_apis/projects",
             callback=request_callback,
         )
 

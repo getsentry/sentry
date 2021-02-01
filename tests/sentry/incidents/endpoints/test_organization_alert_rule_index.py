@@ -370,7 +370,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             projects=[self.project],
             date_added=before_now(minutes=3).replace(tzinfo=pytz.UTC),
         )
-        self.combined_rules_url = "/api/0/organizations/{0}/combined-rules/".format(self.org.slug)
+        self.combined_rules_url = f"/api/0/organizations/{self.org.slug}/combined-rules/"
 
     def test_invalid_limit(self):
         self.setup_project_and_rules()

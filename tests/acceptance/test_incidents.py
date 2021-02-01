@@ -13,7 +13,7 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super(OrganizationIncidentsListTest, self).setUp()
         self.login_as(self.user)
-        self.path = "/organizations/{}/alerts/".format(self.organization.slug)
+        self.path = f"/organizations/{self.organization.slug}/alerts/"
 
     def test_empty_incidents(self):
         with self.feature(FEATURE_NAME):

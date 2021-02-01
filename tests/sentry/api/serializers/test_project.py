@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from datetime import timedelta
 
 import six
@@ -135,7 +132,7 @@ class ProjectSerializerTest(TestCase):
     @mock.patch("sentry.features.batch_has")
     def test_project_batch_has(self, mock_batch):
         mock_batch.return_value = {
-            "project:{}".format(self.project.id): {
+            f"project:{self.project.id}": {
                 "projects:test-feature": True,
                 "projects:disabled-feature": False,
             }

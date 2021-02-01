@@ -77,7 +77,7 @@ class TestDSNAuthentication(TestCase):
 
     def test_authenticate(self):
         request = HttpRequest()
-        request.META["HTTP_AUTHORIZATION"] = "DSN {}".format(self.project_key.dsn_public)
+        request.META["HTTP_AUTHORIZATION"] = f"DSN {self.project_key.dsn_public}"
 
         result = self.auth.authenticate(request)
         assert result is not None
@@ -89,7 +89,7 @@ class TestDSNAuthentication(TestCase):
     def test_inactive_key(self):
         self.project_key.update(status=ProjectKeyStatus.INACTIVE)
         request = HttpRequest()
-        request.META["HTTP_AUTHORIZATION"] = "DSN {}".format(self.project_key.dsn_public)
+        request.META["HTTP_AUTHORIZATION"] = f"DSN {self.project_key.dsn_public}"
 
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)

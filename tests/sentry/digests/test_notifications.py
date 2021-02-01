@@ -117,16 +117,18 @@ class SortRecordsTestCase(TestCase):
 
 class SplitKeyTestCase(TestCase):
     def test_old_style_key(self):
-        assert split_key("mail:p:{}".format(self.project.id)) == (
+        assert split_key(f"mail:p:{self.project.id}") == (
             self.project,
             ActionTargetType.ISSUE_OWNERS,
             None,
         )
 
     def test_new_style_key_no_identifier(self):
-        assert split_key(
-            "mail:p:{}:{}:".format(self.project.id, ActionTargetType.ISSUE_OWNERS.value)
-        ) == (self.project, ActionTargetType.ISSUE_OWNERS, None)
+        assert split_key(f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}:") == (
+            self.project,
+            ActionTargetType.ISSUE_OWNERS,
+            None,
+        )
 
     def test_new_style_key_identifier(self):
         identifier = "123"
@@ -139,9 +141,10 @@ class SplitKeyTestCase(TestCase):
 
 class UnsplitKeyTestCase(TestCase):
     def test_no_identifier(self):
-        assert unsplit_key(
-            self.project, ActionTargetType.ISSUE_OWNERS, None
-        ) == "mail:p:{}:{}:".format(self.project.id, ActionTargetType.ISSUE_OWNERS.value)
+        assert (
+            unsplit_key(self.project, ActionTargetType.ISSUE_OWNERS, None)
+            == f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}:"
+        )
 
     def test_identifier(self):
         identifier = "123"

@@ -848,7 +848,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
-            HTTP_AUTHORIZATION=b"Basic " + b64encode("{}:".format(bad_api_key.key).encode("utf-8")),
+            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{bad_api_key.key}:".encode("utf-8")),
         )
         assert response.status_code == 403
 
@@ -857,8 +857,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
-            HTTP_AUTHORIZATION=b"Basic "
-            + b64encode("{}:".format(wrong_org_api_key.key).encode("utf-8")),
+            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{wrong_org_api_key.key}:".encode("utf-8")),
         )
         assert response.status_code == 403
 
@@ -867,8 +866,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
-            HTTP_AUTHORIZATION=b"Basic "
-            + b64encode("{}:".format(good_api_key.key).encode("utf-8")),
+            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{good_api_key.key}:".encode("utf-8")),
         )
         assert response.status_code == 201, response.content
 
@@ -908,7 +906,7 @@ class OrganizationReleaseCreateTest(APITestCase):
                 ],
                 "projects": [project1.slug],
             },
-            HTTP_AUTHORIZATION="Bearer {}".format(api_token.token),
+            HTTP_AUTHORIZATION=f"Bearer {api_token.token}",
         )
 
         mock_fetch_commits.apply_async.assert_called_with(

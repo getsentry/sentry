@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 import six
 
 from django.conf import settings
@@ -54,7 +51,7 @@ class OrganizationSerializerTest(TestCase):
         features.add("organizations:test-feature", OrganizationFeature)
         features.add("organizations:disabled-feature", OrganizationFeature)
         mock_batch.return_value = {
-            "organization:{}".format(organization.id): {
+            f"organization:{organization.id}": {
                 "organizations:test-feature": True,
                 "organizations:disabled-feature": False,
             }

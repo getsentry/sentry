@@ -1114,11 +1114,11 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         for i in range(400):
             event = self.store_event(
                 data={
-                    "event_id": md5("event {}".format(i).encode("utf-8")).hexdigest(),
-                    "fingerprint": ["put-me-in-group{}".format(i)],
+                    "event_id": md5(f"event {i}".encode("utf-8")).hexdigest(),
+                    "fingerprint": [f"put-me-in-group{i}"],
                     "timestamp": iso_format(self.base_datetime - timedelta(days=21)),
-                    "message": "group {} event".format(i),
-                    "stacktrace": {"frames": [{"module": "module {}".format(i)}]},
+                    "message": f"group {i} event",
+                    "stacktrace": {"frames": [{"module": f"module {i}"}]},
                     "tags": {"match": "{}".format(i % 2)},
                     "environment": "production",
                 },

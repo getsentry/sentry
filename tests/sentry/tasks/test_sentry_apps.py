@@ -147,7 +147,7 @@ class TestSendAlertEvent(TestCase):
                             args=[self.organization.slug, group.id, event.event_id],
                         )
                     ),
-                    issue_url=absolute_uri("/api/0/issues/{}/".format(group.id)),
+                    issue_url=absolute_uri(f"/api/0/issues/{group.id}/"),
                 ),
                 "triggered_rule": self.rule.label,
             },

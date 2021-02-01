@@ -17,7 +17,7 @@ class OrganizationReleasesTest(AcceptanceTestCase):
         )
         self.create_project(organization=self.org, teams=[self.team], name="Bengal 3")
         self.login_as(self.user)
-        self.path = "/organizations/{}/releases/".format(self.org.slug)
+        self.path = f"/organizations/{self.org.slug}/releases/"
         self.project.update(first_event=timezone.now())
 
     def test_list(self):
