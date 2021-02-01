@@ -160,15 +160,10 @@ class LinkSharedEventTest(BaseEventTest):
         data = dict(parse_qsl(responses.calls[0].request.body))
         unfurls = json.loads(data["unfurls"])
         issue_url = f"http://testserver/organizations/{self.org.slug}/issues/{group1.id}/bar/"
-        incident_url = "http://testserver/organizations/{}/incidents/{}/".format(
-            self.org.slug,
-            incident.identifier,
+        incident_url = (
+            f"http://testserver/organizations/{self.org.slug}/incidents/{incident.identifier}/"
         )
-        event_url = "http://testserver/organizations/{}/issues/{}/events/{}/".format(
-            self.org.slug,
-            group3.id,
-            event.event_id,
-        )
+        event_url = f"http://testserver/organizations/{self.org.slug}/issues/{group3.id}/events/{event.event_id}/"
 
         assert unfurls == {
             issue_url: build_group_attachment(group1),

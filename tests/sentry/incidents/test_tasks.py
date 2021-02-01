@@ -96,10 +96,9 @@ class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
         incident = activity.incident
         context = build_activity_context(activity, expected_recipient)
         assert context["user_name"] == expected_username
-        assert context["action"] == "{} on alert {} (#{})".format(
-            expected_action,
-            activity.incident.title,
-            activity.incident.identifier,
+        assert (
+            context["action"]
+            == f"{expected_action} on alert {activity.incident.title} (#{activity.incident.identifier})"
         )
         assert (
             context["link"]
