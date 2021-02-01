@@ -7,6 +7,7 @@ import space from 'app/styles/space';
 
 export default {
   title: 'UI/ScoreCard',
+  component: ScoreCard,
 };
 
 export const Default = () => (
@@ -34,7 +35,7 @@ export const Default = () => (
     <ScoreCard title={t('Minimal')} />
   </Wrapper>
 );
-Default.story = {name: 'default'};
+Default.storyName = 'default';
 
 const Wrapper = styled('div')`
   display: grid;

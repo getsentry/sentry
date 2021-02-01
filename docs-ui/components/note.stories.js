@@ -1,10 +1,10 @@
 import React from 'react';
 import {action} from '@storybook/addon-actions';
-import {withInfo} from '@storybook/addon-info';
 
-import ConfigStore from 'app/stores/configStore';
 import Note from 'app/components/activity/note';
+import ConfigStore from 'app/stores/configStore';
 
+// TODO(scttcper): Not working
 const user = {
   username: 'billy@sentry.io',
   identities: [],
@@ -21,9 +21,7 @@ export default {
   title: 'UI/Activity/Note',
 };
 
-export const Default = withInfo(
-  'A `<Note>` is an `<ActivityItem>` that can be edited with an editor. The editor has an input mode and a preview mode.'
-)(() => (
+export const Default = () => (
   <Note
     author={{name: 'Billy'}}
     item={{id: '123', data: {text: 'hello'}, user, dateCreated: new Date()}}
@@ -32,8 +30,14 @@ export const Default = withInfo(
     sessionUser={{}}
     memberList={[]}
   />
-));
+);
 
-Default.story = {
-  name: 'default',
+Default.storyName = 'Note';
+Default.parameters = {
+  docs: {
+    description: {
+      story:
+        'A `<Note>` is an `<ActivityItem>` that can be edited with an editor. The editor has an input mode and a preview mode.',
+    },
+  },
 };

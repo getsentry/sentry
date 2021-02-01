@@ -1,7 +1,7 @@
 import React from 'react';
 
 import Confirm from 'app/components/confirm';
-import Switch from 'app/components/switch';
+import Switch from 'app/components/switchButton';
 import InputField, {onEvent} from 'app/views/settings/components/forms/inputField';
 
 type Props = {

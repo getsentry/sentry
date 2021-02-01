@@ -17,7 +17,7 @@ type ExtendedJQuery = {
   simpleSlider: any;
 } & JQuery;
 
-export default class RangeField extends InputField<Props> {
+class RangeField extends InputField<Props> {
   static formatMinutes = value => {
     value = value / 60;
     return `${value} minute${value !== 1 ? 's' : ''}`;
@@ -90,3 +90,5 @@ export default class RangeField extends InputField<Props> {
     return 'range';
   }
 }
+
+export default RangeField;

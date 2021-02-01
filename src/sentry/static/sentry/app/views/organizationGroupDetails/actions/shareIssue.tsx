@@ -8,7 +8,7 @@ import Clipboard from 'app/components/clipboard';
 import Confirm from 'app/components/confirm';
 import DropdownLink from 'app/components/dropdownLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import Switch from 'app/components/switch';
+import Switch from 'app/components/switchButton';
 import {IconChevron, IconCopy, IconRefresh} from 'app/icons';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';

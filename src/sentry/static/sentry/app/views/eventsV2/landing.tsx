@@ -15,7 +15,7 @@ import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import SearchBar from 'app/components/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import Switch from 'app/components/switch';
+import Switch from 'app/components/switchButton';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import {PageContent} from 'app/styles/organization';

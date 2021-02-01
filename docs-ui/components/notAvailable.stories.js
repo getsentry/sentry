@@ -1,16 +1,14 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 
 import NotAvailable from 'app/components/notAvailable';
 import PanelTable from 'app/components/panels/panelTable';
 
 export default {
   title: 'Core/NotAvailable',
+  component: NotAvailable,
 };
 
-export const Default = withInfo(
-  "When you don't have data to display, but don't want to display an empty space. It's commonly used in a table."
-)(() => (
+export const Default = () => (
   <div>
     <div className="section">
       <h3>Alone</h3>
@@ -26,8 +24,14 @@ export const Default = withInfo(
       </PanelTable>
     </div>
   </div>
-));
+);
 
-Default.story = {
-  name: 'default',
+Default.storyName = 'NotAvailable';
+Default.parameters = {
+  docs: {
+    description: {
+      story:
+        "When you don't have data to display, but don't want to display an empty space. It's commonly used in a table.",
+    },
+  },
 };

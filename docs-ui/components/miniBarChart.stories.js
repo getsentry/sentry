@@ -1,14 +1,13 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 
-import theme from 'app/utils/theme';
 import MiniBarChart from 'app/components/charts/miniBarChart';
+import theme from 'app/utils/theme';
 
 export default {
   title: 'DataVisualization/Charts/MiniBarChart',
 };
 
-export const _MiniBarChart = withInfo('Stacked MiniBarChart')(() => {
+export const _MiniBarChart = () => {
   const startTime = 1601992800;
   const interval = 3600;
   const all = [
@@ -157,8 +156,6 @@ export const _MiniBarChart = withInfo('Stacked MiniBarChart')(() => {
       </div>
     </React.Fragment>
   );
-});
-
-_MiniBarChart.story = {
-  name: 'MiniBarChart',
 };
+
+_MiniBarChart.storyName = 'MiniBarChart';

@@ -1,6 +1,4 @@
 import React from 'react';
-import {select} from '@storybook/addon-knobs';
-import {withInfo} from '@storybook/addon-info';
 
 import SplitDiff from 'app/components/splitDiff';
 
@@ -110,18 +108,26 @@ const target = `TypeError: Cannot read property 'id' of undefined
 
 export default {
   title: 'DataVisualization/SplitDiff',
+  component: SplitDiff,
+  argTypes: {
+    type: {
+      control: {
+        type: 'select',
+        options: ['chars', 'words', 'lines'],
+      },
+    },
+  },
 };
 
-export const _SplitDiff = withInfo(
-  'Diffs two strings, split by newlines if present'
-)(() => (
-  <SplitDiff
-    base={base}
-    target={target}
-    type={select('Type', ['lines', 'words', 'chars'], 'lines')}
-  />
-));
+export const _SplitDiff = ({...args}) => (
+  <SplitDiff base={base} target={target} {...args} />
+);
 
-_SplitDiff.story = {
-  name: 'SplitDiff',
+_SplitDiff.storyName = 'SplitDiff';
+_SplitDiff.parameters = {
+  docs: {
+    description: {
+      story: 'Diffs two strings, split by newlines if present',
+    },
+  },
 };

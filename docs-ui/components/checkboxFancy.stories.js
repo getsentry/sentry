@@ -1,27 +1,32 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
-import {number, boolean} from '@storybook/addon-knobs';
 import styled from '@emotion/styled';
 
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
 
 export default {
   title: 'Core/Style/Icons',
+  component: CheckboxFancy,
+  args: {
+    size: 100,
+    isChecked: true,
+  },
 };
 
-export const _CheckboxFancy = withInfo('A fancy looking checkbox')(() => {
+export const _CheckboxFancy = ({size, isChecked}) => {
   return (
     <Container>
-      <CheckboxFancy
-        size={`${number('Size', 100)}px`}
-        isChecked={boolean('Checked', true)}
-      />
+      <CheckboxFancy size={`${size}px`} isChecked={isChecked} />
     </Container>
   );
-});
+};
 
-_CheckboxFancy.story = {
-  name: 'CheckboxFancy',
+_CheckboxFancy.storyName = 'CheckboxFancy';
+_CheckboxFancy.parameters = {
+  docs: {
+    description: {
+      story: 'A fancy looking checkbox',
+    },
+  },
 };
 
 const Container = styled('div')`

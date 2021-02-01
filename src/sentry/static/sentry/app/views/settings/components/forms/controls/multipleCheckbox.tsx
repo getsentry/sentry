@@ -30,7 +30,7 @@ type Props = {
   disabled?: boolean;
 };
 
-export default class MultipleCheckbox extends React.Component<Props> {
+class MultipleCheckbox extends React.Component<Props> {
   onChange = (selectedValue: string | number, e: React.ChangeEvent<HTMLInputElement>) => {
     const {value, onChange} = this.props;
     let newValue: SelectedValue = [];
@@ -71,6 +71,8 @@ export default class MultipleCheckbox extends React.Component<Props> {
     );
   }
 }
+
+export default MultipleCheckbox;
 
 const LabelContainer = styled('div')`
   width: 100%;

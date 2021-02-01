@@ -1,37 +1,49 @@
 import React from 'react';
 import {action} from '@storybook/addon-actions';
-import {withInfo} from '@storybook/addon-info';
 
-import {Panel, PanelHeader} from 'app/components/panels';
 import LoadingError from 'app/components/loadingError';
+import {Panel, PanelHeader} from 'app/components/panels';
 
 export default {
   title: 'UI/Loaders/LoadingError',
 };
 
-export const Default = withInfo('Loading error with default message')(() => (
-  <LoadingError onRetry={action('retry')} />
-));
+export const Default = () => <LoadingError onRetry={action('retry')} />;
 
-Default.story = {
-  name: 'default',
+Default.storyName = 'default';
+Default.storyDescription = {
+  docs: {
+    description: {
+      story: 'Loading error with default message',
+    },
+  },
 };
 
-export const CustomMessage = withInfo('Loading error with custom message')(() => (
+export const CustomMessage = () => (
   <LoadingError message="Data failed to load" onRetry={action('retry')} />
-));
+);
 
-CustomMessage.story = {
-  name: 'custom message',
+CustomMessage.storyName = 'custom message';
+CustomMessage.parameters = {
+  docs: {
+    description: {
+      story: 'Loading error with custom message',
+    },
+  },
 };
 
-export const InPanel = withInfo('Loading error inside panel component')(() => (
+export const InPanel = () => (
   <Panel>
     <PanelHeader>Header</PanelHeader>
     <LoadingError onRetry={action('retry')} />
   </Panel>
-));
+);
 
-InPanel.story = {
-  name: 'in panel',
+InPanel.storyName = 'in panel';
+InPanel.parameters = {
+  docs: {
+    description: {
+      story: 'Loading error inside panel component',
+    },
+  },
 };

@@ -1,26 +1,23 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
-import {text} from '@storybook/addon-knobs';
 
 import FileIcon from 'app/components/fileIcon';
 
 export default {
   title: 'Core/Style/Icons',
+  component: FileIcon,
+  args: {
+    fileName: 'src/components/testComponent.tsx',
+    size: 'xl',
+  },
 };
 
-export const _FileIcon = withInfo(
-  'Shows a platform icon for given filename - based on extension'
-)(() => {
-  const fileName = text('fileName', 'src/components/testComponent.tsx');
-  const size = text('size', 'xl');
+export const _FileIcon = ({...args}) => <FileIcon {...args} />;
 
-  return (
-    <div>
-      <FileIcon fileName={fileName} size={size} />
-    </div>
-  );
-});
-
-_FileIcon.story = {
-  name: 'FileIcon',
+_FileIcon.storyName = 'FileIcon';
+_FileIcon.parameters = {
+  docs: {
+    description: {
+      story: 'Shows a platform icon for given filename - based on extension',
+    },
+  },
 };

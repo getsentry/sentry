@@ -1,5 +1,4 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 
 import AutoComplete from 'app/components/autoComplete';
 
@@ -17,9 +16,12 @@ const items = [
 
 export default {
   title: 'Core/Forms/AutoComplete',
+  parameters: {
+    controls: {hideNoControlsWarning: true},
+  },
 };
 
-export const Input = withInfo('Autocomplete on an input')(() => (
+export const Input = () => (
   <AutoComplete itemToString={item => item.name}>
     {({
       getRootProps,
@@ -77,4 +79,12 @@ export const Input = withInfo('Autocomplete on an input')(() => (
       );
     }}
   </AutoComplete>
-));
+);
+
+Input.parameters = {
+  docs: {
+    description: {
+      story: 'Autocomplete on an input',
+    },
+  },
+};

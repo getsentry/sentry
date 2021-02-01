@@ -1,11 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {withInfo} from '@storybook/addon-info';
 
 import Pagination from 'app/components/pagination';
 
 export default {
   title: 'Core/Pagination',
+  component: Pagination,
 };
 
 const withBoth = `<https://sentry.io/api/0/organizations/sentry/issues/?cursor=1603798246000:0:1>; rel="previous"; results="true"; cursor="1603798246000:0:1",
@@ -29,7 +29,7 @@ class Container extends React.Component {
   }
 }
 
-export const Default = withInfo('Pagination')(() => {
+export const Default = () => {
   return (
     <Container>
       <div className="section">
@@ -42,8 +42,6 @@ export const Default = withInfo('Pagination')(() => {
       </div>
     </Container>
   );
-});
-
-Default.story = {
-  name: 'default',
 };
+
+Default.storyName = 'Pagination';

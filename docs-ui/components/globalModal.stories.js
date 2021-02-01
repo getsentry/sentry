@@ -1,17 +1,14 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 
-import GlobalModal from 'app/components/globalModal';
-import Button from 'app/components/button';
 import {openModal} from 'app/actionCreators/modal';
+import Button from 'app/components/button';
+import GlobalModal from 'app/components/globalModal';
 
 export default {
   title: 'Layouts/Modals',
 };
 
-export const _GlobalModal = withInfo('Call `openModal` action creator to open a modal', {
-  propTablesExclude: ['Button'],
-})(() => (
+export const _GlobalModal = () => (
   <div>
     <Button
       onClick={() =>
@@ -30,8 +27,13 @@ export const _GlobalModal = withInfo('Call `openModal` action creator to open a 
     </Button>
     <GlobalModal />
   </div>
-));
+);
 
-_GlobalModal.story = {
-  name: 'GlobalModal',
+_GlobalModal.storyName = 'GlobalModal';
+_GlobalModal.parameters = {
+  docs: {
+    description: {
+      story: 'Call `openModal` action creator to open a modal',
+    },
+  },
 };

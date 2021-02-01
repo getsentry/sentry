@@ -1,5 +1,4 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 
 import DebugMeta from 'app/components/events/interfaces/debugMeta';
 import SentryTypes from 'app/sentryTypes';
@@ -108,7 +107,7 @@ export default {
   title: 'Features/Issues/DebugMeta',
 };
 
-export const Default = withInfo('Various debug image metadata states')(() => (
+export const Default = () => (
   <div className="section">
     <OrganizationContext>
       <DebugMeta
@@ -119,8 +118,6 @@ export const Default = withInfo('Various debug image metadata states')(() => (
       />
     </OrganizationContext>
   </div>
-));
+);
 
-Default.story = {
-  name: 'default',
-};
+Default.storyName = 'default';

@@ -1,10 +1,9 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 import styled from '@emotion/styled';
 
-import {PanelTable} from 'app/components/panels';
-import Checkbox from 'app/components/checkbox';
 import BulkController from 'app/components/bulkController';
+import Checkbox from 'app/components/checkbox';
+import {PanelTable} from 'app/components/panels';
 
 const dummy = [
   {
@@ -36,11 +35,10 @@ const dummy = [
 
 export default {
   title: 'Core/Tables/BulkController',
+  component: BulkController,
 };
 
-export const _BulkController = withInfo({
-  text: 'Component for working with bulk actions.',
-})(() => (
+export const _BulkController = () => (
   <BulkController
     pageIds={dummy.map(d => d.id)}
     allRowsCount={23}
@@ -76,7 +74,15 @@ export const _BulkController = withInfo({
       </PanelTable>
     )}
   </BulkController>
-));
+);
+_BulkController.storyName = 'BulkController';
+_BulkController.parameters = {
+  docs: {
+    description: {
+      story: 'Nearly empty state will still show 1 bar if there are any miserable users',
+    },
+  },
+};
 
 const StyledCheckbox = styled(Checkbox)`
   margin-top: 0 !important;

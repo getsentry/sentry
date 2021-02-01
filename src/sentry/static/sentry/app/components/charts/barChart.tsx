@@ -15,7 +15,7 @@ type Props = Omit<ChartProps, 'series'> & {
   series: BarChartSeries[];
 };
 
-export default class BarChart extends React.Component<Props> {
+class BarChart extends React.Component<Props> {
   render() {
     const {series, stacked, xAxis, ...props} = this.props;
 
@@ -40,3 +40,5 @@ export default class BarChart extends React.Component<Props> {
     );
   }
 }
+
+export default BarChart;
