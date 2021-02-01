@@ -23,7 +23,7 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
         )
 
         self.url = reverse(
-            "sentry-api-0-sentry-app-installation-external-issues", args=[self.install.uuid]
+            "sentry-api-0-sentry-app-installation-external-issue-actions", args=[self.install.uuid]
         )
 
     @responses.activate
