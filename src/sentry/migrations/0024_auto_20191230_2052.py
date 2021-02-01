@@ -74,20 +74,19 @@ def backfill_eventstream(apps, schema_editor):
 
     processed = 0
     for e in RangeQuerySetWrapper(events, step=100, callbacks=(_attach_related,)):
-        event = NewEvent(
-            project_id=e.project_id, event_id=e.event_id, group_id=e.group_id, data=e.data.data
-        )
-
-        try:
-            group = event.group
-        except (Group.DoesNotExist, NewGroup.DoesNotExist):
-            group = None
-
-        if event.project is None or group is None or len(event.data) == 0:
+        event_data = e.data.data
+        if e.project is None or e.group is None or len(event_data) == 0:
             print(  # noqa: B314
-                "Skipped {} as group, project or node data information is invalid.\n".format(event)
+                "Skipped {} as group, project or node data information is invalid.\n".format(e)
             )
             continue
+
+        event = NewEvent(
+            project_id=e.project_id, event_id=e.event_id, group_id=e.group_id, data=event_data
+        )
+
+        event.group = e.group
+        event.project = e.project
 
         try:
             eventstream.insert(
