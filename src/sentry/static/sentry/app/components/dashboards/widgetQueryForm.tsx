@@ -4,11 +4,12 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import {Client} from 'app/api';
 import Button from 'app/components/button';
+import SelectControl from 'app/components/forms/selectControl';
 import {IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {getAggregateAlias} from 'app/utils/discover/fields';
 import {GlobalSelection, Organization, SelectValue} from 'app/types';
+import {getAggregateAlias} from 'app/utils/discover/fields';
 import {Widget, WidgetQuery} from 'app/views/dashboardsV2/types';
 import SearchBar from 'app/views/events/searchBar';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
