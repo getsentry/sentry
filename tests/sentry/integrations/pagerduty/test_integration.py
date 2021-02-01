@@ -68,7 +68,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
 
     def assert_add_service_flow(self, integration):
         query_param = "?account=%s" % (integration.metadata["domain_name"])
-        init_path_with_account = "%s%s" % (self.init_path, query_param)
+        init_path_with_account = f"{self.init_path}{query_param}"
         resp = self.client.get(init_path_with_account)
         assert resp.status_code == 302
         redirect = urlparse(resp["Location"])

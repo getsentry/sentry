@@ -43,11 +43,11 @@ class SlackMigrationTest(IntegrationTestCase):
             integration_id=six.text_type(self.integration.id),
             channel_id="XXXXX",
         )
-        self.init_path_verification_results = "%s%s" % (
+        self.init_path_verification_results = "{}{}".format(
             self.setup_path,
             "?show_verification_results",
         )
-        self.init_path_channels = "%s%s" % (self.setup_path, "?start_migration")
+        self.init_path_channels = "{}{}".format(self.setup_path, "?start_migration")
 
     def assert_setup_flow(
         self,

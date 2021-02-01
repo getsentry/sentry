@@ -274,7 +274,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"release": release.version, "timestamp": iso_format(before_now(seconds=1))},
             project_id=project2.id,
         )
-        url = "%s?query=%s" % (self.path, 'first-release:"%s"' % release.version)
+        url = "{}?query={}".format(self.path, 'first-release:"%s"' % release.version)
         response = self.client.get(url, format="json")
         issues = json.loads(response.content)
         assert response.status_code == 200
@@ -288,7 +288,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"tags": {"sentry:release": version}}, project_id=self.project.id
         )
         group = event.group
-        url = "%s?query=%s" % (self.path, quote('release:"%s"' % version))
+        url = "{}?query={}".format(self.path, quote('release:"%s"' % version))
         response = self.client.get(url, format="json")
         issues = json.loads(response.content)
         assert response.status_code == 200
