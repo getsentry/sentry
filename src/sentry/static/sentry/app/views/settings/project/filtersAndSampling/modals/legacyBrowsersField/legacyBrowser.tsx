@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import Switch from 'app/components/switch';
+import Switch from 'app/components/switchButton';
 import space from 'app/styles/space';
 
 import {LEGACY_BROWSER_LIST} from '../utils';
