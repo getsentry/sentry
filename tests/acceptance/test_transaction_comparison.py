@@ -45,9 +45,7 @@ class TransactionComparison(AcceptanceTestCase, SnubaTestCase):
         )
         regression_event_slug = f"{self.project.slug}:{regression_event.event_id}"
 
-        comparison_page_path = "/organizations/{}/performance/compare/{}/{}/".format(
-            self.org.slug, baseline_event_slug, regression_event_slug
-        )
+        comparison_page_path = f"/organizations/{self.org.slug}/performance/compare/{baseline_event_slug}/{regression_event_slug}/"
 
         with self.feature(FEATURE_NAMES):
             self.browser.get(comparison_page_path)

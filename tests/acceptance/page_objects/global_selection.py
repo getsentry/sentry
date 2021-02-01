@@ -18,9 +18,7 @@ class GlobalSelectionPage(BasePage):
         self.browser.click('[data-test-id="global-header-project-selector"]')
 
     def select_project_by_slug(self, slug):
-        project_item_selector = '//*[@data-test-id="badge-display-name" and text()="{}"]'.format(
-            slug
-        )
+        project_item_selector = f'//*[@data-test-id="badge-display-name" and text()="{slug}"]'
 
         self.open_project_selector()
         self.browser.wait_until(xpath=project_item_selector)

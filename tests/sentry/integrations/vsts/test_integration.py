@@ -106,9 +106,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         Repository.objects.create(
             organization_id=self.organization.id,
             name=self.project_a["name"],
-            url="https://{}.visualstudio.com/_git/{}".format(
-                self.vsts_account_name, self.repo_name
-            ),
+            url=f"https://{self.vsts_account_name}.visualstudio.com/_git/{self.repo_name}",
             provider="visualstudio",
             external_id=self.repo_id,
             config={"name": self.project_a["name"], "project": self.project_a["name"]},
@@ -130,9 +128,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         Repository.objects.create(
             organization_id=self.organization.id,
             name=self.project_a["name"],
-            url="https://{}.visualstudio.com/_git/{}".format(
-                self.vsts_account_name, self.repo_name
-            ),
+            url=f"https://{self.vsts_account_name}.visualstudio.com/_git/{self.repo_name}",
             provider="visualstudio",
             external_id=self.repo_id,
         )
@@ -249,9 +245,7 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
     def test_create_subscription_forbidden(self, mock_get_scopes):
         responses.replace(
             responses.POST,
-            "https://{}.visualstudio.com/_apis/hooks/subscriptions".format(
-                self.vsts_account_name.lower()
-            ),
+            f"https://{self.vsts_account_name.lower()}.visualstudio.com/_apis/hooks/subscriptions",
             status=403,
             json={
                 "$id": 1,
@@ -284,9 +278,7 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
     def test_create_subscription_unauthorized(self, mock_get_scopes):
         responses.replace(
             responses.POST,
-            "https://{}.visualstudio.com/_apis/hooks/subscriptions".format(
-                self.vsts_account_name.lower()
-            ),
+            f"https://{self.vsts_account_name.lower()}.visualstudio.com/_apis/hooks/subscriptions",
             status=401,
             json={
                 "$id": 1,

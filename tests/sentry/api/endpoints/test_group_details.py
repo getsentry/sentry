@@ -52,9 +52,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         group = self.create_group()
         assert group.qualified_short_id
 
-        url = "/api/0/organizations/{}/issues/{}/".format(
-            group.organization.slug, group.qualified_short_id
-        )
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.qualified_short_id}/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content

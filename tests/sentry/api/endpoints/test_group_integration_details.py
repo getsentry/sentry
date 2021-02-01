@@ -136,9 +136,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(org, self.user)
 
-        path = "/api/0/issues/{}/integrations/{}/?action=create".format(
-            self.group.id, integration.id
-        )
+        path = f"/api/0/issues/{self.group.id}/integrations/{integration.id}/?action=create"
 
         with self.feature("organizations:integrations-issue-basic"):
             with mock.patch.object(
@@ -155,9 +153,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(org, self.user)
 
-        path = "/api/0/issues/{}/integrations/{}/?action=create".format(
-            self.group.id, integration.id
-        )
+        path = f"/api/0/issues/{self.group.id}/integrations/{integration.id}/?action=create"
 
         with self.feature({"organizations:integrations-issue-basic": False}):
             response = self.client.get(path)
@@ -287,9 +283,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             relationship=GroupLink.Relationship.references,
         )[0]
 
-        path = "/api/0/issues/{}/integrations/{}/?externalIssue={}".format(
-            group.id, integration.id, external_issue.id
-        )
+        path = f"/api/0/issues/{group.id}/integrations/{integration.id}/?externalIssue={external_issue.id}"
 
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.delete(path)
@@ -317,9 +311,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             relationship=GroupLink.Relationship.references,
         )[0]
 
-        path = "/api/0/issues/{}/integrations/{}/?externalIssue={}".format(
-            group.id, integration.id, external_issue.id
-        )
+        path = f"/api/0/issues/{group.id}/integrations/{integration.id}/?externalIssue={external_issue.id}"
 
         with self.feature({"organizations:integrations-issue-basic": False}):
             response = self.client.delete(path)
@@ -353,9 +345,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         org_integration = integration.add_organization(org, self.user)
         org_integration.config = {"project_issue_defaults": {group.project_id: {"project": "2"}}}
         org_integration.save()
-        create_path = "/api/0/issues/{}/integrations/{}/?action=create".format(
-            group.id, integration.id
-        )
+        create_path = f"/api/0/issues/{group.id}/integrations/{integration.id}/?action=create"
         link_path = f"/api/0/issues/{group.id}/integrations/{integration.id}/?action=link"
         project_field = {
             "name": "project",

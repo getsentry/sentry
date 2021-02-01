@@ -161,8 +161,8 @@ class StatusActionTest(BaseEventTest):
         assert resp.status_code == 200, resp.content
         assert GroupAssignee.objects.filter(group=self.group1, user=user2).exists()
 
-        expect_status = "*Issue assigned to {assignee} by <@{assigner}>*".format(
-            assignee=user2.get_display_name(), assigner=self.identity.external_id
+        expect_status = (
+            f"*Issue assigned to {user2.get_display_name()} by <@{self.identity.external_id}>*"
         )
 
         # Assign to team
@@ -176,9 +176,7 @@ class StatusActionTest(BaseEventTest):
         assert resp.status_code == 200, resp.content
         assert GroupAssignee.objects.filter(group=self.group1, team=self.team).exists()
 
-        expect_status = "*Issue assigned to #{team} by <@{assigner}>*".format(
-            team=self.team.slug, assigner=self.identity.external_id
-        )
+        expect_status = f"*Issue assigned to #{self.team.slug} by <@{self.identity.external_id}>*"
 
         assert resp.data["text"].endswith(expect_status), resp.data["text"]
 
@@ -204,8 +202,8 @@ class StatusActionTest(BaseEventTest):
         assert resp.status_code == 200, resp.content
         assert GroupAssignee.objects.filter(group=self.group1, user=user2).exists()
 
-        expect_status = "*Issue assigned to <@{assignee}> by <@{assigner}>*".format(
-            assignee=user2_identity.external_id, assigner=self.identity.external_id
+        expect_status = (
+            f"*Issue assigned to <@{user2_identity.external_id}> by <@{self.identity.external_id}>*"
         )
 
         assert resp.data["text"].endswith(expect_status), resp.data["text"]

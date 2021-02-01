@@ -57,9 +57,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            "{}?response_type=code&client_id={}&scope=foo".format(
-                self.path, self.application.client_id
-            )
+            f"{self.path}?response_type=code&client_id={self.application.client_id}&scope=foo"
         )
 
         assert resp.status_code == 302
@@ -69,9 +67,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            "{}?response_type=code&redirect_uri=https://google.com&client_id={}".format(
-                self.path, self.application.client_id
-            )
+            f"{self.path}?response_type=code&redirect_uri=https://google.com&client_id={self.application.client_id}"
         )
 
         assert resp.status_code == 400
@@ -125,9 +121,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            "{}?response_type=code&client_id={}&scope=org%3Aread&state=foo".format(
-                self.path, self.application.client_id
-            )
+            f"{self.path}?response_type=code&client_id={self.application.client_id}&scope=org%3Aread&state=foo"
         )
 
         assert resp.status_code == 200
@@ -174,9 +168,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         ApiAuthorization.objects.create(user=self.user, application=self.application)
 
         resp = self.client.get(
-            "{}?response_type=code&client_id={}&force_prompt=1".format(
-                self.path, self.application.client_id
-            )
+            f"{self.path}?response_type=code&client_id={self.application.client_id}&force_prompt=1"
         )
 
         assert resp.status_code == 200
@@ -191,9 +183,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         )
 
         resp = self.client.get(
-            "{}?response_type=code&client_id={}&scope=org:read".format(
-                self.path, self.application.client_id
-            )
+            f"{self.path}?response_type=code&client_id={self.application.client_id}&scope=org:read"
         )
 
         assert resp.status_code == 200
@@ -211,9 +201,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         ApiAuthorization.objects.create(user=self.user, application=self.application)
 
         resp = self.client.get(
-            "{}?response_type=code&client_id={}&scope=member:read member:admin".format(
-                self.path, self.application.client_id
-            )
+            f"{self.path}?response_type=code&client_id={self.application.client_id}&scope=member:read member:admin"
         )
 
         assert resp.status_code == 200
@@ -225,9 +213,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         ]
 
     def test_unauthenticated_basic_auth(self):
-        full_path = "{}?response_type=code&client_id={}".format(
-            self.path, self.application.client_id
-        )
+        full_path = f"{self.path}?response_type=code&client_id={self.application.client_id}"
 
         resp = self.client.get(full_path)
 
@@ -310,9 +296,7 @@ class OAuthAuthorizeTokenTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            "{}?response_type=token&client_id={}&scope=foo".format(
-                self.path, self.application.client_id
-            )
+            f"{self.path}?response_type=token&client_id={self.application.client_id}&scope=foo"
         )
 
         assert resp.status_code == 302

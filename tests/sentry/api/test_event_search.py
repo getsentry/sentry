@@ -1488,9 +1488,7 @@ class ParseBooleanSearchQueryTest(TestCase):
         project3 = self.create_project()
         with self.assertRaisesRegexp(
             InvalidSearchQuery,
-            "Project {} does not exist or is not an actively selected project.".format(
-                project3.slug
-            ),
+            f"Project {project3.slug} does not exist or is not an actively selected project.",
         ):
             get_filter(
                 f"project:{project1.slug} OR project:{project3.slug}",
@@ -1515,9 +1513,7 @@ class ParseBooleanSearchQueryTest(TestCase):
             ),
             (f"issue.id:{group1.id} AND issue.id:{group1.id}", [], [group1.id]),
             (
-                "(issue.id:{} AND issue.id:{}) OR issue.id:{}".format(
-                    group1.id, group2.id, group3.id
-                ),
+                f"(issue.id:{group1.id} AND issue.id:{group2.id}) OR issue.id:{group3.id}",
                 [],
                 [group1.id, group2.id, group3.id],
             ),

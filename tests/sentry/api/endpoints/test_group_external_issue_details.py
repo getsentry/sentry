@@ -14,9 +14,7 @@ class GroupExternalIssueDetailsEndpointTest(APITestCase):
             web_url="https://example.com/app/issues/1",
         )
 
-        self.url = "/api/0/issues/{}/external-issues/{}/".format(
-            self.group.id, self.external_issue.id
-        )
+        self.url = f"/api/0/issues/{self.group.id}/external-issues/{self.external_issue.id}/"
 
     def test_deletes_external_issue(self):
         response = self.client.delete(self.url, format="json")
