@@ -212,12 +212,12 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
   }
 }
 
-type RequestParameters = Partial<EventQuery & LocationQuery>;
+export type DiscoverQueryRequestParams = Partial<EventQuery & LocationQuery>;
 
 export async function doDiscoverQuery<T>(
   api: Client,
   url: string,
-  params: RequestParameters
+  params: DiscoverQueryRequestParams
 ): Promise<[T, string | undefined, JQueryXHR | undefined]> {
   return api.requestPromise(url, {
     method: 'GET',

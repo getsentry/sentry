@@ -2,8 +2,11 @@
 
 # TODO: There are some meta files that we potentially could ignore for both front/backend,
 # as well as some configuration files that should trigger both
-frontend_lintable: &frontend_lintable
+frontend_components_lintable: &frontend_components_lintable
   - '**/*.[tj]{s,sx}'
+
+frontend_lintable: &frontend_lintable
+  - *frontend_components_lintable
   - '**/tsconfig*.json'
   - '{package,now,vercel}.json'
   - '.github/workflows/js-*.yml'
@@ -19,6 +22,9 @@ frontend: &frontend
 
 frontend_modified_lintable:
   - added|modified: *frontend_lintable
+
+frontend_components_modified_lintable:
+  - added|modified: *frontend_components_lintable
 
 backend_lintable: &backend_lintable
   - '**/*.py'

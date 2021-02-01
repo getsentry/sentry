@@ -2,7 +2,6 @@ import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-import PropTypes from 'prop-types';
 
 import space from 'app/styles/space';
 
@@ -104,12 +103,6 @@ const Alert = styled(
 )<AlertProps>`
   ${alertStyles}
 `;
-
-Alert.propTypes = {
-  type: PropTypes.oneOf(['muted', 'info', 'warning', 'success', 'error', 'beta']),
-  icon: PropTypes.oneOfType([PropTypes.string, PropTypes.node]),
-  system: PropTypes.bool,
-};
 
 Alert.defaultProps = {
   type: DEFAULT_TYPE,

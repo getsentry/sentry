@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import space from 'app/styles/space';
 import {Integration} from 'app/types';
@@ -14,11 +13,6 @@ type Props = DefaultProps & {
   integration: Integration;
 };
 export default class IntegrationItem extends React.Component<Props> {
-  static propTypes = {
-    integration: PropTypes.object.isRequired,
-    compact: PropTypes.bool,
-  };
-
   static defaultProps: DefaultProps = {
     compact: false,
   };

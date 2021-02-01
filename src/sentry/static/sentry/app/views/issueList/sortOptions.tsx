@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import Feature from 'app/components/acl/feature';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
@@ -47,11 +46,6 @@ const IssueListSortOptions = ({onSelect, sort}: Props) => {
       <Feature features={['issue-list-trend-sort']}>{getMenuItem('trend')}</Feature>
     </DropdownControl>
   );
-};
-
-IssueListSortOptions.propTypes = {
-  sort: PropTypes.string.isRequired,
-  onSelect: PropTypes.func.isRequired,
 };
 
 export default IssueListSortOptions;

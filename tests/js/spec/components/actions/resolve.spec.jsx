@@ -1,5 +1,4 @@
 import React from 'react';
-import $ from 'jquery';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
@@ -181,7 +180,7 @@ describe('ResolveActions', function () {
       const modal = component.find('Modal ModalDialog');
       expect(modal.text()).toContain('Are you sure???');
       expect(spy).not.toHaveBeenCalled();
-      $(document.body).find('.modal button:contains("Resolve")').click();
+      modal.find('.modal button[aria-label="Resolve"]').simulate('click');
 
       expect(spy).toHaveBeenCalled();
     });
