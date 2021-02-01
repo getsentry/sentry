@@ -1,7 +1,6 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 import * as Sentry from '@sentry/react';
-import PropTypes from 'prop-types';
 
 import {
   addErrorMessage,
@@ -11,7 +10,6 @@ import {
 import {Client} from 'app/api';
 import Button from 'app/components/button';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import {Organization, Project} from 'app/types';
 import {trackAdhocEvent, trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
@@ -53,14 +51,6 @@ async function latestEventAvailable(
 }
 
 class CreateSampleEventButton extends React.Component<Props, State> {
-  static propTypes: any = {
-    api: PropTypes.object,
-    organization: SentryTypes.Organization.isRequired,
-    project: SentryTypes.Project,
-    source: PropTypes.string.isRequired,
-    disabled: PropTypes.bool,
-  };
-
   state = {
     creating: false,
   };

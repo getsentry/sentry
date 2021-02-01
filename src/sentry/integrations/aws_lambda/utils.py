@@ -1,3 +1,9 @@
+import re
+import six
+
+from django.utils.translation import ugettext_lazy as _
+from functools import wraps
+
 from sentry import options
 
 from sentry.models import Project, ProjectKey
@@ -5,6 +11,8 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.compat import filter, map
 
 SUPPORTED_RUNTIMES = ["nodejs12.x", "nodejs10.x"]
+
+INVALID_LAYER_TEXT = "Invalid existing layer %s"
 
 DEFAULT_NUM_RETRIES = 3
 
@@ -194,3 +202,43 @@ def update_lambda_with_retries(lambda_client, **kwargs):
             kwargs["num_retries"] = num_retries - 1
             return update_lambda_with_retries(lambda_client, **kwargs)
         raise
+
+
+def get_invalid_layer_name(err_message):
+    """
+    Check to see if an error matches the invalid layer message
+    :param err_message: error string
+    :return the layer name if it's a invalid layer
+    """
+    match = re.search(
+        "Layer version arn:aws:lambda:[^:]+:\d+:layer:([^:]+):\d+ does not exist",
+        err_message,
+    )
+    if match:
+        return match[1]
+    return None
+
+
+def wrap_lambda_updater():
+    """
+    Wraps any function that updates a layer
+    Throws an IntegrationError for specific known errors
+    """
+
+    def inner(func):
+        @wraps(func)
+        def wrapped(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                err_message = six.text_type(e)
+                invalid_layer = get_invalid_layer_name(err_message)
+                # only have one specific error to catch
+                if invalid_layer:
+                    raise IntegrationError(_(INVALID_LAYER_TEXT) % invalid_layer)
+                # otherwise, re-raise the original error
+                raise
+
+        return wrapped
+
+    return inner

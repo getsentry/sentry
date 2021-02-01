@@ -1,7 +1,6 @@
 import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -29,15 +28,6 @@ type Props = {
 } & DefaultProps;
 
 class EventDataSection extends React.Component<Props> {
-  static propTypes = {
-    title: PropTypes.any,
-    type: PropTypes.string.isRequired,
-    wrapTitle: PropTypes.bool,
-    toggleRaw: PropTypes.func,
-    raw: PropTypes.bool,
-    actions: PropTypes.node,
-  };
-
   static defaultProps = defaultProps;
 
   componentDidMount() {

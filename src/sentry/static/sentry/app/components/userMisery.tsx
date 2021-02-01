@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import ScoreBar from 'app/components/scoreBar';
 import Tooltip from 'app/components/tooltip';
@@ -41,12 +40,5 @@ function UserMisery(props: Props) {
     </Tooltip>
   );
 }
-
-UserMisery.propTypes = {
-  bars: PropTypes.number,
-  miserableUsers: PropTypes.number,
-  totalUsers: PropTypes.number,
-  miseryLimit: PropTypes.number,
-};
 
 export default UserMisery;

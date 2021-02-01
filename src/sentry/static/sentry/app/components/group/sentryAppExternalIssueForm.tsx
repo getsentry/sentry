@@ -1,12 +1,10 @@
 import React from 'react';
 import {createFilter} from 'react-select';
 import debounce from 'lodash/debounce';
-import PropTypes from 'prop-types';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import ExternalIssueStore from 'app/stores/externalIssueStore';
 import {Group, PlatformExternalIssue, SentryAppInstallation} from 'app/types';
 import {Event} from 'app/types/event';
@@ -54,16 +52,6 @@ type Props = {
 };
 
 export class SentryAppExternalIssueForm extends React.Component<Props, State> {
-  static propTypes: any = {
-    api: PropTypes.object.isRequired,
-    group: SentryTypes.Group.isRequired,
-    sentryAppInstallation: PropTypes.object,
-    appName: PropTypes.string,
-    config: PropTypes.object.isRequired,
-    action: PropTypes.oneOf(['link', 'create']),
-    event: SentryTypes.Event,
-    onSubmitSuccess: PropTypes.func,
-  };
   state: State = {optionsByField: new Map()};
 
   componentDidMount() {

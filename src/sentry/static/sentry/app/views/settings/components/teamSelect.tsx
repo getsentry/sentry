@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
-import PropTypes from 'prop-types';
 
 import {Client} from 'app/api';
 import Button from 'app/components/button';
@@ -197,14 +196,6 @@ const TeamRow = props => {
       </Confirm>
     </TeamPanelItem>
   );
-};
-
-TeamRow.propTypes = {
-  disabled: PropTypes.bool,
-  team: PropTypes.string.isRequired,
-  orgId: PropTypes.string.isRequired,
-  onRemove: PropTypes.func.isRequired,
-  confirmMessage: PropTypes.string,
 };
 
 const TeamDropdownElement = styled('div')`

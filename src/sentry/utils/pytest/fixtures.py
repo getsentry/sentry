@@ -238,6 +238,29 @@ def default_activity(default_group, default_project, default_user):
     )
 
 
+@pytest.fixture()
+def dyn_sampling_data():
+    # return a function that returns fresh config so we don't accidentally get tests interfering with each other
+    def inner():
+        return {
+            "rules": [
+                {
+                    "sampleRate": 0.7,
+                    "type": "trace",
+                    "condition": {
+                        "op": "and",
+                        "inner": [
+                            {"op": "eq", "ignoreCase": True, "name": "field1", "value": ["val"]},
+                            {"op": "glob", "name": "field1", "value": ["val"]},
+                        ],
+                    },
+                }
+            ]
+        }
+
+    return inner
+
+
 _snapshot_writeback = os.environ.get("SENTRY_SNAPSHOTS_WRITEBACK") or "0"
 if _snapshot_writeback in ("true", "1", "overwrite"):
     _snapshot_writeback = "overwrite"
