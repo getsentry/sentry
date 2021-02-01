@@ -98,7 +98,7 @@ class OrganizationEventsTrace(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response(status=404)
 
-        # Get 100 events from snuba, and pray these help
+        # Get 100 events from snuba, and pray these cover the trace
         with self.handle_query_errors():
             result = discover.query(
                 selected_columns=[
@@ -118,36 +118,52 @@ class OrganizationEventsTrace(OrganizationEventsEndpointBase):
             if len(result["data"]) == 0:
                 return Response(status=404)
 
-        root_data = [item for item in result["data"] if item["trace.parent_span"] == ""][0]
-        root = eventstore.get_event_by_id(root_data["project_id"], root_data["id"])
-        root_span_id = root_data["trace.span"]
-        transaction_map = {root_span_id: root_data["transaction"]}
-        trace = {}
-        trace[root_span_id] = {span["span_id"]: [] for span in root.data.get("spans", [])}
+        # Get all our events
+        events = {
+            event.event_id: event
+            for event in eventstore.get_events(
+                eventstore.Filter(
+                    project_ids=params["project_id"],
+                    event_ids=[event["id"] for event in result["data"]],
+                )
+            )
+        }
 
-        project_map = {item["trace.parent_span"]: item for item in result["data"]}
-        project_map.update({item["trace.span"]: item for item in result["data"]})
-        transaction_map = {item["trace.span"]: item["transaction"] for item in result["data"]}
-        # TODO trace should either all be span ids or parent span ids
-        transaction_map.update(
-            {item["trace.parent_span"]: item["transaction"] for item in result["data"]}
-        )
+        with sentry_sdk.start_span(op="parsing snuba response"):
+            # A potential root is the transaction with no parent_span
+            # TODO: Not 100% accurate since its possilbe to have orphans in a trace.
+            root_data = [item for item in result["data"] if item["trace.parent_span"] == ""][0]
+            root = events[root_data["id"]]
+            root_span_id = root_data["trace.span"]
+
+            trace = {}
+            trace[root_span_id] = {span["span_id"]: [] for span in root.data.get("spans", [])}
+
+            # TODO these mappings should either all be span ids or parent span ids, currently an ugly mix of both
+            project_map = {item["trace.parent_span"]: item for item in result["data"]}
+            project_map.update({item["trace.span"]: item for item in result["data"]})
+            transaction_map = {item["trace.span"]: item["transaction"] for item in result["data"]}
+            transaction_map.update(
+                {item["trace.parent_span"]: item["transaction"] for item in result["data"]}
+            )
+
         with sentry_sdk.start_span(op="fill_children"):
-            self.fill_children(root_span_id, project_map, trace)
+            self.fill_children(root_span_id, project_map, events, trace)
+
         return Response(self.map_transaction(trace, transaction_map))
 
-    def fill_children(self, span_id, project_map, trace):
+    def fill_children(self, span_id, project_map, events, trace):
         to_delete = []
 
         for child_id in trace[span_id].keys():
             if child_id in project_map:
                 child = project_map[child_id]
-                child_event = eventstore.get_event_by_id(child["project_id"], child["id"])
+                child_event = events[child["id"]]
                 if child_event:
                     trace[span_id][child_id] = {
                         span["span_id"]: [] for span in child_event.data.get("spans", [])
                     }
-                    self.fill_children(child_id, project_map, trace[span_id])
+                    self.fill_children(child_id, project_map, events, trace[span_id])
             else:
                 to_delete.append(child_id)
         for item in to_delete:
