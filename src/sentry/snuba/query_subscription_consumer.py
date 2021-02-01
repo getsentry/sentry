@@ -266,7 +266,7 @@ class QuerySubscriptionConsumer(object):
                 )
                 return
 
-            logger.info(
+            logger.debug(
                 "query-subscription-consumer.handle_message",
                 extra={
                     "timestamp": contents["timestamp"],
