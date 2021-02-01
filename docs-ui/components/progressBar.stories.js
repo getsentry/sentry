@@ -6,9 +6,10 @@ import space from 'app/styles/space';
 
 export default {
   title: 'DataVisualization/Charts/ProgressBar',
+  component: ProgressBar,
 };
 
-export function Basic() {
+export function _ProgressBar() {
   const progressBars = [];
 
   for (let i = 100; i > 0; i -= 10) {
@@ -18,7 +19,7 @@ export function Basic() {
   return <Wrapper>{progressBars}</Wrapper>;
 }
 
-Basic.story = {name: 'basic'};
+_ProgressBar.storyName = 'ProgressBar';
 
 const Wrapper = styled('div')`
   width: 200px;

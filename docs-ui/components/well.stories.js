@@ -1,26 +1,27 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
-import {boolean} from '@storybook/addon-knobs';
 
 import Well from 'app/components/well';
 
 export default {
   title: 'UI/Well',
+  component: Well,
 };
 
-export const _Well = withInfo('Well is a container that adds background and padding')(
-  () => {
-    const hasImage = boolean('hasImage', false);
-    const centered = boolean('centered', false);
-
-    return (
-      <Well hasImage={hasImage} centered={centered}>
-        <p>Some content in the well</p>
-      </Well>
-    );
-  }
+const Template = ({...args}) => (
+  <Well {...args}>
+    <p>Some content in the well</p>
+  </Well>
 );
 
-_Well.story = {
-  name: 'default',
+export const _Well = Template.bind({});
+_Well.args = {
+  hasImage: false,
+  centered: false,
+};
+_Well.parameters = {
+  docs: {
+    description: {
+      story: 'Well is a container that adds background and padding',
+    },
+  },
 };
