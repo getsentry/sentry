@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import DropdownLink from 'app/components/dropdownLink';
 import QueryCount from 'app/components/queryCount';
+import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -30,16 +31,22 @@ function SavedSearchTab({
   queryCount,
 }: Props) {
   const savedSearch = savedSearchList.find(search => query === search.query);
+  const tooltipTitle = t(
+    'Create saved searches to quickly access other types of issues that you care about.'
+  );
+
   const title = (
     <TitleWrapper>
-      {isActive ? (
-        <React.Fragment>
-          {savedSearch ? savedSearch.name : t('Custom Search')}{' '}
-          <StyledQueryCount isTag count={queryCount} max={1000} />
-        </React.Fragment>
-      ) : (
-        t('Saved Searches')
-      )}
+      <Tooltip title={tooltipTitle} position="bottom">
+        {isActive ? (
+          <React.Fragment>
+            {savedSearch ? savedSearch.name : t('Custom Search')}{' '}
+            <StyledQueryCount isTag count={queryCount} max={1000} />
+          </React.Fragment>
+        ) : (
+          t('Saved Searches')
+        )}
+      </Tooltip>
     </TitleWrapper>
   );
 

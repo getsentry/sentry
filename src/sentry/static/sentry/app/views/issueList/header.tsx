@@ -7,6 +7,7 @@ import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import * as Layout from 'app/components/layouts/thirds';
 import QueryCount from 'app/components/queryCount';
+import Tooltip from 'app/components/tooltip';
 import {IconPause, IconPlay} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -80,7 +81,7 @@ function IssueListHeader({
       </BorderlessHeader>
       <TabLayoutHeader>
         <Layout.HeaderNavTabs underlined>
-          {visibleTabs.map(([tabQuery, {name: queryName}]) => {
+          {visibleTabs.map(([tabQuery, {name: queryName, tooltip}]) => {
             const inboxGuideStepOne = queryName === 'For Review' && query !== tabQuery;
             const inboxGuideStepTwo = queryName === 'For Review' && query === tabQuery;
             const to = {
@@ -100,14 +101,16 @@ function IssueListHeader({
                       target={inboxGuideStepTwo ? 'for_review_guide_tab' : 'none'}
                       disabled={!inboxGuideStepTwo}
                     >
-                      {queryName}{' '}
-                      {queryCounts[tabQuery] && (
-                        <StyledQueryCount
-                          isTag
-                          count={queryCounts[tabQuery].count}
-                          max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
-                        />
-                      )}
+                      <Tooltip title={tooltip} position="bottom">
+                        {queryName}{' '}
+                        {queryCounts[tabQuery] && (
+                          <StyledQueryCount
+                            isTag
+                            count={queryCounts[tabQuery].count}
+                            max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
+                          />
+                        )}
+                      </Tooltip>
                     </GuideAnchor>
                   </GuideAnchor>
                 </Link>

@@ -17,6 +17,8 @@ type OverviewTab = {
   count: boolean;
   /** Tabs can be disabled via flag */
   enabled: boolean;
+  /** Tooltip text for each tab */
+  tooltip: string;
 };
 
 /**
@@ -31,6 +33,8 @@ export function getTabs(organization: Organization) {
         analyticsName: 'unresolved',
         count: true,
         enabled: true,
+        tooltip: t(`All unresolved issues, including those that need review.
+        If an issue doesn’t occur for seven days it’s automatically resolved.`),
       },
     ],
     [
@@ -40,6 +44,9 @@ export function getTabs(organization: Organization) {
         analyticsName: 'needs_review',
         count: true,
         enabled: organization.features.includes('inbox-owners-query'),
+        tooltip: t(`New and reopened issues. You can review, ignore, or resolve
+        to move them out of this list. After seven days these issues are
+        automatically marked as reviewed.`),
       },
     ],
     [
@@ -49,6 +56,9 @@ export function getTabs(organization: Organization) {
         analyticsName: 'needs_review',
         count: true,
         enabled: !organization.features.includes('inbox-owners-query'),
+        tooltip: t(`New and reopened issues. You can review, ignore, or resolve
+        to move them out of this list. After seven days these issues are
+        automatically marked as reviewed.`),
       },
     ],
     [
@@ -58,6 +68,8 @@ export function getTabs(organization: Organization) {
         analyticsName: 'ignored',
         count: true,
         enabled: true,
+        tooltip: t(`Ignored issues don’t trigger alerts. When their ignore
+        conditions are met they become Unresolved and are flagged for review.`),
       },
     ],
     [
@@ -67,6 +79,7 @@ export function getTabs(organization: Organization) {
         analyticsName: 'reprocessing',
         count: true,
         enabled: organization.features.includes('reprocessing-v2'),
+        tooltip: '',
       },
     ],
   ];
