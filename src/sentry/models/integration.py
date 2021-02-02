@@ -171,7 +171,4 @@ class Integration(DefaultFieldsModel):
         Each provider may have their own way of reauthorizing the
         integration.
         """
-        if self.provider == "slack":
-            metadata = data.get("metadata", {})
-            metadata["old_access_token"] = self.metadata["access_token"]
-            self.update(metadata=metadata)
+        pass
