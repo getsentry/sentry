@@ -508,8 +508,7 @@ const ChartContainer = styled('div')`
     font-size: ${p => p.theme.fontSizeSmall};
     line-height: 1.4;
     font-family: ${p => p.theme.text.family};
-    max-width: 230px;
-    min-width: 230px;
+    max-width: 250px;
     white-space: normal;
     text-align: center;
     :after {
