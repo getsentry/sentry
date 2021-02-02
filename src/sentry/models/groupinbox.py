@@ -98,8 +98,8 @@ def remove_group_from_inbox(group, action=None, user=None):
 
         if action is GroupInboxRemoveAction.MARK_REVIEWED and user is not None:
             Activity.objects.create(
-                project_id=group_inbox.group.project.id,
-                group_id=group_inbox.group.id,
+                project_id=group_inbox.group.project_id,
+                group_id=group_inbox.group_id,
                 type=Activity.MARK_REVIEWED,
                 user=user,
             )
