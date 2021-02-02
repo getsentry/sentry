@@ -296,6 +296,11 @@ class ActivityItem extends React.Component<Props, State> {
           version: versionLink,
           environment: data.environment || 'Default Environment',
         });
+      case 'mark_reviewed':
+        return tct('[author] marked [issue] as reviewed', {
+          author,
+          issue: issueLink,
+        });
       default:
         return ''; // should never hit (?)
     }

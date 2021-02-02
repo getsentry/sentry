@@ -243,6 +243,11 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
           ),
         });
       }
+      case GroupActivityType.MARK_REVIEWED: {
+        return tct('[author] marked this issue as reviewed', {
+          author,
+        });
+      }
       default:
         return ''; // should never hit (?)
     }

@@ -39,6 +39,7 @@ class Activity(Model):
     UNMERGE_DESTINATION = 20
     SET_RESOLVED_IN_PULL_REQUEST = 21
     REPROCESS = 22
+    MARK_REVIEWED = 23
 
     TYPE = (
         # (TYPE, verb-slug)
@@ -65,6 +66,7 @@ class Activity(Model):
         (UNMERGE_DESTINATION, "unmerge_destination"),
         # The user has reprocessed the group, so events may have moved to new groups
         (REPROCESS, "reprocess"),
+        (MARK_REVIEWED, "mark_reviewed"),
     )
 
     project = FlexibleForeignKey("sentry.Project")
