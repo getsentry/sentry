@@ -11,7 +11,7 @@ class UserListTest(APITestCase):
         return reverse("sentry-api-0-user-index")
 
     def setUp(self):
-        super(UserListTest, self).setUp()
+        super().setUp()
         self.superuser = self.create_user("bar@example.com", is_superuser=True)
         self.normal_user = self.create_user("foo@example.com", is_superuser=False)
 

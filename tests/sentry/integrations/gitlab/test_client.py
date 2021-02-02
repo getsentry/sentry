@@ -12,7 +12,7 @@ class GitlabRefreshAuthTest(GitLabTestCase):
     get_user_should_succeed = True
 
     def setUp(self):
-        super(GitlabRefreshAuthTest, self).setUp()
+        super().setUp()
         self.client = self.installation.get_client()
         self.request_data = {"id": "user_id"}
         self.request_url = "https://example.gitlab.com/api/v4/user"

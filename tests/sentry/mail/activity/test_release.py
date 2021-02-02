@@ -21,7 +21,7 @@ from sentry.testutils import TestCase
 
 class ReleaseTestCase(TestCase):
     def setUp(self):
-        super(ReleaseTestCase, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com")
 
         assert UserEmail.objects.filter(user=self.user, email=self.user.email).update(

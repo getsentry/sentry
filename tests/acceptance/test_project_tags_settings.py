@@ -10,7 +10,7 @@ current_time = datetime.utcnow().replace(tzinfo=pytz.utc)
 
 class ProjectTagsSettingsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
-        super(ProjectTagsSettingsTest, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Rowdy Tiger", owner=None)
         self.team = self.create_team(organization=self.org, name="Mariachi Band")

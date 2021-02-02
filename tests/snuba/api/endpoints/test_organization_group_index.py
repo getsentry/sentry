@@ -46,7 +46,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
 
     def setUp(self):
-        super(GroupListTest, self).setUp()
+        super().setUp()
         self.min_ago = before_now(minutes=1)
 
     def _parse_links(self, header):
@@ -62,7 +62,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             org = self.project.organization.slug
         else:
             org = args[0]
-        return super(GroupListTest, self).get_response(org, **kwargs)
+        return super().get_response(org, **kwargs)
 
     def test_sort_by_date_with_tag(self):
         # XXX(dcramer): this tests a case where an ambiguous column name existed
@@ -1173,7 +1173,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
     method = "put"
 
     def setUp(self):
-        super(GroupUpdateTest, self).setUp()
+        super().setUp()
         self.min_ago = timezone.now() - timedelta(minutes=1)
 
     def get_response(self, *args, **kwargs):
@@ -1181,7 +1181,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             org = self.project.organization.slug
         else:
             org = args[0]
-        return super(GroupUpdateTest, self).get_response(org, **kwargs)
+        return super().get_response(org, **kwargs)
 
     def assertNoResolution(self, group):
         assert not GroupResolution.objects.filter(group=group).exists()
@@ -2108,7 +2108,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             org = self.project.organization.slug
         else:
             org = args[0]
-        return super(GroupDeleteTest, self).get_response(org, **kwargs)
+        return super().get_response(org, **kwargs)
 
     @patch("sentry.api.helpers.group_index.eventstream")
     @patch("sentry.eventstream")

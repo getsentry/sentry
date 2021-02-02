@@ -78,7 +78,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
 
 class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentMixin):
     def setUp(self):
-        super(EventAttachmentDetailsPermissionTest, self).setUp()
+        super().setUp()
         self.create_attachment()
         self.path = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{self.attachment.id}/?download"
 

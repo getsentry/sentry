@@ -406,7 +406,7 @@ class VstsIssueSyncTest(VstsIssueBase):
 
 class VstsIssueFormTest(VstsIssueBase):
     def setUp(self):
-        super(VstsIssueFormTest, self).setUp()
+        super().setUp()
         responses.add(
             responses.GET,
             "https://fabrikam-fiber-inc.visualstudio.com/_apis/projects",

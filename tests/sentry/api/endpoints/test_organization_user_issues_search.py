@@ -9,7 +9,7 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 
 class OrganizationUserIssuesSearchTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationUserIssuesSearchTest, self).setUp()
+        super().setUp()
         self.org = self.create_organization(owner=None)
         self.org.flags.allow_joinleave = False
         self.org.save()

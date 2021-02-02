@@ -199,7 +199,7 @@ class ProjectTest(TestCase):
 
 class CopyProjectSettingsTest(TestCase):
     def setUp(self):
-        super(CopyProjectSettingsTest, self).setUp()
+        super().setUp()
         self.login_as(user=self.user)
 
         self.options_dict = {

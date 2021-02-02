@@ -9,7 +9,7 @@ from sentry.utils.compat import map
 
 class GroupEventsTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(GroupEventsTest, self).setUp()
+        super().setUp()
         self.min_ago = before_now(minutes=1)
 
     def test_simple(self):

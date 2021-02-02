@@ -69,7 +69,7 @@ class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest, APITestCase)
 
     def get_valid_response(self, *args, **params):
         params.setdefault("status", IncidentStatus.CLOSED.value)
-        return super(OrganizationIncidentUpdateStatusTest, self).get_valid_response(*args, **params)
+        return super().get_valid_response(*args, **params)
 
     def test_simple(self):
         incident = self.create_incident()

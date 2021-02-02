@@ -8,7 +8,7 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 
 class KeyTransactionTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(KeyTransactionTest, self).setUp()
+        super().setUp()
 
         self.login_as(user=self.user, superuser=False)
 

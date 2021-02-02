@@ -25,7 +25,7 @@ class MockSuperUser(object):
 class OrganizationPermissionBase(TestCase):
     def setUp(self):
         self.org = self.create_organization()
-        super(OrganizationPermissionBase, self).setUp()
+        super().setUp()
 
     def has_object_perm(self, method, obj, auth=None, user=None, is_superuser=None):
         perm = OrganizationPermission()

@@ -29,7 +29,7 @@ class DictContaining(object):
 
 class TestInstallationNotifier(TestCase):
     def setUp(self):
-        super(TestInstallationNotifier, self).setUp()
+        super().setUp()
 
         self.user = self.create_user(name="foo")
         self.org = self.create_organization(owner=self.user)

@@ -70,13 +70,13 @@ class AuthSAML2Test(AuthProviderTestCase):
 
         settings.SENTRY_OPTIONS.update({"system.url-prefix": "http://testserver.com"})
 
-        super(AuthSAML2Test, self).setUp()
+        super().setUp()
 
     def tearDown(self):
         # restore url-prefix config
         settings.SENTRY_OPTIONS.update({"system.url-prefix": self.url_prefix})
 
-        super(AuthSAML2Test, self).tearDown()
+        super().tearDown()
 
     @fixture
     def login_path(self):

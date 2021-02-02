@@ -18,7 +18,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     base_url = "https://api.github.com"
 
     def setUp(self):
-        super(GitHubIntegrationTest, self).setUp()
+        super().setUp()
 
         self.installation_id = "install_1"
         self.user_id = "user_1"
@@ -31,7 +31,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
     def tearDown(self):
         unregister_mock_plugins()
-        super(GitHubIntegrationTest, self).tearDown()
+        super().tearDown()
 
     def _stub_github(self):
         responses.reset()

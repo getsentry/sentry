@@ -140,7 +140,7 @@ class ProjectDetailsTest(APITestCase):
 
 class ProjectUpdateTest(APITestCase):
     def setUp(self):
-        super(ProjectUpdateTest, self).setUp()
+        super().setUp()
         self.path = reverse(
             "sentry-api-0-project-details",
             kwargs={
@@ -600,7 +600,7 @@ class ProjectUpdateTest(APITestCase):
 
 class CopyProjectSettingsTest(APITestCase):
     def setUp(self):
-        super(CopyProjectSettingsTest, self).setUp()
+        super().setUp()
         self.login_as(user=self.user)
 
         self.options_dict = {

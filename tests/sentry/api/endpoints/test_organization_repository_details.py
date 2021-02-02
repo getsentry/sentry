@@ -9,7 +9,7 @@ from sentry.testutils import APITestCase
 
 class OrganizationRepositoryDeleteTest(APITestCase):
     def setUp(self):
-        super(OrganizationRepositoryDeleteTest, self).setUp()
+        super().setUp()
 
         class mock_uuid(object):
             hex = "1234567"

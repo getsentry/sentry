@@ -25,7 +25,7 @@ def make_24h_stats(ts):
 
 class SnubaSessionsTest(TestCase, SnubaTestCase):
     def setUp(self):
-        super(SnubaSessionsTest, self).setUp()
+        super().setUp()
         self.received = time.time()
         self.session_started = time.time() // 60 * 60
         self.session_release = "foo@1.0.0"

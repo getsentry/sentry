@@ -7,7 +7,7 @@ from sentry.utils.compat import map
 
 class ProjectUsersTest(APITestCase):
     def setUp(self):
-        super(ProjectUsersTest, self).setUp()
+        super().setUp()
 
         self.project = self.create_project()
         self.euser1 = EventUser.objects.create(

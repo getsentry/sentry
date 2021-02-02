@@ -7,7 +7,7 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 
 class OrganizationUserIssuesTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationUserIssuesTest, self).setUp()
+        super().setUp()
         self.org = self.create_organization()
         self.org.flags.allow_joinleave = False
         self.org.save()

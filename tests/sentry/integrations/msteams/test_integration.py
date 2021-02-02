@@ -17,7 +17,7 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
     provider = MsTeamsIntegrationProvider
 
     def setUp(self):
-        super(MsTeamsIntegrationTest, self).setUp()
+        super().setUp()
         self.start_time = 1594768808
         self.pipeline_state = {
             "team_id": team_id,

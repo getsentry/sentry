@@ -35,7 +35,7 @@ class PerformanceTrendsTest(AcceptanceTestCase, SnubaTestCase):
             self.store_event(data=event, project_id=self.project.id)
 
     def setUp(self):
-        super(PerformanceTrendsTest, self).setUp()
+        super().setUp()
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(
             organization=self.org, name="Mariachi Band", members=[self.user]

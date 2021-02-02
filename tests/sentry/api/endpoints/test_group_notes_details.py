@@ -9,7 +9,7 @@ from sentry.testutils import APITestCase
 
 class GroupNotesDetailsTest(APITestCase):
     def setUp(self):
-        super(GroupNotesDetailsTest, self).setUp()
+        super().setUp()
         self.activity.data["external_id"] = "123"
         self.activity.save()
         self.integration = Integration.objects.create(

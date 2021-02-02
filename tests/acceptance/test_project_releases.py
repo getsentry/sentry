@@ -7,7 +7,7 @@ from sentry.testutils import AcceptanceTestCase
 
 class ProjectReleasesTest(AcceptanceTestCase):
     def setUp(self):
-        super(ProjectReleasesTest, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
@@ -35,7 +35,7 @@ class ProjectReleasesTest(AcceptanceTestCase):
 
 class ProjectReleaseDetailsTest(AcceptanceTestCase):
     def setUp(self):
-        super(ProjectReleaseDetailsTest, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
