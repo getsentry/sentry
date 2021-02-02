@@ -39,7 +39,7 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
             method=responses.POST,
             url="https://example.com/create-issues",
             json={
-                "project": "ProjectName",
+                "project": self.project.slug,
                 "webUrl": "https://example.com/project/issue-id",
                 "identifier": "issue-1",
             },
@@ -55,7 +55,7 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
             "id": six.text_type(external_issue.id),
             "groupId": six.text_type(self.group.id),
             "serviceType": self.sentry_app.slug,
-            "displayName": "ProjectName#issue-1",
+            "displayName": "{}#issue-1".format(self.project.slug),
             "webUrl": "https://example.com/project/issue-id",
         }
 
