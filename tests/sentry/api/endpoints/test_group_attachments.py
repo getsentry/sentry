@@ -25,7 +25,7 @@ class GroupEventAttachmentsTest(APITestCase):
         return self.attachment
 
     def path(self, types=None):
-        path = "/api/0/issues/{}/attachments/".format(self.group.id)
+        path = f"/api/0/issues/{self.group.id}/attachments/"
 
         query = [("types", t) for t in types or ()]
         if query:

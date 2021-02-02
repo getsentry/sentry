@@ -7,11 +7,11 @@ from sentry.testutils import PluginTestCase
 
 class SamplePlugin(Plugin2):
     def get_actions(self, request, group):
-        return [("Example Action", "http://example.com?id={}".format(group.id))]
+        return [("Example Action", f"http://example.com?id={group.id}")]
 
     def get_annotations(self, group):
         return [
-            {"label": "Example Tag", "url": "http://example.com?id={}".format(group.id)},
+            {"label": "Example Tag", "url": f"http://example.com?id={group.id}"},
             {"label": "Example Two"},
         ]
 
@@ -35,7 +35,7 @@ class GetActionsTest(PluginTestCase):
         group = self.create_group()
         result = self.TEMPLATE.render(context={"group": group}, request=MagicMock())
 
-        assert "<span>Example Action - http://example.com?id={}</span>".format(group.id) in result
+        assert f"<span>Example Action - http://example.com?id={group.id}</span>" in result
 
 
 class GetAnnotationsTest(PluginTestCase):
@@ -54,5 +54,5 @@ class GetAnnotationsTest(PluginTestCase):
         group = self.create_group()
         result = self.TEMPLATE.render(context={"group": group}, request=MagicMock())
 
-        assert "<span>Example Tag - http://example.com?id={}</span>".format(group.id) in result
+        assert f"<span>Example Tag - http://example.com?id={group.id}</span>" in result
         assert "<span>Example Two - None</span>" in result

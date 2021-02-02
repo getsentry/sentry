@@ -210,7 +210,7 @@ class IssueDefaultTest(TestCase):
         link = self.installation.get_issue_url(self.external_issue.key)
 
         assert self.installation.get_annotations_for_group_list([self.group]) == {
-            self.group.id: ['<a href="{}">{}</a>'.format(link, label)]
+            self.group.id: [f'<a href="{link}">{label}</a>']
         }
 
         integration = Integration.objects.create(provider="example", external_id="4444")

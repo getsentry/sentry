@@ -1101,9 +1101,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
     def test_search_out_of_range(self):
         the_date = datetime(2000, 1, 1, 0, 0, 0, tzinfo=pytz.utc)
         results = self.make_query(
-            search_filter_query="event.timestamp:>{} event.timestamp:<{}".format(
-                the_date, the_date
-            ),
+            search_filter_query=f"event.timestamp:>{the_date} event.timestamp:<{the_date}",
             date_from=the_date,
             date_to=the_date,
         )
@@ -1640,7 +1638,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             try:
                 self.make_query(search_filter_query=query)
             except SnubaError as e:
-                self.fail("Query {} errored. Error info: {}".format(query, e))
+                self.fail(f"Query {query} errored. Error info: {e}")
 
         for key in SENTRY_SNUBA_MAP:
             if key in ["project.id", "issue.id"]:
@@ -1657,6 +1655,6 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 val = "true"
             else:
                 val = "abadcafedeadbeefdeaffeedabadfeed"
-                test_query("!{}:{}".format(key, val))
+                test_query(f"!{key}:{val}")
 
-            test_query("{}:{}".format(key, val))
+            test_query(f"{key}:{val}")

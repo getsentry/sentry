@@ -23,14 +23,14 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             "sentry.api.endpoints.group_details.tsdb.get_range", side_effect=tsdb.get_range
         ) as get_range:
             response = self.client.get(
-                "{}?environment=production&environment=staging".format(url), format="json"
+                f"{url}?environment=production&environment=staging", format="json"
             )
             assert response.status_code == 200
             assert get_range.call_count == 2
             for args, kwargs in get_range.call_args_list:
                 assert kwargs["environment_ids"] == [environment.id, environment2.id]
 
-        response = self.client.get("{}?environment=invalid".format(url), format="json")
+        response = self.client.get(f"{url}?environment=invalid", format="json")
         assert response.status_code == 404
 
     def test_with_first_last_release(self):

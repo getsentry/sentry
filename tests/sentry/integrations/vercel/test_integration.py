@@ -477,9 +477,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         assert resp.status_code == 200
         assert (
             absolute_uri(
-                "/settings/{}/integrations/vercel/{}/".format(
-                    self.organization.slug, integration.id
-                )
+                f"/settings/{self.organization.slug}/integrations/vercel/{integration.id}/"
             ).encode("utf-8")
             in resp.content
         )
