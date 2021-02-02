@@ -22,6 +22,7 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 
+import AddInstallationInstructions from './components/addInstallationInstructions';
 import FirstEventFooter from './components/firstEventFooter';
 import PostInstallCodeSnippet from './components/postInstallCodeSnippet';
 import SetupIntroduction from './components/setupIntroduction';
@@ -167,17 +168,15 @@ class IntegrationSetup extends React.Component<Props, State> {
             }
           )}
         </motion.p>
-        <motion.p
+        <motion.div
           variants={{
             initial: {opacity: 0},
             animate: {opacity: 1},
             exit: {opacity: 0},
           }}
         >
-          {t(
-            'Instrument Sentry without any code changes! Just press the "Add Integration" button below and complete the steps in the popup that opens.'
-          )}
-        </motion.p>
+          <AddInstallationInstructions />
+        </motion.div>
 
         <DocsWrapper>
           <StyledButtonBar gap={1}>
@@ -215,7 +214,7 @@ class IntegrationSetup extends React.Component<Props, State> {
     return (
       <React.Fragment>
         {this.renderSetupInstructions()}
-        <PostInstallCodeSnippet provider={provider} />
+        <PostInstallCodeSnippet provider={provider} isOnboarding />
         <FirstEventFooter
           project={project}
           organization={organization}

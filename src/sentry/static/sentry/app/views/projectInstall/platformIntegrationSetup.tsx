@@ -7,14 +7,14 @@ import styled from '@emotion/styled';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import ExternalLink from 'app/components/links/externalLink';
 import platforms from 'app/data/platforms';
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import {PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {IntegrationProvider, Organization, Project} from 'app/types';
 import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
+import AddInstallationInstructions from 'app/views/onboarding/components/addInstallationInstructions';
 import FirstEventFooter from 'app/views/onboarding/components/firstEventFooter';
 import PostInstallCodeSnippet from 'app/views/onboarding/components/postInstallCodeSnippet';
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
@@ -52,10 +52,6 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
     if (!platform || platform === 'other') {
       this.redirectToNeutralDocs();
     }
-  }
-
-  get isGettingStarted() {
-    return window.location.href.indexOf('getting-started') > 0;
   }
 
   get provider() {
@@ -134,28 +130,7 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
         <InnerWrapper>
           {!installed ? (
             <React.Fragment>
-              <p>
-                {tct(
-                  'The automated AWS Lambda setup will instrument your Lambda functions with Sentry error and performance monitoring without any code changes. We use CloudFormation Stack ([learnMore]) to create Sentry role which gives us access to your AWS account.',
-                  {
-                    learnMore: (
-                      <ExternalLink>{t('Learn more about CloudFormation')}</ExternalLink>
-                    ),
-                  }
-                )}
-              </p>
-              <p>
-                {tct(
-                  'Just press the [addInstallation] button below and complete the steps in the popup that opens.',
-                  {addInstallation: <strong>{t('Add Installation')}</strong>}
-                )}
-              </p>
-              <p>
-                {tct(
-                  'If you don’t want to add CloudFormation stack to your AWS environment, press the [manualSetup] button instead.',
-                  {manualSetup: <strong>{t('Manual Setup')}</strong>}
-                )}
-              </p>
+              <AddInstallationInstructions />
               <StyledButtonBar gap={1}>
                 <AddIntegrationButton
                   provider={provider}
@@ -213,6 +188,7 @@ const OuterWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: center;
+  margin-top: 50px;
 `;
 
 const StyledPageHeader = styled(PageHeader)`

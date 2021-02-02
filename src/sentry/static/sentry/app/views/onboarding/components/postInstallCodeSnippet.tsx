@@ -6,9 +6,10 @@ import {IntegrationProvider} from 'app/types';
 
 type Props = {
   provider: IntegrationProvider;
+  isOnboarding?: boolean;
 };
 
-export default function PostInstallCodeSnippet({provider}: Props) {
+export default function PostInstallCodeSnippet({provider, isOnboarding}: Props) {
   //TODO: dyanically determine the snippet based on the language
   //currently only supporting Node
   return (
@@ -32,16 +33,20 @@ export default function PostInstallCodeSnippet({provider}: Props) {
           </code>
         </CodeWrapper>
       </div>
-      <p>
-        {t(
-          "If you're new to Sentry, use the email alert to access your account and complete a product tour."
-        )}
-      </p>
-      <p>
-        {t(
-          "If you're an existing user and have disabled alerts, you won't receive this email."
-        )}
-      </p>
+      {isOnboarding && (
+        <React.Fragment>
+          <p>
+            {t(
+              "If you're new to Sentry, use the email alert to access your account and complete a product tour."
+            )}
+          </p>
+          <p>
+            {t(
+              "If you're an existing user and have disabled alerts, you won't receive this email."
+            )}
+          </p>
+        </React.Fragment>
+      )}
     </div>
   );
 }
