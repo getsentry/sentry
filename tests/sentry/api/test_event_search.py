@@ -2077,7 +2077,7 @@ class GetSnubaQueryArgsTest(TestCase):
 
     @pytest.mark.xfail(reason="this breaks issue search so needs to be redone")
     def test_trace_id(self):
-        result = get_filter(f"trace:a0fa8803753e40fd8124b21eeb2986b5")
+        result = get_filter("trace:a0fa8803753e40fd8124b21eeb2986b5")
         assert result.conditions == [["trace", "=", "a0fa8803-753e-40fd-8124-b21eeb2986b5"]]
 
 
