@@ -1,14 +1,13 @@
 import responses
 
-from sentry.coreapi import APIUnauthorized
-from sentry.mediators.external_issues import IssueLinkCreator
+from sentry.mediators.external_issues import Creator
 from sentry.models import PlatformExternalIssue
 from sentry.testutils import TestCase
 
 
-class TestIssueLinkCreator(TestCase):
+class TestCreator(TestCase):
     def setUp(self):
-        super(TestIssueLinkCreator, self).setUp()
+        super(TestCreator, self).setUp()
 
         self.user = self.create_user(name="foo")
         self.org = self.create_organization(owner=self.user)
@@ -24,9 +23,7 @@ class TestIssueLinkCreator(TestCase):
         )
 
     @responses.activate
-    def test_creates_external_issue(self):
-        fields = {"title": "An Issue", "description": "a bug was found", "assignee": "user-1"}
-
+    def test_creates_platform_external_issue(self):
         responses.add(
             method=responses.POST,
             url="https://example.com/link-issue",
@@ -39,13 +36,12 @@ class TestIssueLinkCreator(TestCase):
             content_type="application/json",
         )
 
-        result = IssueLinkCreator.run(
+        result = Creator.run(
             install=self.install,
             group=self.group,
-            action="create",
-            uri="/link-issue",
-            fields=fields,
-            user=self.user,
+            web_url="https://example.com/project/issue-id",
+            project=self.project.slug,
+            identifier="issue-1",
         )
 
         external_issue = PlatformExternalIssue.objects.all()[0]
@@ -54,14 +50,3 @@ class TestIssueLinkCreator(TestCase):
         assert external_issue.project_id == self.group.project.id
         assert external_issue.web_url == "https://example.com/project/issue-id"
         assert external_issue.display_name == "boop#issue-1"
-
-    def test_invalid_action(self):
-        with self.assertRaises(APIUnauthorized):
-            IssueLinkCreator.run(
-                install=self.install,
-                group=self.group,
-                action="doop",
-                uri="/link-issue",
-                fields={},
-                user=self.user,
-            )
