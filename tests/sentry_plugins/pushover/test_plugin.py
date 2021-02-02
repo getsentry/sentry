@@ -6,7 +6,7 @@ from sentry.models import Rule
 from sentry.plugins.base import Notification
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
-from six.moves.urllib.parse import parse_qs
+from urllib.parse import parse_qs
 
 from sentry_plugins.pushover.plugin import PushoverPlugin
 

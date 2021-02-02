@@ -1,5 +1,3 @@
-import six
-
 from exam import fixture
 from sentry.utils.compat.mock import patch
 from rest_framework import serializers
@@ -339,7 +337,7 @@ class TestAlertRuleSerializer(TestCase):
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
                 "targetIdentifier": "123",
-                "integration": six.text_type(integration.id),
+                "integration": str(integration.id),
             }
         )
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
@@ -418,7 +416,7 @@ class TestAlertRuleSerializer(TestCase):
         with self.assertRaises(ChannelLookupTimeoutError) as err:
             serializer.save()
         assert (
-            six.text_type(err.exception)
+            str(err.exception)
             == "Could not find channel my-channel. We have timed out trying to look for it."
         )
 
@@ -617,7 +615,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
         self.run_fail_validation_test(
             {
                 "target_type": action_target_type_to_string[AlertRuleTriggerAction.TargetType.USER],
-                "target_identifier": six.text_type(other_user.id),
+                "target_identifier": str(other_user.id),
             },
             {"nonFieldErrors": ["User does not belong to this organization"]},
         )
@@ -662,7 +660,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
                 "targetIdentifier": "123",
-                "integration": six.text_type(integration.id),
+                "integration": str(integration.id),
             }
         )
         serializer = AlertRuleTriggerActionSerializer(context=self.context, data=base_params)

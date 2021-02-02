@@ -1,5 +1,3 @@
-import six
-
 from datetime import datetime
 from django.utils import timezone
 from jwt import ExpiredSignatureError
@@ -84,7 +82,7 @@ class JiraIssueHookTest(APITestCase):
         mock_get_integration_from_request.return_value = self.integration
         response = self.client.get(self.path)
         assert response.status_code == 200
-        resp_content = six.text_type(response.content)
+        resp_content = str(response.content)
         assert self.group.title in resp_content
         assert self.first_seen.strftime("%b. %d, %Y") in resp_content
         assert self.last_seen.strftime("%b. %d, %Y") in resp_content

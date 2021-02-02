@@ -1,5 +1,3 @@
-import six
-
 from datetime import timedelta
 from django.core.urlresolvers import reverse
 from django.utils import timezone
@@ -98,7 +96,7 @@ class TestSentryAppAuthorizations(APITestCase):
         response = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}")
 
         assert response.status_code == 200
-        assert response.data["id"] == six.text_type(self.org.id)
+        assert response.data["id"] == str(self.org.id)
 
     def test_state(self):
         response = self._run_request(state="abc123")

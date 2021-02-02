@@ -1,6 +1,6 @@
 import responses
 
-from six.moves.urllib.parse import urlparse, urlencode, parse_qs
+from urllib.parse import urlparse, urlencode, parse_qs
 
 from sentry.integrations.vsts import VstsIntegrationProvider
 from sentry.testutils import IntegrationTestCase

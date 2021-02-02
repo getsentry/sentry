@@ -1,8 +1,7 @@
 from datetime import timedelta
 from uuid import uuid4
 
-import six
-from six.moves.urllib.parse import quote
+from urllib.parse import quote
 
 from django.conf import settings
 from django.utils import timezone
@@ -45,7 +44,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def _parse_links(self, header):
         # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
         links = {}
-        for url, attrs in six.iteritems(parse_link_header(header)):
+        for url, attrs in parse_link_header(header).items():
             links[attrs["rel"]] = attrs
             attrs["href"] = url
         return links
@@ -62,7 +61,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.client.get(f"{self.path}?sort_by=date&query=is:unresolved", format="json")
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(group1.id)
+        assert response.data[0]["id"] == str(group1.id)
 
     def test_invalid_query(self):
         self.create_group(checksum="a" * 32, last_seen=before_now(seconds=1))
@@ -91,7 +90,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.client.get(f"{self.path}?sort_by=date&limit=1", format="json")
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(event2.group.id)
+        assert response.data[0]["id"] == str(event2.group.id)
 
         links = self._parse_links(response["Link"])
 
@@ -101,7 +100,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.client.get(links["next"]["href"], format="json")
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(event1.group.id)
+        assert response.data[0]["id"] == str(event1.group.id)
 
         links = self._parse_links(response["Link"])
 
@@ -166,7 +165,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.client.get(self.path, format="json")
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(group2.id)
+        assert response.data[0]["id"] == str(group2.id)
 
     def test_lookup_by_event_id(self):
         project = self.project
@@ -181,7 +180,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.client.get("{}?query={}".format(self.path, "c" * 32), format="json")
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(event.group.id)
+        assert response.data[0]["id"] == str(event.group.id)
         assert response.data[0]["matchingEventId"] == event.event_id
 
     def test_lookup_by_event_with_matching_environment(self):
@@ -201,7 +200,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(event.group.id)
+        assert response.data[0]["id"] == str(event.group.id)
         assert response.data[0]["matchingEventId"] == event.event_id
         assert response.data[0]["matchingEventEnvironment"] == "test"
 
@@ -218,7 +217,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(event.group.id)
+        assert response.data[0]["id"] == str(event.group.id)
 
     def test_lookup_by_unknown_event_id(self):
         project = self.project
@@ -305,7 +304,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         response = self.client.get(self.path, format="json")
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(group.id)
+        assert response.data[0]["id"] == str(group.id)
 
     def test_filters_based_on_retention(self):
         self.login_as(user=self.user)
@@ -525,7 +524,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         response = self.client.put(url, data={"status": "resolved"}, format="json")
 
         assert response.status_code == 200, response.data
-        assert response.data["assignedTo"]["id"] == six.text_type(user.id)
+        assert response.data["assignedTo"]["id"] == str(user.id)
         assert response.data["assignedTo"]["type"] == "user"
         assert response.data["status"] == "resolved"
 
@@ -552,7 +551,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inNextRelease"]
-        assert response.data["assignedTo"]["id"] == six.text_type(self.user.id)
+        assert response.data["assignedTo"]["id"] == str(self.user.id)
         assert response.data["assignedTo"]["type"] == "user"
 
         group = Group.objects.get(id=group.id)
@@ -621,7 +620,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inRelease"] == release.version
-        assert response.data["statusDetails"]["actor"]["id"] == six.text_type(self.user.id)
+        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -658,7 +657,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inRelease"] == release.version
-        assert response.data["statusDetails"]["actor"]["id"] == six.text_type(self.user.id)
+        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -693,7 +692,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inNextRelease"]
-        assert response.data["statusDetails"]["actor"]["id"] == six.text_type(self.user.id)
+        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -724,7 +723,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inNextRelease"]
-        assert response.data["statusDetails"]["actor"]["id"] == six.text_type(self.user.id)
+        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -761,7 +760,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inCommit"]["id"] == commit.key
-        assert response.data["statusDetails"]["actor"]["id"] == six.text_type(self.user.id)
+        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -799,7 +798,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inCommit"]["id"] == commit.key
-        assert response.data["statusDetails"]["actor"]["id"] == six.text_type(self.user.id)
+        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -927,7 +926,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["statusDetails"]["ignoreUserCount"] == snooze.user_count
         assert response.data["statusDetails"]["ignoreUserWindow"] == snooze.user_window
         assert response.data["statusDetails"]["ignoreUntil"] == snooze.until
-        assert response.data["statusDetails"]["actor"]["id"] == six.text_type(self.user.id)
+        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
 
     def test_snooze_count(self):
         group = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED, times_seen=1)
@@ -955,14 +954,14 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["statusDetails"]["ignoreUserCount"] == snooze.user_count
         assert response.data["statusDetails"]["ignoreUserWindow"] == snooze.user_window
         assert response.data["statusDetails"]["ignoreUntil"] == snooze.until
-        assert response.data["statusDetails"]["actor"]["id"] == six.text_type(self.user.id)
+        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
 
     def test_snooze_user_count(self):
         for i in range(10):
             event = self.store_event(
                 data={
                     "fingerprint": ["put-me-in-group-1"],
-                    "user": {"id": six.text_type(i)},
+                    "user": {"id": str(i)},
                     "timestamp": iso_format(self.min_ago + timedelta(seconds=i)),
                 },
                 project_id=self.project.id,
@@ -995,7 +994,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["statusDetails"]["ignoreUserCount"] == snooze.user_count
         assert response.data["statusDetails"]["ignoreUserWindow"] == snooze.user_window
         assert response.data["statusDetails"]["ignoreUntil"] == snooze.until
-        assert response.data["statusDetails"]["actor"]["id"] == six.text_type(self.user.id)
+        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
 
     def test_set_bookmarked(self):
         group1 = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
@@ -1153,9 +1152,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         url = f"{self.path}?id={group1.id}&id={group2.id}&id={group3.id}"
         response = self.client.put(url, data={"merge": "1"}, format="json")
         assert response.status_code == 200
-        assert response.data["merge"]["parent"] == six.text_type(group2.id)
+        assert response.data["merge"]["parent"] == str(group2.id)
         assert sorted(response.data["merge"]["children"]) == sorted(
-            [six.text_type(group1.id), six.text_type(group3.id)]
+            [str(group1.id), str(group3.id)]
         )
 
         mock_eventstream.start_merge.assert_called_once_with(
@@ -1180,7 +1179,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         response = self.client.put(url, data={"assignedTo": user.username})
 
         assert response.status_code == 200
-        assert response.data["assignedTo"]["id"] == six.text_type(user.id)
+        assert response.data["assignedTo"]["id"] == str(user.id)
         assert response.data["assignedTo"]["type"] == "user"
         assert GroupAssignee.objects.filter(group=group1, user=user).exists()
 
@@ -1224,7 +1223,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         response = self.client.put(url, data={"assignedTo": f"team:{team.id}"})
 
         assert response.status_code == 200
-        assert response.data["assignedTo"]["id"] == six.text_type(team.id)
+        assert response.data["assignedTo"]["id"] == str(team.id)
         assert response.data["assignedTo"]["type"] == "team"
         assert GroupAssignee.objects.filter(group=group, team=team).exists()
 
@@ -1355,7 +1354,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             groups.append(
                 self.create_group(
                     project=self.project,
-                    checksum=six.text_type(i).encode("utf-8") * 16,
+                    checksum=str(i).encode("utf-8") * 16,
                     status=GroupStatus.RESOLVED,
                 )
             )

@@ -1,7 +1,6 @@
 import responses
-import six
 
-from six.moves.urllib.parse import parse_qs, urlencode, urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
 from sentry.utils.compat.mock import patch, Mock
 
 from sentry.integrations.gitlab import GitlabIntegrationProvider
@@ -56,7 +55,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         assert params["client_id"] == ["client_id"]
         # once we've asserted on it, switch to a singular values to make life
         # easier
-        authorize_params = {k: v[0] for k, v in six.iteritems(params)}
+        authorize_params = {k: v[0] for k, v in params.items()}
 
         access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
 
@@ -166,7 +165,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         assert redirect.path == "/oauth/authorize"
 
         params = parse_qs(redirect.query)
-        authorize_params = {k: v[0] for k, v in six.iteritems(params)}
+        authorize_params = {k: v[0] for k, v in params.items()}
 
         responses.add(
             responses.POST,

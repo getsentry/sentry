@@ -1,5 +1,4 @@
 import pytest
-import six
 import responses
 from sentry.utils.compat.mock import patch, Mock
 
@@ -14,7 +13,7 @@ from sentry.models import (
     Project,
 )
 from sentry.plugins.base import plugins
-from six.moves.urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs
 from tests.sentry.plugins.testutils import (
     register_mock_plugins,
     unregister_mock_plugins,
@@ -272,7 +271,7 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
 
         with pytest.raises(IntegrationError) as err:
             integration.build_integration(state)
-        assert "sufficient account access to create webhooks" in six.text_type(err)
+        assert "sufficient account access to create webhooks" in str(err)
 
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
     def test_create_subscription_unauthorized(self, mock_get_scopes):
@@ -305,7 +304,7 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
 
         with pytest.raises(IntegrationError) as err:
             integration.build_integration(state)
-        assert "sufficient account access to create webhooks" in six.text_type(err)
+        assert "sufficient account access to create webhooks" in str(err)
 
 
 class VstsIntegrationTest(VstsIntegrationTestCase):

@@ -1,5 +1,3 @@
-import six
-
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.models import GroupShare
@@ -25,8 +23,8 @@ class SharedGroupDetailsTest(APITestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(group.id)
-        assert response.data["latestEvent"]["id"] == six.text_type(event.event_id)
+        assert response.data["id"] == str(group.id)
+        assert response.data["latestEvent"]["id"] == str(event.event_id)
         assert response.data["project"]["slug"] == group.project.slug
         assert response.data["project"]["organization"]["slug"] == group.organization.slug
 

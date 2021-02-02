@@ -2,7 +2,6 @@ from datetime import datetime
 
 from sentry.utils.compat import mock
 import pytz
-import six
 from exam import fixture
 
 from sentry.api.serializers import serialize
@@ -103,7 +102,7 @@ class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest, APITestCase)
         incident = Incident.objects.get(id=incident.id)
         assert incident.status == status
         activity = IncidentActivity.objects.filter(incident=incident).order_by("-id")[:1].get()
-        assert activity.value == six.text_type(status)
+        assert activity.value == str(status)
         assert activity.comment == comment
         assert activity.user == self.user
 

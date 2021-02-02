@@ -1,5 +1,3 @@
-import six
-
 from exam import fixture
 
 from sentry.models import Monitor, MonitorStatus, MonitorType, ScheduleType
@@ -25,8 +23,8 @@ class ListOrganizationMonitorsTest(APITestCase):
 
     def check_valid_response(self, response, expected_monitors):
         assert response.status_code == 200, response.content
-        assert [six.text_type(monitor.guid) for monitor in expected_monitors] == [
-            six.text_type(monitor_resp["id"]) for monitor_resp in response.data
+        assert [str(monitor.guid) for monitor in expected_monitors] == [
+            str(monitor_resp["id"]) for monitor_resp in response.data
         ]
 
     def test_simple(self):

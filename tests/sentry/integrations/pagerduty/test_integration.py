@@ -1,11 +1,10 @@
 import responses
 
 import pytest
-import six
 from sentry import options
 from sentry.utils import json
 
-from six.moves.urllib.parse import urlencode, urlparse
+from urllib.parse import urlencode, urlparse
 from sentry.models import Integration, OrganizationIntegration, PagerDutyService
 from sentry.testutils import IntegrationTestCase
 from sentry.integrations.pagerduty.integration import PagerDutyIntegrationProvider
@@ -185,7 +184,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
         }
         with pytest.raises(IntegrationError) as error:
             integration.get_installation(self.organization).update_organization_config(config_data)
-        assert six.text_type(error.value) == "Name and key are required"
+        assert str(error.value) == "Name and key are required"
 
     @responses.activate
     def test_get_config_data(self):

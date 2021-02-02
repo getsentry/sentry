@@ -1,5 +1,3 @@
-import six
-
 from django.core.urlresolvers import reverse
 
 from sentry.discover.models import KeyTransaction, MAX_KEY_TRANSACTIONS
@@ -145,7 +143,7 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
             KeyTransaction.objects.create(
                 owner=self.user,
                 organization=self.org,
-                transaction=data["transaction"] + six.text_type(i),
+                transaction=data["transaction"] + str(i),
                 project=project,
             )
         with self.feature("organizations:performance-view"):
@@ -327,7 +325,7 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
             KeyTransaction.objects.create(
                 owner=self.user,
                 organization=self.org,
-                transaction=data["transaction"] + six.text_type(i),
+                transaction=data["transaction"] + str(i),
                 project=self.project,
             )
 

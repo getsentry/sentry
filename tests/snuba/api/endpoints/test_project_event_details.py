@@ -1,5 +1,3 @@
-import six
-
 from django.core.urlresolvers import reverse
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -59,10 +57,10 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(self.cur_event.event_id)
-        assert response.data["nextEventID"] == six.text_type(self.next_event.event_id)
-        assert response.data["previousEventID"] == six.text_type(self.prev_event.event_id)
-        assert response.data["groupID"] == six.text_type(self.cur_event.group.id)
+        assert response.data["id"] == str(self.cur_event.event_id)
+        assert response.data["nextEventID"] == str(self.next_event.event_id)
+        assert response.data["previousEventID"] == str(self.prev_event.event_id)
+        assert response.data["groupID"] == str(self.cur_event.group.id)
 
     def test_snuba_no_prev(self):
         url = reverse(
@@ -76,10 +74,10 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(self.prev_event.event_id)
+        assert response.data["id"] == str(self.prev_event.event_id)
         assert response.data["previousEventID"] is None
         assert response.data["nextEventID"] == self.cur_event.event_id
-        assert response.data["groupID"] == six.text_type(self.prev_event.group.id)
+        assert response.data["groupID"] == str(self.prev_event.group.id)
 
     def test_snuba_with_environment(self):
         url = reverse(
@@ -95,10 +93,10 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(self.cur_event.event_id)
+        assert response.data["id"] == str(self.cur_event.event_id)
         assert response.data["previousEventID"] is None
         assert response.data["nextEventID"] == self.next_event.event_id
-        assert response.data["groupID"] == six.text_type(self.prev_event.group.id)
+        assert response.data["groupID"] == str(self.prev_event.group.id)
 
     def test_ignores_different_group(self):
         url = reverse(
@@ -112,7 +110,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(self.next_event.event_id)
+        assert response.data["id"] == str(self.next_event.event_id)
         assert response.data["nextEventID"] is None
 
 

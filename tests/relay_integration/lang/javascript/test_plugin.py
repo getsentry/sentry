@@ -9,8 +9,6 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.utils.compat.mock import patch
 from sentry.models import File, Release, ReleaseFile
 
-# TODO(joshuarli): six 1.12.0 adds ensure_binary
-# might also want to put this in utils since we pretty much expect the result to be py3 str and not bytes
 BASE64_SOURCEMAP = "data:application/json;base64," + (
     b64encode(
         b'{"version":3,"file":"generated.js","sources":["/test.js"],"names":[],"mappings":"AAAA","sourcesContent":['

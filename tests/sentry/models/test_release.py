@@ -1,5 +1,4 @@
 import pytest
-import six
 
 from django.utils import timezone
 from freezegun import freeze_time
@@ -301,7 +300,7 @@ class SetCommitsTestCase(TestCase):
 
         release = Release.objects.get(id=release.id)
         assert release.commit_count == 3
-        assert release.authors == [six.text_type(author.id)]
+        assert release.authors == [str(author.id)]
         assert release.last_commit_id == latest_commit.id
         assert not GroupInbox.objects.filter(group=group).exists()
 
@@ -352,7 +351,7 @@ class SetCommitsTestCase(TestCase):
 
         release = Release.objects.get(id=release.id)
         assert release.commit_count == 3
-        assert release.authors == [six.text_type(author.id)]
+        assert release.authors == [str(author.id)]
         assert release.last_commit_id == latest_commit.id
 
     @patch("sentry.models.Commit.update")

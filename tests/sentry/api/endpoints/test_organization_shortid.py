@@ -1,5 +1,3 @@
-import six
-
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
@@ -21,5 +19,5 @@ class ShortIdLookupEndpointTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["organizationSlug"] == org.slug
         assert response.data["projectSlug"] == project.slug
-        assert response.data["groupId"] == six.text_type(group.id)
-        assert response.data["group"]["id"] == six.text_type(group.id)
+        assert response.data["groupId"] == str(group.id)
+        assert response.data["group"]["id"] == str(group.id)

@@ -1,5 +1,3 @@
-import six
-
 from django.core.urlresolvers import reverse
 from exam import fixture
 
@@ -22,7 +20,7 @@ class OrganizationsListTest(APITestCase):
         response = self.client.get(f"{self.path}")
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(org.id)
+        assert response.data[0]["id"] == str(org.id)
 
     def test_show_all_with_superuser(self):
         org = self.organization
@@ -30,7 +28,7 @@ class OrganizationsListTest(APITestCase):
         response = self.client.get(f"{self.path}?show=all")
         assert response.status_code == 200
         assert len(response.data) == 2
-        assert response.data[0]["id"] == six.text_type(org.id)
+        assert response.data[0]["id"] == str(org.id)
 
     def test_show_all_without_superuser(self):
         self.create_organization(owner=self.user)
@@ -54,11 +52,11 @@ class OrganizationsListTest(APITestCase):
         response = self.client.get(f"{self.path}?owner=1")
         assert response.status_code == 200
         assert len(response.data) == 3
-        assert response.data[0]["organization"]["id"] == six.text_type(org.id)
+        assert response.data[0]["organization"]["id"] == str(org.id)
         assert response.data[0]["singleOwner"] is True
-        assert response.data[1]["organization"]["id"] == six.text_type(org2.id)
+        assert response.data[1]["organization"]["id"] == str(org2.id)
         assert response.data[1]["singleOwner"] is False
-        assert response.data[2]["organization"]["id"] == six.text_type(org3.id)
+        assert response.data[2]["organization"]["id"] == str(org3.id)
         assert response.data[2]["singleOwner"] is False
 
     def test_status_query(self):
@@ -67,7 +65,7 @@ class OrganizationsListTest(APITestCase):
         response = self.client.get(f"{self.path}?query=status:pending_deletion")
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(org.id)
+        assert response.data[0]["id"] == str(org.id)
         response = self.client.get(f"{self.path}?query=status:deletion_in_progress")
         assert response.status_code == 200
         assert len(response.data) == 0
@@ -88,7 +86,7 @@ class OrganizationsListTest(APITestCase):
         response = self.client.get(f"{self.path}?query=member_id:{om.id}")
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(org.id)
+        assert response.data[0]["id"] == str(org.id)
 
         response = self.client.get("{}?query=member_id:{}".format(self.path, om.id + 10))
         assert response.status_code == 200

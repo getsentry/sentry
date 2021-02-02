@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 import pytz
-import six
 
 from sentry.utils.compat.mock import patch
 
@@ -77,7 +76,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
         for r in range(0, 14400, 600):  # Every 10 min for 4 hours
             self.store_event(
                 data={
-                    "event_id": (six.text_type(r) * 32)[:32],
+                    "event_id": (str(r) * 32)[:32],
                     "message": "message 1",
                     "platform": "python",
                     "fingerprint": [["group-1"], ["group-2"]][
@@ -96,7 +95,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
                         "id": "user{}".format(r // 3300),
                         "email": f"user{r}@sentry.io",
                     },
-                    "release": six.text_type(r // 3600) * 10,  # 1 per hour,
+                    "release": str(r // 3600) * 10,  # 1 per hour,
                 },
                 project_id=self.proj1.id,
             )

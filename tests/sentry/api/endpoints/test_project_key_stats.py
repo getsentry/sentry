@@ -1,5 +1,3 @@
-import six
-
 from sentry import tsdb
 from sentry.models import ProjectKey
 from sentry.testutils import APITestCase
@@ -35,7 +33,7 @@ class ProjectKeyStatsTest(APITestCase):
     # under str(key_id) have expired out of redis.
     def test_str_key_id(self):
         tsdb.incr(tsdb.models.key_total_received, self.key.id, count=1)
-        tsdb.incr(tsdb.models.key_total_received, six.text_type(self.key.id), count=1)
+        tsdb.incr(tsdb.models.key_total_received, str(self.key.id), count=1)
 
         response = self.client.get(self.path)
         assert response.status_code == 200

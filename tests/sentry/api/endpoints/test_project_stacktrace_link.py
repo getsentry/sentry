@@ -1,5 +1,3 @@
-import six
-
 from django.core.urlresolvers import reverse
 from sentry.utils.compat import mock
 
@@ -80,10 +78,10 @@ class ProjectStacktraceLinkTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["config"] == {
-            "id": six.text_type(self.config.id),
-            "projectId": six.text_type(self.project.id),
+            "id": str(self.config.id),
+            "projectId": str(self.project.id),
             "projectSlug": self.project.slug,
-            "repoId": six.text_type(self.repo.id),
+            "repoId": str(self.repo.id),
             "repoName": self.repo.name,
             "provider": {
                 "aspects": {},
@@ -96,7 +94,7 @@ class ProjectStacktraceLinkTest(APITestCase):
             },
             "sourceRoot": self.config.source_root,
             "stackRoot": self.config.stack_root,
-            "integrationId": six.text_type(self.integration.id),
+            "integrationId": str(self.integration.id),
             "defaultBranch": None,
         }
         assert not response.data["sourceUrl"]
@@ -111,10 +109,10 @@ class ProjectStacktraceLinkTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["config"] == {
-            "id": six.text_type(self.config.id),
-            "projectId": six.text_type(self.project.id),
+            "id": str(self.config.id),
+            "projectId": str(self.project.id),
             "projectSlug": self.project.slug,
-            "repoId": six.text_type(self.repo.id),
+            "repoId": str(self.repo.id),
             "repoName": self.repo.name,
             "provider": {
                 "aspects": {},
@@ -127,7 +125,7 @@ class ProjectStacktraceLinkTest(APITestCase):
             },
             "sourceRoot": self.config.source_root,
             "stackRoot": self.config.stack_root,
-            "integrationId": six.text_type(self.integration.id),
+            "integrationId": str(self.integration.id),
             "defaultBranch": None,
         }
         assert not response.data["sourceUrl"]
@@ -144,10 +142,10 @@ class ProjectStacktraceLinkTest(APITestCase):
             response = self.client.get(url)
             assert response.status_code == 200, response.content
             assert response.data["config"] == {
-                "id": six.text_type(self.config.id),
-                "projectId": six.text_type(self.project.id),
+                "id": str(self.config.id),
+                "projectId": str(self.project.id),
                 "projectSlug": self.project.slug,
-                "repoId": six.text_type(self.repo.id),
+                "repoId": str(self.repo.id),
                 "repoName": self.repo.name,
                 "provider": {
                     "aspects": {},
@@ -160,7 +158,7 @@ class ProjectStacktraceLinkTest(APITestCase):
                 },
                 "sourceRoot": self.config.source_root,
                 "stackRoot": self.config.stack_root,
-                "integrationId": six.text_type(self.integration.id),
+                "integrationId": str(self.integration.id),
                 "defaultBranch": None,
             }
             assert response.data["sourceUrl"] == "https://sourceurl.com/"
@@ -181,6 +179,6 @@ class ProjectStacktraceLinkTest(APITestCase):
                 "slug": "example",
                 "canAdd": True,
             },
-            "id": six.text_type(self.integration.id),
+            "id": str(self.integration.id),
             "icon": None,
         }

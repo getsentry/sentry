@@ -1,6 +1,6 @@
 from collections import OrderedDict, defaultdict
 from exam import fixture
-from six.moves import reduce
+from functools import reduce
 
 from sentry.digests import Record
 from sentry.digests.notifications import (

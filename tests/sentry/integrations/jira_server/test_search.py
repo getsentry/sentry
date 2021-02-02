@@ -2,7 +2,7 @@ import responses
 
 from django.core.urlresolvers import reverse
 from exam import fixture
-from six.moves.urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs
 
 from sentry.models import Integration, IdentityProvider, Identity, IdentityStatus
 from sentry.testutils import APITestCase

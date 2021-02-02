@@ -1,5 +1,5 @@
 import responses
-from six.moves.urllib.parse import parse_qsl
+from urllib.parse import parse_qsl
 
 from sentry import options
 from sentry.utils import json

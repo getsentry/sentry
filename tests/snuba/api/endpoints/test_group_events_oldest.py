@@ -1,5 +1,3 @@
-import six
-
 from sentry.models import Group
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
@@ -40,18 +38,18 @@ class GroupEventsOldestTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
-        assert response.data["id"] == six.text_type(self.event1.event_id)
+        assert response.data["id"] == str(self.event1.event_id)
 
     def test_snuba_environment(self):
         url = f"/api/0/issues/{self.group.id}/events/oldest/"
         response = self.client.get(url, format="json", data={"environment": ["production"]})
 
         assert response.status_code == 200
-        assert response.data["id"] == six.text_type(self.event2.event_id)
+        assert response.data["id"] == str(self.event2.event_id)
 
     def test_simple(self):
         url = f"/api/0/issues/{self.group.id}/events/oldest/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
-        assert response.data["id"] == six.text_type(self.event1.event_id)
+        assert response.data["id"] == str(self.event1.event_id)

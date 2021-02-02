@@ -1,6 +1,5 @@
 import responses
 import pytest
-import six
 
 from exam import fixture
 from django.test import RequestFactory
@@ -430,7 +429,7 @@ class VstsIssueFormTest(VstsIssueBase):
 
     def update_issue_defaults(self, defaults):
         self.integration.org_integration.config = {
-            "project_issue_defaults": {six.text_type(self.group.project_id): defaults}
+            "project_issue_defaults": {str(self.group.project_id): defaults}
         }
         self.integration.org_integration.save()
 

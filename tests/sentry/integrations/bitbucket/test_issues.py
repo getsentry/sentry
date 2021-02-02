@@ -1,6 +1,5 @@
 import copy
 import responses
-import six
 
 from sentry.integrations.bitbucket.issues import ISSUE_TYPES, PRIORITIES
 from sentry.models import ExternalIssue, Integration
@@ -105,9 +104,7 @@ class BitbucketIssueTest(APITestCase):
             content_type="application/json",
         )
         self.org_integration.config = {
-            "project_issue_defaults": {
-                six.text_type(self.group.project_id): {"repo": "myaccount/repo1"}
-            }
+            "project_issue_defaults": {str(self.group.project_id): {"repo": "myaccount/repo1"}}
         }
         self.org_integration.save()
         installation = self.integration.get_installation(self.organization.id)
@@ -129,9 +126,7 @@ class BitbucketIssueTest(APITestCase):
             content_type="application/json",
         )
         self.org_integration.config = {
-            "project_issue_defaults": {
-                six.text_type(self.group.project_id): {"repo": "myaccount/repo1"}
-            }
+            "project_issue_defaults": {str(self.group.project_id): {"repo": "myaccount/repo1"}}
         }
         self.org_integration.save()
         installation = self.integration.get_installation(self.organization.id)

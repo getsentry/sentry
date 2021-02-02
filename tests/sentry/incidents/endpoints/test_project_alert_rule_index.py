@@ -1,4 +1,3 @@
-import six
 import requests
 import pytz
 
@@ -264,7 +263,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
         result = json.loads(response.content)
         assert len(result) == 4
         self.assert_alert_rule_serialized(self.yet_another_alert_rule, result[0], skip_dates=True)
-        assert result[1]["id"] == six.text_type(self.issue_rule.id)
+        assert result[1]["id"] == str(self.issue_rule.id)
         assert result[1]["type"] == "rule"
         self.assert_alert_rule_serialized(self.other_alert_rule, result[2], skip_dates=True)
         self.assert_alert_rule_serialized(self.alert_rule, result[3], skip_dates=True)
@@ -298,7 +297,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
         assert response.status_code == 200
         result = json.loads(response.content)
         assert len(result) == 1
-        assert result[0]["id"] == six.text_type(self.issue_rule.id)
+        assert result[0]["id"] == str(self.issue_rule.id)
         assert result[0]["type"] == "rule"
 
     def test_limit_as_2_with_paging(self):
@@ -315,7 +314,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
         result = json.loads(response.content)
         assert len(result) == 2
         self.assert_alert_rule_serialized(self.yet_another_alert_rule, result[0], skip_dates=True)
-        assert result[1]["id"] == six.text_type(self.issue_rule.id)
+        assert result[1]["id"] == str(self.issue_rule.id)
         assert result[1]["type"] == "rule"
 
         links = requests.utils.parse_header_links(
