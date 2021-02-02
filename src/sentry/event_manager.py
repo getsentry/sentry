@@ -907,6 +907,66 @@ def get_culprit(data):
     )
 
 
+def _save_aggregate2(event, hashes, release, **kwargs):
+    project = event.project
+
+    def find_hashes():
+        all_hashes = [
+            GroupHash.objects.get_or_create(project=project, hash=hash)[0]
+            for hash in hashes
+        ]
+
+        existing_group_id = None
+        for h in hashes:
+            if h.group_id is not None:
+                existing_group_id = h.group_id
+                break
+            if h.group_tombstone_id is not None:
+                raise HashDiscarded("Matches group tombstone %s" % h.group_tombstone_id)
+
+        return all_hashes, existing_group_id
+
+    all_hashes, existing_group_id = find_hashes()
+
+    if existing_group_id is None:
+
+        with transaction.atomic():
+            all_hashes, existing_group_id = find_hashes()
+
+            if existing_group_id is not None:
+                short_id = project.next_short_id()
+
+                # it's possible the release was deleted between
+                # when we queried for the release and now, so
+                # make sure it still exists
+                first_release = kwargs.pop("first_release", None)
+
+                group = Group.objects.create(
+                    project=project,
+                    short_id=short_id,
+                    first_release_id=Release.objects.filter(id=first_release.id)
+                    .values_list("id", flat=True)
+                    .first()
+                    if first_release
+                    else None,
+                    **kwargs,
+                )
+
+                # invariant: all hashes have group_id=None
+                GroupHash.objects.filter(id__in=[h.id for h in all_hashes]).exclude(
+                    state=GroupHash.State.LOCKED_IN_MIGRATION
+                ).update(group=group)
+
+                is_new = True
+                is_regression = False
+
+                metrics.incr(
+                    "group.created", skip_internal=True, tags={"platform": event.platform or "unknown"}
+                )
+
+                return group, is_new, is_regression
+                
+
 def _save_aggregate(event, hashes, release, **kwargs):
     project = event.project
 
