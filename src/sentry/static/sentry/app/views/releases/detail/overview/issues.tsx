@@ -82,6 +82,8 @@ class Issues extends React.Component<Props, State> {
       pathname: `/organizations/${orgId}/issues/`,
       query: {
         ...queryParams,
+        limit: undefined,
+        cursor: undefined,
         query: stringifyQueryObject(query),
       },
     };
@@ -92,7 +94,7 @@ class Issues extends React.Component<Props, State> {
     const {issuesType} = this.state;
     const queryParams = {
       ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
-      limit: 50,
+      limit: 10,
       sort: 'new',
     };
 
@@ -206,6 +208,10 @@ class Issues extends React.Component<Props, State> {
           </DropdownControl>
 
           <OpenInButtonBar gap={1}>
+            <Button to={this.getIssuesUrl()} size="small" data-test-id="issues-button">
+              {t('Open in Issues')}
+            </Button>
+
             <Feature features={['discover-basic']}>
               <DiscoverButton
                 to={this.getDiscoverUrl()}
@@ -215,10 +221,6 @@ class Issues extends React.Component<Props, State> {
                 {t('Open in Discover')}
               </DiscoverButton>
             </Feature>
-
-            <Button to={this.getIssuesUrl()} size="small" data-test-id="issues-button">
-              {t('Open in Issues')}
-            </Button>
           </OpenInButtonBar>
         </ControlsWrapper>
         <TableWrapper data-test-id="release-wrapper">
