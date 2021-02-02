@@ -13,7 +13,7 @@ class ProjectGeneralSettingsTest(AcceptanceTestCase):
         self.login_as(self.user)
 
     def test_saved_searches(self):
-        path = "/{}/{}/settings/".format(self.org.slug, self.project.slug)
+        path = f"/{self.org.slug}/{self.project.slug}/settings/"
         self.browser.get(path)
         self.browser.wait_until_not(".loading-indicator")
         self.browser.snapshot("project settings - general settings")
@@ -22,7 +22,7 @@ class ProjectGeneralSettingsTest(AcceptanceTestCase):
         """
         It is only possible to open the menu at mobile widths
         """
-        path = "/{}/{}/settings/".format(self.org.slug, self.project.slug)
+        path = f"/{self.org.slug}/{self.project.slug}/settings/"
 
         with self.browser.mobile_viewport():
             self.browser.get(path)

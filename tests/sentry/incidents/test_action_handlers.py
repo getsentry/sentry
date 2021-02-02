@@ -419,16 +419,14 @@ class PagerDutyActionHandlerTest(FireTest, TestCase):
 
         assert data["routing_key"] == "pfc73e8cb4s44d519f3d63d45b5q77g9"
         assert data["event_action"] == "trigger"
-        assert data["dedup_key"] == "incident_{}_{}".format(
-            incident.organization_id, incident.identifier
-        )
+        assert data["dedup_key"] == f"incident_{incident.organization_id}_{incident.identifier}"
         assert data["payload"]["summary"] == alert_rule.name
         assert data["payload"]["severity"] == "critical"
         assert data["payload"]["source"] == six.text_type(incident.identifier)
         assert data["payload"]["custom_details"] == {
             "details": "1000 events in the last 10 minutes\nFilter: level:error"
         }
-        assert data["links"][0]["text"] == "Critical: {}".format(alert_rule.name)
+        assert data["links"][0]["text"] == f"Critical: {alert_rule.name}"
         assert data["links"][0]["href"] == "http://testserver/organizations/baz/alerts/1/"
 
     @responses.activate

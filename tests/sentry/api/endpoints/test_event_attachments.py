@@ -32,9 +32,7 @@ class EventAttachmentsTest(APITestCase):
             name="hello.png",
         )
 
-        path = "/api/0/projects/{}/{}/events/{}/attachments/".format(
-            event1.project.organization.slug, event1.project.slug, event1.event_id
-        )
+        path = f"/api/0/projects/{event1.project.organization.slug}/{event1.project.slug}/events/{event1.event_id}/attachments/"
 
         with self.feature("organizations:event-attachments"):
             response = self.client.get(path)

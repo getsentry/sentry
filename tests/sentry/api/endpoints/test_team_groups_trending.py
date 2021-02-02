@@ -12,9 +12,7 @@ class TeamGroupsTrendingTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = "/api/0/teams/{}/{}/issues/trending/".format(
-            self.team.organization.slug, self.team.slug
-        )
+        url = f"/api/0/teams/{self.team.organization.slug}/{self.team.slug}/issues/trending/"
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert len(response.data) == 2

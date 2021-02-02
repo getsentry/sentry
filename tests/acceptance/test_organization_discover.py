@@ -48,7 +48,7 @@ class OrganizationDiscoverTest(AcceptanceTestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        self.path = "/organizations/{}/discover/".format(self.org.slug)
+        self.path = f"/organizations/{self.org.slug}/discover/"
 
     def test_no_access(self):
         with self.feature(

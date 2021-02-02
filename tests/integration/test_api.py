@@ -28,12 +28,12 @@ class AuthenticationTest(AuthProviderTestCase):
         self.login_as(user)
 
         paths = (
-            "/api/0/organizations/{}/".format(organization.slug),
-            "/api/0/projects/{}/{}/".format(organization.slug, project.slug),
-            "/api/0/teams/{}/{}/".format(organization.slug, team.slug),
-            "/api/0/issues/{}/".format(group_id),
+            f"/api/0/organizations/{organization.slug}/",
+            f"/api/0/projects/{organization.slug}/{project.slug}/",
+            f"/api/0/teams/{organization.slug}/{team.slug}/",
+            f"/api/0/issues/{group_id}/",
             # this uses the internal API, which once upon a time was broken
-            "/api/0/issues/{}/events/latest/".format(group_id),
+            f"/api/0/issues/{group_id}/events/latest/",
         )
 
         for path in paths:

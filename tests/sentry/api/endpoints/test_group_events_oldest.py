@@ -40,7 +40,7 @@ class GroupEventsOldestEndpointTest(APITestCase, SnubaTestCase):
         )
 
     def test_get_simple(self):
-        url = "/api/0/issues/{}/events/oldest/".format(self.event_a.group.id)
+        url = f"/api/0/issues/{self.event_a.group.id}/events/oldest/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -49,7 +49,7 @@ class GroupEventsOldestEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["nextEventID"] == six.text_type(self.event_b.event_id)
 
     def test_get_with_environment(self):
-        url = "/api/0/issues/{}/events/oldest/".format(self.event_a.group.id)
+        url = f"/api/0/issues/{self.event_a.group.id}/events/oldest/"
         response = self.client.get(url, format="json", data={"environment": ["production"]})
 
         assert response.status_code == 200, response.content

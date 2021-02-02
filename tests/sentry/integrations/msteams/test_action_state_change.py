@@ -202,7 +202,7 @@ class StatusActionTest(BaseEventTest):
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     def test_assign_to_team(self, verify):
         resp = self.post_webhook(
-            action_type=ACTION_TYPE.ASSIGN, assign_input="team:{}".format(self.team.id)
+            action_type=ACTION_TYPE.ASSIGN, assign_input=f"team:{self.team.id}"
         )
 
         assert resp.status_code == 200, resp.content
@@ -217,10 +217,7 @@ class StatusActionTest(BaseEventTest):
         assert GroupAssignee.objects.filter(group=self.group1, user=self.user).exists()
 
         assert b"Unassign" in responses.calls[0].request.body
-        assert (
-            "Assigned to {}".format(self.user.email).encode("utf-8")
-            in responses.calls[0].request.body
-        )
+        assert f"Assigned to {self.user.email}".encode("utf-8") in responses.calls[0].request.body
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
@@ -234,10 +231,7 @@ class StatusActionTest(BaseEventTest):
 
         assert b"Unassign" in responses.calls[0].request.body
         assert "user_conversation_id" in responses.calls[0].request.url
-        assert (
-            "Assigned to {}".format(self.user.email).encode("utf-8")
-            in responses.calls[0].request.body
-        )
+        assert f"Assigned to {self.user.email}".encode("utf-8") in responses.calls[0].request.body
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
@@ -251,10 +245,7 @@ class StatusActionTest(BaseEventTest):
 
         assert b"Unassign" in responses.calls[0].request.body
         assert "some_channel_id" in responses.calls[0].request.url
-        assert (
-            "Assigned to {}".format(self.user.email).encode("utf-8")
-            in responses.calls[0].request.body
-        )
+        assert f"Assigned to {self.user.email}".encode("utf-8") in responses.calls[0].request.body
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)

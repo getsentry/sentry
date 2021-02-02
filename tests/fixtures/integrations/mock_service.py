@@ -71,8 +71,8 @@ class MockService(StubService):
         """
         if self._next_error_code:
             self._next_error_code = None
-            message = message_option or "{} is down".format(self.service_name)
-            raise Exception("{}: {}".format(self._next_error_code, message))
+            message = message_option or f"{self.service_name} is down"
+            raise Exception(f"{self._next_error_code}: {message}")
 
     def _get_project_names(self):
         return self._next_ids.keys()
@@ -97,7 +97,7 @@ class MockService(StubService):
             self._memory[project][name] = data
             return
 
-        path = os.path.join(self._get_project_path(project), "{}.json".format(name))
+        path = os.path.join(self._get_project_path(project), f"{name}.json")
         with open(path, "w") as f:
             f.write(json.dumps(data, sort_keys=True, indent=4))
 
@@ -107,7 +107,7 @@ class MockService(StubService):
                 self._memory[project] = defaultdict()
             return self._memory[project].get(name)
 
-        path = os.path.join(self._get_project_path(project), "{}.json".format(name))
+        path = os.path.join(self._get_project_path(project), f"{name}.json")
         if not os.path.exists(path):
             return None
 

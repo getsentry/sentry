@@ -662,7 +662,7 @@ class ParseSearchQueryTest(unittest.TestCase):
     def test_boolean_filter(self):
         truthy = ("true", "TRUE", "1")
         for val in truthy:
-            assert parse_search_query("stack.in_app:{}".format(val)) == [
+            assert parse_search_query(f"stack.in_app:{val}") == [
                 SearchFilter(
                     key=SearchKey(name="stack.in_app"),
                     operator="=",
@@ -671,7 +671,7 @@ class ParseSearchQueryTest(unittest.TestCase):
             ]
         falsey = ("false", "FALSE", "0")
         for val in falsey:
-            assert parse_search_query("stack.in_app:{}".format(val)) == [
+            assert parse_search_query(f"stack.in_app:{val}") == [
                 SearchFilter(
                     key=SearchKey(name="stack.in_app"),
                     operator="=",
@@ -1015,12 +1015,12 @@ def _noeq(xy):
 
 # message ("foo bar baz")
 def _m(x):
-    return ["notEquals", [["positionCaseInsensitive", ["message", "'{}'".format(x)]], 0]]
+    return ["notEquals", [["positionCaseInsensitive", ["message", f"'{x}'"]], 0]]
 
 
 # message ("foo bar baz") using operators instead of functions
 def _om(x):
-    return [["positionCaseInsensitive", ["message", "'{}'".format(x)]], "!=", 0]
+    return [["positionCaseInsensitive", ["message", f"'{x}'"]], "!=", 0]
 
 
 # x OR y
@@ -1048,8 +1048,8 @@ class ParseBooleanSearchQueryTest(TestCase):
         super(ParseBooleanSearchQueryTest, self).setUp()
         users = ["foo", "bar", "foobar", "hello", "hi"]
         for u in users:
-            self.__setattr__(u, ["equals", ["user.email", "{}@example.com".format(u)]])
-            self.__setattr__("o{}".format(u), ["user.email", "=", "{}@example.com".format(u)])
+            self.__setattr__(u, ["equals", ["user.email", f"{u}@example.com"]])
+            self.__setattr__(f"o{u}", ["user.email", "=", f"{u}@example.com"])
 
     def test_simple(self):
         result = get_filter("user.email:foo@example.com OR user.email:bar@example.com")
@@ -1427,7 +1427,7 @@ class ParseBooleanSearchQueryTest(TestCase):
         project2 = self.create_project()
         tests = [
             (
-                "project:{} OR project:{}".format(project1.slug, project2.slug),
+                f"project:{project1.slug} OR project:{project2.slug}",
                 [
                     [
                         _or(
@@ -1441,7 +1441,7 @@ class ParseBooleanSearchQueryTest(TestCase):
                 [project1.id, project2.id],
             ),
             (
-                "(project:{} OR project:{}) AND a:b".format(project1.slug, project2.slug),
+                f"(project:{project1.slug} OR project:{project2.slug}) AND a:b",
                 [
                     [
                         _or(
@@ -1456,7 +1456,7 @@ class ParseBooleanSearchQueryTest(TestCase):
                 [project1.id, project2.id],
             ),
             (
-                "(project:{} AND a:b) OR (project:{} AND c:d)".format(project1.slug, project1.slug),
+                f"(project:{project1.slug} AND a:b) OR (project:{project1.slug} AND c:d)",
                 [
                     [
                         _or(
@@ -1488,12 +1488,10 @@ class ParseBooleanSearchQueryTest(TestCase):
         project3 = self.create_project()
         with self.assertRaisesRegexp(
             InvalidSearchQuery,
-            "Project {} does not exist or is not an actively selected project.".format(
-                project3.slug
-            ),
+            f"Project {project3.slug} does not exist or is not an actively selected project.",
         ):
             get_filter(
-                "project:{} OR project:{}".format(project1.slug, project3.slug),
+                f"project:{project1.slug} OR project:{project3.slug}",
                 params={
                     "organization_id": self.organization.id,
                     "project_id": [project1.id, project2.id],
@@ -1509,28 +1507,26 @@ class ParseBooleanSearchQueryTest(TestCase):
         group3 = self.create_group(project=self.project)
         tests = [
             (
-                "issue.id:{} OR issue.id:{}".format(group1.id, group2.id),
+                f"issue.id:{group1.id} OR issue.id:{group2.id}",
                 [],
                 [group1.id, group2.id],
             ),
-            ("issue.id:{} AND issue.id:{}".format(group1.id, group1.id), [], [group1.id]),
+            (f"issue.id:{group1.id} AND issue.id:{group1.id}", [], [group1.id]),
             (
-                "(issue.id:{} AND issue.id:{}) OR issue.id:{}".format(
-                    group1.id, group2.id, group3.id
-                ),
+                f"(issue.id:{group1.id} AND issue.id:{group2.id}) OR issue.id:{group3.id}",
                 [],
                 [group1.id, group2.id, group3.id],
             ),
-            ("issue.id:{} AND a:b".format(group1.id), [_oeq("ab")], [group1.id]),
+            (f"issue.id:{group1.id} AND a:b", [_oeq("ab")], [group1.id]),
             # TODO: Using OR with issue.id is broken. These return incorrect results.
-            ("issue.id:{} OR a:b".format(group1.id), [_oeq("ab")], [group1.id]),
+            (f"issue.id:{group1.id} OR a:b", [_oeq("ab")], [group1.id]),
             (
-                "(issue.id:{} AND a:b) OR issue.id:{}".format(group1.id, group2.id),
+                f"(issue.id:{group1.id} AND a:b) OR issue.id:{group2.id}",
                 [_oeq("ab")],
                 [group1.id, group2.id],
             ),
             (
-                "(issue.id:{} AND a:b) OR c:d".format(group1.id),
+                f"(issue.id:{group1.id} AND a:b) OR c:d",
                 [[_or(_eq("ab"), _eq("cd")), "=", 1]],
                 [group1.id],
             ),
@@ -1594,11 +1590,11 @@ class ParseBooleanSearchQueryTest(TestCase):
 
     def test_or_does_not_match_organization(self):
         result = get_filter(
-            "organization.slug:{}".format(self.organization.slug),
+            f"organization.slug:{self.organization.slug}",
             params={"organization_id": self.organization.id, "project_id": [self.project.id]},
         )
         assert result.conditions == [
-            [["ifNull", ["organization.slug", "''"]], "=", "{}".format(self.organization.slug)]
+            [["ifNull", ["organization.slug", "''"]], "=", f"{self.organization.slug}"]
         ]
 
 
@@ -1703,7 +1699,7 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_escaped_wildcard(self):
         assert get_filter("release:3.1.\\* user.email:\\*@example.com").conditions == [
             [["match", ["release", "'(?i)^3\\.1\\.\\*$'"]], "=", 1],
-            [["match", ["user.email", "'(?i)^\*@example\\.com$'"]], "=", 1],
+            [["match", ["user.email", "'(?i)^\\*@example\\.com$'"]], "=", 1],
         ]
         assert get_filter("release:\\\\\\*").conditions == [
             [["match", ["release", "'(?i)^\\\\\\*$'"]], "=", 1]
@@ -1712,7 +1708,7 @@ class GetSnubaQueryArgsTest(TestCase):
             [["match", ["release", "'(?i)^\\\\.*$'"]], "=", 1]
         ]
         assert get_filter("message:.*?").conditions == [
-            [["match", ["message", "'(?i)\..*\?'"]], "=", 1]
+            [["match", ["message", r"'(?i)\..*\?'"]], "=", 1]
         ]
 
     def test_wildcard_array_field(self):
@@ -1800,7 +1796,7 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_issue_filter(self):
         group = self.create_group(project=self.project)
         _filter = get_filter(
-            "issue:{}".format(group.qualified_short_id), {"organization_id": self.organization.id}
+            f"issue:{group.qualified_short_id}", {"organization_id": self.organization.id}
         )
         assert _filter.conditions == [["issue.id", "=", group.id]]
         assert _filter.filter_keys == {}
@@ -1809,7 +1805,7 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_negated_issue_filter(self):
         group = self.create_group(project=self.project)
         _filter = get_filter(
-            "!issue:{}".format(group.qualified_short_id), {"organization_id": self.organization.id}
+            f"!issue:{group.qualified_short_id}", {"organization_id": self.organization.id}
         )
         assert _filter.conditions == [["issue.id", "!=", group.id]]
         assert _filter.filter_keys == {}
@@ -1911,13 +1907,13 @@ class GetSnubaQueryArgsTest(TestCase):
         p2 = self.create_project(organization=self.organization)
 
         params = {"project_id": [p1.id, p2.id]}
-        _filter = get_filter("project.name:{}".format(p1.slug), params)
+        _filter = get_filter(f"project.name:{p1.slug}", params)
         assert _filter.conditions == [["project_id", "=", p1.id]]
         assert _filter.filter_keys == {"project_id": [p1.id]}
         assert _filter.project_ids == [p1.id]
 
         params = {"project_id": [p1.id, p2.id]}
-        _filter = get_filter("!project.name:{}".format(p1.slug), params)
+        _filter = get_filter(f"!project.name:{p1.slug}", params)
         assert _filter.conditions == [
             [[["isNull", ["project_id"]], "=", 1], ["project_id", "!=", p1.id]]
         ]
@@ -1926,7 +1922,7 @@ class GetSnubaQueryArgsTest(TestCase):
 
         with pytest.raises(InvalidSearchQuery) as err:
             params = {"project_id": []}
-            get_filter("project.name:{}".format(p1.slug), params)
+            get_filter(f"project.name:{p1.slug}", params)
         assert (
             "Invalid query. Project %s does not exist or is not an actively selected project"
             % p1.slug
@@ -1935,7 +1931,7 @@ class GetSnubaQueryArgsTest(TestCase):
 
     def test_transaction_status(self):
         for (key, val) in SPAN_STATUS_CODE_TO_NAME.items():
-            result = get_filter("transaction.status:{}".format(val))
+            result = get_filter(f"transaction.status:{val}")
             assert result.conditions == [["transaction.status", "=", key]]
 
     def test_transaction_status_no_wildcard(self):
@@ -2092,7 +2088,7 @@ class GetSnubaQueryArgsTest(TestCase):
 
     @pytest.mark.xfail(reason="this breaks issue search so needs to be redone")
     def test_trace_id(self):
-        result = get_filter("trace:{}".format("a0fa8803753e40fd8124b21eeb2986b5"))
+        result = get_filter("trace:a0fa8803753e40fd8124b21eeb2986b5")
         assert result.conditions == [["trace", "=", "a0fa8803-753e-40fd-8124-b21eeb2986b5"]]
 
 
@@ -2729,11 +2725,11 @@ class ResolveFieldListTest(unittest.TestCase):
             result = resolve_field_list(fields, eventstore.Filter())
 
             assert result["aggregations"] == [
-                ["quantile(0.5)", snuba_column, "p50_{}".format(column_alias).strip("_")],
-                ["quantile(0.75)", snuba_column, "p75_{}".format(column_alias).strip("_")],
-                ["quantile(0.95)", snuba_column, "p95_{}".format(column_alias).strip("_")],
-                ["quantile(0.99)", snuba_column, "p99_{}".format(column_alias).strip("_")],
-                ["max", snuba_column, "p100_{}".format(column_alias).strip("_")],
+                ["quantile(0.5)", snuba_column, f"p50_{column_alias}".strip("_")],
+                ["quantile(0.75)", snuba_column, f"p75_{column_alias}".strip("_")],
+                ["quantile(0.95)", snuba_column, f"p95_{column_alias}".strip("_")],
+                ["quantile(0.99)", snuba_column, f"p99_{column_alias}".strip("_")],
+                ["max", snuba_column, f"p100_{column_alias}".strip("_")],
             ]
 
     def test_compare_numeric_aggregate(self):
@@ -3092,13 +3088,13 @@ class FunctionTest(unittest.TestCase):
 
     def test_no_optional_not_enough_arguments(self):
         with self.assertRaisesRegexp(
-            InvalidSearchQuery, "fn_wo_optionals\(\): expected 2 argument\(s\)"
+            InvalidSearchQuery, r"fn_wo_optionals\(\): expected 2 argument\(s\)"
         ):
             self.fn_wo_optionals.validate_argument_count("fn_wo_optionals()", ["arg1"])
 
     def test_no_optional_too_may_arguments(self):
         with self.assertRaisesRegexp(
-            InvalidSearchQuery, "fn_wo_optionals\(\): expected 2 argument\(s\)"
+            InvalidSearchQuery, r"fn_wo_optionals\(\): expected 2 argument\(s\)"
         ):
             self.fn_wo_optionals.validate_argument_count(
                 "fn_wo_optionals()", ["arg1", "arg2", "arg3"]
@@ -3111,13 +3107,13 @@ class FunctionTest(unittest.TestCase):
 
     def test_optional_not_enough_arguments(self):
         with self.assertRaisesRegexp(
-            InvalidSearchQuery, "fn_w_optionals\(\): expected at least 1 argument\(s\)"
+            InvalidSearchQuery, r"fn_w_optionals\(\): expected at least 1 argument\(s\)"
         ):
             self.fn_w_optionals.validate_argument_count("fn_w_optionals()", [])
 
     def test_optional_too_many_arguments(self):
         with self.assertRaisesRegexp(
-            InvalidSearchQuery, "fn_w_optionals\(\): expected at most 2 argument\(s\)"
+            InvalidSearchQuery, r"fn_w_optionals\(\): expected at most 2 argument\(s\)"
         ):
             self.fn_w_optionals.validate_argument_count(
                 "fn_w_optionals()", ["arg1", "arg2", "arg3"]

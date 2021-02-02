@@ -73,7 +73,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.POST,
-            self.base_url + "/app/installations/{}/access_tokens".format(installation_id),
+            self.base_url + f"/app/installations/{installation_id}/access_tokens",
             json={"token": access_token, "expires_at": "3000-01-01T00:00:00Z"},
         )
 
@@ -81,7 +81,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            self.base_url + "/app/installations/{}".format(installation_id),
+            self.base_url + f"/app/installations/{installation_id}",
             json={
                 "id": installation_id,
                 "app_id": app_id,

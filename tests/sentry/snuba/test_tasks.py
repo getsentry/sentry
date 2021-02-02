@@ -132,7 +132,7 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
     task = update_subscription_in_snuba
 
     def test(self):
-        subscription_id = "1/{}".format(uuid4().hex)
+        subscription_id = f"1/{uuid4().hex}"
         sub = self.create_subscription(
             QuerySubscription.Status.UPDATING, subscription_id=subscription_id
         )
@@ -156,7 +156,7 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest, TestCase):
     task = delete_subscription_from_snuba
 
     def test(self):
-        subscription_id = "1/{}".format(uuid4().hex)
+        subscription_id = f"1/{uuid4().hex}"
         sub = self.create_subscription(
             QuerySubscription.Status.DELETING, subscription_id=subscription_id
         )
