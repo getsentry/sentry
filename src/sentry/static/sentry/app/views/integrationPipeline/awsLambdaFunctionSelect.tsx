@@ -6,6 +6,9 @@ import {Observer} from 'mobx-react';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {PanelHeader} from 'app/components/panels';
+import Switch from 'app/components/switch';
+import Tooltip from 'app/components/tooltip';
 import {t, tn} from 'app/locale';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
@@ -26,6 +29,7 @@ type Props = {
 
 type State = {
   submitting: boolean;
+  toggleAllState: boolean;
 };
 
 const getLabel = (func: LambdaFunction) => func.FunctionName;
@@ -33,6 +37,7 @@ const getLabel = (func: LambdaFunction) => func.FunctionName;
 export default class AwsLambdaFunctionSelect extends React.Component<Props, State> {
   state = {
     submitting: false,
+    toggleAllState: true,
   };
 
   model = new FormModel({apiOptions: {baseUrl: window.location.origin}});
@@ -60,6 +65,15 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
   handleSubmit = () => {
     this.model.saveForm();
     this.setState({submitting: true});
+  };
+
+  handleToggle = () => {
+    const {toggleAllState} = this.state;
+    const newState = !toggleAllState;
+    this.lambdaFunctions.forEach((lambda: LambdaFunction) => {
+      this.model.setValue(lambda.FunctionName, newState, {quiet: true});
+    });
+    this.setState({toggleAllState: newState});
   };
 
   renderWhatWeFound = () => {
@@ -92,7 +106,26 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
 
   renderCore = () => {
     const {initialStepNumber} = this.props;
+    const {toggleAllState} = this.state;
     const model = this.model;
+
+    const toggleHelp = toggleAllState ? t('Disable All') : t('Enable All');
+
+    const FormHeader = (
+      <StyledPanelHeader>
+        <SwitchHolder>
+          <Tooltip title={toggleHelp} position="left">
+            <StyledSwitch
+              size="lg"
+              name="toggleAll"
+              toggle={this.handleToggle}
+              isActive={toggleAllState}
+            />
+          </Tooltip>
+        </SwitchHolder>
+      </StyledPanelHeader>
+    );
+
     const formFields: JsonFormObject = {
       fields: this.lambdaFunctions.map(func => {
         return {
@@ -116,7 +149,7 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
             apiEndpoint="/extensions/aws_lambda/setup/"
             hideFooter
           >
-            <JsonForm forms={[formFields]} />
+            <JsonForm renderHeader={() => FormHeader} forms={[formFields]} />
           </StyledForm>
         </ListItem>
         <React.Fragment />
@@ -150,7 +183,7 @@ const Wrapper = styled('div')`
 
 // TODO(ts): Understand why styled is not correctly inheriting props here
 const StyledForm = styled(Form)<Form['props']>`
-  margin-top: 10px;
+  margin-top: 20px;
 `;
 
 const Header = styled('div')`
@@ -165,4 +198,18 @@ const LoadingWrapper = styled('div')`
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin: 0;
+`;
+
+const SwitchHolder = styled('div')`
+  display: flex;
+`;
+
+const StyledSwitch = styled(Switch)`
+  margin: auto;
+`;
+
+//padding is based on fom control width
+const StyledPanelHeader = styled(PanelHeader)`
+  justify-content: flex-end;
+  padding-right: 36px;
 `;
