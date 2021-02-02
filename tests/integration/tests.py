@@ -53,7 +53,7 @@ class DependencyTest(TestCase):
         def callable(package_name):
             if package_name != package:
                 return import_string(package_name)
-            raise ImportError("No module named %s" % (package,))
+            raise ImportError("No module named {}".format(package))
 
         return callable
 

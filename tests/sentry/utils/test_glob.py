@@ -13,7 +13,7 @@ class GlobInput(object):
         return glob_match(self.value, self.pat, **self.kwargs)
 
     def __repr__(self):
-        return "<GlobInput %r>" % (self.__dict__,)
+        return "<GlobInput {!r}>".format(self.__dict__)
 
 
 @pytest.mark.parametrize(

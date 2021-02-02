@@ -48,7 +48,7 @@ class JiraSearchEndpointTest(APITestCase):
 
         self.login_as(self.user)
         path = reverse("sentry-extensions-jiraserver-search", args=[org.slug, integration.id])
-        resp = self.client.get("%s?field=externalIssue&query=test" % (path,))
+        resp = self.client.get("{}?field=externalIssue&query=test".format(path))
 
         assert resp.status_code == 200
         assert resp.data == [{"label": "(HSP-1) this is a test issue summary", "value": "HSP-1"}]
@@ -66,7 +66,7 @@ class JiraSearchEndpointTest(APITestCase):
 
         self.login_as(self.user)
         path = reverse("sentry-extensions-jiraserver-search", args=[org.slug, integration.id])
-        resp = self.client.get("%s?field=externalIssue&query=HSP-1" % (path,))
+        resp = self.client.get("{}?field=externalIssue&query=HSP-1".format(path))
 
         assert resp.status_code == 200
         assert resp.data == [{"label": "(HSP-1) this is a test issue summary", "value": "HSP-1"}]
@@ -84,7 +84,7 @@ class JiraSearchEndpointTest(APITestCase):
 
         self.login_as(self.user)
         path = reverse("sentry-extensions-jiraserver-search", args=[org.slug, integration.id])
-        resp = self.client.get("%s?field=externalIssue&query=HSP-1" % (path,))
+        resp = self.client.get("{}?field=externalIssue&query=HSP-1".format(path))
 
         assert resp.status_code == 400
 
@@ -93,7 +93,7 @@ class JiraSearchEndpointTest(APITestCase):
         org = self.organization
 
         path = reverse("sentry-extensions-jiraserver-search", args=[org.slug, 99])
-        resp = self.client.get("%s?field=externalIssue&query=HSP-1" % (path,))
+        resp = self.client.get("{}?field=externalIssue&query=HSP-1".format(path))
 
         assert resp.status_code == 404
 
@@ -124,7 +124,7 @@ class JiraSearchEndpointTest(APITestCase):
 
         path = reverse("sentry-extensions-jiraserver-search", args=[org.slug, self.integration.id])
 
-        resp = self.client.get("%s?project=10000&field=assignee&query=bob" % (path,))
+        resp = self.client.get("{}?project=10000&field=assignee&query=bob".format(path))
         assert resp.status_code == 200
         assert resp.data == [{"value": "bob", "label": "Bobby - bob@example.org (bob)"}]
 
@@ -148,5 +148,5 @@ class JiraSearchEndpointTest(APITestCase):
 
         path = reverse("sentry-extensions-jiraserver-search", args=[org.slug, self.integration.id])
 
-        resp = self.client.get("%s?project=10000&field=assignee&query=bob" % (path,))
+        resp = self.client.get("{}?project=10000&field=assignee&query=bob".format(path))
         assert resp.status_code == 400

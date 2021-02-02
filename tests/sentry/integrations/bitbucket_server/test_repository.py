@@ -175,12 +175,12 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
     def test_build_repository_config(self):
         project = "laurynsentry"
         repo = "helloworld"
-        full_repo_name = "%s/%s" % (project, repo)
+        full_repo_name = "{}/{}".format(project, repo)
 
         webhook_id = 79
         responses.add(
             responses.GET,
-            "https://bitbucket.example.com/rest/api/1.0/projects/%s/repos/%s" % (project, repo),
+            "https://bitbucket.example.com/rest/api/1.0/projects/{}/repos/{}".format(project, repo),
             json=REPO,
         )
         responses.add(

@@ -33,7 +33,7 @@ class OrganizationMemberSerializerTest(TestCase):
         serializer = OrganizationMemberSerializer(context=context, data=data)
         assert not serializer.is_valid()
         assert serializer.errors == {
-            "email": ["The user %s is already a member" % (self.user.email,)]
+            "email": ["The user {} is already a member".format(self.user.email)]
         }
 
     def test_invalid_team_invites(self):

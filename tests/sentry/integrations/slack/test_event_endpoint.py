@@ -159,12 +159,14 @@ class LinkSharedEventTest(BaseEventTest):
         assert resp.status_code == 200, resp.content
         data = dict(parse_qsl(responses.calls[0].request.body))
         unfurls = json.loads(data["unfurls"])
-        issue_url = "http://testserver/organizations/%s/issues/%s/bar/" % (self.org.slug, group1.id)
-        incident_url = "http://testserver/organizations/%s/incidents/%s/" % (
+        issue_url = "http://testserver/organizations/{}/issues/{}/bar/".format(
+            self.org.slug, group1.id
+        )
+        incident_url = "http://testserver/organizations/{}/incidents/{}/".format(
             self.org.slug,
             incident.identifier,
         )
-        event_url = "http://testserver/organizations/%s/issues/%s/events/%s/" % (
+        event_url = "http://testserver/organizations/{}/issues/{}/events/{}/".format(
             self.org.slug,
             group3.id,
             event.event_id,

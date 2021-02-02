@@ -32,5 +32,5 @@ class InviteRequestNotificationTest(TestCase):
         assert mail.outbox[0].to == ["manager@localhost"]
         assert mail.outbox[1].to == ["owner@localhost"]
 
-        expected_subject = "Access request to %s" % (organization.name,)
+        expected_subject = "Access request to {}".format(organization.name)
         assert mail.outbox[0].subject == expected_subject

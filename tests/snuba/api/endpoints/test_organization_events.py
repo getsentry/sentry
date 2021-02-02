@@ -178,18 +178,18 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         )
 
         # test bad project id
-        url = "%s?project=abc" % (base_url,)
+        url = "{}?project=abc".format(base_url)
         response = self.client.get(url, format="json")
         assert response.status_code == 400
 
         # test including project user doesn't have access to
-        url = "%s?project=%s&project=%s" % (base_url, project.id, project3.id)
+        url = "{}?project={}&project={}".format(base_url, project.id, project3.id)
         response = self.client.get(url, format="json")
 
         assert response.status_code == 403
 
         # test filtering by project
-        url = "%s?project=%s" % (base_url, project.id)
+        url = "{}?project={}".format(base_url, project.id)
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -218,7 +218,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             "sentry-api-0-organization-events",
             kwargs={"organization_slug": project.organization.slug},
         )
-        url = "%s?statsPeriod=2h" % (url,)
+        url = "{}?statsPeriod=2h".format(url)
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -245,14 +245,14 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         )
 
         # test swapped order of start/end
-        url = "%s?%s" % (
+        url = "{}?{}".format(
             base_url,
             urlencode({"end": iso_format(before_now(hours=2)), "start": iso_format(now)}),
         )
         response = self.client.get(url, format="json")
         assert response.status_code == 400
 
-        url = "%s?%s" % (
+        url = "{}?{}".format(
             base_url,
             urlencode({"start": iso_format(before_now(hours=2)), "end": iso_format(now)}),
         )
@@ -301,7 +301,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         )
 
         # test as part of query param
-        url = "%s?environment=%s" % (base_url, environment.name)
+        url = "{}?environment={}".format(base_url, environment.name)
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -309,7 +309,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         self.assert_events_in_response(response, [event_1.event_id, event_2.event_id])
 
         # test multiple as part of query param
-        url = "%s?%s" % (
+        url = "{}?{}".format(
             base_url,
             urlencode((("environment", environment.name), ("environment", environment2.name))),
         )
@@ -322,7 +322,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         )
 
         # test multiple as part of query param with no env
-        url = "%s?%s" % (
+        url = "{}?{}".format(
             base_url,
             urlencode((("environment", environment.name), ("environment", null_env.name))),
         )
@@ -335,7 +335,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         )
 
         # test as part of search
-        url = "%s?query=environment:%s" % (base_url, environment.name)
+        url = "{}?query=environment:{}".format(base_url, environment.name)
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -343,7 +343,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         self.assert_events_in_response(response, [event_1.event_id, event_2.event_id])
 
         # test as part of search - no environment
-        url = '%s?query=environment:""' % (base_url,)
+        url = '{}?query=environment:""'.format(base_url)
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -351,7 +351,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         self.assert_events_in_response(response, [event_4.event_id])
 
         # test nonexistent environment
-        url = "%s?environment=notanenvironment" % (base_url,)
+        url = "{}?environment=notanenvironment".format(base_url)
         response = self.client.get(url, format="json")
         assert response.status_code == 404
 
@@ -386,11 +386,11 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             "sentry-api-0-organization-events", kwargs={"organization_slug": org.slug}
         )
 
-        response = self.client.get("%s?query=fruit:apple" % (base_url,), format="json")
+        response = self.client.get("{}?query=fruit:apple".format(base_url), format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         self.assert_events_in_response(response, [event_1.event_id])
-        response = self.client.get("%s?query=!fruit:apple" % (base_url,), format="json")
+        response = self.client.get("{}?query=!fruit:apple".format(base_url), format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         self.assert_events_in_response(response, [event_2.event_id])
@@ -442,25 +442,27 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             "sentry-api-0-organization-events", kwargs={"organization_slug": org.slug}
         )
 
-        response = self.client.get("%s?query=release:3.1.*" % (base_url,), format="json")
+        response = self.client.get("{}?query=release:3.1.*".format(base_url), format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         self.assert_events_in_response(response, [event_1.event_id])
 
-        response = self.client.get("%s?query=!release:3.1.*" % (base_url,), format="json")
+        response = self.client.get("{}?query=!release:3.1.*".format(base_url), format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 3
         self.assert_events_in_response(
             response, [event_2.event_id, event_3.event_id, event_4.event_id]
         )
 
-        response = self.client.get("%s?query=user.email:*@example.com" % (base_url,), format="json")
+        response = self.client.get(
+            "{}?query=user.email:*@example.com".format(base_url), format="json"
+        )
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         self.assert_events_in_response(response, [event_3.event_id])
 
         response = self.client.get(
-            "%s?query=!user.email:*@example.com" % (base_url,), format="json"
+            "{}?query=!user.email:*@example.com".format(base_url), format="json"
         )
         assert response.status_code == 200, response.content
         assert len(response.data) == 3
@@ -498,24 +500,24 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             "sentry-api-0-organization-events", kwargs={"organization_slug": org.slug}
         )
 
-        response = self.client.get("%s?query=has:user.email" % (base_url,), format="json")
+        response = self.client.get("{}?query=has:user.email".format(base_url), format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         self.assert_events_in_response(response, [event_1.event_id])
 
         # test custom tag
-        response = self.client.get("%s?query=has:example_tag" % (base_url,), format="json")
+        response = self.client.get("{}?query=has:example_tag".format(base_url), format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         self.assert_events_in_response(response, [event_2.event_id])
 
-        response = self.client.get("%s?query=!has:user.email" % (base_url,), format="json")
+        response = self.client.get("{}?query=!has:user.email".format(base_url), format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         self.assert_events_in_response(response, [event_2.event_id])
 
         # test custom tag
-        response = self.client.get("%s?query=!has:example_tag" % (base_url,), format="json")
+        response = self.client.get("{}?query=!has:example_tag".format(base_url), format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         self.assert_events_in_response(response, [event_1.event_id])

@@ -67,7 +67,7 @@ class ProjectDetailsTest(APITestCase):
         team = self.create_team(organization=org, name="foo", slug="foo")
         project = self.create_project(name="Bar", slug="bar", teams=[team])
         # We want to make sure we don't hit the LegacyProjectRedirect view at all.
-        url = "/api/0/projects/%s/%s/" % (org.slug, project.slug)
+        url = "/api/0/projects/{}/{}/".format(org.slug, project.slug)
         response = self.client.get(url)
         assert response.status_code == 200
         assert response.data["id"] == six.text_type(project.id)
@@ -111,11 +111,11 @@ class ProjectDetailsTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 302
         assert response.data["slug"] == "foobar"
-        assert response.data["detail"]["extra"]["url"] == "/api/0/projects/%s/%s/" % (
+        assert response.data["detail"]["extra"]["url"] == "/api/0/projects/{}/{}/".format(
             project.organization.slug,
             "foobar",
         )
-        redirect_path = "/api/0/projects/%s/%s/" % (project.organization.slug, "foobar")
+        redirect_path = "/api/0/projects/{}/{}/".format(project.organization.slug, "foobar")
         # XXX: AttributeError: 'Response' object has no attribute 'url'
         # (this is with self.assertRedirects(response, ...))
         assert response["Location"] == redirect_path

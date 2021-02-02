@@ -465,7 +465,7 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
         mentioned_member = self.create_user()
         subscribed_mentioned_member = self.create_user()
         IncidentSubscription.objects.create(incident=incident, user=subscribed_mentioned_member)
-        comment = "hello **@%s** and **@%s**" % (
+        comment = "hello **@{}** and **@{}**".format(
             mentioned_member.username,
             subscribed_mentioned_member.username,
         )

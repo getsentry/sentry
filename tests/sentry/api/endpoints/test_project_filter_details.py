@@ -7,7 +7,7 @@ class ProjectFilterDetailsTest(APITestCase):
         org = self.create_organization(name="baz", slug="1", owner=self.user)
         team = self.create_team(organization=org, name="foo", slug="foo")
         project = self.create_project(name="Bar", slug="bar", teams=[team])
-        url = "/api/0/projects/%s/%s/filters/browser-extensions/" % (org.slug, project.slug)
+        url = "/api/0/projects/{}/{}/filters/browser-extensions/".format(org.slug, project.slug)
 
         project.update_option("filters:browser-extensions", "0")
         response = self.client.put(url, format="json", data={"active": True})
