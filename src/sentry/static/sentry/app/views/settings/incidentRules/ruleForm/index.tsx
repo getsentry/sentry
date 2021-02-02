@@ -10,7 +10,6 @@ import {
 } from 'app/actionCreators/indicator';
 import {fetchOrganizationTags} from 'app/actionCreators/tags';
 import Access from 'app/components/acl/access';
-import Feature from 'app/components/acl/feature';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
@@ -33,7 +32,6 @@ import {
   DATASOURCE_EVENT_TYPE_FILTERS,
 } from '../constants';
 import RuleConditionsForm from '../ruleConditionsForm';
-import RuleConditionsFormWithGuiFilters from '../ruleConditionsFormWithGuiFilters';
 import {
   AlertRuleThresholdType,
   Dataset,
@@ -580,86 +578,70 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     return (
       <Access access={['alerts:write']}>
         {({hasAccess}) => (
-          <Feature features={['metric-alert-gui-filters']} organization={organization}>
-            {({hasFeature}) => (
-              <Form
-                apiMethod={ruleId ? 'PUT' : 'POST'}
-                apiEndpoint={`/organizations/${organization.slug}/alert-rules/${
-                  ruleId ? `${ruleId}/` : ''
-                }`}
-                submitDisabled={!hasAccess}
-                initialData={{
-                  name: rule.name || '',
-                  dataset: rule.dataset,
-                  eventTypes: hasFeature ? rule.eventTypes : undefined,
-                  aggregate: rule.aggregate,
-                  query: rule.query || '',
-                  timeWindow: rule.timeWindow,
-                  environment: rule.environment || null,
-                }}
-                saveOnBlur={false}
-                onSubmit={this.handleSubmit}
-                onSubmitSuccess={onSubmitSuccess}
-                onCancel={this.handleCancel}
-                onFieldChange={this.handleFieldChange}
-                extraButton={
-                  !!rule.id ? (
-                    <Confirm
-                      disabled={!hasAccess}
-                      message={t('Are you sure you want to delete this alert rule?')}
-                      header={t('Delete Alert Rule?')}
-                      priority="danger"
-                      confirmText={t('Delete Rule')}
-                      onConfirm={this.handleDeleteRule}
-                    >
-                      <Button type="button" priority="danger">
-                        {t('Delete Rule')}
-                      </Button>
-                    </Confirm>
-                  ) : null
-                }
-                submitLabel={t('Save Rule')}
-              >
-                {hasFeature ? (
-                  <RuleConditionsFormWithGuiFilters
-                    api={this.api}
-                    projectSlug={params.projectId}
-                    organization={organization}
-                    disabled={!hasAccess}
-                    thresholdChart={chart}
-                    onFilterSearch={this.handleFilterUpdate}
-                  />
-                ) : (
-                  <RuleConditionsForm
-                    api={this.api}
-                    projectSlug={params.projectId}
-                    organization={organization}
-                    disabled={!hasAccess}
-                    thresholdChart={chart}
-                    onFilterSearch={this.handleFilterUpdate}
-                  />
-                )}
-
-                <Triggers
+          <Form
+            apiMethod={ruleId ? 'PUT' : 'POST'}
+            apiEndpoint={`/organizations/${organization.slug}/alert-rules/${
+              ruleId ? `${ruleId}/` : ''
+            }`}
+            submitDisabled={!hasAccess}
+            initialData={{
+              name: rule.name || '',
+              dataset: rule.dataset,
+              eventTypes: rule.eventTypes,
+              aggregate: rule.aggregate,
+              query: rule.query || '',
+              timeWindow: rule.timeWindow,
+              environment: rule.environment || null,
+            }}
+            saveOnBlur={false}
+            onSubmit={this.handleSubmit}
+            onSubmitSuccess={onSubmitSuccess}
+            onCancel={this.handleCancel}
+            onFieldChange={this.handleFieldChange}
+            extraButton={
+              !!rule.id ? (
+                <Confirm
                   disabled={!hasAccess}
-                  projects={this.state.projects}
-                  errors={this.state.triggerErrors}
-                  triggers={triggers}
-                  resolveThreshold={resolveThreshold}
-                  thresholdType={thresholdType}
-                  currentProject={params.projectId}
-                  organization={organization}
-                  ruleId={ruleId}
-                  availableActions={this.state.availableActions}
-                  onChange={this.handleChangeTriggers}
-                  onThresholdTypeChange={this.handleThresholdTypeChange}
-                  onResolveThresholdChange={this.handleResolveThresholdChange}
-                />
+                  message={t('Are you sure you want to delete this alert rule?')}
+                  header={t('Delete Alert Rule?')}
+                  priority="danger"
+                  confirmText={t('Delete Rule')}
+                  onConfirm={this.handleDeleteRule}
+                >
+                  <Button type="button" priority="danger">
+                    {t('Delete Rule')}
+                  </Button>
+                </Confirm>
+              ) : null
+            }
+            submitLabel={t('Save Rule')}
+          >
+            <RuleConditionsForm
+              api={this.api}
+              projectSlug={params.projectId}
+              organization={organization}
+              disabled={!hasAccess}
+              thresholdChart={chart}
+              onFilterSearch={this.handleFilterUpdate}
+            />
+            <Triggers
+              disabled={!hasAccess}
+              projects={this.state.projects}
+              errors={this.state.triggerErrors}
+              triggers={triggers}
+              resolveThreshold={resolveThreshold}
+              thresholdType={thresholdType}
+              currentProject={params.projectId}
+              organization={organization}
+              ruleId={ruleId}
+              availableActions={this.state.availableActions}
+              onChange={this.handleChangeTriggers}
+              onThresholdTypeChange={this.handleThresholdTypeChange}
+              onResolveThresholdChange={this.handleResolveThresholdChange}
+            />
 
-                <RuleNameForm disabled={!hasAccess} />
-              </Form>
-            )}
-          </Feature>
+            <RuleNameForm disabled={!hasAccess} />
+          </Form>
         )}
       </Access>
     );
