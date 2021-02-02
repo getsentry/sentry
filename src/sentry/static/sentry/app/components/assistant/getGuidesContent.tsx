@@ -109,7 +109,6 @@ export default function getGuidesContent(): GuidesContent {
           target: 'inbox_guide_tab',
           description: t(`We’ve made some changes to help you focus on what’s new.`),
           dismissText: t(`Later`),
-          dismissText: t(`Later`),
           nextText: t(`Take a Look`),
           hasNextGuide: true,
         },
@@ -145,7 +144,7 @@ export default function getGuidesContent(): GuidesContent {
         },
         {
           target: 'inbox_guide_ignore',
-          description: t(`Resolving or ignoring an issue implicitly marks it reviewed.`),
+          description: t(`Resolving or ignoring an issue also marks it reviewed.`),
           nextText: t(`Seriously, there's more?`),
           cantDismiss: true,
         },
