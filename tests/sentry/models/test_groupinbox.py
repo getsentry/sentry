@@ -36,7 +36,9 @@ class GroupInboxTestCase(TestCase):
         assert not GroupInbox.objects.filter(
             group=self.group, reason=GroupInboxReason.NEW.value
         ).exists()
-        assert Activity.objects.count() == 1
+        activities = Activity.objects.all()
+        assert len(activities) == 1
+        assert activities[0].type == Activity.MARK_REVIEWED
         assert inbox_out.called
 
     def test_invalid_reason_details(self):
