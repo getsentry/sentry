@@ -1,4 +1,4 @@
-import six
+from io import BytesIO
 
 from sentry.models import EventAttachment, File
 from sentry.testutils import APITestCase, PermissionTestCase
@@ -20,7 +20,7 @@ class CreateAttachmentMixin(object):
         )
 
         self.file = File.objects.create(name="hello.png", type="image/png; foo=bar")
-        self.file.putfile(six.BytesIO(b"File contents here"))
+        self.file.putfile(BytesIO(b"File contents here"))
 
         self.attachment = EventAttachment.objects.create(
             event_id=self.event.event_id,
@@ -61,7 +61,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert response.get("Content-Disposition") == 'attachment; filename="hello.png"'
         assert response.get("Content-Length") == str(self.file.size)
         assert response.get("Content-Type") == "application/octet-stream"
-        assert b"File contents here" == six.BytesIO(b"".join(response.streaming_content)).getvalue()
+        assert b"File contents here" == BytesIO(b"".join(response.streaming_content)).getvalue()
 
     def test_delete(self):
         self.login_as(user=self.user)

@@ -1,4 +1,4 @@
-import six
+from io import BytesIO
 from six.moves.urllib.parse import urlencode
 
 from sentry.models import EventAttachment, File
@@ -11,7 +11,7 @@ class GroupEventAttachmentsTest(APITestCase):
             type = "event.attachment"
 
         self.file = File.objects.create(name="hello.png", type=type)
-        self.file.putfile(six.BytesIO(b"File contents here"))
+        self.file.putfile(BytesIO(b"File contents here"))
 
         self.attachment = EventAttachment.objects.create(
             event_id=self.event.event_id,

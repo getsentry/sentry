@@ -1,11 +1,11 @@
 import pytest
 import re
 import responses
-import six
 import unittest
 from symbolic import SourceMapTokenMatch
 
 from copy import deepcopy
+from io import BytesIO
 from sentry.utils.compat.mock import patch, ANY, call
 from requests.exceptions import RequestException
 
@@ -73,7 +73,7 @@ class FetchReleaseFileTest(TestCase):
         )
 
         binary_body = unicode_body.encode("utf-8")
-        file.putfile(six.BytesIO(binary_body))
+        file.putfile(BytesIO(binary_body))
 
         ReleaseFile.objects.create(
             name="file.min.js", release=release, organization_id=project.organization_id, file=file
@@ -105,7 +105,7 @@ class FetchReleaseFileTest(TestCase):
             type="release.file",
             headers={"Content-Type": "application/json; charset=utf-8"},
         )
-        foo_file.putfile(six.BytesIO(b"foo"))
+        foo_file.putfile(BytesIO(b"foo"))
         foo_dist = release.add_dist("foo")
         ReleaseFile.objects.create(
             name="file.min.js",
@@ -120,7 +120,7 @@ class FetchReleaseFileTest(TestCase):
             type="release.file",
             headers={"Content-Type": "application/json; charset=utf-8"},
         )
-        bar_file.putfile(six.BytesIO(b"bar"))
+        bar_file.putfile(BytesIO(b"bar"))
         bar_dist = release.add_dist("bar")
         ReleaseFile.objects.create(
             name="file.min.js",
@@ -158,7 +158,7 @@ class FetchReleaseFileTest(TestCase):
         )
 
         binary_body = unicode_body.encode("utf-8")
-        file.putfile(six.BytesIO(binary_body))
+        file.putfile(BytesIO(binary_body))
 
         ReleaseFile.objects.create(
             name="~/file.min.js",
@@ -193,7 +193,7 @@ class FetchReleaseFileTest(TestCase):
         )
 
         binary_body = unicode_body.encode("utf-8")
-        file.putfile(six.BytesIO(binary_body))
+        file.putfile(BytesIO(binary_body))
 
         ReleaseFile.objects.create(
             name="file.min.js", release=release, organization_id=project.organization_id, file=file
@@ -240,7 +240,7 @@ class FetchReleaseFileTest(TestCase):
         )
 
         binary_body = unicode_body.encode("utf-8")
-        file.putfile(six.BytesIO(binary_body))
+        file.putfile(BytesIO(binary_body))
 
         ReleaseFile.objects.create(
             name="file.min.js", release=release, organization_id=project.organization_id, file=file

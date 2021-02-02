@@ -1,7 +1,7 @@
-from hashlib import sha1
-
-import six
 from datetime import timedelta
+from hashlib import sha1
+from io import BytesIO
+
 from django.utils import timezone
 
 from sentry.data_export.base import ExportStatus, ExportQueryType
@@ -80,7 +80,7 @@ class DataExportDetailsTest(APITestCase):
         file = File.objects.create(
             name="test.csv", type="export.csv", headers={"Content-Type": "text/csv"}
         )
-        file.putfile(six.BytesIO(contents))
+        file.putfile(BytesIO(contents))
         self.data_export.update(file=file)
         with self.feature("organizations:discover-query"):
             response = self.get_valid_response(self.organization.slug, self.data_export.id)
