@@ -43,10 +43,10 @@ export enum DynamicSamplingInnerOperator {
 export enum DynamicSamplingInnerName {
   TRACE_RELEASE = 'trace.release',
   TRACE_ENVIRONMENT = 'trace.environment',
-  TRACE_USER_SEGMENT = 'trace.user_segment',
+  TRACE_USER = 'trace.user',
   EVENT_RELEASE = 'event.release',
   EVENT_ENVIRONMENT = 'event.environment',
-  EVENT_USER_SEGMENT = 'event.user_segment',
+  EVENT_USER = 'event.user',
   LEGACY_BROWSERS = 'legacy-browsers',
 }
 
