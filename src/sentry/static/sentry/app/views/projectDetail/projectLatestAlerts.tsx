@@ -100,8 +100,9 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
 
   renderAlertRow = (alert: Incident) => {
     const {organization, theme} = this.props;
-    const isResolved = alert.status === IncidentStatus.CLOSED;
-    const isWarning = alert.status === IncidentStatus.WARNING;
+    const {status, id, identifier, title, dateClosed, dateStarted} = alert;
+    const isResolved = status === IncidentStatus.CLOSED;
+    const isWarning = status === IncidentStatus.WARNING;
 
     const color = isResolved
       ? theme.green300
@@ -112,8 +113,8 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
 
     return (
       <AlertRowLink
-        to={`/organizations/${organization.slug}/alerts/${alert.identifier}/`}
-        key={alert.id}
+        to={`/organizations/${organization.slug}/alerts/${identifier}/`}
+        key={id}
       >
         <AlertBadge color={color} icon={Icon}>
           <AlertIconWrapper>
@@ -121,11 +122,13 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
           </AlertIconWrapper>
         </AlertBadge>
         <AlertDetails>
-          <AlertTitle>{alert.title}</AlertTitle>
+          <AlertTitle>{title}</AlertTitle>
           <AlertDate color={color}>
             {isResolved
-              ? tct('Resolved [date]', {date: <TimeSince date={alert.dateClosed!} />})
-              : tct('Triggered [date]', {date: <TimeSince date={alert.dateStarted} />})}
+              ? tct('Resolved [date]', {
+                  date: dateClosed ? <TimeSince date={dateClosed} /> : null,
+                })
+              : tct('Triggered [date]', {date: <TimeSince date={dateStarted} />})}
           </AlertDate>
         </AlertDetails>
       </AlertRowLink>
