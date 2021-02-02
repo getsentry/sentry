@@ -2,7 +2,6 @@ from sentry.models import User
 from sentry.testutils import TestCase
 from sentry.utils.query import RangeQuerySetWrapper
 
-from six.moves import xrange
 
 
 class RangeQuerySetWrapperTest(TestCase):

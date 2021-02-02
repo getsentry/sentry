@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 from unittest import TestCase
 from sentry.tsdb.base import BaseTSDB, ONE_MINUTE, ONE_HOUR, ONE_DAY
 from sentry.utils.dates import to_timestamp
-from six.moves import xrange
 
 
 class BaseTSDBTest(TestCase):

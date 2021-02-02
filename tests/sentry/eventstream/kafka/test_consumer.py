@@ -6,7 +6,6 @@ from contextlib import contextmanager
 
 import pytest
 
-from six.moves import xrange
 
 try:
     from confluent_kafka import Consumer, KafkaError, Producer, TopicPartition

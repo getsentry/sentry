@@ -7,7 +7,6 @@ from django.utils import timezone
 from sentry import tsdb
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.models import Group, GroupSnooze
-from six.moves import xrange
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
