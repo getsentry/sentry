@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
     atomic = True
 
     dependencies = [
-        ("sentry", "0155_add_mark_reviewed_activity"),
+        ("sentry", "0154_groupedmessage_inbox_sort"),
     ]
 
     operations = [
