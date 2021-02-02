@@ -16,7 +16,7 @@ from sentry.models import ApiKey, Organization
 from sentry.testutils import TestCase
 
 
-class MockSuperUser(object):
+class MockSuperUser:
     @property
     def is_active(self):
         return True

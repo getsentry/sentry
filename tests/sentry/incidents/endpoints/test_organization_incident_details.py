@@ -9,7 +9,7 @@ from sentry.incidents.models import Incident, IncidentActivity, IncidentStatus
 from sentry.testutils import APITestCase
 
 
-class BaseIncidentDetailsTest(object):
+class BaseIncidentDetailsTest:
     endpoint = "sentry-api-0-organization-incident-details"
 
     def setUp(self):

@@ -11,7 +11,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
     def setUp(self):
         super().setUp()
 
-        class mock_uuid(object):
+        class mock_uuid:
             hex = "1234567"
 
         self.mock_uuid = mock_uuid

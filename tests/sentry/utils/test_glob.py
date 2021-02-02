@@ -3,7 +3,7 @@ import pytest
 from sentry.utils.glob import glob_match
 
 
-class GlobInput(object):
+class GlobInput:
     def __init__(self, value, pat, **kwargs):
         self.value = value
         self.pat = pat

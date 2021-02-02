@@ -982,7 +982,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         query_mock.return_value = {"data": [], "totals": {"total": 0}}
 
         def Any(cls):
-            class Any(object):
+            class Any:
                 def __eq__(self, other):
                     return isinstance(other, cls)
 

@@ -81,7 +81,7 @@ class TeamDeleteTest(APITestCase):
         """Admins can remove teams of which they're a part"""
 
         # mock the transaction_id when mock_delete_team is called
-        class uuid(object):
+        class uuid:
             hex = "abc123"
 
         mock_uuid4.return_value = uuid
@@ -113,7 +113,7 @@ class TeamDeleteTest(APITestCase):
         open membership is on."""
 
         # mock the transaction_id when mock_delete_team is called
-        class uuid(object):
+        class uuid:
             hex = "abc123"
 
         mock_uuid4.return_value = uuid

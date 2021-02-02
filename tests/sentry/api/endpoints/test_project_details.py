@@ -792,7 +792,7 @@ class ProjectDeleteTest(APITestCase):
     @mock.patch("sentry.api.endpoints.project_details.uuid4")
     @mock.patch("sentry.api.endpoints.project_details.delete_project")
     def test_simple(self, mock_delete_project, mock_uuid4_project, mock_uuid4_mixin):
-        class uuid(object):
+        class uuid:
             hex = "abc123"
 
         mock_uuid4_mixin.return_value = uuid

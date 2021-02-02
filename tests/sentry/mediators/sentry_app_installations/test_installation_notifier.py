@@ -19,7 +19,7 @@ MockResponse = namedtuple(
 MockResponseInstance = MockResponse({}, {}, True, 200, raiseStatusFalse)
 
 
-class DictContaining(object):
+class DictContaining:
     def __init__(self, *keys):
         self.keys = keys
 

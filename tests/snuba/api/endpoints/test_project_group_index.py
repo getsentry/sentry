@@ -1139,7 +1139,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
 
-        class uuid(object):
+        class uuid:
             hex = "abc123"
 
         mock_uuid4.return_value = uuid

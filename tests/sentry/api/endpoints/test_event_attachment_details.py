@@ -5,7 +5,7 @@ from sentry.testutils import APITestCase, PermissionTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
-class CreateAttachmentMixin(object):
+class CreateAttachmentMixin:
     def create_attachment(self):
         self.project = self.create_project()
         self.release = self.create_release(self.project, self.user)
