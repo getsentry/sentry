@@ -1,2 +1,2 @@
-from .mock import MockJira
-from .stub_client import StubJiraApiClient
+from .mock import MockJira  # noqa
+from .stub_client import StubJiraApiClient  # noqa
