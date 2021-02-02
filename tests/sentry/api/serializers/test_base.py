@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from sentry.api.serializers import serialize, Serializer
 from sentry.testutils import TestCase
 

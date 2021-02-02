@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.event_manager import generate_culprit
 from sentry.grouping.utils import hash_from_values

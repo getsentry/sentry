@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 import six
 from django.utils.encoding import force_text
 

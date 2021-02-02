@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from sentry.utils.compat.mock import Mock
 
 from sentry.testutils import TestCase

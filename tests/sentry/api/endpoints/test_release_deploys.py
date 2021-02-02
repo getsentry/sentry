@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 import datetime
 
 from django.core.urlresolvers import reverse

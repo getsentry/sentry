@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from sentry.cache.redis import RedisCache, ValueTooLarge
 from sentry.testutils import TestCase
 

@@ -1,6 +1,3 @@
-# coding: utf-8
-
-
 from django.apps import apps
 from django.conf import settings
 

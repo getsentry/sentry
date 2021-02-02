@@ -1,10 +1,7 @@
-# -*- coding: utf8 -*-
-
-
 import re
 
 # Sentry colors taken from our design system. Might not look good on all
-# termianl themes tbh
+# terminal themes tbh
 COLORS = {
     "white": (255, 255, 255),
     "green": (77, 199, 13),

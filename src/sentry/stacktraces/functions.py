@@ -1,5 +1,3 @@
-# coding: utf-8
-
 import re
 
 from sentry.stacktraces.platform import get_behavior_family_for_platform

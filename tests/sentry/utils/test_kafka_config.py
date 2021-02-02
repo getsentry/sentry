@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 import os
 import pytest
 from django.test import override_settings

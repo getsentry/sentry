@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from datetime import datetime
 from django.utils import timezone
 from sentry.models import Commit, CommitAuthor, Repository

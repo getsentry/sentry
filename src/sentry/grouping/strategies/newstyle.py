@@ -1,6 +1,3 @@
-# coding: utf-8
-
-
 import re
 
 from sentry.grouping.component import GroupingComponent

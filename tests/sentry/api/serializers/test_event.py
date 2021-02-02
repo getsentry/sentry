@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 import six
 
 from sentry.api.serializers import serialize, SimpleEventSerializer

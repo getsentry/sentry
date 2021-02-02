@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from sentry.utils.compat import mock
 import zlib
 import pytest

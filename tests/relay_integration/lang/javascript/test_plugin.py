@@ -1,6 +1,3 @@
-# coding: utf-8
-
-
 import os.path
 from base64 import b64encode
 from django.utils.encoding import force_bytes

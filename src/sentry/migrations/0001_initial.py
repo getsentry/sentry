@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from django.db import migrations, models
 import bitfield.models
 import sentry.models.scheduledeletion

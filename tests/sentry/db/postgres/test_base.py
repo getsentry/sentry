@@ -1,5 +1,3 @@
-# coding: utf-8
-
 import pytest
 from sentry.testutils import TestCase
 from sentry.constants import MAX_CULPRIT_LENGTH

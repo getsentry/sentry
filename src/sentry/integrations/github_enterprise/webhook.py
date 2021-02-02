@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import hashlib
 import hmac
 import logging
