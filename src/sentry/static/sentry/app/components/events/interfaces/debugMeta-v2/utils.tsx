@@ -24,7 +24,10 @@ export function combineStatus(
   return combined || ImageStatus.UNUSED;
 }
 
-export function getFileName(path: string) {
+export function getFileName(path?: string) {
+  if (!path) {
+    return undefined;
+  }
   const directorySeparator = /^([a-z]:\\|\\\\)/i.test(path) ? '\\' : '/';
   return path.split(directorySeparator).pop();
 }

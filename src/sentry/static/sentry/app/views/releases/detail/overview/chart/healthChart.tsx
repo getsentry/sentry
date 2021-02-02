@@ -5,7 +5,6 @@ import isEqual from 'lodash/isEqual';
 
 import AreaChart from 'app/components/charts/areaChart';
 import {ZoomRenderProps} from 'app/components/charts/chartZoom';
-import Legend from 'app/components/charts/components/legend';
 import LineChart from 'app/components/charts/lineChart';
 import StackedAreaChart from 'app/components/charts/stackedAreaChart';
 import {getSeriesSelection} from 'app/components/charts/utils';
@@ -17,7 +16,7 @@ import {defined} from 'app/utils';
 import {getUtcDateString} from 'app/utils/dates';
 import {axisDuration} from 'app/utils/discover/charts';
 import {getExactDuration} from 'app/utils/formatters';
-import {decodeList} from 'app/utils/queryString';
+import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 import {HeaderTitleLegend} from 'app/views/performance/styles';
 
@@ -75,7 +74,7 @@ class HealthChart extends React.Component<Props> {
     const otherAreasThanHealthyArePositive = timeseriesData
       .filter(s => s.seriesName !== sessionTerm.healthy)
       .some(s => s.data.some(d => d.value > 0));
-    const alreadySomethingUnselected = !!decodeList(location.query.unselectedSeries);
+    const alreadySomethingUnselected = !!decodeScalar(location.query.unselectedSeries);
 
     return (
       shouldRecalculateVisibleSeries &&
@@ -202,12 +201,11 @@ class HealthChart extends React.Component<Props> {
 
     const Chart = this.getChart();
 
-    const legend = Legend({
+    const legend = {
       right: 10,
       top: 0,
       data: timeseriesData.map(d => d.seriesName).reverse(),
       selected: getSeriesSelection(location),
-      theme,
       tooltip: {
         show: true,
         // TODO(ts) tooltip.formatter has incorrect types in echarts 4
@@ -221,7 +219,7 @@ class HealthChart extends React.Component<Props> {
           return ['<div class="tooltip-description">', seriesNameDesc, '</div>'].join('');
         },
       },
-    });
+    };
 
     return (
       <React.Fragment>

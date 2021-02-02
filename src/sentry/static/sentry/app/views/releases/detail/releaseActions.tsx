@@ -1,7 +1,6 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import {archiveRelease, restoreRelease} from 'app/actionCreators/release';
 import {Client} from 'app/api';
@@ -15,7 +14,6 @@ import TextOverflow from 'app/components/textOverflow';
 import Tooltip from 'app/components/tooltip';
 import {IconEllipsis} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {Release, ReleaseMeta} from 'app/types';
 import {formatVersion} from 'app/utils/formatters';
@@ -162,14 +160,6 @@ function ReleaseActions({
     </ButtonBar>
   );
 }
-
-ReleaseActions.propTypes = {
-  orgSlug: PropTypes.string.isRequired,
-  projectSlug: PropTypes.string.isRequired,
-  release: SentryTypes.Release.isRequired,
-  releaseMeta: PropTypes.object.isRequired,
-  refetchData: PropTypes.func.isRequired,
-};
 
 const ActionsButton = styled(Button)`
   width: 40px;

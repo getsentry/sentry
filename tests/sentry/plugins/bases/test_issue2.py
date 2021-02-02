@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from social_auth.models import UserSocialAuth
 
 from sentry.models import GroupMeta, User

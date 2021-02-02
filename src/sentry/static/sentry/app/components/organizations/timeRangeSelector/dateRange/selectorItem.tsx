@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import space from 'app/styles/space';
 
@@ -14,12 +13,6 @@ type Props = {
 };
 
 class SelectorItem extends React.PureComponent<Props> {
-  static propTypes = {
-    onClick: PropTypes.func.isRequired,
-    value: PropTypes.string,
-    label: PropTypes.node,
-  };
-
   handleClick = (e: React.MouseEvent) => {
     const {onClick, value} = this.props;
     onClick(value, e);

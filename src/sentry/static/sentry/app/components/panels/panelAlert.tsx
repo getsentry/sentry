@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import Alert from 'app/components/alert';
 import {IconCheckmark, IconClose, IconFlag, IconInfo} from 'app/icons';
@@ -30,10 +29,5 @@ const PanelAlert = styled(({icon, ...props}: Props) => (
     border-radius: 0 0 4px 4px;
   }
 `;
-
-PanelAlert.propTypes = {
-  ...Alert.propTypes,
-  type: PropTypes.oneOf(['info', 'warning', 'success', 'error', 'muted']),
-};
 
 export default PanelAlert;

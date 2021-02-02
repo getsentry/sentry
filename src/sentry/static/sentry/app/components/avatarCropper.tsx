@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import Well from 'app/components/well';
@@ -35,13 +34,6 @@ type State = {
 };
 
 class AvatarCropper extends React.Component<Props, State> {
-  static propTypes = {
-    model: PropTypes.object.isRequired,
-    updateDataUrlState: PropTypes.func.isRequired,
-    type: PropTypes.oneOf(['user', 'team', 'organization', 'project']),
-    savedDataUrl: PropTypes.string,
-  };
-
   state: State = {
     file: null,
     objectURL: null,
