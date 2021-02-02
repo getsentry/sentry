@@ -3,6 +3,7 @@ import React from 'react';
 import {getAllBroadcasts, markBroadcastsAsSeen} from 'app/actionCreators/broadcasts';
 import {Client} from 'app/api';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import BroadcastSdkUpdates from 'app/components/sidebar/broadcastSdkUpdates';
 import SidebarItem from 'app/components/sidebar/sidebarItem';
 import SidebarPanel from 'app/components/sidebar/sidebarPanel';
 import SidebarPanelEmpty from 'app/components/sidebar/sidebarPanelEmpty';
@@ -141,6 +142,7 @@ class Broadcasts extends React.Component<Props, State> {
             title={t("What's new in Sentry")}
             hidePanel={hidePanel}
           >
+            <BroadcastSdkUpdates />
             {loading ? (
               <LoadingIndicator />
             ) : broadcasts.length === 0 ? (

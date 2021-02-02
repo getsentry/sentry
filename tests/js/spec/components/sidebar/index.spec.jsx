@@ -40,6 +40,10 @@ describe('Sidebar', function () {
       url: `/organizations/${organization.slug}/discover/saved/`,
       body: [],
     });
+    apiMocks.sdkUpdates = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sdk-updates/`,
+      body: [],
+    });
   });
 
   it('renders', function () {
