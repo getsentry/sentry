@@ -11,7 +11,7 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
     method = "get"
 
     def setUp(self):
-        super(OrganizationUserReportListTest, self).setUp()
+        super().setUp()
         self.user = self.create_user("test@test.com")
         self.login_as(user=self.user)
         self.org = self.create_organization()

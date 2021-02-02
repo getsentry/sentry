@@ -36,7 +36,7 @@ from sentry.utils.compat import mock
 from sentry.utils.email import MessageBuilder
 
 
-class BaseMailAdapterTest(object):
+class BaseMailAdapterTest:
     @fixture
     def adapter(self):
         return mail_adapter

@@ -8,7 +8,7 @@ class ProjectPermissionBase(TestCase):
         self.org = self.create_organization()
         self.team = self.create_team(organization=self.org)
         self.project = self.create_project(organization=self.org)
-        super(ProjectPermissionBase, self).setUp()
+        super().setUp()
 
     def has_object_perm(self, method, obj, auth=None, user=None, is_superuser=None):
         perm = ProjectPermission()
@@ -144,7 +144,7 @@ class ProjectPermissionTest(ProjectPermissionBase):
 
 class ProjectPermissionNoJoinLeaveTest(ProjectPermissionBase):
     def setUp(self):
-        super(ProjectPermissionNoJoinLeaveTest, self).setUp()
+        super().setUp()
         self.org = self.create_organization()
         self.org.flags.allow_joinleave = False
         self.org.save()

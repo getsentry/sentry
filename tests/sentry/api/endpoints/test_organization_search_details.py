@@ -18,9 +18,7 @@ class DeleteOrganizationSearchTest(APITestCase):
         return user
 
     def get_response(self, *args, **params):
-        return super(DeleteOrganizationSearchTest, self).get_response(
-            *((self.organization.slug,) + args), **params
-        )
+        return super().get_response(*((self.organization.slug,) + args), **params)
 
     def test_owner_can_delete_org_searches(self):
         search = SavedSearch.objects.create(organization=self.organization, name="foo", query="")

@@ -29,12 +29,12 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
     # Test data setup in ``VstsIntegrationTestCase``
 
     def setUp(self):
-        super(VstsIntegrationProviderTest, self).setUp()
+        super().setUp()
         register_mock_plugins()
 
     def tearDown(self):
         unregister_mock_plugins()
-        super(VstsIntegrationProviderTest, self).tearDown()
+        super().tearDown()
 
     def test_basic_flow(self):
         self.assert_installation()

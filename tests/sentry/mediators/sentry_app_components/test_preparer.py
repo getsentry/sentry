@@ -6,7 +6,7 @@ from sentry.testutils import TestCase
 
 class TestPreparerIssueLink(TestCase):
     def setUp(self):
-        super(TestPreparerIssueLink, self).setUp()
+        super().setUp()
 
         self.sentry_app = self.create_sentry_app(
             schema={"elements": [self.create_issue_link_schema()]}
@@ -66,7 +66,7 @@ class TestPreparerIssueLink(TestCase):
 
 class TestPreparerStacktraceLink(TestCase):
     def setUp(self):
-        super(TestPreparerStacktraceLink, self).setUp()
+        super().setUp()
 
         self.sentry_app = self.create_sentry_app(
             schema={"elements": [{"type": "stacktrace-link", "uri": "/redirection"}]}

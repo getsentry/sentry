@@ -41,7 +41,7 @@ class OAuthTokenCodeTest(TestCase):
         return "/oauth/token/"
 
     def setUp(self):
-        super(OAuthTokenCodeTest, self).setUp()
+        super().setUp()
         self.application = ApiApplication.objects.create(
             owner=self.user, redirect_uris="https://example.com"
         )
@@ -145,7 +145,7 @@ class OAuthTokenRefreshTokenTest(TestCase):
         return "/oauth/token/"
 
     def setUp(self):
-        super(OAuthTokenRefreshTokenTest, self).setUp()
+        super().setUp()
         self.application = ApiApplication.objects.create(
             owner=self.user, redirect_uris="https://example.com"
         )

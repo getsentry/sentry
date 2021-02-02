@@ -14,7 +14,7 @@ from sentry.utils.samples import load_data
 
 class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationEventsStatsEndpointTest, self).setUp()
+        super().setUp()
         self.login_as(user=self.user)
         self.authed_user = self.user
 
@@ -631,7 +631,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
 
 class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationEventsStatsTopNEvents, self).setUp()
+        super().setUp()
         self.login_as(user=self.user)
 
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)

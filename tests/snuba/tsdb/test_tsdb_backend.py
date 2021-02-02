@@ -50,7 +50,7 @@ def has_shape(data, shape, allow_empty=False):
 
 class SnubaTSDBTest(TestCase, SnubaTestCase):
     def setUp(self):
-        super(SnubaTSDBTest, self).setUp()
+        super().setUp()
 
         self.db = SnubaTSDB()
         self.now = (datetime.utcnow() - timedelta(hours=4)).replace(

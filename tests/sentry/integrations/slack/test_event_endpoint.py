@@ -69,7 +69,7 @@ MESSAGE_IM_BOT_EVENT = """{
 
 class BaseEventTest(APITestCase):
     def setUp(self):
-        super(BaseEventTest, self).setUp()
+        super().setUp()
         self.user = self.create_user(is_superuser=False)
         self.org = self.create_organization(owner=None)
         self.integration = Integration.objects.create(

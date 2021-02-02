@@ -147,7 +147,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         ).get("environment")
 
 
-class FireTest(object):
+class FireTest:
     def run_test(self, incident, method):
         raise NotImplementedError
 

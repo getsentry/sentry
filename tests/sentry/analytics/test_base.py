@@ -5,7 +5,7 @@ from sentry.testutils import TestCase
 class DummyAnalytics(Analytics):
     def __init__(self):
         self.events = []
-        super(DummyAnalytics, self).__init__()
+        super().__init__()
 
     def record_event(self, event):
         self.events.append(event)

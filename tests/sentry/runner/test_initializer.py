@@ -6,7 +6,7 @@ from sentry.runner.initializer import bootstrap_options, apply_legacy_settings
 
 @pytest.fixture
 def settings():
-    class Settings(object):
+    class Settings:
         pass
 
     s = Settings()

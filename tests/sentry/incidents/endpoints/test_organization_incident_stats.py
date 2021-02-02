@@ -15,7 +15,7 @@ class OrganizationIncidentDetailsTest(SnubaTestCase, APITestCase):
     endpoint = "sentry-api-0-organization-incident-stats"
 
     def setUp(self):
-        super(OrganizationIncidentDetailsTest, self).setUp()
+        super().setUp()
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 

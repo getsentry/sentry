@@ -13,7 +13,7 @@ from sentry.api.endpoints.organization_events_trends import OrganizationEventsTr
 
 class OrganizationEventsTrendsBase(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationEventsTrendsBase, self).setUp()
+        super().setUp()
         self.login_as(user=self.user)
 
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
@@ -48,7 +48,7 @@ class OrganizationEventsTrendsBase(APITestCase, SnubaTestCase):
 
 class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
     def setUp(self):
-        super(OrganizationEventsTrendsEndpointTest, self).setUp()
+        super().setUp()
         self.url = reverse(
             "sentry-api-0-organization-events-trends",
             kwargs={"organization_slug": self.project.organization.slug},
@@ -347,7 +347,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
 
 class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
     def setUp(self):
-        super(OrganizationEventsTrendsStatsEndpointTest, self).setUp()
+        super().setUp()
         self.url = reverse(
             "sentry-api-0-organization-events-trends-stats",
             kwargs={"organization_slug": self.project.organization.slug},
@@ -684,7 +684,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
 
 class OrganizationEventsTrendsPagingTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationEventsTrendsPagingTest, self).setUp()
+        super().setUp()
         self.login_as(user=self.user)
         self.url = reverse(
             "sentry-api-0-organization-events-trends-stats",

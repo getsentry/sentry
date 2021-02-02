@@ -32,7 +32,7 @@ def test_builtin_types():
 
 
 def test_custom_types():
-    class Widget(object):
+    class Widget:
         def __init__(self, color):
             self.color = color
 

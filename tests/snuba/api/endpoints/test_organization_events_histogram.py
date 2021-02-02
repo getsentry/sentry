@@ -19,7 +19,7 @@ HistogramSpec = namedtuple("HistogramSpec", ["start", "end", "fields"])
 
 class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationEventsHistogramEndpointTest, self).setUp()
+        super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
         self.data = load_data("transaction")
 

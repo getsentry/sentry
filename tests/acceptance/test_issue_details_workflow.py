@@ -8,7 +8,7 @@ from tests.acceptance.page_objects.issue_details import IssueDetailsPage
 
 class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
-        super(IssueDetailsWorkflowTest, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(

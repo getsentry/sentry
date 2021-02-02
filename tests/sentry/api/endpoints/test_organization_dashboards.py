@@ -7,7 +7,7 @@ from sentry.testutils import OrganizationDashboardWidgetTestCase
 
 class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
     def setUp(self):
-        super(OrganizationDashboardsTest, self).setUp()
+        super().setUp()
         self.login_as(self.user)
         self.url = reverse(
             "sentry-api-0-organization-dashboards",

@@ -1,4 +1,4 @@
-class BasePage(object):
+class BasePage:
     """Base class for PageObjects"""
 
     def __init__(self, browser):
@@ -12,7 +12,7 @@ class BasePage(object):
         self.browser.wait_until_not(".loading-indicator")
 
 
-class BaseElement(object):
+class BaseElement:
     def __init__(self, element):
         self.element = element
 

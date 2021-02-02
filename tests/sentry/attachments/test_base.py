@@ -3,7 +3,7 @@ import copy
 from sentry.attachments.base import CachedAttachment, BaseAttachmentCache
 
 
-class InMemoryCache(object):
+class InMemoryCache:
     """
     In-memory mock cache that roughly works like Django cache. Extended with
     internal assertions to ensure correct use of `raw`.

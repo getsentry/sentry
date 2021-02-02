@@ -5,7 +5,7 @@ from sentry.testutils import PermissionTestCase, TestCase
 
 class OrganizationIntegrationSetupPermissionTest(PermissionTestCase):
     def setUp(self):
-        super(OrganizationIntegrationSetupPermissionTest, self).setUp()
+        super().setUp()
         self.path = f"/organizations/{self.organization.slug}/integrations/example/setup/"
 
     # this currently redirects the user
@@ -21,7 +21,7 @@ class OrganizationIntegrationSetupPermissionTest(PermissionTestCase):
 
 class OrganizationIntegrationSetupTest(TestCase):
     def setUp(self):
-        super(OrganizationIntegrationSetupTest, self).setUp()
+        super().setUp()
         self.organization = self.create_organization(name="foo", owner=self.user)
         self.login_as(self.user)
         self.path = f"/organizations/{self.organization.slug}/integrations/example/setup/"

@@ -6,7 +6,7 @@ from sentry.testutils import AcceptanceTestCase
 
 class OrganizationActivityTest(AcceptanceTestCase):
     def setUp(self):
-        super(OrganizationActivityTest, self).setUp()
+        super().setUp()
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(
             organization=self.org, name="Mariachi Band", members=[self.user]

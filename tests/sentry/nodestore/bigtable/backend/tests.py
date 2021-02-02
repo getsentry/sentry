@@ -6,12 +6,12 @@ from sentry.utils.compat import mock
 
 
 class MockedBigtableNodeStorage(BigtableNodeStorage):
-    class Cell(object):
+    class Cell:
         def __init__(self, value, timestamp):
             self.value = value
             self.timestamp = timestamp
 
-    class Row(object):
+    class Row:
         def __init__(self, connection, row_key):
             self.row_key = row_key.encode("utf8")
             self.connection = connection
@@ -33,7 +33,7 @@ class MockedBigtableNodeStorage(BigtableNodeStorage):
         def cells(self):
             return {"x": dict(self.connection._table.get(self.row_key) or ())}
 
-    class Connection(object):
+    class Connection:
         def __init__(self):
             self._table = {}
 

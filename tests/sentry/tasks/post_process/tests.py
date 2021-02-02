@@ -22,7 +22,7 @@ from sentry.tasks.post_process import post_process_group
 from sentry.utils.compat.mock import Mock, patch, ANY
 
 
-class EventMatcher(object):
+class EventMatcher:
     def __init__(self, expected, group=None):
         self.expected = expected
         self.expected_group = group

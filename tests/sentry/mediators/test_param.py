@@ -27,7 +27,7 @@ class TestParam(TestCase):
         assert user.validate(None, "user", User())
 
     def test_setup(self):
-        class Target(object):
+        class Target:
             name = 1
 
         name = Param((str,))
@@ -47,7 +47,7 @@ class TestParam(TestCase):
         assert name.default(None) == "Steve"
 
     def test_default_referencing_instance(self):
-        class Target(object):
+        class Target:
             user = {"name": "Pete"}
 
         target = Target()

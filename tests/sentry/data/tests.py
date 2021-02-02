@@ -20,7 +20,7 @@ class DataGenerator(type):
 
             test_func.__name__ = func_name
             attrs[func_name] = test_func
-        return super(DataGenerator, cls).__new__(cls, name, bases, attrs)
+        return super().__new__(cls, name, bases, attrs)
 
 
 class DataTestCase(TestCase, metaclass=DataGenerator):

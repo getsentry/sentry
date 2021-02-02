@@ -11,7 +11,7 @@ event_time = before_now(days=3).replace(tzinfo=pytz.utc)
 
 class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationIncidentsListTest, self).setUp()
+        super().setUp()
         self.login_as(self.user)
         self.path = f"/organizations/{self.organization.slug}/alerts/"
 

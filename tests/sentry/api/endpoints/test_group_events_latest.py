@@ -4,7 +4,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 
 class GroupEventsLatestEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(GroupEventsLatestEndpointTest, self).setUp()
+        super().setUp()
 
         self.login_as(user=self.user)
         project = self.create_project()

@@ -16,7 +16,7 @@ CLICK_TO_FINISH = b"Click to Finish Installation"
 
 class JiraIssueHookTest(APITestCase):
     def setUp(self):
-        super(JiraIssueHookTest, self).setUp()
+        super().setUp()
         self.first_seen = datetime(2015, 8, 13, 3, 8, 25, tzinfo=timezone.utc)
         self.last_seen = datetime(2016, 1, 13, 3, 8, 25, tzinfo=timezone.utc)
         self.first_release = self.create_release(

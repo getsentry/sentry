@@ -5,7 +5,7 @@ from sentry.testutils import APITestCase
 
 class PromptsActivityTest(APITestCase):
     def setUp(self):
-        super(PromptsActivityTest, self).setUp()
+        super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user, name="baz")
         # self.project = self.create_project(

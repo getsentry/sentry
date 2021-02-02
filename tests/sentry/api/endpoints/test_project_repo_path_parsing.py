@@ -26,7 +26,7 @@ class BaseStacktraceLinkTest(APITestCase):
 
 class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
     def setUp(self):
-        super(ProjectStacktraceLinkGithubTest, self).setUp()
+        super().setUp()
         self.integration = Integration.objects.create(
             provider="github",
             name="getsentry",
@@ -135,7 +135,7 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
 
 class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
     def setUp(self):
-        super(ProjectStacktraceLinkGitlabTest, self).setUp()
+        super().setUp()
 
         self.integration = Integration.objects.create(
             provider="gitlab",

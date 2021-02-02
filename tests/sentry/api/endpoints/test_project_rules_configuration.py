@@ -13,7 +13,7 @@ class ProjectRuleConfigurationTest(APITestCase):
     endpoint = "sentry-api-0-project-rules-configuration"
 
     def setUp(self):
-        super(ProjectRuleConfigurationTest, self).setUp()
+        super().setUp()
         self.login_as(user=self.user)
 
     def test_simple(self):

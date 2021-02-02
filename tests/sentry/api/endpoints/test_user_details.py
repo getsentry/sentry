@@ -158,7 +158,7 @@ class UserUpdateTest(APITestCase):
 
 class UserDeleteTest(APITestCase):
     def setUp(self):
-        super(UserDeleteTest, self).setUp()
+        super().setUp()
         self.path = f"/api/0/users/{self.user.id}/"
 
     def test_close_account(self):

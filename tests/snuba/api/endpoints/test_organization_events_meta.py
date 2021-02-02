@@ -10,7 +10,7 @@ from sentry.utils.compat import mock
 
 class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationEventsMetaEndpoint, self).setUp()
+        super().setUp()
         self.min_ago = before_now(minutes=1)
         self.login_as(user=self.user)
         self.project = self.create_project()
@@ -172,7 +172,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
 
 class OrganizationEventBaselineEndpoint(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationEventBaselineEndpoint, self).setUp()
+        super().setUp()
         self.login_as(user=self.user)
         self.project = self.create_project()
         self.prototype = {
@@ -315,7 +315,7 @@ class OrganizationEventBaselineEndpoint(APITestCase, SnubaTestCase):
 
 class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationEventsRelatedIssuesEndpoint, self).setUp()
+        super().setUp()
 
     def test_find_related_issue(self):
         self.login_as(user=self.user)

@@ -149,7 +149,7 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
 
 class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
     def setUp(self):
-        super(GetPersonalizedDigestsTestCase, self).setUp()
+        super().setUp()
         self.user1 = self.create_user()
         self.user2 = self.create_user()
         self.user3 = self.create_user()

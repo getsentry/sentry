@@ -98,7 +98,7 @@ class AmazonSQSPluginTest(PluginTestCase):
     @patch("uuid.uuid4")
     @patch("boto3.client")
     def test_pass_message_group_id(self, mock_client, mock_uuid):
-        class uuid(object):
+        class uuid:
             hex = "some-uuid"
 
         mock_uuid.return_value = uuid

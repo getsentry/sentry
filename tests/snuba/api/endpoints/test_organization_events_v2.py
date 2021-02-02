@@ -16,7 +16,7 @@ from sentry.utils.snuba import RateLimitExceeded, QueryIllegalTypeOfArgument, Qu
 
 class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationEventsV2EndpointTest, self).setUp()
+        super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
         self.two_min_ago = iso_format(before_now(minutes=2))
         self.transaction_data = load_data("transaction", timestamp=before_now(minutes=1))

@@ -29,7 +29,7 @@ class ProjectGroupEventBase(APIDocsTestCase):
 
 class ProjectGroupEventsDocs(ProjectGroupEventBase):
     def setUp(self):
-        super(ProjectGroupEventsDocs, self).setUp()
+        super().setUp()
         self.url = f"/api/0/issues/{self.group_id}/events/"
 
     def test_get(self):
@@ -41,7 +41,7 @@ class ProjectGroupEventsDocs(ProjectGroupEventBase):
 
 class ProjectGroupEventsLatestDocs(ProjectGroupEventBase):
     def setUp(self):
-        super(ProjectGroupEventsLatestDocs, self).setUp()
+        super().setUp()
         self.url = f"/api/0/issues/{self.group_id}/events/latest/"
 
     def test_get(self):
@@ -53,7 +53,7 @@ class ProjectGroupEventsLatestDocs(ProjectGroupEventBase):
 
 class ProjectGroupEventsOldestDocs(ProjectGroupEventBase):
     def setUp(self):
-        super(ProjectGroupEventsOldestDocs, self).setUp()
+        super().setUp()
         self.url = f"/api/0/issues/{self.group_id}/events/oldest/"
 
     def test_get(self):

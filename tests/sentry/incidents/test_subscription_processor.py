@@ -45,7 +45,7 @@ class ProcessUpdateTest(TestCase):
     metrics = patcher("sentry.incidents.subscription_processor.metrics")
 
     def setUp(self):
-        super(ProcessUpdateTest, self).setUp()
+        super().setUp()
         self.old_handlers = AlertRuleTriggerAction._type_registrations
         AlertRuleTriggerAction._type_registrations = {}
         self.email_action_handler = Mock()
@@ -56,7 +56,7 @@ class ProcessUpdateTest(TestCase):
         self._run_tasks.__enter__()
 
     def tearDown(self):
-        super(ProcessUpdateTest, self).tearDown()
+        super().tearDown()
         AlertRuleTriggerAction._type_registrations = self.old_handlers
         self._run_tasks.__exit__(None, None, None)
 

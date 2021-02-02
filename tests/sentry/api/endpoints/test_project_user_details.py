@@ -6,7 +6,7 @@ from sentry.testutils import APITestCase
 
 class ProjectUserDetailsTest(APITestCase):
     def setUp(self):
-        super(ProjectUserDetailsTest, self).setUp()
+        super().setUp()
         self.user = self.create_user()
         self.org = self.create_organization(owner=None)
         self.team = self.create_team(organization=self.org)

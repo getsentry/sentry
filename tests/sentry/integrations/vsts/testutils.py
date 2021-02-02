@@ -10,7 +10,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
     provider = VstsIntegrationProvider
 
     def setUp(self):
-        super(VstsIntegrationTestCase, self).setUp()
+        super().setUp()
 
         self.access_token = "9d646e20-7a62-4bcc-abc0-cb2d4d075e36"
         self.refresh_token = "32004633-a3c0-4616-9aa0-a40632adac77"

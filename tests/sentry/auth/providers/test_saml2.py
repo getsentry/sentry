@@ -26,7 +26,7 @@ class SAML2ProviderTest(TestCase):
         self.org = self.create_organization()
         self.auth_provider = AuthProvider.objects.create(provider="saml2", organization=self.org)
         self.provider = SAML2Provider(key=self.auth_provider.provider)
-        super(SAML2ProviderTest, self).setUp()
+        super().setUp()
 
     def test_build_config_adds_attributes(self):
         config = self.provider.build_config({})
@@ -82,7 +82,7 @@ class SAML2ACSViewTest(TestCase):
         self.provider = SAML2Provider(key=self.auth_provider.provider)
         self.provider.config = dummy_provider_config
         self.auth_provider.get_provider = mock.MagicMock(return_value=self.provider)
-        super(SAML2ACSViewTest, self).setUp()
+        super().setUp()
 
         request = self.make_request(user=None)
         request.META = {

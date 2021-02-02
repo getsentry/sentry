@@ -17,7 +17,7 @@ from sentry.testutils.helpers.datetime import iso_format
 
 class TagStorageTest(TestCase, SnubaTestCase):
     def setUp(self):
-        super(TagStorageTest, self).setUp()
+        super().setUp()
 
         self.ts = SnubaTagStorage()
 

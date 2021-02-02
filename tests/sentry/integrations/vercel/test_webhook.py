@@ -43,7 +43,7 @@ class SignatureVercelTest(APITestCase):
 
 class VercelReleasesTest(APITestCase):
     def setUp(self):
-        super(VercelReleasesTest, self).setUp()
+        super().setUp()
         self.project = self.create_project(organization=self.organization)
         self.integration = Integration.objects.create(
             provider="vercel",

@@ -28,7 +28,7 @@ class UtilityFunctionTest(TestCase):
 
 class WebhookTest(APITestCase):
     def setUp(self):
-        super(WebhookTest, self).setUp()
+        super().setUp()
         project = self.project  # force creation
         self.url = "/extensions/bitbucket/organizations/%s/webhook/" % project.organization_id
 
@@ -71,7 +71,7 @@ class WebhookTest(APITestCase):
 
 class PushEventWebhookTest(APITestCase):
     def setUp(self):
-        super(PushEventWebhookTest, self).setUp()
+        super().setUp()
         project = self.project  # force creation
         self.url = "/extensions/bitbucket/organizations/%s/webhook/" % project.organization.id
 

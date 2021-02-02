@@ -42,7 +42,7 @@ class EventStorageTest(TestCase):
 
 class ServiceDelegationTest(TestCase, SnubaTestCase):
     def setUp(self):
-        super(ServiceDelegationTest, self).setUp()
+        super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
         self.two_min_ago = iso_format(before_now(minutes=2))
         self.project = self.create_project()

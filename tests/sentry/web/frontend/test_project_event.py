@@ -5,7 +5,7 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 
 class ProjectEventTest(SnubaTestCase, TestCase):
     def setUp(self):
-        super(ProjectEventTest, self).setUp()
+        super().setUp()
         self.user = self.create_user()
         self.login_as(self.user)
         self.org = self.create_organization()

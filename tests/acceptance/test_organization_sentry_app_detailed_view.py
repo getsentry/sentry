@@ -7,7 +7,7 @@ from tests.acceptance.page_objects.organization_integration_settings import (
 
 class OrganizationSentryAppDetailedView(AcceptanceTestCase):
     def setUp(self):
-        super(OrganizationSentryAppDetailedView, self).setUp()
+        super().setUp()
         self.create_project(organization=self.organization)
         self.sentry_app = self.create_sentry_app(
             organization=self.organization,

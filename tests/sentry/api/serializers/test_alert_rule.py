@@ -10,7 +10,7 @@ from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils import TestCase, APITestCase
 
 
-class BaseAlertRuleSerializerTest(object):
+class BaseAlertRuleSerializerTest:
     def assert_alert_rule_serialized(self, alert_rule, result, skip_dates=False):
         alert_rule_projects = sorted(
             AlertRule.objects.filter(id=alert_rule.id).values_list(

@@ -26,12 +26,12 @@ def stub_installation_token():
 
 class GitHubAppsProviderTest(PluginTestCase):
     def setUp(self):
-        super(GitHubAppsProviderTest, self).setUp()
+        super().setUp()
         self.organization = self.create_organization()
         self.integration = Integration.objects.create(provider="github", external_id="654321")
 
     def tearDown(self):
-        super(GitHubAppsProviderTest, self).tearDown()
+        super().tearDown()
         responses.reset()
 
     @fixture

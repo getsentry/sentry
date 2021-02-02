@@ -10,7 +10,7 @@ from sentry.utils.compat import map
 
 class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationEventsEndpointTest, self).setUp()
+        super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
         self.day_ago = iso_format(before_now(days=1))
 

@@ -18,7 +18,7 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 
 class GroupTest(TestCase, SnubaTestCase):
     def setUp(self):
-        super(GroupTest, self).setUp()
+        super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
         self.two_min_ago = iso_format(before_now(minutes=2))
         self.just_over_one_min_ago = iso_format(before_now(seconds=61))

@@ -7,7 +7,7 @@ from sentry.utils.compat import mock
 
 class OrganizationTagsTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationTagsTest, self).setUp()
+        super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
 
     def test_simple(self):

@@ -60,7 +60,7 @@ MockResponseWithHeadersInstance = MockResponse(
 )
 
 
-class DictContaining(object):
+class DictContaining:
     def __init__(self, *args, **kwargs):
         if len(args) == 1 and isinstance(args[0], dict):
             self.args = []

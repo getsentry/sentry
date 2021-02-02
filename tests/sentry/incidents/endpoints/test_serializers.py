@@ -67,7 +67,7 @@ class TestAlertRuleSerializer(TestCase):
         return {"organization": self.organization, "access": self.access}
 
     def Any(self, cls):
-        class Any(object):
+        class Any:
             def __eq__(self, other):
                 return isinstance(other, cls)
 

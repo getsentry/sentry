@@ -7,7 +7,7 @@ from sentry.testutils import APITestCase
 
 class UserEmailsTest(APITestCase):
     def setUp(self):
-        super(UserEmailsTest, self).setUp()
+        super().setUp()
         self.user = self.create_user(email="foo@example.com")
         self.login_as(user=self.user)
         self.url = "/api/0/users/me/ips/"

@@ -11,7 +11,7 @@ class OAuth2ProviderTest(TestCase):
     def setUp(self):
         self.org = self.create_organization(owner=self.user)
         self.user = self.create_user("foo@example.com")
-        super(OAuth2ProviderTest, self).setUp()
+        super().setUp()
 
     @fixture
     def auth_provider(self):

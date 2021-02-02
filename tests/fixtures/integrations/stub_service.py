@@ -5,7 +5,7 @@ from sentry.utils import json
 from tests.fixtures.integrations import FIXTURE_DIRECTORY
 
 
-class StubService(object):
+class StubService:
     """
     A stub is a service that replicates the functionality of a real software
     system by returning valid data without actually implementing any business

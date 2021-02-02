@@ -7,7 +7,7 @@ class OrganizationDocumentIntegrationDetailView(AcceptanceTestCase):
     """
 
     def setUp(self):
-        super(OrganizationDocumentIntegrationDetailView, self).setUp()
+        super().setUp()
         self.login_as(self.user)
 
     def load_page(self, slug):

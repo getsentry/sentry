@@ -3,7 +3,7 @@ from sentry.testutils import AcceptanceTestCase
 
 class ApiTokensTest(AcceptanceTestCase):
     def setUp(self):
-        super(ApiTokensTest, self).setUp()
+        super().setUp()
         self.user = self.create_user(email="foo@example.com", name="User Name")
         self.login_as(self.user)
         self.path = "/api/"
@@ -24,7 +24,7 @@ class ApiTokensTest(AcceptanceTestCase):
 
 class ApiApplicationTest(AcceptanceTestCase):
     def setUp(self):
-        super(ApiApplicationTest, self).setUp()
+        super().setUp()
         self.user = self.create_user(email="foo@example.com", name="User Name")
         self.login_as(self.user)
         self.path = "/api/applications/"

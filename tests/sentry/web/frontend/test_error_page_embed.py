@@ -12,7 +12,7 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 @override_settings(ROOT_URLCONF="sentry.conf.urls")
 class ErrorPageEmbedTest(TestCase):
     def setUp(self):
-        super(ErrorPageEmbedTest, self).setUp()
+        super().setUp()
         self.project = self.create_project()
         self.project.update_option("sentry:origins", ["example.com"])
         self.key = self.create_project_key(self.project)

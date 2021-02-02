@@ -32,7 +32,7 @@ from sentry.testutils import TestCase
 from sentry.utils.http import absolute_uri
 
 
-class BaseIncidentActivityTest(object):
+class BaseIncidentActivityTest:
     @property
     def incident(self):
         return self.create_incident(title="hello")

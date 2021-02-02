@@ -13,7 +13,7 @@ from .testutils import COMPARE_COMMITS_EXAMPLE, COMMIT_DIFF_PATCH, REPO
 
 class BitbucketRepositoryProviderTest(TestCase):
     def setUp(self):
-        super(BitbucketRepositoryProviderTest, self).setUp()
+        super().setUp()
         self.base_url = "https://api.bitbucket.org"
         self.shared_secret = "234567890"
         self.subject = "connect:1234567"
@@ -137,7 +137,7 @@ class BitbucketCreateRepositoryTestCase(IntegrationRepositoryTestCase):
     provider_name = "integrations:bitbucket"
 
     def setUp(self):
-        super(BitbucketCreateRepositoryTestCase, self).setUp()
+        super().setUp()
         self.base_url = "https://api.bitbucket.org"
         self.shared_secret = "234567890"
         self.subject = "connect:1234567"

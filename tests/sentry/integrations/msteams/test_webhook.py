@@ -29,7 +29,7 @@ kid = "Su-pdZys9LJGhDVgah3UjfPouuc"
 
 class MsTeamsWebhookTest(APITestCase):
     def setUp(self):
-        super(MsTeamsWebhookTest, self).setUp()
+        super().setUp()
 
         responses.add(
             responses.GET,

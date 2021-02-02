@@ -21,7 +21,7 @@ class MockService(StubService):
         """
         Initialize the mock instance. Wipe the previous instance's data if it exists.
         """
-        super(MockService, self).__init__()
+        super().__init__()
         self.mode = mode
         self._next_error_code = None
         self._next_ids = defaultdict(lambda: 0)

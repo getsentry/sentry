@@ -19,7 +19,7 @@ class ListProjectServiceHooksTest(APITestCase):
 
 class CreateProjectServiceHookTest(APITestCase):
     def setUp(self):
-        super(CreateProjectServiceHookTest, self).setUp()
+        super().setUp()
         self.project = self.create_project()
         self.login_as(user=self.user)
         self.path = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/hooks/"

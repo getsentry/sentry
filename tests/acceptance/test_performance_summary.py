@@ -22,7 +22,7 @@ def make_event(event_data):
 
 class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
-        super(PerformanceSummaryTest, self).setUp()
+        super().setUp()
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(
             organization=self.org, name="Mariachi Band", members=[self.user]

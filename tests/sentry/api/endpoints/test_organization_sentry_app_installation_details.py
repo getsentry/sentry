@@ -85,7 +85,7 @@ class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
 
 class MarkInstalledSentryAppInstallationsTest(SentryAppInstallationDetailsTest):
     def setUp(self):
-        super(MarkInstalledSentryAppInstallationsTest, self).setUp()
+        super().setUp()
         self.token = GrantExchanger.run(
             install=self.installation,
             code=self.installation.api_grant.code,

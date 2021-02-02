@@ -6,7 +6,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 
 class OrganizationEventsGeoEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationEventsGeoEndpointTest, self).setUp()
+        super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
 
     def do_request(self, query, features=None):

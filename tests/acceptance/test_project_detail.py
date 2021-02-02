@@ -8,7 +8,7 @@ FEATURE_NAME = ["organizations:incidents", "organizations:project-detail"]
 
 class ProjectDetailTest(AcceptanceTestCase):
     def setUp(self):
-        super(ProjectDetailTest, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Rowdy Tiger", owner=None)
 

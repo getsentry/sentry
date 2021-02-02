@@ -452,7 +452,7 @@ class AlertRuleTriggerActionTargetTest(TestCase):
         assert trigger.target == email
 
 
-class AlertRuleTriggerActionActivateTest(object):
+class AlertRuleTriggerActionActivateTest:
     method = None
 
     def setUp(self):

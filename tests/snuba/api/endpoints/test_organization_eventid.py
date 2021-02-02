@@ -7,7 +7,7 @@ from sentry.utils.compat.mock import patch
 
 class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(EventIdLookupEndpointTest, self).setUp()
+        super().setUp()
         min_ago = iso_format(before_now(minutes=1))
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)

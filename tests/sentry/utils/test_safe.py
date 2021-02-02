@@ -78,13 +78,13 @@ class SafeExecuteTest(TestCase):
         assert safe_execute(simple, 1) is None
 
     def test_with_instance_method(self):
-        class Foo(object):
+        class Foo:
             def simple(self, a):
                 return a
 
         assert safe_execute(Foo().simple, 1) == 1
 
-        class Foo(object):
+        class Foo:
             def simple(self, a):
                 raise Exception()
 

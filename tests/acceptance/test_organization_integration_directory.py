@@ -3,7 +3,7 @@ from sentry.testutils import AcceptanceTestCase
 
 class OrganizationIntegrationDirectoryTest(AcceptanceTestCase):
     def setUp(self):
-        super(OrganizationIntegrationDirectoryTest, self).setUp()
+        super().setUp()
         self.login_as(self.user)
 
     def test_all_integrations_list(self):

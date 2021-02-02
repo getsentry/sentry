@@ -9,7 +9,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index-stats"
 
     def setUp(self):
-        super(GroupListTest, self).setUp()
+        super().setUp()
         self.min_ago = before_now(minutes=1)
 
     def _parse_links(self, header):
@@ -25,7 +25,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             org = self.project.organization.slug
         else:
             org = args[0]
-        return super(GroupListTest, self).get_response(org, **kwargs)
+        return super().get_response(org, **kwargs)
 
     def test_simple(self):
         self.store_event(

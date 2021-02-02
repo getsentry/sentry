@@ -13,7 +13,7 @@ class OrganizationPluginDetailedView(AcceptanceTestCase):
         return OpsGeniePlugin()
 
     def setUp(self):
-        super(OrganizationPluginDetailedView, self).setUp()
+        super().setUp()
         # need at least two projects
         self.project = self.create_project(organization=self.organization, name="Back end")
         self.create_project(organization=self.organization, name="Front End")

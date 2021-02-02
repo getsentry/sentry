@@ -32,7 +32,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
     default_group_id = 4
 
     def setUp(self):
-        super(GitlabIntegrationTest, self).setUp()
+        super().setUp()
         self.init_path_without_guide = f"{self.init_path}?completed_installation_guide"
 
     def assert_setup_flow(self, user_id="user_id_1"):

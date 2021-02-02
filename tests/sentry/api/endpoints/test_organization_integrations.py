@@ -5,7 +5,7 @@ from sentry.testutils.helpers import with_feature
 
 class OrganizationIntegrationsListTest(APITestCase):
     def setUp(self):
-        super(OrganizationIntegrationsListTest, self).setUp()
+        super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user, name="baz")
         self.integration = Integration.objects.create(provider="example", name="Example")

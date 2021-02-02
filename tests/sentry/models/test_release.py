@@ -536,7 +536,7 @@ class SetCommitsTestCase(TestCase):
 
 class SetRefsTest(SetRefsTestCase):
     def setUp(self):
-        super(SetRefsTest, self).setUp()
+        super().setUp()
         self.release = Release.objects.create(version="abcdabc", organization=self.org)
         self.release.add_project(self.project)
 

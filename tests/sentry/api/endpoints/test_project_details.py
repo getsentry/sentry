@@ -140,7 +140,7 @@ class ProjectDetailsTest(APITestCase):
 
 class ProjectUpdateTest(APITestCase):
     def setUp(self):
-        super(ProjectUpdateTest, self).setUp()
+        super().setUp()
         self.path = reverse(
             "sentry-api-0-project-details",
             kwargs={
@@ -600,7 +600,7 @@ class ProjectUpdateTest(APITestCase):
 
 class CopyProjectSettingsTest(APITestCase):
     def setUp(self):
-        super(CopyProjectSettingsTest, self).setUp()
+        super().setUp()
         self.login_as(user=self.user)
 
         self.options_dict = {
@@ -792,7 +792,7 @@ class ProjectDeleteTest(APITestCase):
     @mock.patch("sentry.api.endpoints.project_details.uuid4")
     @mock.patch("sentry.api.endpoints.project_details.delete_project")
     def test_simple(self, mock_delete_project, mock_uuid4_project, mock_uuid4_mixin):
-        class uuid(object):
+        class uuid:
             hex = "abc123"
 
         mock_uuid4_mixin.return_value = uuid

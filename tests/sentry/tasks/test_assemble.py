@@ -179,7 +179,7 @@ class AssembleDifTest(BaseAssembleTest):
 
 class AssembleArtifactsTest(BaseAssembleTest):
     def setUp(self):
-        super(AssembleArtifactsTest, self).setUp()
+        super().setUp()
         self.release = self.create_release(version="my-unique-release.1")
 
     def test_artifacts(self):

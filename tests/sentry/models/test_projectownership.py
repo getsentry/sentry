@@ -10,7 +10,7 @@ class ProjectOwnershipTestCase(TestCase):
     def tearDown(self):
         cache.delete(ProjectOwnership.get_cache_key(self.project.id))
 
-        super(ProjectOwnershipTestCase, self).tearDown()
+        super().tearDown()
 
     def assert_ownership_equals(self, o1, o2):
         assert sorted(o1[0]) == sorted(o2[0]) and sorted(o1[1]) == sorted(o2[1])

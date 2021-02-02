@@ -27,7 +27,7 @@ class GithubSearchTest(APITestCase):
         )
 
     def setUp(self):
-        super(GithubSearchTest, self).setUp()
+        super().setUp()
         self.integration = self.create_integration()
         identity = Identity.objects.create(
             idp=IdentityProvider.objects.create(type=self.provider, config={}),

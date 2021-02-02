@@ -13,7 +13,7 @@ from sentry.rules.conditions.event_frequency import (
 from sentry.testutils.cases import RuleTestCase
 
 
-class FrequencyConditionMixin(object):
+class FrequencyConditionMixin:
     def increment(self, event, count, timestamp=None):
         raise NotImplementedError
 

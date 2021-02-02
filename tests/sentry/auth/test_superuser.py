@@ -28,7 +28,7 @@ UNSET = object()
 
 class SuperuserTestCase(TestCase):
     def setUp(self):
-        super(SuperuserTestCase, self).setUp()
+        super().setUp()
         self.current_datetime = timezone.now()
         self.default_token = "abcdefghjiklmnog"
 

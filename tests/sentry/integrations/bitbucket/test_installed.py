@@ -65,7 +65,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
 
     def tearDown(self):
         unregister_mock_plugins()
-        super(BitbucketInstalledEndpointTest, self).tearDown()
+        super().tearDown()
 
     def test_default_permissions(self):
         # Permissions must be empty so that it will be accessible to bitbucket.

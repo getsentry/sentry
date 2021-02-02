@@ -11,7 +11,7 @@ from sentry.testutils import APITestCase
 
 class OrganizationRepositoriesListTest(APITestCase):
     def setUp(self):
-        super(OrganizationRepositoriesListTest, self).setUp()
+        super().setUp()
 
         self.org = self.create_organization(owner=self.user, name="baz")
         self.url = reverse("sentry-api-0-organization-repositories", args=[self.org.slug])
@@ -199,7 +199,7 @@ class OrganizationRepositoriesCreateTest(APITestCase):
 
 class OrganizationIntegrationRepositoriesCreateTest(APITestCase):
     def setUp(self):
-        super(OrganizationIntegrationRepositoriesCreateTest, self).setUp()
+        super().setUp()
         self.org = self.create_organization(owner=self.user, name="baz")
         self.integration = Integration.objects.create(provider="example")
         self.integration.add_organization(self.org, self.user)

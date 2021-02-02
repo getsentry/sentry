@@ -8,7 +8,7 @@ from sentry.utils.compat.mock import patch
 
 class ApiInviteHelperTest(TestCase):
     def setUp(self):
-        super(ApiInviteHelperTest, self).setUp()
+        super().setUp()
         self.org = self.create_organization(name="Rowdy Tiger", owner=None)
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.user = self.create_user("foo@example.com")
