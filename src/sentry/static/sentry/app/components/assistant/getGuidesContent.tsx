@@ -115,7 +115,11 @@ export default function getGuidesContent(): GuidesContent {
     },
     {
       guide: 'for_review_guide',
-      requiredTargets: ['for_review_guide_tab'],
+      requiredTargets: [
+        'for_review_guide_tab',
+        'inbox_guide_reason',
+        'inbox_guide_issue',
+      ],
       steps: [
         {
           target: 'for_review_guide_tab',
