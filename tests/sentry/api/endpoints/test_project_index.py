@@ -1,4 +1,3 @@
-
 from sentry.models import Project, ProjectStatus, SentryAppInstallationToken
 from sentry.testutils import APITestCase
 

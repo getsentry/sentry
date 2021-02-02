@@ -1,4 +1,3 @@
-
 import responses
 from django.core.urlresolvers import reverse
 import pytest

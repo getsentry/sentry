@@ -1,4 +1,3 @@
-
 from sentry.utils.compat.mock import patch
 
 from django.core.urlresolvers import reverse

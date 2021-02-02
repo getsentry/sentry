@@ -1,4 +1,3 @@
-
 from django.core.urlresolvers import reverse
 from exam import fixture
 

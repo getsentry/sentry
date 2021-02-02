@@ -1,4 +1,3 @@
-
 from sentry.utils.compat.mock import patch
 from uuid import uuid4
 
@@ -65,9 +64,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
             commit=commit,
             order=1,
         )
-        release.update(
-            authors=[str(commit_author.id)], commit_count=1, last_commit_id=commit.id
-        )
+        release.update(authors=[str(commit_author.id)], commit_count=1, last_commit_id=commit.id)
 
         result = serialize(release, user)
         assert result["version"] == release.version
@@ -183,9 +180,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
             commit=commit,
             order=1,
         )
-        release.update(
-            authors=[str(commit_author.id)], commit_count=1, last_commit_id=commit.id
-        )
+        release.update(authors=[str(commit_author.id)], commit_count=1, last_commit_id=commit.id)
 
         result = serialize(release, user)
         result_author = result["authors"][0]
@@ -226,9 +221,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
             order=1,
         )
 
-        release.update(
-            authors=[str(commit_author.id)], commit_count=1, last_commit_id=commit.id
-        )
+        release.update(authors=[str(commit_author.id)], commit_count=1, last_commit_id=commit.id)
 
         result = serialize(release, user)
         assert len(result["authors"]) == 1
@@ -270,9 +263,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
             order=1,
         )
 
-        release.update(
-            authors=[str(commit_author.id)], commit_count=1, last_commit_id=commit.id
-        )
+        release.update(authors=[str(commit_author.id)], commit_count=1, last_commit_id=commit.id)
 
         assert email.id < otheremail.id
         result = serialize(release, user)

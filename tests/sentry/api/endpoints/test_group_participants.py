@@ -1,4 +1,3 @@
-
 from sentry.models import GroupSubscription
 from sentry.testutils import APITestCase
 

@@ -1,4 +1,3 @@
-
 from django.core.urlresolvers import reverse
 
 from sentry.api.serializers import serialize
@@ -46,9 +45,7 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
     def test_basic_delete(self):
         resp = self.client.delete(self.url)
         assert resp.status_code == 204
-        assert not RepositoryProjectPathConfig.objects.filter(
-            id=str(self.config.id)
-        ).exists()
+        assert not RepositoryProjectPathConfig.objects.filter(id=str(self.config.id)).exists()
 
     def test_basic_edit(self):
         resp = self.make_put({"sourceRoot": "newRoot"})

@@ -1,4 +1,3 @@
-
 from exam import fixture
 
 from sentry.models import Monitor, MonitorStatus, MonitorType, ScheduleType

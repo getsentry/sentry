@@ -443,9 +443,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         team = self.create_team(organization=self.organization, members=[user, user2])
         project = self.create_project(teams=[team])
         event = self.store_event(data=self.make_event_data("foo.py"), project_id=project.id)
-        self.assert_notify(
-            event, [user.email, user2.email], ActionTargetType.TEAM, str(team.id)
-        )
+        self.assert_notify(event, [user.email, user2.email], ActionTargetType.TEAM, str(team.id))
 
     def test_notify_user(self):
         user = self.create_user(email="foo@example.com", is_active=True)
@@ -648,9 +646,7 @@ class MailAdapterGetSendToOwnersTest(BaseMailAdapterTest, TestCase):
 
 class MailAdapterGetSendToTeamTest(BaseMailAdapterTest, TestCase):
     def test_send_to_team(self):
-        assert set([self.user.id]) == self.adapter.get_send_to_team(
-            self.project, str(self.team.id)
-        )
+        assert set([self.user.id]) == self.adapter.get_send_to_team(self.project, str(self.team.id))
 
     def test_send_disabled(self):
         UserOption.objects.create(key="mail:alert", value=0, project=self.project, user=self.user)

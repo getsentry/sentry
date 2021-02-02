@@ -1,4 +1,3 @@
-
 from datetime import datetime
 from django.utils import timezone
 from sentry.utils.compat.mock import patch

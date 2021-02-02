@@ -236,9 +236,7 @@ class RedisQuotaTest(TestCase):
         )
 
         self.quota.refund(self.project, timestamp=timestamp)
-        client = self.quota.cluster.get_local_client_for_key(
-            str(self.project.organization.pk)
-        )
+        client = self.quota.cluster.get_local_client_for_key(str(self.project.organization.pk))
 
         error_keys = client.keys("r:quota:p:?:*")
         assert len(error_keys) == 2
@@ -287,9 +285,7 @@ class RedisQuotaTest(TestCase):
         self.quota.refund(
             self.project, timestamp=timestamp, category=DataCategory.ATTACHMENT, quantity=100
         )
-        client = self.quota.cluster.get_local_client_for_key(
-            str(self.project.organization.pk)
-        )
+        client = self.quota.cluster.get_local_client_for_key(str(self.project.organization.pk))
 
         error_keys = client.keys("r:quota:p:?:*")
         assert len(error_keys) == 0

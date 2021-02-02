@@ -47,9 +47,7 @@ def relay_id():
 
 @pytest.fixture
 def relay(relay_id, public_key):
-    return Relay.objects.create(
-        relay_id=relay_id, public_key=str(public_key), is_internal=True
-    )
+    return Relay.objects.create(relay_id=relay_id, public_key=str(public_key), is_internal=True)
 
 
 @pytest.fixture(autouse=True)
@@ -334,9 +332,7 @@ def test_relay_nonexistent_project(call_endpoint, projectconfig_cache_set, task_
 
     assert result == {"configs": {wrong_public_key: {"disabled": True}}}
 
-    assert projectconfig_cache_set == [
-        {str(wrong_public_key): result["configs"][wrong_public_key]}
-    ]
+    assert projectconfig_cache_set == [{str(wrong_public_key): result["configs"][wrong_public_key]}]
 
 
 @pytest.mark.django_db
@@ -353,9 +349,7 @@ def test_relay_disabled_project(
 
     assert result == {"configs": {wrong_public_key: {"disabled": True}}}
 
-    assert projectconfig_cache_set == [
-        {str(wrong_public_key): result["configs"][wrong_public_key]}
-    ]
+    assert projectconfig_cache_set == [{str(wrong_public_key): result["configs"][wrong_public_key]}]
 
 
 @pytest.mark.django_db

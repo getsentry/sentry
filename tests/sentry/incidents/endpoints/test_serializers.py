@@ -1,4 +1,3 @@
-
 from exam import fixture
 from sentry.utils.compat.mock import patch
 from rest_framework import serializers

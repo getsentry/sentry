@@ -1,4 +1,3 @@
-
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import (
     DetailedAlertRuleSerializer,

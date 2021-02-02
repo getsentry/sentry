@@ -1,4 +1,3 @@
-
 from sentry.models import Integration
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature

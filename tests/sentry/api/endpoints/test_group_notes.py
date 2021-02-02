@@ -1,4 +1,3 @@
-
 from sentry.models import (
     Activity,
     GroupLink,

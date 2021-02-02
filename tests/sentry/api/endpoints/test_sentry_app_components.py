@@ -1,4 +1,3 @@
-
 from sentry.constants import SentryAppInstallationStatus
 from sentry.coreapi import APIError
 from sentry.testutils import APITestCase

@@ -1,4 +1,3 @@
-
 from sentry.models import Broadcast, BroadcastSeen
 from sentry.testutils import APITestCase
 

@@ -1,4 +1,3 @@
-
 from sentry.api.event_search import (
     InvalidSearchQuery,
     AggregateFilter,
@@ -86,9 +85,7 @@ class ParseSearchQueryTest(TestCase):
         with self.assertRaises(InvalidSearchQuery) as cm:
             parse_search_query("is:wrong")
 
-        assert str(cm.exception).startswith(
-            'Invalid value for "is" search, valid values are'
-        )
+        assert str(cm.exception).startswith('Invalid value for "is" search, valid values are')
 
     def test_is_query_inbox(self):
         assert parse_search_query("is:for_review") == [

@@ -2347,9 +2347,8 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile(id, 0.75)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert (
-            "percentile(id, 0.75): column argument invalid: id is not a numeric column"
-            in str(err)
+        assert "percentile(id, 0.75): column argument invalid: id is not a numeric column" in str(
+            err
         )
 
         with pytest.raises(InvalidSearchQuery) as err:
@@ -2372,9 +2371,8 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["epm(30)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert (
-            "epm(30): interval argument invalid: 30 must be greater than or equal to 60"
-            in str(err)
+        assert "epm(30): interval argument invalid: 30 must be greater than or equal to 60" in str(
+            err
         )
 
         with pytest.raises(InvalidSearchQuery) as err:
@@ -2385,9 +2383,7 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["epm()"]
             resolve_field_list(fields, eventstore.Filter(start="abc", end="def"))
-        assert "epm(): invalid arguments: function called with invalid default" in str(
-            err
-        )
+        assert "epm(): invalid arguments: function called with invalid default" in str(err)
 
         fields = ["epm()"]
         result = resolve_field_list(
@@ -2460,10 +2456,7 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["eps(0)"]
             result = resolve_field_list(fields, eventstore.Filter())
-        assert (
-            "eps(0): interval argument invalid: 0 must be greater than or equal to 1"
-            in str(err)
-        )
+        assert "eps(0): interval argument invalid: 0 must be greater than or equal to 1" in str(err)
 
     def test_array_join_function(self):
         fields = [

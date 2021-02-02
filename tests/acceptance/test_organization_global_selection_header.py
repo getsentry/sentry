@@ -131,9 +131,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         """
         self.create_issues()
         # Issues list with project 1 selected
-        self.issues_list.visit_issue_list(
-            self.org.slug, query="?project=" + str(self.project_1.id)
-        )
+        self.issues_list.visit_issue_list(self.org.slug, query="?project=" + str(self.project_1.id))
         self.issues_list.visit_issue_list(self.org.slug)
         assert self.issues_list.global_selection.get_selected_project_slug() == self.project_1.slug
 

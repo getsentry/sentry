@@ -111,5 +111,5 @@ class MockService(StubService):
         if not os.path.exists(path):
             return None
 
-        with open(path, 'r') as f:
+        with open(path, "r") as f:
             return json.loads(f.read())

@@ -405,9 +405,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["id"] == str(self.group.id)
         group_2 = self.create_group()
         response = self.get_valid_response(group=[self.group.id, group_2.id])
-        assert set([g["id"] for g in response.data]) == set(
-            [str(self.group.id), str(group_2.id)]
-        )
+        assert set([g["id"] for g in response.data]) == set([str(self.group.id), str(group_2.id)])
 
     def test_lookup_by_group_id_no_perms(self):
         organization = self.create_organization()

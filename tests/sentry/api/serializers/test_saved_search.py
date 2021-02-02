@@ -1,4 +1,3 @@
-
 from sentry.api.serializers import serialize
 from sentry.models import SavedSearch
 from sentry.testutils import TestCase

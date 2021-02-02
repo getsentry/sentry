@@ -1,4 +1,3 @@
-
 from sentry.api.serializers import serialize, SimpleEventSerializer
 from sentry.api.serializers.models.event import SharedEventSerializer
 from sentry.models import EventError

@@ -1,4 +1,3 @@
-
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamWithProjectsSerializer
 from sentry.models import InviteStatus
