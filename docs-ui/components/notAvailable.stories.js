@@ -23,6 +23,10 @@ export const Default = () => (
         </div>
       </PanelTable>
     </div>
+    <div className="section">
+      <h3>With Tooltip</h3>
+      <NotAvailable tooltip="Reason why this is not available" />
+    </div>
   </div>
 );
 

@@ -1,8 +1,21 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-function NotAvailable() {
-  return <Wrapper>{'\u2014'}</Wrapper>;
+import Tooltip from 'app/components/tooltip';
+import {defined} from 'app/utils';
+
+type Props = {
+  tooltip?: React.ReactNode;
+};
+
+function NotAvailable({tooltip}: Props) {
+  return (
+    <Wrapper>
+      <Tooltip title={tooltip} disabled={!defined(tooltip)}>
+        {'\u2014'}
+      </Tooltip>
+    </Wrapper>
+  );
 }
 
 const Wrapper = styled('div')`
