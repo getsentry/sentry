@@ -9,6 +9,7 @@ import * as queryString from 'query-string';
 import Reflux from 'reflux';
 
 import {hideSidebar, showSidebar} from 'app/actionCreators/preferences';
+import SidebarPanelActions from 'app/actions/sidebarPanelActions';
 import Feature from 'app/components/acl/feature';
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
 import {
@@ -31,6 +32,7 @@ import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import HookStore from 'app/stores/hookStore';
 import PreferencesStore from 'app/stores/preferencesStore';
+import SidebarPanelStore from 'app/stores/sidebarPanelStore';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
@@ -47,6 +49,7 @@ import {SidebarOrientation, SidebarPanelKey} from './types';
 
 type Props = {
   organization: Organization;
+  activePanel: SidebarPanelKey | '';
   collapsed: boolean;
   location?: Location;
   children?: never;
@@ -54,7 +57,6 @@ type Props = {
 
 type State = {
   horizontal: boolean;
-  currentPanel: SidebarPanelKey | '';
 };
 
 class Sidebar extends React.Component<Props, State> {
@@ -73,7 +75,6 @@ class Sidebar extends React.Component<Props, State> {
 
   state: State = {
     horizontal: false,
-    currentPanel: '',
   };
 
   componentDidMount() {
@@ -161,8 +162,8 @@ class Sidebar extends React.Component<Props, State> {
     });
   };
 
-  // Hide slideout panel
-  hidePanel = () => this.setState({currentPanel: ''});
+  togglePanel = (panel: SidebarPanelKey) => SidebarPanelActions.togglePanel(panel);
+  hidePanel = () => SidebarPanelActions.hidePanel();
 
   // Keep the global selection querystring values in the path
   navigateWithGlobalSelection = (
@@ -196,17 +197,6 @@ class Sidebar extends React.Component<Props, State> {
     }
 
     this.hidePanel();
-  };
-
-  // Show slideout panel
-  showPanel = (panel: SidebarPanelKey) => this.setState({currentPanel: panel});
-
-  togglePanel = (panel: SidebarPanelKey) => {
-    if (this.state.currentPanel === panel) {
-      this.hidePanel();
-    } else {
-      this.showPanel(panel);
-    }
   };
 
   /**
@@ -251,11 +241,11 @@ class Sidebar extends React.Component<Props, State> {
   }
 
   render() {
-    const {organization, collapsed} = this.props;
-    const {currentPanel, horizontal} = this.state;
+    const {activePanel, organization, collapsed} = this.props;
+    const {horizontal} = this.state;
     const config = ConfigStore.getConfig();
     const user = ConfigStore.get('user');
-    const hasPanel = !!currentPanel;
+    const hasPanel = !!activePanel;
     const orientation: SidebarOrientation = horizontal ? 'top' : 'left';
     const sidebarItemProps = {
       orientation,
@@ -550,7 +540,7 @@ class Sidebar extends React.Component<Props, State> {
             <SidebarSection noMargin noPadding>
               <OnboardingStatus
                 org={organization}
-                currentPanel={currentPanel}
+                currentPanel={activePanel}
                 onShowPanel={() => this.togglePanel(SidebarPanelKey.OnboardingWizard)}
                 hidePanel={this.hidePanel}
                 {...sidebarItemProps}
@@ -572,7 +562,7 @@ class Sidebar extends React.Component<Props, State> {
               <Broadcasts
                 orientation={orientation}
                 collapsed={collapsed}
-                currentPanel={currentPanel}
+                currentPanel={activePanel}
                 onShowPanel={() => this.togglePanel(SidebarPanelKey.Broadcasts)}
                 hidePanel={this.hidePanel}
                 organization={organization}
@@ -580,7 +570,7 @@ class Sidebar extends React.Component<Props, State> {
               <ServiceIncidents
                 orientation={orientation}
                 collapsed={collapsed}
-                currentPanel={currentPanel}
+                currentPanel={activePanel}
                 onShowPanel={() => this.togglePanel(SidebarPanelKey.StatusUpdate)}
                 hidePanel={this.hidePanel}
               />
@@ -605,12 +595,16 @@ class Sidebar extends React.Component<Props, State> {
   }
 }
 
-const SidebarContainer = createReactClass<Omit<Props, 'collapsed'>>({
+const SidebarContainer = createReactClass<Omit<Props, 'collapsed' | 'activePanel'>>({
   displayName: 'SidebarContainer',
-  mixins: [Reflux.listenTo(PreferencesStore, 'onPreferenceChange') as any],
+  mixins: [
+    Reflux.listenTo(PreferencesStore, 'onPreferenceChange') as any,
+    Reflux.listenTo(SidebarPanelStore, 'onSidebarPanelChange') as any,
+  ],
   getInitialState() {
     return {
       collapsed: PreferencesStore.getInitialState().collapsed,
+      activePanel: '',
     };
   },
 
@@ -619,17 +613,19 @@ const SidebarContainer = createReactClass<Omit<Props, 'collapsed'>>({
       return;
     }
 
-    this.setState({
-      collapsed: preferences.collapsed,
-    });
+    this.setState({collapsed: preferences.collapsed});
+  },
+
+  onSidebarPanelChange(activePanel: SidebarPanelKey | '') {
+    this.setState({activePanel});
   },
 
   render() {
-    return <Sidebar {...this.props} collapsed={this.state.collapsed} />;
+    const {activePanel, collapsed} = this.state;
+    return <Sidebar {...this.props} {...{activePanel, collapsed}} />;
   },
 });
 
-export {Sidebar};
 export default withOrganization(SidebarContainer);
 
 const responsiveFlex = css`
