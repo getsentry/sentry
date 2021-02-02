@@ -194,9 +194,18 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
     const userDateJoined = new Date(user?.dateJoined);
 
     if (!forceShow) {
-      guideOptions = guideOptions.filter(({seen}) =>
-        seen ? false : user?.isSuperuser ? true : userDateJoined > assistantThreshold
-      );
+      guideOptions = guideOptions.filter(({seen, dateThreshold}) => {
+        if (seen) {
+          return false;
+        } else if (user?.isSuperuser) {
+          return true;
+        } else if (dateThreshold) {
+          // Don't show the guide to users who've joined after the date threshold
+          return userDateJoined < dateThreshold;
+        } else {
+          return userDateJoined > assistantThreshold;
+        }
+      });
     }
 
     const nextGuide =

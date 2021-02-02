@@ -17,6 +17,7 @@ export type GuideStep = {
 export type Guide = {
   guide: string;
   requiredTargets: string[];
+  dateThreshold?: Date;
   steps: GuideStep[];
   seen: boolean;
 };
@@ -28,6 +29,7 @@ export type GuidesContent = {
    * guide to be shown regardless.
    */
   requiredTargets: string[];
+  dateThreshold?: Date;
   steps: GuideStep[];
 }[];
 
