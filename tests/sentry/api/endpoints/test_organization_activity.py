@@ -22,7 +22,7 @@ class OrganizationActivityTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(activity.id)
-  
+
     def test_inbox(self):
         group = self.group
         org = group.organization
