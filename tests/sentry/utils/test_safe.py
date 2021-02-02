@@ -56,7 +56,7 @@ class TrimTest(unittest.TestCase):
 
 class TrimDictTest(unittest.TestCase):
     def test_large_dict(self):
-        value = dict((k, k) for k in range(500))
+        value = {k: k for k in range(500)}
         trim_dict(value)
         assert len(value) == 50
 
