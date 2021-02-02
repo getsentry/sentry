@@ -112,12 +112,12 @@ function getTermDescriptions(platform: PlatformKey | null) {
       return {
         ...commonTermsDescription,
         [SessionTerm.CRASHED]: t(
-          'During the session an unhandled error occurred that bubbled up to the global handler or the application loading process crashed.'
+          'During the session an unhandled global error/promise rejection occurred.'
         ),
         [SessionTerm.ABNORMAL]: t('Non applicable for Javascript.'),
         [SessionTerm.HEALTHY]: t('No errors were captured during session life-time.'),
         [SessionTerm.ERRORED]: t(
-          'During the session at least one error occurred that did not bubble up to the global handler. The application loading process did not crash.'
+          'During the session at least one handled error occurred.'
         ),
         [SessionTerm.UNHANDLED]:
           "An error was captured by the global 'onerror' or 'onunhandledrejection' handler.",

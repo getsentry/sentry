@@ -488,7 +488,7 @@ describe('Release Health Session Term', function () {
       'node-express'
     );
     expect(crashedSessionTerm).toEqual(
-      'During the session an unhandled error occurred that bubbled up to the global handler or the application loading process crashed.'
+      'During the session an unhandled global error/promise rejection occurred.'
     );
 
     // Crash Free Users
@@ -527,7 +527,7 @@ describe('Release Health Session Term', function () {
       'node-express'
     );
     expect(erroredSessionTerm).toEqual(
-      'During the session at least one error occurred that did not bubble up to the global handler. The application loading process did not crash.'
+      'During the session at least one handled error occurred.'
     );
 
     // Unhandled
@@ -554,7 +554,7 @@ describe('Release Health Session Term', function () {
       'javascript'
     );
     expect(crashedSessionTerm).toEqual(
-      'During the session an unhandled error occurred that bubbled up to the global handler or the application loading process crashed.'
+      'During the session an unhandled global error/promise rejection occurred.'
     );
 
     // Crash Free Users
@@ -593,7 +593,7 @@ describe('Release Health Session Term', function () {
       'javascript'
     );
     expect(erroredSessionTerm).toEqual(
-      'During the session at least one error occurred that did not bubble up to the global handler. The application loading process did not crash.'
+      'During the session at least one handled error occurred.'
     );
 
     // Unhandled
