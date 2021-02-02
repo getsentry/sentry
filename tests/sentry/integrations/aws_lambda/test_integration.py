@@ -67,6 +67,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
                 "accountNumber": None,
                 "error": None,
                 "initialStepNumber": 1,
+                "organization": serialize(self.organization),
             },
         )
 
@@ -99,6 +100,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
                 "accountNumber": account_number,
                 "error": "Please validate the Cloudformation stack was created successfully",
                 "initialStepNumber": 1,
+                "organization": serialize(self.organization),
             },
         )
 

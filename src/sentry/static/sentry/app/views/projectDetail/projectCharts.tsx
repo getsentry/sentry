@@ -14,6 +14,7 @@ import {
 } from 'app/components/charts/styles';
 import {Panel} from 'app/components/panels';
 import CHART_PALETTE from 'app/constants/chartPalette';
+import NOT_AVAILABLE_MESSAGES from 'app/constants/notAvailableMessages';
 import {t} from 'app/locale';
 import {Organization, SelectValue} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -85,10 +86,8 @@ class ProjectCharts extends React.Component<Props, State> {
     const {organization} = this.props;
     const hasPerformance = organization.features.includes('performance-view');
     const hasDiscover = organization.features.includes('discover-basic');
-    const noPerformanceTooltip = t(
-      'This view is only available with Performance Monitoring.'
-    );
-    const noDiscoverTooltip = t('This view is only available with Discover.');
+    const noPerformanceTooltip = NOT_AVAILABLE_MESSAGES.performance;
+    const noDiscoverTooltip = NOT_AVAILABLE_MESSAGES.discover;
 
     return [
       {

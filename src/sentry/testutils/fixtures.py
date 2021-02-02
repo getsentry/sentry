@@ -1,5 +1,3 @@
-# coding=utf-8
-
 import six
 
 from sentry.models import Activity, OrganizationMember, OrganizationMemberTeam

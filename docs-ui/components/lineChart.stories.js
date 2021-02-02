@@ -1,13 +1,13 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 
 import LineChart from 'app/components/charts/lineChart';
 
 export default {
   title: 'DataVisualization/Charts/LineChart',
+  component: LineChart,
 };
 
-export const Default = withInfo('Line Chart')(() => {
+export const _LineChart = () => {
   return (
     <LineChart
       style={{height: 400}}
@@ -57,8 +57,4 @@ export const Default = withInfo('Line Chart')(() => {
       ]}
     />
   );
-});
-
-Default.story = {
-  name: 'default',
 };

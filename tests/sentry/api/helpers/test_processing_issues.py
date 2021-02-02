@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from exam import fixture
 
 from sentry.api.helpers.processing_issues import get_processing_issues

@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from django.core import mail
 from django.utils import timezone
 
