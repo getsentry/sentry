@@ -995,14 +995,19 @@ def format_search_filter(term, params):
         # A blank term value means that this is a has filter
         group_ids = to_list(value)
     elif name == ISSUE_ALIAS:
-        if value != "" and params and "organization_id" in params:
+        operator = term.operator
+        if value == "unknown":
+            # `unknown` is a special value for when there is no issue associated with the event
+            operator = "=" if term.operator == "=" else "!="
+            value = ""
+        elif value != "" and params and "organization_id" in params:
             try:
                 group = Group.objects.by_qualified_short_id(params["organization_id"], value)
             except Exception:
                 raise InvalidSearchQuery("Invalid value '{}' for 'issue:' filter".format(value))
             else:
                 value = group.id
-        term = SearchFilter(SearchKey("issue.id"), term.operator, SearchValue(value))
+        term = SearchFilter(SearchKey("issue.id"), operator, SearchValue(value))
         converted_filter = convert_search_filter_to_snuba_query(term)
         conditions.append(converted_filter)
     elif name == RELEASE_ALIAS and params and value == "latest":

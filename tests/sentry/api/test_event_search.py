@@ -1815,6 +1815,17 @@ class GetSnubaQueryArgsTest(TestCase):
         assert _filter.filter_keys == {}
         assert _filter.group_ids == []
 
+    def test_unknown_issue_filter(self):
+        _filter = get_filter("issue:unknown", {"organization_id": self.organization.id})
+        assert _filter.conditions == [[["isNull", ["issue.id"]], "=", 1]]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
+        _filter = get_filter("!issue:unknown", {"organization_id": self.organization.id})
+        assert _filter.conditions == [["issue.id", "!=", 0]]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
     def test_user_display_filter(self):
         _filter = get_filter(
             "user.display:bill@example.com", {"organization_id": self.organization.id}
