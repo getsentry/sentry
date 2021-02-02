@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 from uuid import uuid4
 
 from sentry.api.serializers import serialize

@@ -27,6 +27,21 @@ export const COLUMN_TITLES = [
   'user misery',
 ];
 
+export enum PERFORMANCE_TERM {
+  APDEX = 'apdex',
+  TPM = 'tpm',
+  THROUGHPUT = 'throughput',
+  FAILURE_RATE = 'failureRate',
+  P50 = 'p50',
+  P75 = 'p75',
+  P95 = 'p95',
+  P99 = 'p99',
+  LCP = 'lcp',
+  USER_MISERY = 'userMisery',
+  STATUS_BREAKDOWN = 'statusBreakdown',
+  DURATION_DISTRIBUTION = 'durationDistribution',
+}
+
 export type TooltipOption = SelectValue<string> & {
   tooltip: string;
 };
@@ -34,80 +49,175 @@ export type TooltipOption = SelectValue<string> & {
 export function getAxisOptions(organization: LightWeightOrganization): TooltipOption[] {
   return [
     {
-      tooltip: getTermHelp(organization, 'apdex'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
       value: `apdex(${organization.apdexThreshold})`,
       label: t('Apdex'),
     },
     {
-      tooltip: getTermHelp(organization, 'tpm'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.TPM),
       value: 'tpm()',
       label: t('Transactions Per Minute'),
     },
     {
-      tooltip: getTermHelp(organization, 'failureRate'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE),
       value: 'failure_rate()',
       label: t('Failure Rate'),
     },
     {
-      tooltip: getTermHelp(organization, 'p50'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P50),
       value: 'p50()',
       label: t('p50 Duration'),
     },
     {
-      tooltip: getTermHelp(organization, 'p95'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P95),
       value: 'p95()',
       label: t('p95 Duration'),
     },
     {
-      tooltip: getTermHelp(organization, 'p99'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P99),
       value: 'p99()',
       label: t('p99 Duration'),
     },
   ];
 }
 
+export type AxisOption = TooltipOption & {
+  field: string;
+  isDistribution?: boolean;
+  isLeftDefault?: boolean;
+  isRightDefault?: boolean;
+};
+
 export function getFrontendAxisOptions(
   organization: LightWeightOrganization
-): TooltipOption[] {
+): AxisOption[] {
   return [
     {
-      tooltip: getTermHelp(organization, 'lcp'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.LCP),
       value: `p75(lcp)`,
       label: t('LCP p75'),
+      field: 'p75(measurements.lcp)',
+      isLeftDefault: true,
     },
     {
-      tooltip: getTermHelp(organization, 'lcp'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.DURATION_DISTRIBUTION),
       value: 'lcp_distribution',
       label: t('LCP Distribution'),
+      field: 'measurements.lcp',
+      isDistribution: true,
+      isRightDefault: true,
+    },
+    {
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.TPM),
+      value: 'tpm()',
+      label: t('Transactions Per Minute'),
+      field: 'tpm()',
+    },
+  ];
+}
+
+export function getFrontendOtherAxisOptions(
+  organization: LightWeightOrganization
+): AxisOption[] {
+  return [
+    {
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P50),
+      value: `p50()`,
+      label: t('Duration p50'),
+      field: 'p50(transaction.duration)',
+    },
+    {
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P75),
+      value: `p75()`,
+      label: t('Duration p75'),
+      field: 'p75(transaction.duration)',
+      isLeftDefault: true,
+    },
+    {
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P95),
+      value: `p95()`,
+      label: t('Duration p95'),
+      field: 'p95(transaction.duration)',
+    },
+    {
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.DURATION_DISTRIBUTION),
+      value: 'duration_distribution',
+      label: t('Duration Distribution'),
+      field: 'transaction.duration',
+      isDistribution: true,
+      isRightDefault: true,
     },
   ];
 }
 
 export function getBackendAxisOptions(
   organization: LightWeightOrganization
-): TooltipOption[] {
+): AxisOption[] {
   return [
     {
-      tooltip: getTermHelp(organization, 'p75'),
-      value: `p75()`,
-      label: t('Duration p75'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P50),
+      value: `p50()`,
+      label: t('Duration p50'),
+      field: 'p50(transaction.duration)',
     },
     {
-      tooltip: getTermHelp(organization, 'durationDistribution'),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P75),
+      value: `p75()`,
+      label: t('Duration p75'),
+      field: 'p75(transaction.duration)',
+      isLeftDefault: true,
+    },
+    {
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P95),
+      value: `p95()`,
+      label: t('Duration p95'),
+      field: 'p95(transaction.duration)',
+    },
+    {
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.P99),
+      value: `p99()`,
+      label: t('Duration p99'),
+      field: 'p99(transaction.duration)',
+    },
+    {
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
+      value: `apdex(${organization.apdexThreshold})`,
+      label: t('Apdex'),
+      field: `apdex(${organization.apdexThreshold})`,
+    },
+    {
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.TPM),
+      value: 'tpm()',
+      label: t('Transactions Per Minute'),
+      field: 'tpm()',
+    },
+    {
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE),
+      value: 'failure_rate()',
+      label: t('Failure Rate'),
+      field: 'failure_rate()',
+    },
+    {
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.DURATION_DISTRIBUTION),
       value: 'duration_distribution',
       label: t('Duration Distribution'),
+      field: 'transaction.duration',
+      isDistribution: true,
+      isRightDefault: true,
     },
   ];
 }
 
 type TermFormatter = (organization: LightWeightOrganization) => string;
 
-const PERFORMANCE_TERMS: Record<string, TermFormatter> = {
+const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
   apdex: () =>
     t(
       'Apdex is the ratio of both satisfactory and tolerable response times to all response times.'
     ),
   tpm: () => t('TPM is the number of recorded transaction events per minute.'),
+  throughput: () =>
+    t('Throughput is the number of recorded transaction events per minute.'),
   failureRate: () =>
     t(
       'Failure rate is the percentage of recorded transactions that had a known and unsuccessful status.'
@@ -173,11 +283,12 @@ function generateGenericPerformanceEventView(
   if (!query.statsPeriod && !hasStartAndEnd) {
     savedQuery.range = DEFAULT_STATS_PERIOD;
   }
-  savedQuery.orderby = decodeScalar(query.sort) || '-tpm';
+  savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
-  const searchQuery = decodeScalar(query.query) || '';
+  const searchQuery = decodeScalar(query.query, '');
   const conditions = tokenizeSearch(searchQuery);
-  conditions.setTagValues('event.type', ['transaction']);
+
+  // This is not an override condition since we want the duration to appear in the search bar as a default.
   if (!conditions.hasTag('transaction.duration')) {
     conditions.setTagValues('transaction.duration', ['<15m']);
   }
@@ -190,10 +301,66 @@ function generateGenericPerformanceEventView(
   }
   savedQuery.query = stringifyQueryObject(conditions);
 
-  return EventView.fromNewQueryWithLocation(savedQuery, location);
+  const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
+  eventView.additionalConditions.addTagValues('event.type', ['transaction']);
+  return eventView;
 }
 
-function generateFrontendPerformanceEventView(
+function generateBackendPerformanceEventView(
+  organization: LightWeightOrganization,
+  location: Location
+): EventView {
+  const {query} = location;
+
+  const hasStartAndEnd = query.start && query.end;
+  const savedQuery: NewQuery = {
+    id: undefined,
+    name: t('Performance'),
+    query: 'event.type:transaction',
+    projects: [],
+    fields: [
+      'key_transaction',
+      'transaction',
+      'transaction.op',
+      'project',
+      'tpm()',
+      'p50()',
+      'p95()',
+      'failure_rate()',
+      `apdex(${organization.apdexThreshold})`,
+      'count_unique(user)',
+      `user_misery(${organization.apdexThreshold})`,
+    ],
+    version: 2,
+  };
+
+  if (!query.statsPeriod && !hasStartAndEnd) {
+    savedQuery.range = DEFAULT_STATS_PERIOD;
+  }
+  savedQuery.orderby = decodeScalar(query.sort, '-tpm');
+
+  const searchQuery = decodeScalar(query.query, '');
+  const conditions = tokenizeSearch(searchQuery);
+
+  // This is not an override condition since we want the duration to appear in the search bar as a default.
+  if (!conditions.hasTag('transaction.duration')) {
+    conditions.setTagValues('transaction.duration', ['<15m']);
+  }
+
+  // If there is a bare text search, we want to treat it as a search
+  // on the transaction name.
+  if (conditions.query.length > 0) {
+    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`]);
+    conditions.query = [];
+  }
+  savedQuery.query = stringifyQueryObject(conditions);
+
+  const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
+  eventView.additionalConditions.addTagValues('event.type', ['transaction']);
+  return eventView;
+}
+
+function generateFrontendPageloadPerformanceEventView(
   organization: LightWeightOrganization,
   location: Location
 ): EventView {
@@ -223,11 +390,10 @@ function generateFrontendPerformanceEventView(
   if (!query.statsPeriod && !hasStartAndEnd) {
     savedQuery.range = DEFAULT_STATS_PERIOD;
   }
-  savedQuery.orderby = decodeScalar(query.sort) || '-tpm';
+  savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
-  const searchQuery = decodeScalar(query.query) || '';
+  const searchQuery = decodeScalar(query.query, '');
   const conditions = tokenizeSearch(searchQuery);
-  conditions.setTagValues('event.type', ['transaction']);
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
@@ -237,19 +403,79 @@ function generateFrontendPerformanceEventView(
   }
   savedQuery.query = stringifyQueryObject(conditions);
 
-  return EventView.fromNewQueryWithLocation(savedQuery, location);
+  const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
+  eventView.additionalConditions
+    .addTagValues('event.type', ['transaction'])
+    .addTagValues('transaction.op', ['pageload']);
+  return eventView;
 }
 
-export function generatePerformanceEventView(organization, location) {
-  const display = organization.features.includes('performance-landing-v2')
-    ? getCurrentLandingDisplay(location)
-    : undefined;
+function generateFrontendOtherPerformanceEventView(
+  organization: LightWeightOrganization,
+  location: Location
+): EventView {
+  const {query} = location;
+
+  const hasStartAndEnd = query.start && query.end;
+  const savedQuery: NewQuery = {
+    id: undefined,
+    name: t('Performance'),
+    query: 'event.type:transaction',
+    projects: [],
+    fields: [
+      'key_transaction',
+      'transaction',
+      'transaction.op',
+      'project',
+      'tpm()',
+      'p50(transaction.duration)',
+      'p75(transaction.duration)',
+      'p95(transaction.duration)',
+      'count_unique(user)',
+      `user_misery(${organization.apdexThreshold})`,
+    ],
+    version: 2,
+  };
+
+  if (!query.statsPeriod && !hasStartAndEnd) {
+    savedQuery.range = DEFAULT_STATS_PERIOD;
+  }
+  savedQuery.orderby = decodeScalar(query.sort, '-tpm');
+
+  const searchQuery = decodeScalar(query.query, '');
+  const conditions = tokenizeSearch(searchQuery);
+
+  // If there is a bare text search, we want to treat it as a search
+  // on the transaction name.
+  if (conditions.query.length > 0) {
+    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`]);
+    conditions.query = [];
+  }
+  savedQuery.query = stringifyQueryObject(conditions);
+
+  const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
+  eventView.additionalConditions
+    .addTagValues('event.type', ['transaction'])
+    .addTagValues('!transaction.op', ['pageload']);
+  return eventView;
+}
+
+export function generatePerformanceEventView(organization, location, projects) {
+  const eventView = generateGenericPerformanceEventView(organization, location);
+  if (!organization.features.includes('performance-landing-v2')) {
+    return eventView;
+  }
+
+  const display = getCurrentLandingDisplay(location, projects, eventView);
   switch (display?.field) {
-    case LandingDisplayField.FRONTEND:
-      return generateFrontendPerformanceEventView(organization, location);
+    case LandingDisplayField.FRONTEND_PAGELOAD:
+      return generateFrontendPageloadPerformanceEventView(organization, location);
+    case LandingDisplayField.FRONTEND_OTHER:
+      return generateFrontendOtherPerformanceEventView(organization, location);
     case LandingDisplayField.BACKEND:
+      return generateBackendPerformanceEventView(organization, location);
     default:
-      return generateGenericPerformanceEventView(organization, location);
+      return eventView;
   }
 }
 
@@ -285,13 +511,10 @@ export function generatePerformanceVitalDetailView(
   if (!query.statsPeriod && !hasStartAndEnd) {
     savedQuery.range = DEFAULT_STATS_PERIOD;
   }
-  savedQuery.orderby = decodeScalar(query.sort) || `-count`;
+  savedQuery.orderby = decodeScalar(query.sort, '-count');
 
-  const searchQuery = decodeScalar(query.query) || '';
+  const searchQuery = decodeScalar(query.query, '');
   const conditions = tokenizeSearch(searchQuery);
-
-  conditions.setTagValues('has', [vitalName]);
-  conditions.setTagValues('event.type', ['transaction']);
 
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
@@ -301,5 +524,9 @@ export function generatePerformanceVitalDetailView(
   }
   savedQuery.query = stringifyQueryObject(conditions);
 
-  return EventView.fromNewQueryWithLocation(savedQuery, location);
+  const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
+  eventView.additionalConditions
+    .addTagValues('event.type', ['transaction'])
+    .addTagValues('has', [vitalName]);
+  return eventView;
 }

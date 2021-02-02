@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import mock
-
 from pytz import utc
 from datetime import timedelta
 from django.utils import timezone
@@ -11,6 +7,7 @@ from rest_framework.exceptions import ParseError
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat import mock
 
 
 class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
@@ -35,7 +32,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             if facet["key"] == key:
                 actual = facet
                 break
-        assert actual is not None, "Could not find {} facet in {}".format(key, response.data)
+        assert actual is not None, f"Could not find {key} facet in {response.data}"
         assert "topValues" in actual
         key = lambda row: row["name"] if row["name"] is not None else ""
         assert sorted(expected, key=key) == sorted(actual["topValues"], key=key)
@@ -354,7 +351,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
 
         with self.feature(self.feature_list):
             response = self.client.get(
-                self.url, {"query": "project:{}".format(self.project.slug)}, format="json"
+                self.url, {"query": f"project:{self.project.slug}"}, format="json"
             )
 
         assert response.status_code == 200, response.content

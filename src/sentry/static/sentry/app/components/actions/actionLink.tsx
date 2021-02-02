@@ -7,7 +7,10 @@ import ConfirmableAction from './confirmableAction';
 
 type ConfirmableActionProps = React.ComponentProps<typeof ConfirmableAction>;
 
-type Props = Omit<ConfirmableActionProps, 'onConfirm' | 'confirmText' | 'children'> & {
+type Props = Omit<
+  ConfirmableActionProps,
+  'onConfirm' | 'confirmText' | 'children' | 'stopPropagation' | 'priority'
+> & {
   title: string;
   onAction?: () => void;
   children?: React.ReactNode;
@@ -15,6 +18,7 @@ type Props = Omit<ConfirmableActionProps, 'onConfirm' | 'confirmText' | 'childre
   disabled?: boolean;
   className?: string;
   shouldConfirm?: boolean;
+  confirmPriority?: ConfirmableActionProps['priority'];
   confirmLabel?: string;
 } & Partial<React.ComponentProps<typeof ActionButton>>;
 
@@ -28,6 +32,7 @@ export default function ActionLink({
   disabled,
   children,
   shouldConfirm,
+  confirmPriority,
   ...props
 }: Props) {
   const action = (
@@ -47,10 +52,12 @@ export default function ActionLink({
     return (
       <ConfirmableAction
         shouldConfirm={shouldConfirm}
+        priority={confirmPriority}
         disabled={disabled}
         message={message}
         confirmText={confirmLabel}
         onConfirm={onAction}
+        stopPropagation={disabled}
       >
         {action}
       </ConfirmableAction>

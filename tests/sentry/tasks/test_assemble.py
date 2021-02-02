@@ -1,12 +1,9 @@
-from __future__ import absolute_import
-
 import os
 import io
 from hashlib import sha1
 
 from django.core.files.base import ContentFile
 
-from six.moves import xrange
 
 from sentry.testutils import TestCase
 from sentry.tasks.assemble import (
@@ -32,13 +29,13 @@ class BaseAssembleTest(TestCase):
 
 class AssembleDifTest(BaseAssembleTest):
     def test_wrong_dif(self):
-        content1 = "foo".encode("utf-8")
+        content1 = b"foo"
         fileobj1 = ContentFile(content1)
 
-        content2 = "bar".encode("utf-8")
+        content2 = b"bar"
         fileobj2 = ContentFile(content2)
 
-        content3 = "baz".encode("utf-8")
+        content3 = b"baz"
         fileobj3 = ContentFile(content3)
 
         total_checksum = sha1(content2 + content1 + content3).hexdigest()
@@ -79,7 +76,7 @@ class AssembleDifTest(BaseAssembleTest):
     def test_assemble_from_files(self):
         files = []
         file_checksum = sha1()
-        for _ in xrange(8):
+        for _ in range(8):
             blob = os.urandom(1024 * 1024 * 8)
             hash = sha1(blob).hexdigest()
             file_checksum.update(blob)
@@ -130,7 +127,7 @@ class AssembleDifTest(BaseAssembleTest):
         file_checksum = sha1()
         blob = os.urandom(1024 * 1024 * 8)
         hash = sha1(blob).hexdigest()
-        for _ in xrange(8):
+        for _ in range(8):
             file_checksum.update(blob)
             files.append((io.BytesIO(blob), hash))
 

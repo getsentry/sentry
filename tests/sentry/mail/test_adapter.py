@@ -1,17 +1,11 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 from datetime import datetime
 
-import mock
 import pytz
 from django.contrib.auth.models import AnonymousUser
 from django.core import mail
 from django.db.models import F
 from django.utils import timezone
 from exam import fixture
-from six import text_type
 
 from sentry.api.serializers import serialize, UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
@@ -38,6 +32,7 @@ from sentry.plugins.base import Notification
 from sentry.rules.processor import RuleFuture
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat import mock
 from sentry.utils.email import MessageBuilder
 
 
@@ -183,7 +178,7 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest, TestCase):
         uo1.delete()
 
         UserOption.objects.create(
-            key="subscribe_by_default", value=u"0", project=project, user=user4
+            key="subscribe_by_default", value="0", project=project, user=user4
         )
 
         assert user4.pk not in self.adapter.get_sendable_users(project)
@@ -196,7 +191,7 @@ class MailAdapterBuildSubjectPrefixTest(BaseMailAdapterTest, TestCase):
     def test_project_level_prefix(self):
         prefix = "[Example prefix] "
         ProjectOption.objects.set_value(
-            project=self.project, key=u"mail:subject_prefix", value=prefix
+            project=self.project, key="mail:subject_prefix", value=prefix
         )
         assert self.adapter._build_subject_prefix(self.project) == prefix
 
@@ -244,7 +239,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
     @mock.patch("sentry.interfaces.stacktrace.Stacktrace.get_title")
     @mock.patch("sentry.interfaces.stacktrace.Stacktrace.to_email_html")
     def test_notify_users_renders_interfaces_with_utf8(self, _to_email_html, _get_title):
-        _to_email_html.return_value = u"רונית מגן"
+        _to_email_html.return_value = "רונית מגן"
         _get_title.return_value = "Stacktrace"
 
         event = self.store_event(
@@ -281,7 +276,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         args, kwargs = _send_mail.call_args
         self.assertEquals(kwargs.get("project"), self.project)
         self.assertEquals(kwargs.get("reference"), group)
-        assert kwargs.get("subject") == u"BAR-1 - hello world"
+        assert kwargs.get("subject") == "BAR-1 - hello world"
 
     @mock.patch("sentry.mail.mail_adapter._send_mail")
     def test_multiline_error(self, _send_mail):
@@ -315,7 +310,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
 
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
-        assert msg.subject == u"[Sentry] BAR-1 - רונית מגן"
+        assert msg.subject == "[Sentry] BAR-1 - רונית מגן"
 
     def test_notify_with_suspect_commits(self):
         repo = Repository.objects.create(
@@ -448,15 +443,13 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         team = self.create_team(organization=self.organization, members=[user, user2])
         project = self.create_project(teams=[team])
         event = self.store_event(data=self.make_event_data("foo.py"), project_id=project.id)
-        self.assert_notify(
-            event, [user.email, user2.email], ActionTargetType.TEAM, text_type(team.id)
-        )
+        self.assert_notify(event, [user.email, user2.email], ActionTargetType.TEAM, str(team.id))
 
     def test_notify_user(self):
         user = self.create_user(email="foo@example.com", is_active=True)
         self.create_team(organization=self.organization, members=[user])
         event = self.store_event(data=self.make_event_data("foo.py"), project_id=self.project.id)
-        self.assert_notify(event, [user.email], ActionTargetType.MEMBER, text_type(user.id))
+        self.assert_notify(event, [user.email], ActionTargetType.MEMBER, str(user.id))
 
 
 class MailAdapterGetDigestSubjectTest(BaseMailAdapterTest, TestCase):
@@ -510,7 +503,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, TestCase):
 
     def test_notify_digest_subject_prefix(self):
         ProjectOption.objects.set_value(
-            project=self.project, key=u"mail:subject_prefix", value="[Example prefix] "
+            project=self.project, key="mail:subject_prefix", value="[Example prefix] "
         )
         event = self.store_event(
             data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group-1"]},
@@ -653,13 +646,11 @@ class MailAdapterGetSendToOwnersTest(BaseMailAdapterTest, TestCase):
 
 class MailAdapterGetSendToTeamTest(BaseMailAdapterTest, TestCase):
     def test_send_to_team(self):
-        assert set([self.user.id]) == self.adapter.get_send_to_team(
-            self.project, text_type(self.team.id)
-        )
+        assert set([self.user.id]) == self.adapter.get_send_to_team(self.project, str(self.team.id))
 
     def test_send_disabled(self):
         UserOption.objects.create(key="mail:alert", value=0, project=self.project, user=self.user)
-        assert set() == self.adapter.get_send_to_team(self.project, text_type(self.team.id))
+        assert set() == self.adapter.get_send_to_team(self.project, str(self.team.id))
 
     def test_invalid_team(self):
         assert set() == self.adapter.get_send_to_team(self.project, "900001")
@@ -668,28 +659,28 @@ class MailAdapterGetSendToTeamTest(BaseMailAdapterTest, TestCase):
         user_2 = self.create_user()
         team_2 = self.create_team(self.organization, members=[user_2])
         project_2 = self.create_project(organization=self.organization, teams=[team_2])
-        assert set([user_2.id]) == self.adapter.get_send_to_team(project_2, text_type(team_2.id))
-        assert set() == self.adapter.get_send_to_team(self.project, text_type(team_2.id))
+        assert set([user_2.id]) == self.adapter.get_send_to_team(project_2, str(team_2.id))
+        assert set() == self.adapter.get_send_to_team(self.project, str(team_2.id))
 
     def test_other_org_team(self):
         org_2 = self.create_organization()
         user_2 = self.create_user()
         team_2 = self.create_team(org_2, members=[user_2])
         project_2 = self.create_project(organization=org_2, teams=[team_2])
-        assert set([user_2.id]) == self.adapter.get_send_to_team(project_2, text_type(team_2.id))
-        assert set() == self.adapter.get_send_to_team(self.project, text_type(team_2.id))
+        assert set([user_2.id]) == self.adapter.get_send_to_team(project_2, str(team_2.id))
+        assert set() == self.adapter.get_send_to_team(self.project, str(team_2.id))
 
 
 class MailAdapterGetSendToMemberTest(BaseMailAdapterTest, TestCase):
     def test_send_to_user(self):
         assert set([self.user.id]) == self.adapter.get_send_to_member(
-            self.project, text_type(self.user.id)
+            self.project, str(self.user.id)
         )
 
     def test_send_disabled_still_sends(self):
         UserOption.objects.create(key="mail:alert", value=0, project=self.project, user=self.user)
         assert set([self.user.id]) == self.adapter.get_send_to_member(
-            self.project, text_type(self.user.id)
+            self.project, str(self.user.id)
         )
 
     def test_invalid_user(self):
@@ -701,8 +692,8 @@ class MailAdapterGetSendToMemberTest(BaseMailAdapterTest, TestCase):
         team_2 = self.create_team(org_2, members=[user_2])
         team_3 = self.create_team(org_2, members=[user_2])
         project_2 = self.create_project(organization=org_2, teams=[team_2, team_3])
-        assert set([user_2.id]) == self.adapter.get_send_to_member(project_2, text_type(user_2.id))
-        assert set() == self.adapter.get_send_to_member(self.project, text_type(user_2.id))
+        assert set([user_2.id]) == self.adapter.get_send_to_member(project_2, str(user_2.id))
+        assert set() == self.adapter.get_send_to_member(self.project, str(user_2.id))
 
     def test_no_project_access(self):
         org_2 = self.create_organization()
@@ -711,8 +702,8 @@ class MailAdapterGetSendToMemberTest(BaseMailAdapterTest, TestCase):
         user_3 = self.create_user()
         self.create_team(org_2, members=[user_3])
         project_2 = self.create_project(organization=org_2, teams=[team_2])
-        assert set([user_2.id]) == self.adapter.get_send_to_member(project_2, text_type(user_2.id))
-        assert set() == self.adapter.get_send_to_member(self.project, text_type(user_3.id))
+        assert set([user_2.id]) == self.adapter.get_send_to_member(project_2, str(user_2.id))
+        assert set() == self.adapter.get_send_to_member(self.project, str(user_3.id))
 
 
 class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest, TestCase):
@@ -725,7 +716,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest, TestCase):
             group=self.group,
             type=Activity.ASSIGNED,
             user=self.create_user("foo@example.com"),
-            data={"assignee": text_type(self.user.id), "assigneeType": "user"},
+            data={"assignee": str(self.user.id), "assigneeType": "user"},
         )
 
         with self.tasks():
@@ -735,7 +726,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest, TestCase):
 
         msg = mail.outbox[0]
 
-        assert msg.subject == u"Re: [Sentry] BAR-1 - こんにちは"
+        assert msg.subject == "Re: [Sentry] BAR-1 - こんにちは"
         assert msg.to == [self.user.email]
 
     def test_assignment_team(self):
@@ -748,7 +739,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest, TestCase):
             group=self.group,
             type=Activity.ASSIGNED,
             user=self.create_user("foo@example.com"),
-            data={"assignee": text_type(self.project.teams.first().id), "assigneeType": "team"},
+            data={"assignee": str(self.project.teams.first().id), "assigneeType": "team"},
         )
 
         with self.tasks():
@@ -758,7 +749,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest, TestCase):
 
         msg = mail.outbox[0]
 
-        assert msg.subject == u"Re: [Sentry] BAR-1 - こんにちは"
+        assert msg.subject == "Re: [Sentry] BAR-1 - こんにちは"
         assert msg.to == [self.user.email]
 
     def test_note(self):
@@ -784,7 +775,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest, TestCase):
 
         msg = mail.outbox[-1]
 
-        assert msg.subject == u"Re: [Sentry] BAR-1 - こんにちは"
+        assert msg.subject == "Re: [Sentry] BAR-1 - こんにちは"
         assert msg.to == [self.user.email]
 
 
@@ -822,8 +813,9 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest, TestCase):
         assert "group-header" in msg.alternatives[0][0]
         assert "enhanced privacy" not in msg.body
 
-        assert msg.subject == u"[Sentry] {} - New Feedback from Homer Simpson".format(
-            self.group.qualified_short_id
+        assert (
+            msg.subject
+            == f"[Sentry] {self.group.qualified_short_id} - New Feedback from Homer Simpson"
         )
         assert msg.to == [self.user.email]
 
@@ -852,7 +844,8 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest, TestCase):
         assert "group-header" not in msg.alternatives[0][0]
         assert "enhanced privacy" in msg.body
 
-        assert msg.subject == u"[Sentry] {} - New Feedback from Homer Simpson".format(
-            self.group.qualified_short_id
+        assert (
+            msg.subject
+            == f"[Sentry] {self.group.qualified_short_id} - New Feedback from Homer Simpson"
         )
         assert msg.to == [self.user.email]

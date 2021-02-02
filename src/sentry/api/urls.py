@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 from django.conf.urls import include, url
 
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
@@ -92,7 +90,11 @@ from .endpoints.organization_details import OrganizationDetailsEndpoint
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
-from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsV2Endpoint
+from .endpoints.organization_events import (
+    OrganizationEventsEndpoint,
+    OrganizationEventsV2Endpoint,
+    OrganizationEventsGeoEndpoint,
+)
 from .endpoints.organization_events_histogram import OrganizationEventsHistogramEndpoint
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_meta import (
@@ -188,6 +190,7 @@ from .endpoints.organization_user_issues import OrganizationUserIssuesEndpoint
 from .endpoints.organization_user_issues_search import OrganizationUserIssuesSearchEndpoint
 from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.organization_users import OrganizationUsersEndpoint
+from .endpoints.organization_sdk_updates import OrganizationSdkUpdatesEndpoint
 from .endpoints.project_agnostic_rule_conditions import ProjectAgnosticRuleConditionsEndpoint
 from .endpoints.project_avatar import ProjectAvatarEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
@@ -268,8 +271,8 @@ from .endpoints.sentry_app_details import SentryAppDetailsEndpoint
 from .endpoints.sentry_app_features import SentryAppFeaturesEndpoint
 from .endpoints.sentry_app_publish_request import SentryAppPublishRequestEndpoint
 from .endpoints.sentry_app_installation_details import SentryAppInstallationDetailsEndpoint
-from .endpoints.sentry_app_installation_external_issues import (
-    SentryAppInstallationExternalIssuesEndpoint,
+from .endpoints.sentry_app_installation_external_issue_actions import (
+    SentryAppInstallationExternalIssueActionsEndpoint,
 )
 from .endpoints.sentry_app_installation_external_requests import (
     SentryAppInstallationExternalRequestsEndpoint,
@@ -427,7 +430,9 @@ urlpatterns = [
                     name="sentry-api-0-relay-publickeys",
                 ),
                 url(
-                    r"^live/$", RelayHealthCheck.as_view(), name="sentry-api-0-relays-healthcheck",
+                    r"^live/$",
+                    RelayHealthCheck.as_view(),
+                    name="sentry-api-0-relays-healthcheck",
                 ),
                 url(
                     r"^(?P<relay_id>[^\/]+)/$",
@@ -822,6 +827,11 @@ urlpatterns = [
                     OrganizationEventsEndpoint.as_view(),
                     name="sentry-api-0-organization-events",
                 ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/sdk-updates/$",
+                    OrganizationSdkUpdatesEndpoint.as_view(),
+                    name="sentry-api-0-organization-sdk-updates",
+                ),
                 # This is temporary while we alpha test eventsv2
                 url(
                     r"^(?P<organization_slug>[^\/]+)/eventsv2/$",
@@ -837,6 +847,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-stats/$",
                     OrganizationEventsStatsEndpoint.as_view(),
                     name="sentry-api-0-organization-events-stats",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/events-geo/$",
+                    OrganizationEventsGeoEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-geo",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-facets/$",
@@ -1205,9 +1220,9 @@ urlpatterns = [
         name="sentry-api-0-sentry-app-installation-external-requests",
     ),
     url(
-        r"^sentry-app-installations/(?P<uuid>[^\/]+)/external-issues/$",
-        SentryAppInstallationExternalIssuesEndpoint.as_view(),
-        name="sentry-api-0-sentry-app-installation-external-issues",
+        r"^sentry-app-installations/(?P<uuid>[^\/]+)/external-issue-actions/$",
+        SentryAppInstallationExternalIssueActionsEndpoint.as_view(),
+        name="sentry-api-0-sentry-app-installation-external-issue-actions",
     ),
     # Teams
     url(

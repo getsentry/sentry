@@ -15,51 +15,79 @@ export enum DynamicSamplingRuleType {
 
 export enum DynamicSamplingConditionOperator {
   /**
-   * It uses all other operators
+   * The not combinator has a similar structure with the only difference that "inner" is not an array
+   * and contains directly the negated condition
    */
-  ALL = 'all',
+  NOT = 'not',
+  /**
+   * Combine multiple sub-conditions with the operator 'or'
+   */
+  OR = 'or',
+  /**
+   * Combine multiple sub-conditions with the operator 'and'
+   */
+  AND = 'and',
+}
+
+export enum DynamicSamplingInnerOperator {
   /**
    * It uses glob matches for checking (e.g. releases use glob matching "1.1.*" will match release 1.1.1 and 1.1.2)
    */
-  GLOB_MATCH = 'globMatch',
+  GLOB_MATCH = 'glob',
   /**
    * It uses simple equality for checking
    */
-  EQUAL = 'equal',
-  /**
-   * It uses a case insensitive string comparison
-   */
-  STR_EQUAL_NO_CASE = 'strEqualNoCase',
+  EQUAL = 'eq',
 }
 
-export type DynamicSamplingCondition = {
-  /**
-   * The function that will be applied to check if the condition is satisfied.
-   * Currently there are three operators defined.
-   */
-  operator: DynamicSamplingConditionOperator;
-  /**
-   * The name of the filed to be used for comparison
-   */
-  name: string;
-  /**
-   * Values to be compared (using the operator) against the field (specified by the field name)
-   */
-  value: Array<string> | string | number | boolean;
+export enum DynamicSamplingInnerName {
+  TRACE_RELEASE = 'trace.release',
+  TRACE_ENVIRONMENT = 'trace.environment',
+  TRACE_USER = 'trace.user',
+  EVENT_RELEASE = 'event.release',
+  EVENT_ENVIRONMENT = 'event.environment',
+  EVENT_USER = 'event.user',
+  LEGACY_BROWSERS = 'legacy-browsers',
+}
+
+type DynamicSamplingConditionLogicalInnerGlob = {
+  op: DynamicSamplingInnerOperator.GLOB_MATCH;
+  name: DynamicSamplingInnerName;
+  value: Array<string>;
 };
 
+type DynamicSamplingConditionLogicalInnerEq = {
+  op: DynamicSamplingInnerOperator.EQUAL;
+  name: DynamicSamplingInnerName;
+  value: Array<string>;
+  ignoreCase: boolean;
+};
+
+export type DynamicSamplingConditionLogicalInner =
+  | DynamicSamplingConditionLogicalInnerGlob
+  | DynamicSamplingConditionLogicalInnerEq;
+
+export type DynamicSamplingConditionNegation = {
+  op: DynamicSamplingConditionOperator.NOT;
+  inner: DynamicSamplingConditionLogicalInner;
+};
+
+export type DynamicSamplingConditionMultiple = {
+  op: DynamicSamplingConditionOperator.AND | DynamicSamplingConditionOperator.OR;
+  inner: Array<DynamicSamplingConditionLogicalInner>;
+};
+
+export type DynamicSamplingCondition =
+  | DynamicSamplingConditionNegation
+  | DynamicSamplingConditionMultiple;
+
 export type DynamicSamplingRule = {
-  /**
-   * It is a possibly empty list of project ids to which the rule applies.
-   * If the list is empty the rules applies for all projects in the organization
-   */
-  projectIds: Array<number>;
   /**
    * It is a possibly empty list of conditions to which the rule applies.
    * The conditions are combined using the and operator (so all the conditions must be satisfied for the rule to apply).
    * If the conditions field is an empty list the rule applies for all events that satisfy the projectIds and the ty fields.
    */
-  conditions: Array<DynamicSamplingCondition>;
+  condition: DynamicSamplingCondition;
   /**
    * It is the sampling rate that will be applied if the rule is selected
    */
@@ -67,7 +95,7 @@ export type DynamicSamplingRule = {
   /**
    * Describes the type of rule
    */
-  ty: DynamicSamplingRuleType;
+  type: DynamicSamplingRuleType;
 };
 
 export type DynamicSamplingRules = Array<DynamicSamplingRule>;

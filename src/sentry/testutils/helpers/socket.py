@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 import ipaddress
 from sentry.net import socket as net_socket

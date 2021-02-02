@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-import six
 from freezegun import freeze_time
 
 from sentry.data_export.base import ExportStatus, ExportQueryType
@@ -52,7 +49,7 @@ class DataExportTest(APITestCase):
         assert response.data == {
             "id": data_export.id,
             "user": {
-                "id": six.text_type(self.user.id),
+                "id": str(self.user.id),
                 "email": self.user.email,
                 "username": self.user.username,
             },
@@ -81,7 +78,7 @@ class DataExportTest(APITestCase):
         assert response2.data == {
             "id": data_export.id,
             "user": {
-                "id": six.text_type(self.user.id),
+                "id": str(self.user.id),
                 "email": self.user.email,
                 "username": self.user.username,
             },

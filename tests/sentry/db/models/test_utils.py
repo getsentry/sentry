@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.testutils import TestCase
 from sentry.db.models.utils import slugify_instance
 from sentry.models import Organization

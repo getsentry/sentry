@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 import threading
 from collections import defaultdict, namedtuple
@@ -118,7 +116,7 @@ class SynchronizedPartitionStateManager(object):
                 and updated_state not in self.transitions[previous_state]
             ):
                 raise InvalidStateTransition(
-                    u"Unexpected state transition for {}/{} from {} to {}".format(
+                    "Unexpected state transition for {}/{} from {} to {}".format(
                         topic, partition, previous_state, updated_state
                     )
                 )
@@ -165,7 +163,7 @@ class SynchronizedPartitionStateManager(object):
                 and updated_state not in self.transitions[previous_state]
             ):
                 raise InvalidStateTransition(
-                    u"Unexpected state transition for {}/{} from {} to {}".format(
+                    "Unexpected state transition for {}/{} from {} to {}".format(
                         topic, partition, previous_state, updated_state
                     )
                 )

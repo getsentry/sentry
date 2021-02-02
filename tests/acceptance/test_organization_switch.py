@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from selenium.common.exceptions import TimeoutException
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.utils.retries import TimedRetryPolicy
@@ -84,4 +82,4 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
 
     @staticmethod
     def url_creator(page_path, org_slug):
-        return u"organizations/{org_id}/{page_path}/".format(org_id=org_slug, page_path=page_path)
+        return f"organizations/{org_slug}/{page_path}/"

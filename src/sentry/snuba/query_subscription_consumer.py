@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import logging
 
 import jsonschema
@@ -267,7 +266,7 @@ class QuerySubscriptionConsumer(object):
                 )
                 return
 
-            logger.info(
+            logger.debug(
                 "query-subscription-consumer.handle_message",
                 extra={
                     "timestamp": contents["timestamp"],

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import hmac
 
 from django.core.urlresolvers import reverse
@@ -25,7 +23,7 @@ class ReleaseWebhookTestBase(TestCase):
     def signature(self):
         return hmac.new(
             key=self.token.encode("utf-8"),
-            msg=("{}-{}".format(self.plugin_id, self.project.id)).encode("utf-8"),
+            msg=(f"{self.plugin_id}-{self.project.id}").encode("utf-8"),
             digestmod=sha256,
         ).hexdigest()
 

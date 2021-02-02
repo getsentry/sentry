@@ -1,10 +1,9 @@
-from __future__ import absolute_import
-
 import sys
 import jsonschema
 import logging
 import six
 import time
+import base64
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -57,7 +56,9 @@ HTTP_SOURCE_SCHEMA = {
     "properties": dict(
         type={"type": "string", "enum": ["http"]},
         url={"type": "string"},
-        **COMMON_SOURCE_PROPERTIES
+        username={"type": "string"},
+        password={"type": "string"},
+        **COMMON_SOURCE_PROPERTIES,
     ),
     "required": ["type", "id", "url", "layout"],
     "additionalProperties": False,
@@ -72,7 +73,7 @@ S3_SOURCE_SCHEMA = {
         access_key={"type": "string"},
         secret_key={"type": "string"},
         prefix={"type": "string"},
-        **COMMON_SOURCE_PROPERTIES
+        **COMMON_SOURCE_PROPERTIES,
     ),
     "required": ["type", "id", "bucket", "region", "access_key", "secret_key", "layout"],
     "additionalProperties": False,
@@ -86,7 +87,7 @@ GCS_SOURCE_SCHEMA = {
         client_email={"type": "string"},
         private_key={"type": "string"},
         prefix={"type": "string"},
-        **COMMON_SOURCE_PROPERTIES
+        **COMMON_SOURCE_PROPERTIES,
     ),
     "required": ["type", "id", "bucket", "client_email", "private_key", "layout"],
     "additionalProperties": False,
@@ -99,7 +100,7 @@ SOURCES_SCHEMA = {
 
 
 def _task_id_cache_key_for_event(project_id, event_id):
-    return u"symbolicator:{1}:{0}".format(project_id, event_id)
+    return "symbolicator:{1}:{0}".format(project_id, event_id)
 
 
 class Symbolicator(object):
@@ -180,7 +181,8 @@ class Symbolicator(object):
 
     def process_applecrashreport(self, report):
         return self._process(
-            lambda: self.sess.upload_applecrashreport(report), "process_applecrashreport",
+            lambda: self.sess.upload_applecrashreport(report),
+            "process_applecrashreport",
         )
 
     def process_payload(self, stacktraces, modules, signal=None):
@@ -309,6 +311,24 @@ def is_internal_source_id(source_id):
     return source_id.startswith("sentry")
 
 
+def normalize_user_source(source):
+    """Sources supplied from the user frontend might not match the format that
+    symbolicator expects.  For instance we currently do not permit headers to be
+    configured in the UI, but we allow basic auth to be configured for HTTP.
+    This means that we need to convert from username/password into the HTTP
+    basic auth header.
+    """
+    if source.get("type") == "http":
+        username = source.pop("username", None)
+        password = source.pop("password", None)
+        if username or password:
+            auth = base64.b64encode(("%s:%s" % (username or "", password or "")).encode("utf-8"))
+            source["headers"] = {
+                "authorization": "Basic %s" % auth.decode("ascii"),
+            }
+    return source
+
+
 def parse_sources(config):
     """
     Parses the given sources in the config string (from JSON).
@@ -373,7 +393,7 @@ def get_sources_for_project(project):
     if sources_config:
         try:
             custom_sources = parse_sources(sources_config)
-            sources.extend(custom_sources)
+            sources.extend(normalize_user_source(source) for source in custom_sources)
         except InvalidSourcesError:
             # Source configs should be validated when they are saved. If this
             # did not happen, this indicates a bug. Record this, but do not stop

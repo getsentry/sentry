@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from django.core.urlresolvers import reverse
 
 from sentry.models import EventUser
@@ -30,4 +26,4 @@ class ProjectUserDetailsTest(APITestCase):
     def test_simple(self):
         response = self.client.get(self.path)
         assert response.status_code == 200
-        assert response.data["id"] == six.text_type(self.euser.id)
+        assert response.data["id"] == str(self.euser.id)

@@ -4,14 +4,18 @@ import {Observer} from 'mobx-react';
 import * as qs from 'query-string';
 
 import {addLoadingMessage} from 'app/actionCreators/indicator';
+import Alert from 'app/components/alert';
+import List from 'app/components/list';
+import ListItem from 'app/components/list/listItem';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {Project} from 'app/types';
 import Form from 'app/views/settings/components/forms/form';
-import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import FormModel from 'app/views/settings/components/forms/model';
-import {JsonFormObject} from 'app/views/settings/components/forms/type';
+import SentryProjectSelectorField from 'app/views/settings/components/forms/sentryProjectSelectorField';
 
 import FooterWithButtons from './components/footerWithButtons';
+import HeaderWithHelp from './components/headerWithHelp';
 
 type Props = {projects: Project[]};
 
@@ -35,45 +39,48 @@ export default class AwsLambdaProjectSelect extends React.Component<Props> {
 
   render() {
     const {projects} = this.props;
-    const formFields: JsonFormObject = {
-      title: t('Select a project to use for your AWS Lambda functions'),
-      fields: [
-        {
-          name: 'projectId',
-          type: 'sentry_project_selector',
-          required: true,
-          label: t('Select a project'),
-          inline: false,
-          projects,
-          flexibleControlStateSize: true,
-        },
-      ],
-    };
-
     // TODO: Add logic if no projects
     return (
-      <Wrapper>
-        <StyledForm model={this.model} hideFooter>
-          <JsonForm forms={[formFields]} />
-        </StyledForm>
+      <React.Fragment>
+        <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws-lambda/" />
+        <StyledList symbol="colored-numeric">
+          <React.Fragment />
+          <ListItem>
+            <h4>{t('Select a project for your AWS Lambdas')}</h4>
+            <Form model={this.model} hideFooter>
+              <StyledSentryProjectSelectorField
+                placeholder={t('Select a project')}
+                name="projectId"
+                projects={projects}
+                inline={false}
+                hasControlState
+                flexibleControlStateSize
+                stacked
+              />
+              <Alert type="info">
+                {t('Currently only supports Node Lambda functions')}
+              </Alert>
+            </Form>
+          </ListItem>
+        </StyledList>
         <Observer>
           {() => (
             <FooterWithButtons
-              docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/"
               buttonText={t('Next')}
               onClick={this.handleSubmit}
               disabled={this.model.isSaving || !this.model.getValue('projectId')}
             />
           )}
         </Observer>
-      </Wrapper>
+      </React.Fragment>
     );
   }
 }
 
-const StyledForm = styled(Form)`
-  max-width: 500px;
-  margin: 50px;
+const StyledList = styled(List)`
+  padding: 100px 50px 50px 50px;
 `;
 
-const Wrapper = styled('div')``;
+const StyledSentryProjectSelectorField = styled(SentryProjectSelectorField)`
+  padding: 0 0 ${space(2)} 0;
+`;

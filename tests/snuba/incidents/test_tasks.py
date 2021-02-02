@@ -1,9 +1,6 @@
-from __future__ import absolute_import
-
 from copy import deepcopy
 from uuid import uuid4
 
-import six
 from confluent_kafka import Producer
 from django.conf import settings
 from django.core import mail
@@ -66,7 +63,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
                 trigger,
                 AlertRuleTriggerAction.Type.EMAIL,
                 AlertRuleTriggerAction.TargetType.USER,
-                six.text_type(self.user.id),
+                str(self.user.id),
             )
             return rule
 

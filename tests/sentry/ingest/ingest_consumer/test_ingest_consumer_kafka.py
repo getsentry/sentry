@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import datetime
 import time
 import logging
@@ -32,7 +30,7 @@ def get_test_message(default_project):
         now = datetime.datetime.now()
         # the event id should be 32 digits
         event_id = "{}".format(now.strftime("000000000000%Y%m%d%H%M%S%f"))
-        message_text = "some message {}".format(event_id)
+        message_text = f"some message {event_id}"
         project_id = project.id  # must match the project id set up by the test fixtures
         if type == "transaction":
             event = {
@@ -76,7 +74,12 @@ def get_test_message(default_project):
 
 @pytest.mark.django_db(transaction=True)
 def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
-    task_runner, kafka_producer, kafka_admin, requires_kafka, default_project, get_test_message,
+    task_runner,
+    kafka_producer,
+    kafka_admin,
+    requires_kafka,
+    default_project,
+    get_test_message,
 ):
     group_id = "test-consumer-{}".format(random.randint(0, 2 ** 16))
     topic_event_name = ConsumerType.get_topic_name(ConsumerType.Events)
@@ -124,7 +127,8 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
 
 
 def test_ingest_consumer_fails_when_not_autocreating_topics(
-    kafka_admin, requires_kafka,
+    kafka_admin,
+    requires_kafka,
 ):
     group_id = "test-consumer-{}".format(random.randint(0, 2 ** 16))
     topic_event_name = ConsumerType.get_topic_name(ConsumerType.Events)

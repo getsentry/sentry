@@ -2,11 +2,9 @@ import React from 'react';
 import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
 import uniqBy from 'lodash/uniqBy';
-import PropTypes from 'prop-types';
 
 import ProjectActions from 'app/actions/projectActions';
 import {Client} from 'app/api';
-import SentryTypes from 'app/sentryTypes';
 import ProjectsStore from 'app/stores/projectsStore';
 import {AvatarProject, Project} from 'app/types';
 import {defined} from 'app/utils';
@@ -125,16 +123,6 @@ type Props = {
  * `Organization` as well as being saved to `ProjectsStore`.
  */
 class Projects extends React.Component<Props, State> {
-  static propTypes: any = {
-    api: PropTypes.object.isRequired,
-    orgId: PropTypes.string.isRequired,
-    projects: PropTypes.arrayOf(SentryTypes.Project).isRequired,
-    slugs: PropTypes.arrayOf(PropTypes.string),
-    limit: PropTypes.number,
-    allProjects: PropTypes.bool,
-    passthroughPlaceholderProject: PropTypes.bool,
-  };
-
   static defaultProps: DefaultProps = {
     passthroughPlaceholderProject: true,
   };

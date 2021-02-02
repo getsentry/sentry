@@ -1,9 +1,6 @@
-from __future__ import absolute_import
-
 import logging
 from sentry.utils.compat import mock
 import pytest
-import six
 
 from sentry import eventstore
 from sentry.eventstore.models import Event
@@ -27,11 +24,11 @@ class EventStorageTest(TestCase):
         """
         min_ago = iso_format(before_now(minutes=1))
         self.store_event(
-            data={"event_id": "a" * 32, "timestamp": min_ago, "user": {"id": u"user1"}},
+            data={"event_id": "a" * 32, "timestamp": min_ago, "user": {"id": "user1"}},
             project_id=self.project.id,
         )
         self.store_event(
-            data={"event_id": "b" * 32, "timestamp": min_ago, "user": {"id": u"user2"}},
+            data={"event_id": "b" * 32, "timestamp": min_ago, "user": {"id": "user2"}},
             project_id=self.project.id,
         )
 
@@ -40,7 +37,7 @@ class EventStorageTest(TestCase):
         assert event.data._node_data is None
         self.eventstorage.bind_nodes([event, event2], "data")
         assert event.data._node_data is not None
-        assert event.data["user"]["id"] == u"user1"
+        assert event.data["user"]["id"] == "user1"
 
 
 class ServiceDelegationTest(TestCase, SnubaTestCase):
@@ -91,7 +88,7 @@ class ServiceDelegationTest(TestCase, SnubaTestCase):
                 "discover.result-mismatch",
                 extra={
                     "snuba_result": None,
-                    "snuba_discover_result": (six.text_type(self.project.id), "b" * 32),
+                    "snuba_discover_result": (str(self.project.id), "b" * 32),
                     "method": "get_next_event_id",
                     "event_id": event.event_id,
                     "filter_keys": _filter.filter_keys,

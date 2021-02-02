@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import responses
 import time
 
@@ -59,7 +57,10 @@ class BaseEventTest(APITestCase):
         )
 
         self.project1 = self.create_project(organization=self.org)
-        self.event1 = self.store_event(data={"message": "oh no"}, project_id=self.project1.id,)
+        self.event1 = self.store_event(
+            data={"message": "oh no"},
+            project_id=self.project1.id,
+        )
         self.group1 = self.event1.group
 
     def post_webhook(
@@ -201,7 +202,7 @@ class StatusActionTest(BaseEventTest):
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     def test_assign_to_team(self, verify):
         resp = self.post_webhook(
-            action_type=ACTION_TYPE.ASSIGN, assign_input=u"team:{}".format(self.team.id)
+            action_type=ACTION_TYPE.ASSIGN, assign_input=f"team:{self.team.id}"
         )
 
         assert resp.status_code == 200, resp.content
@@ -216,10 +217,7 @@ class StatusActionTest(BaseEventTest):
         assert GroupAssignee.objects.filter(group=self.group1, user=self.user).exists()
 
         assert b"Unassign" in responses.calls[0].request.body
-        assert (
-            u"Assigned to {}".format(self.user.email).encode("utf-8")
-            in responses.calls[0].request.body
-        )
+        assert f"Assigned to {self.user.email}".encode("utf-8") in responses.calls[0].request.body
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
@@ -233,10 +231,7 @@ class StatusActionTest(BaseEventTest):
 
         assert b"Unassign" in responses.calls[0].request.body
         assert "user_conversation_id" in responses.calls[0].request.url
-        assert (
-            u"Assigned to {}".format(self.user.email).encode("utf-8")
-            in responses.calls[0].request.body
-        )
+        assert f"Assigned to {self.user.email}".encode("utf-8") in responses.calls[0].request.body
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
@@ -250,10 +245,7 @@ class StatusActionTest(BaseEventTest):
 
         assert b"Unassign" in responses.calls[0].request.body
         assert "some_channel_id" in responses.calls[0].request.url
-        assert (
-            u"Assigned to {}".format(self.user.email).encode("utf-8")
-            in responses.calls[0].request.body
-        )
+        assert f"Assigned to {self.user.email}".encode("utf-8") in responses.calls[0].request.body
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)

@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import six
 from django.db import models
 from django.utils import timezone
@@ -43,12 +41,16 @@ class DashboardWidgetDisplayTypes(TypesClass):
     STACKED_AREA_CHART = 2
     BAR_CHART = 3
     TABLE = 4
+    WORLD_MAP = 5
+    BIG_NUMBER = 6
     TYPES = [
         (LINE_CHART, "line"),
         (AREA_CHART, "area"),
         (STACKED_AREA_CHART, "stacked_area"),
         (BAR_CHART, "bar"),
         (TABLE, "table"),
+        (WORLD_MAP, "world_map"),
+        (BIG_NUMBER, "big_number"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 
@@ -64,6 +66,9 @@ class DashboardWidgetQuery(Model):
     name = models.CharField(max_length=255)
     fields = ArrayField()
     conditions = models.TextField()
+    # Orderby condition for the query
+    orderby = models.TextField(default="")
+    # Order of the widget query in the widget.
     order = BoundedPositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
 

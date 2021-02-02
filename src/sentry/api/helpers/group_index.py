@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 import six
 
@@ -48,7 +46,7 @@ from sentry.models import (
     User,
     UserOption,
 )
-from sentry.models.groupinbox import add_group_to_inbox
+from sentry.models.groupinbox import add_group_to_inbox, GroupInboxRemoveAction
 from sentry.models.group import looks_like_short_id, STATUS_UPDATE_CHOICES
 from sentry.api.issue_search import convert_query_values, InvalidSearchQuery, parse_search_query
 from sentry.signals import (
@@ -101,7 +99,7 @@ def build_query_params_from_request(request, organization, projects, environment
             )
         except InvalidSearchQuery as e:
             raise ValidationError(
-                u"Your search query could not be parsed: {}".format(six.text_type(e))
+                "Your search query could not be parsed: {}".format(six.text_type(e))
             )
 
         validate_search_filter_permissions(organization, search_filters, request.user)
@@ -139,7 +137,7 @@ def validate_search_filter_permissions(organization, search_filters, user):
                     user=user, organization=organization, sender=validate_search_filter_permissions
                 )
                 raise ValidationError(
-                    u"You need access to the advanced search feature to use {}".format(feature_name)
+                    "You need access to the advanced search feature to use {}".format(feature_name)
                 )
 
 
@@ -310,7 +308,7 @@ def handle_discard(request, group_list, projects, user):
                 tombstone = GroupTombstone.objects.create(
                     previous_group_id=group.id,
                     actor_id=user.id if user else None,
-                    **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP}
+                    **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP},
                 )
             except IntegrityError:
                 # in this case, a tombstone has already been created
@@ -478,7 +476,7 @@ def rate_limit_endpoint(limit=1, window=1):
         def wrapper(self, request, *args, **kwargs):
             ip = request.META["REMOTE_ADDR"]
             if ratelimiter.is_limited(
-                u"rate_limit_endpoint:{}:{}".format(md5_text(function).hexdigest(), ip),
+                "rate_limit_endpoint:{}:{}".format(md5_text(function).hexdigest(), ip),
                 limit=limit,
                 window=window,
             ):
@@ -689,7 +687,9 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
 
                 group.status = GroupStatus.RESOLVED
                 group.resolved_at = now
-                remove_group_from_inbox(group, action="resolved", user=acting_user)
+                remove_group_from_inbox(
+                    group, action=GroupInboxRemoveAction.RESOLVED, user=acting_user
+                )
                 if has_inbox:
                     result["inbox"] = None
 
@@ -736,7 +736,9 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
             if new_status == GroupStatus.IGNORED:
                 metrics.incr("group.ignored", skip_internal=True)
                 for group in group_ids:
-                    remove_group_from_inbox(group, action="ignored", user=acting_user)
+                    remove_group_from_inbox(
+                        group, action=GroupInboxRemoveAction.IGNORED, user=acting_user
+                    )
                 if has_inbox:
                     result["inbox"] = None
 
@@ -1002,9 +1004,14 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
                 add_group_to_inbox(group, GroupInboxReason.MANUAL)
         elif not inbox:
             for group in group_list:
-                remove_group_from_inbox(group, action="mark_reviewed", user=acting_user)
+                remove_group_from_inbox(
+                    group, action=GroupInboxRemoveAction.MARK_REVIEWED, user=acting_user
+                )
                 issue_mark_reviewed.send_robust(
-                    project=project, user=acting_user, group=group, sender=update_groups,
+                    project=project,
+                    user=acting_user,
+                    group=group,
+                    sender=update_groups,
                 )
         result["inbox"] = inbox
 

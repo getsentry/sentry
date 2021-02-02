@@ -12,7 +12,7 @@ import {TableData} from 'app/utils/discover/discoverQuery';
 import {getAggregateAlias} from 'app/utils/discover/fields';
 import {formatAbbreviatedNumber} from 'app/utils/formatters';
 import {getPeriod} from 'app/utils/getPeriod';
-import {getTermHelp} from 'app/views/performance/data';
+import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 
 import MissingPerformanceButtons from '../missingFeatureButtons/missingPerformanceButtons';
 import {shouldFetchPreviousPeriod} from '../utils';
@@ -125,11 +125,11 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
   }
 
   get cardTitle() {
-    return t('Apdex Score');
+    return t('Apdex');
   }
 
   get cardHelp() {
-    return getTermHelp(this.props.organization, 'apdex');
+    return getTermHelp(this.props.organization, PERFORMANCE_TERM.APDEX);
   }
 
   get currentApdex() {
@@ -162,12 +162,12 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
     return null;
   }
 
-  get trendStyle(): React.ComponentProps<typeof ScoreCard>['trendStyle'] {
+  get trendStatus(): React.ComponentProps<typeof ScoreCard>['trendStatus'] {
     if (!this.trend) {
       return undefined;
     }
 
-    return this.trend > 0 ? 'bad' : 'good';
+    return this.trend > 0 ? 'good' : 'bad';
   }
 
   renderLoading() {
@@ -210,7 +210,7 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
         help={this.cardHelp}
         score={this.renderScore()}
         trend={this.renderTrend()}
-        trendStyle={this.trendStyle}
+        trendStatus={this.trendStatus}
       />
     );
   }

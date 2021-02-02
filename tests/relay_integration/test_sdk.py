@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function
 import uuid
 
 import pytest
@@ -56,9 +55,7 @@ def test_recursion_breaker(settings, post_event_with_sdk):
         with pytest.raises(ValueError):
             post_event_with_sdk({"message": "internal client test", "event_id": event_id})
 
-    assert_mock_called_once_with_partial(
-        save, settings.SENTRY_PROJECT, cache_key=u"e:{}:1".format(event_id)
-    )
+    assert_mock_called_once_with_partial(save, settings.SENTRY_PROJECT, cache_key=f"e:{event_id}:1")
 
 
 @pytest.mark.django_db

@@ -1,9 +1,6 @@
-from __future__ import absolute_import
-
 import unittest
 from datetime import timedelta
 
-import six
 from django.core.cache import cache
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -424,7 +421,7 @@ class AlertRuleTriggerActionTargetTest(TestCase):
     def test_user(self):
         trigger = AlertRuleTriggerAction(
             target_type=AlertRuleTriggerAction.TargetType.USER.value,
-            target_identifier=six.text_type(self.user.id),
+            target_identifier=str(self.user.id),
         )
         assert trigger.target == self.user
 
@@ -437,7 +434,7 @@ class AlertRuleTriggerActionTargetTest(TestCase):
     def test_team(self):
         trigger = AlertRuleTriggerAction(
             target_type=AlertRuleTriggerAction.TargetType.TEAM.value,
-            target_identifier=six.text_type(self.team.id),
+            target_identifier=str(self.team.id),
         )
         assert trigger.target == self.team
 

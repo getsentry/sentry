@@ -1,12 +1,15 @@
 export type SidebarOrientation = 'top' | 'left';
 
-export type SidebarPanelKey = 'broadcasts' | 'todos' | 'statusupdate' | '';
+export enum SidebarPanelKey {
+  Broadcasts = 'broadcasts',
+  OnboardingWizard = 'todos',
+  StatusUpdate = 'statusupdate',
+}
 
 export type CommonSidebarProps = {
   orientation: SidebarOrientation;
   collapsed: boolean;
-  showPanel: boolean;
-  currentPanel: SidebarPanelKey;
+  currentPanel: SidebarPanelKey | '';
   hidePanel: () => void;
   onShowPanel: () => void;
 };

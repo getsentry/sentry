@@ -2,17 +2,16 @@ import React from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location, LocationDescriptor} from 'history';
-import PropTypes from 'prop-types';
 
 import {fetchTagFacets, Tag, TagSegment} from 'app/actionCreators/events';
 import {Client} from 'app/api';
+import ErrorPanel from 'app/components/charts/errorPanel';
 import {SectionHeading} from 'app/components/charts/styles';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Placeholder from 'app/components/placeholder';
 import TagDistributionMeter from 'app/components/tagDistributionMeter';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -37,14 +36,6 @@ type State = {
 };
 
 class Tags extends React.Component<Props, State> {
-  static propTypes: any = {
-    api: PropTypes.object.isRequired,
-    organization: SentryTypes.Organization.isRequired,
-    location: PropTypes.object.isRequired,
-    eventView: PropTypes.object.isRequired,
-    confirmedQuery: PropTypes.bool,
-  };
-
   state: State = {
     loading: true,
     tags: [],
@@ -153,16 +144,17 @@ class Tags extends React.Component<Props, State> {
       return this.renderPlaceholders();
     }
     if (error) {
-      return <EmptyStateWarning small />;
+      return (
+        <ErrorPanel height="132px">
+          <IconWarning color="gray300" size="lg" />
+        </ErrorPanel>
+      );
     }
     if (tags.length > 0) {
       return tags.map(tag => this.renderTag(tag));
     } else {
       return (
-        <StyledError>
-          <StyledIconWarning color="gray300" size="lg" />
-          {t('No tags found')}
-        </StyledError>
+        <StyledEmptyStateWarning small>{t('No tags found')}</StyledEmptyStateWarning>
       );
     }
   };
@@ -177,14 +169,9 @@ class Tags extends React.Component<Props, State> {
   }
 }
 
-const StyledError = styled('div')`
-  color: ${p => p.theme.gray300};
-  display: flex;
-  align-items: center;
-`;
-
-const StyledIconWarning = styled(IconWarning)`
-  margin-right: ${space(1)};
+const StyledEmptyStateWarning = styled(EmptyStateWarning)`
+  height: 132px;
+  padding: 54px 15%;
 `;
 
 const StyledPlaceholder = styled(Placeholder)`

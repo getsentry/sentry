@@ -2,7 +2,6 @@ import React from 'react';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import moment from 'moment-timezone';
-import PropTypes from 'prop-types';
 
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
@@ -51,11 +50,6 @@ type State = {
 };
 
 class TimeSince extends React.PureComponent<Props, State> {
-  static propTypes = {
-    date: PropTypes.any.isRequired,
-    suffix: PropTypes.string,
-  };
-
   static defaultProps: DefaultProps = {
     suffix: 'ago',
   };

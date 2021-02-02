@@ -74,12 +74,20 @@ class PerformanceLanding extends React.Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Props, prevState: State): State {
     return {
       ...prevState,
-      eventView: generatePerformanceEventView(nextProps.organization, nextProps.location),
+      eventView: generatePerformanceEventView(
+        nextProps.organization,
+        nextProps.location,
+        nextProps.projects
+      ),
     };
   }
 
   state: State = {
-    eventView: generatePerformanceEventView(this.props.organization, this.props.location),
+    eventView: generatePerformanceEventView(
+      this.props.organization,
+      this.props.location,
+      this.props.projects
+    ),
     error: undefined,
   };
 
@@ -169,7 +177,7 @@ class PerformanceLanding extends React.Component<Props, State> {
       ...location.query,
     };
 
-    const query = decodeScalar(location.query.query) || '';
+    const query = decodeScalar(location.query.query, '');
     const statsPeriod = decodeScalar(location.query.statsPeriod);
     const conditions = tokenizeSearch(query);
 

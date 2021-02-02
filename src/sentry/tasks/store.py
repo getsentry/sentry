@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import random
 import logging
 from datetime import datetime
@@ -24,7 +22,6 @@ from sentry.utils.dates import to_datetime
 from sentry.utils.sdk import set_current_project
 from sentry.models import ProjectOption, Activity, Project, Organization
 from sentry.eventstore.processing import event_processing_store
-from sentry.eventstore.processing.base import _get_unprocessed_key
 
 error_logger = logging.getLogger("sentry.errors.events")
 info_logger = logging.getLogger("sentry.store")
@@ -71,7 +68,12 @@ def should_process(data):
 
 
 def submit_process(
-    project, from_reprocessing, cache_key, event_id, start_time, data_has_changed=None,
+    project,
+    from_reprocessing,
+    cache_key,
+    event_id,
+    start_time,
+    data_has_changed=None,
 ):
     task = process_event_from_reprocessing if from_reprocessing else process_event
     task.delay(
@@ -146,9 +148,13 @@ def _do_preprocess_event(cache_key, data, start_time, event_id, process_task, pr
         return
 
     if should_process(data):
-        reprocessing2.backup_unprocessed_event(project=project, data=original_data)
         submit_process(
-            project, from_reprocessing, cache_key, event_id, start_time, data_has_changed=False,
+            project,
+            from_reprocessing,
+            cache_key,
+            event_id,
+            start_time,
+            data_has_changed=False,
         )
         return
 
@@ -219,6 +225,8 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
 
     from_reprocessing = symbolicate_task is symbolicate_event_from_reprocessing
 
+    symbolication_start_time = time()
+
     with sentry_sdk.start_span(op="tasks.store.symbolicate_event.symbolication") as span:
         span.set_data("symbolicaton_function", symbolication_function.__name__)
         with metrics.timer(
@@ -240,17 +248,15 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
                     break
                 except RetrySymbolication as e:
                     if (
-                        start_time
-                        and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT
-                    ):
+                        time() - symbolication_start_time
+                    ) > settings.SYMBOLICATOR_PROCESS_EVENT_WARN_TIMEOUT:
                         error_logger.warning(
                             "symbolicate.slow",
                             extra={"project_id": project_id, "event_id": event_id},
                         )
                     if (
-                        start_time
-                        and (time() - start_time) > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT
-                    ):
+                        time() - symbolication_start_time
+                    ) > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
                         # Do not drop event but actually continue with rest of pipeline
                         # (persisting unsymbolicated event)
                         metrics.incr(
@@ -553,7 +559,9 @@ def process_event(cache_key, start_time=None, event_id=None, data_has_changed=No
     :param boolean data_has_changed: set to True if the event data was changed in previous tasks
     """
     with sentry_sdk.start_transaction(
-        op="tasks.store.process_event", name="TaskProcessEvent", sampled=sample_process_event_apm(),
+        op="tasks.store.process_event",
+        name="TaskProcessEvent",
+        sampled=sample_process_event_apm(),
     ):
         return _do_process_event(
             cache_key=cache_key,
@@ -699,6 +707,7 @@ def create_failed_event(
             data=issue["data"],
         )
     event_processing_store.delete_by_key(cache_key)
+    event_processing_store.delete_by_key(cache_key)
 
     return True
 
@@ -777,7 +786,6 @@ def _do_save_event(
             if cache_key:
                 with metrics.timer("tasks.store.do_save_event.delete_cache"):
                     event_processing_store.delete_by_key(cache_key)
-                    event_processing_store.delete_by_key(_get_unprocessed_key(cache_key))
 
         finally:
             reprocessing2.mark_event_reprocessed(data)

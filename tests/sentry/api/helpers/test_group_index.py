@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.utils.compat.mock import patch, Mock
 from django.http import QueryDict
 
@@ -76,7 +74,7 @@ class UpdateGroupsTest(TestCase):
         request = self.make_request(user=self.user, method="GET")
         request.user = self.user
         request.data = {"status": "unresolved"}
-        request.GET = QueryDict(query_string="id={}".format(resolved_group.id))
+        request.GET = QueryDict(query_string=f"id={resolved_group.id}")
 
         search_fn = Mock()
         update_groups(request, [self.project], self.organization.id, search_fn)
@@ -96,7 +94,7 @@ class UpdateGroupsTest(TestCase):
         request = self.make_request(user=self.user, method="GET")
         request.user = self.user
         request.data = {"status": "resolved"}
-        request.GET = QueryDict(query_string="id={}".format(unresolved_group.id))
+        request.GET = QueryDict(query_string=f"id={unresolved_group.id}")
 
         search_fn = Mock()
         update_groups(request, [self.project], self.organization.id, search_fn)
@@ -115,7 +113,7 @@ class UpdateGroupsTest(TestCase):
         request = self.make_request(user=self.user, method="GET")
         request.user = self.user
         request.data = {"status": "ignored"}
-        request.GET = QueryDict(query_string="id={}".format(group.id))
+        request.GET = QueryDict(query_string=f"id={group.id}")
 
         search_fn = Mock()
         update_groups(request, [self.project], self.organization.id, search_fn)
@@ -133,7 +131,7 @@ class UpdateGroupsTest(TestCase):
         request = self.make_request(user=self.user, method="GET")
         request.user = self.user
         request.data = {"status": "unresolved"}
-        request.GET = QueryDict(query_string="id={}".format(group.id))
+        request.GET = QueryDict(query_string=f"id={group.id}")
 
         search_fn = Mock()
         update_groups(request, [self.project], self.organization.id, search_fn)
@@ -152,7 +150,7 @@ class UpdateGroupsTest(TestCase):
             request = self.make_request(user=self.user, method="GET")
             request.user = self.user
             request.data = {"inbox": False}
-            request.GET = QueryDict(query_string="id={}".format(group.id))
+            request.GET = QueryDict(query_string=f"id={group.id}")
 
             search_fn = Mock()
             update_groups(request, [self.project], self.organization.id, search_fn)

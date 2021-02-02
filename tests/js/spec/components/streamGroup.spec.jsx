@@ -49,7 +49,7 @@ describe('StreamGroup', function () {
     );
 
     expect(component.find('GuideAnchor').exists()).toBe(true);
-    expect(component.find('GuideAnchor')).toHaveLength(3);
+    expect(component.find('GuideAnchor')).toHaveLength(4);
     expect(component).toSnapshot();
   });
 
@@ -66,7 +66,7 @@ describe('StreamGroup', function () {
         groupId="groupId"
         lastSeen="2017-07-25T22:56:12Z"
         firstSeen="2017-07-01T02:06:02Z"
-        query="is:unresolved is:needs_review"
+        query="is:unresolved is:for_review"
         organization={organization}
         {...routerContext}
       />,

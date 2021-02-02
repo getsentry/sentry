@@ -1,7 +1,3 @@
-# coding: utf-8
-
-from __future__ import absolute_import
-
 import os.path
 from base64 import b64encode
 from django.utils.encoding import force_bytes
@@ -13,12 +9,10 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.utils.compat.mock import patch
 from sentry.models import File, Release, ReleaseFile
 
-# TODO(joshuarli): six 1.12.0 adds ensure_binary
-# might also want to put this in utils since we pretty much expect the result to be py3 str and not bytes
 BASE64_SOURCEMAP = "data:application/json;base64," + (
     b64encode(
-        u'{"version":3,"file":"generated.js","sources":["/test.js"],"names":[],"mappings":"AAAA","sourcesContent":['
-        '"console.log(\\"hello, World!\\")"]}'.encode("utf-8")
+        b'{"version":3,"file":"generated.js","sources":["/test.js"],"names":[],"mappings":"AAAA","sourcesContent":['
+        b'"console.log(\\"hello, World!\\")"]}'
     )
     .decode("utf-8")
     .replace("\n", "")
@@ -237,16 +231,16 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             "message": "hello",
             "platform": "javascript",
             "logentry": {
-                "formatted": u"ReferenceError: Impossible de d\xe9finir une propri\xe9t\xe9 \xab foo \xbb : objet non "
-                u"extensible"
+                "formatted": "ReferenceError: Impossible de d\xe9finir une propri\xe9t\xe9 \xab foo \xbb : objet non "
+                "extensible"
             },
             "exception": {
                 "values": [
-                    {"type": "Error", "value": u"P\u0159\xedli\u0161 mnoho soubor\u016f"},
+                    {"type": "Error", "value": "P\u0159\xedli\u0161 mnoho soubor\u016f"},
                     {
                         "type": "Error",
-                        "value": u"foo: wyst\u0105pi\u0142 nieoczekiwany b\u0142\u0105d podczas pr\xf3by uzyskania "
-                        u"informacji o metadanych",
+                        "value": "foo: wyst\u0105pi\u0142 nieoczekiwany b\u0142\u0105d podczas pr\xf3by uzyskania "
+                        "informacji o metadanych",
                     },
                 ]
             },
@@ -338,7 +332,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
 
         frame = frame_list[0]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
-        expected = u"\treturn a + b; // fôo"
+        expected = "\treturn a + b; // fôo"
         assert frame.context_line == expected
         assert frame.post_context == ["}", ""]
 
@@ -416,7 +410,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
 
         frame = frame_list[0]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
-        expected = u"\treturn a + b; // fôo"
+        expected = "\treturn a + b; // fôo"
         assert frame.context_line == expected
         assert frame.post_context == ["}", ""]
 
@@ -431,7 +425,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         )
         f_minified.putfile(open(get_fixture_path("nofiles.js"), "rb"))
         ReleaseFile.objects.create(
-            name=u"~/{}".format(f_minified.name),
+            name=f"~/{f_minified.name}",
             release=release,
             organization_id=project.organization_id,
             file=f_minified,
@@ -442,7 +436,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         )
         f_sourcemap.putfile(open(get_fixture_path("nofiles.js.map"), "rb"))
         ReleaseFile.objects.create(
-            name=u"app:///{}".format(f_sourcemap.name),
+            name=f"app:///{f_sourcemap.name}",
             release=release,
             organization_id=project.organization_id,
             file=f_sourcemap,
@@ -475,7 +469,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         assert len(frame_list) == 1
         frame = frame_list[0]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
-        assert frame.context_line == u"\treturn a * b;"
+        assert frame.context_line == "\treturn a * b;"
         assert frame.post_context == [
             "}",
             "function divide(a, b) {",
@@ -550,7 +544,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         frame = frame_list[0]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
 
-        expected = u"\treturn a + b; // fôo"
+        expected = "\treturn a + b; // fôo"
         assert frame.context_line == expected
         assert frame.post_context == ["}", ""]
 
@@ -604,7 +598,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         # Intentionally omit hostname - use alternate artifact path lookup instead
         # /file1.js vs http://example.com/file1.js
         ReleaseFile.objects.create(
-            name=u"~/{}?foo=bar".format(f_minified.name),
+            name=f"~/{f_minified.name}?foo=bar",
             release=release,
             organization_id=project.organization_id,
             file=f_minified,
@@ -619,7 +613,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         f1.putfile(open(get_fixture_path("file1.js"), "rb"))
 
         ReleaseFile.objects.create(
-            name=u"http://example.com/{}".format(f1.name),
+            name=f"http://example.com/{f1.name}",
             release=release,
             organization_id=project.organization_id,
             file=f1,
@@ -633,7 +627,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         )
         f2.putfile(open(get_fixture_path("file2.js"), "rb"))
         ReleaseFile.objects.create(
-            name=u"http://example.com/{}".format(f2.name),
+            name=f"http://example.com/{f2.name}",
             release=release,
             organization_id=project.organization_id,
             file=f2,
@@ -649,7 +643,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         )
         f2_empty.putfile(open(get_fixture_path("empty.js"), "rb"))
         ReleaseFile.objects.create(
-            name=u"~/{}".format(f2.name),  # intentionally using f2.name ("file2.js")
+            name=f"~/{f2.name}",  # intentionally using f2.name ("file2.js")
             release=release,
             organization_id=project.organization_id,
             file=f2_empty,
@@ -665,7 +659,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         )
         f_sourcemap.putfile(open(get_fixture_path("file.sourcemap.js"), "rb"))
         ReleaseFile.objects.create(
-            name=u"http://example.com/{}".format(f_sourcemap.name),
+            name=f"http://example.com/{f_sourcemap.name}",
             release=release,
             organization_id=project.organization_id,
             file=f_sourcemap,
@@ -710,7 +704,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
 
         frame = frame_list[0]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
-        assert frame.context_line == u"\treturn a + b; // fôo"
+        assert frame.context_line == "\treturn a + b; // fôo"
         assert frame.post_context == ["}", ""]
 
         frame = frame_list[1]
@@ -720,7 +714,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             "}",
             "function divide(a, b) {",
             '\t"use strict";',
-            u"\ttry {",
+            "\ttry {",
             "\t\treturn multiply(add(a, b), a, b) / c;",
         ]
 
@@ -742,7 +736,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         # Intentionally omit hostname - use alternate artifact path lookup instead
         # /file1.js vs http://example.com/file1.js
         ReleaseFile.objects.create(
-            name=u"~/{}?foo=bar".format(f_minified.name),
+            name=f"~/{f_minified.name}?foo=bar",
             release=release,
             dist=dist,
             organization_id=project.organization_id,
@@ -758,7 +752,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         f1.putfile(open(get_fixture_path("file1.js"), "rb"))
 
         ReleaseFile.objects.create(
-            name=u"http://example.com/{}".format(f1.name),
+            name=f"http://example.com/{f1.name}",
             release=release,
             dist=dist,
             organization_id=project.organization_id,
@@ -773,7 +767,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         )
         f2.putfile(open(get_fixture_path("file2.js"), "rb"))
         ReleaseFile.objects.create(
-            name=u"http://example.com/{}".format(f2.name),
+            name=f"http://example.com/{f2.name}",
             release=release,
             dist=dist,
             organization_id=project.organization_id,
@@ -790,7 +784,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         )
         f2_empty.putfile(open(get_fixture_path("empty.js"), "rb"))
         ReleaseFile.objects.create(
-            name=u"~/{}".format(f2.name),  # intentionally using f2.name ("file2.js")
+            name=f"~/{f2.name}",  # intentionally using f2.name ("file2.js")
             release=release,
             dist=dist,
             organization_id=project.organization_id,
@@ -807,7 +801,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         )
         f_sourcemap.putfile(open(get_fixture_path("file.sourcemap.js"), "rb"))
         ReleaseFile.objects.create(
-            name=u"http://example.com/{}".format(f_sourcemap.name),
+            name=f"http://example.com/{f_sourcemap.name}",
             release=release,
             dist=dist,
             organization_id=project.organization_id,
@@ -854,7 +848,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
 
         frame = frame_list[0]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
-        assert frame.context_line == u"\treturn a + b; // fôo"
+        assert frame.context_line == "\treturn a + b; // fôo"
         assert frame.post_context == ["}", ""]
 
         frame = frame_list[1]
@@ -864,7 +858,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             "}",
             "function divide(a, b) {",
             '\t"use strict";',
-            u"\ttry {",
+            "\ttry {",
             "\t\treturn multiply(add(a, b), a, b) / c;",
         ]
 
@@ -922,7 +916,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         event = self.post_and_retrieve_event(data)
 
         assert event.data["errors"] == [
-            {"url": u"http://example.com/file1.js", "type": "fetch_invalid_http_code", "value": 404}
+            {"url": "http://example.com/file1.js", "type": "fetch_invalid_http_code", "value": 404}
         ]
 
         exception = event.interfaces["exception"]
@@ -985,7 +979,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         event = self.post_and_retrieve_event(data)
 
         assert event.data["errors"] == [
-            {"url": u"http://example.com/unsupported.sourcemap.js", "type": "js_invalid_source"}
+            {"url": "http://example.com/unsupported.sourcemap.js", "type": "js_invalid_source"}
         ]
 
     def test_failed_sourcemap_expansion_data_url(self):
@@ -1014,7 +1008,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
 
         event = self.post_and_retrieve_event(data)
 
-        assert event.data["errors"] == [{"url": u"<data url>", "type": "js_no_source"}]
+        assert event.data["errors"] == [{"url": "<data url>", "type": "js_no_source"}]
 
     @responses.activate
     def test_failed_sourcemap_expansion_missing_location_entirely(self):
@@ -1113,8 +1107,8 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         event = self.post_and_retrieve_event(data)
 
         assert event.data["errors"] == [
-            {"url": u"http://example.com/file1.js", "type": "js_invalid_content"},
-            {"url": u"http://example.com/file2.js", "type": "js_invalid_content"},
+            {"url": "http://example.com/file1.js", "type": "js_invalid_content"},
+            {"url": "http://example.com/file2.js", "type": "js_invalid_content"},
         ]
 
     def test_node_processing(self):
@@ -1131,7 +1125,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         )
         f_minified.putfile(open(get_fixture_path("dist.bundle.js"), "rb"))
         ReleaseFile.objects.create(
-            name=u"~/{}".format(f_minified.name),
+            name=f"~/{f_minified.name}",
             release=release,
             organization_id=project.organization_id,
             file=f_minified,
@@ -1144,7 +1138,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         )
         f_sourcemap.putfile(open(get_fixture_path("dist.bundle.js.map"), "rb"))
         ReleaseFile.objects.create(
-            name=u"~/{}".format(f_sourcemap.name),
+            name=f"~/{f_sourcemap.name}",
             release=release,
             organization_id=project.organization_id,
             file=f_sourcemap,

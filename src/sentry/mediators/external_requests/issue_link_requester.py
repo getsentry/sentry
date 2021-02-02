@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 import logging
 from uuid import uuid4
@@ -57,7 +55,7 @@ class IssueLinkRequester(Mediator):
 
     def _build_url(self):
         urlparts = urlparse(self.sentry_app.webhook_url)
-        return u"{}://{}{}".format(urlparts.scheme, urlparts.netloc, self.uri)
+        return "{}://{}{}".format(urlparts.scheme, urlparts.netloc, self.uri)
 
     def _make_request(self):
         action_to_past_tense = {"create": "created", "link": "linked"}

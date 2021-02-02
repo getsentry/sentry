@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 
 
@@ -13,7 +11,7 @@ class ProjectReleaseTrackingSettingsTest(AcceptanceTestCase, SnubaTestCase):
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
 
         self.login_as(self.user)
-        self.path1 = u"/{}/{}/settings/release-tracking/".format(self.org.slug, self.project.slug)
+        self.path1 = f"/{self.org.slug}/{self.project.slug}/settings/release-tracking/"
 
     def test_tags_list(self):
         self.store_event(

@@ -1,10 +1,8 @@
-from __future__ import absolute_import
-
 import pytest
 import zipfile
 from sentry.utils.compat.mock import patch
 
-from six import BytesIO
+from io import BytesIO
 
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile

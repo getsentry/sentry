@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
-import six
-
 from django.conf import settings
 
 from sentry import features
@@ -21,7 +15,7 @@ class OrganizationSerializerTest(TestCase):
 
         result = serialize(organization, user)
 
-        assert result["id"] == six.text_type(organization.id)
+        assert result["id"] == str(organization.id)
         assert result["features"] == {
             "advanced-search",
             "custom-event-title",
@@ -55,7 +49,7 @@ class OrganizationSerializerTest(TestCase):
         features.add("organizations:test-feature", OrganizationFeature)
         features.add("organizations:disabled-feature", OrganizationFeature)
         mock_batch.return_value = {
-            "organization:{}".format(organization.id): {
+            f"organization:{organization.id}": {
                 "organizations:test-feature": True,
                 "organizations:disabled-feature": False,
             }
@@ -75,7 +69,7 @@ class DetailedOrganizationSerializerTest(TestCase):
         serializer = DetailedOrganizationSerializer()
         result = serialize(organization, user, serializer, access=acc)
 
-        assert result["id"] == six.text_type(organization.id)
+        assert result["id"] == str(organization.id)
         assert result["role"] == "owner"
         assert result["access"] == settings.SENTRY_SCOPES
         assert result["relayPiiConfig"] is None

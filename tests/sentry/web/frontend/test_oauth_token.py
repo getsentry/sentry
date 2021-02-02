@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from django.utils import timezone
 from exam import fixture
 
@@ -140,7 +136,7 @@ class OAuthTokenCodeTest(TestCase):
         assert data["refresh_token"] == token.refresh_token
         assert isinstance(data["expires_in"], int)
         assert data["token_type"] == "bearer"
-        assert data["user"]["id"] == six.text_type(token.user_id)
+        assert data["user"]["id"] == str(token.user_id)
 
 
 class OAuthTokenRefreshTokenTest(TestCase):

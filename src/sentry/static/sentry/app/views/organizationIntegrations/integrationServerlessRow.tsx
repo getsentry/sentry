@@ -8,7 +8,7 @@ import {
 } from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
-import Switch from 'app/components/switch';
+import Switch from 'app/components/switchButton';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {IntegrationWithConfig, Organization, ServerlessFunction} from 'app/types';
@@ -20,10 +20,17 @@ type Props = {
   api: Client;
   integration: IntegrationWithConfig;
   organization: Organization;
-  onUpdateFunction: (serverlessFunction: ServerlessFunction) => void;
+  onUpdateFunction: (serverlessFunctionUpdate: Partial<ServerlessFunction>) => void;
 };
 
-class IntegrationServerlessRow extends React.Component<Props> {
+type State = {
+  submitting: boolean;
+};
+
+class IntegrationServerlessRow extends React.Component<Props, State> {
+  state = {
+    submitting: false,
+  };
   get enabled() {
     return this.props.serverlessFunction.enabled;
   }
@@ -45,43 +52,57 @@ class IntegrationServerlessRow extends React.Component<Props> {
     );
   };
   toggleEnable = async () => {
+    const {serverlessFunction} = this.props;
     const action = this.enabled ? 'disable' : 'enable';
     const data = {
       action,
-      target: this.props.serverlessFunction.name,
+      target: serverlessFunction.name,
     };
     try {
       addLoadingMessage();
+      this.setState({submitting: true});
+      //optimistically update enable state
+      this.props.onUpdateFunction({enabled: !this.enabled});
       this.recordAction(action);
       const resp = await this.props.api.requestPromise(this.endpoint, {
         method: 'POST',
         data,
       });
+      //update remaining after response
       this.props.onUpdateFunction(resp);
       addSuccessMessage(t('Success'));
     } catch (err) {
-      // TODO: specific error handling
-      addErrorMessage(t('An error ocurred'));
+      //restore original on failure
+      this.props.onUpdateFunction(serverlessFunction);
+      addErrorMessage(err.responseJSON?.detail ?? t('Error occurred'));
     }
+    this.setState({submitting: false});
   };
   updateVersion = async () => {
+    const {serverlessFunction} = this.props;
     const data = {
       action: 'updateVersion',
-      target: this.props.serverlessFunction.name,
+      target: serverlessFunction.name,
     };
     try {
+      this.setState({submitting: true});
+      // don't know the latest version but at least optimistically remove the update button
+      this.props.onUpdateFunction({outOfDate: false});
       addLoadingMessage();
       this.recordAction('updateVersion');
       const resp = await this.props.api.requestPromise(this.endpoint, {
         method: 'POST',
         data,
       });
+      //update remaining after response
       this.props.onUpdateFunction(resp);
       addSuccessMessage(t('Success'));
     } catch (err) {
-      // TODO: specific error handling
-      addErrorMessage(t('An error ocurred'));
+      //restore original on failure
+      this.props.onUpdateFunction(serverlessFunction);
+      addErrorMessage(err.responseJSON?.detail ?? t('Error occurred'));
     }
+    this.setState({submitting: false});
   };
   renderLayerStatus() {
     const {serverlessFunction} = this.props;
@@ -96,9 +117,12 @@ class IntegrationServerlessRow extends React.Component<Props> {
   }
   render() {
     const {serverlessFunction} = this.props;
-    const versionText = this.enabled ? (
-      <React.Fragment>&nbsp;|&nbsp;v{serverlessFunction.version}</React.Fragment>
-    ) : null;
+    const {version} = serverlessFunction;
+    //during optimistic update, we might be enabled without a version
+    const versionText =
+      this.enabled && version > 0 ? (
+        <React.Fragment>&nbsp;|&nbsp;v{version}</React.Fragment>
+      ) : null;
     return (
       <Item>
         <NameWrapper>
@@ -111,7 +135,12 @@ class IntegrationServerlessRow extends React.Component<Props> {
           </NameRuntimeVersionWrapper>
         </NameWrapper>
         <LayerStatusWrapper>{this.renderLayerStatus()}</LayerStatusWrapper>
-        <StyledSwitch isActive={this.enabled} size="sm" toggle={this.toggleEnable} />
+        <StyledSwitch
+          isActive={this.enabled}
+          isDisabled={this.state.submitting}
+          size="sm"
+          toggle={this.toggleEnable}
+        />
       </Item>
     );
   }

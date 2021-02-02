@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from sentry.mediators import Param
 from sentry.models import User
 from sentry.testutils import TestCase
@@ -9,19 +5,19 @@ from sentry.testutils import TestCase
 
 class TestParam(TestCase):
     def test_validate_type(self):
-        name = Param(six.string_types)
+        name = Param((str,))
 
         with self.assertRaises(TypeError):
             name.validate(None, "name", 1)
 
     def test_validate_required(self):
-        name = Param(six.string_types)
+        name = Param((str,))
 
         with self.assertRaises(AttributeError):
             name.validate(None, "name", None)
 
     def test_validate_default_type(self):
-        name = Param(six.string_types, default=1)
+        name = Param((str,), default=1)
 
         with self.assertRaises(TypeError):
             name.validate(None, "name", None)
@@ -34,7 +30,7 @@ class TestParam(TestCase):
         class Target(object):
             name = 1
 
-        name = Param(six.string_types)
+        name = Param((str,))
         name.setup(Target, "name")
 
         assert not hasattr(Target, "name")
@@ -42,12 +38,12 @@ class TestParam(TestCase):
         assert Target._name == name
 
     def test_default(self):
-        name = Param(six.string_types, default="Pete")
+        name = Param((str,), default="Pete")
         assert name.default(None) == "Pete"
 
     def test_lambda_default(self):
         _name = "Steve"
-        name = Param(six.string_types, default=lambda self: _name)
+        name = Param((str,), default=lambda self: _name)
         assert name.default(None) == "Steve"
 
     def test_default_referencing_instance(self):
@@ -55,5 +51,5 @@ class TestParam(TestCase):
             user = {"name": "Pete"}
 
         target = Target()
-        name = Param(six.string_types, default=lambda self: self.user["name"])
+        name = Param((str,), default=lambda self: self.user["name"])
         assert name.default(target) == "Pete"

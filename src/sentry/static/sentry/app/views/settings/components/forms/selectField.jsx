@@ -16,7 +16,8 @@ const getChoices = props => {
 
 export default class SelectField extends React.Component {
   static propTypes = {
-    ...InputField.propTypes,
+    // TODO(ts)
+    // ...InputField.propTypes,
     choices: PropTypes.oneOfType([PropTypes.array, PropTypes.func]),
     options: PropTypes.arrayOf(PropTypes.object),
     allowClear: PropTypes.bool,
@@ -25,10 +26,12 @@ export default class SelectField extends React.Component {
     escapeMarkup: PropTypes.bool,
     small: PropTypes.bool,
     inFieldLabel: PropTypes.string,
+    stacked: PropTypes.bool,
   };
 
   static defaultProps = {
-    ...InputField.defaultProps,
+    // TODO(ts)
+    // ...InputField.propTypes,
     allowClear: false,
     allowEmpty: false,
     placeholder: '--',

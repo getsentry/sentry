@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-
 import pytz
 import requests
-import six
 
 from copy import deepcopy
 from exam import fixture
@@ -231,7 +228,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
             resp = self.get_valid_response(
                 self.organization.slug, status_code=400, **rule_no_triggers
             )
-            assert resp.data == {"triggers": [u"This field is required."]}
+            assert resp.data == {"triggers": ["This field is required."]}
 
     def test_no_critical_trigger(self):
         rule_one_trigger_only_warning = {
@@ -257,7 +254,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
             resp = self.get_valid_response(
                 self.organization.slug, status_code=400, **rule_one_trigger_only_warning
             )
-            assert resp.data == {"nonFieldErrors": [u'Trigger 1 must be labeled "critical"']}
+            assert resp.data == {"nonFieldErrors": ['Trigger 1 must be labeled "critical"']}
 
     def test_critical_trigger_no_action(self):
         rule_one_trigger_only_critical_no_action = {
@@ -309,7 +306,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
                     }
                 ],
             )
-            assert resp.data == {"projects": [u"Invalid project"]}
+            assert resp.data == {"projects": ["Invalid project"]}
 
     def test_no_feature(self):
         resp = self.get_response(self.organization.slug)
@@ -372,7 +369,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             projects=[self.project],
             date_added=before_now(minutes=3).replace(tzinfo=pytz.UTC),
         )
-        self.combined_rules_url = "/api/0/organizations/{0}/combined-rules/".format(self.org.slug)
+        self.combined_rules_url = f"/api/0/organizations/{self.org.slug}/combined-rules/"
 
     def test_invalid_limit(self):
         self.setup_project_and_rules()
@@ -395,7 +392,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         result = json.loads(response.content)
         assert len(result) == 4
         self.assert_alert_rule_serialized(self.yet_another_alert_rule, result[0], skip_dates=True)
-        assert result[1]["id"] == six.text_type(self.issue_rule.id)
+        assert result[1]["id"] == str(self.issue_rule.id)
         assert result[1]["type"] == "rule"
         self.assert_alert_rule_serialized(self.other_alert_rule, result[2], skip_dates=True)
         self.assert_alert_rule_serialized(self.alert_rule, result[3], skip_dates=True)
@@ -429,7 +426,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert response.status_code == 200
         result = json.loads(response.content)
         assert len(result) == 1
-        assert result[0]["id"] == six.text_type(self.issue_rule.id)
+        assert result[0]["id"] == str(self.issue_rule.id)
         assert result[0]["type"] == "rule"
 
     def test_limit_as_2_with_paging(self):
@@ -446,7 +443,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         result = json.loads(response.content)
         assert len(result) == 2
         self.assert_alert_rule_serialized(self.yet_another_alert_rule, result[0], skip_dates=True)
-        assert result[1]["id"] == six.text_type(self.issue_rule.id)
+        assert result[1]["id"] == str(self.issue_rule.id)
         assert result[1]["type"] == "rule"
 
         links = requests.utils.parse_header_links(

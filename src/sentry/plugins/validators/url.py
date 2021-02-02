@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.exceptions import PluginError
 from sentry.http import is_valid_url
 

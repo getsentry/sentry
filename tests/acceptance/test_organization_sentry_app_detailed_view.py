@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 from sentry.testutils import AcceptanceTestCase
 from sentry.models import SentryAppInstallation
 from tests.acceptance.page_objects.organization_integration_settings import (
@@ -21,7 +18,7 @@ class OrganizationSentryAppDetailedView(AcceptanceTestCase):
         self.login_as(self.user)
 
     def load_page(self, slug):
-        url = u"/settings/{}/sentry-apps/{}/".format(self.organization.slug, slug)
+        url = f"/settings/{self.organization.slug}/sentry-apps/{slug}/"
         self.browser.get(url)
         self.browser.wait_until_not(".loading-indicator")
 

@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from sentry.models import ExternalIssue, GroupLink, Integration
 from sentry.testutils import APITestCase
 
@@ -28,14 +24,14 @@ class GroupIntegrationsTest(APITestCase):
             relationship=GroupLink.Relationship.references,
         )
 
-        path = u"/api/0/issues/{}/integrations/".format(group.id)
+        path = f"/api/0/issues/{group.id}/integrations/"
 
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.get(path)
             provider = integration.get_provider()
 
             assert response.data[0] == {
-                "id": six.text_type(integration.id),
+                "id": str(integration.id),
                 "name": integration.name,
                 "icon": integration.metadata.get("icon"),
                 "domainName": integration.metadata.get("domain_name"),
@@ -53,7 +49,7 @@ class GroupIntegrationsTest(APITestCase):
                 "externalIssues": [
                     {
                         "description": "this is an example description",
-                        "id": six.text_type(external_issue.id),
+                        "id": str(external_issue.id),
                         "url": "https://example/issues/APP-123",
                         "key": "APP-123",
                         "title": "this is an example title",
@@ -83,7 +79,7 @@ class GroupIntegrationsTest(APITestCase):
             relationship=GroupLink.Relationship.references,
         )
 
-        path = u"/api/0/issues/{}/integrations/".format(group.id)
+        path = f"/api/0/issues/{group.id}/integrations/"
 
         with self.feature({"organizations:integrations-issue-basic": False}):
             response = self.client.get(path)

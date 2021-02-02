@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
-import six
-
 from sentry.api.serializers import serialize
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.search_common import SearchType
@@ -20,8 +14,8 @@ class RecentSearchSerializerTest(TestCase):
         )
         result = serialize(search)
 
-        assert result["id"] == six.text_type(search.id)
-        assert result["organizationId"] == six.text_type(search.organization_id)
+        assert result["id"] == str(search.id)
+        assert result["organizationId"] == str(search.organization_id)
         assert result["type"] == search.type
         assert result["query"] == search.query
         assert result["lastSeen"] == search.last_seen

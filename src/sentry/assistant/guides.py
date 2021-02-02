@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 # Guide Schema
 # id (text, required): unique id
 # required_targets (list): An empty list will cause the guide to be shown regardless
@@ -22,4 +19,5 @@ GUIDES = {
     "issue": {"id": 1, "required_targets": ["issue_title", "exception"]},
     "issue_stream": {"id": 3, "required_targets": ["issue_stream"]},
     "dynamic_counts": {"id": 7, "required_targets": ["dynamic_counts"]},
+    "inbox_guide": {"id": 8, "required_targets": ["inbox_guide"]},
 }

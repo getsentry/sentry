@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.utils import json
 
 from sentry.testutils import AcceptanceTestCase
@@ -11,7 +9,7 @@ class OrganizationSecurityAndPrivacyTest(AcceptanceTestCase):
         self.user = self.create_user("owner@example.com")
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.login_as(self.user)
-        self.path = "/settings/{}/security-and-privacy/".format(self.org.slug)
+        self.path = f"/settings/{self.org.slug}/security-and-privacy/"
 
     def load_organization_helper(self, snapshot_name=None):
         self.browser.wait_until_not(".loading-indicator")

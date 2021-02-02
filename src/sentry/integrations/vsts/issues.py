@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 from mistune import markdown
 
@@ -18,7 +16,7 @@ class VstsIssueSync(IssueSyncMixin):
     conf_key = slug
 
     issue_fields = frozenset(["id", "title", "url"])
-    done_categories = frozenset(["Resolved", "Completed"])
+    done_categories = frozenset(["Resolved", "Completed", "Closed"])
 
     def get_persisted_default_config_fields(self):
         return ["project", "work_item_type"]
@@ -208,7 +206,7 @@ class VstsIssueSync(IssueSyncMixin):
                 vsts_users = client.get_users(self.model.name, continuation_token)
                 continuation_token = vsts_users.headers.get("X-MS-ContinuationToken")
                 for vsts_user in vsts_users["value"]:
-                    vsts_email = vsts_user.get(u"mailAddress")
+                    vsts_email = vsts_user.get("mailAddress")
                     if vsts_email and vsts_email.lower() in sentry_emails:
                         assignee = vsts_user["mailAddress"]
                         break
@@ -243,7 +241,6 @@ class VstsIssueSync(IssueSyncMixin):
     def sync_status_outbound(self, external_issue, is_resolved, project_id, **kwargs):
         client = self.get_client()
         work_item = client.get_work_item(self.instance, external_issue.key)
-
         # For some reason, vsts doesn't include the project id
         # in the work item response.
         # TODO(jess): figure out if there's a better way to do this
@@ -295,11 +292,7 @@ class VstsIssueSync(IssueSyncMixin):
 
     def should_unresolve(self, data):
         done_states = self.get_done_states(data["project"])
-        return (
-            data["old_state"] in done_states
-            or data["old_state"] is None
-            and not data["new_state"] in done_states
-        )
+        return not data["new_state"] in done_states or data["old_state"] is None
 
     def should_resolve(self, data):
         done_states = self.get_done_states(data["project"])
@@ -315,7 +308,6 @@ class VstsIssueSync(IssueSyncMixin):
                 extra={"integration_id": self.model.id, "exception": err},
             )
             return []
-
         done_states = [
             state["name"] for state in all_states if state["category"] in self.done_categories
         ]

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from exam import fixture
 
 from sentry.testutils import AcceptanceTestCase
@@ -22,7 +20,7 @@ class OrganizationPluginDetailedView(AcceptanceTestCase):
         self.login_as(self.user)
 
     def load_page(self, slug, configuration_tab=False):
-        url = u"/settings/{}/plugins/{}/".format(self.organization.slug, slug)
+        url = f"/settings/{self.organization.slug}/plugins/{slug}/"
         if configuration_tab:
             url += "?tab=configurations"
         self.browser.get(url)

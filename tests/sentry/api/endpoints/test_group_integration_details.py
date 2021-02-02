@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-import six
 from sentry.utils.compat import mock
 import copy
 
@@ -34,16 +31,14 @@ class GroupIntegrationDetailsTest(APITestCase):
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(org, self.user)
 
-        path = u"/api/0/issues/{}/integrations/{}/?action=link".format(
-            self.group.id, integration.id
-        )
+        path = f"/api/0/issues/{self.group.id}/integrations/{integration.id}/?action=link"
 
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.get(path)
             provider = integration.get_provider()
 
             assert response.data == {
-                "id": six.text_type(integration.id),
+                "id": str(integration.id),
                 "name": integration.name,
                 "icon": integration.metadata.get("icon"),
                 "domainName": integration.metadata.get("domain_name"),
@@ -76,14 +71,14 @@ class GroupIntegrationDetailsTest(APITestCase):
         integration.add_organization(org, self.user)
         group = self.group
 
-        path = u"/api/0/issues/{}/integrations/{}/?action=create".format(group.id, integration.id)
+        path = f"/api/0/issues/{group.id}/integrations/{integration.id}/?action=create"
 
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.get(path)
             provider = integration.get_provider()
 
             assert response.data == {
-                "id": six.text_type(integration.id),
+                "id": str(integration.id),
                 "name": integration.name,
                 "icon": integration.metadata.get("icon"),
                 "domainName": integration.metadata.get("domain_name"),
@@ -140,9 +135,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(org, self.user)
 
-        path = u"/api/0/issues/{}/integrations/{}/?action=create".format(
-            self.group.id, integration.id
-        )
+        path = f"/api/0/issues/{self.group.id}/integrations/{integration.id}/?action=create"
 
         with self.feature("organizations:integrations-issue-basic"):
             with mock.patch.object(
@@ -159,9 +152,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(org, self.user)
 
-        path = u"/api/0/issues/{}/integrations/{}/?action=create".format(
-            self.group.id, integration.id
-        )
+        path = f"/api/0/issues/{self.group.id}/integrations/{integration.id}/?action=create"
 
         with self.feature({"organizations:integrations-issue-basic": False}):
             response = self.client.get(path)
@@ -175,7 +166,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(org, self.user)
 
-        path = u"/api/0/issues/{}/integrations/{}/".format(group.id, integration.id)
+        path = f"/api/0/issues/{group.id}/integrations/{integration.id}/"
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.put(path, data={"externalIssue": "APP-123"})
 
@@ -210,7 +201,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(org, self.user)
 
-        path = u"/api/0/issues/{}/integrations/{}/".format(group.id, integration.id)
+        path = f"/api/0/issues/{group.id}/integrations/{integration.id}/"
 
         with self.feature({"organizations:integrations-issue-basic": False}):
             response = self.client.put(path, data={"externalIssue": "APP-123"})
@@ -224,7 +215,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(org, self.user)
 
-        path = u"/api/0/issues/{}/integrations/{}/".format(group.id, integration.id)
+        path = f"/api/0/issues/{group.id}/integrations/{integration.id}/"
 
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.post(path, data={})
@@ -237,8 +228,8 @@ class GroupIntegrationDetailsTest(APITestCase):
             external_issue = ExternalIssue.objects.get(
                 key="APP-123", integration_id=integration.id, organization_id=org.id
             )
-            assert external_issue.description == u"This is a test external issue description"
-            assert external_issue.title == u"This is a test external issue title"
+            assert external_issue.description == "This is a test external issue description"
+            assert external_issue.title == "This is a test external issue title"
 
             assert GroupLink.objects.filter(
                 linked_type=GroupLink.LinkedType.issue,
@@ -265,7 +256,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(org, self.user)
 
-        path = u"/api/0/issues/{}/integrations/{}/".format(group.id, integration.id)
+        path = f"/api/0/issues/{group.id}/integrations/{integration.id}/"
 
         with self.feature({"organizations:integrations-issue-basic": False}):
             response = self.client.post(path, data={})
@@ -291,9 +282,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             relationship=GroupLink.Relationship.references,
         )[0]
 
-        path = u"/api/0/issues/{}/integrations/{}/?externalIssue={}".format(
-            group.id, integration.id, external_issue.id
-        )
+        path = f"/api/0/issues/{group.id}/integrations/{integration.id}/?externalIssue={external_issue.id}"
 
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.delete(path)
@@ -321,9 +310,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             relationship=GroupLink.Relationship.references,
         )[0]
 
-        path = u"/api/0/issues/{}/integrations/{}/?externalIssue={}".format(
-            group.id, integration.id, external_issue.id
-        )
+        path = f"/api/0/issues/{group.id}/integrations/{integration.id}/?externalIssue={external_issue.id}"
 
         with self.feature({"organizations:integrations-issue-basic": False}):
             response = self.client.delete(path)
@@ -338,7 +325,7 @@ class GroupIntegrationDetailsTest(APITestCase):
                 fields = response.data["createIssueConfig"]
             else:
                 fields = response.data["linkIssueConfig"]
-            assert response.data["id"] == six.text_type(integration.id)
+            assert response.data["id"] == str(integration.id)
             for field in fields:
                 if field["name"] == "project":
                     project_field = field
@@ -357,12 +344,8 @@ class GroupIntegrationDetailsTest(APITestCase):
         org_integration = integration.add_organization(org, self.user)
         org_integration.config = {"project_issue_defaults": {group.project_id: {"project": "2"}}}
         org_integration.save()
-        create_path = u"/api/0/issues/{}/integrations/{}/?action=create".format(
-            group.id, integration.id
-        )
-        link_path = u"/api/0/issues/{}/integrations/{}/?action=link".format(
-            group.id, integration.id
-        )
+        create_path = f"/api/0/issues/{group.id}/integrations/{integration.id}/?action=create"
+        link_path = f"/api/0/issues/{group.id}/integrations/{integration.id}/?action=link"
         project_field = {
             "name": "project",
             "label": "Project",

@@ -152,4 +152,25 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
       })
     );
   });
+
+  it('handles null dateClosed with resolved alerts', function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/incidents/`,
+      body: [
+        TestStubs.Incident({id: 1, status: 20}), // critical
+        TestStubs.Incident({id: 2, status: 10}), // warning
+        TestStubs.Incident({id: 3, status: 2, dateClosed: null}), // closed with null dateClosed
+      ],
+    });
+
+    const wrapper = mountWithTheme(
+      <ProjectLatestAlerts
+        organization={organization}
+        projectSlug={project.slug}
+        location={router.location}
+      />
+    );
+
+    expect(wrapper.find('AlertRowLink AlertDate').at(2).text()).toBe('Resolved ');
+  });
 });

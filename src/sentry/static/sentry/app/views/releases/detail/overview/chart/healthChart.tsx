@@ -16,7 +16,7 @@ import {defined} from 'app/utils';
 import {getUtcDateString} from 'app/utils/dates';
 import {axisDuration} from 'app/utils/discover/charts';
 import {getExactDuration} from 'app/utils/formatters';
-import {decodeList} from 'app/utils/queryString';
+import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 import {HeaderTitleLegend} from 'app/views/performance/styles';
 
@@ -74,7 +74,7 @@ class HealthChart extends React.Component<Props> {
     const otherAreasThanHealthyArePositive = timeseriesData
       .filter(s => s.seriesName !== sessionTerm.healthy)
       .some(s => s.data.some(d => d.value > 0));
-    const alreadySomethingUnselected = !!decodeList(location.query.unselectedSeries);
+    const alreadySomethingUnselected = !!decodeScalar(location.query.unselectedSeries);
 
     return (
       shouldRecalculateVisibleSeries &&
@@ -204,21 +204,12 @@ class HealthChart extends React.Component<Props> {
     const legend = {
       right: 10,
       top: 0,
-      icon: 'circle',
-      itemHeight: 8,
-      itemWidth: 8,
-      itemGap: 12,
-      align: 'left' as const,
-      textStyle: {
-        verticalAlign: 'top',
-        fontSize: 11,
-        fontFamily: 'Rubik',
-      },
       data: timeseriesData.map(d => d.seriesName).reverse(),
       selected: getSeriesSelection(location),
       tooltip: {
         show: true,
-        formatter: (params): string => {
+        // TODO(ts) tooltip.formatter has incorrect types in echarts 4
+        formatter: (params: any): string => {
           const seriesNameDesc = this.getLegendTooltipDescription(params.name ?? '');
 
           if (!seriesNameDesc) {

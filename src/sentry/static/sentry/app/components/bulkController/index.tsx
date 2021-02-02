@@ -1,5 +1,6 @@
 import React from 'react';
 import intersection from 'lodash/intersection';
+import isEqual from 'lodash/isEqual';
 import uniq from 'lodash/uniq';
 import xor from 'lodash/xor';
 
@@ -58,6 +59,10 @@ type Props = {
    */
   children: (props: RenderProps) => React.ReactNode;
   /**
+   * BulkController State
+   */
+  onChange?: (props: State) => void;
+  /**
    * Maximum number of rows that can be bulk manipulated at once (used in BulkNotice)
    */
   bulkLimit?: number;
@@ -74,6 +79,12 @@ class BulkController extends React.Component<Props, State> {
       ...state,
       selectedIds: intersection(state.selectedIds, props.pageIds),
     };
+  }
+
+  componentDidUpdate(_prevProps: Props, prevState: State) {
+    if (!isEqual(prevState, this.state)) {
+      this.props.onChange?.(this.state);
+    }
   }
 
   handleRowToggle = (id: string) => {

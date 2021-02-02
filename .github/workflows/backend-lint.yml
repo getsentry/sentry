@@ -10,7 +10,7 @@ jobs:
   lint:
     name: backend lint
     runs-on: ubuntu-16.04
-    timeout-minutes: 3
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v2

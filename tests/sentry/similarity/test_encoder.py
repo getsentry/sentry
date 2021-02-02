@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import pytest
-import six
 
 from sentry.similarity.encoder import Encoder
 
@@ -12,13 +9,13 @@ def test_builtin_types():
         1,
         1.1,
         b"\x00\x01\x02",
-        u"\N{SNOWMAN}",
+        "\N{SNOWMAN}",
         ("a", "b", "c"),
         ["a", "b", "c"],
         {"a": 1, "b": 2, "c": 3},
         set(["a", "b", "c"]),
         frozenset(["a", "b", "c"]),
-        [{"a": 1}, set("b"), ["c"], u"text"],
+        [{"a": 1}, set("b"), ["c"], "text"],
     ]
 
     try:
@@ -28,7 +25,7 @@ def test_builtin_types():
 
     for value in values:
         encoded = encoder.dumps(value)
-        assert isinstance(encoded, six.binary_type)
+        assert isinstance(encoded, bytes)
 
     with pytest.raises(TypeError):
         encoder.dumps(object())

@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-
 import responses
 import pytest
-import six
 
 from exam import fixture
 from django.test import RequestFactory
@@ -72,17 +69,13 @@ class VstsIssueBase(TestCase):
     def mock_categories(self, project):
         responses.add(
             responses.GET,
-            u"https://fabrikam-fiber-inc.visualstudio.com/{}/_apis/wit/workitemtypecategories".format(
-                project
-            ),
+            f"https://fabrikam-fiber-inc.visualstudio.com/{project}/_apis/wit/workitemtypecategories",
             json={
                 "value": [
                     {
                         "workItemTypes": [
                             {
-                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Bug".format(
-                                    project
-                                ),
+                                "url": f"https://fabrikam-fiber-inc.visualstudio.com/{project}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Bug",
                                 "name": "Bug",
                             }
                         ],
@@ -90,15 +83,11 @@ class VstsIssueBase(TestCase):
                     {
                         "workItemTypes": [
                             {
-                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Bug".format(
-                                    project
-                                ),
+                                "url": f"https://fabrikam-fiber-inc.visualstudio.com/{project}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Bug",
                                 "name": "Issue Bug",
                             },
                             {
-                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Some-Thing.GIssue".format(
-                                    project
-                                ),
+                                "url": f"https://fabrikam-fiber-inc.visualstudio.com/{project}/wit/workItemTypeCategories/Some-Thing.GIssue",
                                 "name": "G Issue",
                             },
                         ],
@@ -106,9 +95,7 @@ class VstsIssueBase(TestCase):
                     {
                         "workItemTypes": [
                             {
-                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Task".format(
-                                    project
-                                ),
+                                "url": f"https://fabrikam-fiber-inc.visualstudio.com/{project}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Task",
                                 "name": "Task",
                             }
                         ],
@@ -116,9 +103,7 @@ class VstsIssueBase(TestCase):
                     {
                         "workItemTypes": [
                             {
-                                "url": u"https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.UserStory".format(
-                                    project
-                                ),
+                                "url": f"https://fabrikam-fiber-inc.visualstudio.com/{project}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.UserStory",
                                 "name": "User Story",
                             }
                         ],
@@ -151,7 +136,7 @@ class VstsIssueSyncTest(VstsIssueBase):
             "key": self.issue_id,
             "description": "Fix this.",
             "title": "Hello",
-            "metadata": {"display_name": u"Fabrikam-Fiber-Git#309"},
+            "metadata": {"display_name": "Fabrikam-Fiber-Git#309"},
         }
         request = responses.calls[-1].request
         assert request.headers["Content-Type"] == "application/json-patch+json"
@@ -176,7 +161,7 @@ class VstsIssueSyncTest(VstsIssueBase):
             "key": self.issue_id,
             "description": "Fix this.",
             "title": "Hello",
-            "metadata": {"display_name": u"Fabrikam-Fiber-Git#309"},
+            "metadata": {"display_name": "Fabrikam-Fiber-Git#309"},
         }
         request = responses.calls[-1].request
         assert request.headers["Content-Type"] == "application/json"
@@ -405,6 +390,13 @@ class VstsIssueSyncTest(VstsIssueBase):
         assert should_unresolve is True
 
     @responses.activate
+    def test_should_not_unresolve_resolved_to_closed(self):
+        should_unresolve = self.integration.should_unresolve(
+            {"project": self.project_id_with_states, "old_state": "Resolved", "new_state": "Closed"}
+        )
+        assert should_unresolve is False
+
+    @responses.activate
     def test_should_unresolve_new(self):
         should_unresolve = self.integration.should_unresolve(
             {"project": self.project_id_with_states, "old_state": None, "new_state": "New"}
@@ -437,7 +429,7 @@ class VstsIssueFormTest(VstsIssueBase):
 
     def update_issue_defaults(self, defaults):
         self.integration.org_integration.config = {
-            "project_issue_defaults": {six.text_type(self.group.project_id): defaults}
+            "project_issue_defaults": {str(self.group.project_id): defaults}
         }
         self.integration.org_integration.save()
 

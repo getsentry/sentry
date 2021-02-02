@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-
 import datetime
 import pytest
-import six
 import unittest
 from datetime import timedelta
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME, SPAN_STATUS_NAME_TO_CODE
@@ -69,7 +66,11 @@ def test_parse_function():
         ["transaction.duration", "0.5"],
         None,
     )
-    assert parse_function("p50()") == ("p50", [], None,)
+    assert parse_function("p50()") == (
+        "p50",
+        [],
+        None,
+    )
     assert parse_function("p75(measurements.lcp)") == ("p75", ["measurements.lcp"], None)
     assert parse_function("apdex(300)") == ("apdex", ["300"], None)
     assert parse_function("failure_rate()") == ("failure_rate", [], None)
@@ -660,7 +661,7 @@ class ParseSearchQueryTest(unittest.TestCase):
     def test_boolean_filter(self):
         truthy = ("true", "TRUE", "1")
         for val in truthy:
-            assert parse_search_query("stack.in_app:{}".format(val)) == [
+            assert parse_search_query(f"stack.in_app:{val}") == [
                 SearchFilter(
                     key=SearchKey(name="stack.in_app"),
                     operator="=",
@@ -669,7 +670,7 @@ class ParseSearchQueryTest(unittest.TestCase):
             ]
         falsey = ("false", "FALSE", "0")
         for val in falsey:
-            assert parse_search_query("stack.in_app:{}".format(val)) == [
+            assert parse_search_query(f"stack.in_app:{val}") == [
                 SearchFilter(
                     key=SearchKey(name="stack.in_app"),
                     operator="=",
@@ -679,7 +680,9 @@ class ParseSearchQueryTest(unittest.TestCase):
 
         assert parse_search_query("!stack.in_app:false") == [
             SearchFilter(
-                key=SearchKey(name="stack.in_app"), operator="=", value=SearchValue(raw_value=1),
+                key=SearchKey(name="stack.in_app"),
+                operator="=",
+                value=SearchValue(raw_value=1),
             )
         ]
 
@@ -1011,12 +1014,12 @@ def _noeq(xy):
 
 # message ("foo bar baz")
 def _m(x):
-    return ["notEquals", [["positionCaseInsensitive", ["message", u"'{}'".format(x)]], 0]]
+    return ["notEquals", [["positionCaseInsensitive", ["message", f"'{x}'"]], 0]]
 
 
 # message ("foo bar baz") using operators instead of functions
 def _om(x):
-    return [["positionCaseInsensitive", ["message", "'{}'".format(x)]], "!=", 0]
+    return [["positionCaseInsensitive", ["message", f"'{x}'"]], "!=", 0]
 
 
 # x OR y
@@ -1044,8 +1047,8 @@ class ParseBooleanSearchQueryTest(TestCase):
         super(ParseBooleanSearchQueryTest, self).setUp()
         users = ["foo", "bar", "foobar", "hello", "hi"]
         for u in users:
-            self.__setattr__(u, ["equals", ["user.email", "{}@example.com".format(u)]])
-            self.__setattr__("o{}".format(u), ["user.email", "=", "{}@example.com".format(u)])
+            self.__setattr__(u, ["equals", ["user.email", f"{u}@example.com"]])
+            self.__setattr__(f"o{u}", ["user.email", "=", f"{u}@example.com"])
 
     def test_simple(self):
         result = get_filter("user.email:foo@example.com OR user.email:bar@example.com")
@@ -1070,7 +1073,8 @@ class ParseBooleanSearchQueryTest(TestCase):
         assert _filter.conditions == [
             [
                 _or(
-                    ["like", ["error.value", "Deadlock%"]], ["notLike", ["stack.filename", "%.py"]],
+                    ["like", ["error.value", "Deadlock%"]],
+                    ["notLike", ["stack.filename", "%.py"]],
                 ),
                 "=",
                 1,
@@ -1113,7 +1117,14 @@ class ParseBooleanSearchQueryTest(TestCase):
             "user.email:foo@example.com AND user.email:bar@example.com OR user.email:foobar@example.com AND user.email:hello@example.com AND user.email:hi@example.com"
         )
         assert result.conditions == [
-            [_or(_and(self.foo, self.bar), _and(self.foobar, _and(self.hello, self.hi)),), "=", 1]
+            [
+                _or(
+                    _and(self.foo, self.bar),
+                    _and(self.foobar, _and(self.hello, self.hi)),
+                ),
+                "=",
+                1,
+            ]
         ]
 
         # absurdly long
@@ -1127,7 +1138,8 @@ class ParseBooleanSearchQueryTest(TestCase):
                     _or(
                         _and(self.foobar, _and(self.hello, self.hi)),
                         _or(
-                            _and(self.foo, self.bar), _and(self.foobar, _and(self.hello, self.hi)),
+                            _and(self.foo, self.bar),
+                            _and(self.foobar, _and(self.hello, self.hi)),
                         ),
                     ),
                 ),
@@ -1164,7 +1176,14 @@ class ParseBooleanSearchQueryTest(TestCase):
             "(user.email:foo@example.com OR (user.email:bar@example.com OR (user.email:foobar@example.com AND user.email:hello@example.com OR user.email:hi@example.com)))"
         )
         assert result.conditions == [
-            [_or(self.foo, _or(self.bar, _or(_and(self.foobar, self.hello), self.hi)),), "=", 1]
+            [
+                _or(
+                    self.foo,
+                    _or(self.bar, _or(_and(self.foobar, self.hello), self.hi)),
+                ),
+                "=",
+                1,
+            ]
         ]
 
     def test_grouping_without_boolean_terms(self):
@@ -1178,7 +1197,7 @@ class ParseBooleanSearchQueryTest(TestCase):
         with pytest.raises(InvalidSearchQuery) as error:
             get_filter("(user.email:foo@example.com OR user.email:bar@example.com")
         assert (
-            six.text_type(error.value)
+            str(error.value)
             == "Parse error at '(user.' (column 1). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
         with pytest.raises(InvalidSearchQuery) as error:
@@ -1186,13 +1205,13 @@ class ParseBooleanSearchQueryTest(TestCase):
                 "((user.email:foo@example.com OR user.email:bar@example.com AND  user.email:bar@example.com)"
             )
         assert (
-            six.text_type(error.value)
+            str(error.value)
             == "Parse error at '((user' (column 1). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
         with pytest.raises(InvalidSearchQuery) as error:
             get_filter("user.email:foo@example.com OR user.email:bar@example.com)")
         assert (
-            six.text_type(error.value)
+            str(error.value)
             == "Parse error at '.com)' (column 57). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
         with pytest.raises(InvalidSearchQuery) as error:
@@ -1200,7 +1219,7 @@ class ParseBooleanSearchQueryTest(TestCase):
                 "(user.email:foo@example.com OR user.email:bar@example.com AND  user.email:bar@example.com))"
             )
         assert (
-            six.text_type(error.value)
+            str(error.value)
             == "Parse error at 'com))' (column 91). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
 
@@ -1217,7 +1236,10 @@ class ParseBooleanSearchQueryTest(TestCase):
                         _or(
                             _and(
                                 _eq("ab"),
-                                _and(_or(_eq("cd"), _eq("ef")), _and(_eq("gh"), _eq("ij")),),
+                                _and(
+                                    _or(_eq("cd"), _eq("ef")),
+                                    _and(_eq("gh"), _eq("ij")),
+                                ),
                             ),
                             _eq("kl"),
                         ),
@@ -1250,7 +1272,10 @@ class ParseBooleanSearchQueryTest(TestCase):
                         _or(
                             _eq("ab"),
                             _or(
-                                _and(_eq("cd"), _and(_eq("ef"), _and(_eq("gh"), _eq("ij"))),),
+                                _and(
+                                    _eq("cd"),
+                                    _and(_eq("ef"), _and(_eq("gh"), _eq("ij"))),
+                                ),
                                 _eq("kl"),
                             ),
                         ),
@@ -1264,7 +1289,10 @@ class ParseBooleanSearchQueryTest(TestCase):
                 [
                     [
                         _or(
-                            _and(_or(_eq("ab"), _eq("cd")), _and(_eq("ef"), _eq("gh")),),
+                            _and(
+                                _or(_eq("ab"), _eq("cd")),
+                                _and(_eq("ef"), _eq("gh")),
+                            ),
                             _and(_eq("ij"), _eq("kl")),
                         ),
                         "=",
@@ -1277,7 +1305,8 @@ class ParseBooleanSearchQueryTest(TestCase):
                 [
                     [
                         _or(
-                            _and(_eq("ab"), _and(_eq("cd"), _eq("ef"))), _and(_eq("gh"), _eq("ij")),
+                            _and(_eq("ab"), _and(_eq("cd"), _eq("ef"))),
+                            _and(_eq("gh"), _eq("ij")),
                         ),
                         "=",
                         1,
@@ -1305,7 +1334,8 @@ class ParseBooleanSearchQueryTest(TestCase):
                 [
                     [
                         _or(
-                            _eq("ab"), _and(_eq("cd"), _or(_eq("ef"), _and(_eq("gh"), _eq("ef")))),
+                            _eq("ab"),
+                            _and(_eq("cd"), _or(_eq("ef"), _and(_eq("gh"), _eq("ef")))),
                         ),
                         "=",
                         1,
@@ -1369,25 +1399,25 @@ class ParseBooleanSearchQueryTest(TestCase):
         with pytest.raises(InvalidSearchQuery) as error:
             get_filter("count():>1 OR a:b")
         assert (
-            six.text_type(error.value)
+            str(error.value)
             == "Having an OR between aggregate filters and normal filters is invalid."
         )
         with pytest.raises(InvalidSearchQuery) as error:
             get_filter("(count():>1 AND a:b) OR a:b")
         assert (
-            six.text_type(error.value)
+            str(error.value)
             == "Having an OR between aggregate filters and normal filters is invalid."
         )
         with pytest.raises(InvalidSearchQuery) as error:
             get_filter("(count():>1 AND a:b) OR (a:b AND count():>2)")
         assert (
-            six.text_type(error.value)
+            str(error.value)
             == "Having an OR between aggregate filters and normal filters is invalid."
         )
         with pytest.raises(InvalidSearchQuery) as error:
             get_filter("a:b OR (c:d AND (e:f AND count():>1))")
         assert (
-            six.text_type(error.value)
+            str(error.value)
             == "Having an OR between aggregate filters and normal filters is invalid."
         )
 
@@ -1396,7 +1426,7 @@ class ParseBooleanSearchQueryTest(TestCase):
         project2 = self.create_project()
         tests = [
             (
-                "project:{} OR project:{}".format(project1.slug, project2.slug),
+                f"project:{project1.slug} OR project:{project2.slug}",
                 [
                     [
                         _or(
@@ -1410,7 +1440,7 @@ class ParseBooleanSearchQueryTest(TestCase):
                 [project1.id, project2.id],
             ),
             (
-                "(project:{} OR project:{}) AND a:b".format(project1.slug, project2.slug),
+                f"(project:{project1.slug} OR project:{project2.slug}) AND a:b",
                 [
                     [
                         _or(
@@ -1425,7 +1455,7 @@ class ParseBooleanSearchQueryTest(TestCase):
                 [project1.id, project2.id],
             ),
             (
-                "(project:{} AND a:b) OR (project:{} AND c:d)".format(project1.slug, project1.slug),
+                f"(project:{project1.slug} AND a:b) OR (project:{project1.slug} AND c:d)",
                 [
                     [
                         _or(
@@ -1457,12 +1487,10 @@ class ParseBooleanSearchQueryTest(TestCase):
         project3 = self.create_project()
         with self.assertRaisesRegexp(
             InvalidSearchQuery,
-            "Project {} does not exist or is not an actively selected project.".format(
-                project3.slug
-            ),
+            f"Project {project3.slug} does not exist or is not an actively selected project.",
         ):
             get_filter(
-                "project:{} OR project:{}".format(project1.slug, project3.slug),
+                f"project:{project1.slug} OR project:{project3.slug}",
                 params={
                     "organization_id": self.organization.id,
                     "project_id": [project1.id, project2.id],
@@ -1478,28 +1506,26 @@ class ParseBooleanSearchQueryTest(TestCase):
         group3 = self.create_group(project=self.project)
         tests = [
             (
-                "issue.id:{} OR issue.id:{}".format(group1.id, group2.id),
+                f"issue.id:{group1.id} OR issue.id:{group2.id}",
                 [],
                 [group1.id, group2.id],
             ),
-            ("issue.id:{} AND issue.id:{}".format(group1.id, group1.id), [], [group1.id]),
+            (f"issue.id:{group1.id} AND issue.id:{group1.id}", [], [group1.id]),
             (
-                "(issue.id:{} AND issue.id:{}) OR issue.id:{}".format(
-                    group1.id, group2.id, group3.id
-                ),
+                f"(issue.id:{group1.id} AND issue.id:{group2.id}) OR issue.id:{group3.id}",
                 [],
                 [group1.id, group2.id, group3.id],
             ),
-            ("issue.id:{} AND a:b".format(group1.id), [_oeq("ab")], [group1.id]),
+            (f"issue.id:{group1.id} AND a:b", [_oeq("ab")], [group1.id]),
             # TODO: Using OR with issue.id is broken. These return incorrect results.
-            ("issue.id:{} OR a:b".format(group1.id), [_oeq("ab")], [group1.id]),
+            (f"issue.id:{group1.id} OR a:b", [_oeq("ab")], [group1.id]),
             (
-                "(issue.id:{} AND a:b) OR issue.id:{}".format(group1.id, group2.id),
+                f"(issue.id:{group1.id} AND a:b) OR issue.id:{group2.id}",
                 [_oeq("ab")],
                 [group1.id, group2.id],
             ),
             (
-                "(issue.id:{} AND a:b) OR c:d".format(group1.id),
+                f"(issue.id:{group1.id} AND a:b) OR c:d",
                 [[_or(_eq("ab"), _eq("cd")), "=", 1]],
                 [group1.id],
             ),
@@ -1563,11 +1589,11 @@ class ParseBooleanSearchQueryTest(TestCase):
 
     def test_or_does_not_match_organization(self):
         result = get_filter(
-            "organization.slug:{}".format(self.organization.slug),
+            f"organization.slug:{self.organization.slug}",
             params={"organization_id": self.organization.id, "project_id": [self.project.id]},
         )
         assert result.conditions == [
-            [["ifNull", ["organization.slug", "''"]], "=", "{}".format(self.organization.slug)]
+            [["ifNull", ["organization.slug", "''"]], "=", f"{self.organization.slug}"]
         ]
 
 
@@ -1637,7 +1663,7 @@ class GetSnubaQueryArgsTest(TestCase):
 
     def test_wildcard_with_unicode(self):
         _filter = get_filter(
-            u"message:*\u716e\u6211\u66f4\u591a\u7684\u98df\u7269\uff0c\u6211\u9913\u4e86."
+            "message:*\u716e\u6211\u66f4\u591a\u7684\u98df\u7269\uff0c\u6211\u9913\u4e86."
         )
         assert _filter.conditions == [
             [
@@ -1645,7 +1671,7 @@ class GetSnubaQueryArgsTest(TestCase):
                     "match",
                     [
                         "message",
-                        u"'(?i).*\u716e\u6211\u66f4\u591a\u7684\u98df\u7269\uff0c\u6211\u9913\u4e86\\.'",
+                        "'(?i).*\u716e\u6211\u66f4\u591a\u7684\u98df\u7269\uff0c\u6211\u9913\u4e86\\.'",
                     ],
                 ],
                 "=",
@@ -1672,7 +1698,7 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_escaped_wildcard(self):
         assert get_filter("release:3.1.\\* user.email:\\*@example.com").conditions == [
             [["match", ["release", "'(?i)^3\\.1\\.\\*$'"]], "=", 1],
-            [["match", ["user.email", "'(?i)^\*@example\\.com$'"]], "=", 1],
+            [["match", ["user.email", "'(?i)^\\*@example\\.com$'"]], "=", 1],
         ]
         assert get_filter("release:\\\\\\*").conditions == [
             [["match", ["release", "'(?i)^\\\\\\*$'"]], "=", 1]
@@ -1681,7 +1707,7 @@ class GetSnubaQueryArgsTest(TestCase):
             [["match", ["release", "'(?i)^\\\\.*$'"]], "=", 1]
         ]
         assert get_filter("message:.*?").conditions == [
-            [["match", ["message", "'(?i)\..*\?'"]], "=", 1]
+            [["match", ["message", r"'(?i)\..*\?'"]], "=", 1]
         ]
 
     def test_wildcard_array_field(self):
@@ -1705,7 +1731,7 @@ class GetSnubaQueryArgsTest(TestCase):
 
     def test_wildcard_with_trailing_backslash(self):
         results = get_filter("title:*misgegaan\\")
-        assert results.conditions == [[["match", ["title", u"'(?i)^.*misgegaan\\\\$'"]], "=", 1]]
+        assert results.conditions == [[["match", ["title", "'(?i)^.*misgegaan\\\\$'"]], "=", 1]]
 
     def test_has(self):
         assert get_filter("has:release").conditions == [[["isNull", ["release"]], "!=", 1]]
@@ -1763,13 +1789,13 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_issue_filter_invalid(self):
         with pytest.raises(InvalidSearchQuery) as err:
             get_filter("issue:1", {"organization_id": 1})
-        assert "Invalid value '" in six.text_type(err)
-        assert "' for 'issue:' filter" in six.text_type(err)
+        assert "Invalid value '" in str(err)
+        assert "' for 'issue:' filter" in str(err)
 
     def test_issue_filter(self):
         group = self.create_group(project=self.project)
         _filter = get_filter(
-            "issue:{}".format(group.qualified_short_id), {"organization_id": self.organization.id}
+            f"issue:{group.qualified_short_id}", {"organization_id": self.organization.id}
         )
         assert _filter.conditions == [["issue.id", "=", group.id]]
         assert _filter.filter_keys == {}
@@ -1778,9 +1804,20 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_negated_issue_filter(self):
         group = self.create_group(project=self.project)
         _filter = get_filter(
-            "!issue:{}".format(group.qualified_short_id), {"organization_id": self.organization.id}
+            f"!issue:{group.qualified_short_id}", {"organization_id": self.organization.id}
         )
         assert _filter.conditions == [["issue.id", "!=", group.id]]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
+    def test_unknown_issue_filter(self):
+        _filter = get_filter("issue:unknown", {"organization_id": self.organization.id})
+        assert _filter.conditions == [[["isNull", ["issue.id"]], "=", 1]]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
+        _filter = get_filter("!issue:unknown", {"organization_id": self.organization.id})
+        assert _filter.conditions == [["issue.id", "!=", 0]]
         assert _filter.filter_keys == {}
         assert _filter.group_ids == []
 
@@ -1869,13 +1906,13 @@ class GetSnubaQueryArgsTest(TestCase):
         p2 = self.create_project(organization=self.organization)
 
         params = {"project_id": [p1.id, p2.id]}
-        _filter = get_filter("project.name:{}".format(p1.slug), params)
+        _filter = get_filter(f"project.name:{p1.slug}", params)
         assert _filter.conditions == [["project_id", "=", p1.id]]
         assert _filter.filter_keys == {"project_id": [p1.id]}
         assert _filter.project_ids == [p1.id]
 
         params = {"project_id": [p1.id, p2.id]}
-        _filter = get_filter("!project.name:{}".format(p1.slug), params)
+        _filter = get_filter(f"!project.name:{p1.slug}", params)
         assert _filter.conditions == [
             [[["isNull", ["project_id"]], "=", 1], ["project_id", "!=", p1.id]]
         ]
@@ -1884,29 +1921,29 @@ class GetSnubaQueryArgsTest(TestCase):
 
         with pytest.raises(InvalidSearchQuery) as err:
             params = {"project_id": []}
-            get_filter("project.name:{}".format(p1.slug), params)
+            get_filter(f"project.name:{p1.slug}", params)
         assert (
             "Invalid query. Project %s does not exist or is not an actively selected project"
             % p1.slug
-            in six.text_type(err)
+            in str(err)
         )
 
     def test_transaction_status(self):
         for (key, val) in SPAN_STATUS_CODE_TO_NAME.items():
-            result = get_filter("transaction.status:{}".format(val))
+            result = get_filter(f"transaction.status:{val}")
             assert result.conditions == [["transaction.status", "=", key]]
 
     def test_transaction_status_no_wildcard(self):
         with pytest.raises(InvalidSearchQuery) as err:
             get_filter("transaction.status:o*")
-        assert "Invalid value" in six.text_type(err)
-        assert "cancelled," in six.text_type(err)
+        assert "Invalid value" in str(err)
+        assert "cancelled," in str(err)
 
     def test_transaction_status_invalid(self):
         with pytest.raises(InvalidSearchQuery) as err:
             get_filter("transaction.status:lol")
-        assert "Invalid value" in six.text_type(err)
-        assert "cancelled," in six.text_type(err)
+        assert "Invalid value" in str(err)
+        assert "cancelled," in str(err)
 
     def test_error_handled(self):
         result = get_filter("error.handled:true")
@@ -1992,6 +2029,23 @@ class GetSnubaQueryArgsTest(TestCase):
         result = get_filter("percentile(transaction.duration, 0.75):>100")
         assert result.having == [["percentile_transaction_duration_0_75", ">", 100]]
 
+    def test_function_arguments_with_spaces(self):
+        result = get_filter("percentile(     transaction.duration,     0.75   ):>100")
+        assert result.having == [["percentile_transaction_duration_0_75", ">", 100]]
+
+        result = get_filter("percentile    (transaction.duration, 0.75):>100")
+        assert result.conditions == [
+            _om("percentile"),
+            _om("transaction.duration, 0.75"),
+            _om(":>100"),
+        ]
+        assert result.having == []
+
+        result = get_filter(
+            "epm(       ):>100", {"start": before_now(minutes=5), "end": before_now()}
+        )
+        assert result.having == [["epm", ">", 100]]
+
     def test_function_with_float_arguments(self):
         result = get_filter("apdex(300):>0.5")
         assert result.having == [["apdex_300", ">", 0.5]]
@@ -2033,7 +2087,7 @@ class GetSnubaQueryArgsTest(TestCase):
 
     @pytest.mark.xfail(reason="this breaks issue search so needs to be redone")
     def test_trace_id(self):
-        result = get_filter("trace:{}".format("a0fa8803753e40fd8124b21eeb2986b5"))
+        result = get_filter("trace:a0fa8803753e40fd8124b21eeb2986b5")
         assert result.conditions == [["trace", "=", "a0fa8803-753e-40fd-8124-b21eeb2986b5"]]
 
 
@@ -2042,7 +2096,7 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = [["any", "thing", "lol"]]
         with pytest.raises(InvalidSearchQuery) as err:
             resolve_field_list(fields, eventstore.Filter())
-        assert "Field names" in six.text_type(err)
+        assert "Field names" in str(err)
 
     def test_tag_fields(self):
         fields = ["tags[test.foo:bar-123]"]
@@ -2067,7 +2121,7 @@ class ResolveFieldListTest(unittest.TestCase):
         ]:
             with pytest.raises(InvalidSearchQuery) as err:
                 resolve_field_list(fields, eventstore.Filter())
-            assert "Invalid character" in six.text_type(err)
+            assert "Invalid character" in str(err)
 
     def test_blank_field_ignored(self):
         fields = ["", "title", "   "]
@@ -2232,13 +2286,13 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["derp(user)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "derp(user) is not a valid function" in six.text_type(err)
+        assert "derp(user) is not a valid function" in str(err)
 
     def test_aggregate_function_case_sensitive(self):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["MAX(user)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "MAX(user) is not a valid function" in six.text_type(err)
+        assert "MAX(user) is not a valid function" in str(err)
 
     def test_aggregate_function_invalid_column(self):
         with pytest.raises(InvalidSearchQuery) as err:
@@ -2246,7 +2300,7 @@ class ResolveFieldListTest(unittest.TestCase):
             resolve_field_list(fields, eventstore.Filter())
         assert (
             "InvalidSearchQuery: min(message): column argument invalid: message is not a numeric column"
-            in six.text_type(err)
+            in str(err)
         )
 
     def test_aggregate_function_missing_parameter(self):
@@ -2255,7 +2309,7 @@ class ResolveFieldListTest(unittest.TestCase):
             resolve_field_list(fields, eventstore.Filter())
         assert (
             "InvalidSearchQuery: count_unique(): column argument invalid: a column is required"
-            in six.text_type(err)
+            in str(err)
         )
 
         with pytest.raises(InvalidSearchQuery) as err:
@@ -2275,27 +2329,26 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile(0.75)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "percentile(0.75): expected 2 argument(s)" in six.text_type(err)
+        assert "percentile(0.75): expected 2 argument(s)" in str(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile(0.75,)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "percentile(0.75,): expected 2 argument(s)" in six.text_type(err)
+        assert "percentile(0.75,): expected 2 argument(s)" in str(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile(sanchez, 0.75)"]
             resolve_field_list(fields, eventstore.Filter())
         assert (
             "percentile(sanchez, 0.75): column argument invalid: sanchez is not a valid column"
-            in six.text_type(err)
+            in str(err)
         )
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile(id, 0.75)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert (
-            "percentile(id, 0.75): column argument invalid: id is not a numeric column"
-            in six.text_type(err)
+        assert "percentile(id, 0.75): column argument invalid: id is not a numeric column" in str(
+            err
         )
 
         with pytest.raises(InvalidSearchQuery) as err:
@@ -2303,7 +2356,7 @@ class ResolveFieldListTest(unittest.TestCase):
             resolve_field_list(fields, eventstore.Filter())
         assert (
             "percentile(transaction.duration, 75): percentile argument invalid: 75 must be less than 1"
-            in six.text_type(err)
+            in str(err)
         )
 
     def test_epm_function(self):
@@ -2318,22 +2371,19 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["epm(30)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert (
-            "epm(30): interval argument invalid: 30 must be greater than or equal to 60"
-            in six.text_type(err)
+        assert "epm(30): interval argument invalid: 30 must be greater than or equal to 60" in str(
+            err
         )
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["epm()"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "epm(): invalid arguments: function called without default" in six.text_type(err)
+        assert "epm(): invalid arguments: function called without default" in str(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["epm()"]
             resolve_field_list(fields, eventstore.Filter(start="abc", end="def"))
-        assert "epm(): invalid arguments: function called with invalid default" in six.text_type(
-            err
-        )
+        assert "epm(): invalid arguments: function called with invalid default" in str(err)
 
         fields = ["epm()"]
         result = resolve_field_list(
@@ -2382,7 +2432,7 @@ class ResolveFieldListTest(unittest.TestCase):
             resolve_field_list(fields, eventstore.Filter())
         assert (
             "absolute_delta(transaction,100): column argument invalid: transaction is not a duration column"
-            in six.text_type(err)
+            in str(err)
         )
 
         with pytest.raises(InvalidSearchQuery) as err:
@@ -2390,7 +2440,7 @@ class ResolveFieldListTest(unittest.TestCase):
             resolve_field_list(fields, eventstore.Filter())
         assert (
             "absolute_delta(transaction.duration,blah): target argument invalid: blah is not a number"
-            in six.text_type(err)
+            in str(err)
         )
 
     def test_eps_function(self):
@@ -2406,10 +2456,7 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["eps(0)"]
             result = resolve_field_list(fields, eventstore.Filter())
-        assert (
-            "eps(0): interval argument invalid: 0 must be greater than or equal to 1"
-            in six.text_type(err)
-        )
+        assert "eps(0): interval argument invalid: 0 must be greater than or equal to 1" in str(err)
 
     def test_array_join_function(self):
         fields = [
@@ -2435,7 +2482,7 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = ["array_join(tags.key)"]
         with pytest.raises(InvalidSearchQuery) as err:
             resolve_field_list(fields, eventstore.Filter())
-        assert "no access to private function" in six.text_type(err)
+        assert "no access to private function" in str(err)
 
     def test_histogram_function(self):
         fields = ["histogram(measurements_value, 10, 5, 1)"]
@@ -2488,7 +2535,7 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = ["histogram(measurements_value, 10, 5, 1)"]
         with pytest.raises(InvalidSearchQuery) as err:
             resolve_field_list(fields, eventstore.Filter())
-        assert "no access to private function" in six.text_type(err)
+        assert "no access to private function" in str(err)
 
     def test_count_at_least_function(self):
         fields = ["count_at_least(measurements.baz, 1000)"]
@@ -2520,12 +2567,12 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile_range(transaction.duration, 0.5, greater, tomorrow)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "middle argument invalid: tomorrow is in the wrong format" in six.text_type(err)
+        assert "middle argument invalid: tomorrow is in the wrong format" in str(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile_range(transaction.duration, 0.5, lessOrEquals, today)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "middle argument invalid: today is in the wrong format" in six.text_type(err)
+        assert "middle argument invalid: today is in the wrong format" in str(err)
 
     def test_average_range(self):
         fields = ["avg_range(transaction.duration, greater, 2020-05-03T06:48:57) as avg_range_1"]
@@ -2544,12 +2591,12 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["avg_range(transaction.duration, greater, tomorrow)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "middle argument invalid: tomorrow is in the wrong format" in six.text_type(err)
+        assert "middle argument invalid: tomorrow is in the wrong format" in str(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["avg_range(transaction.duration, lessOrEquals, today)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "middle argument invalid: today is in the wrong format" in six.text_type(err)
+        assert "middle argument invalid: today is in the wrong format" in str(err)
 
     def test_absolute_correlation(self):
         fields = ["absolute_correlation()"]
@@ -2558,7 +2605,7 @@ class ResolveFieldListTest(unittest.TestCase):
             [
                 "abs",
                 [["corr", [["toUnixTimestamp", ["timestamp"]], "transaction.duration"]]],
-                u"absolute_correlation",
+                "absolute_correlation",
             ]
         ]
 
@@ -2631,7 +2678,7 @@ class ResolveFieldListTest(unittest.TestCase):
         for function in bad_function_aliases:
             with pytest.raises(InvalidSearchQuery) as err:
                 resolve_field_list([function], eventstore.Filter())
-            assert "Invalid characters in field" in six.text_type(err)
+            assert "Invalid characters in field" in str(err)
 
     def test_valid_alias(self):
         function_aliases = [
@@ -2670,11 +2717,11 @@ class ResolveFieldListTest(unittest.TestCase):
             result = resolve_field_list(fields, eventstore.Filter())
 
             assert result["aggregations"] == [
-                ["quantile(0.5)", snuba_column, "p50_{}".format(column_alias).strip("_")],
-                ["quantile(0.75)", snuba_column, "p75_{}".format(column_alias).strip("_")],
-                ["quantile(0.95)", snuba_column, "p95_{}".format(column_alias).strip("_")],
-                ["quantile(0.99)", snuba_column, "p99_{}".format(column_alias).strip("_")],
-                ["max", snuba_column, "p100_{}".format(column_alias).strip("_")],
+                ["quantile(0.5)", snuba_column, f"p50_{column_alias}".strip("_")],
+                ["quantile(0.75)", snuba_column, f"p75_{column_alias}".strip("_")],
+                ["quantile(0.95)", snuba_column, f"p95_{column_alias}".strip("_")],
+                ["quantile(0.99)", snuba_column, f"p99_{column_alias}".strip("_")],
+                ["max", snuba_column, f"p100_{column_alias}".strip("_")],
             ]
 
     def test_compare_numeric_aggregate(self):
@@ -2704,7 +2751,7 @@ class ResolveFieldListTest(unittest.TestCase):
         for field in fields:
             with pytest.raises(InvalidSearchQuery) as err:
                 resolve_field_list([field], eventstore.Filter())
-            assert "is not a valid condition" in six.text_type(err), field
+            assert "is not a valid condition" in str(err), field
 
         fields = [
             "compare_numeric_aggregate(p50_tr(where,=,50)",
@@ -2713,13 +2760,13 @@ class ResolveFieldListTest(unittest.TestCase):
         for field in fields:
             with pytest.raises(InvalidSearchQuery) as err:
                 resolve_field_list([field], eventstore.Filter())
-            assert "is not a valid function alias" in six.text_type(err), field
+            assert "is not a valid function alias" in str(err), field
 
     def test_rollup_with_unaggregated_fields(self):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["message"]
             resolve_field_list(fields, eventstore.Filter(rollup=15))
-        assert "rollup without an aggregate" in six.text_type(err)
+        assert "rollup without an aggregate" in str(err)
 
     def test_rollup_with_basic_and_aggregated_fields(self):
         fields = ["message", "count()"]
@@ -2740,7 +2787,7 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = ["message"]
         with pytest.raises(InvalidSearchQuery) as err:
             resolve_field_list(fields, eventstore.Filter(orderby="timestamp"))
-        assert "Cannot order" in six.text_type(err)
+        assert "Cannot order" in str(err)
 
     def test_orderby_basic_field(self):
         fields = ["message"]
@@ -2982,16 +3029,16 @@ class ResolveFieldListTest(unittest.TestCase):
             with pytest.raises(InvalidSearchQuery) as error:
                 resolve_field_list(field, eventstore.Filter())
 
-            assert "you must first remove the function(s)" in six.text_type(error)
+            assert "you must first remove the function(s)" in str(error)
 
         with pytest.raises(InvalidSearchQuery) as error:
             resolve_field_list(
                 ["avg(transaction.duration)", "p95()", "transaction.duration"], eventstore.Filter()
             )
 
-        assert "avg(transaction.duration)" in six.text_type(error)
-        assert "p95" in six.text_type(error)
-        assert " more." not in six.text_type(error)
+        assert "avg(transaction.duration)" in str(error)
+        assert "p95" in str(error)
+        assert " more." not in str(error)
 
         with pytest.raises(InvalidSearchQuery) as error:
             resolve_field_list(
@@ -3006,7 +3053,7 @@ class ResolveFieldListTest(unittest.TestCase):
                 eventstore.Filter(),
             )
 
-        assert "and 3 more" in six.text_type(error)
+        assert "and 3 more" in str(error)
 
 
 def with_type(type, argument):
@@ -3017,7 +3064,9 @@ def with_type(type, argument):
 class FunctionTest(unittest.TestCase):
     def setUp(self):
         self.fn_wo_optionals = Function(
-            "wo_optionals", required_args=[FunctionArg("arg1"), FunctionArg("arg2")], transform="",
+            "wo_optionals",
+            required_args=[FunctionArg("arg1"), FunctionArg("arg2")],
+            transform="",
         )
         self.fn_w_optionals = Function(
             "w_optionals",
@@ -3031,13 +3080,13 @@ class FunctionTest(unittest.TestCase):
 
     def test_no_optional_not_enough_arguments(self):
         with self.assertRaisesRegexp(
-            InvalidSearchQuery, u"fn_wo_optionals\(\): expected 2 argument\(s\)"
+            InvalidSearchQuery, r"fn_wo_optionals\(\): expected 2 argument\(s\)"
         ):
             self.fn_wo_optionals.validate_argument_count("fn_wo_optionals()", ["arg1"])
 
     def test_no_optional_too_may_arguments(self):
         with self.assertRaisesRegexp(
-            InvalidSearchQuery, u"fn_wo_optionals\(\): expected 2 argument\(s\)"
+            InvalidSearchQuery, r"fn_wo_optionals\(\): expected 2 argument\(s\)"
         ):
             self.fn_wo_optionals.validate_argument_count(
                 "fn_wo_optionals()", ["arg1", "arg2", "arg3"]
@@ -3050,13 +3099,13 @@ class FunctionTest(unittest.TestCase):
 
     def test_optional_not_enough_arguments(self):
         with self.assertRaisesRegexp(
-            InvalidSearchQuery, u"fn_w_optionals\(\): expected at least 1 argument\(s\)"
+            InvalidSearchQuery, r"fn_w_optionals\(\): expected at least 1 argument\(s\)"
         ):
             self.fn_w_optionals.validate_argument_count("fn_w_optionals()", [])
 
     def test_optional_too_many_arguments(self):
         with self.assertRaisesRegexp(
-            InvalidSearchQuery, u"fn_w_optionals\(\): expected at most 2 argument\(s\)"
+            InvalidSearchQuery, r"fn_w_optionals\(\): expected at most 2 argument\(s\)"
         ):
             self.fn_w_optionals.validate_argument_count(
                 "fn_w_optionals()", ["arg1", "arg2", "arg3"]
@@ -3064,13 +3113,13 @@ class FunctionTest(unittest.TestCase):
 
     def test_optional_args_have_default(self):
         with self.assertRaisesRegexp(
-            AssertionError, u"test: optional argument at index 0 does not have default"
+            AssertionError, "test: optional argument at index 0 does not have default"
         ):
             Function("test", optional_args=[FunctionArg("arg1")])
 
     def test_defining_duplicate_args(self):
         with self.assertRaisesRegexp(
-            AssertionError, u"test: argument arg1 specified more than once"
+            AssertionError, "test: argument arg1 specified more than once"
         ):
             Function(
                 "test",
@@ -3080,7 +3129,7 @@ class FunctionTest(unittest.TestCase):
             )
 
         with self.assertRaisesRegexp(
-            AssertionError, u"test: argument arg1 specified more than once"
+            AssertionError, "test: argument arg1 specified more than once"
         ):
             Function(
                 "test",
@@ -3090,7 +3139,7 @@ class FunctionTest(unittest.TestCase):
             )
 
         with self.assertRaisesRegexp(
-            AssertionError, u"test: argument arg1 specified more than once"
+            AssertionError, "test: argument arg1 specified more than once"
         ):
             Function(
                 "test",

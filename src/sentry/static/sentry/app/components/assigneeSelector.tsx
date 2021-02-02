@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import createReactClass from 'create-react-class';
-import PropTypes from 'prop-types';
 import Reflux from 'reflux';
 
 import {assignToActor, assignToUser, clearAssignment} from 'app/actionCreators/group';
@@ -50,17 +49,6 @@ type AssignableTeam = {
 
 const AssigneeSelectorComponent = createReactClass<Props, State>({
   displayName: 'AssigneeSelector',
-
-  propTypes: {
-    id: PropTypes.string.isRequired,
-    size: PropTypes.number,
-    // Either a list of users, or null. If null, members will
-    // be read from the MemberListStore. The prop is useful when the
-    // store contains more/different users than you need to show
-    // in an individual component, eg. Org Issue list
-    memberList: PropTypes.array,
-    disabled: PropTypes.bool,
-  },
 
   contextTypes: {
     organization: SentryTypes.Organization,

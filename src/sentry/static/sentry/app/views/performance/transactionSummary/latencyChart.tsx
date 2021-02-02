@@ -11,15 +11,15 @@ import {t} from 'app/locale';
 import {OrganizationSummary} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
-import {getDuration} from 'app/utils/formatters';
 import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 
+import {computeBuckets, formatHistogramData} from '../charts/utils';
 import {HeaderTitleLegend} from '../styles';
 import HistogramQuery from '../transactionVitals/histogramQuery';
 import {HistogramData} from '../transactionVitals/types';
 
-const NUM_BUCKETS = 15;
+const NUM_BUCKETS = 50;
 const QUERY_KEYS = [
   'environment',
   'project',
@@ -42,7 +42,7 @@ type State = {
 
 /**
  * Fetch and render a bar chart that shows event volume
- * for each duration bucket. We always render 15 buckets of
+ * for each duration bucket. We always render 50 buckets of
  * equal widths based on the endpoints min + max durations.
  *
  * This graph visualizes how many transactions were recorded
@@ -140,9 +140,10 @@ class LatencyChart extends React.Component<Props, State> {
       },
     };
 
-    const bucketWidth = this.bucketWidth(data);
-
-    const buckets = computeBuckets(data, bucketWidth);
+    const series = {
+      seriesName: t('Count'),
+      data: formatHistogramData(data, {type: 'duration'}),
+    };
 
     return (
       <BarChartZoom
@@ -151,7 +152,7 @@ class LatencyChart extends React.Component<Props, State> {
         paramStart="startDuration"
         paramEnd="endDuration"
         xAxisIndex={[0]}
-        buckets={buckets}
+        buckets={computeBuckets(data)}
         onDataZoomCancelled={this.handleDataZoomCancelled}
       >
         {zoomRenderProps => (
@@ -159,7 +160,7 @@ class LatencyChart extends React.Component<Props, State> {
             grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
             xAxis={xAxis}
             yAxis={{type: 'value'}}
-            series={transformData(data, bucketWidth)}
+            series={[series]}
             tooltip={tooltip}
             colors={colors}
             onMouseOver={this.handleMouseOver}
@@ -197,7 +198,7 @@ class LatencyChart extends React.Component<Props, State> {
       location
     );
 
-    const min = parseInt(decodeScalar(location.query.startDuration) ?? '0', 10);
+    const min = parseInt(decodeScalar(location.query.startDuration, '0'), 10);
 
     return (
       <React.Fragment>
@@ -218,7 +219,7 @@ class LatencyChart extends React.Component<Props, State> {
           numBuckets={NUM_BUCKETS}
           fields={['transaction.duration']}
           min={min}
-          dataFilter="all"
+          dataFilter="exclude_outliers"
         >
           {({histograms, isLoading, error}) => {
             if (isLoading) {
@@ -234,49 +235,6 @@ class LatencyChart extends React.Component<Props, State> {
       </React.Fragment>
     );
   }
-}
-
-function computeBuckets(data: HistogramData[], bucketWidth: number) {
-  return data.map(item => {
-    const bucket = item.bin;
-    return {
-      start: bucket,
-      end: bucket + bucketWidth,
-    };
-  });
-}
-
-/**
- * Convert a discover response into a barchart compatible series
- */
-function transformData(data: HistogramData[], bucketWidth: number) {
-  let precision;
-  if (bucketWidth < 10) {
-    precision = 4;
-  } else if (bucketWidth < 100) {
-    precision = 3;
-  } else if (bucketWidth < 1000) {
-    precision = 2;
-  } else if (bucketWidth < 10000) {
-    precision = 1;
-  } else {
-    precision = 0;
-  }
-  const seriesData = data.map(item => {
-    const bucket = item.bin;
-    const midPoint = bucketWidth > 1 ? Math.ceil(bucket + bucketWidth / 2) : bucket;
-    return {
-      value: item.count,
-      name: getDuration(midPoint / 1000, midPoint > 1000 ? precision : 0, true),
-    };
-  });
-
-  return [
-    {
-      seriesName: t('Count'),
-      data: seriesData,
-    },
-  ];
 }
 
 export default LatencyChart;

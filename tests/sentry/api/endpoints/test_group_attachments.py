@@ -1,7 +1,5 @@
-from __future__ import absolute_import
-
-import six
-from six.moves.urllib.parse import urlencode
+from io import BytesIO
+from urllib.parse import urlencode
 
 from sentry.models import EventAttachment, File
 from sentry.testutils import APITestCase
@@ -13,7 +11,7 @@ class GroupEventAttachmentsTest(APITestCase):
             type = "event.attachment"
 
         self.file = File.objects.create(name="hello.png", type=type)
-        self.file.putfile(six.BytesIO(b"File contents here"))
+        self.file.putfile(BytesIO(b"File contents here"))
 
         self.attachment = EventAttachment.objects.create(
             event_id=self.event.event_id,
@@ -27,7 +25,7 @@ class GroupEventAttachmentsTest(APITestCase):
         return self.attachment
 
     def path(self, types=None):
-        path = u"/api/0/issues/%s/attachments/" % (self.group.id,)
+        path = f"/api/0/issues/{self.group.id}/attachments/"
 
         query = [("types", t) for t in types or ()]
         if query:
@@ -45,7 +43,7 @@ class GroupEventAttachmentsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(attachment.id)
+        assert response.data[0]["id"] == str(attachment.id)
 
     def test_filter(self):
         self.login_as(user=self.user)
@@ -58,7 +56,7 @@ class GroupEventAttachmentsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(attachment2.id)
+        assert response.data[0]["id"] == str(attachment2.id)
 
     def test_without_feature(self):
         self.login_as(user=self.user)

@@ -1,6 +1,8 @@
 import {ECharts} from 'echarts';
 import {Query} from 'history';
 
+import {getBucketWidth} from '../charts/utils';
+
 import {HistogramData, Point, Rectangle} from './types';
 
 export function generateVitalsRoute({orgSlug}: {orgSlug: String}): string {
@@ -45,17 +47,17 @@ export function vitalsRouteWithQuery({
  */
 export function findNearestBucketIndex(
   chartData: HistogramData[],
-  bucketWidth: number,
   xAxis: number
 ): number | null {
+  const width = getBucketWidth(chartData);
   // it's possible that the data is not available yet or the x axis is out of range
-  if (!chartData.length || xAxis >= chartData[chartData.length - 1].bin + bucketWidth) {
+  if (!chartData.length || xAxis >= chartData[chartData.length - 1].bin + width) {
     return null;
   } else if (xAxis < chartData[0].bin) {
     return -1;
   }
 
-  return Math.floor((xAxis - chartData[0].bin) / bucketWidth);
+  return Math.floor((xAxis - chartData[0].bin) / width);
 }
 
 /**

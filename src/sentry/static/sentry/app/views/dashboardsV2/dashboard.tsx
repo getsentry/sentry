@@ -18,8 +18,6 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {DashboardDetails, Widget} from './types';
 import WidgetCard from './widgetCard';
 
-const GHOST_WIDGET_OFFSET = 20;
-
 type Props = {
   api: Client;
   organization: Organization;
@@ -36,13 +34,16 @@ type State = {
   isDragging: boolean;
   draggingIndex: undefined | number;
   draggingTargetIndex: undefined | number;
+  draggingOverWidget: Widget | undefined;
   top: undefined | number;
   left: undefined | number;
+  ghostLeftOffset: number;
+  ghostTopOffset: number;
   widgets: undefined | Widget[];
 };
 
 class Dashboard extends React.Component<Props, State> {
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
 
     // Create a DOM node that exists outside the DOM hierarchy of this component.
@@ -60,9 +61,12 @@ class Dashboard extends React.Component<Props, State> {
   state: State = {
     draggingIndex: undefined,
     draggingTargetIndex: undefined,
+    draggingOverWidget: undefined,
     isDragging: false,
     top: undefined,
     left: undefined,
+    ghostLeftOffset: 0,
+    ghostTopOffset: 0,
     widgets: undefined,
   };
 
@@ -207,42 +211,43 @@ class Dashboard extends React.Component<Props, State> {
     );
 
     const widgetWrapper = widgetWrappers[index];
-
     const rects = widgetWrapper.getBoundingClientRect();
+    let {ghostLeftOffset, ghostTopOffset} = this.state;
 
     if (this.dragGhostRef.current) {
       const ghostDOM = this.dragGhostRef.current;
 
       // create the ghost widget
-
       const newClone = widgetWrapper.cloneNode(true) as HTMLDivElement;
       newClone.removeAttribute('data-component');
 
-      const iconContainer = newClone.querySelector('[data-component="icon-container"]');
-      if (iconContainer && iconContainer.parentNode) {
-        iconContainer.parentNode.removeChild(iconContainer);
-      }
+      const iconContainer = widgetWrapper.querySelector<HTMLDivElement>(
+        '[data-component="icon-container"]'
+      );
+      ghostLeftOffset = iconContainer ? iconContainer.offsetLeft : 0;
+      ghostTopOffset = iconContainer ? iconContainer.offsetTop : 0;
 
       newClone.style.width = `${rects.width}px`;
       newClone.style.height = `${rects.height}px`;
 
       ghostDOM.appendChild(newClone);
 
-      ghostDOM.style.left = `${
-        getPointerPosition(event, 'pageX') - GHOST_WIDGET_OFFSET
-      }px`;
-      ghostDOM.style.top = `${
-        getPointerPosition(event, 'pageY') - GHOST_WIDGET_OFFSET
-      }px`;
+      ghostDOM.style.left = `${getPointerPosition(event, 'pageX') - ghostLeftOffset}px`;
+      ghostDOM.style.top = `${getPointerPosition(event, 'pageY') - ghostTopOffset}px`;
     }
+
+    const widgets = this.shallowCloneWidgets();
 
     this.setState({
       isDragging: true,
       draggingIndex: index,
       draggingTargetIndex: index,
+      draggingOverWidget: widgets[index],
       top: getPointerPosition(event, 'pageY'),
       left: getPointerPosition(event, 'pageX'),
-      widgets: this.shallowCloneWidgets(),
+      widgets,
+      ghostLeftOffset,
+      ghostTopOffset,
     });
   };
 
@@ -258,16 +263,18 @@ class Dashboard extends React.Component<Props, State> {
 
     event.preventDefault();
     event.stopPropagation();
+    const {
+      ghostLeftOffset,
+      ghostTopOffset,
+      draggingIndex,
+      draggingTargetIndex,
+    } = this.state;
 
     if (this.dragGhostRef.current) {
       // move the ghost box
       const ghostDOM = this.dragGhostRef.current;
-      ghostDOM.style.left = `${
-        getPointerPosition(event, 'pageX') - GHOST_WIDGET_OFFSET
-      }px`;
-      ghostDOM.style.top = `${
-        getPointerPosition(event, 'pageY') - GHOST_WIDGET_OFFSET
-      }px`;
+      ghostDOM.style.left = `${getPointerPosition(event, 'pageX') - ghostLeftOffset}px`;
+      ghostDOM.style.top = `${getPointerPosition(event, 'pageY') - ghostTopOffset}px`;
     }
 
     const widgetWrappers = document.querySelectorAll<HTMLDivElement>(
@@ -289,12 +296,30 @@ class Dashboard extends React.Component<Props, State> {
       return topStart <= top && top <= topEnd && leftStart <= left && left <= leftEnd;
     });
 
-    if (targetIndex >= 0 && targetIndex !== this.state.draggingTargetIndex) {
-      const nextWidgets = this.shallowCloneWidgets();
-      const removed = nextWidgets.splice(this.state.draggingIndex, 1);
-      nextWidgets.splice(targetIndex, 0, removed[0]);
+    const previousDraggingOverWidget = this.state.draggingOverWidget;
 
-      this.setState({draggingTargetIndex: targetIndex, widgets: nextWidgets});
+    if (targetIndex < 0 && previousDraggingOverWidget) {
+      this.setState({draggingOverWidget: undefined});
+    }
+
+    if (targetIndex >= 0 && targetIndex !== draggingTargetIndex) {
+      const nextWidgets = this.shallowCloneWidgets();
+      const currentDraggedWidget = nextWidgets.splice(draggingIndex, 1)[0];
+      nextWidgets.splice(targetIndex, 0, currentDraggedWidget);
+
+      // Widgets may be re-ordered as the ghost is being dragged over another widget.
+      // In this case, we cancel the additional widget re-order to prevent shuffling cycles.
+      const draggingOverWidget =
+        targetIndex >= 0 ? this.state.widgets[targetIndex] : undefined;
+      if (draggingOverWidget?.id === previousDraggingOverWidget?.id) {
+        return;
+      }
+
+      this.setState({
+        draggingTargetIndex: targetIndex,
+        draggingOverWidget,
+        widgets: nextWidgets,
+      });
     }
   };
 
@@ -337,6 +362,9 @@ class Dashboard extends React.Component<Props, State> {
       top: undefined,
       draggingIndex: undefined,
       draggingTargetIndex: undefined,
+      draggingOverWidget: undefined,
+      ghostTopOffset: 0,
+      ghostLeftOffset: 0,
       widgets: undefined,
     });
   };
@@ -346,7 +374,7 @@ class Dashboard extends React.Component<Props, State> {
 
     return (
       <LazyLoad key={`${widget.id ?? index}`} once height={240} offset={100}>
-        <WidgetWrapper data-component="widget-wrapper">
+        <WidgetWrapper data-component="widget-wrapper" displayType={widget.displayType}>
           <WidgetCard
             widget={widget}
             isEditing={isEditing}
@@ -365,11 +393,11 @@ class Dashboard extends React.Component<Props, State> {
     if (!this.portal) {
       return null;
     }
+    const {ghostLeftOffset, ghostTopOffset} = this.state;
 
-    const top =
-      typeof this.state.top === 'number' ? this.state.top - GHOST_WIDGET_OFFSET : 0;
+    const top = typeof this.state.top === 'number' ? this.state.top - ghostTopOffset : 0;
     const left =
-      typeof this.state.left === 'number' ? this.state.left - GHOST_WIDGET_OFFSET : 0;
+      typeof this.state.left === 'number' ? this.state.left - ghostLeftOffset : 0;
 
     const ghost = (
       <WidgetGhost
@@ -394,7 +422,7 @@ class Dashboard extends React.Component<Props, State> {
       <WidgetContainer>
         {widgets.map((widget, i) => this.renderWidget(widget, i))}
         {isEditing && (
-          <WidgetWrapper key="add">
+          <WidgetWrapper key="add" displayType="big_number">
             <AddWidgetWrapper
               key="add"
               data-test-id="widget-add"
@@ -414,7 +442,8 @@ export default withApi(withGlobalSelection(Dashboard));
 
 const WidgetContainer = styled('div')`
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-flow: row dense;
   grid-gap: ${space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
@@ -422,16 +451,24 @@ const WidgetContainer = styled('div')`
   }
 `;
 
-const WidgetWrapper = styled('div')`
+const WidgetWrapper = styled('div')<{displayType: Widget['displayType']}>`
   position: relative;
   /* Min-width prevents grid items from stretching the grid */
   min-width: 200px;
+
+  ${p => {
+    switch (p.displayType) {
+      case 'big_number':
+        return 'grid-area: span 1 / span 1;';
+      default:
+        return 'grid-area: span 2 / span 2;';
+    }
+  }};
 `;
 
 const AddWidgetWrapper = styled('a')`
   width: 100%;
-  height: 100%;
-  min-height: 200px;
+  height: 110px;
   border: 2px dashed ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   display: flex;

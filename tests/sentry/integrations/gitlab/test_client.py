@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import responses
 import pytest
 
@@ -128,13 +127,11 @@ class GitlabRefreshAuthTest(GitLabTestCase):
 
     @responses.activate
     def test_check_file(self):
-        path = "file.py"
+        path = "src/file.py"
         ref = "537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3"
         responses.add(
             responses.HEAD,
-            "https://example.gitlab.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
-                self.gitlab_id, path, ref
-            ),
+            f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/src%2Ffile.py?ref={ref}",
             json={"text": 200},
         )
 
@@ -144,15 +141,29 @@ class GitlabRefreshAuthTest(GitLabTestCase):
 
     @responses.activate
     def test_check_no_file(self):
-        path = "file.py"
+        path = "src/file.py"
         ref = "537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3"
         responses.add(
             responses.HEAD,
-            "https://example.gitlab.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
-                self.gitlab_id, path, ref
-            ),
+            f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/src%2Ffile.py?ref={ref}",
             status=404,
         )
         with self.assertRaises(ApiError):
             self.client.check_file(self.repo, path, ref)
         assert responses.calls[0].response.status_code == 404
+
+    @responses.activate
+    def test_get_stacktrace_link(self):
+        path = "/src/file.py"
+        ref = "537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3"
+        responses.add(
+            responses.HEAD,
+            f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/src%2Ffile.py?ref={ref}",
+            json={"text": 200},
+        )
+
+        source_url = self.installation.get_stacktrace_link(self.repo, path, "master", ref)
+        assert (
+            source_url
+            == "https://example.gitlab.com/example-repo/blob/537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3/src/file.py"
+        )

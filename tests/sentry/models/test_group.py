@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from datetime import timedelta
 
 import pytest
@@ -210,7 +208,7 @@ class GroupTest(TestCase, SnubaTestCase):
         project = self.create_project()
         group = self.create_group(project=project)
 
-        expect = u"{} - {}".format(group.qualified_short_id, group.title)
+        expect = f"{group.qualified_short_id} - {group.title}"
         assert group.get_email_subject() == expect
 
     def test_get_absolute_url(self):
@@ -223,9 +221,9 @@ class GroupTest(TestCase, SnubaTestCase):
                 "http://testserver/organizations/org2/issues/42/?environment=dev",
             ),
             (
-                u"\u00F6rg3",
+                "\u00F6rg3",
                 86,
-                {u"env\u00EDronment": u"d\u00E9v"},
+                {"env\u00EDronment": "d\u00E9v"},
                 "http://testserver/organizations/%C3%B6rg3/issues/86/?env%C3%ADronment=d%C3%A9v",
             ),
         ]:
@@ -241,7 +239,5 @@ class GroupTest(TestCase, SnubaTestCase):
             data={"fingerprint": ["group1"], "timestamp": self.min_ago}, project_id=project.id
         )
         group = event.group
-        url = u"http://testserver/organizations/{}/issues/{}/events/{}/".format(
-            project.organization.slug, group.id, event.event_id
-        )
+        url = f"http://testserver/organizations/{project.organization.slug}/issues/{group.id}/events/{event.event_id}/"
         assert url == group.get_absolute_url(event_id=event.event_id)

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from celery import current_app
 from django.conf import settings
 
@@ -15,7 +13,7 @@ class CeleryQueueRegisteredTest(TestCase):
             if task.name.startswith("celery.") or not hasattr(task, "queue"):
                 continue
             if task.queue not in queue_names:
-                missing_queue_tasks.append(" - Task: {}, Queue: {}".format(task.name, task.queue))
+                missing_queue_tasks.append(f" - Task: {task.name}, Queue: {task.queue}")
 
         assert not missing_queue_tasks, (
             "Found tasks with queues that are undefined. These must be defined in "

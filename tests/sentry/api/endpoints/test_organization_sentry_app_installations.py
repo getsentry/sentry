@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
@@ -95,7 +91,7 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
         }
 
         assert response.status_code == 200, response.content
-        assert six.viewitems(expected) <= six.viewitems(response.data)
+        assert expected.items() <= response.data.items()
 
     def test_install_published_app(self):
         self.login_as(user=self.user)
@@ -107,7 +103,7 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
         }
 
         assert response.status_code == 200, response.content
-        assert six.viewitems(expected) <= six.viewitems(response.data)
+        assert expected.items() <= response.data.items()
 
     def test_members_cannot_install_apps(self):
         user = self.create_user("bar@example.com")
