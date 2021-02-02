@@ -222,7 +222,7 @@ class BuildIncidentAttachmentTest(TestCase):
                     },
                 )
             ),
-            "text": "{} events in the last 10 minutes\nFilter: level:error".format(metric_value),
+            "text": f"{metric_value} events in the last 10 minutes\nFilter: level:error",
             "fields": [],
             "mrkdwn_in": ["text"],
             "footer_icon": logo_url,
@@ -284,7 +284,7 @@ class BuildIncidentAttachmentTest(TestCase):
             + six.text_type(group.id)
             + "/?referrer=slack",
             "callback_id": '{"issue":' + six.text_type(group.id) + "}",
-            "fallback": "[{}] {}".format(self.project.slug, group.title),
+            "fallback": f"[{self.project.slug}] {group.title}",
             "footer_icon": "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
         }
         event = self.store_event(data={}, project_id=self.project.id)
@@ -331,7 +331,7 @@ class BuildIncidentAttachmentTest(TestCase):
             + six.text_type(group.id)
             + "/?referrer=slack",
             "callback_id": '{"issue":' + six.text_type(group.id) + "}",
-            "fallback": "[{}] {}".format(self.project.slug, event.title),
+            "fallback": f"[{self.project.slug}] {event.title}",
             "footer_icon": "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
         }
 
@@ -378,7 +378,7 @@ class BuildIncidentAttachmentTest(TestCase):
             )
             + "?referrer=slack",
             "callback_id": '{"issue":' + six.text_type(group.id) + "}",
-            "fallback": "[{}] {}".format(self.project.slug, event.title),
+            "fallback": f"[{self.project.slug}] {event.title}",
             "footer_icon": "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
         }
 

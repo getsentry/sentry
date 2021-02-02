@@ -279,7 +279,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         query = {
             "field": ["id", "project.id"],
             "project": [project.id],
-            "query": "!project:{}".format(project2.slug),
+            "query": f"!project:{project2.slug}",
         }
         response = self.do_request(query)
         assert response.status_code == 200
@@ -304,7 +304,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         query = {
             "field": ["id", "project.id"],
             "project": [-1],
-            "query": "!project:{}".format(project2.slug),
+            "query": f"!project:{project2.slug}",
         }
         response = self.do_request(query, features=features)
         assert response.status_code == 200
@@ -371,7 +371,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             field = fields[key]
             query = {
                 "field": ["project", "user"],
-                "query": "{}:{}".format(field, value),
+                "query": f"{field}:{value}",
                 "statsPeriod": "14d",
             }
             response = self.do_request(query, features=features)
@@ -770,7 +770,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         for i in range(6):
             data = load_data("transaction", timestamp=before_now(minutes=1))
-            data["transaction"] = "/failure_rate/{}".format(i)
+            data["transaction"] = f"/failure_rate/{i}"
             data["contexts"]["trace"]["status"] = "unauthenticated"
             self.store_event(data, project_id=project.id)
 
@@ -799,8 +799,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 timestamp=before_now(minutes=(1 + idx)),
                 start_timestamp=before_now(minutes=(1 + idx), milliseconds=event[1]),
             )
-            data["event_id"] = "{}".format(idx) * 32
-            data["transaction"] = "/user_misery/horribilis/{}".format(idx)
+            data["event_id"] = f"{idx}" * 32
+            data["transaction"] = f"/user_misery/horribilis/{idx}"
             data["user"] = {"email": "{}@example.com".format(event[0])}
             self.store_event(data, project_id=project.id)
         query = {"field": ["user_misery(300)"], "query": "event.type:transaction"}
@@ -1447,7 +1447,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
         query = {
             "field": ["title", "issue.id"],
-            "query": "!issue:{}".format(event1.group.qualified_short_id),
+            "query": f"!issue:{event1.group.qualified_short_id}",
         }
         response = self.do_request(query, features=features)
         assert response.status_code == 200, response.content
@@ -2383,7 +2383,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         for i in range(6):
             data = load_data("transaction", timestamp=before_now(minutes=1))
-            data["transaction"] = "/failure_count/{}".format(i)
+            data["transaction"] = f"/failure_count/{i}"
             data["contexts"]["trace"]["status"] = "unauthenticated"
             self.store_event(data, project_id=project.id)
 
@@ -2485,10 +2485,10 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         # a value that's a little bigger than the stored fcp
         fcp = int(self.transaction_data["measurements"]["fcp"]["value"] + 1)
-        response = self.do_request({"field": "count_at_least(measurements.fcp, {})".format(fcp)})
+        response = self.do_request({"field": f"count_at_least(measurements.fcp, {fcp})"})
         assert response.status_code == 200
         assert len(response.data["data"]) == 1
-        assert response.data["data"][0]["count_at_least_measurements_fcp_{}".format(fcp)] == 0
+        assert response.data["data"][0][f"count_at_least_measurements_fcp_{fcp}"] == 0
 
     def test_measurements_query(self):
         self.store_event(self.transaction_data, self.project.id)
@@ -2638,12 +2638,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             )
 
         count_unique = "count_unique(measurements.fcp)"
-        self.assert_measurement_condition_with_results(
-            "{}:1".format(count_unique), field=[count_unique]
-        )
-        self.assert_measurement_condition_without_results(
-            "{}:0".format(count_unique), field=[count_unique]
-        )
+        self.assert_measurement_condition_with_results(f"{count_unique}:1", field=[count_unique])
+        self.assert_measurement_condition_without_results(f"{count_unique}:0", field=[count_unique])
 
     def test_compare_numeric_aggregate(self):
         self.store_event(self.transaction_data, self.project.id)

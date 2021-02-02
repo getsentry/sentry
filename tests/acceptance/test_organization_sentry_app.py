@@ -27,7 +27,7 @@ class OrganizationSentryAppAcceptanceTestCase(AcceptanceTestCase):
 
         self.login_as(self.user)
 
-        self.org_integration_settings_path = "/settings/{}/integrations/".format(self.org.slug)
+        self.org_integration_settings_path = f"/settings/{self.org.slug}/integrations/"
 
         self.provider = mock.Mock()
         self.provider.key = "tesla-app"

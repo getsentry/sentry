@@ -32,7 +32,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(org, self.user)
 
-        path = "/api/0/issues/{}/integrations/{}/?action=link".format(self.group.id, integration.id)
+        path = f"/api/0/issues/{self.group.id}/integrations/{integration.id}/?action=link"
 
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.get(path)
@@ -72,7 +72,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         integration.add_organization(org, self.user)
         group = self.group
 
-        path = "/api/0/issues/{}/integrations/{}/?action=create".format(group.id, integration.id)
+        path = f"/api/0/issues/{group.id}/integrations/{integration.id}/?action=create"
 
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.get(path)
@@ -171,7 +171,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(org, self.user)
 
-        path = "/api/0/issues/{}/integrations/{}/".format(group.id, integration.id)
+        path = f"/api/0/issues/{group.id}/integrations/{integration.id}/"
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.put(path, data={"externalIssue": "APP-123"})
 
@@ -206,7 +206,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(org, self.user)
 
-        path = "/api/0/issues/{}/integrations/{}/".format(group.id, integration.id)
+        path = f"/api/0/issues/{group.id}/integrations/{integration.id}/"
 
         with self.feature({"organizations:integrations-issue-basic": False}):
             response = self.client.put(path, data={"externalIssue": "APP-123"})
@@ -220,7 +220,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(org, self.user)
 
-        path = "/api/0/issues/{}/integrations/{}/".format(group.id, integration.id)
+        path = f"/api/0/issues/{group.id}/integrations/{integration.id}/"
 
         with self.feature("organizations:integrations-issue-basic"):
             response = self.client.post(path, data={})
@@ -261,7 +261,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(org, self.user)
 
-        path = "/api/0/issues/{}/integrations/{}/".format(group.id, integration.id)
+        path = f"/api/0/issues/{group.id}/integrations/{integration.id}/"
 
         with self.feature({"organizations:integrations-issue-basic": False}):
             response = self.client.post(path, data={})
@@ -356,7 +356,7 @@ class GroupIntegrationDetailsTest(APITestCase):
         create_path = "/api/0/issues/{}/integrations/{}/?action=create".format(
             group.id, integration.id
         )
-        link_path = "/api/0/issues/{}/integrations/{}/?action=link".format(group.id, integration.id)
+        link_path = f"/api/0/issues/{group.id}/integrations/{integration.id}/?action=link"
         project_field = {
             "name": "project",
             "label": "Project",

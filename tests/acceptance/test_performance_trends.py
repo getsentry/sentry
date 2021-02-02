@@ -27,7 +27,7 @@ class PerformanceTrendsTest(AcceptanceTestCase, SnubaTestCase):
             event.update(
                 {
                     "transaction": name,
-                    "event_id": "{:02x}".format(index).rjust(32, "0"),
+                    "event_id": f"{index:02x}".rjust(32, "0"),
                     "start_timestamp": iso_format(before_now(minutes=minutes, seconds=duration)),
                     "timestamp": iso_format(before_now(minutes=minutes)),
                 }

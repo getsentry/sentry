@@ -21,7 +21,7 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
         self.login_as(self.user)
 
     def load_page(self, slug, configuration_tab=False):
-        url = "/settings/{}/integrations/{}/".format(self.organization.slug, slug)
+        url = f"/settings/{self.organization.slug}/integrations/{slug}/"
         if configuration_tab:
             url += "?tab=configurations"
         self.browser.get(url)

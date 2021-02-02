@@ -208,7 +208,7 @@ class GroupTest(TestCase, SnubaTestCase):
         project = self.create_project()
         group = self.create_group(project=project)
 
-        expect = "{} - {}".format(group.qualified_short_id, group.title)
+        expect = f"{group.qualified_short_id} - {group.title}"
         assert group.get_email_subject() == expect
 
     def test_get_absolute_url(self):

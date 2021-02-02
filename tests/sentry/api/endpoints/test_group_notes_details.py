@@ -30,7 +30,7 @@ class GroupNotesDetailsTest(APITestCase):
 
     @fixture
     def url(self):
-        return "/api/0/issues/{}/comments/{}/".format(self.group.id, self.activity.id)
+        return f"/api/0/issues/{self.group.id}/comments/{self.activity.id}/"
 
     def test_delete(self):
         self.login_as(user=self.user)
@@ -81,8 +81,8 @@ class GroupNotesDetailsTest(APITestCase):
                     self.url,
                     format="json",
                     data={
-                        "text": "hi **@{}**".format(self.user.username),
-                        "mentions": ["user:{}".format(self.user.id)],
+                        "text": f"hi **@{self.user.username}**",
+                        "mentions": [f"user:{self.user.id}"],
                     },
                 )
         assert response.status_code == 200, response.content
@@ -92,7 +92,7 @@ class GroupNotesDetailsTest(APITestCase):
         assert activity.group == self.group
         assert activity.data == {
             "external_id": "123",
-            "text": "hi **@{}**".format(self.user.username),
+            "text": f"hi **@{self.user.username}**",
         }
 
     @patch("sentry.integrations.issues.IssueBasicMixin.update_comment")

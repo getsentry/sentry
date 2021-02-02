@@ -580,9 +580,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        response = self.client.get(
-            url, {"query": "project_id:{}".format(project.id)}, format="json"
-        )
+        response = self.client.get(url, {"query": f"project_id:{project.id}"}, format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["projectID"] == six.text_type(project.id)

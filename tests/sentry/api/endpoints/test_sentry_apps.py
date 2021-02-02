@@ -97,7 +97,7 @@ class GetSentryAppsTest(SentryAppsTest):
 
     def test_users_filter_on_internal_apps(self):
         self.login_as(user=self.user)
-        url = "{}?status=internal".format(self.url)
+        url = f"{self.url}?status=internal"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
@@ -134,7 +134,7 @@ class GetSentryAppsTest(SentryAppsTest):
         internal_app = self.create_internal_integration(name="Internal Nosee", organization=new_org)
 
         self.login_as(user=self.superuser, superuser=True)
-        url = "{}?status=internal".format(self.url)
+        url = f"{self.url}?status=internal"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
@@ -167,7 +167,7 @@ class GetSentryAppsTest(SentryAppsTest):
 
     def test_superuser_filter_on_published(self):
         self.login_as(user=self.superuser, superuser=True)
-        url = "{}?status=published".format(self.url)
+        url = f"{self.url}?status=published"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
@@ -203,7 +203,7 @@ class GetSentryAppsTest(SentryAppsTest):
 
     def test_superuser_filter_on_unpublished(self):
         self.login_as(user=self.superuser, superuser=True)
-        url = "{}?status=unpublished".format(self.url)
+        url = f"{self.url}?status=unpublished"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
@@ -214,7 +214,7 @@ class GetSentryAppsTest(SentryAppsTest):
 
     def test_user_filter_on_unpublished(self):
         self.login_as(user=self.user)
-        url = "{}?status=unpublished".format(self.url)
+        url = f"{self.url}?status=unpublished"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
@@ -250,7 +250,7 @@ class GetSentryAppsTest(SentryAppsTest):
 
     def test_user_filter_on_published(self):
         self.login_as(user=self.user)
-        url = "{}?status=published".format(self.url)
+        url = f"{self.url}?status=published"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
@@ -267,7 +267,7 @@ class GetSentryAppsTest(SentryAppsTest):
             name="Boo Far", organization=self.org, scopes=("project:write",)
         )
         self.login_as(user=user)
-        url = "{}?status=unpublished".format(self.url)
+        url = f"{self.url}?status=unpublished"
         response = self.client.get(url, format="json")
         assert {
             "name": sentry_app.name,
@@ -731,7 +731,7 @@ class PostSentryAppsTest(SentryAppsTest):
     def _post_with_token(self, token, **kwargs):
         body = self._default_body()
         body.update(**kwargs)
-        authorization = "Bearer {}".format(token.token)
+        authorization = f"Bearer {token.token}"
         return self.client.post(
             self.url,
             body,

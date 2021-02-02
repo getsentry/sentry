@@ -428,7 +428,7 @@ class PagerDutyActionHandlerTest(FireTest, TestCase):
         assert data["payload"]["custom_details"] == {
             "details": "1000 events in the last 10 minutes\nFilter: level:error"
         }
-        assert data["links"][0]["text"] == "Critical: {}".format(alert_rule.name)
+        assert data["links"][0]["text"] == f"Critical: {alert_rule.name}"
         assert data["links"][0]["href"] == "http://testserver/organizations/baz/alerts/1/"
 
     @responses.activate

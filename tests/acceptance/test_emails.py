@@ -59,7 +59,7 @@ class EmailTestCase(AcceptanceTestCase):
             # HTML output is captured as a snapshot
             self.browser.get(self.build_url(url, "html"))
             self.browser.wait_until("#preview")
-            self.browser.snapshot("{} email html".format(name))
+            self.browser.snapshot(f"{name} email html")
 
             # Text output is asserted against static fixture files
             self.browser.get(self.build_url(url, "txt"))

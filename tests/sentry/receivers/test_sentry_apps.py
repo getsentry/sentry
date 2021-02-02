@@ -120,7 +120,7 @@ class TestIssueWorkflowNotifications(APITestCase):
                     "repository": repo.name,
                     "author_email": "foo@example.com",
                     "author_name": "Foo Bar",
-                    "message": "FIXES {}".format(self.issue.qualified_short_id),
+                    "message": f"FIXES {self.issue.qualified_short_id}",
                 }
             ]
         )

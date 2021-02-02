@@ -21,7 +21,7 @@ class ListOrganizationMembersTest(AcceptanceTestCase):
         self.login_as(self.user)
 
     def test_list(self):
-        self.browser.get("/organizations/{}/members/".format(self.org.slug))
+        self.browser.get(f"/organizations/{self.org.slug}/members/")
         self.browser.wait_until_not(".loading-indicator")
         self.browser.snapshot(name="list organization members")
         assert self.browser.element_exists_by_test_id("email-invite")

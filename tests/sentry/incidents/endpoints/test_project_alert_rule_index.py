@@ -239,7 +239,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
         self.yet_another_alert_rule = self.create_alert_rule(
             projects=self.projects, date_added=before_now(minutes=3).replace(tzinfo=pytz.UTC)
         )
-        self.combined_rules_url = "/api/0/projects/{0}/{1}/combined-rules/".format(
+        self.combined_rules_url = "/api/0/projects/{}/{}/combined-rules/".format(
             self.org.slug, self.project.slug
         )
 

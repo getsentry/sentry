@@ -13,4 +13,4 @@ def test_validate_celerybeat_schedule(name, entry):
     entry = ScheduleEntry(name=name, app=app, **entry)
     assert entry.task in app.tasks
     mod_name = app.tasks[entry.task].__module__
-    assert mod_name in settings.CELERY_IMPORTS, "{} is missing from CELERY_IMPORTS".format(mod_name)
+    assert mod_name in settings.CELERY_IMPORTS, f"{mod_name} is missing from CELERY_IMPORTS"
