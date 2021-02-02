@@ -1731,6 +1731,26 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         # because we're ordering by `user.display`, we expect the results in sorted order
         assert result == ["catherine", "cathy@example.com"]
 
+    def test_has_message(self):
+        project = self.create_project()
+        event = self.store_event(
+            {"timestamp": iso_format(before_now(minutes=1)), "message": "a"}, project_id=project.id
+        )
+
+        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        query = {"field": ["project", "message"], "query": "has:message", "statsPeriod": "14d"}
+        response = self.do_request(query, features=features)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["message"] == event.message
+
+        query = {"field": ["project", "message"], "query": "!has:message", "statsPeriod": "14d"}
+        response = self.do_request(query, features=features)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 0
+
     def test_has_transaction_status(self):
         project = self.create_project()
         data = load_data("transaction", timestamp=before_now(minutes=1))

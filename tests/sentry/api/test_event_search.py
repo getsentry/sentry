@@ -1754,6 +1754,12 @@ class GetSnubaQueryArgsTest(TestCase):
         assert has_issue_filter.group_ids == []
         assert has_issue_filter.conditions == [[["isNull", ["issue.id"]], "=", 1]]
 
+    def test_message_empty(self):
+        assert get_filter("has:message").conditions == [[["equals", ["message", ""]], "!=", 1]]
+        assert get_filter("!has:message").conditions == [[["equals", ["message", ""]], "=", 1]]
+        assert get_filter('message:""').conditions == [[["equals", ["message", ""]], "=", 1]]
+        assert get_filter('!message:""').conditions == [[["equals", ["message", ""]], "!=", 1]]
+
     def test_message_negative(self):
         assert get_filter('!message:"post_process.process_error HTTPError 403"').conditions == [
             [
