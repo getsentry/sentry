@@ -230,7 +230,7 @@ export default function RichListField(props: RichListProps & InputField['props']
         // model, which is done after the field is mounted for the first time. To
         // check this, we cannot use Array.isArray because the value passed in by
         // the model might actually be an ObservableArray.
-        if (typeof value === 'string' || value.length === undefined) {
+        if (typeof value === 'string' || value?.length === undefined) {
           return null;
         }
         return <RichList {...otherProps} value={[...value]} />;

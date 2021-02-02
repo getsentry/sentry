@@ -63,12 +63,9 @@ export const fields: Record<string, Field> = {
       return rv.join(', ');
     },
     choices: ({builtinSymbolSources}) => {
-      return (
-        builtinSymbolSources &&
-        ((builtinSymbolSources as BuiltinSymbolSource[])
-          .filter(source => !source.hidden)
-          .map(source => [source.sentry_key, t(source.name)]) as Choices)
-      );
+      return (builtinSymbolSources as BuiltinSymbolSource[])
+        ?.filter(source => !source.hidden)
+        .map(source => [source.sentry_key, t(source.name)]) as Choices;
     },
   },
   symbolSources: {
