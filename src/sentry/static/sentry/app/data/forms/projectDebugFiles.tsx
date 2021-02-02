@@ -8,12 +8,19 @@ import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import {DEBUG_SOURCE_TYPES} from 'app/data/debugFileSources';
 import {t} from 'app/locale';
+import {Choices} from 'app/types';
+import {BuiltinSymbolSource} from 'app/types/debugFiles';
+import {Field} from 'app/views/settings/components/forms/type';
 import TextBlock from 'app/views/settings/components/text/textBlock';
+
+type SymbolSourceOptions = {
+  builtinSymbolSources: BuiltinSymbolSource[];
+};
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/projects/:projectId/debug-symbols/';
 
-function flattenKeys(obj) {
+function flattenKeys(obj: any): Record<string, string> {
   const result = {};
   forEach(obj, (value, key) => {
     if (isObject(value)) {
@@ -27,7 +34,7 @@ function flattenKeys(obj) {
   return result;
 }
 
-function unflattenKeys(obj) {
+function unflattenKeys(obj: Record<string, string>): Record<string, any> {
   const result = {};
   forEach(obj, (value, key) => {
     set(result, key.split('.'), value);
@@ -35,7 +42,7 @@ function unflattenKeys(obj) {
   return result;
 }
 
-export const fields = {
+export const fields: Record<string, Field> = {
   builtinSymbolSources: {
     name: 'builtinSymbolSources',
     type: 'select',
@@ -44,8 +51,8 @@ export const fields = {
     help: t(
       'Configures which built-in repositories Sentry should use to resolve debug files.'
     ),
-    formatMessageValue: (value, {builtinSymbolSources}) => {
-      const rv = [];
+    formatMessageValue: (value, {builtinSymbolSources}: SymbolSourceOptions) => {
+      const rv: string[] = [];
       value.forEach(key => {
         builtinSymbolSources.forEach(source => {
           if (source.sentry_key === key) {
@@ -55,11 +62,11 @@ export const fields = {
       });
       return rv.join(', ');
     },
-    choices: ({builtinSymbolSources}) =>
-      builtinSymbolSources &&
-      builtinSymbolSources
-        .filter(source => !source.hidden)
-        .map(source => [source.sentry_key, t(source.name)]),
+    choices: ({builtinSymbolSources}) => {
+      return (builtinSymbolSources as BuiltinSymbolSource[])
+        ?.filter(source => !source.hidden)
+        .map(source => [source.sentry_key, t(source.name)]) as Choices;
+    },
   },
   symbolSources: {
     name: 'symbolSources',
@@ -106,7 +113,12 @@ export const fields = {
     },
 
     getValue: sources => JSON.stringify(sources.map(unflattenKeys)),
-    setValue: raw => (JSON.parse(raw || null) || []).map(flattenKeys),
+    setValue: (raw: string) => {
+      if (!raw) {
+        return [];
+      }
+      return (JSON.parse(raw) || []).map(flattenKeys);
+    },
 
     renderItem(item) {
       return item.name ? <span>{item.name}</span> : <em>{t('<Unnamed Repository>')}</em>;
@@ -128,7 +140,6 @@ export const fields = {
     },
 
     removeConfirm: {
-      title: t('Remove Repository?'),
       confirmText: t('Remove Repository'),
       message: (
         <React.Fragment>
