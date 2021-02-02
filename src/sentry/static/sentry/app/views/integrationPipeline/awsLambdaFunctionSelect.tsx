@@ -7,7 +7,7 @@ import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {PanelHeader} from 'app/components/panels';
-import Switch from 'app/components/switch';
+import Switch from 'app/components/switchButton';
 import Tooltip from 'app/components/tooltip';
 import {t, tn} from 'app/locale';
 import Form from 'app/views/settings/components/forms/form';
