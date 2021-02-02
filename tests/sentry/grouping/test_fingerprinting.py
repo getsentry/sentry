@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 import pytest
 
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig

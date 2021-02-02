@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from sentry.utils.types import InvalidTypeError, Any, Bool, Int, Float, String, Dict, Sequence
 from unittest import TestCase
 
