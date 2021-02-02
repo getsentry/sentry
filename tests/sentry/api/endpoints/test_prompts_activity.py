@@ -18,7 +18,7 @@ class PromptsActivityTest(APITestCase):
         self.project = self.create_project(
             organization=self.org, teams=[self.team], name="Bengal-Elephant-Giraffe-Tree-House"
         )
-        self.path = reverse("sentry-api-0-promptsactivity")
+        self.path = reverse("sentry-api-0-prompts-activity")
 
     def test_invalid_feature(self):
         # Invalid feature prompt name
