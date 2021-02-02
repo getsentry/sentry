@@ -2,7 +2,7 @@ import responses
 import sentry
 
 from sentry.utils.compat.mock import MagicMock
-from six.moves.urllib.parse import urlencode, urlparse
+from urllib.parse import urlencode, urlparse
 
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.constants import ObjectStatus

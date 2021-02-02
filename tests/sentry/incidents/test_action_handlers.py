@@ -6,7 +6,7 @@ from django.core.urlresolvers import reverse
 from django.utils import timezone
 from exam import fixture
 from freezegun import freeze_time
-from six.moves.urllib.parse import parse_qs
+from urllib.parse import parse_qs
 
 from sentry.incidents.action_handlers import (
     EmailActionHandler,

@@ -4,7 +4,7 @@ import pytz
 from sentry.utils.compat.mock import patch
 from datetime import timedelta
 
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 from selenium.webdriver.common.keys import Keys
 
 from sentry.discover.models import DiscoverSavedQuery

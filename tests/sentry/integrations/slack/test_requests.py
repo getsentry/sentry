@@ -2,7 +2,7 @@ import hmac
 import time
 from datetime import datetime
 from hashlib import sha256
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from sentry import options
 from sentry.utils import json

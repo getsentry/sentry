@@ -1,7 +1,7 @@
 from datetime import timedelta
 from uuid import uuid4
 
-from six.moves.urllib.parse import quote
+from urllib.parse import quote
 
 from django.conf import settings
 from django.utils import timezone

@@ -1,6 +1,6 @@
 import responses
 
-from six.moves.urllib.parse import parse_qs, urlencode, urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
 
 from sentry.integrations.slack import SlackIntegrationProvider
 from sentry.integrations.slack.integration import _get_channels_from_rules

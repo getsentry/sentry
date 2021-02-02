@@ -1,5 +1,5 @@
 from io import BytesIO
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from sentry.models import EventAttachment, File
 from sentry.testutils import APITestCase

@@ -4,7 +4,7 @@ import pytest
 from sentry import options
 from sentry.utils import json
 
-from six.moves.urllib.parse import urlencode, urlparse
+from urllib.parse import urlencode, urlparse
 from sentry.models import Integration, OrganizationIntegration, PagerDutyService
 from sentry.testutils import IntegrationTestCase
 from sentry.integrations.pagerduty.integration import PagerDutyIntegrationProvider

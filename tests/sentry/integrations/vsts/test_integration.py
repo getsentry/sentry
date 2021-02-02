@@ -13,7 +13,7 @@ from sentry.models import (
     Project,
 )
 from sentry.plugins.base import plugins
-from six.moves.urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs
 from tests.sentry.plugins.testutils import (
     register_mock_plugins,
     unregister_mock_plugins,

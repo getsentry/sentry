@@ -1,7 +1,7 @@
 import responses
 
 from exam import fixture
-from six.moves.urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs
 
 from django.core.urlresolvers import reverse
 

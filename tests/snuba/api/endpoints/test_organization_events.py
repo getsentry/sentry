@@ -1,4 +1,4 @@
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from django.utils import timezone
 from django.core.urlresolvers import reverse

@@ -2,7 +2,7 @@ import pytest
 import base64
 from sentry.utils.compat import mock
 from exam import fixture
-from six.moves.urllib.parse import urlencode, urlparse, parse_qs
+from urllib.parse import urlencode, urlparse, parse_qs
 
 from django.conf import settings
 from django.core.urlresolvers import reverse

@@ -1,6 +1,6 @@
 import responses
 from sentry.utils.compat.mock import patch
-from six.moves.urllib.parse import parse_qs, urlencode, urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
 
 from sentry.integrations.github_enterprise import GitHubEnterpriseIntegrationProvider
 from sentry.models import (
