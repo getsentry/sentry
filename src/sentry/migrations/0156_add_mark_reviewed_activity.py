@@ -27,7 +27,7 @@ class Migration(migrations.Migration):
     atomic = True
 
     dependencies = [
-        ("sentry", "0154_groupedmessage_inbox_sort"),
+        ("sentry", "0155_add_dashboard_query_orderby"),
     ]
 
     operations = [
