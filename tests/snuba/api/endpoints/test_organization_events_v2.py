@@ -418,6 +418,30 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["issue"] == "unknown"
 
+    def test_unknown_issue(self):
+        project = self.create_project()
+        event = self.store_event(
+            {"timestamp": iso_format(before_now(minutes=1))}, project_id=project.id
+        )
+
+        data = load_data("transaction", timestamp=before_now(minutes=1))
+        self.store_event(data, project_id=project.id)
+
+        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        query = {"field": ["project", "issue"], "query": "issue:unknown", "statsPeriod": "14d"}
+        response = self.do_request(query, features=features)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["issue"] == "unknown"
+
+        query = {"field": ["project", "issue"], "query": "!issue:unknown", "statsPeriod": "14d"}
+        response = self.do_request(query, features=features)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["issue"] == event.group.qualified_short_id
+
     def test_negative_user_search(self):
         project = self.create_project()
         user_data = {"email": "foo@example.com", "id": "123", "username": "foo"}
