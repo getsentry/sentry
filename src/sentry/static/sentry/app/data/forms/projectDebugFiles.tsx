@@ -116,7 +116,12 @@ export const fields: Record<string, Field> = {
     },
 
     getValue: sources => JSON.stringify(sources.map(unflattenKeys)),
-    setValue: (raw: string) => (JSON.parse(raw || '') || []).map(flattenKeys),
+    setValue: (raw: string) => {
+      if (!raw) {
+        return [];
+      }
+      return (JSON.parse(raw) || []).map(flattenKeys);
+    },
 
     renderItem(item) {
       return item.name ? <span>{item.name}</span> : <em>{t('<Unnamed Repository>')}</em>;

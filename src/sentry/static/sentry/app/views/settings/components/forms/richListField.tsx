@@ -86,9 +86,6 @@ export type RichListProps = {
 
   /**
    * Disables all controls in the rich list.
-   *
-   * TODO(ts) This type should be boolean, but because of
-   * how FieldFromConfig interacts with FormField life is hard.
    */
   disabled: boolean;
 } & DefaultProps;
