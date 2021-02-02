@@ -20,12 +20,14 @@ type DefaultProps = {
    * Text used for the add item button.
    */
   addButtonText: string;
+
   /**
    * Callback invoked when an item is added via the dropdown menu.
    *
    * The callback is expected to call `addItem(item)`
    */
   onAddItem: RichListCallback;
+
   /**
    * Callback invoked when an item is removed.
    *
@@ -58,12 +60,6 @@ export type RichListProps = {
    * Render function to render an item.
    */
   renderItem: (item: ListItem) => React.ReactNode;
-  /**
-   * Callback invoked when an item is interacted with.
-   *
-   * The callback is expected to call `editItem(item)`
-   */
-  onEditItem?: RichListCallback;
 
   /**
    * The list of items to render.
@@ -79,15 +75,22 @@ export type RichListProps = {
   addDropdown: DropdownProps;
 
   /**
+   * Disables all controls in the rich list.
+   */
+  disabled: boolean;
+
+  /**
    * Properties for the confirm remove dialog. If missing, the item will be
    * removed immediately.
    */
   removeConfirm?: ConfirmProps;
 
   /**
-   * Disables all controls in the rich list.
+   * Callback invoked when an item is interacted with.
+   *
+   * The callback is expected to call `editItem(item)`
    */
-  disabled: boolean;
+  onEditItem?: RichListCallback;
 } & DefaultProps;
 
 class RichList extends React.PureComponent<RichListProps> {
