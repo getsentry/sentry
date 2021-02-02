@@ -49,7 +49,7 @@ export function getTrendsRequestPayload(props: RequestProps) {
   const trendFunction = getCurrentTrendFunction(props.location);
   const trendParameter = getCurrentTrendParameter(props.location);
   apiPayload.trendFunction = generateTrendFunctionAsString(
-    trendFunction.aggregation,
+    trendFunction.field,
     trendParameter.column
   );
   apiPayload.trendType = eventView?.trendType;

@@ -95,8 +95,15 @@ class TrendsContent extends React.Component<Props, State> {
   };
 
   handleParameterChange = (label: string) => {
-    const {location} = this.props;
+    const {organization, location} = this.props;
     const cursors = resetCursors();
+
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.trends.change_parameter',
+      eventName: 'Performance Views: Change Parameter',
+      organization_id: parseInt(organization.id, 10),
+      parameter_name: label,
+    });
 
     browserHistory.push({
       pathname: location.pathname,

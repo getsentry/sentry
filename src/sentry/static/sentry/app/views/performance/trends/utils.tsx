@@ -14,7 +14,6 @@ import {Series, SeriesDataUnit} from 'app/types/echarts';
 import EventView from 'app/utils/discover/eventView';
 import {
   AggregationKey,
-  Column,
   Field,
   generateFieldAsString,
   Sort,
@@ -42,41 +41,31 @@ export const TRENDS_FUNCTIONS: TrendFunction[] = [
     label: 'p50',
     field: TrendFunctionField.P50,
     alias: 'percentile_range',
-    chartLabel: 'p50()',
     legendLabel: 'p50',
-    aggregation: 'p50',
   },
   {
     label: 'p75',
     field: TrendFunctionField.P75,
     alias: 'percentile_range',
-    chartLabel: 'p75()',
     legendLabel: 'p75',
-    aggregation: 'p75',
   },
   {
     label: 'p95',
     field: TrendFunctionField.P95,
     alias: 'percentile_range',
-    chartLabel: 'p95()',
     legendLabel: 'p95',
-    aggregation: 'p95',
   },
   {
     label: 'p99',
     field: TrendFunctionField.P99,
     alias: 'percentile_range',
-    chartLabel: 'p99()',
     legendLabel: 'p99',
-    aggregation: 'p99',
   },
   {
     label: 'average',
     field: TrendFunctionField.AVG,
     alias: 'avg_range',
-    chartLabel: 'avg(transaction.duration)',
     legendLabel: 'average',
-    aggregation: 'avg',
   },
 ];
 
@@ -150,13 +139,13 @@ export function getCurrentTrendParameter(location: Location): TrendParameter {
 }
 
 export function generateTrendFunctionAsString(
-  trendFunction: string,
+  trendFunction: TrendFunctionField,
   trendParameter: string
 ): string {
   return generateFieldAsString({
     kind: 'function',
     function: [trendFunction as AggregationKey, trendParameter, undefined],
-  } as Column);
+  });
 }
 
 export function transformDeltaSpread(from: number, to: number) {
@@ -211,7 +200,7 @@ export function modifyTrendView(
 
   if (trendFunction && trendParameter) {
     trendView.trendFunction = generateTrendFunctionAsString(
-      trendFunction.aggregation,
+      trendFunction.field,
       trendParameter.column
     );
   }

@@ -23,9 +23,7 @@ export type TrendFunction = {
   label: string;
   field: TrendFunctionField;
   alias: string;
-  chartLabel: string;
   legendLabel: string;
-  aggregation: string;
 };
 
 export type TrendParameter = {

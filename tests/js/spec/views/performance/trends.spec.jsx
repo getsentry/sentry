@@ -458,7 +458,7 @@ describe('Performance > Trends', function () {
         expect.anything(),
         expect.objectContaining({
           query: expect.objectContaining({
-            trendFunction: `${trendFunction.aggregation}(transaction.duration)`,
+            trendFunction: `${trendFunction.field}(transaction.duration)`,
             sort,
             query: expect.stringContaining('trend_percentage():>0%'),
             interval: '30m',
@@ -474,7 +474,7 @@ describe('Performance > Trends', function () {
         expect.anything(),
         expect.objectContaining({
           query: expect.objectContaining({
-            trendFunction: `${trendFunction.aggregation}(transaction.duration)`,
+            trendFunction: `${trendFunction.field}(transaction.duration)`,
             sort: '-' + sort,
             query: expect.stringContaining('trend_percentage():>0%'),
             interval: '30m',

@@ -251,7 +251,7 @@ function ChangedTransactions(props: Props) {
         const currentTrendFunction =
           isLoading && previousTrendFunction
             ? previousTrendFunction
-            : trendFunction.aggregation;
+            : trendFunction.field;
 
         const currentTrendColumn =
           isLoading && previousTrendColumn ? previousTrendColumn : trendParameter.column;
