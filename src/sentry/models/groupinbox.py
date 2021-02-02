@@ -104,14 +104,15 @@ def remove_group_from_inbox(group, action=None, user=None):
                 user=user,
             )
 
-        inbox_out.send_robust(
-            group=group_inbox.group,
-            project=group_inbox.group.project,
-            user=user,
-            sender="remove_group_from_inbox",
-            action=action.value,
-            inbox_date_added=group_inbox.date_added,
-        )
+        if action:
+            inbox_out.send_robust(
+                group=group_inbox.group,
+                project=group_inbox.group.project,
+                user=user,
+                sender="remove_group_from_inbox",
+                action=action.value,
+                inbox_date_added=group_inbox.date_added,
+            )
     except GroupInbox.DoesNotExist:
         pass
 
