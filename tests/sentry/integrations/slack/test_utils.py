@@ -181,7 +181,7 @@ class BuildIncidentAttachmentTest(TestCase):
         logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=2)
-        title = "{}: {}".format("Resolved", alert_rule.name)
+        title = f"Resolved: {alert_rule.name}"
         assert build_incident_attachment(incident) == {
             "fallback": title,
             "title": title,
@@ -208,7 +208,7 @@ class BuildIncidentAttachmentTest(TestCase):
         logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=2)
-        title = "{}: {}".format("Resolved", alert_rule.name)
+        title = f"Resolved: {alert_rule.name}"
         metric_value = 5000
         assert build_incident_attachment(incident, metric_value=metric_value) == {
             "fallback": title,

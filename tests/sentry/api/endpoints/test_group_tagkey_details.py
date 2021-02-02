@@ -21,7 +21,7 @@ class GroupTagDetailsTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        url = "/api/0/issues/{}/tags/{}/".format(group.id, "foo")
+        url = f"/api/0/issues/{group.id}/tags/foo/"
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert response.data["key"] == six.text_type("foo")

@@ -105,7 +105,7 @@ class ProjectStacktraceLinkTest(APITestCase):
 
     def test_stack_root_mismatch_error(self):
         self.login_as(user=self.user)
-        url = "{}?file={}".format(self.url, "wrong/file/path")
+        url = f"{self.url}?file=wrong/file/path"
 
         response = self.client.get(url)
 
