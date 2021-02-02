@@ -75,7 +75,7 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
 
   handleToggle = () => {
     const newState = !this.toggleAllState;
-    this.lambdaFunctions.forEach((lambda: LambdaFunction) => {
+    this.lambdaFunctions.forEach(lambda => {
       this.model.setValue(lambda.FunctionName, newState, {quiet: true});
     });
   };
