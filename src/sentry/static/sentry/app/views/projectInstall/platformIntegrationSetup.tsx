@@ -7,8 +7,10 @@ import styled from '@emotion/styled';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import ExternalLink from 'app/components/links/externalLink';
 import platforms from 'app/data/platforms';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
+import {PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {IntegrationProvider, Organization, Project} from 'app/types';
 import {trackIntegrationEvent} from 'app/utils/integrationUtil';
@@ -17,7 +19,7 @@ import FirstEventFooter from 'app/views/onboarding/components/firstEventFooter';
 import PostInstallCodeSnippet from 'app/views/onboarding/components/postInstallCodeSnippet';
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 
-import PlatformHeader from './components/platformHeader';
+import PlatformHeaderButtonBar from './components/platformHeaderButtonBar';
 
 type Props = {
   organization: Organization;
@@ -119,60 +121,78 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
     const docsLink = 'https://docs.sentry.io/product/integrations/aws-lambda/';
 
     return (
-      <React.Fragment>
-        <PlatformHeader
-          title={t('Automatically instrument %s', platformIntegration.name)}
-          gettingStartedLink={gettingStartedLink}
-          docsLink={docsLink}
-        />
-        {!installed ? (
-          <React.Fragment>
-            <Instructions>
-              {t(
-                'Instrument Sentry without any code changes! Just press the "Add Integration" button below and complete the steps in the popup that opens.'
-              )}
-            </Instructions>
-            <StyledButtonBar gap={1}>
-              <AddIntegrationButton
-                provider={provider}
-                onAddIntegration={this.handleAddIntegration}
+      <OuterWrapper>
+        <StyledPageHeader>
+          <StyledTitle>
+            {t('Automatically instrument %s', platformIntegration.name)}
+          </StyledTitle>
+          <PlatformHeaderButtonBar
+            gettingStartedLink={gettingStartedLink}
+            docsLink={docsLink}
+          />
+        </StyledPageHeader>
+        <InnerWrapper>
+          {!installed ? (
+            <React.Fragment>
+              <p>
+                {tct(
+                  'The automated AWS Lambda setup will instrument your Lambda functions with Sentry error and performance monitoring without any code changes. We use CloudFormation Stack ([learnMore]) to create Sentry role which gives us access to your AWS account.',
+                  {
+                    learnMore: (
+                      <ExternalLink>{t('Learn more about CloudFormation')}</ExternalLink>
+                    ),
+                  }
+                )}
+              </p>
+              <p>
+                {tct(
+                  'Just press the [addInstallation] button below and complete the steps in the popup that opens.',
+                  {addInstallation: <strong>{t('Add Installation')}</strong>}
+                )}
+              </p>
+              <p>
+                {tct(
+                  'If you don’t want to add CloudFormation stack to your AWS environment, press the [manualSetup] button instead.',
+                  {manualSetup: <strong>{t('Manual Setup')}</strong>}
+                )}
+              </p>
+              <StyledButtonBar gap={1}>
+                <AddIntegrationButton
+                  provider={provider}
+                  onAddIntegration={this.handleAddIntegration}
+                  organization={organization}
+                  priority="primary"
+                  size="small"
+                  analyticsParams={{view: 'project_creation', already_installed: false}}
+                  modalParams={{projectId: project.id}}
+                />
+                <Button
+                  size="small"
+                  to={{
+                    pathname: window.location.pathname,
+                    query: {manual: '1'},
+                  }}
+                  onClick={this.trackSwitchToManual}
+                >
+                  {t('Manual Setup')}
+                </Button>
+              </StyledButtonBar>
+            </React.Fragment>
+          ) : (
+            <React.Fragment>
+              <PostInstallCodeSnippet provider={provider} />
+              <FirstEventFooter
+                project={project}
                 organization={organization}
-                priority="primary"
-                size="small"
-                analyticsParams={{view: 'project_creation', already_installed: false}}
-                modalParams={{projectId}}
-                buttonText={t('Add Integration')}
+                docsLink={docsLink}
               />
-              <Button
-                size="small"
-                to={{
-                  pathname: window.location.pathname,
-                  query: {manual: '1'},
-                }}
-                onClick={this.trackSwitchToManual}
-              >
-                {t('Manual Setup')}
-              </Button>
-            </StyledButtonBar>
-          </React.Fragment>
-        ) : (
-          <React.Fragment>
-            <PostInstallCodeSnippet provider={provider} />
-            <FirstEventFooter
-              project={project}
-              organization={organization}
-              docsLink={docsLink}
-            />
-          </React.Fragment>
-        )}
-      </React.Fragment>
+            </React.Fragment>
+          )}
+        </InnerWrapper>
+      </OuterWrapper>
     );
   }
 }
-
-const Instructions = styled('div')`
-  margin-top: ${space(3)};
-`;
 
 const StyledButtonBar = styled(ButtonBar)`
   margin-top: ${space(3)};
@@ -183,6 +203,24 @@ const StyledButtonBar = styled(ButtonBar)`
     grid-row-gap: ${space(1)};
     grid-auto-flow: row;
   }
+`;
+
+const InnerWrapper = styled('div')`
+  width: 850px;
+`;
+
+const OuterWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const StyledPageHeader = styled(PageHeader)`
+  margin-bottom: ${space(3)};
+`;
+
+const StyledTitle = styled('h2')`
+  margin: 0 ${space(3)} 0 0;
 `;
 
 export default withOrganization(PlatformIntegrationSetup);

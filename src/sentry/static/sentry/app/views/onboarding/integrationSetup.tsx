@@ -13,6 +13,7 @@ import LoadingError from 'app/components/loadingError';
 import {PlatformKey} from 'app/data/platformCategories';
 import platforms from 'app/data/platforms';
 import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
 import {IntegrationProvider, Organization, Project} from 'app/types';
 import {analytics} from 'app/utils/analytics';
 import getDynamicText from 'app/utils/getDynamicText';
@@ -166,20 +167,6 @@ class IntegrationSetup extends React.Component<Props, State> {
             }
           )}
         </motion.p>
-        {/* <motion.p
-          variants={{
-            initial: {opacity: 0},
-            animate: {opacity: 1},
-            exit: {opacity: 0},
-          }}
-        >
-          {tct(
-            'Want to manually install the SDK instead? [link:See SDK instruction docs].',
-            {
-              link: <Button priority="link" href={this.manualSetupUrl} />,
-            }
-          )}
-        </motion.p> */}
         <motion.p
           variants={{
             initial: {opacity: 0},
@@ -193,7 +180,7 @@ class IntegrationSetup extends React.Component<Props, State> {
         </motion.p>
 
         <DocsWrapper>
-          <ButtonBar gap={1}>
+          <StyledButtonBar gap={1}>
             <AddIntegrationButton
               provider={provider}
               onAddIntegration={this.handleAddIntegration}
@@ -213,7 +200,7 @@ class IntegrationSetup extends React.Component<Props, State> {
             >
               {t('Manual Setup')}
             </Button>
-          </ButtonBar>
+          </StyledButtonBar>
         </DocsWrapper>
       </React.Fragment>
     );
@@ -277,5 +264,16 @@ DocsWrapper.defaultProps = {
   animate: {opacity: 1, y: 0},
   exit: {opacity: 0},
 };
+
+const StyledButtonBar = styled(ButtonBar)`
+  margin-top: ${space(3)};
+  width: max-content;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    width: auto;
+    grid-row-gap: ${space(1)};
+    grid-auto-flow: row;
+  }
+`;
 
 export default withOrganization(withApi(IntegrationSetup));
