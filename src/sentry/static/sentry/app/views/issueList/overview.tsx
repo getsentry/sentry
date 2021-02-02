@@ -747,6 +747,7 @@ class IssueListOverview extends React.Component<Props, State> {
       path = `/organizations/${organization.slug}/issues/`;
     }
 
+    // Remove inbox tab specific sort
     if (query.sort === 'time' && !isForReviewQuery(query.query)) {
       delete query.sort;
     }

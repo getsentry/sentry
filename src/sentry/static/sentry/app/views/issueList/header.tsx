@@ -14,7 +14,7 @@ import {Organization, Project} from 'app/types';
 import withProjects from 'app/utils/withProjects';
 
 import SavedSearchTab from './savedSearchTab';
-import {getTabs, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
+import {getTabs, isForReviewQuery, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
 
 type Props = {
   organization: Organization;
@@ -50,9 +50,6 @@ function IssueListHeader({
   const savedSearchTabActive = !visibleTabs.some(([tabQuery]) => tabQuery === query);
   // Remove cursor and page when switching tabs
   const {cursor: _, page: __, ...queryParms} = router?.location?.query ?? {};
-  if (queryParms.sort === 'time') {
-    delete queryParms.sort;
-  }
 
   return (
     <React.Fragment>
@@ -87,7 +84,14 @@ function IssueListHeader({
             <li key={tabQuery} className={query === tabQuery ? 'active' : ''}>
               <Link
                 to={{
-                  query: {...queryParms, query: tabQuery},
+                  query: {
+                    ...queryParms,
+                    query: tabQuery,
+                    sort:
+                      queryParms.sort === 'time' && !isForReviewQuery(tabQuery)
+                        ? undefined
+                        : queryParms.sort,
+                  },
                   pathname: `/organizations/${organization.slug}/issues/`,
                 }}
               >
