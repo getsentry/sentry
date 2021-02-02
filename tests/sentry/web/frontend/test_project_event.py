@@ -26,9 +26,7 @@ class ProjectEventTest(SnubaTestCase, TestCase):
         )
         self.assertRedirects(
             resp,
-            "/organizations/{}/issues/{}/events/{}/".format(
-                self.org.slug, self.event.group_id, self.event.event_id
-            ),
+            f"/organizations/{self.org.slug}/issues/{self.event.group_id}/events/{self.event.event_id}/",
         )
 
     def test_event_not_found(self):

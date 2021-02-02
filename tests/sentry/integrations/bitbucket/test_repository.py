@@ -1,7 +1,6 @@
 import datetime
 import responses
 import pytest
-import six
 
 from django.utils import timezone
 from exam import fixture
@@ -131,7 +130,7 @@ class BitbucketRepositoryProviderTest(TestCase):
     def test_get_repository_data_no_installation_id(self):
         with pytest.raises(IntegrationError) as e:
             self.provider.get_repository_data(self.organization, {})
-            assert "requires an integration id" in six.text_type(e)
+            assert "requires an integration id" in str(e)
 
 
 class BitbucketCreateRepositoryTestCase(IntegrationRepositoryTestCase):
@@ -166,12 +165,12 @@ class BitbucketCreateRepositoryTestCase(IntegrationRepositoryTestCase):
     def add_create_repository_responses(self, repository_config):
         responses.add(
             responses.GET,
-            "%s/2.0/repositories/%s" % (self.base_url, self.repo.name),
+            f"{self.base_url}/2.0/repositories/{self.repo.name}",
             json=repository_config,
         )
         responses.add(
             responses.POST,
-            "%s/2.0/repositories/%s/hooks" % (self.base_url, self.repo.name),
+            f"{self.base_url}/2.0/repositories/{self.repo.name}/hooks",
             json={"uuid": "99"},
         )
 

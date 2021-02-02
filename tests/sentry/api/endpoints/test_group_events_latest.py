@@ -1,5 +1,3 @@
-import six
-
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
@@ -40,19 +38,19 @@ class GroupEventsLatestEndpointTest(APITestCase, SnubaTestCase):
         )
 
     def test_get_simple(self):
-        url = "/api/0/issues/{}/events/latest/".format(self.event_a.group.id)
+        url = f"/api/0/issues/{self.event_a.group.id}/events/latest/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(self.event_c.event_id)
-        assert response.data["previousEventID"] == six.text_type(self.event_b.event_id)
+        assert response.data["id"] == str(self.event_c.event_id)
+        assert response.data["previousEventID"] == str(self.event_b.event_id)
         assert response.data["nextEventID"] is None
 
     def test_get_with_environment(self):
-        url = "/api/0/issues/{}/events/latest/".format(self.event_a.group.id)
+        url = f"/api/0/issues/{self.event_a.group.id}/events/latest/"
         response = self.client.get(url, format="json", data={"environment": ["production"]})
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(self.event_b.event_id)
+        assert response.data["id"] == str(self.event_b.event_id)
         assert response.data["previousEventID"] is None
         assert response.data["nextEventID"] is None

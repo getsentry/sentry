@@ -6,7 +6,7 @@ from sentry.testutils import PermissionTestCase, TestCase
 class OrganizationIntegrationSetupPermissionTest(PermissionTestCase):
     def setUp(self):
         super(OrganizationIntegrationSetupPermissionTest, self).setUp()
-        self.path = "/organizations/{}/integrations/example/setup/".format(self.organization.slug)
+        self.path = f"/organizations/{self.organization.slug}/integrations/example/setup/"
 
     # this currently redirects the user
     @pytest.mark.xfail
@@ -24,7 +24,7 @@ class OrganizationIntegrationSetupTest(TestCase):
         super(OrganizationIntegrationSetupTest, self).setUp()
         self.organization = self.create_organization(name="foo", owner=self.user)
         self.login_as(self.user)
-        self.path = "/organizations/{}/integrations/example/setup/".format(self.organization.slug)
+        self.path = f"/organizations/{self.organization.slug}/integrations/example/setup/"
 
     def test_basic_flow(self):
         resp = self.client.get(self.path)

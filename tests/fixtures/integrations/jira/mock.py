@@ -1,7 +1,7 @@
 from tests.fixtures.integrations.jira.stub_client import StubJiraApiClient
 from tests.fixtures.integrations import MockService
 
-DEFAULT_PROJECT_ID = '10000'
+DEFAULT_PROJECT_ID = "10000"
 
 
 class MockJira(StubJiraApiClient, MockService):
@@ -11,19 +11,22 @@ class MockJira(StubJiraApiClient, MockService):
 
         :return: list of project objects
         """
-        return [{
-            "self": "http://www.example.com/jira/rest/api/2/project/{}".format(project_name),
-            "id": project_name,
-            "key": project_name,
-            "name": project_name,
-            "projectCategory": {
-                "self": "http://www.example.com/jira/rest/api/2/projectCategory/{}".format(project_name),
+        return [
+            {
+                "self": f"http://www.example.com/jira/rest/api/2/project/{project_name}",
                 "id": project_name,
+                "key": project_name,
                 "name": project_name,
-                "description": project_name
-            },
-            "simplified": False
-        } for project_name in self._get_project_names() + [DEFAULT_PROJECT_ID]]
+                "projectCategory": {
+                    "self": f"http://www.example.com/jira/rest/api/2/projectCategory/{project_name}",
+                    "id": project_name,
+                    "name": project_name,
+                    "description": project_name,
+                },
+                "simplified": False,
+            }
+            for project_name in self._get_project_names() + [DEFAULT_PROJECT_ID]
+        ]
 
     def set_createmeta(self, project, createmeta):
         """
@@ -79,8 +82,10 @@ class MockJira(StubJiraApiClient, MockService):
         if not data:
             return None
 
-        data.update({
-            "id": issue_key,
-            "key": issue_key,
-        })
+        data.update(
+            {
+                "id": issue_key,
+                "key": issue_key,
+            }
+        )
         return data

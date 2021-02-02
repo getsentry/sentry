@@ -1,4 +1,3 @@
-import six
 from datetime import timedelta
 from dateutil.parser import parse as parse_datetime
 from uuid import uuid4
@@ -53,7 +52,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def _parse_links(self, header):
         # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
         links = {}
-        for url, attrs in six.iteritems(parse_link_header(header)):
+        for url, attrs in parse_link_header(header).items():
             links[attrs["rel"]] = attrs
             attrs["href"] = url
         return links
@@ -76,7 +75,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         response = self.get_valid_response(sort_by="date", query="is:unresolved")
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(group.id)
+        assert response.data[0]["id"] == str(group.id)
 
     def test_sort_by_trend(self):
         event = self.store_event(
@@ -88,7 +87,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         response = self.get_valid_response(sort="trend", query="is:unresolved")
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(group.id)
+        assert response.data[0]["id"] == str(group.id)
 
     def test_sort_by_inbox(self):
         group_1 = self.store_event(
@@ -115,13 +114,13 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_valid_response(sort="inbox", query="is:for_review", limit=1)
         print([rd["id"] for rd in response.data])
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(group_1.id)
+        assert response.data[0]["id"] == str(group_1.id)
 
         header_links = parse_link_header(response["Link"])
         cursor = [link for link in header_links.values() if link["rel"] == "next"][0]["cursor"]
         response = self.get_response(sort="inbox", cursor=cursor, query="is:for_review", limit=1)
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(group_2.id)
+        assert response.data[0]["id"] == str(group_2.id)
 
     def test_trace_search(self):
         event = self.store_event(
@@ -147,7 +146,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             sort_by="date", query="is:unresolved trace:a7d67cf796774551a95be6543cacd459"
         )
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(event.group.id)
+        assert response.data[0]["id"] == str(event.group.id)
 
     def test_feature_gate(self):
         # ensure there are two or more projects
@@ -218,7 +217,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         response = self.get_valid_response(sort_by="date", limit=1)
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(group2.id)
+        assert response.data[0]["id"] == str(group2.id)
 
         links = self._parse_links(response["Link"])
 
@@ -228,7 +227,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.client.get(links["next"]["href"], format="json")
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(group1.id)
+        assert response.data[0]["id"] == str(group1.id)
 
         links = self._parse_links(response["Link"])
 
@@ -292,7 +291,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         response = self.get_valid_response()
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(group2.id)
+        assert response.data[0]["id"] == str(group2.id)
 
     def test_lookup_by_event_id(self):
         project = self.project
@@ -308,7 +307,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_valid_response(query="c" * 32)
         assert response["X-Sentry-Direct-Hit"] == "1"
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(event.group.id)
+        assert response.data[0]["id"] == str(event.group.id)
         assert response.data[0]["matchingEventId"] == event_id
 
     def test_lookup_by_event_id_incorrect_project_id(self):
@@ -331,7 +330,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             response = self.get_valid_response(query=event_id, project=[other_project.id])
         assert response["X-Sentry-Direct-Hit"] == "1"
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(event.group.id)
+        assert response.data[0]["id"] == str(event.group.id)
         assert response.data[0]["matchingEventId"] == event_id
 
     def test_lookup_by_event_id_with_whitespace(self):
@@ -347,7 +346,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_valid_response(query="  {}  ".format("c" * 32))
         assert response["X-Sentry-Direct-Hit"] == "1"
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(event.group.id)
+        assert response.data[0]["id"] == str(event.group.id)
         assert response.data[0]["matchingEventId"] == event_id
 
     def test_lookup_by_unknown_event_id(self):
@@ -403,12 +402,10 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         response = self.get_valid_response(group=self.group.id)
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(self.group.id)
+        assert response.data[0]["id"] == str(self.group.id)
         group_2 = self.create_group()
         response = self.get_valid_response(group=[self.group.id, group_2.id])
-        assert set([g["id"] for g in response.data]) == set(
-            [six.text_type(self.group.id), six.text_type(group_2.id)]
-        )
+        assert set([g["id"] for g in response.data]) == set([str(self.group.id), str(group_2.id)])
 
     def test_lookup_by_group_id_no_perms(self):
         organization = self.create_organization()
@@ -482,7 +479,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         response = self.get_valid_response()
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(events[1].group.id)
+        assert response.data[0]["id"] == str(events[1].group.id)
 
     def test_filters_based_on_retention(self):
         self.login_as(user=self.user)
@@ -514,7 +511,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
             response = self.get_valid_response(statsPeriod="6h")
             assert len(response.data) == 1
-            assert response.data[0]["id"] == six.text_type(group.id)
+            assert response.data[0]["id"] == str(group.id)
 
             response = self.get_valid_response(statsPeriod="1h")
             assert len(response.data) == 0
@@ -563,7 +560,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             group = self.store_event(
                 data={
                     "timestamp": iso_format(before_now(days=day)),
-                    "fingerprint": ["group-{}".format(day)],
+                    "fingerprint": [f"group-{day}"],
                 },
                 project_id=self.project.id,
             ).group
@@ -586,17 +583,15 @@ class GroupListTest(APITestCase, SnubaTestCase):
             (self.organization.id, {"project": [self.project.id]}),
         ]
 
-        response = self.get_response(limit=1, query="assigned:{}".format(self.user.email))
+        response = self.get_response(limit=1, query=f"assigned:{self.user.email}")
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(assigned_groups[1].id)
+        assert response.data[0]["id"] == str(assigned_groups[1].id)
 
         header_links = parse_link_header(response["Link"])
         cursor = [link for link in header_links.values() if link["rel"] == "next"][0]["cursor"]
-        response = self.get_response(
-            limit=1, cursor=cursor, query="assigned:{}".format(self.user.email)
-        )
+        response = self.get_response(limit=1, cursor=cursor, query=f"assigned:{self.user.email}")
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(assigned_groups[0].id)
+        assert response.data[0]["id"] == str(assigned_groups[0].id)
 
         assert options.set("snuba.search.hits-sample-size", old_sample_size)
 
@@ -820,7 +815,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             assert int(response.data[0]["id"]) == event.group.id
 
             response = self.get_response(
-                sort_by="date", limit=10, query="owner:{}".format(other_user.email)
+                sort_by="date", limit=10, query=f"owner:{other_user.email}"
             )
             assert response.status_code == 200
             assert len(response.data) == 1
@@ -829,17 +824,13 @@ class GroupListTest(APITestCase, SnubaTestCase):
             GroupAssignee.objects.create(
                 group=assigned_event.group, project=assigned_event.group.project, user=self.user
             )
-            response = self.get_response(
-                sort_by="date", limit=10, query="owner:{}".format(self.user.email)
-            )
+            response = self.get_response(sort_by="date", limit=10, query=f"owner:{self.user.email}")
             assert response.status_code == 200
             assert len(response.data) == 2
             assert int(response.data[0]["id"]) == event.group.id
             assert int(response.data[1]["id"]) == assigned_event.group.id
 
-            response = self.get_response(
-                sort_by="date", limit=10, query="owner:#{}".format(self.team.slug)
-            )
+            response = self.get_response(sort_by="date", limit=10, query=f"owner:#{self.team.slug}")
             assert response.status_code == 200
             assert len(response.data) == 0
             GroupOwner.objects.create(
@@ -850,9 +841,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 team_id=self.team.id,
                 user_id=None,
             )
-            response = self.get_response(
-                sort_by="date", limit=10, query="owner:#{}".format(self.team.slug)
-            )
+            response = self.get_response(sort_by="date", limit=10, query=f"owner:#{self.team.slug}")
             assert response.status_code == 200
             assert len(response.data) == 1
             assert int(response.data[0]["id"]) == event.group.id
@@ -1028,8 +1017,8 @@ class GroupListTest(APITestCase, SnubaTestCase):
             assert int(response.data[0]["id"]) == event.group.id
             assert response.data[0]["owners"] is not None
             assert len(response.data[0]["owners"]) == 2
-            assert response.data[0]["owners"][0]["owner"] == "user:{}".format(self.user.id)
-            assert response.data[0]["owners"][1]["owner"] == "team:{}".format(self.team.id)
+            assert response.data[0]["owners"][0]["owner"] == f"user:{self.user.id}"
+            assert response.data[0]["owners"][1]["owner"] == f"team:{self.team.id}"
             assert (
                 response.data[0]["owners"][0]["type"]
                 == GROUP_OWNER_TYPE[GroupOwnerType.SUSPECT_COMMIT]
@@ -1391,7 +1380,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=user)
         response = self.get_valid_response(qs_params={"id": group.id}, status="resolved")
-        assert response.data["assignedTo"]["id"] == six.text_type(user.id)
+        assert response.data["assignedTo"]["id"] == str(user.id)
         assert response.data["assignedTo"]["type"] == "user"
         assert response.data["status"] == "resolved"
 
@@ -1418,7 +1407,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inNextRelease"]
-        assert response.data["assignedTo"]["id"] == six.text_type(self.user.id)
+        assert response.data["assignedTo"]["id"] == str(self.user.id)
         assert response.data["assignedTo"]["type"] == "user"
 
         group = Group.objects.get(id=group.id)
@@ -1484,7 +1473,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inRelease"] == release.version
-        assert response.data["statusDetails"]["actor"]["id"] == six.text_type(self.user.id)
+        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -1519,7 +1508,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inRelease"] == release.version
-        assert response.data["statusDetails"]["actor"]["id"] == six.text_type(self.user.id)
+        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -1550,7 +1539,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inNextRelease"]
-        assert response.data["statusDetails"]["actor"]["id"] == six.text_type(self.user.id)
+        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -1581,7 +1570,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inNextRelease"]
-        assert response.data["statusDetails"]["actor"]["id"] == six.text_type(self.user.id)
+        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -1613,7 +1602,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inCommit"]["id"] == commit.key
-        assert response.data["statusDetails"]["actor"]["id"] == six.text_type(self.user.id)
+        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -1646,7 +1635,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inCommit"]["id"] == commit.key
-        assert response.data["statusDetails"]["actor"]["id"] == six.text_type(self.user.id)
+        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -1763,7 +1752,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["statusDetails"]["ignoreUserCount"] == snooze.user_count
         assert response.data["statusDetails"]["ignoreUserWindow"] == snooze.user_window
         assert response.data["statusDetails"]["ignoreUntil"] == snooze.until
-        assert response.data["statusDetails"]["actor"]["id"] == six.text_type(self.user.id)
+        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
 
     def test_snooze_count(self):
         group = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED, times_seen=1)
@@ -1787,14 +1776,14 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["statusDetails"]["ignoreUserCount"] == snooze.user_count
         assert response.data["statusDetails"]["ignoreUserWindow"] == snooze.user_window
         assert response.data["statusDetails"]["ignoreUntil"] == snooze.until
-        assert response.data["statusDetails"]["actor"]["id"] == six.text_type(self.user.id)
+        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
 
     def test_snooze_user_count(self):
         for i in range(10):
             event = self.store_event(
                 data={
                     "fingerprint": ["put-me-in-group-1"],
-                    "user": {"id": six.text_type(i)},
+                    "user": {"id": str(i)},
                     "timestamp": iso_format(self.min_ago + timedelta(seconds=i)),
                 },
                 project_id=self.project.id,
@@ -1823,7 +1812,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["statusDetails"]["ignoreUserCount"] == snooze.user_count
         assert response.data["statusDetails"]["ignoreUserWindow"] == snooze.user_window
         assert response.data["statusDetails"]["ignoreUntil"] == snooze.until
-        assert response.data["statusDetails"]["actor"]["id"] == six.text_type(self.user.id)
+        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
 
     def test_set_bookmarked(self):
         group1 = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
@@ -1974,9 +1963,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         response = self.get_valid_response(
             qs_params={"id": [group1.id, group2.id, group3.id]}, merge="1"
         )
-        assert response.data["merge"]["parent"] == six.text_type(group2.id)
+        assert response.data["merge"]["parent"] == str(group2.id)
         assert sorted(response.data["merge"]["children"]) == sorted(
-            [six.text_type(group1.id), six.text_type(group3.id)]
+            [str(group1.id), str(group3.id)]
         )
 
         mock_eventstream.start_merge.assert_called_once_with(
@@ -1998,7 +1987,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=user)
         response = self.get_valid_response(qs_params={"id": group1.id}, assignedTo=user.username)
-        assert response.data["assignedTo"]["id"] == six.text_type(user.id)
+        assert response.data["assignedTo"]["id"] == str(user.id)
         assert response.data["assignedTo"]["type"] == "user"
         assert GroupAssignee.objects.filter(group=group1, user=user).exists()
 
@@ -2034,10 +2023,8 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         group.project.add_team(team)
 
-        response = self.get_valid_response(
-            qs_params={"id": group.id}, assignedTo="team:{}".format(team.id)
-        )
-        assert response.data["assignedTo"]["id"] == six.text_type(team.id)
+        response = self.get_valid_response(qs_params={"id": group.id}, assignedTo=f"team:{team.id}")
+        assert response.data["assignedTo"]["id"] == str(team.id)
         assert response.data["assignedTo"]["type"] == "team"
         assert GroupAssignee.objects.filter(group=group, team=team).exists()
 
@@ -2198,7 +2185,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             groups.append(
                 self.create_group(
                     project=self.project,
-                    checksum=six.text_type(i).encode("utf-8") * 16,
+                    checksum=str(i).encode("utf-8") * 16,
                     status=GroupStatus.RESOLVED,
                 )
             )

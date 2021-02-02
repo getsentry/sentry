@@ -374,7 +374,7 @@ class Dashboard extends React.Component<Props, State> {
 
     return (
       <LazyLoad key={`${widget.id ?? index}`} once height={240} offset={100}>
-        <WidgetWrapper data-component="widget-wrapper">
+        <WidgetWrapper data-component="widget-wrapper" displayType={widget.displayType}>
           <WidgetCard
             widget={widget}
             isEditing={isEditing}
@@ -422,7 +422,7 @@ class Dashboard extends React.Component<Props, State> {
       <WidgetContainer>
         {widgets.map((widget, i) => this.renderWidget(widget, i))}
         {isEditing && (
-          <WidgetWrapper key="add">
+          <WidgetWrapper key="add" displayType="big_number">
             <AddWidgetWrapper
               key="add"
               data-test-id="widget-add"
@@ -442,7 +442,8 @@ export default withApi(withGlobalSelection(Dashboard));
 
 const WidgetContainer = styled('div')`
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-flow: row dense;
   grid-gap: ${space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
@@ -450,16 +451,24 @@ const WidgetContainer = styled('div')`
   }
 `;
 
-const WidgetWrapper = styled('div')`
+const WidgetWrapper = styled('div')<{displayType: Widget['displayType']}>`
   position: relative;
   /* Min-width prevents grid items from stretching the grid */
   min-width: 200px;
+
+  ${p => {
+    switch (p.displayType) {
+      case 'big_number':
+        return 'grid-area: span 1 / span 1;';
+      default:
+        return 'grid-area: span 2 / span 2;';
+    }
+  }};
 `;
 
 const AddWidgetWrapper = styled('a')`
   width: 100%;
-  height: 100%;
-  min-height: 200px;
+  height: 110px;
   border: 2px dashed ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   display: flex;

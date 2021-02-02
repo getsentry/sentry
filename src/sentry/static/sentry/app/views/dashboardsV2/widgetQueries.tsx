@@ -147,6 +147,7 @@ class WidgetQueries extends React.Component<Props, State> {
         version: 2,
         fields: query.fields,
         query: query.conditions,
+        orderby: query.orderby,
         projects,
         range: statsPeriod,
         start: start ? getUtcDateString(start) : undefined,
@@ -160,6 +161,10 @@ class WidgetQueries extends React.Component<Props, State> {
       if (widget.displayType === 'table') {
         url = `/organizations/${organization.slug}/eventsv2/`;
         params.referrer = 'api.dashboards.tablewidget';
+      } else if (widget.displayType === 'big_number') {
+        url = `/organizations/${organization.slug}/eventsv2/`;
+        params.per_page = 1;
+        params.referrer = 'api.dashboards.bignumberwidget';
       } else if (widget.displayType === 'world_map') {
         url = `/organizations/${organization.slug}/events-geo/`;
         delete params.per_page;
@@ -205,7 +210,7 @@ class WidgetQueries extends React.Component<Props, State> {
 
     this.setState({loading: true, errorMessage: undefined});
 
-    if (['table', 'world_map'].includes(widget.displayType)) {
+    if (['table', 'world_map', 'big_number'].includes(widget.displayType)) {
       this.fetchEventData();
     } else {
       this.setState({timeseriesResults: []});
@@ -228,6 +233,7 @@ class WidgetQueries extends React.Component<Props, State> {
           period: statsPeriod,
           query: query.conditions,
           yAxis: query.fields,
+          orderby: query.orderby,
           includePrevious: false,
           referrer: 'api.dashboards.timeserieswidget',
         };

@@ -1,8 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
-import six
-
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import (
     DetailedAlertRuleSerializer,
@@ -22,8 +17,8 @@ class BaseAlertRuleSerializerTest(object):
                 "snuba_query__subscriptions__project__slug", flat=True
             )
         )
-        assert result["id"] == six.text_type(alert_rule.id)
-        assert result["organizationId"] == six.text_type(alert_rule.organization_id)
+        assert result["id"] == str(alert_rule.id)
+        assert result["organizationId"] == str(alert_rule.organization_id)
         assert result["name"] == alert_rule.name
         assert result["dataset"] == alert_rule.snuba_query.dataset
         assert result["query"] == alert_rule.snuba_query.query
@@ -176,5 +171,5 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
         )
 
         self.assert_alert_rule_serialized(alert_rule, result[0])
-        assert result[1]["id"] == six.text_type(issue_rule.id)
+        assert result[1]["id"] == str(issue_rule.id)
         self.assert_alert_rule_serialized(other_alert_rule, result[2])

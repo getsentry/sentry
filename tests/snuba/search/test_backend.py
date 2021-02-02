@@ -1101,7 +1101,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
     def test_search_out_of_range(self):
         the_date = datetime(2000, 1, 1, 0, 0, 0, tzinfo=pytz.utc)
         results = self.make_query(
-            search_filter_query="event.timestamp:>%s event.timestamp:<%s" % (the_date, the_date),
+            search_filter_query=f"event.timestamp:>{the_date} event.timestamp:<{the_date}",
             date_from=the_date,
             date_to=the_date,
         )
@@ -1114,11 +1114,11 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         for i in range(400):
             event = self.store_event(
                 data={
-                    "event_id": md5("event {}".format(i).encode("utf-8")).hexdigest(),
-                    "fingerprint": ["put-me-in-group{}".format(i)],
+                    "event_id": md5(f"event {i}".encode("utf-8")).hexdigest(),
+                    "fingerprint": [f"put-me-in-group{i}"],
                     "timestamp": iso_format(self.base_datetime - timedelta(days=21)),
-                    "message": "group {} event".format(i),
-                    "stacktrace": {"frames": [{"module": "module {}".format(i)}]},
+                    "message": f"group {i} event",
+                    "stacktrace": {"frames": [{"module": f"module {i}"}]},
                     "tags": {"match": "{}".format(i % 2)},
                     "environment": "production",
                 },
@@ -1638,7 +1638,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             try:
                 self.make_query(search_filter_query=query)
             except SnubaError as e:
-                self.fail("Query %s errored. Error info: %s" % (query, e))
+                self.fail(f"Query {query} errored. Error info: {e}")
 
         for key in SENTRY_SNUBA_MAP:
             if key in ["project.id", "issue.id"]:
@@ -1655,6 +1655,6 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                 val = "true"
             else:
                 val = "abadcafedeadbeefdeaffeedabadfeed"
-                test_query("!%s:%s" % (key, val))
+                test_query(f"!{key}:{val}")
 
-            test_query("%s:%s" % (key, val))
+            test_query(f"{key}:{val}")

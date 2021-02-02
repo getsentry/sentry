@@ -9,17 +9,15 @@ class IssueDetailsPage(BasePage):
         self.global_selection = GlobalSelectionPage(browser)
 
     def visit_issue(self, org, groupid):
-        self.browser.get("/organizations/{}/issues/{}/".format(org, groupid))
+        self.browser.get(f"/organizations/{org}/issues/{groupid}/")
         self.wait_until_loaded()
 
     def visit_issue_in_environment(self, org, groupid, environment):
-        self.browser.get(
-            "/organizations/{}/issues/{}/?environment={}".format(org, groupid, environment)
-        )
+        self.browser.get(f"/organizations/{org}/issues/{groupid}/?environment={environment}")
         self.browser.wait_until(".group-detail")
 
     def visit_tag_values(self, org, groupid, tag):
-        self.browser.get("/organizations/{}/issues/{}/tags/{}/".format(org, groupid, tag))
+        self.browser.get(f"/organizations/{org}/issues/{groupid}/tags/{tag}/")
         self.browser.wait_until_not(".loading-indicator")
 
     def get_environment(self):
@@ -29,7 +27,7 @@ class IssueDetailsPage(BasePage):
         self.global_selection.go_back_to_issues()
 
     def api_issue_get(self, groupid):
-        return self.client.get("/api/0/issues/{}/".format(groupid))
+        return self.client.get(f"/api/0/issues/{groupid}/")
 
     def go_to_subtab(self, name):
         tabs = self.browser.find_element_by_css_selector(".group-detail .nav-tabs")

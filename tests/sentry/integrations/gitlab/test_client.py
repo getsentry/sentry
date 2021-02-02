@@ -131,9 +131,7 @@ class GitlabRefreshAuthTest(GitLabTestCase):
         ref = "537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3"
         responses.add(
             responses.HEAD,
-            "https://example.gitlab.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
-                self.gitlab_id, "src%2Ffile.py", ref
-            ),
+            f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/src%2Ffile.py?ref={ref}",
             json={"text": 200},
         )
 
@@ -147,9 +145,7 @@ class GitlabRefreshAuthTest(GitLabTestCase):
         ref = "537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3"
         responses.add(
             responses.HEAD,
-            "https://example.gitlab.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
-                self.gitlab_id, "src%2Ffile.py", ref
-            ),
+            f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/src%2Ffile.py?ref={ref}",
             status=404,
         )
         with self.assertRaises(ApiError):
@@ -162,9 +158,7 @@ class GitlabRefreshAuthTest(GitLabTestCase):
         ref = "537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3"
         responses.add(
             responses.HEAD,
-            "https://example.gitlab.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
-                self.gitlab_id, "src%2Ffile.py", ref
-            ),
+            f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/src%2Ffile.py?ref={ref}",
             json={"text": 200},
         )
 

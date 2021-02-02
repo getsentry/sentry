@@ -3,7 +3,7 @@ import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import * as incidentActions from 'app/actionCreators/serviceIncidents';
-import SidebarContainer, {Sidebar} from 'app/components/sidebar';
+import SidebarContainer from 'app/components/sidebar';
 import ConfigStore from 'app/stores/configStore';
 
 jest.mock('app/actionCreators/serviceIncidents');
@@ -17,11 +17,11 @@ describe('Sidebar', function () {
 
   const createWrapper = props =>
     mountWithTheme(
-      <Sidebar
+      <SidebarContainer
         organization={organization}
         user={user}
         router={router}
-        location={router.location}
+        location={{...router.location, ...{pathname: '/test/'}}}
         {...props}
       />,
       routerContext
@@ -40,11 +40,15 @@ describe('Sidebar', function () {
       url: `/organizations/${organization.slug}/discover/saved/`,
       body: [],
     });
+    apiMocks.sdkUpdates = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sdk-updates/`,
+      body: [],
+    });
   });
 
   it('renders', function () {
     wrapper = mountWithTheme(
-      <Sidebar organization={organization} user={user} router={router} />,
+      <SidebarContainer organization={organization} user={user} router={router} />,
       TestStubs.routerContext()
     );
 
@@ -101,6 +105,7 @@ describe('Sidebar', function () {
     expect(wrapper.find('OnboardingStatus ProgressRing')).toHaveLength(1);
 
     wrapper.find('OnboardingStatus ProgressRing').simulate('click');
+    await tick();
     wrapper.update();
 
     expect(wrapper.find('OnboardingStatus TaskSidebarPanel').exists()).toBe(true);
@@ -228,13 +233,19 @@ describe('Sidebar', function () {
       });
       wrapper = createWrapper();
 
-      await wrapper.find('Broadcasts SidebarItem').simulate('click');
+      wrapper.find('Broadcasts SidebarItem').simulate('click');
 
+      await tick();
       wrapper.update();
       expect(wrapper.find('SidebarPanel')).toHaveLength(1);
 
       expect(wrapper.find('SidebarPanelItem')).toHaveLength(0);
       expect(wrapper.find('SidebarPanelEmpty')).toHaveLength(1);
+
+      // Close the sidebar
+      wrapper.find('Broadcasts SidebarItem').simulate('click');
+      await tick();
+      wrapper.update();
     });
 
     it('can display Broadcasts panel and mark as seen', async function () {
@@ -242,8 +253,13 @@ describe('Sidebar', function () {
       wrapper = createWrapper();
       expect(apiMocks.broadcasts).toHaveBeenCalled();
 
-      await wrapper.find('Broadcasts SidebarItem').simulate('click');
+      wrapper.find('Broadcasts SidebarItem').simulate('click');
+
+      // XXX: Need to do this for reflux since we're using fake timers
+      jest.advanceTimersByTime(0);
+      await Promise.resolve();
       wrapper.update();
+
       expect(wrapper.find('SidebarPanel')).toHaveLength(1);
 
       expect(wrapper.find('SidebarPanelItem')).toHaveLength(1);
@@ -265,20 +281,29 @@ describe('Sidebar', function () {
         })
       );
       jest.useRealTimers();
+
+      // Close the sidebar
+      wrapper.find('Broadcasts SidebarItem').simulate('click');
     });
 
-    it('can toggle display of Broadcasts SidebarPanel', function () {
+    it('can toggle display of Broadcasts SidebarPanel', async function () {
       wrapper = createWrapper();
+      wrapper.update();
 
       // Show Broadcasts Panel
       wrapper.find('Broadcasts SidebarItem').simulate('click');
+      await tick();
       wrapper.update();
       expect(wrapper.find('SidebarPanel')).toHaveLength(1);
 
       // Hide Broadcasts Panel
       wrapper.find('Broadcasts SidebarItem').simulate('click');
+      await tick();
       wrapper.update();
       expect(wrapper.find('SidebarPanel')).toHaveLength(0);
+
+      // Close the sidebar
+      wrapper.find('Broadcasts SidebarItem').simulate('click');
     });
 
     it('can unmount Sidebar (and Broadcasts) and kills Broadcast timers', async function () {
@@ -314,6 +339,7 @@ describe('Sidebar', function () {
       await tick();
 
       wrapper.find('ServiceIncidents').simulate('click');
+      await tick();
       wrapper.update();
       expect(wrapper.find('SidebarPanel')).toHaveLength(1);
 
@@ -325,14 +351,24 @@ describe('Sidebar', function () {
       wrapper.update();
 
       wrapper.find('Broadcasts SidebarItem').simulate('click');
+      await tick();
       wrapper.update();
       expect(wrapper.find('SidebarPanel')).toHaveLength(1);
 
+      const prevProps = wrapper.props();
+
       wrapper.setProps({
-        location: {
-          pathname: 'new-path-name',
-        },
+        location: {...router.location, pathname: 'new-path-name'},
       });
+
+      // XXX(epurkhsier): Due to a bug in enzyme [0], componentDidUpdate is not
+      // called after props have updated, it still receives _old_ `this.props`.
+      // We manually call it here after the props have been correctly updated.
+      //
+      // [0]: https://github.com/enzymejs/enzyme/issues/2197
+      wrapper.find('Sidebar').instance().componentDidUpdate(prevProps);
+
+      await tick();
       wrapper.update();
       expect(wrapper.find('SidebarPanel')).toHaveLength(0);
     });
