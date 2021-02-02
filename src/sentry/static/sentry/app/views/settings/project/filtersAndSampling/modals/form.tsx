@@ -84,7 +84,7 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
           category: name,
           match: value.join(' '),
         })),
-        sampleRate,
+        sampleRate: sampleRate * 100,
         errors: {},
       };
     }
