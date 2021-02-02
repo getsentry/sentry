@@ -194,7 +194,7 @@ function ReleaseStats({organization, release, project, location, selection}: Pro
                         !tableData ||
                         tableData.data.length === 0
                       ) {
-                        return '\u2014';
+                        return <NotAvailable />;
                       }
                       return (
                         <GlobalSelectionLink

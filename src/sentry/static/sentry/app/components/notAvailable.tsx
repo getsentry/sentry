@@ -5,7 +5,7 @@ import Tooltip from 'app/components/tooltip';
 import {defined} from 'app/utils';
 
 type Props = {
-  tooltip?: string;
+  tooltip?: React.ReactNode;
 };
 
 function NotAvailable({tooltip}: Props) {
