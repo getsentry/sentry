@@ -82,4 +82,4 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
 
     @staticmethod
     def url_creator(page_path, org_slug):
-        return "organizations/{org_id}/{page_path}/".format(org_id=org_slug, page_path=page_path)
+        return f"organizations/{org_slug}/{page_path}/"

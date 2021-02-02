@@ -39,7 +39,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         group = self.create_group()
         result = serialize(group, self.user, serializer=GroupSerializerSnuba())
         assert "http://" in result["permalink"]
-        assert "{}/issues/{}".format(group.organization.slug, group.id) in result["permalink"]
+        assert f"{group.organization.slug}/issues/{group.id}" in result["permalink"]
 
     def test_permalink_outside_org(self):
         outside_user = self.create_user()

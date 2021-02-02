@@ -62,7 +62,7 @@ class ProjectStacktraceLinkTest(APITestCase):
             "sentry-api-0-project-stacktrace-link",
             kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
         )
-        url = "{}?file={}".format(path, self.filepath)
+        url = f"{path}?file={self.filepath}"
 
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
@@ -74,7 +74,7 @@ class ProjectStacktraceLinkTest(APITestCase):
 
     def test_file_not_found_error(self):
         self.login_as(user=self.user)
-        url = "{}?file={}".format(self.url, self.filepath)
+        url = f"{self.url}?file={self.filepath}"
 
         response = self.client.get(url)
 
@@ -105,7 +105,7 @@ class ProjectStacktraceLinkTest(APITestCase):
 
     def test_stack_root_mismatch_error(self):
         self.login_as(user=self.user)
-        url = "{}?file={}".format(self.url, "wrong/file/path")
+        url = f"{self.url}?file=wrong/file/path"
 
         response = self.client.get(url)
 
@@ -136,7 +136,7 @@ class ProjectStacktraceLinkTest(APITestCase):
 
     def test_config_and_source_url(self):
         self.login_as(user=self.user)
-        url = "{}?file={}".format(self.url, self.filepath)
+        url = f"{self.url}?file={self.filepath}"
 
         with mock.patch.object(
             ExampleIntegration, "get_stacktrace_link", return_value="https://sourceurl.com/"

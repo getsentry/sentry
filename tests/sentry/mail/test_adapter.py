@@ -818,8 +818,9 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest, TestCase):
         assert "group-header" in msg.alternatives[0][0]
         assert "enhanced privacy" not in msg.body
 
-        assert msg.subject == "[Sentry] {} - New Feedback from Homer Simpson".format(
-            self.group.qualified_short_id
+        assert (
+            msg.subject
+            == f"[Sentry] {self.group.qualified_short_id} - New Feedback from Homer Simpson"
         )
         assert msg.to == [self.user.email]
 
@@ -848,7 +849,8 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest, TestCase):
         assert "group-header" not in msg.alternatives[0][0]
         assert "enhanced privacy" in msg.body
 
-        assert msg.subject == "[Sentry] {} - New Feedback from Homer Simpson".format(
-            self.group.qualified_short_id
+        assert (
+            msg.subject
+            == f"[Sentry] {self.group.qualified_short_id} - New Feedback from Homer Simpson"
         )
         assert msg.to == [self.user.email]

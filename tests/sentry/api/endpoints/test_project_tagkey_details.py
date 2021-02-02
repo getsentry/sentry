@@ -15,7 +15,7 @@ class ProjectTagKeyDetailsTest(APITestCase, SnubaTestCase):
         def make_event(i):
             self.store_event(
                 data={
-                    "tags": {"foo": "val{}".format(i)},
+                    "tags": {"foo": f"val{i}"},
                     "timestamp": iso_format(before_now(seconds=1)),
                 },
                 project_id=project.id,

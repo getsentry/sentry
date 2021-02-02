@@ -83,7 +83,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
             group_id=group2.id,
         )
 
-        url = "/api/0/projects/{}/{}/user-feedback/".format(project.organization.slug, project.slug)
+        url = f"/api/0/projects/{project.organization.slug}/{project.slug}/user-feedback/"
 
         response = self.client.get(url, format="json")
 
@@ -95,9 +95,9 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         project = self.create_project()
         project_key = self.create_project_key(project=project)
 
-        url = "/api/0/projects/{}/{}/user-feedback/".format(project.organization.slug, project.slug)
+        url = f"/api/0/projects/{project.organization.slug}/{project.slug}/user-feedback/"
 
-        response = self.client.get(url, HTTP_AUTHORIZATION="DSN {}".format(project_key.dsn_public))
+        response = self.client.get(url, HTTP_AUTHORIZATION=f"DSN {project_key.dsn_public}")
 
         assert response.status_code == 401, response.content
 
@@ -115,9 +115,9 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
             group_id=group.id,
         )
 
-        url = "/api/0/projects/{}/{}/user-feedback/".format(project.organization.slug, project.slug)
+        url = f"/api/0/projects/{project.organization.slug}/{project.slug}/user-feedback/"
 
-        response = self.client.get("{}?status=".format(url), format="json")
+        response = self.client.get(f"{url}?status=", format="json")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
@@ -126,8 +126,8 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
     def test_environments(self):
         self.login_as(user=self.user)
 
-        base_url = "/api/0/projects/{}/{}/user-feedback/".format(
-            self.project.organization.slug, self.project.slug
+        base_url = (
+            f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
         )
 
         # Specify environment
@@ -179,9 +179,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
     def test_simple(self):
         self.login_as(user=self.user)
 
-        url = "/api/0/projects/{}/{}/user-feedback/".format(
-            self.project.organization.slug, self.project.slug
-        )
+        url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
 
         response = self.client.post(
             url,
@@ -204,13 +202,11 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
 
     def test_with_dsn_auth(self):
         project_key = self.create_project_key(project=self.project)
-        url = "/api/0/projects/{}/{}/user-feedback/".format(
-            self.project.organization.slug, self.project.slug
-        )
+        url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
 
         response = self.client.post(
             url,
-            HTTP_AUTHORIZATION="DSN {}".format(project_key.dsn_public),
+            HTTP_AUTHORIZATION=f"DSN {project_key.dsn_public}",
             data={
                 "event_id": self.event.event_id,
                 "email": "foo@example.com",
@@ -227,13 +223,11 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         project2 = self.create_project()
         project_key = self.create_project_key(project=self.project)
 
-        url = "/api/0/projects/{}/{}/user-feedback/".format(
-            project2.organization.slug, project2.slug
-        )
+        url = f"/api/0/projects/{project2.organization.slug}/{project2.slug}/user-feedback/"
 
         response = self.client.post(
             url,
-            HTTP_AUTHORIZATION="DSN {}".format(project_key.dsn_public),
+            HTTP_AUTHORIZATION=f"DSN {project_key.dsn_public}",
             data={
                 "event_id": uuid4().hex,
                 "email": "foo@example.com",
@@ -256,9 +250,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
             comments="",
         )
 
-        url = "/api/0/projects/{}/{}/user-feedback/".format(
-            self.project.organization.slug, self.project.slug
-        )
+        url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
 
         response = self.client.post(
             url,
@@ -293,9 +285,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
             comments="",
         )
 
-        url = "/api/0/projects/{}/{}/user-feedback/".format(
-            self.project.organization.slug, self.project.slug
-        )
+        url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
 
         response = self.client.post(
             url,
@@ -333,9 +323,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
             date_added=timezone.now() - timedelta(minutes=10),
         )
 
-        url = "/api/0/projects/{}/{}/user-feedback/".format(
-            self.project.organization.slug, self.project.slug
-        )
+        url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
 
         response = self.client.post(
             url,
@@ -352,9 +340,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
     def test_after_event_deadline(self):
         self.login_as(user=self.user)
 
-        url = "/api/0/projects/{}/{}/user-feedback/".format(
-            self.project.organization.slug, self.project.slug
-        )
+        url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
 
         response = self.client.post(
             url,
@@ -371,9 +357,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
     def test_environments(self):
         self.login_as(user=self.user)
 
-        url = "/api/0/projects/{}/{}/user-feedback/".format(
-            self.project.organization.slug, self.project.slug
-        )
+        url = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/user-feedback/"
 
         response = self.client.post(
             url,

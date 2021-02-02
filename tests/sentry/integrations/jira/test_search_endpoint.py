@@ -40,7 +40,7 @@ class JiraSearchEndpointTest(APITestCase):
 
         path = reverse("sentry-extensions-jira-search", args=[org.slug, self.integration.id])
 
-        resp = self.client.get("%s?field=externalIssue&query=test" % (path,))
+        resp = self.client.get(f"{path}?field=externalIssue&query=test")
         assert resp.status_code == 200
         assert resp.data == [{"label": "(HSP-1) this is a test issue summary", "value": "HSP-1"}]
 
@@ -65,7 +65,7 @@ class JiraSearchEndpointTest(APITestCase):
 
         # queries come through from the front end lowercased, so HSP-1 -> hsp-1
         for field in ("externalIssue", "parent"):
-            resp = self.client.get("%s?field=%s&query=hsp-1" % (path, field))
+            resp = self.client.get(f"{path}?field={field}&query=hsp-1")
             assert resp.status_code == 200
             assert resp.data == [
                 {"label": "(HSP-1) this is a test issue summary", "value": "HSP-1"}
@@ -86,7 +86,7 @@ class JiraSearchEndpointTest(APITestCase):
         path = reverse("sentry-extensions-jira-search", args=[org.slug, self.integration.id])
 
         for field in ("externalIssue", "parent"):
-            resp = self.client.get("%s?field=%s&query=test" % (path, field))
+            resp = self.client.get(f"{path}?field={field}&query=test")
             assert resp.status_code == 400
             assert resp.data == {
                 "detail": "Error Communicating with Jira (HTTP 500): unknown error"
@@ -120,7 +120,7 @@ class JiraSearchEndpointTest(APITestCase):
 
         path = reverse("sentry-extensions-jira-search", args=[org.slug, self.integration.id])
 
-        resp = self.client.get("%s?project=10000&field=assignee&query=bob" % (path,))
+        resp = self.client.get(f"{path}?project=10000&field=assignee&query=bob")
         assert resp.status_code == 200
         assert resp.data == [{"value": "deadbeef123", "label": "Bobby - bob@example.org"}]
 
@@ -144,7 +144,7 @@ class JiraSearchEndpointTest(APITestCase):
 
         path = reverse("sentry-extensions-jira-search", args=[org.slug, self.integration.id])
 
-        resp = self.client.get("%s?project=10000&field=assignee&query=bob" % (path,))
+        resp = self.client.get(f"{path}?project=10000&field=assignee&query=bob")
         assert resp.status_code == 400
 
     @responses.activate
@@ -167,7 +167,7 @@ class JiraSearchEndpointTest(APITestCase):
 
         path = reverse("sentry-extensions-jira-search", args=[org.slug, self.integration.id])
 
-        resp = self.client.get("%s?field=customfield_0123&query=sp" % (path,))
+        resp = self.client.get(f"{path}?field=customfield_0123&query=sp")
         assert resp.status_code == 200
         assert resp.data == [{"label": "Sprint 1 (1)", "value": "1"}]
 
@@ -185,7 +185,7 @@ class JiraSearchEndpointTest(APITestCase):
 
         path = reverse("sentry-extensions-jira-search", args=[org.slug, self.integration.id])
 
-        resp = self.client.get("%s?field=customfield_0123&query=sp" % (path,))
+        resp = self.client.get(f"{path}?field=customfield_0123&query=sp")
         assert resp.status_code == 400
         assert resp.data == {
             "detail": "Unable to fetch autocomplete for customfield_0123 from Jira"

@@ -10,7 +10,7 @@ class CreateProjectTest(AcceptanceTestCase):
         self.org = self.create_organization(name="Rowdy Tiger")
         self.login_as(self.user)
 
-        self.path = "/organizations/{}/projects/new/".format(self.org.slug)
+        self.path = f"/organizations/{self.org.slug}/projects/new/"
 
     @patch("django.db.models.signals.ModelSignal.send")
     def test_simple(self, mock_signal):

@@ -557,7 +557,7 @@ class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
             event = data.copy()
             event.update(
                 {
-                    "transaction": "/event/{0:03d}/".format(i),
+                    "transaction": f"/event/{i:03d}/",
                     "timestamp": iso_format(before_now(minutes=1, seconds=i)),
                     "start_timestamp": iso_format(before_now(minutes=1, seconds=i + 1)),
                 }

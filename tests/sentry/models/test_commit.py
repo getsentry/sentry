@@ -16,9 +16,7 @@ class FindReferencedGroupsTest(TestCase):
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
-            message="Foo Biz\n\nFixes {} {}".format(
-                group.qualified_short_id, group2.qualified_short_id
-            ),
+            message=f"Foo Biz\n\nFixes {group.qualified_short_id} {group2.qualified_short_id}",
         )
 
         groups = commit.find_referenced_groups()
@@ -30,9 +28,7 @@ class FindReferencedGroupsTest(TestCase):
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
-            message="Foo Biz\n\Resolved {} {}".format(
-                group.qualified_short_id, group2.qualified_short_id
-            ),
+            message=f"Foo Biz\n\\Resolved {group.qualified_short_id} {group2.qualified_short_id}",
         )
 
         groups = commit.find_referenced_groups()
@@ -44,9 +40,7 @@ class FindReferencedGroupsTest(TestCase):
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
-            message="Foo Biz\n\Close {} {}".format(
-                group.qualified_short_id, group2.qualified_short_id
-            ),
+            message=f"Foo Biz\n\\Close {group.qualified_short_id} {group2.qualified_short_id}",
         )
 
         groups = commit.find_referenced_groups()
@@ -58,7 +52,7 @@ class FindReferencedGroupsTest(TestCase):
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
-            message="Foo Biz\n\nFixes: {}".format(group.qualified_short_id),
+            message=f"Foo Biz\n\nFixes: {group.qualified_short_id}",
         )
 
         groups = commit.find_referenced_groups()
@@ -75,9 +69,7 @@ class FindReferencedGroupsTest(TestCase):
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
-            message="Foo Biz\n\nFixes {}, {}".format(
-                group.qualified_short_id, group2.qualified_short_id
-            ),
+            message=f"Foo Biz\n\nFixes {group.qualified_short_id}, {group2.qualified_short_id}",
         )
 
         groups = commit.find_referenced_groups()

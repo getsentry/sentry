@@ -36,7 +36,7 @@ class ProjectsListTest(APITestCase):
         self.create_project(organization=org2)
 
         self.login_as(user=user, superuser=True)
-        response = self.client.get("{}?show=all".format(self.path))
+        response = self.client.get(f"{self.path}?show=all")
         assert response.status_code == 200
         assert len(response.data) == 2
 
@@ -128,12 +128,12 @@ class ProjectsListTest(APITestCase):
 
         self.login_as(user=user)
 
-        response = self.client.get("{}?query=id:{}".format(self.path, project1.id))
+        response = self.client.get(f"{self.path}?query=id:{project1.id}")
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]["id"] == six.text_type(project1.id)
 
-        response = self.client.get("{}?query=id:-1".format(self.path))
+        response = self.client.get(f"{self.path}?query=id:-1")
         assert response.status_code == 200
         assert len(response.data) == 0
 
@@ -148,6 +148,6 @@ class ProjectsListTest(APITestCase):
         # there should only be one record created so just grab the first one
         token = SentryAppInstallationToken.objects.first()
         response = self.client.get(
-            "{}".format(self.path), HTTP_AUTHORIZATION="Bearer {}".format(token.api_token.token)
+            f"{self.path}", HTTP_AUTHORIZATION=f"Bearer {token.api_token.token}"
         )
         assert project.name.encode("utf-8") in response.content

@@ -26,7 +26,7 @@ class PerformanceOverviewTest(AcceptanceTestCase, SnubaTestCase):
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.group = self.create_group(project=self.project)
         self.login_as(self.user)
-        self.path = "/organizations/{}/performance/".format(self.org.slug)
+        self.path = f"/organizations/{self.org.slug}/performance/"
 
         self.page = BasePage(self.browser)
 

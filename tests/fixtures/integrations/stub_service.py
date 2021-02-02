@@ -39,7 +39,7 @@ class StubService(object):
         :param name: string
         :return: object
         """
-        cache_key = "{}.{}".format(service_name, name)
+        cache_key = f"{service_name}.{name}"
         cached = StubService.stub_data_cache.get(cache_key)
         if cached:
             data = cached

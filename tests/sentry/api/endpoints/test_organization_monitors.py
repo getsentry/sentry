@@ -21,7 +21,7 @@ class ListOrganizationMonitorsTest(APITestCase):
 
     @fixture
     def path(self):
-        return "/api/0/organizations/{}/monitors/".format(self.org.slug)
+        return f"/api/0/organizations/{self.org.slug}/monitors/"
 
     def check_valid_response(self, response, expected_monitors):
         assert response.status_code == 200, response.content
@@ -55,7 +55,7 @@ class CreateOrganizationMonitorTest(APITestCase):
 
     @fixture
     def path(self):
-        return "/api/0/organizations/{}/monitors/".format(self.org.slug)
+        return f"/api/0/organizations/{self.org.slug}/monitors/"
 
     def test_simple(self):
         self.login_as(user=self.user)

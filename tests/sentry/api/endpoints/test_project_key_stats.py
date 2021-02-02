@@ -10,9 +10,7 @@ class ProjectKeyStatsTest(APITestCase):
         self.project = self.create_project()
         self.key = ProjectKey.objects.create(project=self.project)
         self.login_as(user=self.user)
-        self.path = "/api/0/projects/{}/{}/keys/{}/stats/".format(
-            self.project.organization.slug, self.project.slug, self.key.public_key
-        )
+        self.path = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/keys/{self.key.public_key}/stats/"
 
     def test_simple(self):
         tsdb.incr(tsdb.models.key_total_received, self.key.id, count=3)

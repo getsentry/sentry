@@ -70,17 +70,13 @@ class VstsIssueBase(TestCase):
     def mock_categories(self, project):
         responses.add(
             responses.GET,
-            "https://fabrikam-fiber-inc.visualstudio.com/{}/_apis/wit/workitemtypecategories".format(
-                project
-            ),
+            f"https://fabrikam-fiber-inc.visualstudio.com/{project}/_apis/wit/workitemtypecategories",
             json={
                 "value": [
                     {
                         "workItemTypes": [
                             {
-                                "url": "https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Bug".format(
-                                    project
-                                ),
+                                "url": f"https://fabrikam-fiber-inc.visualstudio.com/{project}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Bug",
                                 "name": "Bug",
                             }
                         ],
@@ -88,15 +84,11 @@ class VstsIssueBase(TestCase):
                     {
                         "workItemTypes": [
                             {
-                                "url": "https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Bug".format(
-                                    project
-                                ),
+                                "url": f"https://fabrikam-fiber-inc.visualstudio.com/{project}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Bug",
                                 "name": "Issue Bug",
                             },
                             {
-                                "url": "https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Some-Thing.GIssue".format(
-                                    project
-                                ),
+                                "url": f"https://fabrikam-fiber-inc.visualstudio.com/{project}/wit/workItemTypeCategories/Some-Thing.GIssue",
                                 "name": "G Issue",
                             },
                         ],
@@ -104,9 +96,7 @@ class VstsIssueBase(TestCase):
                     {
                         "workItemTypes": [
                             {
-                                "url": "https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Task".format(
-                                    project
-                                ),
+                                "url": f"https://fabrikam-fiber-inc.visualstudio.com/{project}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Task",
                                 "name": "Task",
                             }
                         ],
@@ -114,9 +104,7 @@ class VstsIssueBase(TestCase):
                     {
                         "workItemTypes": [
                             {
-                                "url": "https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.UserStory".format(
-                                    project
-                                ),
+                                "url": f"https://fabrikam-fiber-inc.visualstudio.com/{project}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.UserStory",
                                 "name": "User Story",
                             }
                         ],

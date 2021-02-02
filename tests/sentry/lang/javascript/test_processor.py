@@ -378,7 +378,7 @@ class FetchFileTest(TestCase):
         for i, (header_name_option_value, expected_request_header_name) in enumerate(header_pairs):
             self.project.update_option("sentry:token_header", header_name_option_value)
 
-            url = "http://example.com/{}/".format(i)
+            url = f"http://example.com/{i}/"
             result = fetch_file(url, project=self.project)
 
             assert result.url == url

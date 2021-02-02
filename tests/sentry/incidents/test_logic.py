@@ -465,10 +465,7 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
         mentioned_member = self.create_user()
         subscribed_mentioned_member = self.create_user()
         IncidentSubscription.objects.create(incident=incident, user=subscribed_mentioned_member)
-        comment = "hello **@%s** and **@%s**" % (
-            mentioned_member.username,
-            subscribed_mentioned_member.username,
-        )
+        comment = f"hello **@{mentioned_member.username}** and **@{subscribed_mentioned_member.username}**"
         with self.assertChanges(
             lambda: IncidentSubscription.objects.filter(
                 incident=incident, user=mentioned_member
@@ -1819,7 +1816,7 @@ class TriggerActionTest(TestCase):
 
         out = mail.outbox[0]
         assert out.to == [self.user.email]
-        assert out.subject == "[Resolved] {} - {}".format(incident.title, self.project.slug)
+        assert out.subject == f"[Resolved] {incident.title} - {self.project.slug}"
 
     def test_manual_resolve(self):
         incident = self.create_incident(alert_rule=self.rule)
@@ -1839,7 +1836,7 @@ class TriggerActionTest(TestCase):
         assert len(mail.outbox) == 1
         out = mail.outbox[0]
         assert out.to == [self.user.email]
-        assert out.subject == "[Resolved] {} - {}".format(incident.title, self.project.slug)
+        assert out.subject == f"[Resolved] {incident.title} - {self.project.slug}"
 
 
 class TestDeduplicateTriggerActions(unittest.TestCase):

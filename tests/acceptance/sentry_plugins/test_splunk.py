@@ -10,7 +10,7 @@ class SplunkTest(AcceptanceTestCase):
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
         self.login_as(self.user)
-        self.path = "/{}/{}/settings/plugins/splunk/".format(self.org.slug, self.project.slug)
+        self.path = f"/{self.org.slug}/{self.project.slug}/settings/plugins/splunk/"
 
     def test_simple(self):
         self.browser.get(self.path)

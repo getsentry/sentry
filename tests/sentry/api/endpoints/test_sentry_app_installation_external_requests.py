@@ -30,17 +30,13 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
         options = [{"label": "Project Name", "value": "1234"}]
         responses.add(
             method=responses.GET,
-            url="https://example.com/get-projects?projectSlug={}&installationId={}&query=proj".format(
-                self.project.slug, self.install.uuid
-            ),
+            url=f"https://example.com/get-projects?projectSlug={self.project.slug}&installationId={self.install.uuid}&query=proj",
             json=options,
             status=200,
             content_type="application/json",
             match_querystring=True,
         )
-        url = self.url + "?projectId={}&uri={}&query={}".format(
-            self.project.id, "/get-projects", "proj"
-        )
+        url = self.url + f"?projectId={self.project.id}&uri=/get-projects&query=proj"
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert response.data == {"choices": [["1234", "Project Name"]]}
@@ -69,7 +65,7 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
             "query": "proj",
             "dependentData": json.dumps({"org_id": "A"}),
         }
-        url = "%s?%s" % (self.url, urlencode(query))
+        url = "{}?{}".format(self.url, urlencode(query))
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert response.data == {"choices": [["1234", "Project Name"]]}

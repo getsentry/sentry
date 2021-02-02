@@ -11,7 +11,7 @@ class ProjectDataForwardingSettingsTest(AcceptanceTestCase):
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
 
         self.login_as(self.user)
-        self.path = "/{}/{}/settings/data-forwarding/".format(self.org.slug, self.project.slug)
+        self.path = f"/{self.org.slug}/{self.project.slug}/settings/data-forwarding/"
 
     def test_simple(self):
         self.browser.get(self.path)

@@ -43,7 +43,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             get_fingerprint(
                 self.store_event(data={"message": "Hello world"}, project_id=self.project.id)
             )
-            == hashlib.md5("Hello world".encode("utf-8")).hexdigest()
+            == hashlib.md5(b"Hello world").hexdigest()
         )
 
         assert (
@@ -53,7 +53,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                     project_id=self.project.id,
                 )
             )
-            == hashlib.md5("Not hello world".encode("utf-8")).hexdigest()
+            == hashlib.md5(b"Not hello world").hexdigest()
         )
 
     def test_get_group_creation_attributes(self):

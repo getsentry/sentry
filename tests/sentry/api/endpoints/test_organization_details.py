@@ -108,7 +108,7 @@ class OrganizationDetailsTest(APITestCase):
         url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
         self.login_as(user=user)
 
-        response = self.client.get("{}?detailed=0".format(url), format="json")
+        response = self.client.get(f"{url}?detailed=0", format="json")
 
         assert "projects" not in response.data
         assert "teams" not in response.data

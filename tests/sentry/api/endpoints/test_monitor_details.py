@@ -24,7 +24,7 @@ class MonitorDetailsTest(APITestCase):
 
         self.login_as(user=user)
         with self.feature({"organizations:monitors": True}):
-            resp = self.client.get("/api/0/monitors/{}/".format(monitor.guid))
+            resp = self.client.get(f"/api/0/monitors/{monitor.guid}/")
 
         assert resp.status_code == 200, resp.content
         assert resp.data["id"] == six.text_type(monitor.guid)
@@ -45,7 +45,7 @@ class UpdateMonitorTest(APITestCase):
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
         )
 
-        self.path = "/api/0/monitors/{}/".format(self.monitor.guid)
+        self.path = f"/api/0/monitors/{self.monitor.guid}/"
 
         self.login_as(user=self.user)
 
@@ -215,7 +215,7 @@ class DeleteMonitorTest(APITestCase):
 
         self.login_as(user=user)
         with self.feature({"organizations:monitors": True}):
-            resp = self.client.delete("/api/0/monitors/{}/".format(monitor.guid))
+            resp = self.client.delete(f"/api/0/monitors/{monitor.guid}/")
 
         assert resp.status_code == 202, resp.content
 

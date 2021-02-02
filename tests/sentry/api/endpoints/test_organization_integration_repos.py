@@ -11,8 +11,8 @@ class OrganizationIntegrationReposTest(APITestCase):
         self.org = self.create_organization(owner=self.user, name="baz")
         self.integration = Integration.objects.create(provider="github", name="Example")
         self.integration.add_organization(self.org, self.user)
-        self.path = "/api/0/organizations/{}/integrations/{}/repos/".format(
-            self.org.slug, self.integration.id
+        self.path = (
+            f"/api/0/organizations/{self.org.slug}/integrations/{self.integration.id}/repos/"
         )
 
     @patch("sentry.integrations.github.GitHubAppsClient.get_repositories", return_value=[])
@@ -35,9 +35,7 @@ class OrganizationIntegrationReposTest(APITestCase):
     def test_no_repository_method(self):
         integration = Integration.objects.create(provider="example", name="Example")
         integration.add_organization(self.org, self.user)
-        path = "/api/0/organizations/{}/integrations/{}/repos/".format(
-            self.org.slug, integration.id
-        )
+        path = f"/api/0/organizations/{self.org.slug}/integrations/{integration.id}/repos/"
         response = self.client.get(path, format="json")
 
         assert response.status_code == 400

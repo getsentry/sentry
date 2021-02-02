@@ -30,9 +30,7 @@ class GroupTagExportTest(TestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        url = "/{}/{}/issues/{}/tags/{}/export/?environment={}".format(
-            project.organization.slug, project.slug, group.id, key, self.environment.name
-        )
+        url = f"/{project.organization.slug}/{project.slug}/issues/{group.id}/tags/{key}/export/?environment={self.environment.name}"
 
         response = self.client.get(url)
 

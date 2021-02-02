@@ -10,7 +10,7 @@ class EncryptionManagerTest(TestCase):
             schemes=(("1", Fernet("J5NxyG0w1OyZEDdEOX0Nyv2upm5H3J35rTEb1jEiVbs=")),)
         )
         value = manager.encrypt("hello world")
-        assert value.startswith("{}1$".format(MARKER))
+        assert value.startswith(f"{MARKER}1$")
         result = manager.decrypt(value)
         assert result == "hello world"
 
@@ -27,7 +27,7 @@ class EncryptionManagerTest(TestCase):
 
         value2 = manager.encrypt("hello world")
         assert value2 != value
-        assert value2.startswith("{}2$".format(MARKER))
+        assert value2.startswith(f"{MARKER}2$")
 
     def test_no_schemes(self):
         manager = EncryptionManager(schemes=())

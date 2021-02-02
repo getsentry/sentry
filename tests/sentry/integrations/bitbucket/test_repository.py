@@ -166,12 +166,12 @@ class BitbucketCreateRepositoryTestCase(IntegrationRepositoryTestCase):
     def add_create_repository_responses(self, repository_config):
         responses.add(
             responses.GET,
-            "%s/2.0/repositories/%s" % (self.base_url, self.repo.name),
+            f"{self.base_url}/2.0/repositories/{self.repo.name}",
             json=repository_config,
         )
         responses.add(
             responses.POST,
-            "%s/2.0/repositories/%s/hooks" % (self.base_url, self.repo.name),
+            f"{self.base_url}/2.0/repositories/{self.repo.name}/hooks",
             json={"uuid": "99"},
         )
 

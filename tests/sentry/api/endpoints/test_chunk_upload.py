@@ -23,7 +23,7 @@ class ChunkUploadTest(APITestCase):
 
     def test_chunk_parameters(self):
         response = self.client.get(
-            self.url, HTTP_AUTHORIZATION="Bearer {}".format(self.token.token), format="json"
+            self.url, HTTP_AUTHORIZATION=f"Bearer {self.token.token}", format="json"
         )
 
         endpoint = options.get("system.upload-url-prefix")
@@ -42,7 +42,7 @@ class ChunkUploadTest(APITestCase):
 
         options.set("system.upload-url-prefix", "test")
         response = self.client.get(
-            self.url, HTTP_AUTHORIZATION="Bearer {}".format(self.token.token), format="json"
+            self.url, HTTP_AUTHORIZATION=f"Bearer {self.token.token}", format="json"
         )
 
         assert response.data["url"] == options.get("system.upload-url-prefix") + self.url
@@ -50,14 +50,14 @@ class ChunkUploadTest(APITestCase):
     def test_large_uploads(self):
         with self.feature("organizations:large-debug-files"):
             response = self.client.get(
-                self.url, HTTP_AUTHORIZATION="Bearer {}".format(self.token.token), format="json"
+                self.url, HTTP_AUTHORIZATION=f"Bearer {self.token.token}", format="json"
             )
 
         assert response.data["maxFileSize"] == MAX_FILE_SIZE
 
     def test_wrong_api_token(self):
         token = ApiToken.objects.create(user=self.user, scope_list=["org:org"])
-        response = self.client.get(self.url, HTTP_AUTHORIZATION="Bearer {}".format(token.token))
+        response = self.client.get(self.url, HTTP_AUTHORIZATION=f"Bearer {token.token}")
         assert response.status_code == 403, response.content
 
     def test_upload(self):
@@ -71,7 +71,7 @@ class ChunkUploadTest(APITestCase):
         response = self.client.post(
             self.url,
             data={"file": [blob1, blob2]},
-            HTTP_AUTHORIZATION="Bearer {}".format(self.token.token),
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
             # this tells drf to select the MultiPartParser. We use that instead of
             # FileUploadParser because we have our own specific file chunking mechanism
             # in the chunk endpoint that has requirements like blob/chunk's filename = checksum.
@@ -87,7 +87,7 @@ class ChunkUploadTest(APITestCase):
 
     def test_empty_upload(self):
         response = self.client.post(
-            self.url, HTTP_AUTHORIZATION="Bearer {}".format(self.token.token), format="multipart"
+            self.url, HTTP_AUTHORIZATION=f"Bearer {self.token.token}", format="multipart"
         )
         assert response.status_code == 200
 
@@ -105,7 +105,7 @@ class ChunkUploadTest(APITestCase):
         response = self.client.post(
             self.url,
             data={"file": files},
-            HTTP_AUTHORIZATION="Bearer {}".format(self.token.token),
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
             format="multipart",
         )
 
@@ -122,7 +122,7 @@ class ChunkUploadTest(APITestCase):
         response = self.client.post(
             self.url,
             data={"file": files},
-            HTTP_AUTHORIZATION="Bearer {}".format(self.token.token),
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
             format="multipart",
         )
 
@@ -133,7 +133,7 @@ class ChunkUploadTest(APITestCase):
         response = self.client.post(
             self.url,
             data={"file": files},
-            HTTP_AUTHORIZATION="Bearer {}".format(self.token.token),
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
             format="multipart",
         )
         assert response.status_code == 400, response.content
@@ -146,7 +146,7 @@ class ChunkUploadTest(APITestCase):
         response = self.client.post(
             self.url,
             data={"file": files},
-            HTTP_AUTHORIZATION="Bearer {}".format(self.token.token),
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
             format="multipart",
         )
 
@@ -160,7 +160,7 @@ class ChunkUploadTest(APITestCase):
         response = self.client.post(
             self.url,
             data={"file": files},
-            HTTP_AUTHORIZATION="Bearer {}".format(self.token.token),
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
             format="multipart",
         )
 

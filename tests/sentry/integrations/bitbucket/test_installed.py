@@ -115,7 +115,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
 
         responses.add(
             responses.GET,
-            "https://api.bitbucket.org/2.0/repositories/{}/hooks".format(accessible_repo.name),
+            f"https://api.bitbucket.org/2.0/repositories/{accessible_repo.name}/hooks",
             json={"values": [{"description": "sentry-bitbucket-repo-hook"}]},
         )
 

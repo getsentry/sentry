@@ -92,23 +92,19 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            "https://{}.visualstudio.com/_apis/projects".format(self.vsts_account_name.lower()),
+            f"https://{self.vsts_account_name.lower()}.visualstudio.com/_apis/projects",
             json={"value": [self.project_a, self.project_b], "count": 2},
         )
 
         responses.add(
             responses.POST,
-            "https://{}.visualstudio.com/_apis/hooks/subscriptions".format(
-                self.vsts_account_name.lower()
-            ),
+            f"https://{self.vsts_account_name.lower()}.visualstudio.com/_apis/hooks/subscriptions",
             json=CREATE_SUBSCRIPTION,
         )
 
         responses.add(
             responses.GET,
-            "https://{}.visualstudio.com/_apis/git/repositories".format(
-                self.vsts_account_name.lower()
-            ),
+            f"https://{self.vsts_account_name.lower()}.visualstudio.com/_apis/git/repositories",
             json={
                 "value": [
                     {
@@ -122,9 +118,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            "https://{}.visualstudio.com/ProjectA/_apis/git/repositories/ProjectA".format(
-                self.vsts_account_name.lower()
-            ),
+            f"https://{self.vsts_account_name.lower()}.visualstudio.com/ProjectA/_apis/git/repositories/ProjectA",
             json={
                 "repository": {
                     "id": self.repo_id,
@@ -167,7 +161,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
     def assert_account_selection(self, response, account_id=None):
         account_id = account_id or self.vsts_account_id
         assert response.status_code == 200
-        assert '<option value="{}"'.format(account_id).encode("utf-8") in response.content
+        assert f'<option value="{account_id}"'.encode("utf-8") in response.content
 
     def assert_installation(self):
         # Initial request to the installation URL for VSTS

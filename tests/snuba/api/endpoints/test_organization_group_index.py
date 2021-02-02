@@ -563,7 +563,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             group = self.store_event(
                 data={
                     "timestamp": iso_format(before_now(days=day)),
-                    "fingerprint": ["group-{}".format(day)],
+                    "fingerprint": [f"group-{day}"],
                 },
                 project_id=self.project.id,
             ).group
@@ -586,15 +586,13 @@ class GroupListTest(APITestCase, SnubaTestCase):
             (self.organization.id, {"project": [self.project.id]}),
         ]
 
-        response = self.get_response(limit=1, query="assigned:{}".format(self.user.email))
+        response = self.get_response(limit=1, query=f"assigned:{self.user.email}")
         assert len(response.data) == 1
         assert response.data[0]["id"] == six.text_type(assigned_groups[1].id)
 
         header_links = parse_link_header(response["Link"])
         cursor = [link for link in header_links.values() if link["rel"] == "next"][0]["cursor"]
-        response = self.get_response(
-            limit=1, cursor=cursor, query="assigned:{}".format(self.user.email)
-        )
+        response = self.get_response(limit=1, cursor=cursor, query=f"assigned:{self.user.email}")
         assert len(response.data) == 1
         assert response.data[0]["id"] == six.text_type(assigned_groups[0].id)
 
@@ -820,7 +818,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             assert int(response.data[0]["id"]) == event.group.id
 
             response = self.get_response(
-                sort_by="date", limit=10, query="owner:{}".format(other_user.email)
+                sort_by="date", limit=10, query=f"owner:{other_user.email}"
             )
             assert response.status_code == 200
             assert len(response.data) == 1
@@ -829,17 +827,13 @@ class GroupListTest(APITestCase, SnubaTestCase):
             GroupAssignee.objects.create(
                 group=assigned_event.group, project=assigned_event.group.project, user=self.user
             )
-            response = self.get_response(
-                sort_by="date", limit=10, query="owner:{}".format(self.user.email)
-            )
+            response = self.get_response(sort_by="date", limit=10, query=f"owner:{self.user.email}")
             assert response.status_code == 200
             assert len(response.data) == 2
             assert int(response.data[0]["id"]) == event.group.id
             assert int(response.data[1]["id"]) == assigned_event.group.id
 
-            response = self.get_response(
-                sort_by="date", limit=10, query="owner:#{}".format(self.team.slug)
-            )
+            response = self.get_response(sort_by="date", limit=10, query=f"owner:#{self.team.slug}")
             assert response.status_code == 200
             assert len(response.data) == 0
             GroupOwner.objects.create(
@@ -850,9 +844,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 team_id=self.team.id,
                 user_id=None,
             )
-            response = self.get_response(
-                sort_by="date", limit=10, query="owner:#{}".format(self.team.slug)
-            )
+            response = self.get_response(sort_by="date", limit=10, query=f"owner:#{self.team.slug}")
             assert response.status_code == 200
             assert len(response.data) == 1
             assert int(response.data[0]["id"]) == event.group.id
@@ -1028,8 +1020,8 @@ class GroupListTest(APITestCase, SnubaTestCase):
             assert int(response.data[0]["id"]) == event.group.id
             assert response.data[0]["owners"] is not None
             assert len(response.data[0]["owners"]) == 2
-            assert response.data[0]["owners"][0]["owner"] == "user:{}".format(self.user.id)
-            assert response.data[0]["owners"][1]["owner"] == "team:{}".format(self.team.id)
+            assert response.data[0]["owners"][0]["owner"] == f"user:{self.user.id}"
+            assert response.data[0]["owners"][1]["owner"] == f"team:{self.team.id}"
             assert (
                 response.data[0]["owners"][0]["type"]
                 == GROUP_OWNER_TYPE[GroupOwnerType.SUSPECT_COMMIT]
@@ -2034,9 +2026,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         group.project.add_team(team)
 
-        response = self.get_valid_response(
-            qs_params={"id": group.id}, assignedTo="team:{}".format(team.id)
-        )
+        response = self.get_valid_response(qs_params={"id": group.id}, assignedTo=f"team:{team.id}")
         assert response.data["assignedTo"]["id"] == six.text_type(team.id)
         assert response.data["assignedTo"]["type"] == "team"
         assert GroupAssignee.objects.filter(group=group, team=team).exists()

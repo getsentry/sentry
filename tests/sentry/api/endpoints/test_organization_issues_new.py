@@ -25,7 +25,7 @@ class OrganizationIssuesNewTest(APITestCase):
 
         self.login_as(user=user)
 
-        url = "/api/0/organizations/{}/issues/new/".format(org.slug)
+        url = f"/api/0/organizations/{org.slug}/issues/new/"
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert len(response.data) == 2

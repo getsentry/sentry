@@ -86,8 +86,7 @@ class TestPreparerStacktraceLink(TestCase):
 
         self.preparer.call()
 
-        assert self.component.schema[
-            "url"
-        ] == "https://example.com/redirection?installationId={}&projectSlug={}".format(
-            self.install.uuid, self.project.slug
+        assert (
+            self.component.schema["url"]
+            == f"https://example.com/redirection?installationId={self.install.uuid}&projectSlug={self.project.slug}"
         )

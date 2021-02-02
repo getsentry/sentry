@@ -12,12 +12,12 @@ class MockJira(StubJiraApiClient, MockService):
         :return: list of project objects
         """
         return [{
-            "self": "http://www.example.com/jira/rest/api/2/project/{}".format(project_name),
+            "self": f"http://www.example.com/jira/rest/api/2/project/{project_name}",
             "id": project_name,
             "key": project_name,
             "name": project_name,
             "projectCategory": {
-                "self": "http://www.example.com/jira/rest/api/2/projectCategory/{}".format(project_name),
+                "self": f"http://www.example.com/jira/rest/api/2/projectCategory/{project_name}",
                 "id": project_name,
                 "name": project_name,
                 "description": project_name

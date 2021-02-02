@@ -16,9 +16,7 @@ class ProjectUserFeedbackDocs(APIDocsTestCase):
             event_id=self.event_id,
         )
 
-        self.url = "/api/0/projects/{}/{}/user-feedback/".format(
-            self.organization.slug, self.project.slug
-        )
+        self.url = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/user-feedback/"
 
         self.login_as(user=self.user)
 

@@ -26,7 +26,7 @@ class GroupUserReport(APITestCase, SnubaTestCase):
 
     @fixture
     def path(self):
-        return "/api/0/groups/{}/user-feedback/".format(self.group.id)
+        return f"/api/0/groups/{self.group.id}/user-feedback/"
 
     def create_environment(self, project, name):
         env = Environment.objects.create(

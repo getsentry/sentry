@@ -25,7 +25,7 @@ class WebhookTest(APITestCase):
     def test_get(self):
         project = self.project  # force creation
 
-        url = "/plugins/bitbucket/organizations/{}/webhook/".format(project.organization.id)
+        url = f"/plugins/bitbucket/organizations/{project.organization.id}/webhook/"
 
         response = self.client.get(url)
 
@@ -33,7 +33,7 @@ class WebhookTest(APITestCase):
 
     def test_unregistered_event(self):
         project = self.project  # force creation
-        url = "/plugins/bitbucket/organizations/{}/webhook/".format(project.organization.id)
+        url = f"/plugins/bitbucket/organizations/{project.organization.id}/webhook/"
 
         response = self.client.post(
             path=url,
@@ -58,7 +58,7 @@ class WebhookTest(APITestCase):
     def test_invalid_signature_ip(self):
         project = self.project  # force creation
 
-        url = "/plugins/bitbucket/organizations/{}/webhook/".format(project.organization.id)
+        url = f"/plugins/bitbucket/organizations/{project.organization.id}/webhook/"
 
         response = self.client.post(
             path=url,
@@ -75,7 +75,7 @@ class PushEventWebhookTest(APITestCase):
     def test_simple(self):
         project = self.project  # force creation
 
-        url = "/plugins/bitbucket/organizations/{}/webhook/".format(project.organization.id)
+        url = f"/plugins/bitbucket/organizations/{project.organization.id}/webhook/"
 
         Repository.objects.create(
             organization_id=project.organization.id,
@@ -114,7 +114,7 @@ class PushEventWebhookTest(APITestCase):
     def test_anonymous_lookup(self):
         project = self.project  # force creation
 
-        url = "/plugins/bitbucket/organizations/{}/webhook/".format(project.organization.id)
+        url = f"/plugins/bitbucket/organizations/{project.organization.id}/webhook/"
 
         Repository.objects.create(
             organization_id=project.organization.id,

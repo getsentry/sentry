@@ -89,7 +89,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
             model = DiscoverSavedQuery.objects.create(
                 organization=self.org,
                 created_by=self.user,
-                name="My query {}".format(i),
+                name=f"My query {i}",
                 query=query,
                 version=1,
             )
@@ -363,7 +363,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
                     "projects": [],
                     "fields": ["title", "count()"],
                     "range": "24h",
-                    "query": "project:{}".format(project.slug),
+                    "query": f"project:{project.slug}",
                     "version": 2,
                 },
             )
@@ -419,7 +419,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
                     "projects": [project.id],
                     "fields": ["title", "count()"],
                     "range": "24h",
-                    "query": "project:{}".format(project.slug),
+                    "query": f"project:{project.slug}",
                     "version": 2,
                 },
             )
@@ -435,7 +435,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
                     "projects": [project.id, project2.id],
                     "fields": ["title", "count()"],
                     "range": "24h",
-                    "query": "project:{} project:{}".format(project.slug, project2.slug),
+                    "query": f"project:{project.slug} project:{project2.slug}",
                     "version": 2,
                 },
             )
@@ -452,7 +452,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
                     "projects": [-1],
                     "fields": ["title", "count()"],
                     "range": "24h",
-                    "query": "project:{} project:{}".format(project.slug, project2.slug),
+                    "query": f"project:{project.slug} project:{project2.slug}",
                     "version": 2,
                 },
             )

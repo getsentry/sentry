@@ -82,9 +82,7 @@ class GitHubPluginTest(PluginTestCase):
         assert req_json == {
             "active": True,
             "config": {
-                "url": "http://testserver/plugins/github/organizations/{}/webhook/".format(
-                    organization.id
-                ),
+                "url": f"http://testserver/plugins/github/organizations/{organization.id}/webhook/",
                 "secret": self.provider.get_webhook_secret(organization),
                 "content_type": "json",
             },

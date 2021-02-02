@@ -34,7 +34,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
 
     def setUp(self):
         super(GitlabIntegrationTest, self).setUp()
-        self.init_path_without_guide = "%s%s" % (self.init_path, "?completed_installation_guide")
+        self.init_path_without_guide = f"{self.init_path}?completed_installation_guide"
 
     def assert_setup_flow(self, user_id="user_id_1"):
         resp = self.client.get(self.init_path)
@@ -203,7 +203,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="Get Sentry / Example Repo",
-            external_id="{}:{}".format(instance, external_id),
+            external_id=f"{instance}:{external_id}",
             url="https://gitlab.example.com/getsentry/projects/example-repo",
             config={"project_id": external_id, "path": "getsentry/example-repo"},
             provider="integrations:gitlab",
@@ -216,9 +216,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         version = "12345678"
         responses.add(
             responses.HEAD,
-            "https://gitlab.example.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
-                external_id, filepath, version
-            ),
+            f"https://gitlab.example.com/api/v4/projects/{external_id}/repository/files/{filepath}?ref={version}",
         )
         source_url = installation.get_stacktrace_link(repo, "README.md", ref, version)
         assert (
@@ -235,7 +233,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="Get Sentry / Example Repo",
-            external_id="{}:{}".format(instance, external_id),
+            external_id=f"{instance}:{external_id}",
             url="https://gitlab.example.com/getsentry/projects/example-repo",
             config={"project_id": external_id, "path": "getsentry/example-repo"},
             provider="integrations:gitlab",
@@ -248,9 +246,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         version = None
         responses.add(
             responses.HEAD,
-            "https://gitlab.example.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
-                external_id, filepath, ref
-            ),
+            f"https://gitlab.example.com/api/v4/projects/{external_id}/repository/files/{filepath}?ref={ref}",
             status=404,
         )
         source_url = installation.get_stacktrace_link(repo, "README.md", ref, version)
@@ -265,7 +261,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="Get Sentry / Example Repo",
-            external_id="{}:{}".format(instance, external_id),
+            external_id=f"{instance}:{external_id}",
             url="https://gitlab.example.com/getsentry/projects/example-repo",
             config={"project_id": external_id, "path": "getsentry/example-repo"},
             provider="integrations:gitlab",
@@ -278,16 +274,12 @@ class GitlabIntegrationTest(IntegrationTestCase):
         version = "12345678"
         responses.add(
             responses.HEAD,
-            "https://gitlab.example.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
-                external_id, filepath, version
-            ),
+            f"https://gitlab.example.com/api/v4/projects/{external_id}/repository/files/{filepath}?ref={version}",
             status=404,
         )
         responses.add(
             responses.HEAD,
-            "https://gitlab.example.com/api/v4/projects/{}/repository/files/{}?ref={}".format(
-                external_id, filepath, ref
-            ),
+            f"https://gitlab.example.com/api/v4/projects/{external_id}/repository/files/{filepath}?ref={ref}",
         )
         source_url = installation.get_stacktrace_link(repo, "README.md", ref, version)
         assert (

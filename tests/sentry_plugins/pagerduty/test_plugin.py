@@ -77,9 +77,7 @@ class PagerDutyPluginTest(PluginTestCase):
             "contexts": [
                 {
                     "text": "View Sentry Issue Details",
-                    "href": "http://example.com/organizations/baz/issues/{}/?referrer=pagerduty_plugin".format(
-                        group.id
-                    ),
+                    "href": f"http://example.com/organizations/baz/issues/{group.id}/?referrer=pagerduty_plugin",
                     "type": "link",
                 }
             ],
@@ -88,9 +86,7 @@ class PagerDutyPluginTest(PluginTestCase):
             "details": {
                 "project": self.project.name,
                 "release": None,
-                "url": "http://example.com/organizations/baz/issues/{}/?referrer=pagerduty_plugin".format(
-                    group.id
-                ),
+                "url": f"http://example.com/organizations/baz/issues/{group.id}/?referrer=pagerduty_plugin",
                 "culprit": group.culprit,
                 "platform": "python",
                 "event_id": event.event_id,

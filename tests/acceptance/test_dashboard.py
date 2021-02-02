@@ -39,7 +39,7 @@ class DashboardTest(AcceptanceTestCase, SnubaTestCase):
         )
 
         self.login_as(self.user)
-        self.path = "/organizations/{}/projects/".format(self.organization.slug)
+        self.path = f"/organizations/{self.organization.slug}/projects/"
 
     def create_sample_event(self):
         self.init_snuba()
@@ -91,7 +91,7 @@ class DashboardTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.wait_until('[data-test-id="toast-success"]')
 
         # Go to projects
-        self.browser.click('[href="/organizations/{}/projects/"]'.format(self.organization.slug))
+        self.browser.click(f'[href="/organizations/{self.organization.slug}/projects/"]')
         self.browser.wait_until_not(".loading-indicator")
 
         assert self.browser.element('[data-test-id="badge-display-name"]').text == "#foo-new-slug"
@@ -101,7 +101,7 @@ class EmptyDashboardTest(AcceptanceTestCase):
     def setUp(self):
         super(EmptyDashboardTest, self).setUp()
         self.login_as(self.user)
-        self.path = "/organizations/{}/projects/".format(self.organization.slug)
+        self.path = f"/organizations/{self.organization.slug}/projects/"
 
     def test_new_dashboard_empty(self):
         self.browser.get(self.path)

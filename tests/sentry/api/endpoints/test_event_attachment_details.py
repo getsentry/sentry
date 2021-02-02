@@ -39,9 +39,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         self.login_as(user=self.user)
 
         self.create_attachment()
-        path = "/api/0/projects/{}/{}/events/{}/attachments/{}/".format(
-            self.organization.slug, self.project.slug, self.event.event_id, self.attachment.id
-        )
+        path = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{self.attachment.id}/"
 
         with self.feature("organizations:event-attachments"):
             response = self.client.get(path)
@@ -54,9 +52,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         self.login_as(user=self.user)
 
         self.create_attachment()
-        path = "/api/0/projects/{}/{}/events/{}/attachments/{}/?download".format(
-            self.organization.slug, self.project.slug, self.event.event_id, self.attachment.id
-        )
+        path = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{self.attachment.id}/?download"
 
         with self.feature("organizations:event-attachments"):
             response = self.client.get(path)
@@ -71,9 +67,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         self.login_as(user=self.user)
 
         self.create_attachment()
-        path = "/api/0/projects/{}/{}/events/{}/attachments/{}/".format(
-            self.organization.slug, self.project.slug, self.event.event_id, self.attachment.id
-        )
+        path = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{self.attachment.id}/"
 
         with self.feature("organizations:event-attachments"):
             response = self.client.delete(path)
@@ -86,9 +80,7 @@ class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentM
     def setUp(self):
         super(EventAttachmentDetailsPermissionTest, self).setUp()
         self.create_attachment()
-        self.path = "/api/0/projects/{}/{}/events/{}/attachments/{}/?download".format(
-            self.organization.slug, self.project.slug, self.event.event_id, self.attachment.id
-        )
+        self.path = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{self.attachment.id}/?download"
 
     def test_member_can_access_by_default(self):
         with self.feature("organizations:event-attachments"):

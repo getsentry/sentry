@@ -84,9 +84,7 @@ class TestGenerateIncidentActivityEmail(BaseIncidentActivityTest, TestCase):
         incident = activity.incident
         recipient = self.create_user()
         message = generate_incident_activity_email(activity, recipient)
-        assert message.subject == "Activity on Alert {} (#{})".format(
-            incident.title, incident.identifier
-        )
+        assert message.subject == f"Activity on Alert {incident.title} (#{incident.identifier})"
         assert message.type == "incident.activity"
         assert message.context == build_activity_context(activity, recipient)
 
@@ -98,10 +96,9 @@ class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
         incident = activity.incident
         context = build_activity_context(activity, expected_recipient)
         assert context["user_name"] == expected_username
-        assert context["action"] == "%s on alert %s (#%s)" % (
-            expected_action,
-            activity.incident.title,
-            activity.incident.identifier,
+        assert (
+            context["action"]
+            == f"{expected_action} on alert {activity.incident.title} (#{activity.incident.identifier})"
         )
         assert (
             context["link"]

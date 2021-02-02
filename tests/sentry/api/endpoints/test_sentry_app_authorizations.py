@@ -95,7 +95,7 @@ class TestSentryAppAuthorizations(APITestCase):
 
         url = reverse("sentry-api-0-organization-details", args=[self.org.slug])
 
-        response = self.client.get(url, HTTP_AUTHORIZATION="Bearer {}".format(token))
+        response = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}")
 
         assert response.status_code == 200
         assert response.data["id"] == six.text_type(self.org.id)

@@ -38,7 +38,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
                     data["timestamp"] = iso_format(start)
                     data["start_timestamp"] = iso_format(start - timedelta(seconds=i))
                     value = random.random() * (spec.end - spec.start) + spec.start
-                    data["transaction"] = "/measurement/{}/value/{}".format(measurement, value)
+                    data["transaction"] = f"/measurement/{measurement}/value/{value}"
 
                     data["measurements"] = {measurement: {"value": value}}
                     self.store_event(data, self.project.id)
