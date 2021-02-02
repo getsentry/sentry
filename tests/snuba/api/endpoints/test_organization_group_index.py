@@ -781,7 +781,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             )
 
             self.login_as(user=self.user)
-            response = self.get_response(sort_by="date", limit=10, query="owner:me")
+            response = self.get_response(sort_by="date", limit=10, query="assigned_or_suggested:me")
             assert response.status_code == 200
             assert len(response.data) == 0
 
@@ -802,7 +802,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 user_id=self.user.id,
             )
 
-            response = self.get_response(sort_by="date", limit=10, query="owner:me")
+            response = self.get_response(sort_by="date", limit=10, query="assigned_or_suggested:me")
             assert response.status_code == 200
             assert len(response.data) == 2
             assert int(response.data[0]["id"]) == event.group.id
@@ -814,13 +814,13 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 project=assigned_to_other_event.group.project,
                 user=other_user,
             )
-            response = self.get_response(sort_by="date", limit=10, query="owner:me")
+            response = self.get_response(sort_by="date", limit=10, query="assigned_or_suggested:me")
             assert response.status_code == 200
             assert len(response.data) == 1
             assert int(response.data[0]["id"]) == event.group.id
 
             response = self.get_response(
-                sort_by="date", limit=10, query="owner:{}".format(other_user.email)
+                sort_by="date", limit=10, query="assigned_or_suggested:{}".format(other_user.email)
             )
             assert response.status_code == 200
             assert len(response.data) == 1
@@ -830,7 +830,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 group=assigned_event.group, project=assigned_event.group.project, user=self.user
             )
             response = self.get_response(
-                sort_by="date", limit=10, query="owner:{}".format(self.user.email)
+                sort_by="date", limit=10, query="assigned_or_suggested:{}".format(self.user.email)
             )
             assert response.status_code == 200
             assert len(response.data) == 2
@@ -838,7 +838,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             assert int(response.data[1]["id"]) == assigned_event.group.id
 
             response = self.get_response(
-                sort_by="date", limit=10, query="owner:#{}".format(self.team.slug)
+                sort_by="date", limit=10, query="assigned_or_suggested:#{}".format(self.team.slug)
             )
             assert response.status_code == 200
             assert len(response.data) == 0
@@ -851,13 +851,15 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 user_id=None,
             )
             response = self.get_response(
-                sort_by="date", limit=10, query="owner:#{}".format(self.team.slug)
+                sort_by="date", limit=10, query="assigned_or_suggested:#{}".format(self.team.slug)
             )
             assert response.status_code == 200
             assert len(response.data) == 1
             assert int(response.data[0]["id"]) == event.group.id
 
-            response = self.get_response(sort_by="date", limit=10, query="owner:me_or_none")
+            response = self.get_response(
+                sort_by="date", limit=10, query="assigned_or_suggested:me_or_none"
+            )
             assert response.status_code == 200
             assert len(response.data) == 4
             assert int(response.data[0]["id"]) == event.group.id
@@ -874,7 +876,9 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 team_id=None,
                 user_id=not_me.id,
             )
-            response = self.get_response(sort_by="date", limit=10, query="owner:me_or_none")
+            response = self.get_response(
+                sort_by="date", limit=10, query="assigned_or_suggested:me_or_none"
+            )
             assert response.status_code == 200
             assert len(response.data) == 3
             assert int(response.data[0]["id"]) == event.group.id
@@ -890,7 +894,9 @@ class GroupListTest(APITestCase, SnubaTestCase):
                 user_id=self.user.id,
             )
             # Should now include event2 as it has shared ownership.
-            response = self.get_response(sort_by="date", limit=10, query="owner:me_or_none")
+            response = self.get_response(
+                sort_by="date", limit=10, query="assigned_or_suggested:me_or_none"
+            )
             assert response.status_code == 200
             assert len(response.data) == 4
             assert int(response.data[0]["id"]) == event.group.id
