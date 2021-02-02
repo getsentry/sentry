@@ -1,6 +1,6 @@
 import zipfile
 from uuid import uuid4
-from six import BytesIO
+from io import BytesIO
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.urlresolvers import reverse

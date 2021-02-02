@@ -42,7 +42,7 @@ class ReleaseFileDetailsTest(APITestCase):
         release = Release.objects.create(organization_id=project.organization_id, version="1")
         release.add_project(project)
 
-        from six import BytesIO
+        from io import BytesIO
 
         f = File.objects.create(name="applicatiosn.js", type="release.file")
         f.putfile(BytesIO(b"File contents here"))
