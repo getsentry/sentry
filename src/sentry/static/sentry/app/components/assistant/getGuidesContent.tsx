@@ -106,10 +106,7 @@ export default function getGuidesContent(): GuidesContent {
       steps: [
         {
           target: 'inbox_guide_tab',
-          description: t(
-            `For Review lets you focus on new and reopened issues that are
-            assigned to your team.`
-          ),
+          description: t(`We’ve made some changes to help you focus on what’s new.`),
           dismissText: t(`Later`),
           nextText: t(`Take a Look`),
           hasNextGuide: true,
@@ -123,8 +120,7 @@ export default function getGuidesContent(): GuidesContent {
         {
           target: 'for_review_guide_tab',
           description: t(
-            `For Review is a list of Unresolved issues that are new or have
-            reopened in the last 7 days.`
+            `This is a list of Unresolved issues that are new or reopened in the last 7 days.`
           ),
           cantDismiss: true,
         },
@@ -136,25 +132,24 @@ export default function getGuidesContent(): GuidesContent {
         {
           target: 'inbox_guide_review',
           description: t(
-            `When you mark an issue reviewed, it removes the label from the
-            issue and removes the issue from this list.`
+            `Mark Reviewed removes the issue from this list and also removes the label.`
           ),
-          nextText: t(`Wow there's more tutorial, huh?`),
+          nextText: t(`When does this end?`),
           cantDismiss: true,
         },
         {
           target: 'inbox_guide_ignore',
-          description: t(`Resolving or ignoring an issue implicitly marks it reviewed.`),
-          nextText: t(`Next, ugh`),
+          description: t(`Resolving or ignoring an issue also marks it reviewed.`),
+          nextText: t(`Seriously, there's more?`),
           cantDismiss: true,
         },
         {
           target: 'inbox_guide_issue',
           description: t(
-            `If you don’t take action for 7 days on an issue that needs
-            review, Sentry automatically marks it reviewed.`
+            `Everything is automatically reviewed after seven days, preventing
+            issues from piling up and you from losing your damn mind.`
           ),
-          nextText: t(`Got it`),
+          nextText: t(`Make It Stop Already`),
         },
       ],
     },
