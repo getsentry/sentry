@@ -1,4 +1,3 @@
-import six
 
 from datetime import datetime, timedelta
 from django.utils import timezone

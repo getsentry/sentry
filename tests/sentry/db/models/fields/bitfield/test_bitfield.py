@@ -1,7 +1,6 @@
 import unittest
 import pickle
 
-import six
 
 from django import forms
 from django.db import connection, models

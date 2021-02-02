@@ -1,7 +1,6 @@
 import datetime
 import responses
 import pytest
-import six
 
 from django.utils import timezone
 from exam import fixture

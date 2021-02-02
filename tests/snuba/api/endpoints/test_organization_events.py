@@ -1,4 +1,3 @@
-import six
 from six.moves.urllib.parse import urlencode
 
 from django.utils import timezone

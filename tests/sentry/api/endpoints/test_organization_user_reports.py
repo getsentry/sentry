@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 
-import six
 
 from sentry.models import GroupStatus, UserReport
 from sentry.ingest.userreport import save_userreport

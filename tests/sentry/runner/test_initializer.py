@@ -1,5 +1,4 @@
 import pytest
-import six
 
 from sentry.runner.importer import ConfigurationError
 from sentry.runner.initializer import bootstrap_options, apply_legacy_settings

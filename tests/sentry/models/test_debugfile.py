@@ -1,7 +1,7 @@
 import os
 import time
 import zipfile
-from six import BytesIO, text_type
+from six import BytesIO
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.urlresolvers import reverse

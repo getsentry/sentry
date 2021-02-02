@@ -1,4 +1,3 @@
-import six
 from freezegun import freeze_time
 
 from sentry.data_export.base import ExportStatus, ExportQueryType

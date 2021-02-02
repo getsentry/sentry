@@ -1,7 +1,6 @@
 from copy import deepcopy
 from uuid import uuid4
 
-import six
 from confluent_kafka import Producer
 from django.conf import settings
 from django.core import mail

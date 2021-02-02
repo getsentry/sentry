@@ -1,6 +1,5 @@
 import datetime
 import pytest
-import six
 import unittest
 from datetime import timedelta
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME, SPAN_STATUS_NAME_TO_CODE

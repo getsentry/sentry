@@ -1,6 +1,5 @@
 from sentry.utils.compat import mock
 from sentry.testutils.helpers import Feature
-import six
 import pytest
 
 from django.core.urlresolvers import reverse

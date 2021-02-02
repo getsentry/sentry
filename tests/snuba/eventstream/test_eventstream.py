@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-import six
 import time
 import logging
 from sentry.utils.compat.mock import patch, Mock

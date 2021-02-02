@@ -1,6 +1,5 @@
 import pytz
 import requests
-import six
 
 from copy import deepcopy
 from exam import fixture

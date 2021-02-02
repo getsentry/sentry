@@ -6,7 +6,6 @@ from django.core import mail
 from django.db.models import F
 from django.utils import timezone
 from exam import fixture
-from six import text_type
 
 from sentry.api.serializers import serialize, UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record

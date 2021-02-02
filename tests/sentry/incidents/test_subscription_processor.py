@@ -4,7 +4,6 @@ from random import randint
 from uuid import uuid4
 
 import pytz
-import six
 from django.utils import timezone
 from exam import fixture, patcher
 from freezegun import freeze_time

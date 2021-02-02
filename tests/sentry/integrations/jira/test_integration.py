@@ -1,6 +1,5 @@
 import copy
 import responses
-import six
 import pytest
 
 from django.test.utils import override_settings

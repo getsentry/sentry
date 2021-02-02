@@ -1,4 +1,3 @@
-import six
 
 from sentry.testutils import APITestCase
 from sentry.models import InviteStatus

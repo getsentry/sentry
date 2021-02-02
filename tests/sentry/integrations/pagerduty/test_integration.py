@@ -1,7 +1,6 @@
 import responses
 
 import pytest
-import six
 from sentry import options
 from sentry.utils import json
 

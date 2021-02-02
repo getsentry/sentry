@@ -6,7 +6,6 @@ import responses
 from django.utils import timezone
 from exam import patcher
 from sentry.utils.compat.mock import Mock, patch
-from six import add_metaclass
 
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (

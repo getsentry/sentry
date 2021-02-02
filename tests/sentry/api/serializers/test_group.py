@@ -1,5 +1,4 @@
 from sentry.utils.compat import mock
-import six
 
 from datetime import timedelta
 

@@ -1,5 +1,4 @@
 import pytz
-import six
 from datetime import datetime, timedelta
 
 from sentry.testutils.cases import OutcomesSnubaTest

@@ -1,4 +1,3 @@
-import six
 
 from sentry.api.event_search import (
     InvalidSearchQuery,

@@ -2,7 +2,6 @@ import unittest
 from copy import deepcopy
 from datetime import timedelta
 
-import six
 import pytz
 from dateutil.parser import parse as parse_date
 from django.conf import settings

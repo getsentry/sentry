@@ -1,5 +1,4 @@
 import logging
-import six
 import types
 
 from sentry.utils.compat.mock import patch, PropertyMock

@@ -1,6 +1,5 @@
 import copy
 import responses
-import six
 
 from sentry.integrations.bitbucket.issues import ISSUE_TYPES, PRIORITIES
 from sentry.models import ExternalIssue, Integration

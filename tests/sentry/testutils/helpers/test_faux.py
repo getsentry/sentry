@@ -1,6 +1,5 @@
 from unittest import TestCase
 
-import six
 from sentry.utils.compat.mock import patch
 from sentry.testutils.helpers.faux import faux
 

@@ -1,4 +1,3 @@
-import six
 
 from sentry.models import Group
 from sentry.testutils import APITestCase, SnubaTestCase

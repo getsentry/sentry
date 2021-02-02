@@ -3,7 +3,6 @@ import pytz
 from datetime import datetime, timedelta
 
 from sentry.utils.compat import mock
-import six
 
 from sentry import tsdb
 from sentry.models import Rule

@@ -1,5 +1,4 @@
 import responses
-import six
 import time
 
 from django.core import mail

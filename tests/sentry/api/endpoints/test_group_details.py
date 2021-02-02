@@ -1,5 +1,4 @@
 from sentry.utils.compat import mock
-import six
 from base64 import b64encode
 
 from datetime import timedelta

@@ -1,4 +1,3 @@
-import six
 import tempfile
 from datetime import timedelta
 from django.core import mail

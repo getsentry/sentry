@@ -1,6 +1,5 @@
 import datetime
 from sentry.utils.compat import mock
-import six
 
 from django.core.urlresolvers import reverse
 from django.db.models import F

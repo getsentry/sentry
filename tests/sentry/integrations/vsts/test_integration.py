@@ -1,5 +1,4 @@
 import pytest
-import six
 import responses
 from sentry.utils.compat.mock import patch, Mock
 

@@ -1,5 +1,4 @@
 import responses
-import six
 import copy
 
 from sentry.shared_integrations.exceptions import IntegrationError

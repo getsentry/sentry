@@ -1,5 +1,4 @@
 import responses
-import six
 from sentry.utils.compat.mock import patch
 from six.moves.urllib.parse import parse_qs, urlencode, urlparse
 

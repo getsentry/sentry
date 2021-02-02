@@ -2,7 +2,6 @@ from datetime import datetime
 
 from sentry.utils.compat import mock
 import pytz
-import six
 from exam import fixture
 
 from sentry.api.serializers import serialize

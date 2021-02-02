@@ -1,4 +1,3 @@
-import six
 
 from sentry.integrations.example.integration import AliasedIntegrationProvider
 from sentry.models import (

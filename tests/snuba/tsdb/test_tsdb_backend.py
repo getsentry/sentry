@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 import pytz
-import six
 
 from sentry.utils.compat.mock import patch
 

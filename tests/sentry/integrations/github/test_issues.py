@@ -1,5 +1,4 @@
 import responses
-import six
 
 from sentry.utils.compat.mock import patch
 from exam import fixture
