@@ -34,9 +34,7 @@ class OrganizationIntegrationDetailsTest(APITestCase):
             integration_id=self.integration.id,
         )
 
-        self.path = "/api/0/organizations/{}/integrations/{}/".format(
-            self.org.slug, self.integration.id
-        )
+        self.path = f"/api/0/organizations/{self.org.slug}/integrations/{self.integration.id}/"
 
     def test_simple(self):
         response = self.client.get(self.path, format="json")

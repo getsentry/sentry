@@ -239,7 +239,5 @@ class GroupTest(TestCase, SnubaTestCase):
             data={"fingerprint": ["group1"], "timestamp": self.min_ago}, project_id=project.id
         )
         group = event.group
-        url = "http://testserver/organizations/{}/issues/{}/events/{}/".format(
-            project.organization.slug, group.id, event.event_id
-        )
+        url = f"http://testserver/organizations/{project.organization.slug}/issues/{group.id}/events/{event.event_id}/"
         assert url == group.get_absolute_url(event_id=event.event_id)

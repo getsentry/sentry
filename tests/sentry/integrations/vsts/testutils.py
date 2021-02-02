@@ -98,17 +98,13 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
         responses.add(
             responses.POST,
-            "https://{}.visualstudio.com/_apis/hooks/subscriptions".format(
-                self.vsts_account_name.lower()
-            ),
+            f"https://{self.vsts_account_name.lower()}.visualstudio.com/_apis/hooks/subscriptions",
             json=CREATE_SUBSCRIPTION,
         )
 
         responses.add(
             responses.GET,
-            "https://{}.visualstudio.com/_apis/git/repositories".format(
-                self.vsts_account_name.lower()
-            ),
+            f"https://{self.vsts_account_name.lower()}.visualstudio.com/_apis/git/repositories",
             json={
                 "value": [
                     {
@@ -122,9 +118,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            "https://{}.visualstudio.com/ProjectA/_apis/git/repositories/ProjectA".format(
-                self.vsts_account_name.lower()
-            ),
+            f"https://{self.vsts_account_name.lower()}.visualstudio.com/ProjectA/_apis/git/repositories/ProjectA",
             json={
                 "repository": {
                     "id": self.repo_id,

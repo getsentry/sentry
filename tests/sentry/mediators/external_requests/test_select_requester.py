@@ -31,9 +31,7 @@ class TestSelectRequester(TestCase):
         ]
         responses.add(
             method=responses.GET,
-            url="https://example.com/get-issues?installationId={}&projectSlug={}".format(
-                self.install.uuid, self.project.slug
-            ),
+            url=f"https://example.com/get-issues?installationId={self.install.uuid}&projectSlug={self.project.slug}",
             json=options,
             status=200,
             content_type="application/json",
@@ -62,9 +60,7 @@ class TestSelectRequester(TestCase):
         invalid_format = {"value": "12345"}
         responses.add(
             method=responses.GET,
-            url="https://example.com/get-issues?installationId={}&projectSlug={}".format(
-                self.install.uuid, self.project.slug
-            ),
+            url=f"https://example.com/get-issues?installationId={self.install.uuid}&projectSlug={self.project.slug}",
             json=invalid_format,
             status=200,
             content_type="application/json",
@@ -83,9 +79,7 @@ class TestSelectRequester(TestCase):
     def test_500_response(self):
         responses.add(
             method=responses.GET,
-            url="https://example.com/get-issues?installationId={}&projectSlug={}".format(
-                self.install.uuid, self.project.slug
-            ),
+            url=f"https://example.com/get-issues?installationId={self.install.uuid}&projectSlug={self.project.slug}",
             body="Something failed",
             status=500,
         )

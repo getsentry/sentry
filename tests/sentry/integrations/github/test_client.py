@@ -61,9 +61,7 @@ class GitHubAppsClientTest(TestCase):
 
         path = "src/sentry/integrations/github/client.py"
         version = "master"
-        url = "https://api.github.com/repos/{}/contents/{}?ref={}".format(
-            self.repo.name, path, version
-        )
+        url = f"https://api.github.com/repos/{self.repo.name}/contents/{path}?ref={version}"
 
         responses.add(
             method=responses.HEAD,
@@ -86,9 +84,7 @@ class GitHubAppsClientTest(TestCase):
 
         path = "src/santry/integrations/github/client.py"
         version = "master"
-        url = "https://api.github.com/repos/{}/contents/{}?ref={}".format(
-            self.repo.name, path, version
-        )
+        url = f"https://api.github.com/repos/{self.repo.name}/contents/{path}?ref={version}"
 
         responses.add(method=responses.HEAD, url=url, status=404)
 

@@ -39,8 +39,8 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.wait_until_test_id("incident-sparkline")
             self.browser.snapshot("incidents - list")
 
-            details_url = '[href="/organizations/{}/alerts/{}/'.format(
-                self.organization.slug, incident.identifier
+            details_url = (
+                f'[href="/organizations/{self.organization.slug}/alerts/{incident.identifier}/'
             )
             self.browser.wait_until(details_url)
             self.browser.click(details_url)

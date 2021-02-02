@@ -373,9 +373,7 @@ class BuildIncidentAttachmentTest(TestCase):
             "fields": [],
             "footer": "BENGAL-ELEPHANT-GIRAFFE-TREE-HOUSE-1",
             "ts": to_timestamp(ts),
-            "title_link": "http://testserver/organizations/rowdy-tiger/issues/{}/events/{}/".format(
-                group.id, event.event_id
-            )
+            "title_link": f"http://testserver/organizations/rowdy-tiger/issues/{group.id}/events/{event.event_id}/"
             + "?referrer=slack",
             "callback_id": '{"issue":' + six.text_type(group.id) + "}",
             "fallback": f"[{self.project.slug}] {event.title}",

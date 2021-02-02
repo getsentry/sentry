@@ -51,9 +51,7 @@ class BitbucketIssueTest(APITestCase):
         repo = "myaccount/myrepo"
         responses.add(
             responses.GET,
-            "https://api.bitbucket.org/2.0/repositories/{repo}/issues/{issue_id}".format(
-                repo=repo, issue_id=issue_id
-            ),
+            f"https://api.bitbucket.org/2.0/repositories/{repo}/issues/{issue_id}",
             json={"id": issue_id, "title": "hello", "content": {"html": "This is the description"}},
         )
 
@@ -73,9 +71,7 @@ class BitbucketIssueTest(APITestCase):
         comment = {"comment": "hello I'm a comment"}
         responses.add(
             responses.POST,
-            "https://api.bitbucket.org/2.0/repositories/{repo}/issues/{issue_id}/comments".format(
-                repo=repo, issue_id=issue_id
-            ),
+            f"https://api.bitbucket.org/2.0/repositories/{repo}/issues/{issue_id}/comments",
             status=201,
             json={"content": {"raw": comment}},
         )

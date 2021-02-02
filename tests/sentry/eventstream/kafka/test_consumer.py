@@ -105,9 +105,9 @@ def test_consumer_start_from_partition_start(requires_kafka):
         message = messages_delivered[topic][0]
         producer.produce(
             commit_log_topic,
-            key="{}:{}:{}".format(
-                message.topic(), message.partition(), synchronize_commit_group
-            ).encode("utf8"),
+            key=f"{message.topic()}:{message.partition()}:{synchronize_commit_group}".encode(
+                "utf8"
+            ),
             value="{}".format(message.offset() + 1).encode("utf8"),
         )
 
@@ -193,9 +193,9 @@ def test_consumer_start_from_committed_offset(requires_kafka):
         message = messages_delivered[topic][0]
         producer.produce(
             commit_log_topic,
-            key="{}:{}:{}".format(
-                message.topic(), message.partition(), synchronize_commit_group
-            ).encode("utf8"),
+            key=f"{message.topic()}:{message.partition()}:{synchronize_commit_group}".encode(
+                "utf8"
+            ),
             value="{}".format(message.offset() + 1).encode("utf8"),
         )
 
@@ -206,9 +206,9 @@ def test_consumer_start_from_committed_offset(requires_kafka):
         message = messages_delivered[topic][0 + 1]  # second message
         producer.produce(
             commit_log_topic,
-            key="{}:{}:{}".format(
-                message.topic(), message.partition(), synchronize_commit_group
-            ).encode("utf8"),
+            key=f"{message.topic()}:{message.partition()}:{synchronize_commit_group}".encode(
+                "utf8"
+            ),
             value="{}".format(message.offset() + 1).encode("utf8"),
         )
 
@@ -327,9 +327,9 @@ def test_consumer_rebalance_from_partition_start(requires_kafka):
             # Move the committed offset forward for our synchronizing group.
             producer.produce(
                 commit_log_topic,
-                key="{}:{}:{}".format(
-                    expected_message.topic(), expected_message.partition(), synchronize_commit_group
-                ).encode("utf8"),
+                key=f"{expected_message.topic()}:{expected_message.partition()}:{synchronize_commit_group}".encode(
+                    "utf8"
+                ),
                 value="{}".format(expected_message.offset() + 1).encode("utf8"),
             )
 
@@ -458,9 +458,9 @@ def test_consumer_rebalance_from_committed_offset(requires_kafka):
             # Move the committed offset forward for our synchronizing group.
             producer.produce(
                 commit_log_topic,
-                key="{}:{}:{}".format(
-                    expected_message.topic(), expected_message.partition(), synchronize_commit_group
-                ).encode("utf8"),
+                key=f"{expected_message.topic()}:{expected_message.partition()}:{synchronize_commit_group}".encode(
+                    "utf8"
+                ),
                 value="{}".format(expected_message.offset() + 1).encode("utf8"),
             )
 

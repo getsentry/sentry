@@ -133,9 +133,7 @@ class SplitKeyTestCase(TestCase):
     def test_new_style_key_identifier(self):
         identifier = "123"
         assert split_key(
-            "mail:p:{}:{}:{}".format(
-                self.project.id, ActionTargetType.ISSUE_OWNERS.value, identifier
-            )
+            f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}:{identifier}"
         ) == (self.project, ActionTargetType.ISSUE_OWNERS, identifier)
 
 
@@ -148,8 +146,7 @@ class UnsplitKeyTestCase(TestCase):
 
     def test_identifier(self):
         identifier = "123"
-        assert unsplit_key(
-            self.project, ActionTargetType.ISSUE_OWNERS, identifier
-        ) == "mail:p:{}:{}:{}".format(
-            self.project.id, ActionTargetType.ISSUE_OWNERS.value, identifier
+        assert (
+            unsplit_key(self.project, ActionTargetType.ISSUE_OWNERS, identifier)
+            == f"mail:p:{self.project.id}:{ActionTargetType.ISSUE_OWNERS.value}:{identifier}"
         )

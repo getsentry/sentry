@@ -30,9 +30,7 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
         options = [{"label": "Project Name", "value": "1234"}]
         responses.add(
             method=responses.GET,
-            url="https://example.com/get-projects?projectSlug={}&installationId={}&query=proj".format(
-                self.project.slug, self.install.uuid
-            ),
+            url=f"https://example.com/get-projects?projectSlug={self.project.slug}&installationId={self.install.uuid}&query=proj",
             json=options,
             status=200,
             content_type="application/json",

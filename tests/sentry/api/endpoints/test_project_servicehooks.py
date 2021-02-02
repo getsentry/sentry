@@ -22,9 +22,7 @@ class CreateProjectServiceHookTest(APITestCase):
         super(CreateProjectServiceHookTest, self).setUp()
         self.project = self.create_project()
         self.login_as(user=self.user)
-        self.path = "/api/0/projects/{}/{}/hooks/".format(
-            self.project.organization.slug, self.project.slug
-        )
+        self.path = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/hooks/"
 
     def test_simple(self):
         with self.feature("projects:servicehooks"):

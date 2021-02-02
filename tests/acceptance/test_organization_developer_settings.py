@@ -14,9 +14,7 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
         )
 
         self.login_as(self.user)
-        self.org_developer_settings_path = "/settings/{}/developer-settings/".format(
-            self.organization.slug
-        )
+        self.org_developer_settings_path = f"/settings/{self.organization.slug}/developer-settings/"
 
     def load_page(self, url):
         self.browser.get(url)
@@ -65,8 +63,8 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
         )
         self.login_as(self.user)
 
-        self.org_developer_settings_path = "/settings/{}/developer-settings/{}".format(
-            self.org.slug, self.sentry_app.slug
+        self.org_developer_settings_path = (
+            f"/settings/{self.org.slug}/developer-settings/{self.sentry_app.slug}"
         )
 
     def load_page(self, url):

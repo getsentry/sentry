@@ -19,9 +19,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             organization=self.organization, slug=self.sentry_app.slug
         )
 
-        self.url = "/api/0/projects/{}/{}/issues/?id={}".format(
-            self.organization.slug, self.issue.project.slug, self.issue.id
-        )
+        self.url = f"/api/0/projects/{self.organization.slug}/{self.issue.project.slug}/issues/?id={self.issue.id}"
 
         self.login_as(self.user)
 
