@@ -110,5 +110,4 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
         response = self.client.get(self.url)
 
         update_suggestions = response.data
-        assert len(update_suggestions) == 1
-        assert len(update_suggestions[0]["suggestions"]) == 0
+        assert len(update_suggestions) == 0
