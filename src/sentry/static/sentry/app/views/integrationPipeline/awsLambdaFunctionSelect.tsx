@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import reduce from 'lodash/reduce';
+import {computed} from 'mobx';
 import {Observer} from 'mobx-react';
 
 import List from 'app/components/list';
@@ -60,14 +61,11 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
     return reduce(data, (acc: number, val: boolean) => (val ? acc + 1 : acc), 0);
   }
 
+  @computed
   get toggleAllState() {
     //check if any of the lambda functions have a falsy value
     //no falsy values means everything is enabled
-    return (
-      this.lambdaFunctions.filter(
-        (lambda: LambdaFunction) => !this.model.getValue(lambda.FunctionName)
-      ).length === 0
-    );
+    return Object.values(this.model.getData()).every(val => val);
   }
 
   handleSubmit = () => {
