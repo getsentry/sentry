@@ -1,6 +1,3 @@
-# coding: utf-8
-
-
 from datetime import timedelta
 from django.core import mail
 from django.utils import timezone

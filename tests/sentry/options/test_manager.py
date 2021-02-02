@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from exam import fixture, around
 from sentry.utils.compat.mock import patch
 from django.conf import settings

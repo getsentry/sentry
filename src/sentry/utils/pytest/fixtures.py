@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 A number of generic default fixtures to use with tests.
 

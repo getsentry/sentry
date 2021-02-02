@@ -1,5 +1,4 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 
 import Qrcode from 'app/components/qrcode';
 
@@ -7,7 +6,7 @@ export default {
   title: 'UI/Qrcode',
 };
 
-export const Default = withInfo('Description')(() => (
+export const Default = () => (
   <Qrcode
     code={[
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -40,8 +39,6 @@ export const Default = withInfo('Description')(() => (
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     ]}
   />
-));
+);
 
-Default.story = {
-  name: 'default',
-};
+Default.storyName = 'default';

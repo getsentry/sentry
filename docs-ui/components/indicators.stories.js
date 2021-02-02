@@ -1,27 +1,19 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
-import {select} from '@storybook/addon-knobs';
 
-import IndicatorContainer, {Indicators} from 'app/components/indicators';
-import IndicatorStore from 'app/stores/indicatorStore';
 import {
-  addSuccessMessage,
   addErrorMessage,
   addMessage,
+  addSuccessMessage,
 } from 'app/actionCreators/indicator';
 import Button from 'app/components/button';
+import IndicatorContainer, {Indicators} from 'app/components/indicators';
+import IndicatorStore from 'app/stores/indicatorStore';
 
 export default {
   title: 'UI/Toast Indicators',
 };
 
-export const Static = withInfo('Toast Indicators')(() => {
-  const type = select(
-    'Type',
-    {success: 'success', error: 'error', loading: 'loading'},
-    'success'
-  );
-
+export const Static = ({type}) => {
   return (
     <div style={{backgroundColor: 'white', padding: 12}}>
       <Indicators
@@ -35,16 +27,22 @@ export const Static = withInfo('Toast Indicators')(() => {
       />
     </div>
   );
-});
-
-Static.story = {
-  name: 'static',
 };
 
-export const Interactive = withInfo({
-  propTablesExclude: [Button],
-  text: 'Toast Indicators',
-})(() => {
+Static.storyName = 'static';
+Static.args = {
+  type: 'success',
+};
+Static.argTypes = {
+  type: {
+    control: {
+      type: 'select',
+      options: ['success', 'error', 'loading'],
+    },
+  },
+};
+
+export const Interactive = () => {
   let success;
   let error;
   let loading;
@@ -90,8 +88,6 @@ export const Interactive = withInfo({
       <IndicatorContainer />
     </div>
   );
-});
-
-Interactive.story = {
-  name: 'interactive',
 };
+
+Interactive.storyName = 'interactive';

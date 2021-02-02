@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 COMPARE_COMMITS_EXAMPLE = b"""
 {
   "count": 1,

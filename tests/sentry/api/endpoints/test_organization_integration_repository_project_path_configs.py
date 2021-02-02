@@ -183,6 +183,28 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
         assert response.status_code == 400
         assert response.data == {
             "defaultBranch": [
-                "Branch name may only have letters, numbers, underscores, and dashes"
+                "Branch name may only have letters, numbers, underscores, forward slashes and dashes. Branch name may not start or end with a forward slash."
+            ],
+        }
+
+    def test_forward_slash_in_branch(self):
+        response = self.make_post({"defaultBranch": "prod/deploy-branch"})
+        assert response.status_code == 201, response.content
+
+    def test_leading_forward_slash_in_branch_conflict(self):
+        response = self.make_post({"defaultBranch": "/prod/deploy-branch"})
+        assert response.status_code == 400
+        assert response.data == {
+            "defaultBranch": [
+                "Branch name may only have letters, numbers, underscores, forward slashes and dashes. Branch name may not start or end with a forward slash."
+            ],
+        }
+
+    def test_ending_forward_slash_in_branch_conflict(self):
+        response = self.make_post({"defaultBranch": "prod/deploy-branch/"})
+        assert response.status_code == 400
+        assert response.data == {
+            "defaultBranch": [
+                "Branch name may only have letters, numbers, underscores, forward slashes and dashes. Branch name may not start or end with a forward slash."
             ],
         }
