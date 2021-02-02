@@ -147,6 +147,7 @@ class WidgetQueries extends React.Component<Props, State> {
         version: 2,
         fields: query.fields,
         query: query.conditions,
+        orderby: query.orderby,
         projects,
         range: statsPeriod,
         start: start ? getUtcDateString(start) : undefined,
@@ -232,6 +233,7 @@ class WidgetQueries extends React.Component<Props, State> {
           period: statsPeriod,
           query: query.conditions,
           yAxis: query.fields,
+          orderby: query.orderby,
           includePrevious: false,
           referrer: 'api.dashboards.timeserieswidget',
         };

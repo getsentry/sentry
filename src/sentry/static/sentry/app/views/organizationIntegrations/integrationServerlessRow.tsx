@@ -8,7 +8,7 @@ import {
 } from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
-import Switch from 'app/components/switch';
+import Switch from 'app/components/switchButton';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {IntegrationWithConfig, Organization, ServerlessFunction} from 'app/types';

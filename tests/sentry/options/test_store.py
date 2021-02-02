@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from uuid import uuid1
 
 import pytest

@@ -232,7 +232,7 @@ export type Project = {
   // XXX: These are part of the DetailedProject serializer
   dynamicSampling: {
     rules: DynamicSamplingRules;
-  };
+  } | null;
   plugins: Plugin[];
   processingIssues: number;
   relayPiiConfig: string;
@@ -362,6 +362,13 @@ export type SDKUpdatesSuggestion =
   | EnableIntegrationSuggestion
   | UpdateSdkSuggestion
   | ChangeSdkSuggestion;
+
+export type ProjectSdkUpdates = {
+  projectId: string;
+  sdkName: string;
+  sdkVersion: string;
+  suggestions: SDKUpdatesSuggestion[];
+};
 
 export type EventsStatsData = [number, {count: number}[]][];
 

@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from sentry.models import GroupMeta
 from sentry.testutils import TestCase
 

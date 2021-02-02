@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from datetime import datetime
 
 from sentry.api.serializers import serialize

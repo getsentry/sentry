@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from django.test.client import RequestFactory
 
 from sentry.testutils.helpers.datetime import iso_format, before_now
