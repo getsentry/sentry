@@ -86,7 +86,7 @@ class IssueListFilters extends React.Component<Props> {
         )}
 
         <SearchContainer isInbox={isInbox}>
-          <IssueListSortOptions sort={sort} onSelect={onSortChange} />
+          <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
 
           <SearchSelectorContainer isInbox={isInbox}>
             {!isInbox && (

@@ -82,6 +82,13 @@ export function getTabsWithCounts(organization: Organization) {
   return tabs.filter(([_query, tab]) => tab.count).map(([query]) => query);
 }
 
+export function isForReviewQuery(query: string | undefined) {
+  return (
+    query !== undefined &&
+    (query === Query.FOR_REVIEW || query === Query.FOR_REVIEW_OWNER)
+  );
+}
+
 // the tab counts will look like 99+
 export const TAB_MAX_COUNT = 99;
 

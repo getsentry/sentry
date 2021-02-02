@@ -62,7 +62,14 @@ import IssueListFilters from './filters';
 import IssueListHeader from './header';
 import NoGroupsHandler from './noGroupsHandler';
 import IssueListSidebar from './sidebar';
-import {getTabs, getTabsWithCounts, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
+import {
+  getTabs,
+  getTabsWithCounts,
+  isForReviewQuery,
+  Query,
+  QueryCounts,
+  TAB_MAX_COUNT,
+} from './utils';
 
 const MAX_ITEMS = 25;
 const DEFAULT_SORT = 'date';
@@ -740,6 +747,10 @@ class IssueListOverview extends React.Component<Props, State> {
       path = `/organizations/${organization.slug}/issues/`;
     }
 
+    if (query.sort === 'time' && !isForReviewQuery(query.query)) {
+      delete query.sort;
+    }
+
     if (
       path !== this.props.location.pathname ||
       !isEqual(query, this.props.location.query)
@@ -866,7 +877,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
   onMarkReviewed = (itemIds: string[]) => {
     const query = this.getQuery();
-    if (query !== Query.FOR_REVIEW && query !== Query.FOR_REVIEW_OWNER) {
+    if (!isForReviewQuery(query)) {
       return;
     }
 

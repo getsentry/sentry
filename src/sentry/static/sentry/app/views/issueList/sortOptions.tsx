@@ -1,15 +1,18 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import Feature from 'app/components/acl/feature';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import {t} from 'app/locale';
+import {isForReviewQuery} from 'app/views/issueList/utils';
 
 type Props = {
   sort: string;
+  query: string;
   onSelect: (sort: string) => void;
 };
 
-const IssueListSortOptions = ({onSelect, sort}: Props) => {
+const IssueListSortOptions = ({onSelect, sort, query}: Props) => {
   const sortKey = sort || 'date';
 
   const getSortLabel = (key: string) => {
@@ -24,6 +27,8 @@ const IssueListSortOptions = ({onSelect, sort}: Props) => {
         return t('Users');
       case 'trend':
         return t('Relative Change');
+      case 'time':
+        return t('Time');
       case 'date':
       default:
         return t('Last Seen');
@@ -37,15 +42,25 @@ const IssueListSortOptions = ({onSelect, sort}: Props) => {
   );
 
   return (
-    <DropdownControl buttonProps={{prefix: t('Sort by')}} label={getSortLabel(sortKey)}>
+    <StyledDropdownControl
+      buttonProps={{prefix: t('Sort by')}}
+      label={getSortLabel(sortKey)}
+    >
       {getMenuItem('priority')}
       {getMenuItem('date')}
       {getMenuItem('new')}
       {getMenuItem('freq')}
       {getMenuItem('user')}
       <Feature features={['issue-list-trend-sort']}>{getMenuItem('trend')}</Feature>
-    </DropdownControl>
+      <Feature features={['inbox']}>
+        {isForReviewQuery(query) && getMenuItem('time')}
+      </Feature>
+    </StyledDropdownControl>
   );
 };
 
 export default IssueListSortOptions;
+
+const StyledDropdownControl = styled(DropdownControl)`
+  min-width: 140px;
+`;

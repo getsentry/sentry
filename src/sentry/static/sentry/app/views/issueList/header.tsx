@@ -50,6 +50,9 @@ function IssueListHeader({
   const savedSearchTabActive = !visibleTabs.some(([tabQuery]) => tabQuery === query);
   // Remove cursor and page when switching tabs
   const {cursor: _, page: __, ...queryParms} = router?.location?.query ?? {};
+  if (queryParms.sort === 'time') {
+    delete queryParms.sort;
+  }
 
   return (
     <React.Fragment>
