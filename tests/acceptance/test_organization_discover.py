@@ -7,7 +7,7 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 
 class OrganizationDiscoverTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationDiscoverTest, self).setUp()
+        super().setUp()
 
         self.login_as(user=self.user, superuser=False)
 

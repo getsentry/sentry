@@ -13,7 +13,7 @@ from sentry_relay import generate_key_pair
 
 class RelayRegisterTest(APITestCase):
     def setUp(self):
-        super(RelayRegisterTest, self).setUp()
+        super().setUp()
 
         self.key_pair = generate_key_pair()
 

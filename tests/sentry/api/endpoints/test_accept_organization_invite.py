@@ -18,7 +18,7 @@ from sentry.testutils import TestCase
 
 class AcceptInviteTest(TestCase):
     def setUp(self):
-        super(AcceptInviteTest, self).setUp()
+        super().setUp()
         self.organization = self.create_organization(owner=self.create_user("foo@example.com"))
         self.user = self.create_user("bar@example.com")
 

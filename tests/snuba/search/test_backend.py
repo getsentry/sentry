@@ -37,7 +37,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         return EventsDatasetSnubaSearchBackend()
 
     def setUp(self):
-        super(EventsSnubaSearchTest, self).setUp()
+        super().setUp()
         self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
 
         event1_timestamp = iso_format(self.base_datetime - timedelta(days=21))
@@ -122,7 +122,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         }
 
     def store_event(self, data, *args, **kwargs):
-        event = super(EventsSnubaSearchTest, self).store_event(data, *args, **kwargs)
+        event = super().store_event(data, *args, **kwargs)
         environment_name = data.get("environment")
         if environment_name:
             GroupEnvironment.objects.filter(
@@ -982,7 +982,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         query_mock.return_value = {"data": [], "totals": {"total": 0}}
 
         def Any(cls):
-            class Any(object):
+            class Any:
                 def __eq__(self, other):
                     return isinstance(other, cls)
 

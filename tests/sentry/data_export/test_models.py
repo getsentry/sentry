@@ -17,7 +17,7 @@ class ExportedDataTest(TestCase):
     TEST_STRING = b"A bunch of test data..."
 
     def setUp(self):
-        super(ExportedDataTest, self).setUp()
+        super().setUp()
         self.user = self.create_user()
         self.organization = self.create_organization()
         self.data_export = ExportedData.objects.create(

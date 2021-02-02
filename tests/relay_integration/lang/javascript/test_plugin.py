@@ -30,7 +30,7 @@ def load_fixture(name):
 
 class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTestCase):
     def setUp(self):
-        super(JavascriptIntegrationTest, self).setUp()
+        super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
 
     def test_adds_contexts_without_device(self):

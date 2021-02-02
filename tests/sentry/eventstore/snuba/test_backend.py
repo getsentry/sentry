@@ -8,7 +8,7 @@ from sentry.utils.samples import load_data
 
 class SnubaEventStorageTest(TestCase, SnubaTestCase):
     def setUp(self):
-        super(SnubaEventStorageTest, self).setUp()
+        super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
         self.two_min_ago = iso_format(before_now(minutes=2))
         self.project1 = self.create_project()

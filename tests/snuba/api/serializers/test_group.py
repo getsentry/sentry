@@ -29,7 +29,7 @@ from sentry.utils.compat.mock import patch
 
 class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(GroupSerializerSnubaTest, self).setUp()
+        super().setUp()
         self.min_ago = before_now(minutes=1)
         self.day_ago = before_now(days=1)
         self.week_ago = before_now(days=7)

@@ -1231,7 +1231,7 @@ class GetTriggersForAlertRuleTest(TestCase):
         assert get_triggers_for_alert_rule(alert_rule).get() == trigger
 
 
-class BaseAlertRuleTriggerActionTest(object):
+class BaseAlertRuleTriggerActionTest:
     @fixture
     def alert_rule(self):
         return self.create_alert_rule()

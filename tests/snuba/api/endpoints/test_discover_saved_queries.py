@@ -7,7 +7,7 @@ from sentry.testutils.helpers.datetime import before_now
 
 class DiscoverSavedQueryBase(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(DiscoverSavedQueryBase, self).setUp()
+        super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
         self.projects = [
@@ -29,7 +29,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
     feature_name = "organizations:discover"
 
     def setUp(self):
-        super(DiscoverSavedQueriesTest, self).setUp()
+        super().setUp()
         self.url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
 
     def test_get(self):
@@ -256,7 +256,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
     feature_name = "organizations:discover-query"
 
     def setUp(self):
-        super(DiscoverSavedQueriesVersion2Test, self).setUp()
+        super().setUp()
         self.url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
 
     def test_post_invalid_conditions(self):

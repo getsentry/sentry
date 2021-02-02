@@ -17,7 +17,7 @@ from datetime import datetime
 
 class DashboardTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
-        super(DashboardTest, self).setUp()
+        super().setUp()
         release = Release.objects.create(organization_id=self.organization.id, version="1")
 
         environment = Environment.objects.create(
@@ -99,7 +99,7 @@ class DashboardTest(AcceptanceTestCase, SnubaTestCase):
 
 class EmptyDashboardTest(AcceptanceTestCase):
     def setUp(self):
-        super(EmptyDashboardTest, self).setUp()
+        super().setUp()
         self.login_as(self.user)
         self.path = f"/organizations/{self.organization.slug}/projects/"
 

@@ -12,7 +12,7 @@ from sentry.utils.compat import zip
 
 class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
     def setUp(self):
-        super(OrganizationDashboardDetailsTestCase, self).setUp()
+        super().setUp()
         self.widget_1 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
             order=0,
@@ -131,7 +131,7 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
 
 class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
     def setUp(self):
-        super(OrganizationDashboardDetailsPutTest, self).setUp()
+        super().setUp()
         self.create_user_member_role()
         self.widget_3 = DashboardWidget.objects.create(
             dashboard=self.dashboard,

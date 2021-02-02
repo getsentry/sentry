@@ -27,7 +27,7 @@ from sentry.utils.snuba import (
 
 class AssembleDownloadTest(TestCase, SnubaTestCase):
     def setUp(self):
-        super(AssembleDownloadTest, self).setUp()
+        super().setUp()
         self.user = self.create_user()
         self.org = self.create_organization()
         self.project = self.create_project(organization=self.org)
@@ -548,7 +548,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
 
 class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
     def setUp(self):
-        super(AssembleDownloadLargeTest, self).setUp()
+        super().setUp()
         self.user = self.create_user()
         self.org = self.create_organization()
         self.project = self.create_project()

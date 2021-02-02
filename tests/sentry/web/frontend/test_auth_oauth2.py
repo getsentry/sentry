@@ -44,7 +44,7 @@ class AuthOAuth2Test(AuthProviderTestCase):
         self.auth_provider = AuthProvider.objects.create(
             provider=self.provider_name, organization=self.org
         )
-        super(AuthOAuth2Test, self).setUp()
+        super().setUp()
 
     @fixture
     def login_path(self):

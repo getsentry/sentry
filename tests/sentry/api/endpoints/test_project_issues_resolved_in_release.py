@@ -12,7 +12,7 @@ class ProjectIssuesResolvedInReleaseEndpointTest(APITestCase):
     method = "get"
 
     def setUp(self):
-        super(ProjectIssuesResolvedInReleaseEndpointTest, self).setUp()
+        super().setUp()
         self.user = self.create_user()
         self.org = self.create_organization()
         self.team = self.create_team(organization=self.org)

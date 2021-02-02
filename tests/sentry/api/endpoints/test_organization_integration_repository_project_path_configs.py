@@ -6,7 +6,7 @@ from sentry.testutils import APITestCase
 
 class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
     def setUp(self):
-        super(OrganizationIntegrationRepositoryProjectPathConfigTest, self).setUp()
+        super().setUp()
 
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user, name="baz")

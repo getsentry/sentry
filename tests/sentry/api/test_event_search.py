@@ -1044,7 +1044,7 @@ def _oc(op, val):
 
 class ParseBooleanSearchQueryTest(TestCase):
     def setUp(self):
-        super(ParseBooleanSearchQueryTest, self).setUp()
+        super().setUp()
         users = ["foo", "bar", "foobar", "hello", "hi"]
         for u in users:
             self.__setattr__(u, ["equals", ["user.email", f"{u}@example.com"]])

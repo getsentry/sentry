@@ -47,7 +47,7 @@ def read_txt_email_fixture(name):
 
 class EmailTestCase(AcceptanceTestCase):
     def setUp(self):
-        super(EmailTestCase, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com")
         self.login_as(self.user)
 

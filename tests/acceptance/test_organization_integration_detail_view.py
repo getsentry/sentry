@@ -16,7 +16,7 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
     """
 
     def setUp(self):
-        super(OrganizationIntegrationDetailView, self).setUp()
+        super().setUp()
         features.add("organizations:integrations-feature_flag_integration", OrganizationFeature)
         self.login_as(self.user)
 

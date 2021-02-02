@@ -16,7 +16,7 @@ from sentry.models import ApiKey, Organization
 from sentry.testutils import TestCase
 
 
-class MockSuperUser(object):
+class MockSuperUser:
     @property
     def is_active(self):
         return True
@@ -25,7 +25,7 @@ class MockSuperUser(object):
 class OrganizationPermissionBase(TestCase):
     def setUp(self):
         self.org = self.create_organization()
-        super(OrganizationPermissionBase, self).setUp()
+        super().setUp()
 
     def has_object_perm(self, method, obj, auth=None, user=None, is_superuser=None):
         perm = OrganizationPermission()

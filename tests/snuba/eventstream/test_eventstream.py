@@ -12,7 +12,7 @@ from sentry.utils import snuba, json
 
 class SnubaEventStreamTest(TestCase, SnubaTestCase):
     def setUp(self):
-        super(SnubaEventStreamTest, self).setUp()
+        super().setUp()
 
         self.kafka_eventstream = KafkaEventStream()
         self.kafka_eventstream.producer = Mock()

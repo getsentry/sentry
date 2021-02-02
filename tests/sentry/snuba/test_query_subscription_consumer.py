@@ -21,7 +21,7 @@ from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscrip
 from sentry.testutils.cases import TestCase
 
 
-class BaseQuerySubscriptionTest(object):
+class BaseQuerySubscriptionTest:
     @fixture
     def consumer(self):
         return QuerySubscriptionConsumer("hello")

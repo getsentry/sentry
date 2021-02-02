@@ -53,7 +53,7 @@ class MockJira(StubJiraApiClient, MockService):
             return createmeta
 
         # Fallback to stub data
-        return super(MockJira, self).get_create_meta_for_project(project)
+        return super().get_create_meta_for_project(project)
 
     def create_issue(self, raw_form_data):
         """

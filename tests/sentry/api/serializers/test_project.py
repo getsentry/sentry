@@ -30,7 +30,7 @@ from sentry.utils.compat import mock
 
 class ProjectSerializerTest(TestCase):
     def setUp(self):
-        super(ProjectSerializerTest, self).setUp()
+        super().setUp()
         self.user = self.create_user()
         self.organization = self.create_organization()
         self.team = self.create_team(organization=self.organization)
@@ -213,7 +213,7 @@ class ProjectWithTeamSerializerTest(TestCase):
 
 class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
     def setUp(self):
-        super(ProjectSummarySerializerTest, self).setUp()
+        super().setUp()
         self.date = datetime.datetime(2018, 1, 12, 3, 8, 25, tzinfo=timezone.utc)
         self.user = self.create_user(username="foo")
         self.organization = self.create_organization(owner=self.user)

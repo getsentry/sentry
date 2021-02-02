@@ -4,7 +4,7 @@ from sentry.testutils import AcceptanceTestCase
 
 class CreateTeamTest(AcceptanceTestCase):
     def setUp(self):
-        super(CreateTeamTest, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Rowdy Tiger", owner=None)
         self.team = self.create_team(organization=self.org, name="Mariachi Band")

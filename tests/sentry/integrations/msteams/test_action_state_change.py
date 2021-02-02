@@ -27,7 +27,7 @@ from sentry.integrations.msteams.link_identity import build_linking_url
 
 class BaseEventTest(APITestCase):
     def setUp(self):
-        super(BaseEventTest, self).setUp()
+        super().setUp()
         self.user = self.create_user(is_superuser=False)
         owner = self.create_user()
         self.org = self.create_organization(owner=owner)
