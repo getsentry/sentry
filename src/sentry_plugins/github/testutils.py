@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # we keep this as a raw string as order matters for hmac signing
 PUSH_EVENT_EXAMPLE = r"""{
   "ref": "refs/heads/changes",

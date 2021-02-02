@@ -1,61 +1,64 @@
 name: Validate new issue
 on:
   issues:
-    types: ['opened']
+    types: ["opened"]
 jobs:
   validate-new-issue:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: "Validate issue against templates"
-      shell: bash
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
-      run: |
-        echo "Validating issue #${{ github.event.issue.number }}."
+      - uses: actions/checkout@v2
+      - name: "Validate issue against templates"
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          echo "Validating issue #${{ github.event.issue.number }}."
 
-        # Trust users who belong to the getsentry org.
-        if gh api "https://api.github.com/orgs/getsentry/members/${{ github.actor }}" >/dev/null 2>&1; then
-          echo "Skipping validation, because ${{ github.actor }} is a member of the getsentry org."
-          exit 0
-        else
-          echo "${{ github.actor }} is not a member of the getsentry org. 🧐"
-        fi
-
-        # Look for a template where all the headings are also in this issue.
-        # - extra headings in the issue are fine
-        # - order doesn't matter
-        # - case-sensitive tho
-        # - can't post a template unchanged (ignoring whitespace)
-        function extract-headings { { grep '^#' "$1" || echo -n ''; } | sort; }
-        jq -r .issue.body "$GITHUB_EVENT_PATH" > issue
-        extract-headings <(cat issue) > headings-in-issue
-        for template in $(ls .github/ISSUE_TEMPLATE/*.md 2> /dev/null); do
-          # Strip front matter. https://stackoverflow.com/a/29292490/14946704
-          sed -i'' '1{/^---$/!q;};1,/^---$/d' "$template"
-          extract-headings "$template" > headings-in-template
-          echo -n "$(basename $template)? "
-          if [ ! -s headings-in-template ]; then
-            echo "No headers in template. 🤷"
-          elif [ -z "$(comm -23 headings-in-template headings-in-issue)" ]; then
-            echo "Match! 👍 💃"
-            if diff -Bw "$template" issue > /dev/null; then
-              echo "... like, an /exact/ match. 😖"
-              break
-            else
-              exit 0
-            fi
+          # Trust users who belong to the getsentry org.
+          if gh api "https://api.github.com/orgs/getsentry/members/${{ github.actor }}" >/dev/null 2>&1; then
+            echo "Skipping validation, because ${{ github.actor }} is a member of the getsentry org."
+            exit 0
           else
-            echo "No match. 👎"
+            echo "${{ github.actor }} is not a member of the getsentry org. 🧐"
           fi
-        done
 
-        # Failed to find a match! Close the issue.
-        cat << EOF > comment
-        {"body": "Sorry, friend. As far as this ol' bot can tell, your issue does not use one of this repo's available issue templates. Please [try again using a template](https://github.com/${{ github.repository }}/issues/new/choose) so that we have the best chance of understanding and addressing your issue. (And if I'm confused, please [let us know](https://github.com/getsentry/.github/issues/new?title=template+enforcer+is+confused&body=${{ github.event.issue.html_url }}). 😬)\n\n----\n\n[![Did you see the memo about this?](https://user-images.githubusercontent.com/134455/104515469-e04a9c80-55c0-11eb-8e15-ffe9c0b8dd7f.gif)](https://www.youtube.com/watch?v=Fy3rjQGc6lA)"}
-        EOF
+          # Look for a template where all the headings are also in this issue.
+          # - extra headings in the issue are fine
+          # - order doesn't matter
+          # - case-sensitive tho
+          # - can't post a template unchanged (ignoring whitespace)
+          function extract-headings { { sed 's/\r$//' "$1" | grep '^#' || echo -n ''; } | sort; }
+          jq -r .issue.body "$GITHUB_EVENT_PATH" > issue
+          extract-headings <(cat issue) > headings-in-issue
+          for template in $(ls .github/ISSUE_TEMPLATE/*.md 2> /dev/null); do
+            # Strip front matter. https://stackoverflow.com/a/29292490/14946704
+            sed -i'' '1{/^---$/!q;};1,/^---$/d' "$template"
+            extract-headings "$template" > headings-in-template
+            echo -n "$(basename $template)? "
+            if [ ! -s headings-in-template ]; then
+              echo "No headers in template. 🤷"
+            elif [ -z "$(comm -23 headings-in-template headings-in-issue)" ]; then
+              echo "Match! 👍 💃"
+              if diff -Bw "$template" issue > /dev/null; then
+                echo "... like, an /exact/ match. 😖"
+                break
+              else
+                exit 0
+              fi
+            else
+              echo "No match. 👎"
+            fi
+          done
 
-        # Might get `gh issue comment` some day - https://github.com/cli/cli/issues/517
-        echo -n "Commented: "
-        gh issue comment ${{ github.event.issue.number }} --body "$(cat comment)"
-        gh issue close ${{ github.event.issue.number }}
+          # Failed to find a match! Close the issue.
+          cat << EOF > comment
+          Sorry, friend. As far as this ol' bot can tell, your issue does not use one of this repo's available issue templates. Please [try again using a template](https://github.com/${{ github.repository }}/issues/new/choose) so that we have the best chance of understanding and addressing your issue. (And if I'm confused, please [let us know](https://github.com/getsentry/.github/issues/new?title=template+enforcer+is+confused&body=${{ github.event.issue.html_url }}). 😬)
+
+          ----
+
+          [![Did you see the memo about this?](https://user-images.githubusercontent.com/134455/104515469-e04a9c80-55c0-11eb-8e15-ffe9c0b8dd7f.gif)](https://www.youtube.com/watch?v=Fy3rjQGc6lA)"
+          EOF
+
+          echo -n "Commented: "
+          gh issue comment ${{ github.event.issue.number }} --body "$(cat comment)"
+          gh issue close ${{ github.event.issue.number }}

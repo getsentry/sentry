@@ -11,6 +11,7 @@ export type WidgetQuery = {
   name: string;
   fields: string[];
   conditions: string;
+  orderby: string;
 };
 
 export type Widget = {

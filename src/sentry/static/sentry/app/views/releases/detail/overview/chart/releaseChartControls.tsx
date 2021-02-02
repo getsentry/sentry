@@ -9,6 +9,7 @@ import {
   SectionValue,
 } from 'app/components/charts/styles';
 import QuestionTooltip from 'app/components/questionTooltip';
+import NOT_AVAILABLE_MESSAGES from 'app/constants/notAvailableMessages';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, SelectValue} from 'app/types';
@@ -68,13 +69,11 @@ const ReleaseChartControls = ({
   onVitalTypeChange,
 }: Props) => {
   const noHealthDataTooltip = !hasHealthData
-    ? t('This view is only available with release health data.')
+    ? NOT_AVAILABLE_MESSAGES.releaseHealth
     : undefined;
-  const noDiscoverTooltip = !hasDiscover
-    ? t('This view is only available with Discover.')
-    : undefined;
+  const noDiscoverTooltip = !hasDiscover ? NOT_AVAILABLE_MESSAGES.discover : undefined;
   const noPerformanceTooltip = !hasPerformance
-    ? t('This view is only available with Performance Monitoring.')
+    ? NOT_AVAILABLE_MESSAGES.performance
     : undefined;
   const yAxisOptions: SelectValue<YAxis>[] = [
     {
