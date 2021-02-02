@@ -56,6 +56,15 @@ class ReleaseChartContainer extends React.Component<Props, State> {
     const {datetime} = selection;
     const {utc, period, start, end} = datetime;
 
+    const timeseriesData = chartData.filter(({seriesName}) => {
+      // There is no concept of Abnormal sessions in javascript
+      if (seriesName === 'Abnormal' && ['javascript', 'node'].includes(platform)) {
+        return false;
+      }
+
+      return true;
+    });
+
     return (
       <ChartZoom router={router} period={period} utc={utc} start={start} end={end}>
         {zoomRenderProps => {
@@ -71,7 +80,7 @@ class ReleaseChartContainer extends React.Component<Props, State> {
             <TransitionChart loading={loading} reloading={reloading}>
               <TransparentLoadingMask visible={reloading} />
               <HealthChart
-                timeseriesData={chartData}
+                timeseriesData={timeseriesData}
                 zoomRenderProps={zoomRenderProps}
                 reloading={reloading}
                 yAxis={yAxis}
