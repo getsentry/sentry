@@ -2,7 +2,7 @@ import sys
 
 import pytest
 from queue import Full
-from six.moves import _thread
+import _thread
 from concurrent.futures import CancelledError, Future
 from contextlib import contextmanager
 from threading import Event
