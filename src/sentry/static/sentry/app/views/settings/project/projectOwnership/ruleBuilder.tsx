@@ -145,7 +145,6 @@ class RuleBuilder extends React.Component<Props, State> {
         )}
         <BuilderBar>
           <BuilderSelect
-            deprecatedSelectControl
             name="select-type"
             value={type}
             onChange={this.handleTypeChange}

@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {openMenu, selectByLabel} from 'sentry-test/select-new';
 
 import IssueListTagFilter from 'app/views/issueList/tagFilter';
 
@@ -41,15 +42,12 @@ describe('IssueListTagFilter', function () {
       TestStubs.routerContext()
     );
 
-    wrapper.find('input').simulate('focus');
-    wrapper.find('.Select-control').simulate('mouseDown', {button: 0});
+    openMenu(wrapper, {control: true});
 
     await tick();
     wrapper.update();
 
-    expect(wrapper.find('div.Select-option').prop('children')).toBe('foo');
-
-    wrapper.find('Option').simulate('mouseDown');
+    selectByLabel(wrapper, 'foo', {control: true});
     expect(selectMock).toHaveBeenCalledWith(tag, 'foo');
   });
 
@@ -66,15 +64,12 @@ describe('IssueListTagFilter', function () {
       TestStubs.routerContext()
     );
 
-    wrapper.find('input').simulate('focus');
-    wrapper.find('.Select-control').simulate('mouseDown', {button: 0});
-
+    openMenu(wrapper, {control: true});
     await tick();
     wrapper.update();
 
-    expect(wrapper.find('div.Select-option').prop('children')).toBe('foo');
+    selectByLabel(wrapper, 'foo', {control: true});
 
-    wrapper.find('Option').simulate('mouseDown');
     expect(selectMock).toHaveBeenCalledWith(tag, 'foo');
   });
 });

@@ -166,17 +166,16 @@ class IssueListTagFilter extends React.Component<Props, State> {
 
         {!tag.isInput && (
           <SelectControl
-            deprecatedSelectControl
             clearable
-            filterOptions={options => options}
             placeholder="--"
             value={this.state.value}
             onChange={this.handleChangeSelect}
             isLoading={this.state.isLoading}
             onInputChange={this.handleChangeSelectInput}
-            onOpen={this.handleOpenMenu}
-            autoload={false}
-            noResultsText={this.state.isLoading ? t('Loading...') : t('No results found')}
+            onFocus={this.handleOpenMenu}
+            noResultsText={
+              this.state.isLoading ? t('Loading\u2026') : t('No results found')
+            }
             options={
               tag.predefined
                 ? tag.values &&
