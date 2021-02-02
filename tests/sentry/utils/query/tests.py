@@ -3,12 +3,11 @@ from sentry.testutils import TestCase
 from sentry.utils.query import RangeQuerySetWrapper
 
 
-
 class RangeQuerySetWrapperTest(TestCase):
     def test_basic(self):
         total = 10
 
-        for _ in xrange(total):
+        for _ in range(total):
             self.create_user()
 
         qs = User.objects.all()
@@ -18,7 +17,7 @@ class RangeQuerySetWrapperTest(TestCase):
 
     def test_loop_and_delete(self):
         total = 10
-        for _ in xrange(total):
+        for _ in range(total):
             self.create_user()
 
         qs = User.objects.all()

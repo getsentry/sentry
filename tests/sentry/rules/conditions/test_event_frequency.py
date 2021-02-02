@@ -145,7 +145,7 @@ class EventUniqueUserFrequencyConditionTestCase(FrequencyConditionMixin, RuleTes
         tsdb.record(
             tsdb.models.users_affected_by_group,
             event.group_id,
-            [next(self.sequence) for _ in xrange(0, count)],
+            [next(self.sequence) for _ in range(0, count)],
             environment_id=environment_id,
             timestamp=timestamp,
         )

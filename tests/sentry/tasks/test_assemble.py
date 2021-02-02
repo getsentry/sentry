@@ -76,7 +76,7 @@ class AssembleDifTest(BaseAssembleTest):
     def test_assemble_from_files(self):
         files = []
         file_checksum = sha1()
-        for _ in xrange(8):
+        for _ in range(8):
             blob = os.urandom(1024 * 1024 * 8)
             hash = sha1(blob).hexdigest()
             file_checksum.update(blob)
@@ -127,7 +127,7 @@ class AssembleDifTest(BaseAssembleTest):
         file_checksum = sha1()
         blob = os.urandom(1024 * 1024 * 8)
         hash = sha1(blob).hexdigest()
-        for _ in xrange(8):
+        for _ in range(8):
             file_checksum.update(blob)
             files.append((io.BytesIO(blob), hash))
 

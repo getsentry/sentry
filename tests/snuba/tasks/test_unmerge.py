@@ -224,7 +224,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             create_message_event(
                 "This is message #%s.", i, environment="production", release="version"
             )
-            for i in xrange(10)
+            for i in range(10)
         ):
             events.setdefault(get_fingerprint(event), []).append(event)
 
@@ -236,7 +236,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 release="version2",
                 fingerprint="group2",
             )
-            for i in xrange(10, 16)
+            for i in range(10, 16)
         ):
             events.setdefault(get_fingerprint(event), []).append(event)
 

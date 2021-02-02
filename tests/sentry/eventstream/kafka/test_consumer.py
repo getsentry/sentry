@@ -87,7 +87,7 @@ def test_consumer_start_from_partition_start(requires_kafka):
         consumer.subscribe([topic], on_assign=on_assign)
 
         # Wait until we have received our assignments.
-        for i in xrange(10):  # this takes a while
+        for i in range(10):  # this takes a while
             assert consumer.poll(1) is None
             if assignments_received:
                 break
@@ -114,7 +114,7 @@ def test_consumer_start_from_partition_start(requires_kafka):
 
         # We should have received a single message.
         # TODO: Can we also assert that the position is unpaused?)
-        for i in xrange(5):
+        for i in range(5):
             message = consumer.poll(1)
             if message is not None:
                 break
@@ -178,7 +178,7 @@ def test_consumer_start_from_committed_offset(requires_kafka):
         consumer.subscribe([topic], on_assign=on_assign)
 
         # Wait until we have received our assignments.
-        for i in xrange(10):  # this takes a while
+        for i in range(10):  # this takes a while
             assert consumer.poll(1) is None
             if assignments_received:
                 break
@@ -215,7 +215,7 @@ def test_consumer_start_from_committed_offset(requires_kafka):
 
         # We should have received a single message.
         # TODO: Can we also assert that the position is unpaused?)
-        for i in xrange(5):
+        for i in range(5):
             message = consumer.poll(1)
             if message is not None:
                 break
@@ -273,7 +273,7 @@ def test_consumer_rebalance_from_partition_start(requires_kafka):
         consumer_a.subscribe([topic], on_assign=on_assign)
 
         # Wait until the first consumer has received its assignments.
-        for i in xrange(10):  # this takes a while
+        for i in range(10):  # this takes a while
             assert consumer_a.poll(1) is None
             if assignments_received[consumer_a]:
                 break
@@ -300,7 +300,7 @@ def test_consumer_rebalance_from_partition_start(requires_kafka):
 
         # Wait until *both* consumers have received updated assignments.
         for consumer in [consumer_a, consumer_b]:
-            for i in xrange(10):  # this takes a while
+            for i in range(10):  # this takes a while
                 assert consumer.poll(1) is None
                 if assignments_received[consumer]:
                     break
@@ -336,7 +336,7 @@ def test_consumer_rebalance_from_partition_start(requires_kafka):
 
             # We should have received a single message.
             # TODO: Can we also assert that the position is unpaused?)
-            for i in xrange(5):
+            for i in range(5):
                 received_message = consumer.poll(1)
                 if received_message is not None:
                     break
@@ -403,7 +403,7 @@ def test_consumer_rebalance_from_committed_offset(requires_kafka):
         consumer_a.subscribe([topic], on_assign=on_assign)
 
         # Wait until the first consumer has received its assignments.
-        for i in xrange(10):  # this takes a while
+        for i in range(10):  # this takes a while
             assert consumer_a.poll(1) is None
             if assignments_received[consumer_a]:
                 break
@@ -431,7 +431,7 @@ def test_consumer_rebalance_from_committed_offset(requires_kafka):
 
         # Wait until *both* consumers have received updated assignments.
         for consumer in [consumer_a, consumer_b]:
-            for i in xrange(10):  # this takes a while
+            for i in range(10):  # this takes a while
                 assert consumer.poll(1) is None
                 if assignments_received[consumer]:
                     break
@@ -467,7 +467,7 @@ def test_consumer_rebalance_from_committed_offset(requires_kafka):
 
             # We should have received a single message.
             # TODO: Can we also assert that the position is unpaused?)
-            for i in xrange(5):
+            for i in range(5):
                 received_message = consumer.poll(1)
                 if received_message is not None:
                     break
@@ -486,7 +486,7 @@ def test_consumer_rebalance_from_committed_offset(requires_kafka):
 def consume_until_constraints_met(consumer, constraints, iterations, timeout=1):
     constraints = set(constraints)
 
-    for i in xrange(iterations):
+    for i in range(iterations):
         message = consumer.poll(timeout)
         for constraint in list(constraints):
             if constraint(message):
