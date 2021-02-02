@@ -8,6 +8,7 @@ import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask
 import {PlatformKey} from 'app/data/platformCategories';
 import {IconWarning} from 'app/icons';
 import {GlobalSelection} from 'app/types';
+import {sessionTerm} from 'app/views/releases/utils/sessionTerm';
 
 import {ReleaseStatsRequestRenderProps} from '../releaseStatsRequest';
 
@@ -58,7 +59,10 @@ class ReleaseChartContainer extends React.Component<Props, State> {
 
     const timeseriesData = chartData.filter(({seriesName}) => {
       // There is no concept of Abnormal sessions in javascript
-      if (seriesName === 'Abnormal' && ['javascript', 'node'].includes(platform)) {
+      if (
+        seriesName === sessionTerm.abnormal &&
+        ['javascript', 'node'].includes(platform)
+      ) {
         return false;
       }
 
