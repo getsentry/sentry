@@ -20,9 +20,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            "{}?redirect_uri={}&client_id={}".format(
-                self.path, "https://example.com", self.application.client_id
-            )
+            f"{self.path}?redirect_uri=https://example.com&client_id={self.application.client_id}"
         )
 
         assert resp.status_code == 400
@@ -33,9 +31,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            "{}?response_type=foobar&redirect_uri={}&client_id={}".format(
-                self.path, "https://example.com", self.application.client_id
-            )
+            f"{self.path}?response_type=foobar&redirect_uri=https://example.com&client_id={self.application.client_id}"
         )
 
         assert resp.status_code == 400
@@ -45,9 +41,7 @@ class OAuthAuthorizeCodeTest(TestCase):
     def test_missing_client_id(self):
         self.login_as(self.user)
 
-        resp = self.client.get(
-            "{}?response_type=code&redirect_uri={}".format(self.path, "https://example.com")
-        )
+        resp = self.client.get(f"{self.path}?response_type=code&redirect_uri=https://example.com")
 
         assert resp.status_code == 400
         self.assertTemplateUsed("sentry/oauth-error.html")
@@ -259,9 +253,7 @@ class OAuthAuthorizeTokenTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            "{}?redirect_uri={}&client_id={}".format(
-                self.path, "https://example.com", self.application.client_id
-            )
+            f"{self.path}?redirect_uri=https://example.com&client_id={self.application.client_id}"
         )
 
         assert resp.status_code == 400
@@ -272,9 +264,7 @@ class OAuthAuthorizeTokenTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(
-            "{}?response_type=foobar&redirect_uri={}&client_id={}".format(
-                self.path, "https://example.com", self.application.client_id
-            )
+            f"{self.path}?response_type=foobar&redirect_uri=https://example.com&client_id={self.application.client_id}"
         )
 
         assert resp.status_code == 400
@@ -284,9 +274,7 @@ class OAuthAuthorizeTokenTest(TestCase):
     def test_missing_client_id(self):
         self.login_as(self.user)
 
-        resp = self.client.get(
-            "{}?response_type=token&redirect_uri={}".format(self.path, "https://example.com")
-        )
+        resp = self.client.get(f"{self.path}?response_type=token&redirect_uri=https://example.com")
 
         assert resp.status_code == 400
         self.assertTemplateUsed("sentry/oauth-error.html")

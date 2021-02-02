@@ -75,11 +75,11 @@ class ProjectDetailsTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 302
         assert response.data["slug"] == "foobar"
-        assert response.data["detail"]["extra"]["url"] == "/api/0/projects/{}/{}/".format(
-            project.organization.slug,
-            "foobar",
+        assert (
+            response.data["detail"]["extra"]["url"]
+            == f"/api/0/projects/{project.organization.slug}/foobar/"
         )
-        redirect_path = "/api/0/projects/{}/{}/".format(project.organization.slug, "foobar")
+        redirect_path = f"/api/0/projects/{project.organization.slug}/foobar/"
         # XXX: AttributeError: 'Response' object has no attribute 'url'
         # (this is with self.assertRedirects(response, ...))
         assert response["Location"] == redirect_path

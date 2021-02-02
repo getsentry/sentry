@@ -20,7 +20,7 @@ class OrganizationPluginsTest(APITestCase):
             kwargs={"organization_slug": self.projectA.organization.slug},
         )
 
-        url = "{}?{}".format(url, "plugins=_all")
+        url = f"{url}?plugins=_all"
 
         response = self.client.get(url)
 
@@ -40,7 +40,7 @@ class OrganizationPluginsTest(APITestCase):
             kwargs={"organization_slug": self.projectA.organization.slug},
         )
 
-        url = "{}?{}".format(url, "plugins=slack&plugins=webhooks")
+        url = f"{url}?plugins=slack&plugins=webhooks"
 
         response = self.client.get(url)
 
