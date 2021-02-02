@@ -1,5 +1,3 @@
-import six
-
 from pytz import utc
 
 from django.core.urlresolvers import reverse
@@ -2355,8 +2353,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
             for field in fields:
                 key, value = field.split(".", 1)
-                expected = six.text_type(event_data["contexts"][key][value])
-                assert results[0][field] == expected, field + six.text_type(datum)
+                expected = str(event_data["contexts"][key][value])
+                assert results[0][field] == expected, field + str(datum)
 
     def test_http_fields_between_datasets(self):
         project = self.create_project()
@@ -2391,7 +2389,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             assert results[0]["count"] == 1, datum
 
             for (field, exp) in zip(fields, expected):
-                assert results[0][field] == exp, field + six.text_type(datum)
+                assert results[0][field] == exp, field + str(datum)
 
     def test_failure_count_alias_field(self):
         project = self.create_project()

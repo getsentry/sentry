@@ -1,5 +1,3 @@
-import six
-
 from sentry.testutils import APITestCase
 from sentry.models import InviteStatus
 
@@ -21,7 +19,7 @@ class TeamMembersTest(APITestCase):
         response = self.get_response(self.org.slug, self.team.slug)
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(self.team_member.id)
+        assert response.data[0]["id"] == str(self.team_member.id)
 
     def test_team_members_list_does_not_include_invite_requests(self):
         pending_invite = self.create_member(
@@ -46,5 +44,5 @@ class TeamMembersTest(APITestCase):
         response = self.get_response(self.org.slug, self.team.slug)
         assert response.status_code == 200
         assert len(response.data) == 2
-        assert response.data[0]["id"] == six.text_type(self.team_member.id)
-        assert response.data[1]["id"] == six.text_type(pending_invite.id)
+        assert response.data[0]["id"] == str(self.team_member.id)
+        assert response.data[1]["id"] == str(pending_invite.id)

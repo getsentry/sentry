@@ -1,6 +1,5 @@
 import datetime
 import pytest
-import six
 import unittest
 from datetime import timedelta
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME, SPAN_STATUS_NAME_TO_CODE
@@ -1198,7 +1197,7 @@ class ParseBooleanSearchQueryTest(TestCase):
         with pytest.raises(InvalidSearchQuery) as error:
             get_filter("(user.email:foo@example.com OR user.email:bar@example.com")
         assert (
-            six.text_type(error.value)
+            str(error.value)
             == "Parse error at '(user.' (column 1). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
         with pytest.raises(InvalidSearchQuery) as error:
@@ -1206,13 +1205,13 @@ class ParseBooleanSearchQueryTest(TestCase):
                 "((user.email:foo@example.com OR user.email:bar@example.com AND  user.email:bar@example.com)"
             )
         assert (
-            six.text_type(error.value)
+            str(error.value)
             == "Parse error at '((user' (column 1). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
         with pytest.raises(InvalidSearchQuery) as error:
             get_filter("user.email:foo@example.com OR user.email:bar@example.com)")
         assert (
-            six.text_type(error.value)
+            str(error.value)
             == "Parse error at '.com)' (column 57). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
         with pytest.raises(InvalidSearchQuery) as error:
@@ -1220,7 +1219,7 @@ class ParseBooleanSearchQueryTest(TestCase):
                 "(user.email:foo@example.com OR user.email:bar@example.com AND  user.email:bar@example.com))"
             )
         assert (
-            six.text_type(error.value)
+            str(error.value)
             == "Parse error at 'com))' (column 91). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
 
@@ -1400,25 +1399,25 @@ class ParseBooleanSearchQueryTest(TestCase):
         with pytest.raises(InvalidSearchQuery) as error:
             get_filter("count():>1 OR a:b")
         assert (
-            six.text_type(error.value)
+            str(error.value)
             == "Having an OR between aggregate filters and normal filters is invalid."
         )
         with pytest.raises(InvalidSearchQuery) as error:
             get_filter("(count():>1 AND a:b) OR a:b")
         assert (
-            six.text_type(error.value)
+            str(error.value)
             == "Having an OR between aggregate filters and normal filters is invalid."
         )
         with pytest.raises(InvalidSearchQuery) as error:
             get_filter("(count():>1 AND a:b) OR (a:b AND count():>2)")
         assert (
-            six.text_type(error.value)
+            str(error.value)
             == "Having an OR between aggregate filters and normal filters is invalid."
         )
         with pytest.raises(InvalidSearchQuery) as error:
             get_filter("a:b OR (c:d AND (e:f AND count():>1))")
         assert (
-            six.text_type(error.value)
+            str(error.value)
             == "Having an OR between aggregate filters and normal filters is invalid."
         )
 
@@ -1790,8 +1789,8 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_issue_filter_invalid(self):
         with pytest.raises(InvalidSearchQuery) as err:
             get_filter("issue:1", {"organization_id": 1})
-        assert "Invalid value '" in six.text_type(err)
-        assert "' for 'issue:' filter" in six.text_type(err)
+        assert "Invalid value '" in str(err)
+        assert "' for 'issue:' filter" in str(err)
 
     def test_issue_filter(self):
         group = self.create_group(project=self.project)
@@ -1926,7 +1925,7 @@ class GetSnubaQueryArgsTest(TestCase):
         assert (
             "Invalid query. Project %s does not exist or is not an actively selected project"
             % p1.slug
-            in six.text_type(err)
+            in str(err)
         )
 
     def test_transaction_status(self):
@@ -1937,14 +1936,14 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_transaction_status_no_wildcard(self):
         with pytest.raises(InvalidSearchQuery) as err:
             get_filter("transaction.status:o*")
-        assert "Invalid value" in six.text_type(err)
-        assert "cancelled," in six.text_type(err)
+        assert "Invalid value" in str(err)
+        assert "cancelled," in str(err)
 
     def test_transaction_status_invalid(self):
         with pytest.raises(InvalidSearchQuery) as err:
             get_filter("transaction.status:lol")
-        assert "Invalid value" in six.text_type(err)
-        assert "cancelled," in six.text_type(err)
+        assert "Invalid value" in str(err)
+        assert "cancelled," in str(err)
 
     def test_error_handled(self):
         result = get_filter("error.handled:true")
@@ -2097,7 +2096,7 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = [["any", "thing", "lol"]]
         with pytest.raises(InvalidSearchQuery) as err:
             resolve_field_list(fields, eventstore.Filter())
-        assert "Field names" in six.text_type(err)
+        assert "Field names" in str(err)
 
     def test_tag_fields(self):
         fields = ["tags[test.foo:bar-123]"]
@@ -2122,7 +2121,7 @@ class ResolveFieldListTest(unittest.TestCase):
         ]:
             with pytest.raises(InvalidSearchQuery) as err:
                 resolve_field_list(fields, eventstore.Filter())
-            assert "Invalid character" in six.text_type(err)
+            assert "Invalid character" in str(err)
 
     def test_blank_field_ignored(self):
         fields = ["", "title", "   "]
@@ -2287,13 +2286,13 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["derp(user)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "derp(user) is not a valid function" in six.text_type(err)
+        assert "derp(user) is not a valid function" in str(err)
 
     def test_aggregate_function_case_sensitive(self):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["MAX(user)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "MAX(user) is not a valid function" in six.text_type(err)
+        assert "MAX(user) is not a valid function" in str(err)
 
     def test_aggregate_function_invalid_column(self):
         with pytest.raises(InvalidSearchQuery) as err:
@@ -2301,7 +2300,7 @@ class ResolveFieldListTest(unittest.TestCase):
             resolve_field_list(fields, eventstore.Filter())
         assert (
             "InvalidSearchQuery: min(message): column argument invalid: message is not a numeric column"
-            in six.text_type(err)
+            in str(err)
         )
 
     def test_aggregate_function_missing_parameter(self):
@@ -2310,7 +2309,7 @@ class ResolveFieldListTest(unittest.TestCase):
             resolve_field_list(fields, eventstore.Filter())
         assert (
             "InvalidSearchQuery: count_unique(): column argument invalid: a column is required"
-            in six.text_type(err)
+            in str(err)
         )
 
         with pytest.raises(InvalidSearchQuery) as err:
@@ -2330,27 +2329,26 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile(0.75)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "percentile(0.75): expected 2 argument(s)" in six.text_type(err)
+        assert "percentile(0.75): expected 2 argument(s)" in str(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile(0.75,)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "percentile(0.75,): expected 2 argument(s)" in six.text_type(err)
+        assert "percentile(0.75,): expected 2 argument(s)" in str(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile(sanchez, 0.75)"]
             resolve_field_list(fields, eventstore.Filter())
         assert (
             "percentile(sanchez, 0.75): column argument invalid: sanchez is not a valid column"
-            in six.text_type(err)
+            in str(err)
         )
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile(id, 0.75)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert (
-            "percentile(id, 0.75): column argument invalid: id is not a numeric column"
-            in six.text_type(err)
+        assert "percentile(id, 0.75): column argument invalid: id is not a numeric column" in str(
+            err
         )
 
         with pytest.raises(InvalidSearchQuery) as err:
@@ -2358,7 +2356,7 @@ class ResolveFieldListTest(unittest.TestCase):
             resolve_field_list(fields, eventstore.Filter())
         assert (
             "percentile(transaction.duration, 75): percentile argument invalid: 75 must be less than 1"
-            in six.text_type(err)
+            in str(err)
         )
 
     def test_epm_function(self):
@@ -2373,22 +2371,19 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["epm(30)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert (
-            "epm(30): interval argument invalid: 30 must be greater than or equal to 60"
-            in six.text_type(err)
+        assert "epm(30): interval argument invalid: 30 must be greater than or equal to 60" in str(
+            err
         )
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["epm()"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "epm(): invalid arguments: function called without default" in six.text_type(err)
+        assert "epm(): invalid arguments: function called without default" in str(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["epm()"]
             resolve_field_list(fields, eventstore.Filter(start="abc", end="def"))
-        assert "epm(): invalid arguments: function called with invalid default" in six.text_type(
-            err
-        )
+        assert "epm(): invalid arguments: function called with invalid default" in str(err)
 
         fields = ["epm()"]
         result = resolve_field_list(
@@ -2437,7 +2432,7 @@ class ResolveFieldListTest(unittest.TestCase):
             resolve_field_list(fields, eventstore.Filter())
         assert (
             "absolute_delta(transaction,100): column argument invalid: transaction is not a duration column"
-            in six.text_type(err)
+            in str(err)
         )
 
         with pytest.raises(InvalidSearchQuery) as err:
@@ -2445,7 +2440,7 @@ class ResolveFieldListTest(unittest.TestCase):
             resolve_field_list(fields, eventstore.Filter())
         assert (
             "absolute_delta(transaction.duration,blah): target argument invalid: blah is not a number"
-            in six.text_type(err)
+            in str(err)
         )
 
     def test_eps_function(self):
@@ -2461,10 +2456,7 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["eps(0)"]
             result = resolve_field_list(fields, eventstore.Filter())
-        assert (
-            "eps(0): interval argument invalid: 0 must be greater than or equal to 1"
-            in six.text_type(err)
-        )
+        assert "eps(0): interval argument invalid: 0 must be greater than or equal to 1" in str(err)
 
     def test_array_join_function(self):
         fields = [
@@ -2490,7 +2482,7 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = ["array_join(tags.key)"]
         with pytest.raises(InvalidSearchQuery) as err:
             resolve_field_list(fields, eventstore.Filter())
-        assert "no access to private function" in six.text_type(err)
+        assert "no access to private function" in str(err)
 
     def test_histogram_function(self):
         fields = ["histogram(measurements_value, 10, 5, 1)"]
@@ -2543,7 +2535,7 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = ["histogram(measurements_value, 10, 5, 1)"]
         with pytest.raises(InvalidSearchQuery) as err:
             resolve_field_list(fields, eventstore.Filter())
-        assert "no access to private function" in six.text_type(err)
+        assert "no access to private function" in str(err)
 
     def test_count_at_least_function(self):
         fields = ["count_at_least(measurements.baz, 1000)"]
@@ -2575,12 +2567,12 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile_range(transaction.duration, 0.5, greater, tomorrow)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "middle argument invalid: tomorrow is in the wrong format" in six.text_type(err)
+        assert "middle argument invalid: tomorrow is in the wrong format" in str(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile_range(transaction.duration, 0.5, lessOrEquals, today)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "middle argument invalid: today is in the wrong format" in six.text_type(err)
+        assert "middle argument invalid: today is in the wrong format" in str(err)
 
     def test_average_range(self):
         fields = ["avg_range(transaction.duration, greater, 2020-05-03T06:48:57) as avg_range_1"]
@@ -2599,12 +2591,12 @@ class ResolveFieldListTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["avg_range(transaction.duration, greater, tomorrow)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "middle argument invalid: tomorrow is in the wrong format" in six.text_type(err)
+        assert "middle argument invalid: tomorrow is in the wrong format" in str(err)
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["avg_range(transaction.duration, lessOrEquals, today)"]
             resolve_field_list(fields, eventstore.Filter())
-        assert "middle argument invalid: today is in the wrong format" in six.text_type(err)
+        assert "middle argument invalid: today is in the wrong format" in str(err)
 
     def test_absolute_correlation(self):
         fields = ["absolute_correlation()"]
@@ -2686,7 +2678,7 @@ class ResolveFieldListTest(unittest.TestCase):
         for function in bad_function_aliases:
             with pytest.raises(InvalidSearchQuery) as err:
                 resolve_field_list([function], eventstore.Filter())
-            assert "Invalid characters in field" in six.text_type(err)
+            assert "Invalid characters in field" in str(err)
 
     def test_valid_alias(self):
         function_aliases = [
@@ -2759,7 +2751,7 @@ class ResolveFieldListTest(unittest.TestCase):
         for field in fields:
             with pytest.raises(InvalidSearchQuery) as err:
                 resolve_field_list([field], eventstore.Filter())
-            assert "is not a valid condition" in six.text_type(err), field
+            assert "is not a valid condition" in str(err), field
 
         fields = [
             "compare_numeric_aggregate(p50_tr(where,=,50)",
@@ -2768,13 +2760,13 @@ class ResolveFieldListTest(unittest.TestCase):
         for field in fields:
             with pytest.raises(InvalidSearchQuery) as err:
                 resolve_field_list([field], eventstore.Filter())
-            assert "is not a valid function alias" in six.text_type(err), field
+            assert "is not a valid function alias" in str(err), field
 
     def test_rollup_with_unaggregated_fields(self):
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["message"]
             resolve_field_list(fields, eventstore.Filter(rollup=15))
-        assert "rollup without an aggregate" in six.text_type(err)
+        assert "rollup without an aggregate" in str(err)
 
     def test_rollup_with_basic_and_aggregated_fields(self):
         fields = ["message", "count()"]
@@ -2795,7 +2787,7 @@ class ResolveFieldListTest(unittest.TestCase):
         fields = ["message"]
         with pytest.raises(InvalidSearchQuery) as err:
             resolve_field_list(fields, eventstore.Filter(orderby="timestamp"))
-        assert "Cannot order" in six.text_type(err)
+        assert "Cannot order" in str(err)
 
     def test_orderby_basic_field(self):
         fields = ["message"]
@@ -3037,16 +3029,16 @@ class ResolveFieldListTest(unittest.TestCase):
             with pytest.raises(InvalidSearchQuery) as error:
                 resolve_field_list(field, eventstore.Filter())
 
-            assert "you must first remove the function(s)" in six.text_type(error)
+            assert "you must first remove the function(s)" in str(error)
 
         with pytest.raises(InvalidSearchQuery) as error:
             resolve_field_list(
                 ["avg(transaction.duration)", "p95()", "transaction.duration"], eventstore.Filter()
             )
 
-        assert "avg(transaction.duration)" in six.text_type(error)
-        assert "p95" in six.text_type(error)
-        assert " more." not in six.text_type(error)
+        assert "avg(transaction.duration)" in str(error)
+        assert "p95" in str(error)
+        assert " more." not in str(error)
 
         with pytest.raises(InvalidSearchQuery) as error:
             resolve_field_list(
@@ -3061,7 +3053,7 @@ class ResolveFieldListTest(unittest.TestCase):
                 eventstore.Filter(),
             )
 
-        assert "and 3 more" in six.text_type(error)
+        assert "and 3 more" in str(error)
 
 
 def with_type(type, argument):

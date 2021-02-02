@@ -1,5 +1,4 @@
 import responses
-import six
 
 from exam import fixture
 from sentry.models import Rule
@@ -55,7 +54,7 @@ class OpsGeniePluginTest(PluginTestCase):
 
         request = responses.calls[0].request
         payload = json.loads(request.body)
-        group_id = six.text_type(group.id)
+        group_id = str(group.id)
         assert payload == {
             "recipients": "me",
             "tags": ["level:warning"],

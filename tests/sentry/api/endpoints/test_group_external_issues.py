@@ -1,5 +1,3 @@
-import six
-
 from sentry.models import PlatformExternalIssue
 from sentry.testutils import APITestCase
 
@@ -25,8 +23,8 @@ class GroupExternalIssuesEndpointTest(APITestCase):
         assert len(response.data) == 1
         assert response.data == [
             {
-                "id": six.text_type(external_issue.id),
-                "groupId": six.text_type(group.id),
+                "id": str(external_issue.id),
+                "groupId": str(group.id),
                 "serviceType": "sentry-app",
                 "displayName": "App#issue-1",
                 "webUrl": "https://example.com/app/issues/1",

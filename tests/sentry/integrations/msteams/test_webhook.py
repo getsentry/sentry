@@ -2,7 +2,7 @@ import jwt
 import responses
 
 from copy import deepcopy
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from sentry.models import Integration, Identity, IdentityProvider
 from sentry.testutils import APITestCase

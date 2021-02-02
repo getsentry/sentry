@@ -1,5 +1,4 @@
-import six
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from django.utils import timezone
 from django.core.urlresolvers import reverse
@@ -581,7 +580,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, {"query": f"project_id:{project.id}"}, format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["projectID"] == six.text_type(project.id)
+        assert response.data[0]["projectID"] == str(project.id)
 
         response = self.client.get(url, {"query": "project_id:9"}, format="json")
         # project_id filter should apply

@@ -1,5 +1,3 @@
-import six
-
 from datetime import datetime
 from django.utils import timezone
 from sentry.models import Commit, CommitAuthor, Integration, PullRequest, Repository
@@ -34,7 +32,7 @@ class WebhookTest(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
             HTTP_X_GITHUB_ENTERPRISE_HOST="99.99.99.99",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
         assert response.status_code == 400
 
@@ -49,7 +47,7 @@ class WebhookTest(APITestCase):
             HTTP_X_GITHUB_EVENT="UnregisteredEvent",
             HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
             HTTP_X_HUB_SIGNATURE="sha1=56a3df597e02adbc17fb617502c70e19d96a6136",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
         assert response.status_code == 204
 
@@ -72,7 +70,7 @@ class WebhookTest(APITestCase):
             HTTP_X_GITHUB_EVENT="push",
             HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
             HTTP_X_HUB_SIGNATURE="sha1=33521abeaaf9a57c2abf486e0ccd54d23cf36fec",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
         assert response.status_code == 401
 
@@ -95,7 +93,7 @@ class WebhookTest(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
             HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
         assert response.status_code == 204
 
@@ -142,7 +140,7 @@ class PushEventWebhookTest(APITestCase):
             HTTP_X_GITHUB_EVENT="push",
             HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
             HTTP_X_HUB_SIGNATURE="sha1=2a0586cc46490b17441834e1e143ec3d8c1fe032",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
         assert response.status_code == 204
@@ -221,7 +219,7 @@ class PushEventWebhookTest(APITestCase):
             HTTP_X_GITHUB_EVENT="push",
             HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
             HTTP_X_HUB_SIGNATURE="sha1=2a0586cc46490b17441834e1e143ec3d8c1fe032",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
         assert response.status_code == 204
@@ -316,7 +314,7 @@ class PushEventWebhookTest(APITestCase):
             HTTP_X_GITHUB_EVENT="push",
             HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
             HTTP_X_HUB_SIGNATURE="sha1=2a0586cc46490b17441834e1e143ec3d8c1fe032",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
         assert response.status_code == 204
@@ -377,7 +375,7 @@ class PullRequestEventWebhook(APITestCase):
             HTTP_X_GITHUB_EVENT="pull_request",
             HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
             HTTP_X_HUB_SIGNATURE="sha1=aa5b11bc52b9fac082cb59f9ee8667cb222c3aff",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
         assert response.status_code == 204
@@ -438,7 +436,7 @@ class PullRequestEventWebhook(APITestCase):
             HTTP_X_GITHUB_EVENT="pull_request",
             HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
             HTTP_X_HUB_SIGNATURE="sha1=b50a13afd33b514e8e62e603827ea62530f0690e",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
         assert response.status_code == 204
@@ -489,7 +487,7 @@ class PullRequestEventWebhook(APITestCase):
             HTTP_X_GITHUB_EVENT="pull_request",
             HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
             HTTP_X_HUB_SIGNATURE="sha1=dff1c803cf1e48c1b9aefe4a17952ea132758806",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
         assert response.status_code == 204

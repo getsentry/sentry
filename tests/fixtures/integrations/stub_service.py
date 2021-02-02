@@ -14,6 +14,7 @@ class StubService(object):
     flaky or slow networks call or allow you to have wider coverage in end-to-
     end tests.
     """
+
     stub_data_cache = {}
     service_name = None
 
@@ -27,7 +28,7 @@ class StubService(object):
         :return: string
         """
         path = os.path.join(FIXTURE_DIRECTORY, service_name, "stubs", name)
-        with open(path, 'r') as f:
+        with open(path, "r") as f:
             return f.read()
 
     @staticmethod

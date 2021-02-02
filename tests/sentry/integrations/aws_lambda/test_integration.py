@@ -1,6 +1,6 @@
 from botocore.exceptions import ClientError
 from django.http import HttpResponse
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from sentry.api.serializers import serialize
 from sentry.integrations.aws_lambda import AwsLambdaIntegrationProvider

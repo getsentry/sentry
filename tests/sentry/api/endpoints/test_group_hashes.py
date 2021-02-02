@@ -1,6 +1,6 @@
 import copy
 
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from sentry.models import GroupHash
 from sentry.testutils import APITestCase, SnubaTestCase

@@ -1,7 +1,6 @@
 import unittest
 import pickle
 
-import six
 
 from django import forms
 from django.db import connection, models
@@ -300,7 +299,7 @@ class BitFieldTest(TestCase):
         MAX_COUNT = int(math.floor(math.log(BigIntegerField.MAX_BIGINT, 2)))
 
         # Big flags list
-        flags = ["f" + six.text_type(i) for i in range(100)]
+        flags = ["f" + str(i) for i in range(100)]
 
         try:
             BitField(flags=flags[:MAX_COUNT])

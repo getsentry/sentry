@@ -1,5 +1,3 @@
-import six
-
 from django.core.urlresolvers import reverse
 
 from sentry.models import Integration, Repository, RepositoryProjectPathConfig
@@ -60,10 +58,10 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
         assert response.status_code == 200, response.content
 
         assert response.data[0] == {
-            "id": six.text_type(path_config1.id),
-            "projectId": six.text_type(self.project1.id),
+            "id": str(path_config1.id),
+            "projectId": str(self.project1.id),
             "projectSlug": self.project1.slug,
-            "repoId": six.text_type(self.repo1.id),
+            "repoId": str(self.repo1.id),
             "repoName": self.repo1.name,
             "provider": {
                 "aspects": {},
@@ -74,17 +72,17 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
                 "slug": "github",
                 "canAdd": True,
             },
-            "integrationId": six.text_type(self.integration.id),
+            "integrationId": str(self.integration.id),
             "stackRoot": "stack/root",
             "sourceRoot": "source/root",
             "defaultBranch": "master",
         }
 
         assert response.data[1] == {
-            "id": six.text_type(path_config2.id),
-            "projectId": six.text_type(self.project2.id),
+            "id": str(path_config2.id),
+            "projectId": str(self.project2.id),
             "projectSlug": self.project2.slug,
-            "repoId": six.text_type(self.repo1.id),
+            "repoId": str(self.repo1.id),
             "repoName": self.repo1.name,
             "provider": {
                 "aspects": {},
@@ -95,7 +93,7 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
                 "slug": "github",
                 "canAdd": True,
             },
-            "integrationId": six.text_type(self.integration.id),
+            "integrationId": str(self.integration.id),
             "stackRoot": "another/path",
             "sourceRoot": "hey/there",
             "defaultBranch": None,
@@ -105,10 +103,10 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
         response = self.make_post()
         assert response.status_code == 201, response.content
         assert response.data == {
-            "id": six.text_type(response.data["id"]),
-            "projectId": six.text_type(self.project1.id),
+            "id": str(response.data["id"]),
+            "projectId": str(self.project1.id),
             "projectSlug": self.project1.slug,
-            "repoId": six.text_type(self.repo1.id),
+            "repoId": str(self.repo1.id),
             "repoName": self.repo1.name,
             "provider": {
                 "aspects": {},
@@ -119,7 +117,7 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
                 "slug": "github",
                 "canAdd": True,
             },
-            "integrationId": six.text_type(self.integration.id),
+            "integrationId": str(self.integration.id),
             "stackRoot": "/stack/root",
             "sourceRoot": "/source/root",
             "defaultBranch": "master",

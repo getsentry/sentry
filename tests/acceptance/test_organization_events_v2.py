@@ -1,11 +1,10 @@
 import copy
-import six
 import pytest
 import pytz
 from sentry.utils.compat.mock import patch
 from datetime import timedelta
 
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 from selenium.webdriver.common.keys import Keys
 
 from sentry.discover.models import DiscoverSavedQuery
@@ -109,7 +108,7 @@ def generate_transaction(trace=None, span=None):
 
             if isinstance(child, dict):
                 spans = build_span_tree(child, spans, span_id)
-            elif isinstance(child, six.string_types):
+            elif isinstance(child, str):
                 parent_span_id = span_id
                 span_id = child
 

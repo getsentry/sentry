@@ -1,5 +1,5 @@
 from uuid import uuid4
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 from django.core.urlresolvers import reverse
 from sentry.utils.signing import sign
 from sentry.models import Project

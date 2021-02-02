@@ -1,6 +1,6 @@
 from django.core.urlresolvers import reverse
 from sentry.utils.compat.mock import patch
-from six.moves.urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs
 
 from sentry.integrations.vsts import VstsIntegrationProvider
 from sentry.integrations.vsts_extension import (

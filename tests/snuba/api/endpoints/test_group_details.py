@@ -1,4 +1,3 @@
-import six
 from sentry.utils.compat import mock
 
 from sentry.models import Environment, Release, GroupInboxReason
@@ -65,14 +64,14 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(group.id)
+        assert response.data["id"] == str(group.id)
         release = response.data["firstRelease"]
         assert release["version"] == "1.0"
-        for event, timestamp in six.iteritems(first_release):
+        for event, timestamp in first_release.items():
             assert release[event].ctime() == timestamp.ctime()
         release = response.data["lastRelease"]
         assert release["version"] == "1.0a"
-        for event, timestamp in six.iteritems(last_release):
+        for event, timestamp in last_release.items():
             assert release[event].ctime() == timestamp.ctime()
 
     def test_first_last_only_one_tagstore(self):

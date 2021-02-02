@@ -1,5 +1,5 @@
 import zipfile
-from six import BytesIO
+from io import BytesIO
 
 from django.core.urlresolvers import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile

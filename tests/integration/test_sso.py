@@ -1,5 +1,3 @@
-import six
-
 from sentry.models import AuthIdentity, AuthProvider
 from sentry.testutils import AuthProviderTestCase
 from sentry.utils.auth import SSO_SESSION_KEY
@@ -35,7 +33,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.assertRedirects(resp, redirect_uri)
 
         # XXX(dcramer): using internal API as exposing a request object is hard
-        self.session[SSO_SESSION_KEY] = six.text_type(organization.id)
+        self.session[SSO_SESSION_KEY] = str(organization.id)
         self.save_session()
 
         # now that SSO is marked as complete, we should be able to access dash

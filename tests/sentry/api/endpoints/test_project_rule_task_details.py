@@ -1,4 +1,3 @@
-import six
 from uuid import uuid4
 
 from django.core.urlresolvers import reverse
@@ -56,5 +55,5 @@ class ProjectRuleTaskDetailsTest(APITestCase):
 
         rule_data = response.data["rule"]
         # TODO(meredith): should I check every attribute?
-        assert rule_data["id"] == six.text_type(self.rule.id)
+        assert rule_data["id"] == str(self.rule.id)
         assert rule_data["name"] == self.rule.label

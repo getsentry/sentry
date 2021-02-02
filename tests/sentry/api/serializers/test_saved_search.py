@@ -1,5 +1,3 @@
-import six
-
 from sentry.api.serializers import serialize
 from sentry.models import SavedSearch
 from sentry.testutils import TestCase
@@ -12,8 +10,8 @@ class SavedSearchSerializerTest(TestCase):
         )
         result = serialize(search)
 
-        assert result["id"] == six.text_type(search.id)
-        assert result["projectId"] == six.text_type(search.project_id)
+        assert result["id"] == str(search.id)
+        assert result["projectId"] == str(search.project_id)
         assert result["type"] == search.type
         assert result["name"] == search.name
         assert result["query"] == search.query
@@ -28,7 +26,7 @@ class SavedSearchSerializerTest(TestCase):
         search = SavedSearch(name="Unresolved Issues", query="is:unresolved", is_global=True)
         result = serialize(search)
 
-        assert result["id"] == six.text_type(search.id)
+        assert result["id"] == str(search.id)
         assert result["projectId"] is None
         assert result["type"] == search.type
         assert result["name"] == search.name
@@ -46,7 +44,7 @@ class SavedSearchSerializerTest(TestCase):
         )
         result = serialize(search)
 
-        assert result["id"] == six.text_type(search.id)
+        assert result["id"] == str(search.id)
         assert result["projectId"] is None
         assert result["type"] == search.type
         assert result["name"] == search.name
@@ -64,7 +62,7 @@ class SavedSearchSerializerTest(TestCase):
         )
         result = serialize(search)
 
-        assert result["id"] == six.text_type(search.id)
+        assert result["id"] == str(search.id)
         assert result["projectId"] is None
         assert result["type"] == search.type
         assert result["name"] == search.name

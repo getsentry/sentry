@@ -1,11 +1,11 @@
 import pytest
 import re
 import responses
-import six
 import unittest
 from symbolic import SourceMapTokenMatch
 
 from copy import deepcopy
+from io import BytesIO
 from sentry.utils.compat.mock import patch, ANY, call
 from requests.exceptions import RequestException
 
@@ -73,7 +73,7 @@ class FetchReleaseFileTest(TestCase):
         )
 
         binary_body = unicode_body.encode("utf-8")
-        file.putfile(six.BytesIO(binary_body))
+        file.putfile(BytesIO(binary_body))
 
         ReleaseFile.objects.create(
             name="file.min.js", release=release, organization_id=project.organization_id, file=file
@@ -81,7 +81,7 @@ class FetchReleaseFileTest(TestCase):
 
         result = fetch_release_file("file.min.js", release)
 
-        assert isinstance(result.body, six.binary_type)
+        assert isinstance(result.body, bytes)
         assert result == http.UrlResult(
             "file.min.js",
             {"content-type": "application/json; charset=utf-8"},
@@ -105,7 +105,7 @@ class FetchReleaseFileTest(TestCase):
             type="release.file",
             headers={"Content-Type": "application/json; charset=utf-8"},
         )
-        foo_file.putfile(six.BytesIO(b"foo"))
+        foo_file.putfile(BytesIO(b"foo"))
         foo_dist = release.add_dist("foo")
         ReleaseFile.objects.create(
             name="file.min.js",
@@ -120,7 +120,7 @@ class FetchReleaseFileTest(TestCase):
             type="release.file",
             headers={"Content-Type": "application/json; charset=utf-8"},
         )
-        bar_file.putfile(six.BytesIO(b"bar"))
+        bar_file.putfile(BytesIO(b"bar"))
         bar_dist = release.add_dist("bar")
         ReleaseFile.objects.create(
             name="file.min.js",
@@ -132,7 +132,7 @@ class FetchReleaseFileTest(TestCase):
 
         foo_result = fetch_release_file("file.min.js", release, foo_dist)
 
-        assert isinstance(foo_result.body, six.binary_type)
+        assert isinstance(foo_result.body, bytes)
         assert foo_result == http.UrlResult(
             "file.min.js", {"content-type": "application/json; charset=utf-8"}, b"foo", 200, "utf-8"
         )
@@ -158,7 +158,7 @@ class FetchReleaseFileTest(TestCase):
         )
 
         binary_body = unicode_body.encode("utf-8")
-        file.putfile(six.BytesIO(binary_body))
+        file.putfile(BytesIO(binary_body))
 
         ReleaseFile.objects.create(
             name="~/file.min.js",
@@ -169,7 +169,7 @@ class FetchReleaseFileTest(TestCase):
 
         result = fetch_release_file("http://example.com/file.min.js?lol", release)
 
-        assert isinstance(result.body, six.binary_type)
+        assert isinstance(result.body, bytes)
         assert result == http.UrlResult(
             "http://example.com/file.min.js?lol",
             {"content-type": "application/json; charset=utf-8"},
@@ -193,7 +193,7 @@ class FetchReleaseFileTest(TestCase):
         )
 
         binary_body = unicode_body.encode("utf-8")
-        file.putfile(six.BytesIO(binary_body))
+        file.putfile(BytesIO(binary_body))
 
         ReleaseFile.objects.create(
             name="file.min.js", release=release, organization_id=project.organization_id, file=file
@@ -201,7 +201,7 @@ class FetchReleaseFileTest(TestCase):
 
         result = fetch_release_file("file.min.js", release)
 
-        assert isinstance(result.body, six.binary_type)
+        assert isinstance(result.body, bytes)
         assert result == http.UrlResult(
             "file.min.js",
             {"content-type": "application/json; charset=utf-8"},
@@ -240,7 +240,7 @@ class FetchReleaseFileTest(TestCase):
         )
 
         binary_body = unicode_body.encode("utf-8")
-        file.putfile(six.BytesIO(binary_body))
+        file.putfile(BytesIO(binary_body))
 
         ReleaseFile.objects.create(
             name="file.min.js", release=release, organization_id=project.organization_id, file=file
@@ -421,7 +421,7 @@ class FetchFileTest(TestCase):
         result = fetch_file("/example.js", release=release)
         assert result.url == "/example.js"
         assert result.body == b"foo"
-        assert isinstance(result.body, six.binary_type)
+        assert isinstance(result.body, bytes)
         assert result.headers == {"content-type": "application/json"}
         assert result.encoding is None
 

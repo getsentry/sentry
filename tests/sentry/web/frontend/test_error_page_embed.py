@@ -1,6 +1,6 @@
 from django.core.urlresolvers import reverse
 from django.test import override_settings
-from six.moves.urllib.parse import quote, urlencode
+from urllib.parse import quote, urlencode
 from uuid import uuid4
 import logging
 

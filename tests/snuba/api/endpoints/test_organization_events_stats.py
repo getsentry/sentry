@@ -1,4 +1,3 @@
-import six
 import uuid
 
 from pytz import utc
@@ -238,7 +237,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             for minute in range(count):
                 self.store_event(
                     data={
-                        "event_id": six.text_type(uuid.uuid1()),
+                        "event_id": str(uuid.uuid1()),
                         "message": "very bad",
                         "timestamp": iso_format(
                             self.day_ago + timedelta(hours=hour, minutes=minute)
@@ -278,7 +277,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             for minute in range(count):
                 self.store_event(
                     data={
-                        "event_id": six.text_type(uuid.uuid1()),
+                        "event_id": str(uuid.uuid1()),
                         "message": "very bad",
                         "timestamp": iso_format(
                             self.day_ago + timedelta(hours=hour, minutes=minute)
@@ -316,7 +315,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             for second in range(count):
                 self.store_event(
                     data={
-                        "event_id": six.text_type(uuid.uuid1()),
+                        "event_id": str(uuid.uuid1()),
                         "message": "very bad",
                         "timestamp": iso_format(
                             self.day_ago + timedelta(minutes=minute, seconds=second)
@@ -356,7 +355,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             for second in range(count):
                 self.store_event(
                     data={
-                        "event_id": six.text_type(uuid.uuid1()),
+                        "event_id": str(uuid.uuid1()),
                         "message": "very bad",
                         "timestamp": iso_format(
                             self.day_ago + timedelta(minutes=minute, seconds=second)

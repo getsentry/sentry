@@ -6,7 +6,6 @@ import responses
 from django.utils import timezone
 from exam import patcher
 from sentry.utils.compat.mock import Mock, patch
-from six import add_metaclass
 
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
@@ -22,8 +21,7 @@ from sentry.utils import json
 from sentry.testutils import TestCase
 
 
-@add_metaclass(abc.ABCMeta)
-class BaseSnubaTaskTest(object):
+class BaseSnubaTaskTest(object, metaclass=abc.ABCMeta):
     metrics = patcher("sentry.snuba.tasks.metrics")
 
     status_translations = {

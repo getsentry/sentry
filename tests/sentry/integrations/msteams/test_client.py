@@ -1,6 +1,6 @@
 import responses
 
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from sentry.models import Integration
 from sentry.integrations.msteams.client import MsTeamsClient

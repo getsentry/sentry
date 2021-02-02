@@ -1,9 +1,8 @@
-import six
 import pytest
 import base64
 from sentry.utils.compat import mock
 from exam import fixture
-from six.moves.urllib.parse import urlencode, urlparse, parse_qs
+from urllib.parse import urlencode, urlparse, parse_qs
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -141,7 +140,7 @@ class AuthSAML2Test(AuthProviderTestCase):
 
         auth = self.accept_auth(follow=True)
 
-        messages = map(lambda m: six.text_type(m), auth.context["messages"])
+        messages = map(lambda m: str(m), auth.context["messages"])
 
         assert len(messages) == 2
         assert messages[0] == "You have successfully linked your account to your SSO provider."
@@ -165,7 +164,7 @@ class AuthSAML2Test(AuthProviderTestCase):
 
         assert auth.status_code == 200
 
-        messages = map(lambda m: six.text_type(m), auth.context["messages"])
+        messages = map(lambda m: str(m), auth.context["messages"])
         assert len(messages) == 1
         assert messages[0] == "The organization does not exist or does not have SAML SSO enabled."
 

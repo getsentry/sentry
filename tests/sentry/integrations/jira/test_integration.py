@@ -1,6 +1,5 @@
 import copy
 import responses
-import six
 import pytest
 
 from django.test.utils import override_settings
@@ -282,7 +281,7 @@ class JiraIntegrationTest(APITestCase):
         group = event.group
         installation = self.integration.get_installation(self.organization.id)
         installation.org_integration.config = {
-            "project_issue_defaults": {six.text_type(group.project_id): {"project": "10001"}}
+            "project_issue_defaults": {str(group.project_id): {"project": "10001"}}
         }
         installation.org_integration.save()
 
@@ -314,7 +313,7 @@ class JiraIntegrationTest(APITestCase):
         group = event.group
         installation = self.integration.get_installation(self.organization.id)
         installation.org_integration.config = {
-            "project_issue_defaults": {six.text_type(group.project_id): {"project": "10001"}}
+            "project_issue_defaults": {str(group.project_id): {"project": "10001"}}
         }
         installation.org_integration.save()
 
@@ -346,7 +345,7 @@ class JiraIntegrationTest(APITestCase):
 
         installation = self.integration.get_installation(self.organization.id)
         installation.org_integration.config = {
-            "project_issue_defaults": {six.text_type(group.project_id): {"labels": label_default}}
+            "project_issue_defaults": {str(group.project_id): {"labels": label_default}}
         }
         installation.org_integration.save()
 

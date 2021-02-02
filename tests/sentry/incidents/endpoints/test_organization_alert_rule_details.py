@@ -1,5 +1,3 @@
-import six
-
 from copy import deepcopy
 
 from exam import fixture
@@ -330,9 +328,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
 
         # And it comes back successfully changed:
         assert resp.data["triggers"][0]["actions"][0]["targetType"] == "user"
-        assert resp.data["triggers"][0]["actions"][0]["targetIdentifier"] == six.text_type(
-            self.user.id
-        )
+        assert resp.data["triggers"][0]["actions"][0]["targetIdentifier"] == str(self.user.id)
 
         # And make sure we still only have two triggers, the first with 1 action and the second with 2 actions
         # This is ensures they were updated and not new ones created, etc.

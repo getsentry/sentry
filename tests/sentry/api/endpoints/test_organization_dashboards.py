@@ -1,5 +1,3 @@
-import six
-
 from django.core.urlresolvers import reverse
 
 from sentry.utils.compat import zip
@@ -20,9 +18,9 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         )
 
     def assert_equal_dashboards(self, dashboard, data):
-        assert data["id"] == six.text_type(dashboard.id)
+        assert data["id"] == str(dashboard.id)
         assert data["title"] == dashboard.title
-        assert data["createdBy"] == six.text_type(dashboard.created_by.id)
+        assert data["createdBy"] == str(dashboard.created_by.id)
         assert "widgets" not in data
 
     def test_get(self):

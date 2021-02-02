@@ -1,5 +1,3 @@
-import six
-
 from sentry.utils.compat.mock import patch
 
 from sentry.models import IdentityProvider, Identity, Integration, OrganizationIntegration
@@ -359,4 +357,4 @@ class GitlabFinishPipelineTest(IntegrationTestCase):
         }
         resp = self.pipeline.finish_pipeline()
         assert not OrganizationIntegration.objects.filter(integration_id=integration.id)
-        assert "account is linked to a different Sentry user" in six.text_type(resp.content)
+        assert "account is linked to a different Sentry user" in str(resp.content)

@@ -1,6 +1,6 @@
 import pytz
 
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 from sentry.utils.compat.mock import patch
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase

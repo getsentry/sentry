@@ -1,5 +1,3 @@
-import six
-
 from datetime import datetime
 from django.utils import timezone
 from sentry.utils.compat.mock import patch
@@ -72,12 +70,12 @@ class MonitorTestCase(TestCase):
                             "status": "active",
                             "type": "cron_job",
                             "config": {"schedule_type": 2, "schedule": [1, "month"]},
-                            "id": six.text_type(monitor.guid),
+                            "id": str(monitor.guid),
                             "name": monitor.name,
                         }
                     },
                     "logentry": {"formatted": "Monitor failure: test monitor (unknown)"},
-                    "fingerprint": ["monitor", six.text_type(monitor.guid), "unknown"],
+                    "fingerprint": ["monitor", str(monitor.guid), "unknown"],
                     "logger": "",
                     "type": "default",
                 },
@@ -112,12 +110,12 @@ class MonitorTestCase(TestCase):
                             "status": "active",
                             "type": "cron_job",
                             "config": {"schedule_type": 2, "schedule": [1, "month"]},
-                            "id": six.text_type(monitor.guid),
+                            "id": str(monitor.guid),
                             "name": monitor.name,
                         }
                     },
                     "logentry": {"formatted": "Monitor failure: test monitor (duration)"},
-                    "fingerprint": ["monitor", six.text_type(monitor.guid), "duration"],
+                    "fingerprint": ["monitor", str(monitor.guid), "duration"],
                     "logger": "",
                     "type": "default",
                 },

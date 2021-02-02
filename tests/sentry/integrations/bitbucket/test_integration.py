@@ -5,7 +5,7 @@ from django.core.urlresolvers import reverse
 from sentry.models import Integration
 from sentry.testutils import APITestCase
 
-from six.moves.urllib.parse import quote
+from urllib.parse import quote
 
 
 class BitbucketIntegrationTest(APITestCase):

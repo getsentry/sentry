@@ -1,4 +1,3 @@
-import six
 import pytest
 
 from celery import Task
@@ -80,7 +79,7 @@ class DictContaining(object):
         return True
 
     def _kwargs_match(self, other):
-        for key, value in six.iteritems(self.kwargs):
+        for key, value in self.kwargs.items():
             if self.kwargs[key] != other[key]:
                 return False
         return True
@@ -207,7 +206,7 @@ class TestProcessResourceChange(TestCase):
 
         assert data["action"] == "created"
         assert data["installation"]["uuid"] == self.install.uuid
-        assert data["data"]["issue"]["id"] == six.text_type(event.group.id)
+        assert data["data"]["issue"]["id"] == str(event.group.id)
         assert faux(safe_urlopen).kwargs_contain("headers.Content-Type")
         assert faux(safe_urlopen).kwargs_contain("headers.Request-ID")
         assert faux(safe_urlopen).kwargs_contain("headers.Sentry-Hook-Resource")
@@ -364,7 +363,7 @@ class TestWorkflowNotification(TestCase):
         assert faux(safe_urlopen).kwarg_equals("data.action", "resolved", format="json")
         assert faux(safe_urlopen).kwarg_equals("headers.Sentry-Hook-Resource", "issue")
         assert faux(safe_urlopen).kwarg_equals(
-            "data.data.issue.id", six.text_type(self.issue.id), format="json"
+            "data.data.issue.id", str(self.issue.id), format="json"
         )
 
     def test_sends_resolved_webhook_as_Sentry_without_user(self, safe_urlopen):

@@ -3,7 +3,6 @@ import pytz
 from datetime import datetime, timedelta
 
 from sentry.utils.compat import mock
-import six
 
 from sentry import tsdb
 from sentry.models import Rule
@@ -12,7 +11,6 @@ from sentry.rules.conditions.event_frequency import (
     EventUniqueUserFrequencyCondition,
 )
 from sentry.testutils.cases import RuleTestCase
-from six.moves import xrange
 
 
 class FrequencyConditionMixin(object):
@@ -25,7 +23,7 @@ class FrequencyConditionMixin(object):
 
         event = self.get_event()
         value = 10
-        data = {"interval": "1m", "value": six.text_type(value)}
+        data = {"interval": "1m", "value": str(value)}
 
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
 
@@ -53,7 +51,7 @@ class FrequencyConditionMixin(object):
 
         event = self.get_event()
         value = 10
-        data = {"interval": "1h", "value": six.text_type(value)}
+        data = {"interval": "1h", "value": str(value)}
 
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
 
@@ -81,7 +79,7 @@ class FrequencyConditionMixin(object):
 
         event = self.get_event()
         value = 10
-        data = {"interval": "1d", "value": six.text_type(value)}
+        data = {"interval": "1d", "value": str(value)}
 
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
 
@@ -108,7 +106,7 @@ class FrequencyConditionMixin(object):
         now.return_value = datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=pytz.utc)
 
         event = self.get_event()
-        data = {"interval": "1m", "value": six.text_type("0")}
+        data = {"interval": "1m", "value": "0"}
 
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
 
@@ -147,7 +145,7 @@ class EventUniqueUserFrequencyConditionTestCase(FrequencyConditionMixin, RuleTes
         tsdb.record(
             tsdb.models.users_affected_by_group,
             event.group_id,
-            [next(self.sequence) for _ in xrange(0, count)],
+            [next(self.sequence) for _ in range(0, count)],
             environment_id=environment_id,
             timestamp=timestamp,
         )

@@ -1,7 +1,7 @@
 import responses
 
 from django.core.urlresolvers import reverse
-from six.moves.urllib.parse import parse_qs
+from urllib.parse import parse_qs
 
 from sentry.utils import json
 

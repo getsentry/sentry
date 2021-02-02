@@ -1,5 +1,3 @@
-import six
-
 from django.core import mail
 from django.core.urlresolvers import reverse
 from django.db.models import F
@@ -778,7 +776,7 @@ class GetOrganizationMemberTest(APITestCase):
         resp = self.client.get(path)
         assert resp.status_code == 200
         assert resp.data["role"] == "owner"
-        assert resp.data["user"]["id"] == six.text_type(user.id)
+        assert resp.data["user"]["id"] == str(user.id)
         assert resp.data["email"] == user.email
 
     def test_get_by_id(self):
@@ -794,7 +792,7 @@ class GetOrganizationMemberTest(APITestCase):
         resp = self.client.get(path)
         assert resp.status_code == 200
         assert resp.data["role"] == "member"
-        assert resp.data["id"] == six.text_type(member.id)
+        assert resp.data["id"] == str(member.id)
 
     def test_get_by_garbage(self):
         user = self.create_user("dummy@example.com")

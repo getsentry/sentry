@@ -1,5 +1,3 @@
-import six
-
 from datetime import timedelta
 from django.core.urlresolvers import reverse
 from django.utils import timezone
@@ -39,8 +37,8 @@ class OrganizationMemberIssuesAssignedTest(APITestCase):
 
         assert resp.status_code == 200
         assert len(resp.data) == 2
-        assert resp.data[0]["id"] == six.text_type(group2.id)
-        assert resp.data[1]["id"] == six.text_type(group1.id)
+        assert resp.data[0]["id"] == str(group2.id)
+        assert resp.data[1]["id"] == str(group1.id)
 
     def test_via_team(self):
         now = timezone.now()
@@ -60,7 +58,7 @@ class OrganizationMemberIssuesAssignedTest(APITestCase):
 
         assert resp.status_code == 200
         assert len(resp.data) == 1
-        assert resp.data[0]["id"] == six.text_type(group1.id)
+        assert resp.data[0]["id"] == str(group1.id)
 
     def test_team_does_not_return_all_org_teams_for_owners(self):
         now = timezone.now()

@@ -1,5 +1,3 @@
-import six
-
 from sentry.testutils import APITestCase
 
 
@@ -16,5 +14,5 @@ class TeamGroupsTrendingTest(APITestCase):
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert len(response.data) == 2
-        assert response.data[0]["id"] == six.text_type(group1.id)
-        assert response.data[1]["id"] == six.text_type(group2.id)
+        assert response.data[0]["id"] == str(group1.id)
+        assert response.data[1]["id"] == str(group2.id)

@@ -1,5 +1,3 @@
-import six
-
 from sentry.models import Project, ProjectStatus, SentryAppInstallationToken
 from sentry.testutils import APITestCase
 
@@ -21,8 +19,8 @@ class ProjectsListTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 1
 
-        assert response.data[0]["id"] == six.text_type(project.id)
-        assert response.data[0]["organization"]["id"] == six.text_type(org.id)
+        assert response.data[0]["id"] == str(project.id)
+        assert response.data[0]["organization"]["id"] == str(org.id)
 
     def test_show_all_with_superuser(self):
         Project.objects.all().delete()
@@ -70,12 +68,12 @@ class ProjectsListTest(APITestCase):
         response = self.client.get(self.path + "?status=active")
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(project1.id)
+        assert response.data[0]["id"] == str(project1.id)
 
         response = self.client.get(self.path + "?status=deleted")
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(project2.id)
+        assert response.data[0]["id"] == str(project2.id)
 
     def test_query_filter(self):
         Project.objects.all().delete()
@@ -91,7 +89,7 @@ class ProjectsListTest(APITestCase):
         response = self.client.get(self.path + "?query=foo")
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(project1.id)
+        assert response.data[0]["id"] == str(project1.id)
 
         response = self.client.get(self.path + "?query=baz")
         assert response.status_code == 200
@@ -111,7 +109,7 @@ class ProjectsListTest(APITestCase):
         response = self.client.get(self.path + "?query=slug:foo")
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(project1.id)
+        assert response.data[0]["id"] == str(project1.id)
 
         response = self.client.get(self.path + "?query=slug:baz")
         assert response.status_code == 200
@@ -131,7 +129,7 @@ class ProjectsListTest(APITestCase):
         response = self.client.get(f"{self.path}?query=id:{project1.id}")
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(project1.id)
+        assert response.data[0]["id"] == str(project1.id)
 
         response = self.client.get(f"{self.path}?query=id:-1")
         assert response.status_code == 200

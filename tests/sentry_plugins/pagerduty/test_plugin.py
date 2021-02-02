@@ -1,5 +1,4 @@
 import responses
-import six
 
 from exam import fixture
 from django.core.urlresolvers import reverse
@@ -81,7 +80,7 @@ class PagerDutyPluginTest(PluginTestCase):
                     "type": "link",
                 }
             ],
-            "incident_key": six.text_type(group.id),
+            "incident_key": str(group.id),
             "client": "sentry",
             "details": {
                 "project": self.project.name,
