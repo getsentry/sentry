@@ -88,7 +88,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
             type=org_search.type, query=org_search.query, status_code=201
         )
         assert resp.data["isPinned"]
-        assert resp.data["id"] == six.text_type(org_search.id)
+        assert resp.data["id"] == str(org_search.id)
 
     def test_pin_global_search(self):
         global_search = SavedSearch.objects.create(
@@ -99,7 +99,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
             type=global_search.type, query=global_search.query, status_code=201
         )
         assert resp.data["isPinned"]
-        assert resp.data["id"] == six.text_type(global_search.id)
+        assert resp.data["id"] == str(global_search.id)
 
     def test_invalid_type(self):
         self.login_as(self.member)

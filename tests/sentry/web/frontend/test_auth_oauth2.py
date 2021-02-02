@@ -101,7 +101,7 @@ class AuthOAuth2Test(AuthProviderTestCase):
 
         messages = list(auth_resp.context["messages"])
         assert len(messages) == 1
-        assert six.text_type(messages[0]).startswith("Authentication error")
+        assert str(messages[0]).startswith("Authentication error")
 
     def test_response_errors(self):
         auth_data = {"error_description": "Mock failure"}
@@ -111,7 +111,7 @@ class AuthOAuth2Test(AuthProviderTestCase):
 
         messages = list(auth_resp.context["messages"])
         assert len(messages) == 1
-        assert six.text_type(messages[0]) == "Authentication error: Mock failure"
+        assert str(messages[0]) == "Authentication error: Mock failure"
 
         auth_data = {"error": "its broke yo"}
 
@@ -120,4 +120,4 @@ class AuthOAuth2Test(AuthProviderTestCase):
 
         messages = list(auth_resp.context["messages"])
         assert len(messages) == 1
-        assert six.text_type(messages[0]).startswith("Authentication error")
+        assert str(messages[0]).startswith("Authentication error")

@@ -131,7 +131,7 @@ class BitbucketRepositoryProviderTest(TestCase):
     def test_get_repository_data_no_installation_id(self):
         with pytest.raises(IntegrationError) as e:
             self.provider.get_repository_data(self.organization, {})
-            assert "requires an integration id" in six.text_type(e)
+            assert "requires an integration id" in str(e)
 
 
 class BitbucketCreateRepositoryTestCase(IntegrationRepositoryTestCase):

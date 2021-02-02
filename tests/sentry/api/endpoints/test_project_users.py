@@ -44,7 +44,7 @@ class ProjectUsersTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
         assert sorted(map(lambda x: x["id"], response.data)) == sorted(
-            [six.text_type(self.euser1.id), six.text_type(self.euser2.id)]
+            [str(self.euser1.id), str(self.euser2.id)]
         )
 
     def test_empty_search_query(self):
@@ -62,7 +62,7 @@ class ProjectUsersTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(self.euser2.id)
+        assert response.data[0]["id"] == str(self.euser2.id)
 
         response = self.client.get(f"{self.path}?query=username:ba", format="json")
 
@@ -76,7 +76,7 @@ class ProjectUsersTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(self.euser1.id)
+        assert response.data[0]["id"] == str(self.euser1.id)
 
         response = self.client.get(f"{self.path}?query=email:@example.com", format="json")
 
@@ -90,7 +90,7 @@ class ProjectUsersTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(self.euser1.id)
+        assert response.data[0]["id"] == str(self.euser1.id)
 
         response = self.client.get(f"{self.path}?query=id:3", format="json")
 
@@ -104,7 +104,7 @@ class ProjectUsersTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(self.euser2.id)
+        assert response.data[0]["id"] == str(self.euser2.id)
 
         response = self.client.get(f"{self.path}?query=ip:0", format="json")
 

@@ -33,7 +33,7 @@ class GroupIntegrationsTest(APITestCase):
             provider = integration.get_provider()
 
             assert response.data[0] == {
-                "id": six.text_type(integration.id),
+                "id": str(integration.id),
                 "name": integration.name,
                 "icon": integration.metadata.get("icon"),
                 "domainName": integration.metadata.get("domain_name"),
@@ -51,7 +51,7 @@ class GroupIntegrationsTest(APITestCase):
                 "externalIssues": [
                     {
                         "description": "this is an example description",
-                        "id": six.text_type(external_issue.id),
+                        "id": str(external_issue.id),
                         "url": "https://example/issues/APP-123",
                         "key": "APP-123",
                         "title": "this is an example title",

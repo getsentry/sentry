@@ -41,17 +41,17 @@ class GroupEventsLatestTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
-        assert response.data["id"] == six.text_type(self.event2.event_id)
+        assert response.data["id"] == str(self.event2.event_id)
 
     def test_snuba_environment(self):
         url = f"/api/0/issues/{self.group.id}/events/latest/"
         response = self.client.get(url, format="json", data={"environment": ["production"]})
 
         assert response.status_code == 200
-        assert response.data["id"] == six.text_type(self.event2.event_id)
+        assert response.data["id"] == str(self.event2.event_id)
 
     def test_simple(self):
         url = f"/api/0/issues/{self.group.id}/events/latest/"
         response = self.client.get(url, format="json")
         assert response.status_code == 200
-        assert response.data["eventID"] == six.text_type(self.event2.event_id)
+        assert response.data["eventID"] == str(self.event2.event_id)

@@ -330,7 +330,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
 
         # And it comes back successfully changed:
         assert resp.data["triggers"][0]["actions"][0]["targetType"] == "user"
-        assert resp.data["triggers"][0]["actions"][0]["targetIdentifier"] == six.text_type(
+        assert resp.data["triggers"][0]["actions"][0]["targetIdentifier"] == str(
             self.user.id
         )
 

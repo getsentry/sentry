@@ -21,7 +21,7 @@ class TeamSerializerTest(TestCase):
             "hasAccess": True,
             "isPending": False,
             "isMember": False,
-            "id": six.text_type(team.id),
+            "id": str(team.id),
             "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
             "memberCount": 0,
         }
@@ -181,7 +181,7 @@ class TeamWithProjectsSerializerTest(TestCase):
             "hasAccess": True,
             "isPending": False,
             "isMember": False,
-            "id": six.text_type(team.id),
+            "id": str(team.id),
             "projects": serialized_projects,
             "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
             "memberCount": 0,

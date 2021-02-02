@@ -70,7 +70,7 @@ class GroupSerializerTest(TestCase):
 
         result = serialize(group, user)
         assert result["status"] == "ignored"
-        assert result["statusDetails"]["actor"]["id"] == six.text_type(user.id)
+        assert result["statusDetails"]["actor"]["id"] == str(user.id)
 
     def test_resolved_in_next_release(self):
         release = self.create_release(project=self.project, version="a")
@@ -106,7 +106,7 @@ class GroupSerializerTest(TestCase):
 
         result = serialize(group, user)
         assert result["status"] == "resolved"
-        assert result["statusDetails"]["actor"]["id"] == six.text_type(user.id)
+        assert result["statusDetails"]["actor"]["id"] == str(user.id)
 
     def test_resolved_in_commit(self):
         repo = self.create_repo(project=self.project)

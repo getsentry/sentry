@@ -81,7 +81,7 @@ class FetchReleaseFileTest(TestCase):
 
         result = fetch_release_file("file.min.js", release)
 
-        assert isinstance(result.body, six.binary_type)
+        assert isinstance(result.body, bytes)
         assert result == http.UrlResult(
             "file.min.js",
             {"content-type": "application/json; charset=utf-8"},
@@ -132,7 +132,7 @@ class FetchReleaseFileTest(TestCase):
 
         foo_result = fetch_release_file("file.min.js", release, foo_dist)
 
-        assert isinstance(foo_result.body, six.binary_type)
+        assert isinstance(foo_result.body, bytes)
         assert foo_result == http.UrlResult(
             "file.min.js", {"content-type": "application/json; charset=utf-8"}, b"foo", 200, "utf-8"
         )
@@ -169,7 +169,7 @@ class FetchReleaseFileTest(TestCase):
 
         result = fetch_release_file("http://example.com/file.min.js?lol", release)
 
-        assert isinstance(result.body, six.binary_type)
+        assert isinstance(result.body, bytes)
         assert result == http.UrlResult(
             "http://example.com/file.min.js?lol",
             {"content-type": "application/json; charset=utf-8"},
@@ -201,7 +201,7 @@ class FetchReleaseFileTest(TestCase):
 
         result = fetch_release_file("file.min.js", release)
 
-        assert isinstance(result.body, six.binary_type)
+        assert isinstance(result.body, bytes)
         assert result == http.UrlResult(
             "file.min.js",
             {"content-type": "application/json; charset=utf-8"},
@@ -421,7 +421,7 @@ class FetchFileTest(TestCase):
         result = fetch_file("/example.js", release=release)
         assert result.url == "/example.js"
         assert result.body == b"foo"
-        assert isinstance(result.body, six.binary_type)
+        assert isinstance(result.body, bytes)
         assert result.headers == {"content-type": "application/json"}
         assert result.encoding is None
 

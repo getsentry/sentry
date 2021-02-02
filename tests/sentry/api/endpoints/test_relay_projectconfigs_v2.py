@@ -43,13 +43,13 @@ def private_key(key_pair):
 
 @pytest.fixture
 def relay_id():
-    return six.text_type(uuid4())
+    return str(uuid4())
 
 
 @pytest.fixture
 def relay(relay_id, public_key):
     return Relay.objects.create(
-        relay_id=relay_id, public_key=six.text_type(public_key), is_internal=True
+        relay_id=relay_id, public_key=str(public_key), is_internal=True
     )
 
 
@@ -64,7 +64,7 @@ def call_endpoint(client, relay, private_key, default_projectkey):
         path = reverse("sentry-api-0-relay-projectconfigs") + "?version=2"
 
         if public_keys is None:
-            public_keys = [six.text_type(default_projectkey.public_key)]
+            public_keys = [str(default_projectkey.public_key)]
 
         if full_config is None:
             raw_json, signature = private_key.pack({"publicKeys": public_keys})
@@ -113,7 +113,7 @@ def test_internal_relays_should_receive_minimal_configs_if_they_do_not_explicitl
     # Might need refining.
     assert not set(x for x in _get_all_keys(result) if "-" in x or "_" in x)
 
-    cfg = safe.get_path(result, "configs", six.text_type(default_projectkey.public_key))
+    cfg = safe.get_path(result, "configs", str(default_projectkey.public_key))
     assert safe.get_path(cfg, "config", "filterSettings") is None
     assert safe.get_path(cfg, "config", "groupingConfig") is None
 
@@ -183,7 +183,7 @@ def test_relays_dyamic_sampling(
         dynamic_sampling = safe.get_path(
             result,
             "configs",
-            six.text_type(default_projectkey.public_key),
+            str(default_projectkey.public_key),
             "config",
             "dynamicSampling",
         )
@@ -206,7 +206,7 @@ def test_when_not_sending_full_config_info_into_a_internal_relay_a_restricted_co
 
     assert status_code < 400
 
-    cfg = safe.get_path(result, "configs", six.text_type(default_projectkey.public_key))
+    cfg = safe.get_path(result, "configs", str(default_projectkey.public_key))
     assert safe.get_path(cfg, "config", "filterSettings") is None
     assert safe.get_path(cfg, "config", "groupingConfig") is None
 
@@ -222,7 +222,7 @@ def test_when_not_sending_full_config_info_into_an_external_relay_a_restricted_c
 
     assert status_code < 400
 
-    cfg = safe.get_path(result, "configs", six.text_type(default_projectkey.public_key))
+    cfg = safe.get_path(result, "configs", str(default_projectkey.public_key))
     assert safe.get_path(cfg, "config", "filterSettings") is None
     assert safe.get_path(cfg, "config", "groupingConfig") is None
 
@@ -315,7 +315,7 @@ def test_relay_projectconfig_cache_full_config(
     http_cfg = result["configs"][default_projectkey.public_key]
     (call,) = projectconfig_cache_set
     assert len(call) == 1
-    redis_cfg = call[six.text_type(default_projectkey.public_key)]
+    redis_cfg = call[str(default_projectkey.public_key)]
 
     del http_cfg["lastFetch"]
     del http_cfg["lastChange"]
@@ -336,7 +336,7 @@ def test_relay_nonexistent_project(call_endpoint, projectconfig_cache_set, task_
     assert result == {"configs": {wrong_public_key: {"disabled": True}}}
 
     assert projectconfig_cache_set == [
-        {six.text_type(wrong_public_key): result["configs"][wrong_public_key]}
+        {str(wrong_public_key): result["configs"][wrong_public_key]}
     ]
 
 
@@ -355,7 +355,7 @@ def test_relay_disabled_project(
     assert result == {"configs": {wrong_public_key: {"disabled": True}}}
 
     assert projectconfig_cache_set == [
-        {six.text_type(wrong_public_key): result["configs"][wrong_public_key]}
+        {str(wrong_public_key): result["configs"][wrong_public_key]}
     ]
 
 
@@ -369,7 +369,7 @@ def test_relay_disabled_key(
         result, status_code = call_endpoint(full_config=True)
         assert status_code < 400
 
-    (http_cfg,) = six.itervalues(result["configs"])
+    (http_cfg,) = result["configs"].values()
     assert http_cfg == {"disabled": True}
 
-    assert projectconfig_cache_set == [{six.text_type(default_projectkey.public_key): http_cfg}]
+    assert projectconfig_cache_set == [{str(default_projectkey.public_key): http_cfg}]

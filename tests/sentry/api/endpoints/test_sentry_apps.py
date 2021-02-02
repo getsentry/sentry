@@ -335,7 +335,7 @@ class PostSentryAppsTest(SentryAppsTest):
         }
 
         assert response.status_code == 201, response.content
-        assert six.viewitems(expected) <= six.viewitems(json.loads(response.content))
+        assert expected.items() <= json.loads(response.content).items()
 
     def test_non_unique_app_slug_fails(self):
         self.login_as(user=self.user)
@@ -535,7 +535,7 @@ class PostSentryAppsTest(SentryAppsTest):
         }
 
         assert response.status_code == 201, response.content
-        assert six.viewitems(expected) <= six.viewitems(json.loads(response.content))
+        assert expected.items() <= json.loads(response.content).items()
 
     def test_cannot_create_with_error_created_hook_without_flag(self):
         self.login_as(user=self.user)

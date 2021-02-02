@@ -58,7 +58,7 @@ class ProjectDetailsTest(APITestCase):
         )
         response = self.client.get(url)
         assert response.status_code == 200
-        assert response.data["id"] == six.text_type(project.id)
+        assert response.data["id"] == str(project.id)
 
     def test_numeric_org_slug(self):
         # Regression test for https://github.com/getsentry/sentry/issues/2236
@@ -70,7 +70,7 @@ class ProjectDetailsTest(APITestCase):
         url = f"/api/0/projects/{org.slug}/{project.slug}/"
         response = self.client.get(url)
         assert response.status_code == 200
-        assert response.data["id"] == six.text_type(project.id)
+        assert response.data["id"] == str(project.id)
 
     def test_with_stats(self):
         project = self.create_project()
@@ -610,7 +610,7 @@ class CopyProjectSettingsTest(APITestCase):
             "sentry:scrub_defaults": False,
         }
         self.other_project = self.create_project()
-        for key, value in six.iteritems(self.options_dict):
+        for key, value in self.options_dict.items():
             self.other_project.update_option(key=key, value=value)
 
         self.teams = [self.create_team(), self.create_team(), self.create_team()]
@@ -644,7 +644,7 @@ class CopyProjectSettingsTest(APITestCase):
         self.assert_settings_copied(self.other_project)
 
     def assert_settings_copied(self, project):
-        for key, value in six.iteritems(self.options_dict):
+        for key, value in self.options_dict.items():
             assert project.get_option(key) == value
 
         project_teams = ProjectTeam.objects.filter(project_id=project.id, team__in=self.teams)
@@ -664,7 +664,7 @@ class CopyProjectSettingsTest(APITestCase):
             assert rule.label == other_rule.label
 
     def assert_settings_not_copied(self, project, teams=()):
-        for key in six.iterkeys(self.options_dict):
+        for key in self.options_dict.keys():
             assert project.get_option(key) is None
 
         project_teams = ProjectTeam.objects.filter(project_id=project.id, team__in=teams)

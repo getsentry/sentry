@@ -24,7 +24,7 @@ class ProjectSearchDetailsTest(APITestCase):
         response = self.client.get(url)
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(search.id)
+        assert response.data["id"] == str(search.id)
 
 
 class UpdateProjectSearchDetailsTest(APITestCase):
@@ -45,7 +45,7 @@ class UpdateProjectSearchDetailsTest(APITestCase):
         response = self.client.put(url, {"name": "bar"})
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(search.id)
+        assert response.data["id"] == str(search.id)
 
         search = SavedSearch.objects.get(id=search.id)
         assert search.name == "bar"
@@ -68,7 +68,7 @@ class UpdateProjectSearchDetailsTest(APITestCase):
         response = self.client.put(url, {"isDefault": True})
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(search.id)
+        assert response.data["id"] == str(search.id)
 
         search = SavedSearch.objects.get(id=search.id)
         assert search.is_default
@@ -99,7 +99,7 @@ class UpdateProjectSearchDetailsTest(APITestCase):
         response = self.client.put(url, {"isUserDefault": True})
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(search2.id)
+        assert response.data["id"] == str(search2.id)
 
         search = SavedSearch.objects.get(id=search.id)
         assert search.is_default
@@ -144,7 +144,7 @@ class UpdateProjectSearchDetailsTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(search.id)
+        assert response.data["id"] == str(search.id)
 
         search = SavedSearch.objects.get(id=search.id)
         assert search.name == "foo"

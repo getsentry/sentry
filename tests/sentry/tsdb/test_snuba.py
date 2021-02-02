@@ -181,7 +181,7 @@ class SnubaTSDBTest(OutcomesSnubaTest):
                 # with [project_key.id, six.text_type(project_key.id)], we are imitating the hack in
                 # project_key_stats.py cause that is what `get_range` will be called with.
                 tsdb_model,
-                [project_key.id, six.text_type(project_key.id)],
+                [project_key.id, str(project_key.id)],
                 self.start_time,
                 self.now,
                 granularity,

@@ -32,7 +32,7 @@ class UserDetailsTest(APITestCase):
         resp = self.client.get(url, format="json")
 
         assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == six.text_type(user.id)
+        assert resp.data["id"] == str(user.id)
         assert resp.data["options"]["theme"] == "light"
         assert resp.data["options"]["timezone"] == "UTC"
         assert resp.data["options"]["language"] == "en"
@@ -49,7 +49,7 @@ class UserDetailsTest(APITestCase):
 
         resp = self.client.get(url)
         assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == six.text_type(user.id)
+        assert resp.data["id"] == str(user.id)
         assert "identities" in resp.data
         assert len(resp.data["identities"]) == 0
 
@@ -76,7 +76,7 @@ class UserUpdateTest(APITestCase):
             },
         )
         assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == six.text_type(self.user.id)
+        assert resp.data["id"] == str(self.user.id)
 
         user = User.objects.get(id=self.user.id)
         assert user.name == "hello world"
@@ -111,7 +111,7 @@ class UserUpdateTest(APITestCase):
             url, data={"name": "hello world", "email": "c@example.com", "isActive": "false"}
         )
         assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == six.text_type(self.user.id)
+        assert resp.data["id"] == str(self.user.id)
 
         user = User.objects.get(id=self.user.id)
         assert user.name == "hello world"

@@ -20,7 +20,7 @@ class OrganizationIntegrationsListTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(self.integration.id)
+        assert response.data[0]["id"] == str(self.integration.id)
         assert "configOrganization" in response.data[0]
 
     def test_no_config(self):
@@ -43,7 +43,7 @@ class OrganizationIntegrationsListTest(APITestCase):
         response = self.client.get(path, format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(self.integration.id)
+        assert response.data[0]["id"] == str(self.integration.id)
         assert "configOrganization" in response.data[0]
 
     @with_feature("organizations:slack-allow-workspace")

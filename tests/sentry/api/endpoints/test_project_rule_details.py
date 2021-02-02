@@ -29,7 +29,7 @@ class ProjectRuleDetailsTest(APITestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(rule.id)
+        assert response.data["id"] == str(rule.id)
         assert response.data["environment"] is None
 
     def test_non_existing_rule(self):
@@ -72,7 +72,7 @@ class ProjectRuleDetailsTest(APITestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(rule.id)
+        assert response.data["id"] == str(rule.id)
         assert response.data["environment"] == "production"
 
     def test_with_null_environment(self):
@@ -96,7 +96,7 @@ class ProjectRuleDetailsTest(APITestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(rule.id)
+        assert response.data["id"] == str(rule.id)
         assert response.data["environment"] is None
 
     def test_with_filters(self):
@@ -130,7 +130,7 @@ class ProjectRuleDetailsTest(APITestCase):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(rule.id)
+        assert response.data["id"] == str(rule.id)
 
         # ensure that conditions and filters are split up correctly
         assert len(response.data["conditions"]) == 1
@@ -177,7 +177,7 @@ class UpdateProjectRuleTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(rule.id)
+        assert response.data["id"] == str(rule.id)
 
         rule = Rule.objects.get(id=rule.id)
         assert rule.label == "hello world"
@@ -275,7 +275,7 @@ class UpdateProjectRuleTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(rule.id)
+        assert response.data["id"] == str(rule.id)
         assert response.data["environment"] == "production"
 
         rule = Rule.objects.get(id=rule.id)
@@ -317,7 +317,7 @@ class UpdateProjectRuleTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(rule.id)
+        assert response.data["id"] == str(rule.id)
         assert response.data["environment"] is None
 
         rule = Rule.objects.get(id=rule.id)
@@ -521,7 +521,7 @@ class UpdateProjectRuleTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(rule.id)
+        assert response.data["id"] == str(rule.id)
         assert response.data["actions"][0]["channel_id"] == "CSVK0921"
 
     def test_invalid_rule_node_type(self):
@@ -705,7 +705,7 @@ class UpdateProjectRuleTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(rule.id)
+        assert response.data["id"] == str(rule.id)
 
         rule = Rule.objects.get(id=rule.id)
         assert rule.label == "hello world"

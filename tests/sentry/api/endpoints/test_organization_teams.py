@@ -24,9 +24,9 @@ class OrganizationTeamsListTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert response.data[0]["id"] == six.text_type(team2.id)
+        assert response.data[0]["id"] == str(team2.id)
         assert not response.data[0]["isMember"]
-        assert response.data[1]["id"] == six.text_type(team1.id)
+        assert response.data[1]["id"] == str(team1.id)
         assert response.data[1]["isMember"]
 
     def test_teams_without_membership(self):
@@ -46,9 +46,9 @@ class OrganizationTeamsListTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert response.data[0]["id"] == six.text_type(team2.id)
+        assert response.data[0]["id"] == str(team2.id)
         assert not response.data[0]["isMember"]
-        assert response.data[1]["id"] == six.text_type(team3.id)
+        assert response.data[1]["id"] == str(team3.id)
         assert not response.data[1]["isMember"]
 
     def test_simple_results_no_projects(self):
@@ -84,7 +84,7 @@ class OrganizationTeamsListTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(team.id)
+        assert response.data[0]["id"] == str(team.id)
 
         path = f"/api/0/organizations/{org.slug}/teams/?query=baz"
         response = self.client.get(path)

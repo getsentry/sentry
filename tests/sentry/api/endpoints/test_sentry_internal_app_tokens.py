@@ -80,7 +80,7 @@ class GetSentryInternalAppTokenTest(SentryInternalAppTokenTest):
         # should not include tokens from other internal app
         assert len(response_content) == 1
 
-        assert response_content[0]["id"] == six.text_type(token.id)
+        assert response_content[0]["id"] == str(token.id)
         assert response_content[0]["token"] == token.token
 
     def test_token_is_masked(self):

@@ -43,6 +43,6 @@ class AuthLoginEndpointTest(APITestCase):
         resp = self.client.post(self.path, {"username": self.user.username, "password": "admin"})
 
         assert resp.status_code == 400
-        assert [six.text_type(s) for s in resp.data["errors"]["__all__"]] == [
+        assert [str(s) for s in resp.data["errors"]["__all__"]] == [
             "You have made too many failed authentication attempts. Please try again later."
         ]

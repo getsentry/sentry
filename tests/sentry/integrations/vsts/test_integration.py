@@ -272,7 +272,7 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
 
         with pytest.raises(IntegrationError) as err:
             integration.build_integration(state)
-        assert "sufficient account access to create webhooks" in six.text_type(err)
+        assert "sufficient account access to create webhooks" in str(err)
 
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
     def test_create_subscription_unauthorized(self, mock_get_scopes):
@@ -305,7 +305,7 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
 
         with pytest.raises(IntegrationError) as err:
             integration.build_integration(state)
-        assert "sufficient account access to create webhooks" in six.text_type(err)
+        assert "sufficient account access to create webhooks" in str(err)
 
 
 class VstsIntegrationTest(VstsIntegrationTestCase):

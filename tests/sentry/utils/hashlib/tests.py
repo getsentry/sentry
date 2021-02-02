@@ -10,10 +10,10 @@ HASHLIB_VALUES_TESTS = (
     ("seed", True, "1057fb936dc9056388c0b9b48dd0c7df"),
     ("seed", False, "07aae33053c0f3487882d61353780682"),
     ("seed", 42, "d1ce9a19d659ae70a6b76ef6029ae542"),
-    ("seed", six.binary_type(b"test"), "334e3fd2f66966a5c785d825c5f03494"),
-    ("seed", six.text_type("test"), "ce35c0ce0d38976f61a5ca951de74a16"),
+    ("seed", bytes(b"test"), "334e3fd2f66966a5c785d825c5f03494"),
+    ("seed", "test", "ce35c0ce0d38976f61a5ca951de74a16"),
     ("seed", (4, 2), "d03b32e798444249d726158594d370f6"),
-    ("seed", {six.text_type("test"): 42}, "ca094da15d323155e3954cff7ca373c4"),
+    ("seed", {"test": 42}, "ca094da15d323155e3954cff7ca373c4"),
     # XXX: It should be noted these cases EXPLICLTY exclude the fact that
     # python2 and python3 CANNOT hash to the same values whne using the `str`
     # and not the text_type, since they will map to different cases (py2 will

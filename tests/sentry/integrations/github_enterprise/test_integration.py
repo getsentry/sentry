@@ -61,7 +61,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         assert params["client_id"] == ["client_id"]
         # once we've asserted on it, switch to a singular values to make life
         # easier
-        authorize_params = {k: v[0] for k, v in six.iteritems(params)}
+        authorize_params = {k: v[0] for k, v in params.items()}
 
         access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
 

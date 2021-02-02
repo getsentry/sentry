@@ -23,9 +23,9 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
             name="example", organization_id=self.org.id, integration_id=self.integration.id
         )
         self.config = RepositoryProjectPathConfig.objects.create(
-            repository_id=six.text_type(self.repo.id),
-            project_id=six.text_type(self.project.id),
-            organization_integration_id=six.text_type(self.org_integration.id),
+            repository_id=str(self.repo.id),
+            project_id=str(self.project.id),
+            organization_integration_id=str(self.org_integration.id),
             stack_root="/stack/root",
             source_root="/source/root",
             default_branch="master",
@@ -39,7 +39,7 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
     def make_put(self, data):
         # reconstruct the original object
         config_data = serialize(self.config, self.user)
-        config_data["repositoryId"] = six.text_type(self.repo.id)
+        config_data["repositoryId"] = str(self.repo.id)
         # update with the new fields
         config_data.update(data)
         return self.client.put(self.url, config_data)
@@ -48,11 +48,11 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
         resp = self.client.delete(self.url)
         assert resp.status_code == 204
         assert not RepositoryProjectPathConfig.objects.filter(
-            id=six.text_type(self.config.id)
+            id=str(self.config.id)
         ).exists()
 
     def test_basic_edit(self):
         resp = self.make_put({"sourceRoot": "newRoot"})
         assert resp.status_code == 200
-        assert resp.data["id"] == six.text_type(self.config.id)
+        assert resp.data["id"] == str(self.config.id)
         assert resp.data["sourceRoot"] == "newRoot"

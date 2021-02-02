@@ -40,7 +40,7 @@ class WebhookTest(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="UnregisteredEvent",
             HTTP_X_HUB_SIGNATURE="sha1=56a3df597e02adbc17fb617502c70e19d96a6136",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
         assert response.status_code == 204
@@ -59,7 +59,7 @@ class WebhookTest(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
             HTTP_X_HUB_SIGNATURE="sha1=33521abeaaf9a57c2abf486e0ccd54d23cf36fec",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
         assert response.status_code == 401
@@ -94,7 +94,7 @@ class WebhookTest(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
             HTTP_X_HUB_SIGNATURE="sha1=bc7ce12fc1058a35bf99355e6fc0e6da72c35de3",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
         assert response.status_code == 204
@@ -133,7 +133,7 @@ class WebhookTest(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
             HTTP_X_HUB_SIGNATURE="sha1=bc7ce12fc1058a35bf99355e6fc0e6da72c35de3",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
         assert response.status_code == 204
@@ -172,7 +172,7 @@ class WebhookTest(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
             HTTP_X_HUB_SIGNATURE="sha1=bc7ce12fc1058a35bf99355e6fc0e6da72c35de3",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
         assert response.status_code == 204
@@ -215,7 +215,7 @@ class PushEventWebhookTest(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
             HTTP_X_HUB_SIGNATURE="sha1=56a3df597e02adbc17fb617502c70e19d96a6136",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
         assert response.status_code == 204
@@ -286,7 +286,7 @@ class PushEventWebhookTest(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
             HTTP_X_HUB_SIGNATURE="sha1=56a3df597e02adbc17fb617502c70e19d96a6136",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
         assert response.status_code == 204
@@ -366,7 +366,7 @@ class PushEventWebhookTest(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
             HTTP_X_HUB_SIGNATURE="sha1=56a3df597e02adbc17fb617502c70e19d96a6136",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
         assert response.status_code == 204
@@ -417,7 +417,7 @@ class PullRequestEventWebhook(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
             HTTP_X_HUB_SIGNATURE="sha1=bc7ce12fc1058a35bf99355e6fc0e6da72c35de3",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
         assert response.status_code == 204
@@ -474,7 +474,7 @@ class PullRequestEventWebhook(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
             HTTP_X_HUB_SIGNATURE="sha1=83100642f0cf5d7f6145cf8d04da5d00a09f890f",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
         assert response.status_code == 204
@@ -519,7 +519,7 @@ class PullRequestEventWebhook(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
             HTTP_X_HUB_SIGNATURE="sha1=49db856f5658b365b73a2fa73a7cffa543f4d3af",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
         assert response.status_code == 204

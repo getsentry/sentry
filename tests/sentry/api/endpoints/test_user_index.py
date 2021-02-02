@@ -36,7 +36,7 @@ class UserListTest(APITestCase):
         response = self.client.get(f"{self.path}?query=bar")
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(self.superuser.id)
+        assert response.data[0]["id"] == str(self.superuser.id)
         response = self.client.get(f"{self.path}?query=foobar")
         assert response.status_code == 200
         assert len(response.data) == 0
@@ -46,14 +46,14 @@ class UserListTest(APITestCase):
         response = self.client.get(f"{self.path}?query=is:superuser")
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(self.superuser.id)
+        assert response.data[0]["id"] == str(self.superuser.id)
 
     def test_email_query(self):
         self.login_as(user=self.superuser, superuser=True)
         response = self.client.get(f"{self.path}?query=email:bar@example.com")
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(self.superuser.id)
+        assert response.data[0]["id"] == str(self.superuser.id)
         response = self.client.get(f"{self.path}?query=email:foobar")
         assert response.status_code == 200
         assert len(response.data) == 0

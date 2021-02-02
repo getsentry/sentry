@@ -18,7 +18,7 @@ class TeamAvatarTest(APITestCase):
         )
         response = self.client.get(url)
         assert response.status_code == 200
-        assert response.data["id"] == six.text_type(team.id)
+        assert response.data["id"] == str(team.id)
         assert response.data["avatar"]["avatarType"] == "letter_avatar"
         assert response.data["avatar"]["avatarUuid"] is None
 

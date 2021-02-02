@@ -89,7 +89,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert sorted(map(lambda x: x["id"], response.data)) == sorted([six.text_type(report_1.id)])
+        assert sorted(map(lambda x: x["id"], response.data)) == sorted([str(report_1.id)])
 
     def test_cannot_access_with_dsn_auth(self):
         project = self.create_project()
@@ -121,7 +121,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert sorted(map(lambda x: x["id"], response.data)) == sorted([six.text_type(report_1.id)])
+        assert sorted(map(lambda x: x["id"], response.data)) == sorted([str(report_1.id)])
 
     def test_environments(self):
         self.login_as(user=self.user)

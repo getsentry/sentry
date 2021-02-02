@@ -144,7 +144,7 @@ class ParseMessageValueTest(BaseQuerySubscriptionTest, unittest.TestCase):
     def test_invalid_version(self):
         with self.assertRaises(InvalidMessageError) as cm:
             self.run_test({"version": 50, "payload": {}})
-        assert six.text_type(cm.exception) == "Version specified in wrapper has no schema"
+        assert str(cm.exception) == "Version specified in wrapper has no schema"
 
     def test_valid(self):
         self.run_test({"version": 2, "payload": self.valid_payload})
@@ -186,4 +186,4 @@ class RegisterSubscriberTest(unittest.TestCase):
         assert subscriber_registry["hello"] == callback
         with self.assertRaises(Exception) as cm:
             register_subscriber("hello")(other_callback)
-        assert six.text_type(cm.exception) == "Handler already registered for hello"
+        assert str(cm.exception) == "Handler already registered for hello"

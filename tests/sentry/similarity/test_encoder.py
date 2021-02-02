@@ -26,7 +26,7 @@ def test_builtin_types():
 
     for value in values:
         encoded = encoder.dumps(value)
-        assert isinstance(encoded, six.binary_type)
+        assert isinstance(encoded, bytes)
 
     with pytest.raises(TypeError):
         encoder.dumps(object())

@@ -109,7 +109,7 @@ def generate_transaction(trace=None, span=None):
 
             if isinstance(child, dict):
                 spans = build_span_tree(child, spans, span_id)
-            elif isinstance(child, six.string_types):
+            elif isinstance(child, str):
                 parent_span_id = span_id
                 span_id = child
 

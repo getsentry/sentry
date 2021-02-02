@@ -25,7 +25,7 @@ class FrequencyConditionMixin(object):
 
         event = self.get_event()
         value = 10
-        data = {"interval": "1m", "value": six.text_type(value)}
+        data = {"interval": "1m", "value": str(value)}
 
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
 
@@ -53,7 +53,7 @@ class FrequencyConditionMixin(object):
 
         event = self.get_event()
         value = 10
-        data = {"interval": "1h", "value": six.text_type(value)}
+        data = {"interval": "1h", "value": str(value)}
 
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
 
@@ -81,7 +81,7 @@ class FrequencyConditionMixin(object):
 
         event = self.get_event()
         value = 10
-        data = {"interval": "1d", "value": six.text_type(value)}
+        data = {"interval": "1d", "value": str(value)}
 
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
 
@@ -108,7 +108,7 @@ class FrequencyConditionMixin(object):
         now.return_value = datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=pytz.utc)
 
         event = self.get_event()
-        data = {"interval": "1m", "value": six.text_type("0")}
+        data = {"interval": "1m", "value": "0"}
 
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
 

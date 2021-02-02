@@ -17,7 +17,7 @@ class TeamDetailsTest(APITestCase):
         )
         response = self.client.get(url)
         assert response.status_code == 200
-        assert response.data["id"] == six.text_type(team.id)
+        assert response.data["id"] == str(team.id)
 
 
 class TeamUpdateTest(APITestCase):

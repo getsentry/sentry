@@ -91,7 +91,7 @@ class ProcessUpdateTest(TestCase):
             trigger,
             AlertRuleTriggerAction.Type.EMAIL,
             AlertRuleTriggerAction.TargetType.USER,
-            six.text_type(self.user.id),
+            str(self.user.id),
         )
         return rule
 
@@ -292,14 +292,14 @@ class ProcessUpdateTest(TestCase):
             self.trigger,
             AlertRuleTriggerAction.Type.EMAIL,
             AlertRuleTriggerAction.TargetType.USER,
-            six.text_type(self.user.id),
+            str(self.user.id),
         )
         w_trigger = create_alert_rule_trigger(self.rule, "hello", c_trigger.alert_threshold - 10)
         create_alert_rule_trigger_action(
             w_trigger,
             AlertRuleTriggerAction.Type.EMAIL,
             AlertRuleTriggerAction.TargetType.USER,
-            six.text_type(self.user.id),
+            str(self.user.id),
         )
 
         processor = self.send_update(rule, c_trigger.alert_threshold + 1)

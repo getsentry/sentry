@@ -70,7 +70,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         self.dismiss_assistant()
         self.project.update(first_event=timezone.now())
         self.issues_list.visit_issue_list(
-            self.org.slug, query="?query=assigned%3Ame&project=" + six.text_type(self.project_1.id)
+            self.org.slug, query="?query=assigned%3Ame&project=" + str(self.project_1.id)
         )
         self.browser.wait_until_test_id("awaiting-events")
 
@@ -133,7 +133,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         self.create_issues()
         # Issues list with project 1 selected
         self.issues_list.visit_issue_list(
-            self.org.slug, query="?project=" + six.text_type(self.project_1.id)
+            self.org.slug, query="?project=" + str(self.project_1.id)
         )
         self.issues_list.visit_issue_list(self.org.slug)
         assert self.issues_list.global_selection.get_selected_project_slug() == self.project_1.slug

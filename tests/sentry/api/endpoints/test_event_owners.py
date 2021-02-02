@@ -122,7 +122,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         assert len(resp.data["owners"]) == 1
-        assert resp.data["owners"][0]["id"] == six.text_type(self.user.id)
+        assert resp.data["owners"][0]["id"] == str(self.user.id)
         assert resp.data["rule"] == Matcher("path", "*.py")
         assert len(resp.data["rules"]) == 1
 
@@ -154,7 +154,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         assert len(resp.data["owners"]) == 3
-        assert [o["id"] for o in resp.data["owners"]] == [six.text_type(u.id) for u in users]
+        assert [o["id"] for o in resp.data["owners"]] == [str(u.id) for u in users]
         assert resp.data["rule"] == Matcher("path", "*.py")
         assert len(resp.data["rules"]) == 3
 
@@ -188,7 +188,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.status_code == 200
         assert len(resp.data["owners"]) == 3
         assert [o["id"] for o in resp.data["owners"]] == [
-            six.text_type(u.id) for u in reversed(users)
+            str(u.id) for u in reversed(users)
         ]
         assert resp.data["rule"] == Matcher("path", "*")
         assert len(resp.data["rules"]) == 3
@@ -224,7 +224,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         assert len(resp.data["owners"]) == 6
-        assert [o["id"] for o in resp.data["owners"]] == [six.text_type(o.id) for o in owners]
+        assert [o["id"] for o in resp.data["owners"]] == [str(o.id) for o in owners]
         assert [o["type"] for o in resp.data["owners"]] == ["user", "team"] * 3
         assert resp.data["rule"] == Matcher("path", "*.py")
         assert len(resp.data["rules"]) == 6

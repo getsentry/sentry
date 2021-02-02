@@ -87,7 +87,7 @@ class ParseSearchQueryTest(TestCase):
         with self.assertRaises(InvalidSearchQuery) as cm:
             parse_search_query("is:wrong")
 
-        assert six.text_type(cm.exception).startswith(
+        assert str(cm.exception).startswith(
             'Invalid value for "is" search, valid values are'
         )
 

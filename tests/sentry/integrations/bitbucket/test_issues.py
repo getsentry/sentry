@@ -106,7 +106,7 @@ class BitbucketIssueTest(APITestCase):
         )
         self.org_integration.config = {
             "project_issue_defaults": {
-                six.text_type(self.group.project_id): {"repo": "myaccount/repo1"}
+                str(self.group.project_id): {"repo": "myaccount/repo1"}
             }
         }
         self.org_integration.save()
@@ -130,7 +130,7 @@ class BitbucketIssueTest(APITestCase):
         )
         self.org_integration.config = {
             "project_issue_defaults": {
-                six.text_type(self.group.project_id): {"repo": "myaccount/repo1"}
+                str(self.group.project_id): {"repo": "myaccount/repo1"}
             }
         }
         self.org_integration.save()

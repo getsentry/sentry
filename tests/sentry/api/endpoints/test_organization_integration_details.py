@@ -40,7 +40,7 @@ class OrganizationIntegrationDetailsTest(APITestCase):
         response = self.client.get(self.path, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(self.integration.id)
+        assert response.data["id"] == str(self.integration.id)
 
     def test_removal(self):
         with self.tasks():

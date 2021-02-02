@@ -49,7 +49,7 @@ class AuthenticationTest(AuthProviderTestCase):
             assert resp.status_code == 401, (resp.status_code, resp.content)
 
         # XXX(dcramer): using internal API as exposing a request object is hard
-        self.session[SSO_SESSION_KEY] = six.text_type(organization.id)
+        self.session[SSO_SESSION_KEY] = str(organization.id)
         self.save_session()
 
         # now that SSO is marked as complete, we should be able to access dash

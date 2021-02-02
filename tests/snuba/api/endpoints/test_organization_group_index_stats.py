@@ -17,7 +17,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def _parse_links(self, header):
         # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
         links = {}
-        for url, attrs in six.iteritems(parse_link_header(header)):
+        for url, attrs in parse_link_header(header).items():
             links[attrs["rel"]] = attrs
             attrs["href"] = url
         return links

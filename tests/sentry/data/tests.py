@@ -24,6 +24,5 @@ class DataGenerator(type):
         return super(DataGenerator, cls).__new__(cls, name, bases, attrs)
 
 
-@six.add_metaclass(DataGenerator)
-class DataTestCase(TestCase):
+class DataTestCase(TestCase, metaclass=DataGenerator):
     pass

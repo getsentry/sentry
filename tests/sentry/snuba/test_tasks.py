@@ -22,8 +22,7 @@ from sentry.utils import json
 from sentry.testutils import TestCase
 
 
-@add_metaclass(abc.ABCMeta)
-class BaseSnubaTaskTest(object):
+class BaseSnubaTaskTest(object, metaclass=abc.ABCMeta):
     metrics = patcher("sentry.snuba.tasks.metrics")
 
     status_translations = {

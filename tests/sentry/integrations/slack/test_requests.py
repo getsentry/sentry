@@ -108,7 +108,7 @@ class SlackEventRequestTest(TestCase):
         self.request.META = {}
 
     def set_signature(self, secret, data):
-        timestamp = six.text_type(int(time.mktime(datetime.utcnow().timetuple())))
+        timestamp = str(int(time.mktime(datetime.utcnow().timetuple())))
         req = b"v0:%s:%s" % (timestamp.encode("utf-8"), data)
 
         signature = "v0=" + hmac.new(secret.encode("utf-8"), req, sha256).hexdigest()

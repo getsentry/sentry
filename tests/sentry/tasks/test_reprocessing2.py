@@ -199,7 +199,7 @@ def test_concurrent_events_go_into_new_group(
     assert group.short_id == original_short_id
     assert GroupAssignee.objects.get(group=group) == original_assignee
     activity = Activity.objects.get(group=group, type=Activity.REPROCESS)
-    assert activity.ident == six.text_type(original_issue_id)
+    assert activity.ident == str(original_issue_id)
 
 
 @pytest.mark.django_db

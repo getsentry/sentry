@@ -39,7 +39,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             provider = integration.get_provider()
 
             assert response.data == {
-                "id": six.text_type(integration.id),
+                "id": str(integration.id),
                 "name": integration.name,
                 "icon": integration.metadata.get("icon"),
                 "domainName": integration.metadata.get("domain_name"),
@@ -79,7 +79,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             provider = integration.get_provider()
 
             assert response.data == {
-                "id": six.text_type(integration.id),
+                "id": str(integration.id),
                 "name": integration.name,
                 "icon": integration.metadata.get("icon"),
                 "domainName": integration.metadata.get("domain_name"),
@@ -326,7 +326,7 @@ class GroupIntegrationDetailsTest(APITestCase):
                 fields = response.data["createIssueConfig"]
             else:
                 fields = response.data["linkIssueConfig"]
-            assert response.data["id"] == six.text_type(integration.id)
+            assert response.data["id"] == str(integration.id)
             for field in fields:
                 if field["name"] == "project":
                     project_field = field

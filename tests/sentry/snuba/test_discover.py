@@ -541,7 +541,7 @@ class QueryTransformTest(TestCase):
                 query="event.type:transaction",
                 params={"project_id": [self.project.id]},
             )
-        assert "No columns selected" in six.text_type(err)
+        assert "No columns selected" in str(err)
         assert mock_query.call_count == 0
 
     @patch("sentry.snuba.discover.raw_query")
@@ -2052,7 +2052,7 @@ class QueryTransformTest(TestCase):
             )
         assert (
             "multihistogram expected all measurements, received: transaction.duration"
-            in six.text_type(err)
+            in str(err)
         )
 
     @patch("sentry.snuba.discover.raw_query")
@@ -2173,7 +2173,7 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
                 params={"project_id": [self.project.id]},
                 rollup=1800,
             )
-        assert "without a start and end" in six.text_type(err)
+        assert "without a start and end" in str(err)
 
     def test_no_aggregations(self):
         with pytest.raises(InvalidSearchQuery) as err:
@@ -2187,7 +2187,7 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
                 },
                 rollup=1800,
             )
-        assert "no aggregation" in six.text_type(err)
+        assert "no aggregation" in str(err)
 
     def test_field_alias(self):
         result = discover.timeseries_query(

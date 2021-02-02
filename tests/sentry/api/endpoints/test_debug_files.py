@@ -208,7 +208,7 @@ class DebugFilesUploadTest(APITestCase):
             response.get("Content-Disposition")
             == 'attachment; filename="' + PROGUARD_UUID + '.txt"'
         )
-        assert response.get("Content-Length") == text_type(len(PROGUARD_SOURCE))
+        assert response.get("Content-Length") == str(len(PROGUARD_SOURCE))
         assert response.get("Content-Type") == "application/octet-stream"
         assert PROGUARD_SOURCE == BytesIO(b"".join(response.streaming_content)).getvalue()
 
@@ -261,7 +261,7 @@ class DebugFilesUploadTest(APITestCase):
         first_uuid = None
         last_uuid = None
         for i in range(25):
-            last_uuid = text_type(uuid4())
+            last_uuid = str(uuid4())
             if first_uuid is None:
                 first_uuid = last_uuid
             self._upload_proguard(url, last_uuid)
@@ -315,7 +315,7 @@ class DebugFilesUploadTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert response.data[0]["name"] == text_type(release2.version)
+        assert response.data[0]["name"] == str(release2.version)
         assert response.data[0]["fileCount"] == 0
         assert response.data[1]["fileCount"] == 2
 
