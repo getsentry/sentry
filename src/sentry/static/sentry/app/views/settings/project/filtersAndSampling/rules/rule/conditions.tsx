@@ -11,7 +11,7 @@ import {
   DynamicSamplingConditionOperator,
 } from 'app/types/dynamicSampling';
 
-import {getInnerOperatorLabel} from './utils';
+import {getInnerNameLabel} from './utils';
 
 type Props = {
   condition: DynamicSamplingCondition;
@@ -45,9 +45,9 @@ function Conditions({condition}: Props) {
 
       return (
         <Wrapper>
-          {inner.map(({op, value}, index) => (
+          {inner.map(({value, name}, index) => (
             <div key={index}>
-              <Label>{getInnerOperatorLabel(op)}</Label>
+              <Label>{getInnerNameLabel(name)}</Label>
               {getConvertedValue(value)}
             </div>
           ))}
@@ -56,10 +56,10 @@ function Conditions({condition}: Props) {
     }
     case DynamicSamplingConditionOperator.NOT: {
       const {inner} = condition as DynamicSamplingConditionNegation;
-      const {op, value} = inner;
+      const {value, name} = inner;
       return (
         <div>
-          <Label>{getInnerOperatorLabel(op)}</Label>
+          <Label>{getInnerNameLabel(name)}</Label>
           {getConvertedValue(value)}
         </div>
       );

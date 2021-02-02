@@ -232,7 +232,7 @@ export type Project = {
   // XXX: These are part of the DetailedProject serializer
   dynamicSampling: {
     rules: DynamicSamplingRules;
-  };
+  } | null;
   plugins: Plugin[];
   processingIssues: number;
   relayPiiConfig: string;
