@@ -31,6 +31,7 @@ import theme from 'app/utils/theme';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {VitalData} from 'app/views/performance/vitalDetail/vitalsCardsDiscoverQuery';
 
+import {computeBuckets, formatHistogramData} from '../charts/utils';
 import {VitalBar} from '../landing/vitalsCards';
 import {
   VitalState,
@@ -251,6 +252,7 @@ class VitalCard extends React.Component<Props, State> {
     const {
       location,
       isLoading,
+      chartData,
       summaryData,
       error,
       colors,
@@ -306,7 +308,7 @@ class VitalCard extends React.Component<Props, State> {
         paramStart={`${slug}Start`}
         paramEnd={`${slug}End`}
         xAxisIndex={[0]}
-        buckets={this.computeBuckets()}
+        buckets={computeBuckets(chartData)}
         onDataZoomCancelled={this.handleDataZoomCancelled}
       >
         {zoomRenderProps => (
@@ -359,54 +361,27 @@ class VitalCard extends React.Component<Props, State> {
     return chartData.length >= 2 ? chartData[1].bin - chartData[0].bin : 0;
   }
 
-  computeBuckets() {
-    const {chartData} = this.props;
-    const bucketWidth = this.bucketWidth();
-
-    return chartData.map(item => {
-      const bucket = item.bin;
-      return {
-        start: bucket,
-        end: bucket + bucketWidth,
-      };
-    });
-  }
-
   getSeries() {
-    const {chartData, vitalDetails, vital} = this.props;
-    const bucketWidth = this.bucketWidth();
+    const {chartData, precision, vitalDetails, vital} = this.props;
 
-    const seriesData = chartData.map(item => {
-      const bucket = item.bin;
-      const midPoint = bucketWidth > 1 ? Math.ceil(bucket + bucketWidth / 2) : bucket;
-      const name =
-        vitalDetails.type === 'duration'
-          ? formatDuration(midPoint)
-          : // This is trying to avoid some of potential rounding errors that cause bins
-            // have the same label, if the number of bins doesn't visually match what is
-            // expected, check that this rounding is correct. If this issue persists,
-            // consider formatting the bin as a string in the response
-            (Math.round((midPoint + Number.EPSILON) * 100) / 100).toLocaleString();
-
-      const value = item.count;
-
+    const additionalFieldsFn = bucket => {
       if (this.showVitalColours()) {
         return {
-          value,
-          name,
-          itemStyle: {color: this.getVitalsColor(vital, midPoint)},
+          itemStyle: {color: this.getVitalsColor(vital, bucket)},
         };
       }
+      return {};
+    };
 
-      return {
-        value,
-        name,
-      };
+    const data = formatHistogramData(chartData, {
+      precision: precision === 0 ? undefined : precision,
+      type: vitalDetails.type,
+      additionalFieldsFn,
     });
 
     return {
       seriesName: t('Count'),
-      data: seriesData,
+      data,
     };
   }
 
@@ -414,9 +389,9 @@ class VitalCard extends React.Component<Props, State> {
     const poorThreshold = webVitalPoor[vital];
     const mehThreshold = webVitalMeh[vital];
 
-    if (value > poorThreshold) {
+    if (value >= poorThreshold) {
       return vitalStateColors[VitalState.POOR];
-    } else if (value > mehThreshold) {
+    } else if (value >= mehThreshold) {
       return vitalStateColors[VitalState.MEH];
     } else {
       return vitalStateColors[VitalState.GOOD];
@@ -430,7 +405,7 @@ class VitalCard extends React.Component<Props, State> {
       return null;
     }
 
-    const summaryBucket = findNearestBucketIndex(chartData, this.bucketWidth(), summary);
+    const summaryBucket = findNearestBucketIndex(chartData, summary);
     if (summaryBucket === null || summaryBucket === -1) {
       return null;
     }
@@ -504,11 +479,7 @@ class VitalCard extends React.Component<Props, State> {
       return null;
     }
 
-    let failureBucket = findNearestBucketIndex(
-      chartData,
-      this.bucketWidth(),
-      failureThreshold
-    );
+    let failureBucket = findNearestBucketIndex(chartData, failureThreshold);
     if (failureBucket === null) {
       return null;
     }
@@ -676,15 +647,5 @@ const StyledTag = styled(Tag)`
     color: ${p => p.theme.white};
   }
 `;
-
-function formatDuration(duration: number) {
-  // assume duration is in milliseconds.
-
-  if (duration <= 1000) {
-    return getDuration(duration / 1000, 2, true);
-  }
-
-  return getDuration(duration / 1000, 3, true);
-}
 
 export default VitalCard;
