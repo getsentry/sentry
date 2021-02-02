@@ -43,7 +43,6 @@ import OnboardingStatus from './onboardingStatus';
 import ServiceIncidents from './serviceIncidents';
 import SidebarDropdown from './sidebarDropdown';
 import SidebarItem from './sidebarItem';
-import {getSidebarPanelContainer} from './sidebarPanel';
 import {SidebarOrientation, SidebarPanelKey} from './types';
 
 type Props = {
@@ -79,7 +78,6 @@ class Sidebar extends React.Component<Props, State> {
 
   componentDidMount() {
     document.body.classList.add('body-sidebar');
-    document.addEventListener('click', this.panelCloseHandler);
 
     this.checkHash();
     this.doCollapse(this.props.collapsed);
@@ -122,7 +120,6 @@ class Sidebar extends React.Component<Props, State> {
   }
 
   componentWillUnmount() {
-    document.removeEventListener('click', this.panelCloseHandler);
     document.body.classList.remove('body-sidebar');
 
     if (this.mq) {
@@ -165,13 +162,7 @@ class Sidebar extends React.Component<Props, State> {
   };
 
   // Hide slideout panel
-  hidePanel = () => {
-    if (this.state.currentPanel === '') {
-      return;
-    }
-
-    this.setState({currentPanel: ''});
-  };
+  hidePanel = () => this.setState({currentPanel: ''});
 
   // Keep the global selection querystring values in the path
   navigateWithGlobalSelection = (
@@ -216,25 +207,6 @@ class Sidebar extends React.Component<Props, State> {
     } else {
       this.showPanel(panel);
     }
-  };
-
-  panelCloseHandler = (evt: MouseEvent) => {
-    if (!(evt.target instanceof Element)) {
-      return;
-    }
-
-    // Ignore if click occurs within sidebar
-    if (this.sidebarRef.current && this.sidebarRef.current.contains(evt.target)) {
-      return;
-    }
-
-    // Ignore if click occurs within the sidebar panel
-    const panel = getSidebarPanelContainer();
-    if (panel && panel.contains(evt.target)) {
-      return;
-    }
-
-    this.hidePanel();
   };
 
   /**

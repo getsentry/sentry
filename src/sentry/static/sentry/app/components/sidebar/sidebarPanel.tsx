@@ -35,7 +35,29 @@ class SidebarPanel extends React.Component<Props> {
     this.portalEl = getSidebarPanelContainer() || makePortal();
   }
 
+  componentDidMount() {
+    document.addEventListener('click', this.panelCloseHandler);
+  }
+
+  componentWillUnmount() {
+    document.removeEventListener('click', this.panelCloseHandler);
+  }
+
   portalEl: Element;
+
+  panelCloseHandler = (evt: MouseEvent) => {
+    if (!(evt.target instanceof Element)) {
+      return;
+    }
+
+    const panel = getSidebarPanelContainer();
+
+    if (panel?.contains(evt.target)) {
+      return;
+    }
+
+    this.props.hidePanel();
+  };
 
   render() {
     const {orientation, collapsed, hidePanel, title, children, ...props} = this.props;
