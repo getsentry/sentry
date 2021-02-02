@@ -18,7 +18,7 @@ class UserDetailsTest(APITestCase):
     #     resp = self.client.get(url, format='json')
 
     #     assert resp.status_code == 200, resp.content
-    #     assert resp.data['id'] == six.text_type(user.id)
+    #     assert resp.data['id'] == str(user.id)
     #     assert 'identities' not in resp.data
 
     def test_lookup_self(self):
