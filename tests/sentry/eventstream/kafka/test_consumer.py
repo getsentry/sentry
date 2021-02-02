@@ -93,7 +93,7 @@ def test_consumer_start_from_partition_start(requires_kafka):
                 break
 
         assert len(assignments_received) == 1, "expected to receive partition assignment"
-        assert set((i.topic, i.partition) for i in assignments_received[0]) == set([(topic, 0)])
+        assert {(i.topic, i.partition) for i in assignments_received[0]} == {(topic, 0)}
 
         # TODO: Make sure that all partitions remain paused.
 
@@ -184,7 +184,7 @@ def test_consumer_start_from_committed_offset(requires_kafka):
                 break
 
         assert len(assignments_received) == 1, "expected to receive partition assignment"
-        assert set((i.topic, i.partition) for i in assignments_received[0]) == set([(topic, 0)])
+        assert {(i.topic, i.partition) for i in assignments_received[0]} == {(topic, 0)}
 
         # TODO: Make sure that all partitions are paused on assignment.
 
@@ -281,9 +281,10 @@ def test_consumer_rebalance_from_partition_start(requires_kafka):
         assert (
             len(assignments_received[consumer_a]) == 1
         ), "expected to receive partition assignment"
-        assert set((i.topic, i.partition) for i in assignments_received[consumer_a][0]) == set(
-            [(topic, 0), (topic, 1)]
-        )
+        assert {(i.topic, i.partition) for i in assignments_received[consumer_a][0]} == {
+            (topic, 0),
+            (topic, 1),
+        }
 
         assignments_received[consumer_a].pop()
         consumer_b = SynchronizedConsumer(
@@ -315,7 +316,7 @@ def test_consumer_rebalance_from_partition_start(requires_kafka):
             i = assignments_received[consumer][0][0]
             assignments[(i.topic, i.partition)] = consumer
 
-        assert set(assignments.keys()) == set([(topic, 0), (topic, 1)])
+        assert set(assignments.keys()) == {(topic, 0), (topic, 1)}
 
         for expected_message in messages_delivered[topic]:
             consumer = assignments[(expected_message.topic(), expected_message.partition())]
@@ -411,9 +412,10 @@ def test_consumer_rebalance_from_committed_offset(requires_kafka):
         assert (
             len(assignments_received[consumer_a]) == 1
         ), "expected to receive partition assignment"
-        assert set((i.topic, i.partition) for i in assignments_received[consumer_a][0]) == set(
-            [(topic, 0), (topic, 1)]
-        )
+        assert {(i.topic, i.partition) for i in assignments_received[consumer_a][0]} == {
+            (topic, 0),
+            (topic, 1),
+        }
 
         assignments_received[consumer_a].pop()
 
@@ -446,7 +448,7 @@ def test_consumer_rebalance_from_committed_offset(requires_kafka):
             i = assignments_received[consumer][0][0]
             assignments[(i.topic, i.partition)] = consumer
 
-        assert set(assignments.keys()) == set([(topic, 0), (topic, 1)])
+        assert set(assignments.keys()) == {(topic, 0), (topic, 1)}
 
         for expected_message in messages_delivered[topic][2:]:
             consumer = assignments[(expected_message.topic(), expected_message.partition())]
@@ -579,9 +581,10 @@ def test_consumer_rebalance_from_uncommitted_offset(requires_kafka):
         assert (
             len(assignments_received[consumer_a]) == 1
         ), "expected to receive partition assignment"
-        assert set((i.topic, i.partition) for i in assignments_received[consumer_a][0]) == set(
-            [(topic, 0), (topic, 1)]
-        )
+        assert {(i.topic, i.partition) for i in assignments_received[consumer_a][0]} == {
+            (topic, 0),
+            (topic, 1),
+        }
         assignments_received[consumer_a].pop()
 
         message = consumer_a.poll(1)

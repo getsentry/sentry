@@ -164,7 +164,7 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
             self.org,
             include_all_accessible=include_all_accessible,
         )
-        assert set([p.id for p in expected_projects]) == set(p.id for p in result)
+        assert {p.id for p in expected_projects} == {p.id for p in result}
 
     def test_no_ids_no_teams(self):
         # Should get nothing if not part of the org
@@ -267,7 +267,7 @@ class GetEnvironmentsTest(BaseOrganizationEndpointTest):
         if env_names:
             request_args["environment"] = env_names
         result = self.endpoint.get_environments(self.build_request(**request_args), self.org)
-        assert set([e.name for e in expected_envs]) == set([e.name for e in result])
+        assert {e.name for e in expected_envs} == {e.name for e in result}
 
     def test_no_params(self):
         self.run_test([])
@@ -323,11 +323,11 @@ class GetFilterParamsTest(BaseOrganizationEndpointTest):
             date_filter_optional=date_filter_optional,
         )
 
-        assert set([p.id for p in expected_projects]) == set(result["project_id"])
+        assert {p.id for p in expected_projects} == set(result["project_id"])
         assert expected_start == result["start"]
         assert expected_end == result["end"]
         if expected_envs:
-            assert set([e.name for e in expected_envs]) == set(result["environment"])
+            assert {e.name for e in expected_envs} == set(result["environment"])
         else:
             assert "environment" not in result
 

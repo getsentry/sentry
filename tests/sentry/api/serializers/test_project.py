@@ -179,12 +179,12 @@ class ProjectSerializerTest(TestCase):
         def api_form(flag):
             return flag[len("projects:") :]
 
-        flags_to_find = set(api_form(f) for f in [early_flag, red_flag, blue_flag])
+        flags_to_find = {api_form(f) for f in [early_flag, red_flag, blue_flag]}
 
         def assert_has_features(project, expected_features):
             serialized = serialize(project)
-            actual_features = set(f for f in serialized["features"] if f in flags_to_find)
-            assert actual_features == set(api_form(f) for f in expected_features)
+            actual_features = {f for f in serialized["features"] if f in flags_to_find}
+            assert actual_features == {api_form(f) for f in expected_features}
 
         assert_has_features(early_red, [early_flag, red_flag])
         assert_has_features(early_blue, [early_flag, blue_flag])
@@ -483,19 +483,21 @@ class BulkFetchProjectLatestReleases(TestCase):
 
     def test_multi_mixed_releases(self):
         release = self.create_release(self.project)
-        assert set(bulk_fetch_project_latest_releases([self.project, self.other_project])) == set(
-            [release]
-        )
+        assert set(bulk_fetch_project_latest_releases([self.project, self.other_project])) == {
+            release
+        }
 
     def test_multi_releases(self):
         release = self.create_release(
             self.project, date_added=timezone.now() - timedelta(minutes=5)
         )
         other_project_release = self.create_release(self.other_project)
-        assert set(bulk_fetch_project_latest_releases([self.project, self.other_project])) == set(
-            [release, other_project_release]
-        )
+        assert set(bulk_fetch_project_latest_releases([self.project, self.other_project])) == {
+            release,
+            other_project_release,
+        }
         release_2 = self.create_release(self.project)
-        assert set(bulk_fetch_project_latest_releases([self.project, self.other_project])) == set(
-            [release_2, other_project_release]
-        )
+        assert set(bulk_fetch_project_latest_releases([self.project, self.other_project])) == {
+            release_2,
+            other_project_release,
+        }

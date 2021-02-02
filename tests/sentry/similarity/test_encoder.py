@@ -13,7 +13,7 @@ def test_builtin_types():
         ("a", "b", "c"),
         ["a", "b", "c"],
         {"a": 1, "b": 2, "c": 3},
-        set(["a", "b", "c"]),
+        {"a", "b", "c"},
         frozenset(["a", "b", "c"]),
         [{"a": 1}, set("b"), ["c"], "text"],
     ]

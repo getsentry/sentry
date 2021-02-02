@@ -296,7 +296,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
             )
 
         # Assert all events are in the same group
-        (group_id,) = set(e.group.id for e in events)
+        (group_id,) = {e.group.id for e in events}
 
         group = Group.objects.get(id=group_id)
         group.times_seen = 3

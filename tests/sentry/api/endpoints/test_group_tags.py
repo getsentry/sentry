@@ -62,7 +62,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase):
 
         assert data[0]["key"] == "foo"
         assert len(data[0]["topValues"]) == 2
-        assert set(v["value"] for v in data[0]["topValues"]) == set(["bar", "quux"])
+        assert {v["value"] for v in data[0]["topValues"]} == {"bar", "quux"}
 
         assert data[1]["key"] == "release"
         assert len(data[1]["topValues"]) == 1
@@ -90,9 +90,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, {"environment": "prod"}, format="json")
         assert response.status_code == 200
         assert len(response.data) == 4
-        assert set([tag["key"] for tag in response.data]) == set(
-            ["foo", "biz", "environment", "level"]
-        )
+        assert {tag["key"] for tag in response.data} == {"foo", "biz", "environment", "level"}
 
     def test_multi_env(self):
         min_ago = before_now(minutes=1)
@@ -123,4 +121,4 @@ class GroupTagsTest(APITestCase, SnubaTestCase):
             f"{url}?environment={env.name}&environment={env2.name}", format="json"
         )
         assert response.status_code == 200
-        assert set([tag["key"] for tag in response.data]) >= set(["biz", "environment", "foo"])
+        assert {tag["key"] for tag in response.data} >= {"biz", "environment", "foo"}
