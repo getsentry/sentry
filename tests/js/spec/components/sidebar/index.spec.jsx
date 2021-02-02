@@ -372,5 +372,48 @@ describe('Sidebar', function () {
       wrapper.update();
       expect(wrapper.find('SidebarPanel')).toHaveLength(0);
     });
+
+    it('can show SDK updates in the broadcasts panel', async function () {
+      apiMocks.sdkUpdates = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/sdk-updates/`,
+        body: [
+          {
+            projectId: 1,
+            sdkName: 'example.sdk',
+            sdkVersion: '1.0.0',
+            suggestions: [
+              {
+                type: 'updateSdk',
+                sdkName: 'example.sdk',
+                newSdkVersion: '2.0.0',
+                sdkUrl: null,
+                enables: [],
+              },
+            ],
+          },
+        ],
+      });
+
+      incidentActions.loadIncidents = jest.fn(() => ({
+        incidents: [TestStubs.ServiceIncident()],
+      }));
+
+      wrapper = createWrapper();
+      await tick();
+
+      wrapper.find('Broadcasts SidebarItem').simulate('click');
+      await tick();
+      wrapper.update();
+      expect(wrapper.find('SidebarPanel')).toHaveLength(1);
+
+      // Wait for SDK updates to load through reflux
+      await tick();
+      wrapper.update();
+
+      expect(apiMocks.sdkUpdates).toHaveBeenCalled();
+      expect(wrapper.find('SidebarPanel UpdatesList')).toHaveLength(1);
+
+      expect(wrapper.find('SidebarPanel BroadcastSdkUpdates')).toSnapshot();
+    });
   });
 });
