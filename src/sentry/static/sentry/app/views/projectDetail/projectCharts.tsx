@@ -34,7 +34,7 @@ enum DisplayModes {
   TPM = 'tpm',
   ERRORS = 'errors',
   TRANSACTIONS = 'transactions',
-  STABILITY = 'stability',
+  STABILITY = 'crash_free',
 }
 
 const DISPLAY_URL_KEY = ['display1', 'display2'];
@@ -135,7 +135,7 @@ class ProjectCharts extends React.Component<Props, State> {
       },
       {
         value: DisplayModes.STABILITY,
-        label: t('Stability'),
+        label: t('Crash Free Rate'),
         disabled: this.otherActiveDisplayModes.includes(DisplayModes.STABILITY),
       },
     ];
