@@ -273,7 +273,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
             </Field>
             <Field
               data-test-id="chart-type"
-              label={t('Chart Type')}
+              label={t('Visualization')}
               inline={false}
               flexibleControlStateSize
               stacked
