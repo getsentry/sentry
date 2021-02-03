@@ -154,6 +154,10 @@ class Chart extends React.Component<ChartProps> {
       return true;
     }
 
+    if (nextProps.timeSeries !== this.props.timeSeries) {
+      return true;
+    }
+
     return false;
   }
 
