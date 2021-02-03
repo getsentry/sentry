@@ -80,35 +80,40 @@ function IssueListHeader({
       </BorderlessHeader>
       <TabLayoutHeader>
         <Layout.HeaderNavTabs underlined>
-          {visibleTabs.map(([tabQuery, {name: queryName}]) => (
-            <li key={tabQuery} className={query === tabQuery ? 'active' : ''}>
-              <Link
-                to={{
-                  query: {...queryParms, query: tabQuery},
-                  pathname: `/organizations/${organization.slug}/issues/`,
-                }}
-              >
-                <GuideAnchor
-                  target={queryName === 'For Review' ? 'inbox_guide_tab' : 'none'}
-                  disabled={queryName !== 'For Review'}
-                  to={{
-                    query: {...router?.location?.query, query: tabQuery},
-                    pathname: `/organizations/${organization.slug}/issues/`,
-                    step: 1,
-                  }}
-                >
-                  {queryName}{' '}
-                  {queryCounts[tabQuery] && (
-                    <StyledQueryCount
-                      isTag
-                      count={queryCounts[tabQuery].count}
-                      max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
-                    />
-                  )}
-                </GuideAnchor>
-              </Link>
-            </li>
-          ))}
+          {visibleTabs.map(([tabQuery, {name: queryName}]) => {
+            const inboxGuideStepOne = queryName === 'For Review' && query !== tabQuery;
+            const inboxGuideStepTwo = queryName === 'For Review' && query === tabQuery;
+            const to = {
+              query: {...queryParms, query: tabQuery},
+              pathname: `/organizations/${organization.slug}/issues/`,
+            };
+
+            return (
+              <li key={tabQuery} className={query === tabQuery ? 'active' : ''}>
+                <Link to={to}>
+                  <GuideAnchor
+                    target={inboxGuideStepOne ? 'inbox_guide_tab' : 'none'}
+                    disabled={!inboxGuideStepOne}
+                    to={to}
+                  >
+                    <GuideAnchor
+                      target={inboxGuideStepTwo ? 'for_review_guide_tab' : 'none'}
+                      disabled={!inboxGuideStepTwo}
+                    >
+                      {queryName}{' '}
+                      {queryCounts[tabQuery] && (
+                        <StyledQueryCount
+                          isTag
+                          count={queryCounts[tabQuery].count}
+                          max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
+                        />
+                      )}
+                    </GuideAnchor>
+                  </GuideAnchor>
+                </Link>
+              </li>
+            );
+          })}
           <SavedSearchTab
             organization={organization}
             query={query}

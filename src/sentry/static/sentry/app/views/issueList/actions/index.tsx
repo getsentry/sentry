@@ -121,11 +121,13 @@ class IssueListActions extends React.Component<Props, State> {
 
   handleGuideStateChange(data: GuideStoreState) {
     const {hasInbox} = this.props;
-    const inboxGuideActive = !!(hasInbox && data.currentGuide?.guide === 'inbox_guide');
+    const inboxGuideActive = !!(
+      hasInbox && data.currentGuide?.guide === 'for_review_guide'
+    );
     this.setState({
       inboxGuideActive,
-      inboxGuideActiveReview: inboxGuideActive && data.currentStep === 3,
-      inboxGuideActiveIgnore: inboxGuideActive && data.currentStep === 4,
+      inboxGuideActiveReview: inboxGuideActive && data.currentStep === 2,
+      inboxGuideActiveIgnore: inboxGuideActive && data.currentStep === 3,
     });
   }
 
