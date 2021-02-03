@@ -562,72 +562,73 @@ export type GlobalSelection = {
   };
 };
 
-type AuthenticatorDevice = {
+export type AuthenticatorDevice = {
   key_handle: string;
   authId: string;
   name: string;
+  timestamp?: string;
 };
+
+type QRCode = (0 | 1)[][];
 
 export type Authenticator = {
   /**
    * String used to display on button for user as CTA to enroll
    */
   enrollButton: string;
-
   /**
    * Display name for the authenticator
    */
   name: string;
-
   /**
    * Allows multiple enrollments to authenticator
    */
   allowMultiEnrollment: boolean;
-
   /**
    * String to display on button for user to remove authenticator
    */
   removeButton: string | null;
-
   canValidateOtp: boolean;
-
   /**
    * Is user enrolled to this authenticator
    */
   isEnrolled: boolean;
-
   /**
    * String to display on button for additional information about authenticator
    */
   configureButton: string;
-
-  /**
-   * Type of authenticator
-   */
-  id: string;
-
   /**
    * Is this used as a backup interface?
    */
   isBackupInterface: boolean;
-
   /**
    * Description of the authenticator
    */
   description: string;
-
   createdAt: string | null;
-
   lastUsedAt: string | null;
-
   codes: string[];
-
   devices: AuthenticatorDevice[];
-
   phone?: string;
-
-  challenge?: ChallengeData;
-} & Partial<EnrolledAuthenticator>;
+  secret?: string;
+  /**
+   * The form configuration for the authenticator is present during enrollment
+   */
+  form?: Field[];
+} & Partial<EnrolledAuthenticator> &
+  (
+    | {
+        id: 'sms';
+      }
+    | {
+        id: 'totp';
+        qrcode: QRCode;
+      }
+    | {
+        id: 'u2f';
+        challenge: ChallengeData;
+      }
+  );
 
 export type ChallengeData = {
   authenticateRequests: u2f.SignRequest;
