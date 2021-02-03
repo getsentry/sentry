@@ -203,12 +203,12 @@ class LatencyChart extends React.Component<Props, State> {
     return (
       <React.Fragment>
         <HeaderTitleLegend>
-          {t('Latency Distribution')}
+          {t('Duration Distribution')}
           <QuestionTooltip
             position="top"
             size="sm"
             title={t(
-              `Latency Distribution reflects the volume of transactions per median duration.`
+              `Duration Distribution reflects the volume of transactions per median duration.`
             )}
           />
         </HeaderTitleLegend>
