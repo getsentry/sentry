@@ -610,7 +610,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         assigned_groups = groups[:2]
         for ag in assigned_groups:
-            ag.update(status=GroupStatus.RESOLVED, resolved_at=before_now(seconds=5))
             GroupAssignee.objects.assign(ag, self.user)
 
         response = self.get_response(limit=10, query="assigned:me")
@@ -618,6 +617,10 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         response = self.get_response(limit=10, query="assigned:me_or_none")
         assert len(response.data) == 5
+
+        GroupAssignee.objects.assign(ag, self.create_user("other@user.com"))
+        response = self.get_response(limit=10, query="assigned:me_or_none")
+        assert len(response.data) == 4
 
     def test_seen_stats(self):
         self.store_event(
