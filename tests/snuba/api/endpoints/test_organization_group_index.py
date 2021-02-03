@@ -887,6 +887,16 @@ class GroupListTest(APITestCase, SnubaTestCase):
             assert int(response.data[2]["id"]) == event2.group.id
             assert int(response.data[3]["id"]) == assigned_event.group.id
 
+            # Assign group to another user and now it shouldn't show up in owner search for this team.
+            GroupAssignee.objects.create(
+                group=event.group,
+                project=event.group.project,
+                user=other_user,
+            )
+            response = self.get_response(sort_by="date", limit=10, query=f"owner:#{self.team.slug}")
+            assert response.status_code == 200
+            assert len(response.data) == 0
+
     def test_aggregate_stats_regression_test(self):
         self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
