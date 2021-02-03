@@ -1,12 +1,12 @@
 __all__ = ["timing", "incr"]
 
 import logging
+import time
 
 import functools
 from contextlib import contextmanager
 from django.conf import settings
 from random import random
-from time import time
 from threading import Thread, local
 from six.moves.queue import Queue
 
@@ -171,7 +171,7 @@ def timer(key, instance=None, tags=None, sample_rate=settings.SENTRY_METRICS_SAM
     if tags is not None:
         current_tags.update(tags)
 
-    start = time()
+    start = time.monotonic()
     try:
         yield current_tags
     except Exception:
@@ -180,7 +180,7 @@ def timer(key, instance=None, tags=None, sample_rate=settings.SENTRY_METRICS_SAM
     else:
         current_tags["result"] = "success"
     finally:
-        timing(key, time() - start, instance, current_tags, sample_rate)
+        timing(key, time.monotonic() - start, instance, current_tags, sample_rate)
 
 
 def wraps(key, instance=None, tags=None):
