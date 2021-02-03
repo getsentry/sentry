@@ -460,10 +460,16 @@ urlpatterns = [
         name="sentry-api-0-api-authorizations",
     ),
     url(r"^api-tokens/$", ApiTokensEndpoint.as_view(), name="sentry-api-0-api-tokens"),
+    # TODO: Remove after deploy
     url(
         r"^promptsactivity/$",
         PromptsActivityEndpoint.as_view(),
         name="sentry-api-0-promptsactivity",
+    ),
+    url(
+        r"^prompts-activity/$",
+        PromptsActivityEndpoint.as_view(),
+        name="sentry-api-0-prompts-activity",
     ),
     # Auth
     url(
