@@ -162,13 +162,3 @@ class Integration(DefaultFieldsModel):
             )
 
             return org_integration
-
-    def reauthorize(self, data):
-        """
-        The structure of `data` depends on the `build_integration`
-        method on the integration provider.
-
-        Each provider may have their own way of reauthorizing the
-        integration.
-        """
-        pass
