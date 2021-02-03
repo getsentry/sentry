@@ -126,8 +126,9 @@ class SearchBar extends React.PureComponent<Props, State> {
 const StyledInput = styled(Input)`
   width: ${p => (p.width ? p.width : undefined)};
   &.focus-visible {
-    box-shadow: inset 0 2px 0 rgb(0 0 0 / 4%), 0 0 6px rgb(177 171 225 / 30%);
+    box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.04), 0 0 6px rgba(177, 171, 225, 0.3);
     border-color: #a598b2;
+    outline: none;
   }
 `;
 
