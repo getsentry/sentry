@@ -1,5 +1,3 @@
-import six
-
 from django.core.urlresolvers import reverse
 
 from sentry.models import EventUser, OrganizationMemberTeam
@@ -77,7 +75,7 @@ class OrganizationUserIssuesTest(APITestCase, SnubaTestCase):
         # result shouldn't include results from team2/project2 or bar@example.com
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(self.group1.id)
+        assert response.data[0]["id"] == str(self.group1.id)
 
         OrganizationMemberTeam.objects.create(
             team=self.team2, organizationmember=member, is_active=True
@@ -88,5 +86,5 @@ class OrganizationUserIssuesTest(APITestCase, SnubaTestCase):
         # now result should include results from team2/project2
         assert response.status_code == 200
         assert len(response.data) == 2
-        assert response.data[0]["id"] == six.text_type(self.group3.id)
-        assert response.data[1]["id"] == six.text_type(self.group1.id)
+        assert response.data[0]["id"] == str(self.group3.id)
+        assert response.data[1]["id"] == str(self.group1.id)

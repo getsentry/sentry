@@ -1,4 +1,3 @@
-import six
 import uuid
 
 from pytz import utc
@@ -238,7 +237,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             for minute in range(count):
                 self.store_event(
                     data={
-                        "event_id": six.text_type(uuid.uuid1()),
+                        "event_id": str(uuid.uuid1()),
                         "message": "very bad",
                         "timestamp": iso_format(
                             self.day_ago + timedelta(hours=hour, minutes=minute)
@@ -278,7 +277,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             for minute in range(count):
                 self.store_event(
                     data={
-                        "event_id": six.text_type(uuid.uuid1()),
+                        "event_id": str(uuid.uuid1()),
                         "message": "very bad",
                         "timestamp": iso_format(
                             self.day_ago + timedelta(hours=hour, minutes=minute)
@@ -316,7 +315,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             for second in range(count):
                 self.store_event(
                     data={
-                        "event_id": six.text_type(uuid.uuid1()),
+                        "event_id": str(uuid.uuid1()),
                         "message": "very bad",
                         "timestamp": iso_format(
                             self.day_ago + timedelta(minutes=minute, seconds=second)
@@ -356,7 +355,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             for second in range(count):
                 self.store_event(
                     data={
-                        "event_id": six.text_type(uuid.uuid1()),
+                        "event_id": str(uuid.uuid1()),
                         "message": "very bad",
                         "timestamp": iso_format(
                             self.day_ago + timedelta(minutes=minute, seconds=second)
@@ -712,7 +711,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         for index, event_data in enumerate(self.event_data):
             data = event_data["data"].copy()
             for i in range(event_data["count"]):
-                data["event_id"] = "{}{}".format(index, i) * 16
+                data["event_id"] = f"{index}{i}" * 16
                 event = self.store_event(data, project_id=event_data["project"].id)
             self.events.append(event)
         self.transaction = self.events[4]
@@ -1368,10 +1367,10 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
                     "interval": "1h",
                     "yAxis": "count()",
                     # the double underscores around the version alias is because of a comma and quote
-                    "orderby": ["-to_other_release__{}__others_current".format(version_alias)],
+                    "orderby": [f"-to_other_release__{version_alias}__others_current"],
                     "field": [
                         "count()",
-                        'to_other(release,"{}",others,current)'.format(version_escaped),
+                        f'to_other(release,"{version_escaped}",others,current)',
                     ],
                     "topEvents": 2,
                 },

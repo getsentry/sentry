@@ -64,7 +64,7 @@ class ProjectDetailTest(AcceptanceTestCase):
         self.create_release(project=self.project, version="3.3.3")
 
         self.login_as(self.user)
-        self.path = "/organizations/{}/projects/{}/".format(self.org.slug, self.project.slug)
+        self.path = f"/organizations/{self.org.slug}/projects/{self.project.slug}/"
 
     def test_simple(self):
         with self.feature(FEATURE_NAME):

@@ -1,6 +1,5 @@
 from uuid import uuid1
 
-import six
 
 from sentry.models import Commit, GroupLink, GroupResolution, ReleaseCommit, Repository
 
@@ -67,7 +66,7 @@ class OrganizationIssuesResolvedInReleaseEndpointTest(APITestCase, SnubaTestCase
 
         response = self.get_valid_response(self.org.slug, self.release.version, **params)
         assert len(response.data) == len(expected_groups)
-        expected = set(map(six.text_type, [g.id for g in expected_groups]))
+        expected = set(map(str, [g.id for g in expected_groups]))
         assert set([item["id"] for item in response.data]) == expected
 
     def test_shows_issues_from_groupresolution(self):

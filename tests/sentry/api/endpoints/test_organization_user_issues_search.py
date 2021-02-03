@@ -1,4 +1,4 @@
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from django.core.urlresolvers import reverse
 
@@ -53,7 +53,7 @@ class OrganizationUserIssuesSearchTest(APITestCase, SnubaTestCase):
         self.create_member(user=user, organization=self.org)
         self.login_as(user=user)
 
-        url = "%s?%s" % (self.get_url(), urlencode({"email": "foo@example.com"}))
+        url = "{}?{}".format(self.get_url(), urlencode({"email": "foo@example.com"}))
 
         response = self.client.get(url, format="json")
         assert response.status_code == 200
@@ -68,7 +68,7 @@ class OrganizationUserIssuesSearchTest(APITestCase, SnubaTestCase):
             team=self.team1, organizationmember=member, is_active=True
         )
 
-        url = "%s?%s" % (self.get_url(), urlencode({"email": "foo@example.com"}))
+        url = "{}?{}".format(self.get_url(), urlencode({"email": "foo@example.com"}))
         response = self.client.get(url, format="json")
         # result shouldn't include results from team2/project2 or bar@example.com
         assert response.status_code == 200

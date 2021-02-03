@@ -1,8 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {withInfo} from '@storybook/addon-info';
-import {action} from '@storybook/addon-actions';
-import {text} from '@storybook/addon-knobs';
 
 import OptionSelector from 'app/components/charts/optionSelector';
 import space from 'app/styles/space';
@@ -17,22 +14,31 @@ const options = [
 
 export default {
   title: 'DataVisualization/Charts/OptionSelector',
+  component: OptionSelector,
+  args: {
+    selected: 'none',
+    title: 'Display',
+    options,
+    menuWidth: '200px',
+  },
+  argTypes: {
+    onChange: {action: 'changed'},
+  },
 };
 
-export const Default = withInfo('Selector control for chart controls')(() => (
-  <Container>
-    <OptionSelector
-      options={options}
-      selected={text('selected', 'none')}
-      title={text('title', 'Display')}
-      menuWidth={text('menuWidth', '200px')}
-      onChange={action('changed')}
-    />
+export const Default = ({...args}) => (
+  <Container style={{padding: '0 50px 200px'}}>
+    <OptionSelector {...args} />
   </Container>
-));
+);
 
-Default.story = {
-  name: 'default',
+Default.storyName = 'OptionSelector';
+Default.parameters = {
+  docs: {
+    description: {
+      story: 'Selector control for chart controls',
+    },
+  },
 };
 
 const Container = styled('div')`

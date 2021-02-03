@@ -324,7 +324,7 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
     return (
       <Form
         key={action}
-        apiEndpoint={`/sentry-app-installations/${sentryAppInstallation.uuid}/external-issues/`}
+        apiEndpoint={`/sentry-app-installations/${sentryAppInstallation.uuid}/external-issue-actions/`}
         apiMethod="POST"
         onSubmitSuccess={this.onSubmitSuccess}
         onSubmitError={this.onSubmitError}

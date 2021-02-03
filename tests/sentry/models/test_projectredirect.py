@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from sentry.models import ProjectRedirect
 from sentry.testutils import TestCase
 

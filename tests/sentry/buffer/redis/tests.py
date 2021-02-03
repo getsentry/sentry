@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
-import six
 from django.utils.encoding import force_text
 
 from sentry.utils.compat import mock, pickle
@@ -101,7 +97,7 @@ class RedisBufferTest(TestCase):
         self.buf.incr(model, columns, filters, extra={"foo": "bar", "datetime": now})
         result = client.hgetall("foo")
         # Force keys to strings
-        result = {force_text(k): v for k, v in six.iteritems(result)}
+        result = {force_text(k): v for k, v in result.items()}
 
         f = result.pop("f")
         assert pickle.loads(f) == {"pk": 1, "datetime": now}
@@ -114,7 +110,7 @@ class RedisBufferTest(TestCase):
         self.buf.incr(model, columns, filters, extra={"foo": "baz", "datetime": now})
         result = client.hgetall("foo")
         # Force keys to strings
-        result = {force_text(k): v for k, v in six.iteritems(result)}
+        result = {force_text(k): v for k, v in result.items()}
         f = result.pop("f")
         assert pickle.loads(f) == {"pk": 1, "datetime": now}
         assert pickle.loads(result.pop("e+datetime")) == now

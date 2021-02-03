@@ -1,4 +1,3 @@
-import six
 from datetime import timedelta
 
 from django.core.urlresolvers import reverse
@@ -32,7 +31,7 @@ class OrganizationEventsTrendsBase(APITestCase, SnubaTestCase):
             data["timestamp"] = iso_format(
                 self.day_ago + timedelta(hours=1, minutes=30 + i, seconds=second[i])
             )
-            data["user"] = {"email": "foo{}@example.com".format(i)}
+            data["user"] = {"email": f"foo{i}@example.com"}
             self.store_event(data, project_id=self.project.id)
 
         self.expected_data = {
@@ -706,15 +705,15 @@ class OrganizationEventsTrendsPagingTest(APITestCase, SnubaTestCase):
                     self.day_ago + timedelta(hours=j, minutes=30, seconds=2)
                 )
                 if i < 5:
-                    data["transaction"] = "transaction_1{}".format(i)
+                    data["transaction"] = f"transaction_1{i}"
                 else:
-                    data["transaction"] = "transaction_2{}".format(i)
+                    data["transaction"] = f"transaction_2{i}"
                 self.store_event(data, project_id=self.project.id)
 
     def _parse_links(self, header):
         # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
         links = {}
-        for url, attrs in six.iteritems(parse_link_header(header)):
+        for url, attrs in parse_link_header(header).items():
             links[attrs["rel"]] = attrs
             attrs["href"] = url
         return links

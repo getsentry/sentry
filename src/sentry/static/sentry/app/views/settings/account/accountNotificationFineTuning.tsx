@@ -153,7 +153,6 @@ const AccountNotificationsByProject = ({projects, field}: ANBPProps) => {
           {projectFields.map(f => (
             <PanelBodyLineItem key={f.name}>
               <SelectField
-                deprecatedSelectControl
                 defaultValue={f.defaultValue}
                 name={f.name}
                 choices={f.choices}
@@ -190,7 +189,6 @@ const AccountNotificationsByOrganization = ({organizations, field}: ANBOProps) =
       {data.map(f => (
         <PanelBodyLineItem key={f.name}>
           <SelectField
-            deprecatedSelectControl
             defaultValue={f.defaultValue}
             name={f.name}
             choices={f.choices}

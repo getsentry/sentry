@@ -1,4 +1,3 @@
-import six
 import pytest
 
 from sentry.utils.compat.mock import patch
@@ -238,7 +237,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
         result = discover.query(
             selected_columns=["id", "message"],
-            query="release:{}".format(self.release.version),
+            query=f"release:{self.release.version}",
             params={"project_id": [self.project.id]},
         )
         assert len(result["data"]) == 1
@@ -269,7 +268,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
         result = discover.query(
             selected_columns=["id", "message"],
-            query="environment:{}".format(self.environment.name),
+            query=f"environment:{self.environment.name}",
             params={"project_id": [self.project.id]},
         )
         assert len(result["data"]) == 1
@@ -292,7 +291,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
         result = discover.query(
             selected_columns=["project", "message"],
-            query="project:{} OR project:{}".format(self.project.slug, project2.slug),
+            query=f"project:{self.project.slug} OR project:{project2.slug}",
             params={"project_id": [self.project.id, project2.id]},
             orderby="message",
         )
@@ -377,7 +376,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             for i in range(ev[1]):
                 data = load_data("transaction")
                 data["timestamp"] = iso_format(before_now(seconds=1))
-                data["transaction"] = "{}-{}".format(val, i)
+                data["transaction"] = f"{val}-{i}"
                 data["message"] = val
                 data["tags"] = {"trek": val}
                 self.store_event(data=data, project_id=self.project.id)
@@ -404,7 +403,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             for i in range(ev[1]):
                 data = load_data("transaction")
                 data["timestamp"] = iso_format(before_now(seconds=1))
-                data["transaction"] = "{}-{}".format(val, i)
+                data["transaction"] = f"{val}-{i}"
                 data["message"] = val
                 data["tags"] = {"trek": val}
                 self.store_event(data=data, project_id=self.project.id)
@@ -441,7 +440,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             val = ev[0] * 32
             for i in range(ev[1]):
                 data = load_data("transaction", timestamp=before_now(seconds=3 * t + 1))
-                data["transaction"] = "{}".format(val)
+                data["transaction"] = f"{val}"
                 self.store_event(data=data, project_id=self.project.id)
 
         results = discover.query(
@@ -541,7 +540,7 @@ class QueryTransformTest(TestCase):
                 query="event.type:transaction",
                 params={"project_id": [self.project.id]},
             )
-        assert "No columns selected" in six.text_type(err)
+        assert "No columns selected" in str(err)
         assert mock_query.call_count == 0
 
     @patch("sentry.snuba.discover.raw_query")
@@ -561,8 +560,8 @@ class QueryTransformTest(TestCase):
                     "transform",
                     [
                         ["toString", ["project_id"]],
-                        ["array", ["'{}'".format(self.project.id)]],
-                        ["array", ["'{}'".format(self.project.slug)]],
+                        ["array", [f"'{self.project.id}'"]],
+                        ["array", [f"'{self.project.slug}'"]],
                         "''",
                     ],
                     "project",
@@ -591,7 +590,7 @@ class QueryTransformTest(TestCase):
         }
         discover.query(
             selected_columns=["title", "project"],
-            query="project:{}".format(project2.slug),
+            query=f"project:{project2.slug}",
             params={"project_id": [self.project.id, project2.id]},
         )
         mock_query.assert_called_with(
@@ -602,8 +601,8 @@ class QueryTransformTest(TestCase):
                     "transform",
                     [
                         ["toString", ["project_id"]],
-                        ["array", ["'{}'".format(project2.id)]],
-                        ["array", ["'{}'".format(project2.slug)]],
+                        ["array", [f"'{project2.id}'"]],
+                        ["array", [f"'{project2.slug}'"]],
                         "''",
                     ],
                     "project",
@@ -632,7 +631,7 @@ class QueryTransformTest(TestCase):
         }
         discover.query(
             selected_columns=["title", "project", "p99()"],
-            query="project:{}".format(project2.slug),
+            query=f"project:{project2.slug}",
             params={"project_id": [self.project.id, project2.id]},
         )
         mock_query.assert_called_with(
@@ -643,8 +642,8 @@ class QueryTransformTest(TestCase):
                     "transform",
                     [
                         ["toString", ["project_id"]],
-                        ["array", ["'{}'".format(project2.id)]],
-                        ["array", ["'{}'".format(project2.slug)]],
+                        ["array", [f"'{project2.id}'"]],
+                        ["array", [f"'{project2.slug}'"]],
                         "''",
                     ],
                     "project",
@@ -1038,7 +1037,7 @@ class QueryTransformTest(TestCase):
             selected_columns=["transaction"],
             conditions=[
                 ["type", "=", "transaction"],
-                [["match", ["email", "'(?i)^.*@sentry\.io$'"]], "=", 1],
+                [["match", ["email", r"'(?i)^.*@sentry\.io$'"]], "=", 1],
                 [["positionCaseInsensitive", ["message", "'recent-searches'"]], "!=", 0],
             ],
             aggregations=[["count", None, "count"]],
@@ -1122,7 +1121,7 @@ class QueryTransformTest(TestCase):
         # project_id condition.
         discover.query(
             selected_columns=["transaction", "transaction.duration"],
-            query="project.name:{}".format(project2.slug),
+            query=f"project.name:{project2.slug}",
             params={"project_id": [self.project.id, project2.id]},
         )
         mock_query.assert_called_with(
@@ -1252,7 +1251,7 @@ class QueryTransformTest(TestCase):
             }
             discover.query(
                 selected_columns=["transaction", "p95()"],
-                query="http.method:GET p95():>{}".format(query_string),
+                query=f"http.method:GET p95():>{query_string}",
                 params={"project_id": [self.project.id], "start": start_time, "end": end_time},
                 use_aggregate_conditions=True,
             )
@@ -1356,7 +1355,7 @@ class QueryTransformTest(TestCase):
             }
             discover.query(
                 selected_columns=["transaction", "avg(transaction.duration)", "max(time)"],
-                query="http.method:GET avg(transaction.duration):>{}".format(query_string),
+                query=f"http.method:GET avg(transaction.duration):>{query_string}",
                 params={"project_id": [self.project.id], "start": start_time, "end": end_time},
                 use_aggregate_conditions=True,
             )
@@ -2050,9 +2049,8 @@ class QueryTransformTest(TestCase):
                 3,
                 0,
             )
-        assert (
-            "multihistogram expected all measurements, received: transaction.duration"
-            in six.text_type(err)
+        assert "multihistogram expected all measurements, received: transaction.duration" in str(
+            err
         )
 
     @patch("sentry.snuba.discover.raw_query")
@@ -2173,7 +2171,7 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
                 params={"project_id": [self.project.id]},
                 rollup=1800,
             )
-        assert "without a start and end" in six.text_type(err)
+        assert "without a start and end" in str(err)
 
     def test_no_aggregations(self):
         with pytest.raises(InvalidSearchQuery) as err:
@@ -2187,7 +2185,7 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
                 },
                 rollup=1800,
             )
-        assert "no aggregation" in six.text_type(err)
+        assert "no aggregation" in str(err)
 
     def test_field_alias(self):
         result = discover.timeseries_query(
@@ -2277,7 +2275,7 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
 
         result = discover.timeseries_query(
             selected_columns=["count()"],
-            query="project:{} OR project:{}".format(self.project.slug, project2.slug),
+            query=f"project:{self.project.slug} OR project:{project2.slug}",
             params={
                 "start": before_now(minutes=5),
                 "end": before_now(seconds=1),
@@ -2333,7 +2331,7 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
 
 
 def format_project_event(project_slug, event_id):
-    return "{}:{}".format(project_slug, event_id)
+    return f"{project_slug}:{event_id}"
 
 
 class GetFacetsTest(SnubaTestCase, TestCase):

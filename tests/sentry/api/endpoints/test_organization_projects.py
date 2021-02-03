@@ -9,7 +9,7 @@ from sentry.testutils import APITestCase
 class OrganizationProjectsTest(APITestCase):
     @fixture
     def path(self):
-        return "/api/0/organizations/{}/projects/".format(self.organization.slug)
+        return f"/api/0/organizations/{self.organization.slug}/projects/"
 
     def check_valid_response(self, response, expected_projects):
         assert response.status_code == 200, response.content
@@ -30,29 +30,29 @@ class OrganizationProjectsTest(APITestCase):
 
         projects = [self.create_project(teams=[self.team])]
 
-        response = self.client.get("{}?statsPeriod=24h".format(self.path), format="json")
+        response = self.client.get(f"{self.path}?statsPeriod=24h", format="json")
         self.check_valid_response(response, projects)
         assert "stats" in response.data[0]
 
-        response = self.client.get("{}?statsPeriod=14d".format(self.path), format="json")
+        response = self.client.get(f"{self.path}?statsPeriod=14d", format="json")
         self.check_valid_response(response, projects)
         assert "stats" in response.data[0]
 
-        response = self.client.get("{}?statsPeriod=".format(self.path), format="json")
+        response = self.client.get(f"{self.path}?statsPeriod=", format="json")
         self.check_valid_response(response, projects)
         assert "stats" not in response.data[0]
 
-        response = self.client.get("{}?statsPeriod=48h".format(self.path), format="json")
+        response = self.client.get(f"{self.path}?statsPeriod=48h", format="json")
         assert response.status_code == 400
 
     def test_search(self):
         self.login_as(user=self.user)
         project = self.create_project(teams=[self.team], name="bar", slug="bar")
 
-        response = self.client.get("{}?query=bar".format(self.path))
+        response = self.client.get(f"{self.path}?query=bar")
         self.check_valid_response(response, [project])
 
-        response = self.client.get("{}?query=baz".format(self.path))
+        response = self.client.get(f"{self.path}?query=baz")
         self.check_valid_response(response, [])
 
     def test_search_by_ids(self):
@@ -62,11 +62,11 @@ class OrganizationProjectsTest(APITestCase):
         project_foo = self.create_project(teams=[self.team], name="foo", slug="foo")
         self.create_project(teams=[self.team], name="baz", slug="baz")
 
-        path = "{}?query=id:{}".format(self.path, project_foo.id)
+        path = f"{self.path}?query=id:{project_foo.id}"
         response = self.client.get(path)
         self.check_valid_response(response, [project_foo])
 
-        path = "{}?query=id:{} id:{}".format(self.path, project_bar.id, project_foo.id)
+        path = f"{self.path}?query=id:{project_bar.id} id:{project_foo.id}"
         response = self.client.get(path)
 
         self.check_valid_response(response, [project_bar, project_foo])
@@ -78,11 +78,11 @@ class OrganizationProjectsTest(APITestCase):
         project_foo = self.create_project(teams=[self.team], name="foo", slug="foo")
         self.create_project(teams=[self.team], name="baz", slug="baz")
 
-        path = "{}?query=slug:{}".format(self.path, project_foo.slug)
+        path = f"{self.path}?query=slug:{project_foo.slug}"
         response = self.client.get(path)
         self.check_valid_response(response, [project_foo])
 
-        path = "{}?query=slug:{} slug:{}".format(self.path, project_bar.slug, project_foo.slug)
+        path = f"{self.path}?query=slug:{project_bar.slug} slug:{project_foo.slug}"
         response = self.client.get(path)
 
         self.check_valid_response(response, [project_bar, project_foo])
@@ -91,8 +91,7 @@ class OrganizationProjectsTest(APITestCase):
         self.login_as(user=self.user)
 
         projects = [
-            self.create_project(teams=[self.team], name=i, slug="project-{}".format(i))
-            for i in range(3)
+            self.create_project(teams=[self.team], name=i, slug=f"project-{i}") for i in range(3)
         ]
         projects.sort(key=lambda project: project.slug)
 
@@ -125,11 +124,11 @@ class OrganizationProjectsTest(APITestCase):
         project_bar = self.create_project(teams=[self.team], name="bar", slug="bar")
         project_foo = self.create_project(teams=[other_team], name="foo", slug="foo")
         project_baz = self.create_project(teams=[other_team], name="baz", slug="baz")
-        path = "{}?query=team:{}".format(self.path, self.team.slug)
+        path = f"{self.path}?query=team:{self.team.slug}"
         response = self.client.get(path)
         self.check_valid_response(response, [project_bar])
 
-        path = "{}?query=!team:{}".format(self.path, self.team.slug)
+        path = f"{self.path}?query=!team:{self.team.slug}"
         response = self.client.get(path)
         self.check_valid_response(response, [project_baz, project_foo])
 
@@ -140,7 +139,7 @@ class OrganizationProjectsTest(APITestCase):
 
         response = self.client.get(
             self.path,
-            HTTP_AUTHORIZATION=b"Basic " + b64encode("{}:".format(key.key).encode("utf-8")),
+            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{key.key}:".encode("utf-8")),
         )
         self.check_valid_response(response, [project])
 
@@ -190,7 +189,7 @@ class OrganizationProjectsTest(APITestCase):
 class OrganizationProjectsCountTest(APITestCase):
     @fixture
     def path(self):
-        return "/api/0/organizations/{}/projects-count/".format(self.organization.slug)
+        return f"/api/0/organizations/{self.organization.slug}/projects-count/"
 
     def test_project_count(self):
         self.foo_user = self.create_user("foo@example.com")

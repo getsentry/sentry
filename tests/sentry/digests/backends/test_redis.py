@@ -6,8 +6,6 @@ from sentry.digests.backends.base import InvalidState
 from sentry.digests.backends.redis import RedisBackend
 from sentry.testutils import TestCase
 
-from six.moves import xrange
-
 
 class RedisBackendTestCase(TestCase):
     def test_basic(self):
@@ -43,7 +41,7 @@ class RedisBackendTestCase(TestCase):
     def test_truncation(self):
         backend = RedisBackend(capacity=2, truncation_chance=1.0)
 
-        records = [Record("record:{}".format(i), "value", time.time()) for i in xrange(4)]
+        records = [Record(f"record:{i}", "value", time.time()) for i in range(4)]
         for record in records:
             backend.add("timeline", record)
 
@@ -87,8 +85,8 @@ class RedisBackendTestCase(TestCase):
         t = time.time()
 
         # Add 10 items to the timeline.
-        for i in xrange(10):
-            backend.add("timeline", Record("record:{}".format(i), "{}".format(i), t + i))
+        for i in range(10):
+            backend.add("timeline", Record(f"record:{i}", f"{i}", t + i))
 
         try:
             with backend.digest("timeline", 0) as records:
@@ -100,8 +98,8 @@ class RedisBackendTestCase(TestCase):
         # prevented the close operation from occurring, so they were never
         # deleted from Redis or removed from the digest set.) If we add 10 more
         # items, they should be added to the timeline set (not the digest set.)
-        for i in xrange(10, 20):
-            backend.add("timeline", Record("record:{}".format(i), "{}".format(i), t + i))
+        for i in range(10, 20):
+            backend.add("timeline", Record(f"record:{i}", f"{i}", t + i))
 
         # Maintenance should move the timeline back to the waiting state, ...
         backend.maintenance(time.time())
@@ -112,7 +110,7 @@ class RedisBackendTestCase(TestCase):
         # Only the new records should exist -- the older one should have been
         # trimmed to avoid the digest growing beyond the timeline capacity.
         with backend.digest("timeline", 0) as records:
-            expected_keys = set("record:{}".format(i) for i in xrange(10, 20))
+            expected_keys = set(f"record:{i}" for i in range(10, 20))
             assert set(record.key for record in records) == expected_keys
 
     def test_delete(self):
@@ -147,8 +145,8 @@ class RedisBackendTestCase(TestCase):
 
         n = 8192
         t = time.time()
-        for i in xrange(n):
-            backend.add("timeline", Record("record:{}".format(i), "{}".format(i), t))
+        for i in range(n):
+            backend.add("timeline", Record(f"record:{i}", f"{i}", t))
 
         with backend.digest("timeline", 0) as records:
             assert len(set(records)) == n
