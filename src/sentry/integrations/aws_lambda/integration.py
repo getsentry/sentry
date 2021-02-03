@@ -193,8 +193,13 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
             account = org_client.describe_account(AccountId=account_number)["Account"]
             account_name = account["Name"]
             integration_name = f"{account_name} {region}"
-        except org_client.exceptions.AccessDeniedException:
+        except (
+            org_client.exceptions.AccessDeniedException,
+            org_client.exceptions.AWSOrganizationsNotInUseException,
+        ):
             # if the customer won't let us access the org name, use the account number instead
+            # we can also get a different error for on-prem users setting up the integration
+            # on an account that doesn't have an organization
             integration_name = f"{account_number} {region}"
 
         external_id = "{}-{}".format(account_number, region)
