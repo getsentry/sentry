@@ -46,7 +46,7 @@ from sentry.models import (
     User,
     UserOption,
 )
-from sentry.models.groupinbox import add_group_to_inbox
+from sentry.models.groupinbox import add_group_to_inbox, GroupInboxRemoveAction
 from sentry.models.group import looks_like_short_id, STATUS_UPDATE_CHOICES
 from sentry.api.issue_search import convert_query_values, InvalidSearchQuery, parse_search_query
 from sentry.signals import (
@@ -687,7 +687,9 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
 
                 group.status = GroupStatus.RESOLVED
                 group.resolved_at = now
-                remove_group_from_inbox(group, action="resolved", user=acting_user)
+                remove_group_from_inbox(
+                    group, action=GroupInboxRemoveAction.RESOLVED, user=acting_user
+                )
                 if has_inbox:
                     result["inbox"] = None
 
@@ -734,7 +736,9 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
             if new_status == GroupStatus.IGNORED:
                 metrics.incr("group.ignored", skip_internal=True)
                 for group in group_ids:
-                    remove_group_from_inbox(group, action="ignored", user=acting_user)
+                    remove_group_from_inbox(
+                        group, action=GroupInboxRemoveAction.IGNORED, user=acting_user
+                    )
                 if has_inbox:
                     result["inbox"] = None
 
@@ -1000,7 +1004,9 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
                 add_group_to_inbox(group, GroupInboxReason.MANUAL)
         elif not inbox:
             for group in group_list:
-                remove_group_from_inbox(group, action="mark_reviewed", user=acting_user)
+                remove_group_from_inbox(
+                    group, action=GroupInboxRemoveAction.MARK_REVIEWED, user=acting_user
+                )
                 issue_mark_reviewed.send_robust(
                     project=project,
                     user=acting_user,

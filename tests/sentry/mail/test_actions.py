@@ -1,4 +1,3 @@
-import six
 from django.core import mail
 
 from sentry.mail.actions import ActionTargetType, NotifyEmailAction, NotifyEmailForm
@@ -15,7 +14,7 @@ class NotifyEmailFormTest(TestCase):
     TARGET_IDENTIFIER_KEY = "targetIdentifier"
 
     def setUp(self):
-        super(NotifyEmailFormTest, self).setUp()
+        super().setUp()
         self.user = self.create_user(email="foo@example.com", is_active=True)
         self.user2 = self.create_user(email="baz@example.com", is_active=True)
         self.inactive_user = self.create_user(email="totallynotabot@149.com", is_active=False)
@@ -116,7 +115,7 @@ class NotifyEmailTest(RuleTestCase):
         action_data = {
             "id": "sentry.mail.actions.NotifyEmailAction",
             "targetType": "Member",
-            "targetIdentifier": six.text_type(self.user.id),
+            "targetIdentifier": str(self.user.id),
         }
         condition_data = {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
 

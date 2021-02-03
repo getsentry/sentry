@@ -1,5 +1,4 @@
 import pytz
-import six
 from datetime import datetime, timedelta
 
 from sentry.testutils.cases import OutcomesSnubaTest
@@ -24,7 +23,7 @@ def floor_to_10s_epoch(value):
 
 class SnubaTSDBTest(OutcomesSnubaTest):
     def setUp(self):
-        super(SnubaTSDBTest, self).setUp()
+        super().setUp()
         self.db = SnubaTSDB()
 
         # Set up the times
@@ -178,10 +177,10 @@ class SnubaTSDBTest(OutcomesSnubaTest):
             (TSDBModel.key_total_blacklisted, 10, floor_to_10s_epoch, 3, 4),
         ]:
             response = self.db.get_range(
-                # with [project_key.id, six.text_type(project_key.id)], we are imitating the hack in
+                # with [project_key.id, str(project_key.id), we are imitating the hack in
                 # project_key_stats.py cause that is what `get_range` will be called with.
                 tsdb_model,
-                [project_key.id, six.text_type(project_key.id)],
+                [project_key.id, str(project_key.id)],
                 self.start_time,
                 self.now,
                 granularity,

@@ -134,13 +134,19 @@ def assigned_or_suggested_filter(owner, projects):
     organization_id = projects[0].organization_id
     project_ids = [p.id for p in projects]
     if isinstance(owner, Team):
-        return Q(
-            id__in=GroupOwner.objects.filter(
-                team=owner, project_id__in=project_ids, organization_id=organization_id
+        return (
+            Q(
+                id__in=GroupOwner.objects.filter(
+                    Q(group__assignee_set__isnull=True),
+                    team=owner,
+                    project_id__in=project_ids,
+                    organization_id=organization_id,
+                )
+                .values_list("group_id", flat=True)
+                .distinct()
             )
-            .values_list("group_id", flat=True)
-            .distinct()
-        ) | assigned_to_filter(owner, projects)
+            | assigned_to_filter(owner, projects)
+        )
     elif isinstance(owner, User) or (isinstance(owner, list) and owner[0] == "me_or_none"):
         include_none = False
         if isinstance(owner, list) and owner[0] == "me_or_none":

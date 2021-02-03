@@ -1,6 +1,6 @@
 import pytz
 
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 from sentry.utils.compat.mock import patch
 
 from django.db.models import F
@@ -19,7 +19,7 @@ FEATURE_NAMES = (
 
 class PerformanceVitalDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
-        super(PerformanceVitalDetailsTest, self).setUp()
+        super().setUp()
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(
             organization=self.org, name="Mariachi Band", members=[self.user]

@@ -11,9 +11,9 @@ event_time = before_now(days=3).replace(tzinfo=pytz.utc)
 
 class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationIncidentsListTest, self).setUp()
+        super().setUp()
         self.login_as(self.user)
-        self.path = "/organizations/{}/alerts/".format(self.organization.slug)
+        self.path = f"/organizations/{self.organization.slug}/alerts/"
 
     def test_empty_incidents(self):
         with self.feature(FEATURE_NAME):
@@ -39,8 +39,8 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.wait_until_test_id("incident-sparkline")
             self.browser.snapshot("incidents - list")
 
-            details_url = '[href="/organizations/{}/alerts/{}/'.format(
-                self.organization.slug, incident.identifier
+            details_url = (
+                f'[href="/organizations/{self.organization.slug}/alerts/{incident.identifier}/'
             )
             self.browser.wait_until(details_url)
             self.browser.click(details_url)

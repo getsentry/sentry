@@ -1,6 +1,6 @@
 import os.path
 
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 from os.path import join, dirname
 
 from sentry.testutils import AcceptanceTestCase
@@ -47,7 +47,7 @@ def read_txt_email_fixture(name):
 
 class EmailTestCase(AcceptanceTestCase):
     def setUp(self):
-        super(EmailTestCase, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com")
         self.login_as(self.user)
 
@@ -59,7 +59,7 @@ class EmailTestCase(AcceptanceTestCase):
             # HTML output is captured as a snapshot
             self.browser.get(self.build_url(url, "html"))
             self.browser.wait_until("#preview")
-            self.browser.snapshot("{} email html".format(name))
+            self.browser.snapshot(f"{name} email html")
 
             # Text output is asserted against static fixture files
             self.browser.get(self.build_url(url, "txt"))

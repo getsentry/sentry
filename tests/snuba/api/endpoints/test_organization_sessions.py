@@ -22,7 +22,7 @@ def result_sorted(result):
 
 class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationSessionsEndpointTest, self).setUp()
+        super().setUp()
         self.setup_fixture()
 
     def setup_fixture(self):
