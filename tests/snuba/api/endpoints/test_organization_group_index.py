@@ -595,6 +595,10 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         assert options.set("snuba.search.hits-sample-size", old_sample_size)
 
+        # Test a me_or_none query
+        response = self.get_response(limit=1, cursor=cursor, query=f"assigned:me_or_none")
+        assert len(response.data) == 4
+
     def test_seen_stats(self):
         self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
