@@ -11,10 +11,11 @@ import {IconPause, IconPlay} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withProjects from 'app/utils/withProjects';
 
 import SavedSearchTab from './savedSearchTab';
-import {getTabs, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
+import {getTabs, isForReviewQuery, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
 
 type Props = {
   organization: Organization;
@@ -50,6 +51,17 @@ function IssueListHeader({
   const savedSearchTabActive = !visibleTabs.some(([tabQuery]) => tabQuery === query);
   // Remove cursor and page when switching tabs
   const {cursor: _, page: __, ...queryParms} = router?.location?.query ?? {};
+
+  function trackTabClick(tabQuery: string) {
+    // Clicking on inbox tab and currently another tab is active
+    if (isForReviewQuery(tabQuery) && !isForReviewQuery(query)) {
+      trackAnalyticsEvent({
+        eventKey: 'inbox_tab.clicked',
+        eventName: 'Clicked Inbox Tab',
+        organization_id: organization.id,
+      });
+    }
+  }
 
   return (
     <React.Fragment>
@@ -87,6 +99,7 @@ function IssueListHeader({
                   query: {...queryParms, query: tabQuery},
                   pathname: `/organizations/${organization.slug}/issues/`,
                 }}
+                onClick={() => trackTabClick(tabQuery)}
               >
                 <GuideAnchor
                   target={queryName === 'For Review' ? 'inbox_guide_tab' : 'none'}
