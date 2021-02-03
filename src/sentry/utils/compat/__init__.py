@@ -1,5 +1,3 @@
-import pickle  # NOQA
-
 from six.moves import map as _map
 from six.moves import filter as _filter
 from six.moves import zip as _zip
