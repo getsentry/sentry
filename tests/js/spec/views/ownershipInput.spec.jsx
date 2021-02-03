@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {findOption, openMenu} from 'sentry-test/select';
+import {findOption, openMenu} from 'sentry-test/select-new';
 
 import MemberListStore from 'app/stores/memberListStore';
 import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
@@ -86,14 +86,13 @@ describe('Project Ownership Input', function () {
 
     // Because this menu is async we can't use selectByValue()
     userSelect = wrapper.find('RuleBuilder SelectOwners');
-    findOption(userSelect, {value: 'user:1'}, {control: true})
-      .at(0)
-      .simulate('mouseDown');
+    findOption(userSelect, {value: 'user:1'}, {control: true}).at(0).simulate('click');
     await wrapper.update();
 
     // Add the new rule.
     const button = wrapper.find('RuleBuilder AddButton button');
     button.simulate('click');
+    await wrapper.update();
 
     expect(put).toHaveBeenCalledWith(
       '/projects/org-slug/project-slug/ownership/',
