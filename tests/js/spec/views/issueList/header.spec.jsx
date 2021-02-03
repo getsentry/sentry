@@ -2,7 +2,13 @@ import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import IssueListHeader from 'app/views/issueList/header';
+import {Query} from 'app/views/issueList/utils';
+
+jest.mock('app/utils/analytics', () => ({
+  trackAnalyticsEvent: jest.fn(),
+}));
 
 const queryCounts = {
   'is:unresolved is:for_review assigned_or_suggested:me_or_none': {
@@ -46,6 +52,10 @@ describe('IssueListHeader', () => {
   let organization;
   beforeEach(() => {
     organization = TestStubs.Organization();
+  });
+
+  afterEach(() => {
+    jest.resetAllMocks();
   });
 
   it('renders active tab with count when query matches inbox', () => {
@@ -164,6 +174,39 @@ describe('IssueListHeader', () => {
       pathname,
       query: {query: 'is:unresolved is:for_review'},
     });
+  });
+
+  it('tracks clicks on inbox tab', () => {
+    const wrapper = mountWithTheme(
+      <IssueListHeader
+        organization={organization}
+        query={Query.UNRESOLVED}
+        queryCounts={queryCounts}
+        projectIds={[]}
+        savedSearchList={[]}
+      />,
+      TestStubs.routerContext()
+    );
+    const inboxTab = wrapper.find('Link').at(1);
+    expect(inboxTab.text()).toContain('For Review');
+    inboxTab.simulate('click');
+    expect(trackAnalyticsEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores clicks on inbox tab when already on inbox tab', () => {
+    const wrapper = mountWithTheme(
+      <IssueListHeader
+        organization={organization}
+        query={Query.FOR_REVIEW}
+        queryCounts={queryCounts}
+        projectIds={[]}
+        savedSearchList={[]}
+      />,
+      TestStubs.routerContext()
+    );
+    const inboxTab = wrapper.find('Link').at(1);
+    inboxTab.simulate('click');
+    expect(trackAnalyticsEvent).toHaveBeenCalledTimes(0);
   });
 
   it('should indicate when query is a custom search and display count', async () => {
