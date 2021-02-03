@@ -23,18 +23,15 @@ type OptionType = {
 
 const RoleSelector = ({roles, disableUnallowed, ...props}: Props) => (
   <SelectControl
-    options={
-      roles &&
-      roles.map(
-        (r: MemberRole) =>
-          ({
-            value: r.id,
-            label: r.name,
-            disabled: disableUnallowed && !r.allowed,
-            description: r.desc,
-          } as OptionType)
-      )
-    }
+    options={roles?.map(
+      (r: MemberRole) =>
+        ({
+          value: r.id,
+          label: r.name,
+          disabled: disableUnallowed && !r.allowed,
+          description: r.desc,
+        } as OptionType)
+    )}
     components={{
       Option: ({label, data, ...optionProps}: OptionProps<OptionType>) => (
         <components.Option label={label} {...(optionProps as any)}>
