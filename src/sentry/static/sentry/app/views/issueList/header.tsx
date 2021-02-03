@@ -118,6 +118,7 @@ function IssueListHeader({
                           title={tooltipTitle}
                           position="bottom"
                           isHoverable={tooltipHoverable}
+                          delay={1000}
                         >
                           {queryName}{' '}
                           {queryCounts[tabQuery] && (
