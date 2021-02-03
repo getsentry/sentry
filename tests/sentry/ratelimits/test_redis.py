@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from sentry.ratelimits.redis import RedisRateLimiter
 from sentry.testutils import TestCase
 

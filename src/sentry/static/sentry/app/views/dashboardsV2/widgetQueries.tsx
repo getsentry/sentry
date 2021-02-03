@@ -8,6 +8,7 @@ import {
   getInterval,
   isMultiSeriesStats,
 } from 'app/components/charts/utils';
+import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
 import {t} from 'app/locale';
 import {
   EventsStats,
@@ -19,7 +20,10 @@ import {Series} from 'app/types/echarts';
 import {getUtcDateString, parsePeriodToHours} from 'app/utils/dates';
 import {TableData} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
-import {doDiscoverQuery} from 'app/utils/discover/genericDiscoverQuery';
+import {
+  DiscoverQueryRequestParams,
+  doDiscoverQuery,
+} from 'app/utils/discover/genericDiscoverQuery';
 
 import {Widget, WidgetQuery} from './types';
 
@@ -120,7 +124,7 @@ class WidgetQueries extends React.Component<Props, State> {
       !isEqual(widget.interval, prevProps.widget.interval) ||
       !isEqual(widget.queries, prevProps.widget.queries) ||
       !isEqual(widget.displayType, prevProps.widget.displayType) ||
-      !isEqual(selection, prevProps.selection)
+      !isSelectionEqual(selection, prevProps.selection)
     ) {
       this.fetchData();
     }
@@ -136,6 +140,7 @@ class WidgetQueries extends React.Component<Props, State> {
     // Table, world map, and stat widgets use table results and need
     // to do a discover 'table' query instead of a 'timeseries' query.
     this.setState({tableResults: []});
+
     const promises = widget.queries.map(query => {
       const eventView = EventView.fromSavedQuery({
         id: undefined,
@@ -143,25 +148,32 @@ class WidgetQueries extends React.Component<Props, State> {
         version: 2,
         fields: query.fields,
         query: query.conditions,
+        orderby: query.orderby,
         projects,
         range: statsPeriod,
         start: start ? getUtcDateString(start) : undefined,
         end: end ? getUtcDateString(end) : undefined,
       });
 
-      let url;
-      const params: any = {
+      let url: string = '';
+      const params: DiscoverQueryRequestParams = {
         per_page: 5,
       };
       if (widget.displayType === 'table') {
         url = `/organizations/${organization.slug}/eventsv2/`;
         params.referrer = 'api.dashboards.tablewidget';
+      } else if (widget.displayType === 'big_number') {
+        url = `/organizations/${organization.slug}/eventsv2/`;
+        params.per_page = 1;
+        params.referrer = 'api.dashboards.bignumberwidget';
       } else if (widget.displayType === 'world_map') {
         url = `/organizations/${organization.slug}/events-geo/`;
         delete params.per_page;
         params.referrer = 'api.dashboards.worldmapwidget';
       } else {
-        throw Error('Expected widget displayType to be either table or world_map');
+        throw Error(
+          'Expected widget displayType to be either big_number, table or world_map'
+        );
       }
 
       return doDiscoverQuery<TableData>(api, url, {
@@ -196,61 +208,66 @@ class WidgetQueries extends React.Component<Props, State> {
     });
   }
 
-  async fetchData() {
+  fetchTimeseriesData() {
     const {selection, api, organization, widget} = this.props;
+    this.setState({timeseriesResults: []});
+
+    const {environments, projects} = selection;
+    const {start, end, period: statsPeriod} = selection.datetime;
+    const interval = getWidgetInterval(widget.interval, {
+      start,
+      end,
+      period: statsPeriod,
+    });
+    const promises = widget.queries.map(query => {
+      const requestData = {
+        organization,
+        interval,
+        start,
+        end,
+        project: projects,
+        environment: environments,
+        period: statsPeriod,
+        query: query.conditions,
+        yAxis: query.fields,
+        orderby: query.orderby,
+        includePrevious: false,
+        referrer: 'api.dashboards.timeserieswidget',
+      };
+      return doEventsRequest(api, requestData);
+    });
+
+    let completed = 0;
+    promises.forEach(async (promise, i) => {
+      try {
+        const rawResults = await promise;
+        completed++;
+        this.setState(prevState => {
+          const timeseriesResults = prevState.timeseriesResults?.concat(
+            transformResult(widget.queries[i], rawResults)
+          );
+          return {
+            ...prevState,
+            timeseriesResults,
+            loading: completed === promises.length ? false : true,
+          };
+        });
+      } catch (err) {
+        const errorMessage = err?.responseJSON?.detail || t('An unknown error occurred.');
+        this.setState({errorMessage});
+      }
+    });
+  }
+
+  fetchData() {
+    const {widget} = this.props;
 
     this.setState({loading: true, errorMessage: undefined});
 
-    if (['table', 'world_map'].includes(widget.displayType)) {
+    if (['table', 'world_map', 'big_number'].includes(widget.displayType)) {
       this.fetchEventData();
     } else {
-      this.setState({timeseriesResults: []});
-
-      const {environments, projects} = selection;
-      const {start, end, period: statsPeriod} = selection.datetime;
-      const interval = getWidgetInterval(widget.interval, {
-        start,
-        end,
-        period: statsPeriod,
-      });
-      const promises = widget.queries.map(query => {
-        const requestData = {
-          organization,
-          interval,
-          start,
-          end,
-          project: projects,
-          environment: environments,
-          period: statsPeriod,
-          query: query.conditions,
-          yAxis: query.fields,
-          includePrevious: false,
-          referrer: 'api.dashboards.timeserieswidget',
-        };
-        return doEventsRequest(api, requestData);
-      });
-
-      let completed = 0;
-      promises.forEach(async (promise, i) => {
-        try {
-          const rawResults = await promise;
-          completed++;
-          this.setState(prevState => {
-            const timeseriesResults = prevState.timeseriesResults?.concat(
-              transformResult(widget.queries[i], rawResults)
-            );
-            return {
-              ...prevState,
-              timeseriesResults,
-              loading: completed === promises.length ? false : true,
-            };
-          });
-        } catch (err) {
-          const errorMessage =
-            err?.responseJSON?.detail || t('An unknown error occurred.');
-          this.setState({errorMessage});
-        }
-      });
+      this.fetchTimeseriesData();
     }
   }
 

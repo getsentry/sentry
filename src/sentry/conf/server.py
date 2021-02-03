@@ -948,7 +948,7 @@ SENTRY_FEATURES = {
     "organizations:inbox": False,
     # Set default tab to inbox
     "organizations:inbox-tab-default": False,
-    # Add `owner:me_or_none` to inbox tab query
+    # Add `assigned_or_suggested:me_or_none` to inbox tab query
     "organizations:inbox-owners-query": False,
     # Enable the new alert details ux design
     "organizations:alert-details-redesign": False,
@@ -956,8 +956,6 @@ SENTRY_FEATURES = {
     "organizations:images-loaded-v2": False,
     # Return unhandled information on the issue level
     "organizations:unhandled-issue-flag": False,
-    # Enable "owner"/"suggested assignee" features.
-    "organizations:workflow-owners": False,
     # Enable SnQL SDK for Snuba queries.
     "organizations:snql": False,
     # Adds additional filters and a new section to issue alert rules.
@@ -1338,10 +1336,7 @@ SENTRY_SCOPE_SETS = (
         ("event:write", "Read and write access to events."),
         ("event:read", "Read access to events."),
     ),
-    (
-        ("alerts:write", "Read and write alerts"),
-        ("alerts:read", "Read alerts"),
-    ),
+    (("alerts:write", "Read and write alerts"), ("alerts:read", "Read alerts"),),
 )
 
 SENTRY_DEFAULT_ROLE = "member"

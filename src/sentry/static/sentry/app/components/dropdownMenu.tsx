@@ -1,6 +1,5 @@
 import React from 'react';
 import * as Sentry from '@sentry/react';
-import PropTypes from 'prop-types';
 
 import {MENU_CLOSE_DELAY} from 'app/constants';
 
@@ -100,18 +99,6 @@ type State = {
 };
 
 class DropdownMenu extends React.Component<Props, State> {
-  static propTypes = {
-    onOpen: PropTypes.func,
-    onClose: PropTypes.func,
-    onClickOutside: PropTypes.func,
-    shouldIgnoreClickOutside: PropTypes.func,
-    isOpen: PropTypes.bool,
-    keepMenuOpen: PropTypes.bool,
-    alwaysRenderMenu: PropTypes.bool,
-    closeOnEscape: PropTypes.bool,
-    isNestedDropdown: PropTypes.bool,
-  };
-
   static defaultProps: DefaultProps = {
     keepMenuOpen: false,
     closeOnEscape: true,

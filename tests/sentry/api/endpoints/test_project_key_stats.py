@@ -1,5 +1,3 @@
-import six
-
 from sentry import tsdb
 from sentry.models import ProjectKey
 from sentry.testutils import APITestCase
@@ -10,9 +8,7 @@ class ProjectKeyStatsTest(APITestCase):
         self.project = self.create_project()
         self.key = ProjectKey.objects.create(project=self.project)
         self.login_as(user=self.user)
-        self.path = "/api/0/projects/{}/{}/keys/{}/stats/".format(
-            self.project.organization.slug, self.project.slug, self.key.public_key
-        )
+        self.path = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/keys/{self.key.public_key}/stats/"
 
     def test_simple(self):
         tsdb.incr(tsdb.models.key_total_received, self.key.id, count=3)
@@ -37,7 +33,7 @@ class ProjectKeyStatsTest(APITestCase):
     # under str(key_id) have expired out of redis.
     def test_str_key_id(self):
         tsdb.incr(tsdb.models.key_total_received, self.key.id, count=1)
-        tsdb.incr(tsdb.models.key_total_received, six.text_type(self.key.id), count=1)
+        tsdb.incr(tsdb.models.key_total_received, str(self.key.id), count=1)
 
         response = self.client.get(self.path)
         assert response.status_code == 200

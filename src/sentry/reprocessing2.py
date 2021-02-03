@@ -310,7 +310,8 @@ def start_group_reprocessing(
 
         if remaining_events == "keep":
             # this will be incremented by the events that are reprocessed
-            new_group.times_seen -= max_events
+            if max_events is not None:
+                new_group.times_seen -= max_events
         elif remaining_events == "delete":
             new_group.times_seen = 0
         else:

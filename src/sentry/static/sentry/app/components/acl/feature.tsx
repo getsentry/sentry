@@ -1,7 +1,5 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
-import SentryTypes from 'app/sentryTypes';
 import HookStore from 'app/stores/hookStore';
 import {Config, Organization, Project} from 'app/types';
 import {FeatureDisabledHooks} from 'app/types/hooks';
@@ -45,9 +43,7 @@ type Props = {
    * passed to `children` if a func is provided there, will be used here,
    * additionally `children` will also be passed.
    */
-  renderDisabled?:
-    | ((props: FeatureRenderProps & Pick<Props, 'children'>) => React.ReactNode)
-    | boolean;
+  renderDisabled?: boolean | RenderDisabledFn;
   /**
    * Specify the key to use for hookstore functionality.
    *
@@ -69,16 +65,34 @@ type Props = {
   project?: Project;
 };
 
-type ChildrenRenderFn = (
-  props: FeatureRenderProps & Pick<Props, 'renderDisabled'>
-) => React.ReactNode;
-
+/**
+ * Common props passed to children and disabled render handlers.
+ */
 type FeatureRenderProps = {
   organization: Organization;
   features: string[];
   hasFeature: boolean;
   project?: Project;
 };
+
+/**
+ * When a feature is disabled the caller of Feature may provide a `renderDisabled`
+ * prop. This prop can be overriden by getsentry via hooks. Often getsentry will
+ * call the original children function  but override the `renderDisabled`
+ * with another function/component.
+ */
+type RenderDisabledProps = FeatureRenderProps & {
+  children: React.ReactNode | ChildrenRenderFn;
+  renderDisabled?: (props: FeatureRenderProps) => React.ReactNode;
+};
+
+export type RenderDisabledFn = (props: RenderDisabledProps) => React.ReactNode;
+
+type ChildRenderProps = FeatureRenderProps & {
+  renderDisabled?: undefined | boolean | RenderDisabledFn;
+};
+
+export type ChildrenRenderFn = (props: ChildRenderProps) => React.ReactNode;
 
 type AllFeatures = {
   configFeatures: string[];
@@ -90,17 +104,6 @@ type AllFeatures = {
  * Component to handle feature flags.
  */
 class Feature extends React.Component<Props> {
-  static propTypes = {
-    organization: SentryTypes.Organization,
-    project: SentryTypes.Project,
-    config: SentryTypes.Config.isRequired,
-    features: PropTypes.arrayOf(PropTypes.string.isRequired).isRequired,
-    requireAll: PropTypes.bool,
-    renderDisabled: PropTypes.oneOfType([PropTypes.func, PropTypes.bool]),
-    hookName: PropTypes.string as any,
-    children: PropTypes.oneOfType([PropTypes.func, PropTypes.node]),
-  };
-
   static defaultProps = {
     renderDisabled: false,
     requireAll: true,

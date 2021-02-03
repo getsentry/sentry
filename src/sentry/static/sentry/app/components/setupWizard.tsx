@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import {Client} from 'app/api';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -16,10 +15,6 @@ type State = {
 };
 
 class SetupWizard extends React.Component<Props, State> {
-  static propTypes = {
-    hash: PropTypes.string.isRequired,
-  };
-
   static defaultProps = {
     hash: false,
   };

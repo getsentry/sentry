@@ -1,6 +1,5 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router';
-import PropTypes from 'prop-types';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
@@ -36,14 +35,6 @@ type State = AsyncView['state'] & {
 };
 
 class OrganizationRequestsView extends AsyncView<Props, State> {
-  static propTypes = {
-    requestList: PropTypes.array.isRequired,
-    inviteRequests: PropTypes.array.isRequired,
-    onRemoveInviteRequest: PropTypes.func.isRequired,
-    onRemoveAccessRequest: PropTypes.func.isRequired,
-    showInviteRequests: PropTypes.bool.isRequired,
-  };
-
   static defaultProps: DefaultProps = {
     inviteRequests: [],
   };

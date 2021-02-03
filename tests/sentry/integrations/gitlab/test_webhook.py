@@ -63,7 +63,7 @@ class WebhookTest(GitLabTestCase):
             self.url,
             data=PUSH_EVENT,
             content_type="application/json",
-            HTTP_X_GITLAB_TOKEN="{}:{}".format(EXTERNAL_ID, "wrong"),
+            HTTP_X_GITLAB_TOKEN=f"{EXTERNAL_ID}:wrong",
             HTTP_X_GITLAB_EVENT="Push Hook",
         )
         assert response.status_code == 400

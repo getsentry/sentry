@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from sentry.api.serializers import serialize
 from sentry.models import Activity, PullRequest, Commit, GroupStatus
 from sentry.testutils import TestCase

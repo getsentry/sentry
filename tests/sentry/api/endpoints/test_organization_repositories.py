@@ -1,5 +1,3 @@
-import six
-
 from sentry.utils.compat.mock import patch
 
 from django.core.urlresolvers import reverse
@@ -13,7 +11,7 @@ from sentry.testutils import APITestCase
 
 class OrganizationRepositoriesListTest(APITestCase):
     def setUp(self):
-        super(OrganizationRepositoriesListTest, self).setUp()
+        super().setUp()
 
         self.org = self.create_organization(owner=self.user, name="baz")
         self.url = reverse("sentry-api-0-organization-repositories", args=[self.org.slug])
@@ -27,7 +25,7 @@ class OrganizationRepositoriesListTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]["id"] == six.text_type(repo.id)
+        assert response.data[0]["id"] == str(repo.id)
         assert response.data[0]["externalSlug"] is None
 
     def test_get_integration_repository(self):
@@ -44,9 +42,9 @@ class OrganizationRepositoriesListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         first_row = response.data[0]
-        assert first_row["id"] == six.text_type(repo.id)
+        assert first_row["id"] == str(repo.id)
         assert first_row["provider"] == {"id": "dummy", "name": "Example"}
-        assert first_row["externalSlug"] == six.text_type(repo.external_id)
+        assert first_row["externalSlug"] == str(repo.external_id)
 
     def test_status_unmigratable(self):
         self.url = self.url + "?status=unmigratable"
@@ -201,7 +199,7 @@ class OrganizationRepositoriesCreateTest(APITestCase):
 
 class OrganizationIntegrationRepositoriesCreateTest(APITestCase):
     def setUp(self):
-        super(OrganizationIntegrationRepositoriesCreateTest, self).setUp()
+        super().setUp()
         self.org = self.create_organization(owner=self.user, name="baz")
         self.integration = Integration.objects.create(provider="example")
         self.integration.add_organization(self.org, self.user)
@@ -258,7 +256,7 @@ class OrganizationIntegrationRepositoriesCreateTest(APITestCase):
 
         assert response.status_code == 201, (response.status_code, response.content)
         assert response.data["id"]
-        assert response.data["id"] == six.text_type(repo.id)
+        assert response.data["id"] == str(repo.id)
 
         repo = Repository.objects.get(id=response.data["id"])
         assert repo.provider == "integrations:example"

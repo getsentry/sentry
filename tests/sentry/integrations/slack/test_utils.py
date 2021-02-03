@@ -1,5 +1,3 @@
-import six
-
 import responses
 from django.core.urlresolvers import reverse
 import pytest
@@ -181,7 +179,7 @@ class BuildIncidentAttachmentTest(TestCase):
         logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=2)
-        title = "{}: {}".format("Resolved", alert_rule.name)
+        title = f"Resolved: {alert_rule.name}"
         assert build_incident_attachment(incident) == {
             "fallback": title,
             "title": title,
@@ -208,7 +206,7 @@ class BuildIncidentAttachmentTest(TestCase):
         logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=2)
-        title = "{}: {}".format("Resolved", alert_rule.name)
+        title = f"Resolved: {alert_rule.name}"
         metric_value = 5000
         assert build_incident_attachment(incident, metric_value=metric_value) == {
             "fallback": title,
@@ -222,7 +220,7 @@ class BuildIncidentAttachmentTest(TestCase):
                     },
                 )
             ),
-            "text": "{} events in the last 10 minutes\nFilter: level:error".format(metric_value),
+            "text": f"{metric_value} events in the last 10 minutes\nFilter: level:error",
             "fields": [],
             "mrkdwn_in": ["text"],
             "footer_icon": logo_url,
@@ -255,7 +253,7 @@ class BuildIncidentAttachmentTest(TestCase):
                             "options": [
                                 {
                                     "text": "#mariachi-band",
-                                    "value": "team:" + six.text_type(self.team.id),
+                                    "value": "team:" + str(self.team.id),
                                 }
                             ],
                         },
@@ -264,7 +262,7 @@ class BuildIncidentAttachmentTest(TestCase):
                             "options": [
                                 {
                                     "text": "foo@example.com",
-                                    "value": "user:" + six.text_type(self.user.id),
+                                    "value": "user:" + str(self.user.id),
                                 }
                             ],
                         },
@@ -281,10 +279,10 @@ class BuildIncidentAttachmentTest(TestCase):
             "footer": "BENGAL-ELEPHANT-GIRAFFE-TREE-HOUSE-1",
             "ts": to_timestamp(ts),
             "title_link": "http://testserver/organizations/rowdy-tiger/issues/"
-            + six.text_type(group.id)
+            + str(group.id)
             + "/?referrer=slack",
-            "callback_id": '{"issue":' + six.text_type(group.id) + "}",
-            "fallback": "[{}] {}".format(self.project.slug, group.title),
+            "callback_id": '{"issue":' + str(group.id) + "}",
+            "fallback": f"[{self.project.slug}] {group.title}",
             "footer_icon": "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
         }
         event = self.store_event(data={}, project_id=self.project.id)
@@ -302,7 +300,7 @@ class BuildIncidentAttachmentTest(TestCase):
                             "options": [
                                 {
                                     "text": "#mariachi-band",
-                                    "value": "team:" + six.text_type(self.team.id),
+                                    "value": "team:" + str(self.team.id),
                                 }
                             ],
                         },
@@ -311,7 +309,7 @@ class BuildIncidentAttachmentTest(TestCase):
                             "options": [
                                 {
                                     "text": "foo@example.com",
-                                    "value": "user:" + six.text_type(self.user.id),
+                                    "value": "user:" + str(self.user.id),
                                 }
                             ],
                         },
@@ -328,10 +326,10 @@ class BuildIncidentAttachmentTest(TestCase):
             "footer": "BENGAL-ELEPHANT-GIRAFFE-TREE-HOUSE-1",
             "ts": to_timestamp(ts),
             "title_link": "http://testserver/organizations/rowdy-tiger/issues/"
-            + six.text_type(group.id)
+            + str(group.id)
             + "/?referrer=slack",
-            "callback_id": '{"issue":' + six.text_type(group.id) + "}",
-            "fallback": "[{}] {}".format(self.project.slug, event.title),
+            "callback_id": '{"issue":' + str(group.id) + "}",
+            "fallback": f"[{self.project.slug}] {event.title}",
             "footer_icon": "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
         }
 
@@ -348,7 +346,7 @@ class BuildIncidentAttachmentTest(TestCase):
                             "options": [
                                 {
                                     "text": "#mariachi-band",
-                                    "value": "team:" + six.text_type(self.team.id),
+                                    "value": "team:" + str(self.team.id),
                                 }
                             ],
                         },
@@ -357,7 +355,7 @@ class BuildIncidentAttachmentTest(TestCase):
                             "options": [
                                 {
                                     "text": "foo@example.com",
-                                    "value": "user:" + six.text_type(self.user.id),
+                                    "value": "user:" + str(self.user.id),
                                 }
                             ],
                         },
@@ -373,12 +371,10 @@ class BuildIncidentAttachmentTest(TestCase):
             "fields": [],
             "footer": "BENGAL-ELEPHANT-GIRAFFE-TREE-HOUSE-1",
             "ts": to_timestamp(ts),
-            "title_link": "http://testserver/organizations/rowdy-tiger/issues/{}/events/{}/".format(
-                group.id, event.event_id
-            )
+            "title_link": f"http://testserver/organizations/rowdy-tiger/issues/{group.id}/events/{event.event_id}/"
             + "?referrer=slack",
-            "callback_id": '{"issue":' + six.text_type(group.id) + "}",
-            "fallback": "[{}] {}".format(self.project.slug, event.title),
+            "callback_id": '{"issue":' + str(group.id) + "}",
+            "fallback": f"[{self.project.slug}] {event.title}",
             "footer_icon": "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
         }
 

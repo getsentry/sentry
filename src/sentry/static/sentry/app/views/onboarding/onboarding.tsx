@@ -18,7 +18,7 @@ import withProjects from 'app/utils/withProjects';
 
 import PageCorners from './components/pageCorners';
 import OnboardingPlatform from './platform';
-import OnboardingProjectSetup from './projectSetup';
+import SdkConfiguration from './sdkConfiguration';
 import {StepData, StepDescriptor} from './types';
 import OnboardingWelcome from './welcome';
 
@@ -50,7 +50,7 @@ const ONBOARDING_STEPS: StepDescriptor[] = [
   {
     id: 'get-started',
     title: t('Install the Sentry SDK'),
-    Component: OnboardingProjectSetup,
+    Component: SdkConfiguration,
   },
 ];
 
@@ -317,7 +317,7 @@ const Back = styled(({className, animate, ...props}) => (
     transition={testableTransition()}
     variants={{
       initial: {opacity: 0},
-      visible: {opacity: 1, transition: {delay: 1}},
+      visible: {opacity: 1, transition: testableTransition({delay: 1})},
       hidden: {opacity: 0},
     }}
   >

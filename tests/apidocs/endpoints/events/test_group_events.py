@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from django.test.client import RequestFactory
 
 from sentry.testutils.helpers.datetime import iso_format, before_now
@@ -32,8 +29,8 @@ class ProjectGroupEventBase(APIDocsTestCase):
 
 class ProjectGroupEventsDocs(ProjectGroupEventBase):
     def setUp(self):
-        super(ProjectGroupEventsDocs, self).setUp()
-        self.url = "/api/0/issues/{}/events/".format(self.group_id)
+        super().setUp()
+        self.url = f"/api/0/issues/{self.group_id}/events/"
 
     def test_get(self):
         response = self.client.get(self.url)
@@ -44,8 +41,8 @@ class ProjectGroupEventsDocs(ProjectGroupEventBase):
 
 class ProjectGroupEventsLatestDocs(ProjectGroupEventBase):
     def setUp(self):
-        super(ProjectGroupEventsLatestDocs, self).setUp()
-        self.url = "/api/0/issues/{}/events/latest/".format(self.group_id)
+        super().setUp()
+        self.url = f"/api/0/issues/{self.group_id}/events/latest/"
 
     def test_get(self):
         response = self.client.get(self.url)
@@ -56,8 +53,8 @@ class ProjectGroupEventsLatestDocs(ProjectGroupEventBase):
 
 class ProjectGroupEventsOldestDocs(ProjectGroupEventBase):
     def setUp(self):
-        super(ProjectGroupEventsOldestDocs, self).setUp()
-        self.url = "/api/0/issues/{}/events/oldest/".format(self.group_id)
+        super().setUp()
+        self.url = f"/api/0/issues/{self.group_id}/events/oldest/"
 
     def test_get(self):
         response = self.client.get(self.url)

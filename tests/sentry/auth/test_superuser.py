@@ -1,5 +1,3 @@
-import six
-
 from datetime import timedelta
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
@@ -30,7 +28,7 @@ UNSET = object()
 
 class SuperuserTestCase(TestCase):
     def setUp(self):
-        super(SuperuserTestCase, self).setUp()
+        super().setUp()
         self.current_datetime = timezone.now()
         self.default_token = "abcdefghjiklmnog"
 
@@ -63,7 +61,7 @@ class SuperuserTestCase(TestCase):
                     else idle_expires
                 ).strftime("%s"),
                 "tok": self.default_token if session_token is UNSET else session_token,
-                "uid": six.text_type(user.id) if uid is UNSET else uid,
+                "uid": str(user.id) if uid is UNSET else uid,
             }
         return request
 
@@ -160,7 +158,7 @@ class SuperuserTestCase(TestCase):
         assert data["exp"] == (self.current_datetime + MAX_AGE).strftime("%s")
         assert data["idl"] == (self.current_datetime + IDLE_MAX_AGE).strftime("%s")
         assert len(data["tok"]) == 12
-        assert data["uid"] == six.text_type(user.id)
+        assert data["uid"] == str(user.id)
 
     def test_logout_clears_session(self):
         request = self.build_request()

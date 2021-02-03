@@ -7,7 +7,7 @@ from tests.acceptance.page_objects.organization_integration_settings import (
 
 class OrganizationSentryAppDetailedView(AcceptanceTestCase):
     def setUp(self):
-        super(OrganizationSentryAppDetailedView, self).setUp()
+        super().setUp()
         self.create_project(organization=self.organization)
         self.sentry_app = self.create_sentry_app(
             organization=self.organization,
@@ -18,7 +18,7 @@ class OrganizationSentryAppDetailedView(AcceptanceTestCase):
         self.login_as(self.user)
 
     def load_page(self, slug):
-        url = "/settings/{}/sentry-apps/{}/".format(self.organization.slug, slug)
+        url = f"/settings/{self.organization.slug}/sentry-apps/{slug}/"
         self.browser.get(url)
         self.browser.wait_until_not(".loading-indicator")
 

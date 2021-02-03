@@ -2,7 +2,6 @@ import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-import $ from 'jquery';
 // eslint-disable-next-line no-restricted-imports
 import {Box} from 'reflexbox';
 
@@ -32,6 +31,7 @@ import {
   GlobalSelection,
   Group,
   GroupReprocessing,
+  InboxDetails,
   NewQuery,
   Organization,
   User,
@@ -146,21 +146,29 @@ class StreamGroup extends React.Component<Props, State> {
       const reviewed =
         state.reviewed ||
         ((query === Query.FOR_REVIEW || query === Query.FOR_REVIEW_OWNER) &&
-          state.data.inbox?.reason !== undefined &&
+          (state.data.inbox as InboxDetails)?.reason !== undefined &&
           data.inbox === false);
       return {data, reviewed};
     });
   }
 
   toggleSelect = (evt: React.MouseEvent<HTMLDivElement>) => {
-    if ((evt.target as HTMLElement)?.tagName === 'A') {
+    const targetElement = evt.target as Partial<HTMLElement>;
+
+    if (targetElement?.tagName?.toLowerCase() === 'a') {
       return;
     }
-    if ((evt.target as HTMLElement)?.tagName === 'INPUT') {
+
+    if (targetElement?.tagName?.toLowerCase() === 'input') {
       return;
     }
-    if ($(evt.target).parents('a').length !== 0) {
-      return;
+
+    let e = targetElement;
+    while (e.parentElement) {
+      if (e?.tagName?.toLowerCase() === 'a') {
+        return;
+      }
+      e = e.parentElement!;
     }
 
     SelectedGroupStore.toggleSelect(this.state.data.id);

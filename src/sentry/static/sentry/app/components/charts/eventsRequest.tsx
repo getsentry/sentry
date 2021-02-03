@@ -1,7 +1,6 @@
 import React from 'react';
 import isEqual from 'lodash/isEqual';
 import omitBy from 'lodash/omitBy';
-import PropTypes from 'prop-types';
 
 import {doEventsRequest} from 'app/actionCreators/events';
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -9,7 +8,6 @@ import {Client} from 'app/api';
 import LoadingPanel from 'app/components/charts/loadingPanel';
 import {canIncludePreviousPeriod, isMultiSeriesStats} from 'app/components/charts/utils';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import {
   DateString,
   EventsStats,
@@ -156,43 +154,6 @@ const omitIgnoredProps = (props: EventsRequestProps) =>
   omitBy(props, (_value, key) => propNamesToIgnore.includes(key));
 
 class EventsRequest extends React.PureComponent<EventsRequestProps, EventsRequestState> {
-  static propTypes = {
-    api: PropTypes.object.isRequired,
-    organization: SentryTypes.Organization.isRequired,
-    project: PropTypes.arrayOf(PropTypes.number),
-    environment: PropTypes.arrayOf(PropTypes.string),
-    period: PropTypes.string,
-    start: PropTypes.instanceOf(Date),
-    end: PropTypes.instanceOf(Date),
-    interval: PropTypes.string,
-    includePrevious: PropTypes.bool,
-    limit: PropTypes.number,
-    query: PropTypes.string,
-    includeTransformedData: PropTypes.bool,
-
-    /**
-     * Include a dataset transform that will aggregate count values for each
-     * timestamp. Be sure to supply a name to `timeAggregationSeriesName`
-     */
-    includeTimeAggregation: PropTypes.bool,
-
-    /**
-     * Name of series of aggregated timeseries
-     */
-    timeAggregationSeriesName: PropTypes.string,
-    loading: PropTypes.bool,
-    errored: PropTypes.bool,
-    showLoading: PropTypes.bool,
-    currentSeriesName: PropTypes.string,
-    yAxis: PropTypes.oneOfType([PropTypes.string, PropTypes.arrayOf(PropTypes.string)]),
-
-    field: PropTypes.arrayOf(PropTypes.string),
-    topEvents: PropTypes.number,
-    orderby: PropTypes.string,
-
-    confirmedQuery: PropTypes.bool,
-  };
-
   static defaultProps: DefaultProps = {
     period: undefined,
     start: null,

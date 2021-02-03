@@ -27,7 +27,7 @@ from sentry.utils.snuba import (
 
 class AssembleDownloadTest(TestCase, SnubaTestCase):
     def setUp(self):
-        super(AssembleDownloadTest, self).setUp()
+        super().setUp()
         self.user = self.create_user()
         self.org = self.create_organization()
         self.project = self.create_project(organization=self.org)
@@ -548,7 +548,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
 
 class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
     def setUp(self):
-        super(AssembleDownloadLargeTest, self).setUp()
+        super().setUp()
         self.user = self.create_user()
         self.org = self.create_organization()
         self.project = self.create_project()
@@ -557,7 +557,7 @@ class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
             event = data.copy()
             event.update(
                 {
-                    "transaction": "/event/{0:03d}/".format(i),
+                    "transaction": f"/event/{i:03d}/",
                     "timestamp": iso_format(before_now(minutes=1, seconds=i)),
                     "start_timestamp": iso_format(before_now(minutes=1, seconds=i + 1)),
                 }

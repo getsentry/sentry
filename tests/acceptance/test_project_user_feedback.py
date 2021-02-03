@@ -5,7 +5,7 @@ from sentry.testutils import AcceptanceTestCase
 
 class ProjectUserFeedbackTest(AcceptanceTestCase):
     def setUp(self):
-        super(ProjectUserFeedbackTest, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(
@@ -13,7 +13,7 @@ class ProjectUserFeedbackTest(AcceptanceTestCase):
         )
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.login_as(self.user)
-        self.path = "/{}/{}/user-feedback/".format(self.org.slug, self.project.slug)
+        self.path = f"/{self.org.slug}/{self.project.slug}/user-feedback/"
         self.project.update(first_event=timezone.now())
 
     def test(self):

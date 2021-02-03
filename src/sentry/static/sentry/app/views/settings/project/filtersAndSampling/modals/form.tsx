@@ -1,22 +1,27 @@
 import React from 'react';
+import omit from 'lodash/omit';
 
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
+import {Client} from 'app/api';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import {t} from 'app/locale';
-import {Organization} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {
   DynamicSamplingConditionLogicalInner,
   DynamicSamplingConditionMultiple,
   DynamicSamplingInnerName,
   DynamicSamplingInnerOperator,
   DynamicSamplingRule,
+  DynamicSamplingRules,
 } from 'app/types/dynamicSampling';
 import {defined} from 'app/utils';
 import NumberField from 'app/views/settings/components/forms/numberField';
 import RadioField from 'app/views/settings/components/forms/radioField';
 
 import ConditionFields from './conditionFields';
+import handleXhrErrorResponse from './handleXhrErrorResponse';
 
 enum Transaction {
   ALL = 'all',
@@ -31,8 +36,12 @@ const transactionChoices = [
 type Conditions = React.ComponentProps<typeof ConditionFields>['conditions'];
 
 type Props = ModalRenderProps & {
+  api: Client;
   organization: Organization;
-  onSubmit: (rule: DynamicSamplingRule) => void;
+  project: Project;
+  errorRules: DynamicSamplingRules;
+  transactionRules: DynamicSamplingRules;
+  onSubmitSuccess: (project: Project) => void;
   rule?: DynamicSamplingRule;
 };
 
@@ -40,6 +49,9 @@ type State = {
   transaction: Transaction;
   conditions: Conditions;
   sampleRate?: number;
+  errors: {
+    sampleRate?: string;
+  };
 };
 
 class Form<P extends Props = Props, S extends State = State> extends React.Component<
@@ -72,13 +84,15 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
           category: name,
           match: value.join(' '),
         })),
-        sampleRate,
+        sampleRate: sampleRate * 100,
+        errors: {},
       };
     }
 
     return {
       transaction: Transaction.ALL,
       conditions: [],
+      errors: {},
     };
   }
 
@@ -105,11 +119,52 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
     };
   }
 
+  getSuccessMessage() {
+    const {rule} = this.props;
+    return rule
+      ? t('Successfully edited dynamic sampling rule')
+      : t('Successfully added dynamic sampling rule');
+  }
+
+  clearError<F extends keyof State['errors']>(field: F) {
+    this.setState(state => ({
+      errors: omit(state.errors, field),
+    }));
+  }
+
+  convertErrorXhrResponse(error: ReturnType<typeof handleXhrErrorResponse>) {
+    switch (error.type) {
+      case 'sampleRate':
+        this.setState(prevState => ({
+          errors: {...prevState.errors, sampleRate: error.message},
+        }));
+        break;
+      default:
+        addErrorMessage(error.message);
+    }
+  }
+
+  async submitRules(newRules: DynamicSamplingRules, currentRuleIndex: number) {
+    const {organization, project, api, onSubmitSuccess, closeModal} = this.props;
+
+    try {
+      const newProjectDetails = await api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/`,
+        {method: 'PUT', data: {dynamicSampling: {rules: newRules}}}
+      );
+      onSubmitSuccess(newProjectDetails);
+      addSuccessMessage(this.getSuccessMessage());
+      closeModal();
+    } catch (error) {
+      this.convertErrorXhrResponse(handleXhrErrorResponse(error, currentRuleIndex));
+    }
+  }
+
   handleChange = <T extends keyof S>(field: T, value: S[T]) => {
     this.setState(prevState => ({...prevState, [field]: value}));
   };
 
-  handleSubmit = async (): Promise<never | void> => {
+  handleSubmit = (): never | void => {
     // Children have to implement this
     throw new Error('Not implemented');
   };
@@ -165,7 +220,7 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
 
   render() {
     const {Header, Body, closeModal, Footer} = this.props as Props;
-    const {sampleRate, conditions, transaction} = this.state;
+    const {sampleRate, conditions, transaction, errors} = this.state;
 
     const transactionField = this.geTransactionFieldDescription();
     const categoryOptions = this.getCategoryOptions();
@@ -211,12 +266,16 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
             label={t('Sampling Rate')}
             help={t('this is a description')}
             name="sampleRate"
-            onChange={value =>
-              this.handleChange('sampleRate', value ? Number(value) : undefined)
-            }
+            onChange={value => {
+              this.handleChange('sampleRate', value ? Number(value) : undefined);
+              if (!!errors.sampleRate) {
+                this.clearError('sampleRate');
+              }
+            }}
             value={sampleRate}
             inline={false}
-            hideControlState
+            hideControlState={!errors.sampleRate}
+            error={errors.sampleRate}
             showHelpInTooltip
             stacked
           />
