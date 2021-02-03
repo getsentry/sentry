@@ -163,16 +163,6 @@ class SlackEventRequestTest(TestCase):
             self.set_signature(options.get("slack.signing-secret"), self.request.body)
             self.slack_request.validate()
 
-    def test_signing_secret_v2(self):
-        with override_options({"slack-v2.signing-secret": "secret-v2"}):
-            self.request.data = {"challenge": "abc123", "type": "url_verification"}
-
-            # we get a url encoded body with Slack
-            self.request.body = urlencode(self.request.data).encode("utf-8")
-
-            self.set_signature(options.get("slack-v2.signing-secret"), self.request.body)
-            self.slack_request.validate()
-
     def test_signing_secret_bad(self):
         with override_options({"slack.signing-secret": "secret"}):
             # even though we provide the token, should still fail
