@@ -907,29 +907,29 @@ def get_culprit(data):
     )
 
 
-def _save_aggregate(event, hashes, release, **kwargs):
+def _find_group_id(all_hashes):
+    for h in all_hashes:
+        if h.group_id is not None:
+            return h.group_id
+        if h.group_tombstone_id is not None:
+            raise HashDiscarded("Matches group tombstone %s" % h.group_tombstone_id)
+
+    return None
+
+
+def _save_aggregate2(event, hashes, release, **kwargs):
     project = event.project
 
-    def find_hashes():
-        all_hashes = [
-            GroupHash.objects.get_or_create(project=project, hash=hash)[0] for hash in hashes
-        ]
-
-        existing_group_id = None
-        for h in all_hashes:
-            if h.group_id is not None:
-                existing_group_id = h.group_id
-                break
-            if h.group_tombstone_id is not None:
-                raise HashDiscarded("Matches group tombstone %s" % h.group_tombstone_id)
-
-        return all_hashes, existing_group_id
-
-    all_hashes, existing_group_id = find_hashes()
+    all_hashes = [GroupHash.objects.get_or_create(project=project, hash=hash)[0] for hash in hashes]
+    existing_group_id = _find_group_id(all_hashes)
 
     if existing_group_id is None:
         with transaction.atomic():
-            all_hashes, existing_group_id = find_hashes()
+            all_hashes = list(
+                GroupHash.objects.filter(id__in=[h.id for h in all_hashes]).select_for_update()
+            )
+
+            existing_group_id = _find_group_id(all_hashes)
 
             if existing_group_id is None:
                 short_id = project.next_short_id()
@@ -950,10 +950,8 @@ def _save_aggregate(event, hashes, release, **kwargs):
                     **kwargs,
                 )
 
-                # invariant: all hashes have group_id=None
-                GroupHash.objects.filter(id__in=[h.id for h in all_hashes]).exclude(
-                    state=GroupHash.State.LOCKED_IN_MIGRATION
-                ).update(group=group)
+                # invariant: all_hashes have group_id=None
+                GroupHash.objects.filter(id__in=[h.id for h in all_hashes]).update(group=group)
 
                 is_new = True
                 is_regression = False
@@ -976,7 +974,7 @@ def _save_aggregate(event, hashes, release, **kwargs):
     return group, is_new, is_regression
 
 
-def _save_aggregate2(event, hashes, release, **kwargs):
+def _save_aggregate(event, hashes, release, **kwargs):
     project = event.project
 
     # attempt to find a matching hash
