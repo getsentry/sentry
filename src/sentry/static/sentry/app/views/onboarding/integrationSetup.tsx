@@ -22,9 +22,9 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 
-import AddInstallationInstructions from './components/addInstallationInstructions';
 import FirstEventFooter from './components/firstEventFooter';
-import PostInstallCodeSnippet from './components/postInstallCodeSnippet';
+import AddInstallationInstructions from './components/integrations/addInstallationInstructions';
+import PostInstallCodeSnippet from './components/integrations/postInstallCodeSnippet';
 import SetupIntroduction from './components/setupIntroduction';
 import {StepProps} from './types';
 

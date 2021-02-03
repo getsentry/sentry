@@ -14,9 +14,9 @@ import space from 'app/styles/space';
 import {IntegrationProvider, Organization, Project} from 'app/types';
 import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
-import AddInstallationInstructions from 'app/views/onboarding/components/addInstallationInstructions';
 import FirstEventFooter from 'app/views/onboarding/components/firstEventFooter';
-import PostInstallCodeSnippet from 'app/views/onboarding/components/postInstallCodeSnippet';
+import AddInstallationInstructions from 'app/views/onboarding/components/integrations/addInstallationInstructions';
+import PostInstallCodeSnippet from 'app/views/onboarding/components/integrations/postInstallCodeSnippet';
 import AddIntegrationButton from 'app/views/organizationIntegrations/addIntegrationButton';
 
 import PlatformHeaderButtonBar from './components/platformHeaderButtonBar';
