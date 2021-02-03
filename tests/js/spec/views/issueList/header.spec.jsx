@@ -5,7 +5,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import IssueListHeader from 'app/views/issueList/header';
 
 const queryCounts = {
-  'is:unresolved is:for_review owner:me_or_none': {
+  'is:unresolved is:for_review assigned_or_suggested:me_or_none': {
     count: 22,
     hasMore: false,
   },
@@ -62,12 +62,12 @@ describe('IssueListHeader', () => {
     expect(wrapper.find('.active').text()).toBe('For Review 1');
   });
 
-  it('renders active tab with count when query matches inbox with owners:me_or_none', () => {
+  it('renders active tab with count when query matches inbox with assigned_or_suggested:me_or_none', () => {
     organization.features = ['inbox-owners-query'];
     const wrapper = mountWithTheme(
       <IssueListHeader
         organization={organization}
-        query="is:unresolved is:for_review owner:me_or_none"
+        query="is:unresolved is:for_review assigned_or_suggested:me_or_none"
         queryCount={0}
         queryCounts={queryCounts}
         projectIds={[]}
