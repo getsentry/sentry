@@ -1271,7 +1271,7 @@ describe('IssueList', function () {
         '/organizations/org-slug/issues/',
         expect.objectContaining({
           data:
-            'collapse=stats&limit=25&project=99&query=is%3Aunresolved&shortIdLookup=1&statsPeriod=14d',
+            'collapse=stats&expand=owners&limit=25&project=99&query=is%3Aunresolved&shortIdLookup=1&statsPeriod=14d',
         })
       );
     });

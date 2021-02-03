@@ -86,21 +86,16 @@ class GroupSerializerBase(Serializer):
         collapse=None,
         expand=None,
         has_inbox=False,
-        has_workflow_owners=False,
     ):
         self.collapse = collapse
         self.expand = expand
         self.has_inbox = has_inbox
-        self.has_workflow_owners = has_workflow_owners
 
     def _expand(self, key):
         if self.expand is None:
             return False
 
         if key == "inbox" and not self.has_inbox:
-            return False
-
-        if key == "owners" and not self.has_workflow_owners:
             return False
 
         return key in self.expand
@@ -805,13 +800,11 @@ class GroupSerializerSnuba(GroupSerializerBase):
         collapse=None,
         expand=None,
         has_inbox=False,
-        has_workflow_owners=False,
     ):
         super(GroupSerializerSnuba, self).__init__(
             collapse=collapse,
             expand=expand,
             has_inbox=has_inbox,
-            has_workflow_owners=has_workflow_owners,
         )
         from sentry.search.snuba.executors import get_search_filter
 
@@ -924,7 +917,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         collapse=None,
         expand=None,
         has_inbox=False,
-        has_workflow_owners=False,
     ):
         super(StreamGroupSerializerSnuba, self).__init__(
             environment_ids,
@@ -934,7 +926,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             collapse=collapse,
             expand=expand,
             has_inbox=has_inbox,
-            has_workflow_owners=has_workflow_owners,
         )
 
         if stats_period is not None:
