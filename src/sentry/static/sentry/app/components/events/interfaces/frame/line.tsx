@@ -450,7 +450,7 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
   flex: 1;
   grid-gap: ${space(0.5)};
   grid-template-columns: ${p => (p.isFrameAfterLastNonApp ? '167px' : '117px')} 1fr;
-  align-items: flex-start;
+  align-items: align-center;
   justify-content: flex-start;
 
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
