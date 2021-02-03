@@ -156,6 +156,7 @@ class GroupSerializerBase(Serializer):
             groupby=["group_id"],
             filter_keys=filter_keys,
             start=start,
+            orderby="group_id",
             referrer="group.unhandled-flag",
         )
 
