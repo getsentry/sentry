@@ -40,7 +40,7 @@ def pytest_configure(config):
                     )
                 )
                 return
-    except IOError:
+    except OSError:
         pass
     except Exception:
         pass
