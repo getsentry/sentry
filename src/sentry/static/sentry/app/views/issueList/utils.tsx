@@ -3,7 +3,7 @@ import {Organization} from 'app/types';
 
 export enum Query {
   FOR_REVIEW = 'is:unresolved is:for_review',
-  FOR_REVIEW_OWNER = 'is:unresolved is:for_review owner:me_or_none',
+  FOR_REVIEW_OWNER = 'is:unresolved is:for_review assigned_or_suggested:me_or_none',
   UNRESOLVED = 'is:unresolved',
   IGNORED = 'is:ignored',
   REPROCESSING = 'is:reprocessing',
