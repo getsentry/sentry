@@ -204,7 +204,7 @@ class LandingContent extends React.Component<Props, State> {
           organization={organization}
           location={location}
           setError={setError}
-          summaryConditions={eventView.getQueryWithOverrides()}
+          summaryConditions={eventView.getQueryWithAdditionalConditions()}
           columnTitles={columnTitles}
         />
       </React.Fragment>
@@ -240,7 +240,7 @@ class LandingContent extends React.Component<Props, State> {
           organization={organization}
           location={location}
           setError={setError}
-          summaryConditions={eventView.getQueryWithOverrides()}
+          summaryConditions={eventView.getQueryWithAdditionalConditions()}
           columnTitles={columnTitles}
         />
       </React.Fragment>
@@ -264,7 +264,7 @@ class LandingContent extends React.Component<Props, State> {
           organization={organization}
           location={location}
           setError={setError}
-          summaryConditions={eventView.getQueryWithOverrides()}
+          summaryConditions={eventView.getQueryWithAdditionalConditions()}
         />
       </React.Fragment>
     );
@@ -329,12 +329,10 @@ class LandingContent extends React.Component<Props, State> {
 
     return (
       <div>
-        <Feature
-          organization={organization}
-          features={['performance-landing-v2']}
-          renderDisabled={this.renderLandingV1}
-        >
-          {this.renderLandingV2()}
+        <Feature organization={organization} features={['performance-landing-v2']}>
+          {({hasFeature}) =>
+            hasFeature ? this.renderLandingV2() : this.renderLandingV1()
+          }
         </Feature>
       </div>
     );

@@ -3,13 +3,11 @@ import {InjectedRouter} from 'react-router/lib/Router';
 import {EChartOption} from 'echarts/lib/echarts';
 import {Query} from 'history';
 import isEqual from 'lodash/isEqual';
-import PropTypes from 'prop-types';
 
 import {Client} from 'app/api';
 import AreaChart from 'app/components/charts/areaChart';
 import BarChart from 'app/components/charts/barChart';
 import ChartZoom, {ZoomRenderProps} from 'app/components/charts/chartZoom';
-import Legend from 'app/components/charts/components/legend';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import LineChart from 'app/components/charts/lineChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
@@ -61,26 +59,6 @@ type State = {
 };
 
 class Chart extends React.Component<ChartProps, State> {
-  static propTypes = {
-    loading: PropTypes.bool,
-    reloading: PropTypes.bool,
-    releaseSeries: PropTypes.array,
-    zoomRenderProps: PropTypes.object,
-    timeseriesData: PropTypes.array,
-    showLegend: PropTypes.bool,
-    previousTimeseriesData: PropTypes.object,
-    currentSeriesName: PropTypes.string,
-    previousSeriesName: PropTypes.string,
-    seriesTransformer: PropTypes.func,
-    showDaily: PropTypes.bool,
-    yAxis: PropTypes.string,
-    stacked: PropTypes.bool,
-    colors: PropTypes.array,
-    disableableSeries: PropTypes.array,
-    legendOptions: PropTypes.object,
-    chartOptions: PropTypes.object,
-  };
-
   state: State = {
     seriesSelection: {},
     forceUpdate: false,
@@ -175,14 +153,13 @@ class Chart extends React.Component<ChartProps, State> {
     }
 
     const legend = showLegend
-      ? Legend({
+      ? {
           right: 16,
           top: 12,
           data,
           selected: seriesSelection,
-          theme,
           ...(legendOptions ?? {}),
-        })
+        }
       : undefined;
 
     let series = Array.isArray(releaseSeries)
@@ -341,38 +318,6 @@ type ChartDataProps = {
 };
 
 class EventsChart extends React.Component<Props> {
-  static propTypes = {
-    api: PropTypes.object,
-    projects: PropTypes.arrayOf(PropTypes.number),
-    environments: PropTypes.arrayOf(PropTypes.string),
-    period: PropTypes.string,
-    query: PropTypes.string,
-    start: PropTypes.instanceOf(Date),
-    end: PropTypes.instanceOf(Date),
-    utc: PropTypes.bool,
-    router: PropTypes.object,
-    showLegend: PropTypes.bool,
-    yAxis: PropTypes.string,
-    disablePrevious: PropTypes.bool,
-    disableReleases: PropTypes.bool,
-    emphasizeReleases: PropTypes.array,
-    currentSeriesName: PropTypes.string,
-    previousSeriesName: PropTypes.string,
-    seriesTransformer: PropTypes.func,
-    topEvents: PropTypes.number,
-    field: PropTypes.arrayOf(PropTypes.string),
-    showDaily: PropTypes.bool,
-    orderby: PropTypes.string,
-    confirmedQuery: PropTypes.bool,
-    colors: PropTypes.array,
-    preserveReleaseQueryParams: PropTypes.bool,
-    releaseQueryExtras: PropTypes.object,
-    disableableSeries: PropTypes.array,
-    chartHeader: PropTypes.object,
-    legendOptions: PropTypes.object,
-    chartOptions: PropTypes.object,
-  };
-
   render() {
     const {
       api,
@@ -482,7 +427,14 @@ class EventsChart extends React.Component<Props> {
     }
 
     return (
-      <ChartZoom router={router} period={period} utc={utc} {...props}>
+      <ChartZoom
+        router={router}
+        period={period}
+        start={start}
+        end={end}
+        utc={utc}
+        {...props}
+      >
         {zoomRenderProps => (
           <EventsRequest
             {...props}

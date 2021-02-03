@@ -5,6 +5,7 @@ import min from 'lodash/min';
 
 import AreaChart from 'app/components/charts/areaChart';
 import ChartZoom from 'app/components/charts/chartZoom';
+import {DateString} from 'app/types';
 import {Series} from 'app/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import {aggregateOutputType} from 'app/utils/discover/fields';
@@ -14,6 +15,8 @@ type Props = {
   data: Series[];
   router: ReactRouter.InjectedRouter;
   statsPeriod: string | undefined;
+  start: DateString;
+  end: DateString;
   utc: boolean;
   height?: number;
   grid?: AreaChart['props']['grid'];
@@ -55,6 +58,8 @@ class Chart extends React.Component<Props> {
       data,
       router,
       statsPeriod,
+      start,
+      end,
       utc,
       loading,
       height,
@@ -157,7 +162,7 @@ class Chart extends React.Component<Props> {
     };
 
     if (loading) {
-      return <AreaChart series={[]} {...areaChartProps} />;
+      return <AreaChart height={height} series={[]} {...areaChartProps} />;
     }
     const series = data.map((values, i: number) => ({
       ...values,
@@ -169,6 +174,8 @@ class Chart extends React.Component<Props> {
       <ChartZoom
         router={router}
         period={statsPeriod}
+        start={start}
+        end={end}
         utc={utc}
         xAxisIndex={disableMultiAxis ? undefined : [0, 1]}
       >

@@ -3,7 +3,7 @@ import responses
 from rest_framework.serializers import ValidationError
 
 
-from six.moves.urllib.parse import parse_qs
+from urllib.parse import parse_qs
 from sentry.integrations.vercel import VercelIntegrationProvider
 from sentry.models import (
     Integration,
@@ -477,7 +477,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         assert resp.status_code == 200
         assert (
             absolute_uri(
-                "/settings/%s/integrations/vercel/%s/" % (self.organization.slug, integration.id)
+                f"/settings/{self.organization.slug}/integrations/vercel/{integration.id}/"
             ).encode("utf-8")
             in resp.content
         )

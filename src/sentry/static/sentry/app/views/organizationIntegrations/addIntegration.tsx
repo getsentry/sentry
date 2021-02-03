@@ -1,10 +1,8 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import * as queryString from 'query-string';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import {IntegrationProvider, IntegrationWithConfig, Organization} from 'app/types';
 import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 
@@ -18,21 +16,15 @@ type Props = {
   account?: string;
   organization?: Organization; //for analytics
   analyticsParams?: {
-    view: 'integrations_directory_integration_detail' | 'integrations_directory';
+    view:
+      | 'integrations_directory_integration_detail'
+      | 'integrations_directory'
+      | 'onboarding';
     already_installed: boolean;
   };
 };
 
 export default class AddIntegration extends React.Component<Props> {
-  static propTypes = {
-    children: PropTypes.func.isRequired,
-    provider: PropTypes.object.isRequired,
-    onInstall: PropTypes.func.isRequired,
-    integrationId: PropTypes.string,
-    account: PropTypes.string,
-    organization: SentryTypes.Organization,
-  };
-
   componentDidMount() {
     window.addEventListener('message', this.didReceiveMessage);
   }

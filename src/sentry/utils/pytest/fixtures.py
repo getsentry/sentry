@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 A number of generic default fixtures to use with tests.
 
@@ -236,6 +235,29 @@ def default_activity(default_group, default_project, default_user):
     return Activity.objects.create(
         group=default_group, project=default_project, type=Activity.NOTE, user=default_user, data={}
     )
+
+
+@pytest.fixture()
+def dyn_sampling_data():
+    # return a function that returns fresh config so we don't accidentally get tests interfering with each other
+    def inner():
+        return {
+            "rules": [
+                {
+                    "sampleRate": 0.7,
+                    "type": "trace",
+                    "condition": {
+                        "op": "and",
+                        "inner": [
+                            {"op": "eq", "ignoreCase": True, "name": "field1", "value": ["val"]},
+                            {"op": "glob", "name": "field1", "value": ["val"]},
+                        ],
+                    },
+                }
+            ]
+        }
+
+    return inner
 
 
 _snapshot_writeback = os.environ.get("SENTRY_SNAPSHOTS_WRITEBACK") or "0"

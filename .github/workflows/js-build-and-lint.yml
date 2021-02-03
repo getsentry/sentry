@@ -24,7 +24,7 @@ jobs:
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
       - name: Check for frontend file changes
-        uses: getsentry/paths-filter@v2
+        uses: getsentry/paths-filter@master
         id: changes
         with:
           list-files: shell
@@ -76,6 +76,11 @@ jobs:
         if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
         run: |
           yarn eslint --fix ${{ steps.changes.outputs.frontend_modified_lintable_files }}
+
+      - name: stylelint (changed files only)
+        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend_components_modified_lintable == 'true'
+        run: |
+          yarn stylelint ${{ steps.changes.outputs.frontend_components_modified_lintable_files }}
 
       # Check (and error) for dirty working tree for forks
       # Reason being we need a different token to auto commit changes and

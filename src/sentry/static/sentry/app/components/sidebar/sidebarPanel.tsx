@@ -35,7 +35,29 @@ class SidebarPanel extends React.Component<Props> {
     this.portalEl = getSidebarPanelContainer() || makePortal();
   }
 
+  componentDidMount() {
+    document.addEventListener('click', this.panelCloseHandler);
+  }
+
+  componentWillUnmount() {
+    document.removeEventListener('click', this.panelCloseHandler);
+  }
+
   portalEl: Element;
+
+  panelCloseHandler = (evt: MouseEvent) => {
+    if (!(evt.target instanceof Element)) {
+      return;
+    }
+
+    const panel = getSidebarPanelContainer();
+
+    if (panel?.contains(evt.target)) {
+      return;
+    }
+
+    this.props.hidePanel();
+  };
 
   render() {
     const {orientation, collapsed, hidePanel, title, children, ...props} = this.props;
@@ -68,7 +90,7 @@ const getPositionForOrientation = (
         right: 0;
       `
     : css`
-        width: 320px;
+        width: 360px;
         top: 0;
         left: ${p.collapsed
           ? p.theme.sidebar.collapsedWidth
@@ -97,7 +119,7 @@ const SidebarPanelHeader = styled('div')`
   padding: ${space(3)};
   background: ${p => p.theme.background};
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
-  height: 62px;
+  height: 60px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -105,6 +127,8 @@ const SidebarPanelHeader = styled('div')`
 `;
 
 const SidebarPanelBody = styled('div')<{hasHeader: boolean}>`
+  display: flex;
+  flex-direction: column;
   flex-grow: 1;
   overflow: auto;
 `;

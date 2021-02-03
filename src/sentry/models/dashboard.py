@@ -125,6 +125,17 @@ PREBUILT_DASHBOARDS = {
                         },
                     ],
                 },
+                {
+                    "title": "Errors by Country",
+                    "displayType": "world_map",
+                    "queries": [
+                        {
+                            "name": "Error counts",
+                            "conditions": "event.type:error has:geo.country_code",
+                            "fields": ["count()"],
+                        }
+                    ],
+                },
             ],
         }
     ]

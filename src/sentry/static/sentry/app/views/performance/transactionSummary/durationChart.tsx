@@ -6,13 +6,13 @@ import {Location, Query} from 'history';
 import {Client} from 'app/api';
 import AreaChart from 'app/components/charts/areaChart';
 import ChartZoom from 'app/components/charts/chartZoom';
-import Legend from 'app/components/charts/components/legend';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {getInterval, getSeriesSelection} from 'app/components/charts/utils';
+import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
@@ -85,12 +85,11 @@ class DurationChart extends React.Component<Props> {
     const end = this.props.end ? getUtcToLocalDateObject(this.props.end) : null;
     const utc = decodeScalar(router.location.query.utc) !== 'false';
 
-    const legend = Legend({
+    const legend = {
       right: 10,
       top: 0,
       selected: getSeriesSelection(location),
-      theme,
-    });
+    };
 
     const datetimeSelection = {
       start,
@@ -133,7 +132,7 @@ class DurationChart extends React.Component<Props> {
             )}
           />
         </HeaderTitleLegend>
-        <ChartZoom router={router} period={statsPeriod}>
+        <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
           {zoomRenderProps => (
             <EventsRequest
               api={api}
@@ -199,7 +198,7 @@ class DurationChart extends React.Component<Props> {
                               series={[...series, ...releaseSeries]}
                             />
                           ),
-                          fixed: 'Duration Chart',
+                          fixed: <Placeholder height="200px" testId="skeleton-ui" />,
                         })}
                       </TransitionChart>
                     )}

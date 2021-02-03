@@ -98,7 +98,7 @@ class AmazonSQSPluginTest(PluginTestCase):
     @patch("uuid.uuid4")
     @patch("boto3.client")
     def test_pass_message_group_id(self, mock_client, mock_uuid):
-        class uuid(object):
+        class uuid:
             hex = "some-uuid"
 
         mock_uuid.return_value = uuid
@@ -117,13 +117,13 @@ class AmazonSQSPluginTest(PluginTestCase):
         self.plugin.set_option("s3_bucket", "my_bucket", self.project)
         event = self.run_test()
         date = event.datetime.strftime("%Y-%m-%d")
-        key = "{}/{}/{}".format(event.project.slug, date, event.event_id)
+        key = f"{event.project.slug}/{date}/{event.event_id}"
 
         mock_client.return_value.send_message.assert_called_once_with(
             QueueUrl="https://sqs-us-east-1.amazonaws.com/12345678/myqueue",
             MessageBody=json.dumps(
                 {
-                    "s3Url": "https://my_bucket.s3-us-east-1.amazonaws.com/{}".format(key),
+                    "s3Url": f"https://my_bucket.s3-us-east-1.amazonaws.com/{key}",
                     "eventID": event.event_id,
                 }
             ),

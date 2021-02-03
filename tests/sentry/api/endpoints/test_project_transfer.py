@@ -24,7 +24,7 @@ class ProjectTransferTest(APITestCase):
 
     @mock.patch("sentry.api.endpoints.project_details.uuid4")
     def test_transfer_project(self, mock_uuid4):
-        class uuid(object):
+        class uuid:
             hex = "abc123"
 
         mock_uuid4.return_value = uuid
@@ -50,7 +50,7 @@ class ProjectTransferTest(APITestCase):
 
     @mock.patch("sentry.api.endpoints.project_details.uuid4")
     def test_transfer_project_to_invalid_user(self, mock_uuid4):
-        class uuid(object):
+        class uuid:
             hex = "abc123"
 
         mock_uuid4.return_value = uuid

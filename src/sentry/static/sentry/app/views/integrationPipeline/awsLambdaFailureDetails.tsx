@@ -20,7 +20,7 @@ export default function AwsLambdaFailureDetails({
   lambdaFunctionFailures,
   successCount,
 }: Props) {
-  const baseDocsUrl = 'https://docs.sentry.io/product/integrations/aws_lambda/';
+  const baseDocsUrl = 'https://docs.sentry.io/product/integrations/aws-lambda/';
   return (
     <React.Fragment>
       <HeaderWithHelp docsUrl={baseDocsUrl} />
@@ -59,7 +59,7 @@ export default function AwsLambdaFailureDetails({
 
 function SingleFailure(errorDetail: ErrorDetail) {
   return (
-    <StyledRow>
+    <StyledRow key={errorDetail.name}>
       <span>{errorDetail.name}</span>
       <Error>{errorDetail.error}</Error>
     </StyledRow>
@@ -67,7 +67,7 @@ function SingleFailure(errorDetail: ErrorDetail) {
 }
 
 const Wrapper = styled('div')`
-  margin: 100px 50px 50px 50px;
+  padding: 100px 50px 50px 50px;
 `;
 
 const StyledRow = styled(PanelItem)`

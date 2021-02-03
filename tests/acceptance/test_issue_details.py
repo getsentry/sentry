@@ -13,7 +13,7 @@ now = datetime.utcnow().replace(tzinfo=pytz.utc)
 
 class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
-        super(IssueDetailsTest, self).setUp()
+        super().setUp()
         patcher = patch("django.utils.timezone.now", return_value=now)
         patcher.start()
         self.addCleanup(patcher.stop)

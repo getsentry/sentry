@@ -6,7 +6,7 @@ from sentry.models import Rule
 from sentry.plugins.base import Notification
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
-from six.moves.urllib.parse import parse_qs
+from urllib.parse import parse_qs
 
 from sentry_plugins.pushover.plugin import PushoverPlugin
 
@@ -52,12 +52,10 @@ class PushoverPluginTest(PluginTestCase):
         request = responses.calls[0].request
         payload = parse_qs(request.body)
         assert payload == {
-            "message": ["{}\n\nTags: level=warning".format(event.title)],
+            "message": [f"{event.title}\n\nTags: level=warning"],
             "title": ["Bar: Hello world"],
             "url": [
-                "http://example.com/organizations/baz/issues/{}/?referrer=pushover_plugin".format(
-                    group.id
-                )
+                f"http://example.com/organizations/baz/issues/{group.id}/?referrer=pushover_plugin"
             ],
             "url_title": ["Issue Details"],
             "priority": ["0"],
@@ -91,12 +89,10 @@ class PushoverPluginTest(PluginTestCase):
         request = responses.calls[0].request
         payload = parse_qs(request.body)
         assert payload == {
-            "message": ["{}\n\nTags: level=warning".format(event.title)],
+            "message": [f"{event.title}\n\nTags: level=warning"],
             "title": ["Bar: Hello world"],
             "url": [
-                "http://example.com/organizations/baz/issues/{}/?referrer=pushover_plugin".format(
-                    group.id
-                )
+                f"http://example.com/organizations/baz/issues/{group.id}/?referrer=pushover_plugin"
             ],
             "url_title": ["Issue Details"],
             "priority": ["2"],

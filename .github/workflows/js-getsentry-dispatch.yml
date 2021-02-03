@@ -54,7 +54,7 @@ jobs:
               workflow_id: 'js-build-and-lint.yml',
               ref: 'master',
               inputs: {
-                pull_request: matches && matches[1],
+                pull_request: matches && matches[1] || '',
                 branch,
                 skip: "${{ steps.changes.outputs.frontend != 'true' }}",
                 'sentry-sha': '${{ github.event.pull_request.head.sha }}',

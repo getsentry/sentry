@@ -1,7 +1,7 @@
+from io import BytesIO
 from time import time
 import pytest
 import uuid
-import six
 
 from sentry import eventstore
 from sentry.attachments import attachment_cache
@@ -17,9 +17,6 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 from sentry.utils.cache import cache_key_for_event
 
 
-# pytestmark = pytest.mark.skip(reason="Deadlock on Travis")
-
-
 @pytest.fixture(autouse=True)
 def reprocessing_feature(monkeypatch):
     monkeypatch.setattr("sentry.tasks.reprocessing2.GROUP_REPROCESSING_CHUNK_SIZE", 1)
@@ -31,6 +28,7 @@ def reprocessing_feature(monkeypatch):
 @pytest.fixture
 def process_and_save(default_project, task_runner):
     def inner(data, seconds_ago=1):
+        data.setdefault("platform", "native")
         data.setdefault("timestamp", iso_format(before_now(seconds=seconds_ago)))
         mgr = EventManager(data=data, project=default_project)
         mgr.normalize()
@@ -198,7 +196,7 @@ def test_concurrent_events_go_into_new_group(
     assert group.short_id == original_short_id
     assert GroupAssignee.objects.get(group=group) == original_assignee
     activity = Activity.objects.get(group=group, type=Activity.REPROCESS)
-    assert activity.ident == six.text_type(original_issue_id)
+    assert activity.ident == str(original_issue_id)
 
 
 @pytest.mark.django_db
@@ -296,7 +294,7 @@ def test_attachments_and_userfeedback(
     for evt in (event, event_to_delete):
         for type in ("event.attachment", "event.minidump"):
             file = File.objects.create(name="foo", type=type)
-            file.putfile(six.BytesIO(b"hello world"))
+            file.putfile(BytesIO(b"hello world"))
             EventAttachment.objects.create(
                 event_id=evt.event_id,
                 group_id=evt.group_id,

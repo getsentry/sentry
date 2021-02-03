@@ -14,6 +14,7 @@ import TogglableAddress, {
   AddressToggleIcon,
 } from 'app/components/events/interfaces/togglableAddress';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
+import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'app/components/stacktracePreview';
 import StrictClick from 'app/components/strictClick';
 import {IconChevron, IconRefresh} from 'app/icons';
 import {t} from 'app/locale';
@@ -53,8 +54,11 @@ type Props = {
   includeSystemFrames?: boolean;
   isExpanded?: boolean;
   isFirst?: boolean;
-  isHoverPreviewed?: boolean;
   organization?: Organization;
+  /**
+   * Is the stack trace being previewed in a hovercard?
+   */
+  isHoverPreviewed?: boolean;
 };
 
 type State = {
@@ -146,10 +150,13 @@ export class Line extends React.Component<Props, State> {
   }
 
   shouldShowLinkToImage() {
-    const {symbolicatorStatus} = this.props.data;
+    const {isHoverPreviewed, data} = this.props;
+    const {symbolicatorStatus} = data;
 
     return (
-      !!symbolicatorStatus && symbolicatorStatus !== SymbolicatorStatus.UNKNOWN_IMAGE
+      !!symbolicatorStatus &&
+      symbolicatorStatus !== SymbolicatorStatus.UNKNOWN_IMAGE &&
+      !isHoverPreviewed
     );
   }
 
@@ -193,6 +200,7 @@ export class Line extends React.Component<Props, State> {
       return null;
     }
 
+    const {isHoverPreviewed} = this.props;
     const {isExpanded} = this.state;
 
     return (
@@ -201,9 +209,12 @@ export class Line extends React.Component<Props, State> {
           className="btn-toggle"
           css={isDotnet(this.getPlatform()) && {display: 'block !important'}} // remove important once we get rid of css files
           title={t('Toggle Context')}
+          tooltipProps={
+            isHoverPreviewed ? {delay: STACKTRACE_PREVIEW_TOOLTIP_DELAY} : undefined
+          }
           onClick={this.toggleContext}
         >
-          <IconChevron direction={isExpanded ? 'down' : 'up'} size="8px" />
+          <IconChevron direction={isExpanded ? 'up' : 'down'} size="8px" />
         </ToggleContextButton>
       </ToggleContextButtonWrapper>
     );
@@ -263,6 +274,8 @@ export class Line extends React.Component<Props, State> {
   }
 
   renderDefaultLine() {
+    const {isHoverPreviewed} = this.props;
+
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
         <DefaultLine className="title">
@@ -272,6 +285,7 @@ export class Line extends React.Component<Props, State> {
               <DefaultTitle
                 frame={this.props.data}
                 platform={this.props.platform ?? 'other'}
+                isHoverPreviewed={isHoverPreviewed}
               />
             </div>
             {this.renderRepeats()}
@@ -293,6 +307,7 @@ export class Line extends React.Component<Props, State> {
       isFrameAfterLastNonApp,
       includeSystemFrames,
       showCompleteFunctionName,
+      isHoverPreviewed,
     } = this.props;
 
     const leadHint = this.renderLeadHint();
@@ -310,11 +325,14 @@ export class Line extends React.Component<Props, State> {
                 packagePath={data.package}
                 onClick={this.scrollToImage}
                 isClickable={this.shouldShowLinkToImage()}
+                isHoverPreviewed={isHoverPreviewed}
               >
-                <PackageStatus
-                  status={packageStatus}
-                  tooltip={t('Go to Images Loaded')}
-                />
+                {!isHoverPreviewed && (
+                  <PackageStatus
+                    status={packageStatus}
+                    tooltip={t('Go to Images Loaded')}
+                  />
+                )}
               </PackageLink>
             </PackageInfo>
             {data.instructionAddr && (
@@ -326,12 +344,14 @@ export class Line extends React.Component<Props, State> {
                 isInlineFrame={!!this.isInlineFrame()}
                 onToggle={onAddressToggle}
                 relativeAddressMaxlength={maxLengthOfRelativeAddress}
+                isHoverPreviewed={isHoverPreviewed}
               />
             )}
             <Symbol
               frame={data}
               showCompleteFunctionName={!!showCompleteFunctionName}
               onFunctionNameToggle={onFunctionNameToggle}
+              isHoverPreviewed={isHoverPreviewed}
             />
           </NativeLineContent>
           {this.renderExpander()}
@@ -430,7 +450,7 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
   flex: 1;
   grid-gap: ${space(0.5)};
   grid-template-columns: ${p => (p.isFrameAfterLastNonApp ? '167px' : '117px')} 1fr;
-  align-items: flex-start;
+  align-items: center;
   justify-content: flex-start;
 
   @media (min-width: ${props => props.theme.breakpoints[0]}) {

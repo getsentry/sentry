@@ -49,9 +49,7 @@ class MsTeamsIntegrationUnlinkIdentityTest(TestCase):
 
         responses.add(
             method=responses.POST,
-            url="https://smba.trafficmanager.net/amer/v3/conversations/{}/activities".format(
-                self.conversation_id
-            ),
+            url=f"https://smba.trafficmanager.net/amer/v3/conversations/{self.conversation_id}/activities",
             status=200,
             json={},
         )

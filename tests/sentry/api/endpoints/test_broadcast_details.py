@@ -1,5 +1,3 @@
-import six
-
 from sentry.models import Broadcast, BroadcastSeen
 from sentry.testutils import APITestCase
 
@@ -11,9 +9,9 @@ class BroadcastDetailsTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        response = self.client.get("/api/0/broadcasts/{}/".format(broadcast1.id))
+        response = self.client.get(f"/api/0/broadcasts/{broadcast1.id}/")
         assert response.status_code == 200
-        assert response.data["id"] == six.text_type(broadcast1.id)
+        assert response.data["id"] == str(broadcast1.id)
 
 
 class BroadcastUpdateTest(APITestCase):
@@ -25,7 +23,7 @@ class BroadcastUpdateTest(APITestCase):
         self.login_as(user=self.user)
 
         response = self.client.put(
-            "/api/0/broadcasts/{}/".format(broadcast1.id), {"hasSeen": "1", "message": "foobar"}
+            f"/api/0/broadcasts/{broadcast1.id}/", {"hasSeen": "1", "message": "foobar"}
         )
         assert response.status_code == 200
         assert response.data["hasSeen"]
@@ -45,7 +43,7 @@ class BroadcastUpdateTest(APITestCase):
         self.login_as(user=self.user, superuser=True)
 
         response = self.client.put(
-            "/api/0/broadcasts/{}/".format(broadcast1.id), {"hasSeen": "1", "message": "foobar"}
+            f"/api/0/broadcasts/{broadcast1.id}/", {"hasSeen": "1", "message": "foobar"}
         )
         assert response.status_code == 200
         assert response.data["hasSeen"]

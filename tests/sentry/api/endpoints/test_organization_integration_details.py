@@ -1,5 +1,3 @@
-import six
-
 from sentry.models import (
     Integration,
     OrganizationIntegration,
@@ -12,7 +10,7 @@ from sentry.testutils import APITestCase
 
 class OrganizationIntegrationDetailsTest(APITestCase):
     def setUp(self):
-        super(OrganizationIntegrationDetailsTest, self).setUp()
+        super().setUp()
 
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user, name="baz")
@@ -34,15 +32,13 @@ class OrganizationIntegrationDetailsTest(APITestCase):
             integration_id=self.integration.id,
         )
 
-        self.path = "/api/0/organizations/{}/integrations/{}/".format(
-            self.org.slug, self.integration.id
-        )
+        self.path = f"/api/0/organizations/{self.org.slug}/integrations/{self.integration.id}/"
 
     def test_simple(self):
         response = self.client.get(self.path, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(self.integration.id)
+        assert response.data["id"] == str(self.integration.id)
 
     def test_removal(self):
         with self.tasks():

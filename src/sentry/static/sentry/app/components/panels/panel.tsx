@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import PanelBody from 'app/components/panels/panelBody';
 import PanelHeader from 'app/components/panels/panelHeader';
@@ -36,15 +35,5 @@ const Panel = styled(
   margin-bottom: ${space(3)};
   position: relative;
 `;
-
-Panel.propTypes = {
-  /**
-   * When `title` and `body` are defined, use as children to `<PanelHeader>`
-   * and `<PanelBody>` respectively.
-   */
-  title: PropTypes.node,
-  body: PropTypes.node,
-  dashedBorder: PropTypes.bool,
-};
 
 export default Panel;

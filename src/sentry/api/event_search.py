@@ -154,7 +154,7 @@ has_filter           = negation? "has" sep (search_key / search_value)
 is_filter            = negation? "is" sep search_value
 tag_filter           = negation? "tags[" search_key "]" sep search_value
 
-aggregate_key        = key space? open_paren space? function_arg* space? closed_paren
+aggregate_key        = key open_paren function_arg* closed_paren
 search_key           = key / quoted_key
 search_value         = quoted_value / value
 value                = ~r"[^()\s]*"
@@ -638,11 +638,11 @@ class SearchVisitor(NodeVisitor):
         # If a date or numeric key gets down to the basic filter, then it means
         # that the value wasn't in a valid format, so raise here.
         if search_key.name in self.date_keys:
-            raise InvalidSearchQuery("Invalid format for date field")
+            raise InvalidSearchQuery(f"{search_key.name}: Invalid format for date field")
         if search_key.name in self.boolean_keys:
-            raise InvalidSearchQuery("Invalid format for boolean field")
+            raise InvalidSearchQuery(f"{search_key.name}: Invalid format for boolean field")
         if self.is_numeric_key(search_key.name):
-            raise InvalidSearchQuery("Invalid format for numeric field")
+            raise InvalidSearchQuery(f"{search_key.name}: Invalid format for numeric field")
 
         return SearchFilter(search_key, operator, search_value)
 
@@ -653,7 +653,7 @@ class SearchVisitor(NodeVisitor):
         # if it matched search value instead, it's not a valid key
         if isinstance(search_key, SearchValue):
             raise InvalidSearchQuery(
-                'Invalid format for "has" search: {}'.format(search_key.raw_value)
+                'Invalid format for "has" search: was expecting a field or tag instead'
             )
 
         operator = "=" if self.is_negated(negation) else "!="
@@ -675,6 +675,7 @@ class SearchVisitor(NodeVisitor):
         children = self.flatten(children)
         children = self.remove_optional_nodes(children)
         children = self.remove_space(children)
+
         if len(children) == 3:
             (function_name, open_paren, close_paren) = children
             args = ""
@@ -816,6 +817,9 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
             # message. Strip off here
             value = search_filter.value.value[1:-1]
             return [["match", ["message", "'(?i){}'".format(value)]], search_filter.operator, 1]
+        elif value == "":
+            operator = "=" if search_filter.operator == "=" else "!="
+            return [["equals", ["message", "{}".format(value)]], operator, 1]
         else:
             # https://clickhouse.yandex/docs/en/query_language/functions/string_search_functions/#position-haystack-needle
             # positionCaseInsensitive returns 0 if not found and an index of 1 or more if found
@@ -994,14 +998,19 @@ def format_search_filter(term, params):
         # A blank term value means that this is a has filter
         group_ids = to_list(value)
     elif name == ISSUE_ALIAS:
-        if value != "" and params and "organization_id" in params:
+        operator = term.operator
+        if value == "unknown":
+            # `unknown` is a special value for when there is no issue associated with the event
+            operator = "=" if term.operator == "=" else "!="
+            value = ""
+        elif value != "" and params and "organization_id" in params:
             try:
                 group = Group.objects.by_qualified_short_id(params["organization_id"], value)
             except Exception:
                 raise InvalidSearchQuery("Invalid value '{}' for 'issue:' filter".format(value))
             else:
                 value = group.id
-        term = SearchFilter(SearchKey("issue.id"), term.operator, SearchValue(value))
+        term = SearchFilter(SearchKey("issue.id"), operator, SearchValue(value))
         converted_filter = convert_search_filter_to_snuba_query(term)
         conditions.append(converted_filter)
     elif name == RELEASE_ALIAS and params and value == "latest":

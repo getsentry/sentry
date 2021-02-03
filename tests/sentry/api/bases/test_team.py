@@ -7,7 +7,7 @@ class TeamPermissionBase(TestCase):
     def setUp(self):
         self.org = self.create_organization(flags=0)
         self.team = self.create_team(organization=self.org)
-        super(TeamPermissionBase, self).setUp()
+        super().setUp()
 
     def has_object_perm(self, method, obj, auth=None, user=None, is_superuser=None):
         perm = TeamPermission()

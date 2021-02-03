@@ -1,6 +1,6 @@
 import copy
 
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from sentry.models import GroupHash
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -41,7 +41,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
 
         assert new_event.group_id == old_event.group_id
 
-        url = "/api/0/issues/{}/hashes/".format(new_event.group_id)
+        url = f"/api/0/issues/{new_event.group_id}/hashes/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -81,7 +81,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
 
         eventstream.end_merge(state)
 
-        url = "/api/0/issues/{}/hashes/".format(event1.group_id)
+        url = f"/api/0/issues/{event1.group_id}/hashes/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
@@ -102,7 +102,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
 
         url = "?".join(
             [
-                "/api/0/issues/{}/hashes/".format(group.id),
+                f"/api/0/issues/{group.id}/hashes/",
                 urlencode({"id": [h.hash for h in hashes]}, True),
             ]
         )

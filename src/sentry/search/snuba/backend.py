@@ -13,7 +13,6 @@ from sentry.models import (
     GroupEnvironment,
     Group,
     GroupAssignee,
-    GroupInbox,
     GroupLink,
     GroupOwner,
     GroupStatus,
@@ -123,28 +122,31 @@ def first_release_all_environments_filter(version, projects):
 
 
 def inbox_filter(inbox, projects):
-    organization_id = projects[0].organization_id
-    query = Q(
-        id__in=GroupInbox.objects.filter(
-            organization_id=organization_id, project_id__in=[p.id for p in projects]
-        ).values_list("group_id", flat=True)
-    )
+    query = Q(groupinbox__id__isnull=False)
     if not inbox:
         query = ~query
+    else:
+        query = query & Q(groupinbox__project_id__in=[p.id for p in projects])
     return query
 
 
-def owner_filter(owner, projects):
+def assigned_or_suggested_filter(owner, projects):
     organization_id = projects[0].organization_id
     project_ids = [p.id for p in projects]
     if isinstance(owner, Team):
-        return Q(
-            id__in=GroupOwner.objects.filter(
-                team=owner, project_id__in=project_ids, organization_id=organization_id
+        return (
+            Q(
+                id__in=GroupOwner.objects.filter(
+                    Q(group__assignee_set__isnull=True),
+                    team=owner,
+                    project_id__in=project_ids,
+                    organization_id=organization_id,
+                )
+                .values_list("group_id", flat=True)
+                .distinct()
             )
-            .values_list("group_id", flat=True)
-            .distinct()
-        ) | assigned_to_filter(owner, projects)
+            | assigned_to_filter(owner, projects)
+        )
     elif isinstance(owner, User) or (isinstance(owner, list) and owner[0] == "me_or_none"):
         include_none = False
         if isinstance(owner, list) and owner[0] == "me_or_none":
@@ -402,7 +404,9 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             ),
             "active_at": ScalarCondition("active_at"),
             "for_review": QCallbackCondition(functools.partial(inbox_filter, projects=projects)),
-            "owner": QCallbackCondition(functools.partial(owner_filter, projects=projects)),
+            "assigned_or_suggested": QCallbackCondition(
+                functools.partial(assigned_or_suggested_filter, projects=projects)
+            ),
         }
 
         if environments is not None:

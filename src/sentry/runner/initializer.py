@@ -292,6 +292,7 @@ def initialize_app(config, skip_service_validation=False):
     if settings.DEBUG:
         # Enable line buffering for stderr, TODO(py3.9) can be removed after py3.9, see bpo-13601
         sys.stderr = os.fdopen(sys.stderr.fileno(), "w", 1)
+        sys.stdout = os.fdopen(sys.stdout.fileno(), "w", 1)
 
     # Just reuse the integration app for Single Org / Self-Hosted as
     # it doesn't make much sense to use 2 separate apps for SSO and

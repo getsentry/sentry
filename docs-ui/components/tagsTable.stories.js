@@ -1,6 +1,4 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
-import {text} from '@storybook/addon-knobs';
 
 import TagsTable from 'app/components/tagsTable';
 
@@ -24,21 +22,28 @@ const event = {
 
 export default {
   title: 'Core/Tables/TagsTable',
+  args: {
+    title: 'title',
+  },
 };
 
-export const Default = withInfo(
-  'Display a table of tags with each value as a link, generally to another search result.'
-)(() => {
+export const Default = ({title}) => {
   return (
     <TagsTable
-      title={text('title', 'Event Tags')}
+      title={title}
       query="event.type:error"
       event={event}
       generateUrl={tag => `/issues/search?key=${tag.key}&value=${tag.value}`}
     />
   );
-});
+};
 
-Default.story = {
-  name: 'default',
+Default.storyName = 'default';
+Default.parameters = {
+  docs: {
+    description: {
+      story:
+        'Display a table of tags with each value as a link, generally to another search result.',
+    },
+  },
 };

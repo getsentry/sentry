@@ -4,7 +4,7 @@ from sentry.testutils import TestCase
 from sentry.utils.linksign import generate_signed_link
 
 
-class UnsubscribeNotificationsBaseTest(object):
+class UnsubscribeNotificationsBaseTest:
     def create_instance(self):
         raise NotImplementedError()
 

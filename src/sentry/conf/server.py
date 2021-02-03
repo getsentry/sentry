@@ -890,8 +890,6 @@ SENTRY_FEATURES = {
     "organizations:integrations-vsts-limited-scopes": False,
     # Allow orgs to use the stacktrace linking feature
     "organizations:integrations-stacktrace-link": False,
-    # Enables aws lambda integration
-    "organizations:integrations-aws_lambda": False,
     # Temporary safety measure, turned on for specific orgs only if
     # absolutely necessary, to be removed shortly
     "organizations:slack-allow-workspace": False,
@@ -950,7 +948,7 @@ SENTRY_FEATURES = {
     "organizations:inbox": False,
     # Set default tab to inbox
     "organizations:inbox-tab-default": False,
-    # Add `owner:me_or_none` to inbox tab query
+    # Add `assigned_or_suggested:me_or_none` to inbox tab query
     "organizations:inbox-owners-query": False,
     # Enable the new alert details ux design
     "organizations:alert-details-redesign": False,
@@ -958,8 +956,6 @@ SENTRY_FEATURES = {
     "organizations:images-loaded-v2": False,
     # Return unhandled information on the issue level
     "organizations:unhandled-issue-flag": False,
-    # Enable "owner"/"suggested assignee" features.
-    "organizations:workflow-owners": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.

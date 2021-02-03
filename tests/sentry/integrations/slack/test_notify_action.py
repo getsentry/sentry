@@ -1,6 +1,6 @@
 import responses
 
-from six.moves.urllib.parse import parse_qs
+from urllib.parse import parse_qs
 
 from sentry.utils import json
 from sentry.models import Integration

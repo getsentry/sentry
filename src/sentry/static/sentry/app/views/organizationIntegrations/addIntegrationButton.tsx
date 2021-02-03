@@ -15,7 +15,7 @@ type Props = {
   integrationId?: string;
   organization?: Organization; //for analytics
   analyticsParams?: {
-    view: 'integrations_directory_integration_detail';
+    view: 'integrations_directory_integration_detail' | 'onboarding';
     already_installed: boolean;
   };
 } & React.ComponentProps<typeof Button>;

@@ -5,7 +5,6 @@ import {Location} from 'history';
 
 import {Client} from 'app/api';
 import ChartZoom from 'app/components/charts/chartZoom';
-import Legend from 'app/components/charts/components/legend';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import LineChart from 'app/components/charts/lineChart';
@@ -13,6 +12,7 @@ import ReleaseSeries from 'app/components/charts/releaseSeries';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {getInterval, getSeriesSelection} from 'app/components/charts/utils';
+import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
@@ -88,7 +88,7 @@ class VitalsChart extends React.Component<Props> {
     const end = this.props.end ? getUtcToLocalDateObject(this.props.end) : null;
     const utc = decodeScalar(router.location.query.utc) !== 'false';
 
-    const legend = Legend({
+    const legend = {
       right: 10,
       top: 0,
       selected: getSeriesSelection(location),
@@ -102,8 +102,7 @@ class VitalsChart extends React.Component<Props> {
         }
         return seriesName;
       },
-      theme,
-    });
+    };
 
     const datetimeSelection = {
       start,
@@ -147,7 +146,7 @@ class VitalsChart extends React.Component<Props> {
             )}
           />
         </HeaderTitleLegend>
-        <ChartZoom router={router} period={statsPeriod}>
+        <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
           {zoomRenderProps => (
             <EventsRequest
               api={api}
@@ -208,7 +207,7 @@ class VitalsChart extends React.Component<Props> {
                               series={[...series, ...releaseSeries]}
                             />
                           ),
-                          fixed: 'Web Vitals Chart',
+                          fixed: <Placeholder height="200px" testId="skeleton-ui" />,
                         })}
                       </TransitionChart>
                     )}

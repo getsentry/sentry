@@ -153,7 +153,7 @@ class OrganizationEventsGeoEndpoint(OrganizationEventsV2EndpointBase):
         def data_fn(offset, limit):
             return discover.query(
                 selected_columns=["geo.country_code", maybe_aggregate],
-                query=request.GET.get("query"),
+                query=f"{request.GET.get('query', '')} has:geo.country_code",
                 params=params,
                 offset=offset,
                 limit=limit,

@@ -1,17 +1,21 @@
 import React from 'react';
 import * as Sentry from '@sentry/react';
-import PropTypes from 'prop-types';
 import u2f from 'u2f-api';
 
 import {t, tct} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import {ChallengeData} from 'app/types';
 
+type TapParams = {
+  response: string;
+  challenge: string;
+};
+
 type Props = {
   challengeData: ChallengeData;
   flowMode: string;
   silentIfUnsupported: boolean;
-  onTap: ({response, challenge}) => Promise<void>;
+  onTap: ({response, challenge}: TapParams) => Promise<void>;
   style?: React.CSSProperties;
 };
 
@@ -25,17 +29,6 @@ type State = {
 };
 
 class U2fInterface extends React.Component<Props, State> {
-  static propTypes = {
-    challengeData: PropTypes.object.isRequired,
-    flowMode: PropTypes.string.isRequired,
-    onTap: PropTypes.func,
-    silentIfUnsupported: PropTypes.bool,
-  };
-
-  static defaultProps = {
-    silentIfUnsupported: false,
-  };
-
   state: State = {
     isSupported: null,
     formElement: null,
@@ -45,32 +38,20 @@ class U2fInterface extends React.Component<Props, State> {
     responseElement: null,
   };
 
-  componentDidMount() {
-    u2f.isSupported().then(supported => {
-      this.setState({
-        isSupported: supported,
-      });
-      if (!supported) {
-        return;
-      }
+  async componentDidMount() {
+    const supported = await u2f.isSupported();
+
+    // eslint-disable-next-line react/no-did-mount-set-state
+    this.setState({isSupported: supported});
+
+    if (supported) {
       this.invokeU2fFlow();
-    });
+    }
   }
 
-  onTryAgain = () => {
-    this.setState(
-      {
-        hasBeenTapped: false,
-        deviceFailure: null,
-      },
-      () => {
-        this.invokeU2fFlow();
-      }
-    );
-  };
+  invokeU2fFlow() {
+    let promise: Promise<u2f.SignResponse | u2f.RegisterResponse>;
 
-  invokeU2fFlow = () => {
-    let promise;
     if (this.props.flowMode === 'sign') {
       promise = u2f.sign(this.props.challengeData.authenticateRequests);
     } else if (this.props.flowMode === 'enroll') {
@@ -79,6 +60,7 @@ class U2fInterface extends React.Component<Props, State> {
     } else {
       throw new Error(`Unsupported flow mode '${this.props.flowMode}'`);
     }
+
     promise
       .then(data => {
         this.setState(
@@ -95,21 +77,22 @@ class U2fInterface extends React.Component<Props, State> {
             }
 
             if (!this.props.onTap) {
-              this.state.formElement && this.state.formElement.submit();
-            } else {
-              this.props
-                .onTap({
-                  response: u2fResponse,
-                  challenge,
-                })
-                .catch(() => {
-                  // This is kind of gross but I want to limit the amount of changes to this component
-                  this.setState({
-                    deviceFailure: 'UNKNOWN_ERROR',
-                    hasBeenTapped: false,
-                  });
-                });
+              this.state.formElement?.submit();
+              return;
             }
+
+            this.props
+              .onTap({
+                response: u2fResponse,
+                challenge,
+              })
+              .catch(() => {
+                // This is kind of gross but I want to limit the amount of changes to this component
+                this.setState({
+                  deviceFailure: 'UNKNOWN_ERROR',
+                  hasBeenTapped: false,
+                });
+              });
           }
         );
       })
@@ -137,9 +120,16 @@ class U2fInterface extends React.Component<Props, State> {
           hasBeenTapped: false,
         });
       });
+  }
+
+  onTryAgain = () => {
+    this.setState(
+      {hasBeenTapped: false, deviceFailure: null},
+      () => void this.invokeU2fFlow()
+    );
   };
 
-  bindChallengeElement = ref => {
+  bindChallengeElement: React.RefCallback<HTMLInputElement> = ref => {
     this.setState({
       challengeElement: ref,
       formElement: ref && ref.form,
@@ -150,17 +140,11 @@ class U2fInterface extends React.Component<Props, State> {
     }
   };
 
-  bindResponseElement = ref => {
-    this.setState({
-      responseElement: ref,
-    });
-  };
+  bindResponseElement: React.RefCallback<HTMLInputElement> = ref =>
+    this.setState({responseElement: ref});
 
-  renderUnsupported = () => {
-    if (this.props.silentIfUnsupported) {
-      return null;
-    }
-    return (
+  renderUnsupported() {
+    return this.props.silentIfUnsupported ? null : (
       <div className="u2f-box">
         <div className="inner">
           <p className="error">
@@ -174,9 +158,11 @@ class U2fInterface extends React.Component<Props, State> {
         </div>
       </div>
     );
-  };
+  }
 
-  canTryAgain = () => this.state.deviceFailure !== 'BAD_APPID';
+  get canTryAgain() {
+    return this.state.deviceFailure !== 'BAD_APPID';
+  }
 
   renderFailure = () => {
     const {deviceFailure} = this.state;
@@ -211,7 +197,7 @@ class U2fInterface extends React.Component<Props, State> {
             }[deviceFailure || '']
           }
         </div>
-        {this.canTryAgain() && (
+        {this.canTryAgain && (
           <div style={{marginTop: 18}}>
             <a onClick={this.onTryAgain} className="btn btn-primary">
               {t('Try Again')}
@@ -222,16 +208,13 @@ class U2fInterface extends React.Component<Props, State> {
     );
   };
 
-  renderBody = () => {
-    if (this.state.deviceFailure) {
-      return this.renderFailure();
-    } else {
-      return this.props.children;
-    }
-  };
+  renderBody() {
+    return this.state.deviceFailure ? this.renderFailure() : this.props.children;
+  }
 
-  renderPrompt = () => {
+  renderPrompt() {
     const {style} = this.props;
+
     return (
       <div
         style={style}
@@ -255,19 +238,21 @@ class U2fInterface extends React.Component<Props, State> {
         <div className="inner">{this.renderBody()}</div>
       </div>
     );
-  };
+  }
 
   render() {
     const {isSupported} = this.state;
-    // if we are still waiting for the browser to tell us if we can do u2f
-    // this will be null.
+    // if we are still waiting for the browser to tell us if we can do u2f this
+    // will be null.
     if (isSupported === null) {
       return null;
-    } else if (!isSupported) {
-      return this.renderUnsupported();
-    } else {
-      return this.renderPrompt();
     }
+
+    if (!isSupported) {
+      return this.renderUnsupported();
+    }
+
+    return this.renderPrompt();
   }
 }
 

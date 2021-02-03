@@ -32,9 +32,7 @@ class OrganizationMemberSerializerTest(TestCase):
 
         serializer = OrganizationMemberSerializer(context=context, data=data)
         assert not serializer.is_valid()
-        assert serializer.errors == {
-            "email": ["The user %s is already a member" % (self.user.email,)]
-        }
+        assert serializer.errors == {"email": [f"The user {self.user.email} is already a member"]}
 
     def test_invalid_team_invites(self):
         context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
@@ -235,11 +233,11 @@ class OrganizationMemberListTest(APITestCase):
         assert response.data[0]["email"] == self.user_2.email
         assert response.data[1]["email"] == self.owner_user.email
 
-        response = self.client.get(self.url + "?query=email:{}".format(join_request))
+        response = self.client.get(self.url + f"?query=email:{join_request}")
         assert response.status_code == 200
         assert response.data == []
 
-        response = self.client.get(self.url + "?query=email:{}".format(invite_request))
+        response = self.client.get(self.url + f"?query=email:{invite_request}")
         assert response.status_code == 200
         assert response.data == []
 
@@ -273,7 +271,7 @@ class OrganizationMemberListTest(APITestCase):
 
         assert len(mail.outbox) == 1
         assert mail.outbox[0].to == ["foo@example.com"]
-        assert mail.outbox[0].subject == "Join {} in using Sentry".format(self.org.name)
+        assert mail.outbox[0].subject == f"Join {self.org.name} in using Sentry"
 
     def test_existing_user_for_invite(self):
         self.login_as(user=self.owner_user)
