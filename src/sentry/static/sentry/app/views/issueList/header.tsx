@@ -7,6 +7,7 @@ import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import * as Layout from 'app/components/layouts/thirds';
 import QueryCount from 'app/components/queryCount';
+import Tooltip from 'app/components/tooltip';
 import {IconPause, IconPlay} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -80,40 +81,48 @@ function IssueListHeader({
       </BorderlessHeader>
       <TabLayoutHeader>
         <Layout.HeaderNavTabs underlined>
-          {visibleTabs.map(([tabQuery, {name: queryName}]) => {
-            const inboxGuideStepOne = queryName === 'For Review' && query !== tabQuery;
-            const inboxGuideStepTwo = queryName === 'For Review' && query === tabQuery;
-            const to = {
-              query: {...queryParms, query: tabQuery},
-              pathname: `/organizations/${organization.slug}/issues/`,
-            };
+          {visibleTabs.map(
+            ([tabQuery, {name: queryName, tooltipTitle, tooltipHoverable}]) => {
+              const inboxGuideStepOne = queryName === 'For Review' && query !== tabQuery;
+              const inboxGuideStepTwo = queryName === 'For Review' && query === tabQuery;
+              const to = {
+                query: {...queryParms, query: tabQuery},
+                pathname: `/organizations/${organization.slug}/issues/`,
+              };
 
-            return (
-              <li key={tabQuery} className={query === tabQuery ? 'active' : ''}>
-                <Link to={to}>
-                  <GuideAnchor
-                    target={inboxGuideStepOne ? 'inbox_guide_tab' : 'none'}
-                    disabled={!inboxGuideStepOne}
-                    to={to}
-                  >
+              return (
+                <li key={tabQuery} className={query === tabQuery ? 'active' : ''}>
+                  <Link to={to}>
                     <GuideAnchor
-                      target={inboxGuideStepTwo ? 'for_review_guide_tab' : 'none'}
-                      disabled={!inboxGuideStepTwo}
+                      target={inboxGuideStepOne ? 'inbox_guide_tab' : 'none'}
+                      disabled={!inboxGuideStepOne}
+                      to={to}
                     >
-                      {queryName}{' '}
-                      {queryCounts[tabQuery] && (
-                        <StyledQueryCount
-                          isTag
-                          count={queryCounts[tabQuery].count}
-                          max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
-                        />
-                      )}
+                      <GuideAnchor
+                        target={inboxGuideStepTwo ? 'for_review_guide_tab' : 'none'}
+                        disabled={!inboxGuideStepTwo}
+                      >
+                        <Tooltip
+                          title={tooltipTitle}
+                          position="bottom"
+                          isHoverable={tooltipHoverable}
+                        >
+                          {queryName}{' '}
+                          {queryCounts[tabQuery] && (
+                            <StyledQueryCount
+                              isTag
+                              count={queryCounts[tabQuery].count}
+                              max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
+                            />
+                          )}
+                        </Tooltip>
+                      </GuideAnchor>
                     </GuideAnchor>
-                  </GuideAnchor>
-                </Link>
-              </li>
-            );
-          })}
+                  </Link>
+                </li>
+              );
+            }
+          )}
           <SavedSearchTab
             organization={organization}
             query={query}
