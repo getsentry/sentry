@@ -301,4 +301,41 @@ describe('Dashboards > WidgetQueries', function () {
     expect(childProps.tableResults[0].data[0]['sdk.name']).toBeDefined();
     expect(childProps.tableResults[1].data[0].title).toBeDefined();
   });
+
+  it('sets bar charts to 1d interval', async function () {
+    const errorMock = MockApiClient.addMockResponse(
+      {
+        url: '/organizations/org-slug/events-stats/',
+        body: [],
+      },
+      {
+        predicate(_url, options) {
+          return options.query.interval === '1d';
+        },
+      }
+    );
+    const barWidget = {
+      ...singleQueryWidget,
+      displayType: 'bar',
+      // Should be ignored for bars.
+      interval: '5m',
+    };
+    const wrapper = mountWithTheme(
+      <WidgetQueries
+        api={api}
+        widget={barWidget}
+        organization={initialData.organization}
+        selection={selection}
+      >
+        {() => <div data-test-id="child" />}
+      </WidgetQueries>,
+      initialData.routerContext
+    );
+    await tick();
+    await tick();
+
+    // Child should be rendered and 1 requests should be sent.
+    expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
+    expect(errorMock).toHaveBeenCalledTimes(1);
+  });
 });
