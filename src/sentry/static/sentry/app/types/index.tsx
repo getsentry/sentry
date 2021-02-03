@@ -1112,7 +1112,6 @@ type IntegrationDialog = {
 
 type IntegrationAspects = {
   alerts?: Array<AlertProps & {text: string}>;
-  reauthentication_alert?: {alertText: string};
   disable_dialog?: IntegrationDialog;
   removal_dialog?: IntegrationDialog;
   externalInstall?: {

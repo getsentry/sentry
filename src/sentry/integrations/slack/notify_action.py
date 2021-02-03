@@ -1,18 +1,13 @@
 import logging
 import six
 
-import sentry_sdk
-
 from django import forms
 from django.utils.translation import ugettext_lazy as _
-
-from sentry import features
 
 from sentry.models import Integration
 from sentry.rules.actions.base import IntegrationEventAction
 from sentry.shared_integrations.exceptions import (
     ApiError,
-    DeprecatedIntegrationError,
     DuplicateDisplayNameError,
 )
 from sentry.utils import metrics, json
@@ -20,9 +15,7 @@ from sentry.utils import metrics, json
 from .client import SlackClient
 from .utils import (
     build_group_attachment,
-    build_upgrade_notice_attachment,
     get_channel_id,
-    get_integration_type,
     strip_channel_name,
 )
 
@@ -89,16 +82,6 @@ class SlackNotifyServiceForm(forms.Form):
             try:
                 channel_prefix, channel_id, timed_out = self.channel_transformer(
                     integration, channel
-                )
-            except DeprecatedIntegrationError:
-                raise forms.ValidationError(
-                    _(
-                        'Workspace "%(workspace)s" is using the deprecated Slack integration. Please re-install your integration to enable Slack alerting again.',
-                    ),
-                    code="invalid",
-                    params={
-                        "workspace": dict(self.fields["workspace"].choices).get(int(workspace)),
-                    },
                 )
             except DuplicateDisplayNameError:
                 domain = integration.metadata["domain_name"]
@@ -168,50 +151,30 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             # Integration removed, rule still active.
             return
 
-        # XXX:(meredith) No longer support sending workspace app notifications unless explicitly
-        # flagged in. Flag is temporary and will be taken out shortly
-        if get_integration_type(integration) == "workspace_app" and not features.has(
-            "organizations:slack-allow-workspace", event.group.project.organization
-        ):
-            return
-
         def send_notification(event, futures):
-            with sentry_sdk.start_transaction(
-                op="slack.send_notification", name="SlackSendNotification", sampled=1.0
-            ) as span:
-                rules = [f.rule for f in futures]
-                attachments = [
-                    build_group_attachment(event.group, event=event, tags=tags, rules=rules)
-                ]
-                # XXX(meredith): Needs to be ripped out along with above feature flag. This will
-                # not be used unless someone was explicitly flagged in to continue workspace alerts
-                integration_type = get_integration_type(integration)
-                if integration_type == "workspace_app":
-                    # stick the upgrade attachment first
-                    attachments.insert(0, build_upgrade_notice_attachment(event.group))
+            rules = [f.rule for f in futures]
+            attachments = [build_group_attachment(event.group, event=event, tags=tags, rules=rules)]
 
-                span.set_tag("integration_type", integration_type)
-                span.set_tag("has_slack_upgrade_cta", len(attachments) > 1)
-                payload = {
-                    "token": integration.metadata["access_token"],
-                    "channel": channel,
-                    "link_names": 1,
-                    "attachments": json.dumps(attachments),
-                }
+            payload = {
+                "token": integration.metadata["access_token"],
+                "channel": channel,
+                "link_names": 1,
+                "attachments": json.dumps(attachments),
+            }
 
-                client = SlackClient()
-                try:
-                    client.post("/chat.postMessage", data=payload, timeout=5)
-                except ApiError as e:
-                    self.logger.info(
-                        "rule.fail.slack_post",
-                        extra={
-                            "error": six.text_type(e),
-                            "project_id": event.project_id,
-                            "event_id": event.event_id,
-                            "channel_name": self.get_option("channel"),
-                        },
-                    )
+            client = SlackClient()
+            try:
+                client.post("/chat.postMessage", data=payload, timeout=5)
+            except ApiError as e:
+                self.logger.info(
+                    "rule.fail.slack_post",
+                    extra={
+                        "error": six.text_type(e),
+                        "project_id": event.project_id,
+                        "event_id": event.event_id,
+                        "channel_name": self.get_option("channel"),
+                    },
+                )
 
         key = "slack:{}:{}".format(integration.id, channel)
 

@@ -51,7 +51,6 @@ from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import bulk_raw_query, is_measurement, SnubaQueryParams, SnubaTSResult
 from sentry.shared_integrations.exceptions import (
     DuplicateDisplayNameError,
-    DeprecatedIntegrationError,
 )
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
@@ -1266,13 +1265,6 @@ def get_alert_rule_trigger_action_slack_channel_id(
         _prefix, channel_id, timed_out = get_channel_id(
             organization, integration, name, use_async_lookup
         )
-
-    # XXX(meredith): Will be removed when we rip out workspace app support completely.
-    except DeprecatedIntegrationError:
-        raise InvalidTriggerActionError(
-            "This workspace is using the deprecated Slack integration. Please re-install your integration to enable Slack alerting again."
-        )
-
     except DuplicateDisplayNameError as e:
         domain = integration.metadata["domain_name"]
 
