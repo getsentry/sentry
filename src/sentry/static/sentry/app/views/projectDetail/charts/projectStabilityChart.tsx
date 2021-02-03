@@ -93,7 +93,7 @@ function ProjectStabilityChart({
                           <TransparentLoadingMask visible={reloading} />
 
                           <HeaderTitleLegend>
-                            {t('Stability')}
+                            {t('Crash Free Rate')}
                             <QuestionTooltip
                               size="sm"
                               position="top"
@@ -125,7 +125,7 @@ function ProjectStabilityChart({
             )}
           </ChartZoom>
         ),
-        fixed: t('Stability Chart'),
+        fixed: t('Crash Free Rate Chart'),
       })}
     </React.Fragment>
   );
