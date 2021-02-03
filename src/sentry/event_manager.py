@@ -907,17 +907,16 @@ def get_culprit(data):
     )
 
 
-def _save_aggregate2(event, hashes, release, **kwargs):
+def _save_aggregate(event, hashes, release, **kwargs):
     project = event.project
 
     def find_hashes():
         all_hashes = [
-            GroupHash.objects.get_or_create(project=project, hash=hash)[0]
-            for hash in hashes
+            GroupHash.objects.get_or_create(project=project, hash=hash)[0] for hash in hashes
         ]
 
         existing_group_id = None
-        for h in hashes:
+        for h in all_hashes:
             if h.group_id is not None:
                 existing_group_id = h.group_id
                 break
@@ -929,11 +928,10 @@ def _save_aggregate2(event, hashes, release, **kwargs):
     all_hashes, existing_group_id = find_hashes()
 
     if existing_group_id is None:
-
         with transaction.atomic():
             all_hashes, existing_group_id = find_hashes()
 
-            if existing_group_id is not None:
+            if existing_group_id is None:
                 short_id = project.next_short_id()
 
                 # it's possible the release was deleted between
@@ -961,13 +959,24 @@ def _save_aggregate2(event, hashes, release, **kwargs):
                 is_regression = False
 
                 metrics.incr(
-                    "group.created", skip_internal=True, tags={"platform": event.platform or "unknown"}
+                    "group.created",
+                    skip_internal=True,
+                    tags={"platform": event.platform or "unknown"},
                 )
 
                 return group, is_new, is_regression
-                
 
-def _save_aggregate(event, hashes, release, **kwargs):
+    group = Group.objects.get(id=existing_group_id)
+    is_new = False
+    is_regression = _process_existing_aggregate(
+        group=group, event=event, data=kwargs, release=release
+    )
+    # XXX: new_hashes is not updated here like in the original _save_aggregate,
+    # not sure if it matters though
+    return group, is_new, is_regression
+
+
+def _save_aggregate2(event, hashes, release, **kwargs):
     project = event.project
 
     # attempt to find a matching hash
