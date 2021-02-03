@@ -1,12 +1,10 @@
 import React from 'react';
 import * as qs from 'query-string';
 
+import {platfromToIntegrationMap} from 'app/utils/integrationUtil';
+
 import ProjectSetup from './documentationSetup';
 import IntegrationSetup from './integrationSetup';
-
-const platfromToIntegrationMap = {
-  'node-awslambda': 'aws_lambda',
-};
 
 type Props = React.ComponentProps<typeof ProjectSetup> &
   Omit<React.ComponentProps<typeof IntegrationSetup>, 'integrationSlug'>;

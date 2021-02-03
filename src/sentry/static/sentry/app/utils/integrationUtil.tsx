@@ -62,7 +62,8 @@ export type SingleIntegrationEvent = {
     | 'integrations.resolve_now_clicked'
     | 'integrations.request_install'
     | 'integrations.code_mappings_viewed'
-    | 'integrations.cloudformation_link_clicked';
+    | 'integrations.cloudformation_link_clicked'
+    | 'integrations.switch_manual_sdk_setup';
   eventName:
     | 'Integrations: Install Modal Opened' //TODO: remove
     | 'Integrations: Installation Start'
@@ -80,7 +81,8 @@ export type SingleIntegrationEvent = {
     | 'Integrations: Resolve Now Clicked'
     | 'Integrations: Request Install'
     | 'Integrations: Code Mappings Viewed'
-    | 'Integrations: CloudFormation Link Clicked';
+    | 'Integrations: CloudFormation Link Clicked'
+    | 'Integrations: Switch Manual SDK Setup';
   integration: string; //the slug
   integration_type: IntegrationType;
   already_installed?: boolean;
@@ -173,7 +175,8 @@ type IntegrationsEventParams = (
     | 'integrations_directory_integration_detail'
     | 'stacktrace_issue_details'
     | 'integration_configuration_detail'
-    | 'onboarding';
+    | 'onboarding'
+    | 'project_creation';
   project_id?: string;
 } & Parameters<Hooks['analytics:track-event']>[0];
 
@@ -403,4 +406,10 @@ export const getIntegrationIcon = (integrationType?: string, size?: string) => {
     default:
       return <IconGeneric size={iconSize} />;
   }
+};
+
+//used for project creation and onboarding
+//determines what integration maps to what project platform
+export const platfromToIntegrationMap = {
+  'node-awslambda': 'aws_lambda',
 };

@@ -3,21 +3,19 @@ import React from 'react';
 import Button from 'app/components/button';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
-import {IntegrationProvider, IntegrationWithConfig, Organization} from 'app/types';
+import {IntegrationWithConfig} from 'app/types';
 
 import AddIntegration from './addIntegration';
 
 type Props = {
-  provider: IntegrationProvider;
   onAddIntegration: (data: IntegrationWithConfig) => void;
   buttonText?: string;
   reinstall?: boolean;
-  organization?: Organization; //for analytics
-  analyticsParams?: {
-    view: 'integrations_directory_integration_detail' | 'onboarding';
-    already_installed: boolean;
-  };
-} & React.ComponentProps<typeof Button>;
+} & React.ComponentProps<typeof Button> &
+  Pick<
+    React.ComponentProps<typeof AddIntegration>,
+    'provider' | 'organization' | 'analyticsParams' | 'modalParams'
+  >;
 
 export default class AddIntegrationButton extends React.Component<Props> {
   render() {
@@ -28,6 +26,7 @@ export default class AddIntegrationButton extends React.Component<Props> {
       organization,
       reinstall,
       analyticsParams,
+      modalParams,
       ...buttonProps
     } = this.props;
 
@@ -44,6 +43,7 @@ export default class AddIntegrationButton extends React.Component<Props> {
           onInstall={onAddIntegration}
           organization={organization}
           analyticsParams={analyticsParams}
+          modalParams={modalParams}
         >
           {onClick => (
             <Button
