@@ -130,7 +130,7 @@ def inbox_filter(inbox, projects):
     return query
 
 
-def owner_filter(owner, projects):
+def assigned_or_suggested_filter(owner, projects):
     organization_id = projects[0].organization_id
     project_ids = [p.id for p in projects]
     if isinstance(owner, Team):
@@ -404,7 +404,9 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             ),
             "active_at": ScalarCondition("active_at"),
             "for_review": QCallbackCondition(functools.partial(inbox_filter, projects=projects)),
-            "owner": QCallbackCondition(functools.partial(owner_filter, projects=projects)),
+            "assigned_or_suggested": QCallbackCondition(
+                functools.partial(assigned_or_suggested_filter, projects=projects)
+            ),
         }
 
         if environments is not None:

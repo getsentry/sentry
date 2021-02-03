@@ -514,33 +514,33 @@ class ParseQueryTest(TestCase):
         assert result["query"] == ":unresolved"
         assert result["tags"]["country"] == "canada"
 
-    def test_owner_me(self):
-        result = self.parse_query("owner:me")
-        assert result == {"owner": self.user, "tags": {}, "query": ""}
+    def test_assigned_or_suggested_me(self):
+        result = self.parse_query("assigned_or_suggested:me")
+        assert result == {"assigned_or_suggested": self.user, "tags": {}, "query": ""}
 
     def test_owner_email(self):
-        result = self.parse_query(f"owner:{self.user.email}")
-        assert result == {"owner": self.user, "tags": {}, "query": ""}
+        result = self.parse_query(f"assigned_or_suggested:{self.user.email}")
+        assert result == {"assigned_or_suggested": self.user, "tags": {}, "query": ""}
 
-    def test_owner_unknown_user(self):
-        result = self.parse_query("owner:fake@example.com")
-        assert isinstance(result["owner"], User)
-        assert result["owner"].id == 0
+    def test_assigned_or_suggested_unknown_user(self):
+        result = self.parse_query("assigned_or_suggested:fake@example.com")
+        assert isinstance(result["assigned_or_suggested"], User)
+        assert result["assigned_or_suggested"].id == 0
 
     def test_owner_valid_team(self):
-        result = self.parse_query(f"owner:#{self.team.slug}")
-        assert result["owner"] == self.team
+        result = self.parse_query(f"assigned_or_suggested:#{self.team.slug}")
+        assert result["assigned_or_suggested"] == self.team
 
-    def test_owner_unassociated_team(self):
+    def test_assigned_or_suggested_unassociated_team(self):
         team2 = self.create_team(organization=self.organization)
-        result = self.parse_query(f"owner:#{team2.slug}")
-        assert isinstance(result["owner"], Team)
-        assert result["owner"].id == 0
+        result = self.parse_query(f"assigned_or_suggested:#{team2.slug}")
+        assert isinstance(result["assigned_or_suggested"], Team)
+        assert result["assigned_or_suggested"].id == 0
 
     def test_owner_invalid_team(self):
-        result = self.parse_query("owner:#invalid")
-        assert isinstance(result["owner"], Team)
-        assert result["owner"].id == 0
+        result = self.parse_query("assigned_or_suggested:#invalid")
+        assert isinstance(result["assigned_or_suggested"], Team)
+        assert result["assigned_or_suggested"].id == 0
 
 
 class GetLatestReleaseTest(TestCase):

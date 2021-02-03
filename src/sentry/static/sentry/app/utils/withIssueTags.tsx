@@ -102,8 +102,8 @@ const withIssueTags = <P extends InjectedTagsProps>(
             ...tags.bookmarks,
             values: usernames,
           },
-          owner: {
-            ...tags.owner,
+          assigned_or_suggested: {
+            ...tags.assigned_or_suggested,
             values: allOwners,
           },
         },
