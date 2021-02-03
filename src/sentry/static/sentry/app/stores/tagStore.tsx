@@ -140,9 +140,9 @@ const tagStoreConfig: Reflux.StoreDefinition & TagStoreInterface = {
         values: [],
         predefined: true,
       },
-      owner: {
-        key: 'owner',
-        name: 'Owner',
+      assigned_or_suggested: {
+        key: 'assigned_or_suggested',
+        name: 'Assigned or Suggested',
         isInput: true,
         values: [],
         predefined: true,
