@@ -1,4 +1,7 @@
-import {t} from 'app/locale';
+import React from 'react';
+
+import ExternalLink from 'app/components/links/externalLink';
+import {t, tct} from 'app/locale';
 import {Organization} from 'app/types';
 
 export enum Query {
@@ -17,6 +20,10 @@ type OverviewTab = {
   count: boolean;
   /** Tabs can be disabled via flag */
   enabled: boolean;
+  /** Tooltip text for each tab */
+  tooltipTitle: React.ReactNode;
+  /** Tooltip text to be hoverable when text has links */
+  tooltipHoverable?: boolean;
 };
 
 /**
@@ -31,6 +38,8 @@ export function getTabs(organization: Organization) {
         analyticsName: 'unresolved',
         count: true,
         enabled: true,
+        tooltipTitle: t(`All unresolved issues, including those that need review.
+        If an issue doesn’t occur for seven days it’s automatically resolved.`),
       },
     ],
     [
@@ -40,6 +49,9 @@ export function getTabs(organization: Organization) {
         analyticsName: 'needs_review',
         count: true,
         enabled: organization.features.includes('inbox-owners-query'),
+        tooltipTitle: t(`New and reopened issues. You can review, ignore, or resolve
+        to move them out of this list. After seven days these issues are
+        automatically marked as reviewed.`),
       },
     ],
     [
@@ -49,6 +61,9 @@ export function getTabs(organization: Organization) {
         analyticsName: 'needs_review',
         count: true,
         enabled: !organization.features.includes('inbox-owners-query'),
+        tooltipTitle: t(`New and reopened issues. You can review, ignore, or resolve
+        to move them out of this list. After seven days these issues are
+        automatically marked as reviewed.`),
       },
     ],
     [
@@ -58,6 +73,8 @@ export function getTabs(organization: Organization) {
         analyticsName: 'ignored',
         count: true,
         enabled: true,
+        tooltipTitle: t(`Ignored issues don’t trigger alerts. When their ignore
+        conditions are met they become Unresolved and are flagged for review.`),
       },
     ],
     [
@@ -67,6 +84,16 @@ export function getTabs(organization: Organization) {
         analyticsName: 'reprocessing',
         count: true,
         enabled: organization.features.includes('reprocessing-v2'),
+        tooltipTitle: tct(
+          `These [link:reprocessing issues] will take some time to complete.
+        Any new issues that are created during reprocessing will be flagged for review.`,
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/error-monitoring/reprocessing/" />
+            ),
+          }
+        ),
+        tooltipHoverable: true,
       },
     ],
   ];
