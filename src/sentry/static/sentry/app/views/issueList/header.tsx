@@ -81,42 +81,48 @@ function IssueListHeader({
       </BorderlessHeader>
       <TabLayoutHeader>
         <Layout.HeaderNavTabs underlined>
-          {visibleTabs.map(([tabQuery, {name: queryName, tooltip}]) => {
-            const inboxGuideStepOne = queryName === 'For Review' && query !== tabQuery;
-            const inboxGuideStepTwo = queryName === 'For Review' && query === tabQuery;
-            const to = {
-              query: {...queryParms, query: tabQuery},
-              pathname: `/organizations/${organization.slug}/issues/`,
-            };
+          {visibleTabs.map(
+            ([tabQuery, {name: queryName, tooltipTitle, tooltipHoverable}]) => {
+              const inboxGuideStepOne = queryName === 'For Review' && query !== tabQuery;
+              const inboxGuideStepTwo = queryName === 'For Review' && query === tabQuery;
+              const to = {
+                query: {...queryParms, query: tabQuery},
+                pathname: `/organizations/${organization.slug}/issues/`,
+              };
 
-            return (
-              <li key={tabQuery} className={query === tabQuery ? 'active' : ''}>
-                <Link to={to}>
-                  <GuideAnchor
-                    target={inboxGuideStepOne ? 'inbox_guide_tab' : 'none'}
-                    disabled={!inboxGuideStepOne}
-                    to={to}
-                  >
+              return (
+                <li key={tabQuery} className={query === tabQuery ? 'active' : ''}>
+                  <Link to={to}>
                     <GuideAnchor
-                      target={inboxGuideStepTwo ? 'for_review_guide_tab' : 'none'}
-                      disabled={!inboxGuideStepTwo}
+                      target={inboxGuideStepOne ? 'inbox_guide_tab' : 'none'}
+                      disabled={!inboxGuideStepOne}
+                      to={to}
                     >
-                      <Tooltip title={tooltip} position="bottom">
-                        {queryName}{' '}
-                        {queryCounts[tabQuery] && (
-                          <StyledQueryCount
-                            isTag
-                            count={queryCounts[tabQuery].count}
-                            max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
-                          />
-                        )}
-                      </Tooltip>
+                      <GuideAnchor
+                        target={inboxGuideStepTwo ? 'for_review_guide_tab' : 'none'}
+                        disabled={!inboxGuideStepTwo}
+                      >
+                        <Tooltip
+                          title={tooltipTitle}
+                          position="bottom"
+                          isHoverable={tooltipHoverable}
+                        >
+                          {queryName}{' '}
+                          {queryCounts[tabQuery] && (
+                            <StyledQueryCount
+                              isTag
+                              count={queryCounts[tabQuery].count}
+                              max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
+                            />
+                          )}
+                        </Tooltip>
+                      </GuideAnchor>
                     </GuideAnchor>
-                  </GuideAnchor>
-                </Link>
-              </li>
-            );
-          })}
+                  </Link>
+                </li>
+              );
+            }
+          )}
           <SavedSearchTab
             organization={organization}
             query={query}

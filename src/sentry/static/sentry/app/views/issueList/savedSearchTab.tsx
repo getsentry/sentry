@@ -2,9 +2,10 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import DropdownLink from 'app/components/dropdownLink';
+import ExternalLink from 'app/components/links/externalLink';
 import QueryCount from 'app/components/queryCount';
 import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, SavedSearch} from 'app/types';
@@ -31,13 +32,18 @@ function SavedSearchTab({
   queryCount,
 }: Props) {
   const savedSearch = savedSearchList.find(search => query === search.query);
-  const tooltipTitle = t(
-    'Create saved searches to quickly access other types of issues that you care about.'
+  const tooltipTitle = tct(
+    `Create [link:saved searches] to quickly access other types of issues that you care about.`,
+    {
+      link: (
+        <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/#organization-wide-saved-searches" />
+      ),
+    }
   );
 
   const title = (
     <TitleWrapper>
-      <Tooltip title={tooltipTitle} position="bottom">
+      <Tooltip title={tooltipTitle} position="bottom" isHoverable>
         {isActive ? (
           <React.Fragment>
             {savedSearch ? savedSearch.name : t('Custom Search')}{' '}
