@@ -198,13 +198,13 @@ export default class AbstractExternalIssueForm<
   getFieldProps = (field: IssueConfigField) =>
     field.url
       ? {
-          loadOptions: (input: string) => this.getOptions(field, input),
           async: true,
-          cache: false,
-          onSelectResetsInput: false,
-          onCloseResetsInput: false,
-          onBlurResetsInput: false,
           autoload: true,
+          cache: false,
+          loadOptions: (input: string) => this.getOptions(field, input),
+          onBlurResetsInput: false,
+          onCloseResetsInput: false,
+          onSelectResetsInput: false,
         }
       : {};
 
