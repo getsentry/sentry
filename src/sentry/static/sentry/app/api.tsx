@@ -1,5 +1,7 @@
+import {browserHistory} from 'react-router';
 import {Severity} from '@sentry/react';
 import $ from 'jquery';
+import Cookies from 'js-cookie';
 import isNil from 'lodash/isNil';
 import isUndefined from 'lodash/isUndefined';
 
@@ -14,6 +16,8 @@ import {metric} from 'app/utils/analytics';
 import {run} from 'app/utils/apiSentryClient';
 import {uniqueId} from 'app/utils/guid';
 import createRequestError from 'app/utils/requestError/createRequestError';
+
+import {EXPERIMENTAL_SPA} from './constants';
 
 export class Request {
   alive: boolean;
@@ -84,6 +88,51 @@ export function paramsToQueryArgs(params: ParamsType): QueryArgs {
     });
   }
   return p;
+}
+
+// TODO: Need better way of identifying anonymous pages that don't trigger redirect
+const ALLOWED_ANON_PAGES = [
+  /^\/accept\//,
+  /^\/share\//,
+  /^\/auth\/login\//,
+  /^\/join-request\//,
+];
+
+export function initApiClientErrorHandling() {
+  $(document).ajaxError(function (_evt, jqXHR) {
+    const pageAllowsAnon = ALLOWED_ANON_PAGES.find(regex =>
+      regex.test(window.location.pathname)
+    );
+
+    // Ignore error unless it is a 401
+    if (!jqXHR || jqXHR.status !== 401 || pageAllowsAnon) {
+      return;
+    }
+
+    const code = jqXHR?.responseJSON?.detail?.code;
+    const extra = jqXHR?.responseJSON?.detail?.extra;
+
+    // 401s can also mean sudo is required or it's a request that is allowed to fail
+    // Ignore if these are the cases
+    if (code === 'sudo-required' || code === 'ignore') {
+      return;
+    }
+
+    // If user must login via SSO, redirect to org login page
+    if (code === 'sso-required') {
+      window.location.assign(extra.loginUrl);
+      return;
+    }
+
+    // Otherwise, the user has become unauthenticated. Send them to auth
+    Cookies.set('session_expired', '1');
+
+    if (EXPERIMENTAL_SPA) {
+      browserHistory.replace('/auth/login/');
+    } else {
+      window.location.reload();
+    }
+  });
 }
 
 // TODO: move this somewhere
