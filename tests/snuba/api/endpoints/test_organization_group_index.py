@@ -618,7 +618,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_response(limit=10, query="assigned:me_or_none")
         assert len(response.data) == 5
 
-        GroupAssignee.objects.assign(ag, self.create_user("other@user.com"))
+        GroupAssignee.objects.assign(assigned_groups[1], self.create_user("other@user.com"))
         response = self.get_response(limit=10, query="assigned:me_or_none")
         assert len(response.data) == 4
 
