@@ -1058,6 +1058,11 @@ export type AccessRequest = {
   id: string;
   team: Team;
   member: Member;
+  requester?: Partial<{
+    name: string;
+    username: string;
+    email: string;
+  }>;
 };
 
 export type Repository = {
