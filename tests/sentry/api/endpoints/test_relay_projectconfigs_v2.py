@@ -108,7 +108,7 @@ def test_internal_relays_should_receive_minimal_configs_if_they_do_not_explicitl
 
     # Sweeping assertion that we do not have any snake_case in that config.
     # Might need refining.
-    assert not set(x for x in _get_all_keys(result) if "-" in x or "_" in x)
+    assert not {x for x in _get_all_keys(result) if "-" in x or "_" in x}
 
     cfg = safe.get_path(result, "configs", str(default_projectkey.public_key))
     assert safe.get_path(cfg, "config", "filterSettings") is None
@@ -125,7 +125,7 @@ def test_internal_relays_should_receive_full_configs(
 
     # Sweeping assertion that we do not have any snake_case in that config.
     # Might need refining.
-    assert not set(x for x in _get_all_keys(result) if "-" in x or "_" in x)
+    assert not {x for x in _get_all_keys(result) if "-" in x or "_" in x}
 
     cfg = safe.get_path(result, "configs", default_projectkey.public_key)
     assert safe.get_path(cfg, "disabled") is False

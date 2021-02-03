@@ -146,7 +146,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert set([report["eventID"] for report in response.data]) == set(["a" * 32, "b" * 32])
+        assert {report["eventID"] for report in response.data} == {"a" * 32, "b" * 32}
 
         # Invalid environment
         response = self.client.get(base_url + "?environment=invalid_env")
