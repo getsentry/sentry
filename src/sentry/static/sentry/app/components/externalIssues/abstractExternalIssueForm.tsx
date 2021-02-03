@@ -151,10 +151,7 @@ export default class AbstractExternalIssueForm<
   getOptions = (field: IssueConfigField, input: string) =>
     new Promise((resolve, reject) => {
       if (!input) {
-        const choices =
-          (field.choices as Array<[number | string, number | string]>) || [];
-        const options = choices.map(([value, label]) => ({value, label}));
-        return resolve(options);
+        return resolve(this.getDefaultOptions(field));
       }
       return this.debouncedOptionLoad(field, input, (err, result) => {
         if (err) {
@@ -194,6 +191,11 @@ export default class AbstractExternalIssueForm<
     {trailing: true}
   );
 
+  getDefaultOptions = (field: IssueConfigField) => {
+    const choices = (field.choices as Array<[number | string, number | string]>) || [];
+    return choices.map(([value, label]) => ({value, label}));
+  };
+
   /** If this field is an async select (field.url is not null), add async props. */
   getFieldProps = (field: IssueConfigField) =>
     field.url
@@ -202,6 +204,7 @@ export default class AbstractExternalIssueForm<
           autoload: true,
           cache: false,
           loadOptions: (input: string) => this.getOptions(field, input),
+          defaultOptions: this.getDefaultOptions(field),
           onBlurResetsInput: false,
           onCloseResetsInput: false,
           onSelectResetsInput: false,
