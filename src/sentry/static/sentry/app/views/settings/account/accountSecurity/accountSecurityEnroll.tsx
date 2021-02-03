@@ -1,9 +1,9 @@
 import React from 'react';
-import {withRouter} from 'react-router';
+import {RouteComponentProps, withRouter} from 'react-router';
 
 import {
   addErrorMessage,
-  addMessage,
+  addLoadingMessage,
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
 import {openRecoveryOptions} from 'app/actionCreators/modal';
@@ -14,34 +14,56 @@ import {PanelItem} from 'app/components/panels';
 import Qrcode from 'app/components/qrcode';
 import U2fsign from 'app/components/u2f/u2fsign';
 import {t} from 'app/locale';
+import {Authenticator} from 'app/types';
 import getPendingInvite from 'app/utils/getPendingInvite';
 import AsyncView from 'app/views/asyncView';
 import RemoveConfirm from 'app/views/settings/account/accountSecurity/components/removeConfirm';
 import Field from 'app/views/settings/components/forms/field';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
+import FormModel from 'app/views/settings/components/forms/model';
 import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
+import {FieldObject} from 'app/views/settings/components/forms/type';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
+type getFieldsOpts = {
+  authenticator: Authenticator;
+  /**
+   * Flag to track if totp has been sent
+   */
+  hasSentCode: boolean;
+  /**
+   * Flag to track if we are currently sending the otp code
+   */
+  sendingCode: boolean;
+  /**
+   * Callback to reset SMS 2fa enrollment
+   */
+  onSmsReset: () => void;
+  /**
+   * Callback when u2f device is activated
+   */
+  onU2fTap: U2fsign['props']['onTap'];
+};
+
 /**
  * Retrieve additional form fields (or modify ones) based on 2fa method
- *
- * @param {object} params Params object
- * @param {object} authenticator Authenticator model
- * @param {boolean} hasSentCode Flag to track if totp has been sent
- * @param {function} onSmsReset Callback to reset SMS 2fa enrollment
- * @param {function} onSmsSubmit Callback to handle sending code or submit OTP
- * @param {function} onU2fTap Callback when u2f device is activated
  */
-const getFields = ({authenticator, hasSentCode, onSmsReset, onSmsSubmit, onU2fTap}) => {
-  const {form, qrcode, challenge, id} = authenticator || {};
+const getFields = ({
+  authenticator,
+  hasSentCode,
+  sendingCode,
+  onSmsReset,
+  onU2fTap,
+}: getFieldsOpts): null | FieldObject[] => {
+  const {form} = authenticator;
 
   if (!form) {
     return null;
   }
 
-  if (qrcode) {
+  if (authenticator.id === 'totp') {
     return [
       () => (
         <PanelItem key="qrcode" justifyContent="center" p={2}>
@@ -50,7 +72,7 @@ const getFields = ({authenticator, hasSentCode, onSmsReset, onSmsSubmit, onU2fTa
       ),
       () => (
         <Field key="secret" label={t('Authenticator secret')}>
-          <TextCopyInput>{authenticator.secret}</TextCopyInput>
+          <TextCopyInput>{authenticator.secret ?? ''}</TextCopyInput>
         </Field>
       ),
       ...form,
@@ -66,18 +88,11 @@ const getFields = ({authenticator, hasSentCode, onSmsReset, onSmsSubmit, onU2fTa
 
   // Sms Form needs a start over button + confirm button
   // Also inputs being disabled vary based on hasSentCode
-  if (id === 'sms') {
+  if (authenticator.id === 'sms') {
     // Ideally we would have greater flexibility when rendering footer
     return [
-      {
-        ...form[0],
-        disabled: () => hasSentCode,
-      },
-      {
-        ...form[1],
-        required: true,
-        visible: () => hasSentCode,
-      },
+      {...form[0], disabled: sendingCode || hasSentCode},
+      ...(hasSentCode ? [{...form[1], required: true}] : []),
       () => (
         <PanelItem key="sms-footer" justifyContent="flex-end" p={2} pr="36px">
           {hasSentCode && (
@@ -85,7 +100,7 @@ const getFields = ({authenticator, hasSentCode, onSmsReset, onSmsSubmit, onU2fTa
               {t('Start Over')}
             </Button>
           )}
-          <Button priority="primary" type="button" onClick={onSmsSubmit}>
+          <Button priority="primary" type="submit">
             {hasSentCode ? t('Confirm') : t('Send Code')}
           </Button>
         </PanelItem>
@@ -94,17 +109,16 @@ const getFields = ({authenticator, hasSentCode, onSmsReset, onSmsSubmit, onU2fTa
   }
 
   // Need to render device name field + U2f component
-  if (id === 'u2f') {
-    const deviceNameField = form.find(({name}) => name === 'deviceName');
+  if (authenticator.id === 'u2f') {
+    const deviceNameField = form.find(({name}) => name === 'deviceName')!;
     return [
       deviceNameField,
       () => (
         <U2fsign
           key="u2f-enroll"
           style={{marginBottom: 0}}
-          challengeData={challenge}
+          challengeData={authenticator.challenge}
           displayMode="enroll"
-          flowMode="enroll"
           onTap={onU2fTap}
         />
       ),
@@ -114,14 +128,28 @@ const getFields = ({authenticator, hasSentCode, onSmsReset, onSmsSubmit, onU2fTa
   return null;
 };
 
+type Props = AsyncView['props'] & RouteComponentProps<{authId: string}, {}> & {};
+
+type State = AsyncView['state'] & {
+  authenticator: Authenticator | null;
+  hasSentCode: boolean;
+  sendingCode: boolean;
+};
+
+type PendingInvite = ReturnType<typeof getPendingInvite>;
+
 /**
  * Renders necessary forms in order to enroll user in 2fa
  */
-class AccountSecurityEnroll extends AsyncView {
-  _form = {};
+class AccountSecurityEnroll extends AsyncView<Props, State> {
+  formModel = new FormModel();
 
   getTitle() {
     return t('Security');
+  }
+
+  getDefaultState() {
+    return {...super.getDefaultState(), hasSentCode: false};
   }
 
   get authenticatorEndpoint() {
@@ -132,8 +160,8 @@ class AccountSecurityEnroll extends AsyncView {
     return `${this.authenticatorEndpoint}enroll/`;
   }
 
-  getEndpoints() {
-    const errorHandler = err => {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+    const errorHandler = (err: any) => {
       const alreadyEnrolled =
         err &&
         err.status === 400 &&
@@ -156,67 +184,66 @@ class AccountSecurityEnroll extends AsyncView {
     this.pendingInvitation = getPendingInvite();
   }
 
-  get authenticatorName() {
-    const {authenticator} = this.state;
-    return (authenticator && authenticator.name) || 'Authenticator';
-  }
+  pendingInvitation: PendingInvite = null;
 
-  handleFieldChange = (name, value) => {
-    // This should not be used for rendering, that's why it's not in state
-    this._form[name] = value;
-  };
+  get authenticatorName() {
+    return this.state.authenticator?.name ?? 'Authenticator';
+  }
 
   // This resets state so that user can re-enter their phone number again
   handleSmsReset = () => this.setState({hasSentCode: false}, this.remountComponent);
 
   // Handles SMS authenticators
-  handleSmsSubmit = async () => {
+  handleSmsSubmit = async (dataModel: any) => {
     const {authenticator, hasSentCode} = this.state;
+    const {phone, otp} = dataModel;
 
     // Don't submit if empty
-    if (!this._form.phone) {
+    if (!phone || !authenticator) {
       return;
     }
 
     const data = {
-      phone: this._form.phone,
+      phone,
       // Make sure `otp` is undefined if we are submitting OTP verification
       // Otherwise API will think that we are on verification step (e.g. after submitting phone)
-      otp: hasSentCode ? this._form.otp || '' : undefined,
+      otp: hasSentCode ? otp : undefined,
       secret: authenticator.secret,
     };
 
     // Only show loading when submitting OTP
-    this.setState({loading: hasSentCode});
+    this.setState({sendingCode: !hasSentCode});
 
     if (!hasSentCode) {
-      addMessage(t('Sending code to %s...', data.phone));
+      addLoadingMessage(t('Sending code to %s...', data.phone));
+    } else {
+      addLoadingMessage(t('Verifying OTP...'));
     }
 
     try {
       await this.api.requestPromise(this.enrollEndpoint, {data});
     } catch (error) {
-      this._form = {};
-      const isSmsInterface = authenticator.id === 'sms';
-
-      this.setState({
-        hasSentCode: !isSmsInterface,
-      });
-
-      // Re-mount because we want to fetch a fresh secret
-      this.remountComponent();
+      this.formModel.resetForm();
 
       addErrorMessage(
         this.state.hasSentCode ? t('Incorrect OTP') : t('Error sending SMS')
       );
+
+      this.setState({
+        hasSentCode: false,
+        sendingCode: false,
+      });
+
+      // Re-mount because we want to fetch a fresh secret
+      this.remountComponent();
 
       return;
     }
 
     if (!hasSentCode) {
       // Just successfully finished sending OTP to user
-      this.setState({hasSentCode: true, loading: false});
-      addMessage(t('Sent code to %s', data.phone));
+      this.setState({hasSentCode: true, sendingCode: false});
+      addSuccessMessage(t('Sent code to %s', data.phone));
     } else {
       // OTP was accepted and SMS was added as a 2fa method
       this.handleEnrollSuccess();
@@ -224,8 +251,8 @@ class AccountSecurityEnroll extends AsyncView {
   };
 
   // Handle u2f device tap
-  handleU2fTap = async tapData => {
-    const data = {...tapData, ...this._form};
+  handleU2fTap = async (tapData: any) => {
+    const data = {...tapData, ...this.formModel.fields.toJS()};
 
     this.setState({loading: true});
 
@@ -240,10 +267,13 @@ class AccountSecurityEnroll extends AsyncView {
   };
 
   // Currently only TOTP uses this
-  handleTotpSubmit = async dataModel => {
+  handleTotpSubmit = async (dataModel: any) => {
+    if (!this.state.authenticator) {
+      return;
+    }
+
     const data = {
-      ...this._form,
-      ...(dataModel || {}),
+      ...(dataModel ?? {}),
       secret: this.state.authenticator.secret,
     };
 
@@ -259,13 +289,26 @@ class AccountSecurityEnroll extends AsyncView {
     this.handleEnrollSuccess();
   };
 
+  handleSubmit: Form['props']['onSubmit'] = data => {
+    const id = this.state.authenticator?.id;
+
+    if (id === 'totp') {
+      this.handleTotpSubmit(data);
+      return;
+    }
+    if (id === 'sms') {
+      this.handleSmsSubmit(data);
+      return;
+    }
+  };
+
   // Handler when we successfully add a 2fa device
   async handleEnrollSuccess() {
     // If we're pending approval of an invite, the user will have just joined
     // the organization when completing 2fa enrollment. We should reload the
     // organization context in that case to assign them to the org.
     if (this.pendingInvitation) {
-      await fetchOrganizationByMember(this.pendingInvitation.memberId, {
+      await fetchOrganizationByMember(this.pendingInvitation.memberId.toString(), {
         addOrg: true,
         fetchOrgDetails: true,
       });
@@ -303,7 +346,7 @@ class AccountSecurityEnroll extends AsyncView {
   };
 
   renderBody() {
-    const {authenticator, hasSentCode} = this.state;
+    const {authenticator, hasSentCode, sendingCode} = this.state;
 
     if (!authenticator) {
       return null;
@@ -312,16 +355,22 @@ class AccountSecurityEnroll extends AsyncView {
     const fields = getFields({
       authenticator,
       hasSentCode,
+      sendingCode,
       onSmsReset: this.handleSmsReset,
-      onSmsSubmit: this.handleSmsSubmit,
       onU2fTap: this.handleU2fTap,
     });
 
     // Attempt to extract `defaultValue` from server generated form fields
     const defaultValues = fields
       ? fields
-          .filter(field => typeof field.defaultValue !== 'undefined')
-          .map(field => [field.name, field.defaultValue])
+          .filter(
+            field =>
+              typeof field !== 'function' && typeof field.defaultValue !== 'undefined'
+          )
+          .map(field => [
+            field.name,
+            typeof field !== 'function' ? field.defaultValue : '',
+          ])
           .reduce((acc, [name, value]) => {
             acc[name] = value;
             return acc;
@@ -349,16 +398,16 @@ class AccountSecurityEnroll extends AsyncView {
 
         <TextBlock>{authenticator.description}</TextBlock>
 
-        {authenticator.form && !!authenticator.form.length && (
+        {!!authenticator.form?.length && (
           <Form
+            model={this.formModel}
             apiMethod="POST"
-            onFieldChange={this.handleFieldChange}
             apiEndpoint={this.authenticatorEndpoint}
-            onSubmit={this.handleTotpSubmit}
+            onSubmit={this.handleSubmit}
             initialData={{...defaultValues, ...authenticator}}
             hideFooter
           >
-            <JsonForm forms={[{title: 'Configuration', fields}]} />
+            <JsonForm forms={[{title: 'Configuration', fields: fields ?? []}]} />
           </Form>
         )}
       </React.Fragment>

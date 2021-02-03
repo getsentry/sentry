@@ -1,8 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {Authenticator} from 'app/types';
+
 type Props = {
-  code: (1 | 0)[][];
+  code: NonNullable<(Authenticator & {id: 'totp'})['qrcode']>;
 };
 
 const Qrcode = ({code}: Props) => (
