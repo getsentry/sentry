@@ -1,39 +1,39 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {Client} from 'app/api';
 import Button from 'app/components/button';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {t, tct} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
+import {AccessRequest} from 'app/types';
 import withApi from 'app/utils/withApi';
 
-class OrganizationAccessRequests extends React.Component {
-  static propTypes = {
-    api: PropTypes.object.isRequired,
-    orgId: PropTypes.string.isRequired,
-    onRemoveAccessRequest: PropTypes.func.isRequired,
-    requestList: PropTypes.arrayOf(
-      PropTypes.shape({
-        id: PropTypes.string.isRequired,
-        member: SentryTypes.Member,
-        team: SentryTypes.Team,
-        requester: SentryTypes.User,
-      })
-    ),
-  };
+type Props = {
+  api: Client;
+  orgId: string;
+  onRemoveAccessRequest: (id: string) => void;
+  requestList: AccessRequest[];
+};
 
-  static defaultProps = {
-    requestList: [],
-  };
+type State = {
+  accessRequestBusy: Record<string, boolean>;
+};
 
-  state = {
+type HandleOpts = {
+  id: string;
+  isApproved: boolean;
+  successMessage: string;
+  errorMessage: string;
+};
+
+class OrganizationAccessRequests extends React.Component<Props, State> {
+  state: State = {
     accessRequestBusy: {},
   };
 
-  handleAction = async ({id, isApproved, successMessage, errorMessage}) => {
+  async handleAction({id, isApproved, successMessage, errorMessage}: HandleOpts) {
     const {api, orgId, onRemoveAccessRequest} = this.props;
 
     this.setState(state => ({
@@ -54,9 +54,9 @@ class OrganizationAccessRequests extends React.Component {
     this.setState(state => ({
       accessRequestBusy: {...state.accessRequestBusy, [id]: false},
     }));
-  };
+  }
 
-  handleApprove = (id, e) => {
+  handleApprove = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     this.handleAction({
       id,
@@ -66,7 +66,7 @@ class OrganizationAccessRequests extends React.Component {
     });
   };
 
-  handleDeny = (id, e) => {
+  handleDeny = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     this.handleAction({
       id,
