@@ -174,7 +174,7 @@ def post_process_group(
     is_new,
     is_regression,
     is_new_group_environment,
-    super_important_non_generic_ass_event_processing_store_cache_key,
+    cache_key,
     group_id=None,
     **kwargs,
 ):
@@ -185,6 +185,8 @@ def post_process_group(
     from sentry.eventstore.processing import event_processing_store
     from sentry.utils import snuba
     from sentry.reprocessing2 import is_reprocessed_event
+
+    super_important_non_generic_ass_event_processing_store_cache_key = cache_key
 
     with snuba.options_override({"consistent": True}):
         # We use the data being present/missing in the processing store
