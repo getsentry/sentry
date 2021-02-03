@@ -235,9 +235,7 @@ export default class DetailsBody extends React.Component<Props> {
 
     const {query, environment, aggregate, projects: projectSlugs} = rule;
     const timePeriod = this.getTimePeriod();
-    const queryWithTypeFilter = rule
-      ? `${query} ${extractEventTypeFilterFromRule(rule)}`.trim()
-      : query;
+    const queryWithTypeFilter = `${query} ${extractEventTypeFilterFromRule(rule)}`.trim();
 
     return (
       <Projects orgId={orgId} slugs={projectSlugs}>
