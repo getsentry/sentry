@@ -171,12 +171,7 @@ def update_existing_attachments(event):
 
 @instrumented_task(name="sentry.tasks.post_process.post_process_group")
 def post_process_group(
-    is_new,
-    is_regression,
-    is_new_group_environment,
-    cache_key,
-    group_id=None,
-    **kwargs,
+    is_new, is_regression, is_new_group_environment, cache_key, group_id=None, **kwargs
 ):
     """
     Fires post processing hooks for a group.
