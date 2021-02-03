@@ -5,7 +5,7 @@ import SelectControl from 'app/components/forms/selectControl';
 import space from 'app/styles/space';
 import {MemberRole} from 'app/types';
 
-type Props = SelectControl['props'] & {
+type Props = React.ComponentProps<typeof SelectControl> & {
   roles: MemberRole[];
   disableUnallowed: boolean;
 };
