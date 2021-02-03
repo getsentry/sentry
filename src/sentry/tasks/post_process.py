@@ -171,7 +171,12 @@ def update_existing_attachments(event):
 
 @instrumented_task(name="sentry.tasks.post_process.post_process_group")
 def post_process_group(
-    is_new, is_regression, is_new_group_environment, cache_key, group_id=None, **kwargs
+    is_new,
+    is_regression,
+    is_new_group_environment,
+    super_important_non_generic_ass_event_processing_store_cache_key,
+    group_id=None,
+    **kwargs,
 ):
     """
     Fires post processing hooks for a group.
@@ -185,11 +190,16 @@ def post_process_group(
         # We use the data being present/missing in the processing store
         # to ensure that we don't duplicate work should the forwarding consumers
         # need to rewind history.
-        data = event_processing_store.get(cache_key)
+        data = event_processing_store.get(
+            super_important_non_generic_ass_event_processing_store_cache_key
+        )
         if not data:
             logger.info(
                 "post_process.skipped",
-                extra={"cache_key": cache_key, "reason": "missing_cache"},
+                extra={
+                    "cache_key": super_important_non_generic_ass_event_processing_store_cache_key,
+                    "reason": "missing_cache",
+                },
             )
             return
         event = Event(
@@ -353,7 +363,9 @@ def post_process_group(
             )
 
         with metrics.timer("tasks.post_process.delete_event_cache"):
-            event_processing_store.delete_by_key(cache_key)
+            event_processing_store.delete_by_key(
+                super_important_non_generic_ass_event_processing_store_cache_key
+            )
 
 
 def process_snoozes(group):
