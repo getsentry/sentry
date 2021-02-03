@@ -8,7 +8,8 @@ import {
   updateOrganization,
 } from 'app/actionCreators/organizations';
 import {Client} from 'app/api';
-import LinkWithConfirmation from 'app/components/links/linkWithConfirmation';
+import Button from 'app/components/button';
+import Confirm from 'app/components/confirm';
 import {Panel, PanelHeader} from 'app/components/panels';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t, tct} from 'app/locale';
@@ -86,10 +87,9 @@ class OrganizationGeneralSettings extends React.Component<Props> {
                 )}
               >
                 <div>
-                  <LinkWithConfirmation
-                    className="btn btn-danger"
+                  <Confirm
                     priority="danger"
-                    title={t('Remove %s organization', organization && organization.name)}
+                    confirmText={t('Remove Organization')}
                     message={
                       <div>
                         <TextBlock>
@@ -119,8 +119,16 @@ class OrganizationGeneralSettings extends React.Component<Props> {
                     }
                     onConfirm={this.handleRemoveOrganization}
                   >
-                    {t('Remove Organization')}
-                  </LinkWithConfirmation>
+                    <Button
+                      priority="danger"
+                      title={t(
+                        'Remove %s organization',
+                        organization && organization.name
+                      )}
+                    >
+                      {t('Remove Organization')}
+                    </Button>
+                  </Confirm>
                 </div>
               </Field>
             </Panel>
