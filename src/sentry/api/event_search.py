@@ -817,6 +817,9 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
             # message. Strip off here
             value = search_filter.value.value[1:-1]
             return [["match", ["message", "'(?i){}'".format(value)]], search_filter.operator, 1]
+        elif value == "":
+            operator = "=" if search_filter.operator == "=" else "!="
+            return [["equals", ["message", "{}".format(value)]], operator, 1]
         else:
             # https://clickhouse.yandex/docs/en/query_language/functions/string_search_functions/#position-haystack-needle
             # positionCaseInsensitive returns 0 if not found and an index of 1 or more if found
