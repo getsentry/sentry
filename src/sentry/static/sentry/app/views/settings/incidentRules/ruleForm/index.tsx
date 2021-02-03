@@ -24,6 +24,7 @@ import FormModel from 'app/views/settings/components/forms/model';
 import RuleNameForm from 'app/views/settings/incidentRules/ruleNameForm';
 import Triggers from 'app/views/settings/incidentRules/triggers';
 import TriggersChart from 'app/views/settings/incidentRules/triggers/chart';
+import {getEventTypeFilter} from 'app/views/settings/incidentRules/utils/getEventTypeFilter';
 import hasThresholdValue from 'app/views/settings/incidentRules/utils/hasThresholdValue';
 
 import {addOrUpdateRule} from '../actions';
@@ -561,7 +562,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       resolveThreshold,
     } = this.state;
 
-    const queryWithTypeFilter = `${query} ${this.eventTypeFilter}`.trim();
+    const eventTypeFilter = getEventTypeFilter(this.state.dataset, this.state.eventTypes);
+    const queryWithTypeFilter = `${query} ${eventTypeFilter}`.trim();
 
     const chart = (
       <TriggersChart
