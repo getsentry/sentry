@@ -251,9 +251,9 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       crashed: {
         seriesName: sessionTerm.crashed,
         data: [],
-        color: CHART_PALETTE[3][0],
+        color: CHART_PALETTE[3][2],
         areaStyle: {
-          color: CHART_PALETTE[3][0],
+          color: CHART_PALETTE[3][2],
           opacity: 1,
         },
         lineStyle: {
@@ -277,9 +277,9 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       errored: {
         seriesName: sessionTerm.errored,
         data: [],
-        color: CHART_PALETTE[3][2],
+        color: CHART_PALETTE[3][0],
         areaStyle: {
-          color: CHART_PALETTE[3][2],
+          color: CHART_PALETTE[3][0],
           opacity: 1,
         },
         lineStyle: {
