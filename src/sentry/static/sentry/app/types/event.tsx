@@ -1,6 +1,5 @@
 import {DebugImage} from 'app/components/events/interfaces/debugMeta/types';
 import {TraceContextType} from 'app/components/events/interfaces/spans/types';
-import {PlatformKey} from 'app/data/platformCategories';
 
 import {Breadcrumb} from './breadcrumbs';
 import {Thread} from './events';
@@ -10,6 +9,7 @@ import {
   EventMetadata,
   ExceptionType,
   Frame,
+  PlatformType,
   Release,
   SDKUpdatesSuggestion,
 } from '.';
@@ -44,14 +44,14 @@ type EntryBreadcrumbs = {
   };
 };
 
-type EntryThreads = {
+export type EntryThreads = {
   type: EntryType.THREADS;
   data: {
     values?: Array<Thread>;
   };
 };
 
-type EntryException = {
+export type EntryException = {
   type: EntryType.EXCEPTION;
   data: ExceptionType;
 };
@@ -195,7 +195,7 @@ type EventBase = {
   context?: Record<string, any>;
   device?: Record<string, any>;
   packages?: Record<string, string>;
-  platform?: PlatformKey;
+  platform?: PlatformType;
   dateReceived?: string;
   endTimestamp?: number;
   userReport?: any;

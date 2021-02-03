@@ -397,6 +397,7 @@ class GroupDetails extends React.Component<Props, State> {
       <React.Fragment>
         <GroupHeader
           project={project as Project}
+          event={event}
           group={group}
           currentTab={currentTab}
           baseUrl={baseUrl}

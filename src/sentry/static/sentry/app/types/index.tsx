@@ -1902,7 +1902,7 @@ export type ExceptionValue = {
   rawStacktrace: RawStacktrace;
   mechanism: Mechanism | null;
   module: string | null;
-  frames: Frame[];
+  frames?: Frame[];
 };
 
 export type ExceptionType = {
