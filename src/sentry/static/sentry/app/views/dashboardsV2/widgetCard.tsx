@@ -1,5 +1,6 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
+import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
@@ -13,7 +14,6 @@ import {IconDelete, IconEdit, IconGrabbable} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
-import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
@@ -35,10 +35,12 @@ type Props = ReactRouter.WithRouterProps & {
   onEdit: () => void;
   renderErrorMessage?: (errorMessage: string | undefined) => React.ReactNode;
   isDragging: boolean;
+  currentWidgetDragging: boolean;
   hideToolbar?: boolean;
-  startWidgetDrag: (
-    event: React.MouseEvent<SVGElement> | React.TouchEvent<SVGElement>
-  ) => void;
+  draggableProps: {
+    attributes: ReturnType<typeof useSortable>['attributes'];
+    listeners: ReturnType<typeof useSortable>['listeners'];
+  };
 };
 
 class WidgetCard extends React.Component<Props> {
@@ -60,21 +62,23 @@ class WidgetCard extends React.Component<Props> {
       return null;
     }
 
-    if (this.props.hideToolbar) {
-      return <ToolbarPanel />;
-    }
-
-    const {onEdit, onDelete, startWidgetDrag} = this.props;
+    const {
+      onEdit,
+      onDelete,
+      draggableProps: {attributes, listeners},
+    } = this.props;
 
     return (
       <ToolbarPanel>
-        <IconContainer data-component="icon-container">
+        <IconContainer
+          style={{visibility: this.props.hideToolbar ? 'hidden' : 'visible'}}
+        >
           <IconClick>
             <StyledIconGrabbable
               color="gray500"
               size="md"
-              onMouseDown={event => startWidgetDrag(event)}
-              onTouchStart={event => startWidgetDrag(event)}
+              {...listeners}
+              {...attributes}
             />
           </IconClick>
           <IconClick
@@ -101,7 +105,6 @@ class WidgetCard extends React.Component<Props> {
   render() {
     const {
       widget,
-      isDragging,
       api,
       organization,
       selection,
@@ -113,43 +116,36 @@ class WidgetCard extends React.Component<Props> {
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
       >
-        <div
-          style={{
-            backgroundColor: isDragging ? theme.innerBorder : undefined,
-            borderRadius: isDragging ? theme.borderRadius : undefined,
-          }}
-        >
-          <StyledPanel isDragging={isDragging}>
-            <WidgetTitle>{widget.title}</WidgetTitle>
-            <WidgetQueries
-              api={api}
-              organization={organization}
-              widget={widget}
-              selection={selection}
-            >
-              {({tableResults, timeseriesResults, errorMessage, loading}) => {
-                return (
-                  <React.Fragment>
-                    {typeof renderErrorMessage === 'function'
-                      ? renderErrorMessage(errorMessage)
-                      : null}
-                    <WidgetCardChart
-                      timeseriesResults={timeseriesResults}
-                      tableResults={tableResults}
-                      errorMessage={errorMessage}
-                      loading={loading}
-                      location={location}
-                      widget={widget}
-                      selection={selection}
-                      router={router}
-                    />
-                    {this.renderToolbar()}
-                  </React.Fragment>
-                );
-              }}
-            </WidgetQueries>
-          </StyledPanel>
-        </div>
+        <StyledPanel isDragging={false}>
+          <WidgetTitle>{widget.title}</WidgetTitle>
+          <WidgetQueries
+            api={api}
+            organization={organization}
+            widget={widget}
+            selection={selection}
+          >
+            {({tableResults, timeseriesResults, errorMessage, loading}) => {
+              return (
+                <React.Fragment>
+                  {typeof renderErrorMessage === 'function'
+                    ? renderErrorMessage(errorMessage)
+                    : null}
+                  <WidgetCardChart
+                    timeseriesResults={timeseriesResults}
+                    tableResults={tableResults}
+                    errorMessage={errorMessage}
+                    loading={loading}
+                    location={location}
+                    widget={widget}
+                    selection={selection}
+                    router={router}
+                  />
+                  {this.renderToolbar()}
+                </React.Fragment>
+              );
+            }}
+          </WidgetQueries>
+        </StyledPanel>
       </ErrorBoundary>
     );
   }
@@ -204,6 +200,8 @@ const IconContainer = styled('div')`
   > * + * {
     margin-left: 50px;
   }
+
+  touch-action: none;
 `;
 
 const IconClick = styled('div')`

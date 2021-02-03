@@ -1,6 +1,8 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
+// eslint-disable-next-line sentry/no-react-hooks
+import React, {useEffect} from 'react';
 import LazyLoad from 'react-lazyload';
+import {DndContext} from '@dnd-kit/core';
+import {SortableContext, useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
 import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
@@ -10,8 +12,6 @@ import {IconAdd} from 'app/icons';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
 import theme from 'app/utils/theme';
-import {getPointerPosition} from 'app/utils/touch';
-import {setBodyUserSelect, UserSelectValues} from 'app/utils/userselect';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
@@ -32,42 +32,13 @@ type Props = {
 
 type State = {
   isDragging: boolean;
-  draggingIndex: undefined | number;
-  draggingTargetIndex: undefined | number;
-  draggingOverWidget: Widget | undefined;
-  top: undefined | number;
-  left: undefined | number;
-  ghostLeftOffset: number;
-  ghostTopOffset: number;
-  widgets: undefined | Widget[];
+  activeDragId: undefined | string;
 };
 
 class Dashboard extends React.Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-
-    // Create a DOM node that exists outside the DOM hierarchy of this component.
-    // Widget ghosts will be rendered within this portal.
-    const portal = document.createElement('div');
-
-    portal.style.position = 'absolute';
-    portal.style.top = '0';
-    portal.style.left = '0';
-    portal.style.zIndex = String(theme.zIndex.modal);
-
-    this.portal = portal;
-  }
-
   state: State = {
-    draggingIndex: undefined,
-    draggingTargetIndex: undefined,
-    draggingOverWidget: undefined,
+    activeDragId: undefined,
     isDragging: false,
-    top: undefined,
-    left: undefined,
-    ghostLeftOffset: 0,
-    ghostTopOffset: 0,
-    widgets: undefined,
   };
 
   componentDidMount() {
@@ -75,10 +46,6 @@ class Dashboard extends React.Component<Props, State> {
     // Load organization tags when in edit mode.
     if (isEditing) {
       this.fetchTags();
-    }
-
-    if (this.portal) {
-      document.body.appendChild(this.portal);
     }
   }
 
@@ -91,17 +58,6 @@ class Dashboard extends React.Component<Props, State> {
       this.fetchTags();
     }
   }
-
-  componentWillUnmount() {
-    if (this.portal) {
-      document.body.removeChild(this.portal);
-    }
-    this.cleanUpListeners();
-  }
-
-  previousUserSelect: UserSelectValues | null = null;
-  portal: HTMLElement | null = null;
-  dragGhostRef = React.createRef<HTMLDivElement>();
 
   fetchTags() {
     const {api, organization, selection} = this.props;
@@ -146,294 +102,94 @@ class Dashboard extends React.Component<Props, State> {
     });
   };
 
-  cleanUpListeners() {
-    if (this.state.isDragging) {
-      window.removeEventListener('mousemove', this.onWidgetDragMove);
-      window.removeEventListener('mouseup', this.onWidgetDragEnd);
-    }
+  getWidgetIds() {
+    return this.props.dashboard.widgets.map((widget, index): string => {
+      return generateWidgetId(widget, index);
+    });
   }
-
-  shallowCloneWidgets() {
-    return this.props.dashboard.widgets.map(
-      (widget, index): Widget => {
-        return {
-          ...widget,
-          id: widget.id ?? String(index),
-        };
-      }
-    );
-  }
-
-  startWidgetDrag = (index: number) => (
-    event: React.MouseEvent<SVGElement> | React.TouchEvent<SVGElement>
-  ) => {
-    if (this.state.isDragging || !['mousedown', 'touchstart'].includes(event.type)) {
-      return;
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-
-    // prevent the user from selecting things when dragging a widget.
-    this.previousUserSelect = setBodyUserSelect({
-      userSelect: 'none',
-      MozUserSelect: 'none',
-      msUserSelect: 'none',
-      webkitUserSelect: 'none',
-    });
-
-    // attach event listeners so that the mouse cursor can drag anywhere
-    window.addEventListener('mousemove', this.onWidgetDragMove);
-    window.addEventListener('mouseup', this.onWidgetDragEnd);
-
-    // If the target element is removed from the document, events will still be targeted at it, and hence won't
-    // necessarily bubble up to the window or document anymore.
-    // If there is any risk of an element being removed while it is being touched, the best practice is to attach the
-    // touch listeners directly to the target.
-    //
-    // Source: https://developer.mozilla.org/en-US/docs/Web/API/Touch/target
-    //
-    // React may remove event.target from the document, and thus window.addEventListener('touchmove') would not get
-    // called. Hence, for touch events, we attach to event.target directly, and
-    // persist the event.
-    event.target.addEventListener('touchmove', this.onWidgetDragMove as any);
-    event.persist();
-    const onTouchEnd = () => {
-      if (event.target) {
-        event.target.removeEventListener('touchmove', this.onWidgetDragMove as any);
-        event.target.removeEventListener('touchend', onTouchEnd);
-      }
-    };
-    event.target.addEventListener('touchend', onTouchEnd);
-
-    const widgetWrappers = document.querySelectorAll<HTMLDivElement>(
-      '[data-component="widget-wrapper"]'
-    );
-
-    const widgetWrapper = widgetWrappers[index];
-    const rects = widgetWrapper.getBoundingClientRect();
-    let {ghostLeftOffset, ghostTopOffset} = this.state;
-
-    if (this.dragGhostRef.current) {
-      const ghostDOM = this.dragGhostRef.current;
-
-      // create the ghost widget
-      const newClone = widgetWrapper.cloneNode(true) as HTMLDivElement;
-      newClone.removeAttribute('data-component');
-
-      const iconContainer = widgetWrapper.querySelector<HTMLDivElement>(
-        '[data-component="icon-container"]'
-      );
-      ghostLeftOffset = iconContainer ? iconContainer.offsetLeft : 0;
-      ghostTopOffset = iconContainer ? iconContainer.offsetTop : 0;
-
-      newClone.style.width = `${rects.width}px`;
-      newClone.style.height = `${rects.height}px`;
-
-      ghostDOM.appendChild(newClone);
-
-      ghostDOM.style.left = `${getPointerPosition(event, 'pageX') - ghostLeftOffset}px`;
-      ghostDOM.style.top = `${getPointerPosition(event, 'pageY') - ghostTopOffset}px`;
-    }
-
-    const widgets = this.shallowCloneWidgets();
-
-    this.setState({
-      isDragging: true,
-      draggingIndex: index,
-      draggingTargetIndex: index,
-      draggingOverWidget: widgets[index],
-      top: getPointerPosition(event, 'pageY'),
-      left: getPointerPosition(event, 'pageX'),
-      widgets,
-      ghostLeftOffset,
-      ghostTopOffset,
-    });
-  };
-
-  onWidgetDragMove = (event: MouseEvent | TouchEvent) => {
-    if (
-      !this.state.isDragging ||
-      !['mousemove', 'touchmove'].includes(event.type) ||
-      !this.state.widgets ||
-      this.state.draggingIndex === undefined
-    ) {
-      return;
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-    const {
-      ghostLeftOffset,
-      ghostTopOffset,
-      draggingIndex,
-      draggingTargetIndex,
-    } = this.state;
-
-    if (this.dragGhostRef.current) {
-      // move the ghost box
-      const ghostDOM = this.dragGhostRef.current;
-      ghostDOM.style.left = `${getPointerPosition(event, 'pageX') - ghostLeftOffset}px`;
-      ghostDOM.style.top = `${getPointerPosition(event, 'pageY') - ghostTopOffset}px`;
-    }
-
-    const widgetWrappers = document.querySelectorAll<HTMLDivElement>(
-      '[data-component="widget-wrapper"]'
-    );
-
-    // Find the widget that the ghost is currently over.
-    const targetIndex = Array.from(widgetWrappers).findIndex(widgetWrapper => {
-      const rects = widgetWrapper.getBoundingClientRect();
-      const top = getPointerPosition(event, 'clientY');
-      const left = getPointerPosition(event, 'clientX');
-
-      const topStart = rects.top;
-      const topEnd = rects.top + rects.height;
-
-      const leftStart = rects.left;
-      const leftEnd = rects.left + rects.width;
-
-      return topStart <= top && top <= topEnd && leftStart <= left && left <= leftEnd;
-    });
-
-    const previousDraggingOverWidget = this.state.draggingOverWidget;
-
-    if (targetIndex < 0 && previousDraggingOverWidget) {
-      this.setState({draggingOverWidget: undefined});
-    }
-
-    if (targetIndex >= 0 && targetIndex !== draggingTargetIndex) {
-      const nextWidgets = this.shallowCloneWidgets();
-      const currentDraggedWidget = nextWidgets.splice(draggingIndex, 1)[0];
-      nextWidgets.splice(targetIndex, 0, currentDraggedWidget);
-
-      // Widgets may be re-ordered as the ghost is being dragged over another widget.
-      // In this case, we cancel the additional widget re-order to prevent shuffling cycles.
-      const draggingOverWidget =
-        targetIndex >= 0 ? this.state.widgets[targetIndex] : undefined;
-      if (draggingOverWidget?.id === previousDraggingOverWidget?.id) {
-        return;
-      }
-
-      this.setState({
-        draggingTargetIndex: targetIndex,
-        draggingOverWidget,
-        widgets: nextWidgets,
-      });
-    }
-  };
-
-  onWidgetDragEnd = (event: MouseEvent | TouchEvent) => {
-    if (!this.state.isDragging || !['mouseup', 'touchend'].includes(event.type)) {
-      return;
-    }
-
-    const sourceIndex = this.state.draggingIndex;
-    const targetIndex = this.state.draggingTargetIndex;
-    if (typeof sourceIndex !== 'number' || typeof targetIndex !== 'number') {
-      return;
-    }
-
-    // remove listeners that were attached in startWidgetDrag
-    this.cleanUpListeners();
-
-    // restore body user-select values
-    if (this.previousUserSelect) {
-      setBodyUserSelect(this.previousUserSelect);
-      this.previousUserSelect = null;
-    }
-
-    if (this.dragGhostRef.current) {
-      const ghostDOM = this.dragGhostRef.current;
-      ghostDOM.innerHTML = '';
-    }
-
-    // Reorder widgets and trigger change.
-    if (sourceIndex !== targetIndex) {
-      const newWidgets = [...this.props.dashboard.widgets];
-      const removed = newWidgets.splice(sourceIndex, 1);
-      newWidgets.splice(targetIndex, 0, removed[0]);
-      this.props.onUpdate(newWidgets);
-    }
-
-    this.setState({
-      isDragging: false,
-      left: undefined,
-      top: undefined,
-      draggingIndex: undefined,
-      draggingTargetIndex: undefined,
-      draggingOverWidget: undefined,
-      ghostTopOffset: 0,
-      ghostLeftOffset: 0,
-      widgets: undefined,
-    });
-  };
 
   renderWidget(widget: Widget, index: number) {
     const {isEditing} = this.props;
 
+    const key = generateWidgetId(widget, index);
+    const dragId = key;
+
     return (
-      <LazyLoad key={`${widget.id ?? index}`} once height={240} offset={100}>
-        <WidgetWrapper data-component="widget-wrapper" displayType={widget.displayType}>
-          <WidgetCard
-            widget={widget}
-            isEditing={isEditing}
-            onDelete={this.handleDeleteWidget(index)}
-            onEdit={this.handleEditWidget(widget, index)}
-            isDragging={this.state.isDragging && this.state.draggingTargetIndex === index}
-            hideToolbar={this.state.isDragging}
-            startWidgetDrag={this.startWidgetDrag(index)}
-          />
-        </WidgetWrapper>
+      <LazyLoad key={key} once height={240} offset={100}>
+        <SortableWidget
+          widget={widget}
+          dragId={dragId}
+          isEditing={isEditing}
+          isDragging={this.state.isDragging}
+          currentWidgetDragging={this.state.activeDragId === dragId}
+          onDelete={this.handleDeleteWidget(index)}
+          onEdit={this.handleEditWidget(widget, index)}
+        />
       </LazyLoad>
     );
   }
 
-  renderGhost = () => {
-    if (!this.portal) {
-      return null;
-    }
-    const {ghostLeftOffset, ghostTopOffset} = this.state;
-
-    const top = typeof this.state.top === 'number' ? this.state.top - ghostTopOffset : 0;
-    const left =
-      typeof this.state.left === 'number' ? this.state.left - ghostLeftOffset : 0;
-
-    const ghost = (
-      <WidgetGhost
-        id="ghost"
-        ref={this.dragGhostRef}
-        style={{top: `${top}px`, left: `${left}px`}}
-      />
-    );
-
-    return ReactDOM.createPortal(ghost, this.portal);
-  };
-
   render() {
     const {isEditing, dashboard} = this.props;
 
-    const widgets =
-      this.state.isDragging && this.state.widgets
-        ? this.state.widgets
-        : dashboard.widgets;
-
     return (
-      <WidgetContainer>
-        {widgets.map((widget, i) => this.renderWidget(widget, i))}
-        {isEditing && (
-          <WidgetWrapper key="add" displayType="big_number">
-            <AddWidgetWrapper
-              key="add"
-              data-test-id="widget-add"
-              onClick={this.handleStartAdd}
-            >
-              <IconAdd size="lg" isCircled color="inactive" />
-            </AddWidgetWrapper>
-          </WidgetWrapper>
-        )}
-        {this.renderGhost()}
-      </WidgetContainer>
+      <DndContext
+        onDragStart={({active}) => {
+          if (!active) {
+            return;
+          }
+
+          this.setState({
+            isDragging: true,
+            activeDragId: active.id,
+          });
+        }}
+        onDragEnd={({over}) => {
+          const {activeDragId} = this.state;
+          const items = this.getWidgetIds();
+          const getIndex = items.indexOf.bind(items);
+
+          const activeIndex = activeDragId ? getIndex(activeDragId) : -1;
+
+          if (over) {
+            const overIndex = getIndex(over.id);
+            if (activeIndex !== overIndex) {
+              const newWidgets = [...this.props.dashboard.widgets];
+              const removed = newWidgets.splice(activeIndex, 1);
+              newWidgets.splice(overIndex, 0, removed[0]);
+              this.props.onUpdate(newWidgets);
+            }
+          }
+
+          this.setState({
+            isDragging: false,
+            activeDragId: undefined,
+          });
+        }}
+        onDragCancel={() => {
+          this.setState({
+            isDragging: false,
+            activeDragId: undefined,
+          });
+        }}
+      >
+        <WidgetContainer>
+          <SortableContext items={this.getWidgetIds()}>
+            {dashboard.widgets.map((widget, index) => this.renderWidget(widget, index))}
+          </SortableContext>
+          {isEditing && (
+            <WidgetWrapper key="add" displayType="big_number">
+              <AddWidgetWrapper
+                key="add"
+                data-test-id="widget-add"
+                onClick={this.handleStartAdd}
+              >
+                <IconAdd size="lg" isCircled color="inactive" />
+              </AddWidgetWrapper>
+            </WidgetWrapper>
+          )}
+        </WidgetContainer>
+      </DndContext>
     );
   }
 }
@@ -456,6 +212,11 @@ const WidgetWrapper = styled('div')<{displayType: Widget['displayType']}>`
   /* Min-width prevents grid items from stretching the grid */
   min-width: 200px;
 
+  transform: translate3d(var(--translate-x, 0), var(--translate-y, 0), 0)
+    scaleX(var(--scale-x, 1)) scaleY(var(--scale-y, 1));
+  transform-origin: 0 0;
+  touch-action: manipulation;
+
   ${p => {
     switch (p.displayType) {
       case 'big_number':
@@ -476,11 +237,78 @@ const AddWidgetWrapper = styled('a')`
   justify-content: center;
 `;
 
-const WidgetGhost = styled('div')`
-  display: block;
-  position: absolute;
-  cursor: grabbing;
-  opacity: 0.8;
-  box-shadow: ${p => p.theme.dropShadowHeavy};
-  border-radius: ${p => p.theme.borderRadius};
-`;
+type SortableWidgetProps = {
+  widget: Widget;
+  dragId: string;
+  isEditing: boolean;
+  isDragging: boolean;
+  currentWidgetDragging: boolean;
+  onDelete: () => void;
+  onEdit: () => void;
+};
+
+function SortableWidget(props: SortableWidgetProps) {
+  const {
+    widget,
+    dragId,
+    isDragging,
+    currentWidgetDragging,
+    isEditing,
+    onDelete,
+    onEdit,
+  } = props;
+
+  useEffect(() => {
+    if (!currentWidgetDragging) {
+      return undefined;
+    }
+
+    document.body.style.cursor = 'grabbing';
+
+    return function cleanup() {
+      document.body.style.cursor = '';
+    };
+  }, [currentWidgetDragging]);
+
+  const {attributes, listeners, setNodeRef, transform, transition} = useSortable({
+    id: dragId,
+  });
+
+  const style = {
+    zIndex: currentWidgetDragging ? theme.zIndex.modal : 0,
+    transition,
+    '--translate-x': transform ? `${Math.round(transform.x)}px` : undefined,
+    '--translate-y': transform ? `${Math.round(transform.y)}px` : undefined,
+    // Never scale up widgets (e.g. don't resize Big Number to a World Map)
+    '--scale-x':
+      transform?.scaleX && transform.scaleX <= 1 ? `${transform.scaleX}` : undefined,
+    '--scale-y':
+      transform?.scaleY && transform.scaleY <= 1 ? `${transform.scaleY}` : undefined,
+  } as React.CSSProperties;
+
+  return (
+    <WidgetWrapper
+      ref={setNodeRef}
+      style={isDragging ? style : {}}
+      displayType={widget.displayType}
+    >
+      <WidgetCard
+        widget={widget}
+        isEditing={isEditing}
+        onDelete={onDelete}
+        onEdit={onEdit}
+        isDragging={isDragging}
+        hideToolbar={isDragging}
+        currentWidgetDragging={currentWidgetDragging}
+        draggableProps={{
+          attributes,
+          listeners,
+        }}
+      />
+    </WidgetWrapper>
+  );
+}
+
+function generateWidgetId(widget: Widget, index: number) {
+  return widget.id ?? `index-${index}`;
+}
