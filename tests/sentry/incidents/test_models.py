@@ -412,7 +412,7 @@ class AlertRuleFetchForOrganizationTest(TestCase):
         assert [alert_rule1] == list(
             AlertRule.objects.fetch_for_organization(self.organization, [self.project])
         )
-        assert set([alert_rule1, alert_rule2]) == set(
+        assert {alert_rule1, alert_rule2} == set(
             AlertRule.objects.fetch_for_organization(self.organization, [project])
         )
 
@@ -452,7 +452,7 @@ class AlertRuleTriggerActionTargetTest(TestCase):
         assert trigger.target == email
 
 
-class AlertRuleTriggerActionActivateTest(object):
+class AlertRuleTriggerActionActivateTest:
     method = None
 
     def setUp(self):

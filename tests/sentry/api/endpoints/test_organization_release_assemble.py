@@ -65,7 +65,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.CREATED
-        assert set(response.data["missingChunks"]) == set([])
+        assert set(response.data["missingChunks"]) == set()
 
         mock_assemble_artifacts.apply_async.assert_called_once_with(
             kwargs={

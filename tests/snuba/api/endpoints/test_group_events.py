@@ -9,7 +9,7 @@ from sentry.utils.compat import map
 
 class GroupEventsTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(GroupEventsTest, self).setUp()
+        super().setUp()
         self.min_ago = before_now(minutes=1)
 
     def test_simple(self):
@@ -105,9 +105,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url + "?query=!bar:baz", format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert set([e["eventID"] for e in response.data]) == set(
-            [event_1.event_id, event_2.event_id]
-        )
+        assert {e["eventID"] for e in response.data} == {event_1.event_id, event_2.event_id}
 
     def test_search_event_by_id(self):
         self.login_as(user=self.user)
@@ -213,23 +211,23 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
             )
 
         # Asserts that all are in the same group
-        (group_id,) = set(e.group.id for e in events.values())
+        (group_id,) = {e.group.id for e in events.values()}
 
         url = f"/api/0/issues/{group_id}/events/"
         response = self.client.get(url + "?environment=production", format="json")
 
         assert response.status_code == 200, response.content
-        assert set(map(lambda x: x["eventID"], response.data)) == set(
-            [str(events["production"].event_id)]
-        )
+        assert set(map(lambda x: x["eventID"], response.data)) == {
+            str(events["production"].event_id)
+        }
 
         response = self.client.get(
             url, data={"environment": ["production", "development"]}, format="json"
         )
         assert response.status_code == 200, response.content
-        assert set(map(lambda x: x["eventID"], response.data)) == set(
-            [str(event.event_id) for event in events.values()]
-        )
+        assert set(map(lambda x: x["eventID"], response.data)) == {
+            str(event.event_id) for event in events.values()
+        }
 
         response = self.client.get(url + "?environment=invalid", format="json")
 

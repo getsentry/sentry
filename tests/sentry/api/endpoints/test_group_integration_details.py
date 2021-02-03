@@ -12,7 +12,7 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 
 class GroupIntegrationDetailsTest(APITestCase):
     def setUp(self):
-        super(GroupIntegrationDetailsTest, self).setUp()
+        super().setUp()
         self.min_ago = before_now(minutes=1)
         self.event = self.store_event(
             data={

@@ -46,7 +46,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
 
     def setUp(self):
-        super(GroupListTest, self).setUp()
+        super().setUp()
         self.min_ago = before_now(minutes=1)
 
     def _parse_links(self, header):
@@ -62,7 +62,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             org = self.project.organization.slug
         else:
             org = args[0]
-        return super(GroupListTest, self).get_response(org, **kwargs)
+        return super().get_response(org, **kwargs)
 
     def test_sort_by_date_with_tag(self):
         # XXX(dcramer): this tests a case where an ambiguous column name existed
@@ -405,7 +405,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["id"] == str(self.group.id)
         group_2 = self.create_group()
         response = self.get_valid_response(group=[self.group.id, group_2.id])
-        assert set([g["id"] for g in response.data]) == set([str(self.group.id), str(group_2.id)])
+        assert {g["id"] for g in response.data} == {str(self.group.id), str(group_2.id)}
 
     def test_lookup_by_group_id_no_perms(self):
         organization = self.create_organization()
@@ -884,6 +884,16 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert int(response.data[2]["id"]) == event2.group.id
         assert int(response.data[3]["id"]) == assigned_event.group.id
 
+        # Assign group to another user and now it shouldn't show up in owner search for this team.
+        GroupAssignee.objects.create(
+            group=event.group,
+            project=event.group.project,
+            user=other_user,
+        )
+        response = self.get_response(sort_by="date", limit=10, query=f"owner:#{self.team.slug}")
+        assert response.status_code == 200
+        assert len(response.data) == 0
+
     def test_aggregate_stats_regression_test(self):
         self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -1167,7 +1177,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
     method = "put"
 
     def setUp(self):
-        super(GroupUpdateTest, self).setUp()
+        super().setUp()
         self.min_ago = timezone.now() - timedelta(minutes=1)
 
     def get_response(self, *args, **kwargs):
@@ -1175,7 +1185,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             org = self.project.organization.slug
         else:
             org = args[0]
-        return super(GroupUpdateTest, self).get_response(org, **kwargs)
+        return super().get_response(org, **kwargs)
 
     def assertNoResolution(self, group):
         assert not GroupResolution.objects.filter(group=group).exists()
@@ -1944,7 +1954,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
 
-        class uuid(object):
+        class uuid:
             hex = "abc123"
 
         mock_uuid4.return_value = uuid
@@ -2102,7 +2112,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             org = self.project.organization.slug
         else:
             org = args[0]
-        return super(GroupDeleteTest, self).get_response(org, **kwargs)
+        return super().get_response(org, **kwargs)
 
     @patch("sentry.api.helpers.group_index.eventstream")
     @patch("sentry.eventstream")

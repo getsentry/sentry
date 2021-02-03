@@ -10,7 +10,7 @@ from sentry.testutils import TestCase
 
 class TestClientIdSecretAuthentication(TestCase):
     def setUp(self):
-        super(TestClientIdSecretAuthentication, self).setUp()
+        super().setUp()
 
         self.auth = ClientIdSecretAuthentication()
         self.org = self.create_organization(owner=self.user)
@@ -68,7 +68,7 @@ class TestClientIdSecretAuthentication(TestCase):
 
 class TestDSNAuthentication(TestCase):
     def setUp(self):
-        super(TestDSNAuthentication, self).setUp()
+        super().setUp()
 
         self.auth = DSNAuthentication()
         self.org = self.create_organization(owner=self.user)

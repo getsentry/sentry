@@ -38,7 +38,7 @@ from sentry.utils import json
 
 class GroupListTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(GroupListTest, self).setUp()
+        super().setUp()
         self.min_ago = before_now(minutes=1)
 
     def _parse_links(self, header):
@@ -327,7 +327,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(GroupUpdateTest, self).setUp()
+        super().setUp()
         self.min_ago = timezone.now() - timedelta(minutes=1)
 
     @fixture
@@ -1139,7 +1139,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
 
-        class uuid(object):
+        class uuid:
             hex = "abc123"
 
         mock_uuid4.return_value = uuid

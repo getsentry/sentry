@@ -35,14 +35,20 @@ class TestCreator(TestCase):
         self.creator.events = ["issue"]
         service_hook = self.creator.call()
 
-        assert set(service_hook.events) == set(
-            ["issue.created", "issue.resolved", "issue.ignored", "issue.assigned"]
-        )
+        assert set(service_hook.events) == {
+            "issue.created",
+            "issue.resolved",
+            "issue.ignored",
+            "issue.assigned",
+        }
 
     def test_expand_events(self):
-        assert expand_events(["issue"]) == set(
-            ["issue.created", "issue.resolved", "issue.ignored", "issue.assigned"]
-        )
+        assert expand_events(["issue"]) == {
+            "issue.created",
+            "issue.resolved",
+            "issue.ignored",
+            "issue.assigned",
+        }
 
     def test_consolidate_events(self):
-        assert consolidate_events(["issue.created"]) == set(["issue"])
+        assert consolidate_events(["issue.created"]) == {"issue"}

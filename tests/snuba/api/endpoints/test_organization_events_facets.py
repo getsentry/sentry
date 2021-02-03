@@ -14,7 +14,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
     feature_list = ("organizations:discover-basic", "organizations:global-views")
 
     def setUp(self):
-        super(OrganizationEventsFacetsEndpointTest, self).setUp()
+        super().setUp()
         self.min_ago = before_now(minutes=1).replace(microsecond=0)
         self.day_ago = before_now(days=1).replace(microsecond=0)
         self.login_as(user=self.user)

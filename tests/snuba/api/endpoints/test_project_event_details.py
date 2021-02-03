@@ -5,7 +5,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 
 class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(ProjectEventDetailsTest, self).setUp()
+        super().setUp()
         self.login_as(user=self.user)
         project = self.create_project()
 
@@ -116,7 +116,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
 
 class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(ProjectEventJsonEndpointTest, self).setUp()
+        super().setUp()
         self.login_as(user=self.user)
         self.event_id = "c" * 32
         self.fingerprint = ["group_2"]

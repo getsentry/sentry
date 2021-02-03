@@ -13,7 +13,7 @@ def format_project_event(project_slug, event_id):
 
 class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationEventDetailsEndpointTest, self).setUp()
+        super().setUp()
         min_ago = iso_format(before_now(minutes=1))
         two_min_ago = iso_format(before_now(minutes=2))
         three_min_ago = iso_format(before_now(minutes=3))

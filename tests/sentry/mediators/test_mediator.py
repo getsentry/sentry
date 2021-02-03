@@ -9,7 +9,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.helpers.faux import faux
 
 
-class Double(object):
+class Double:
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
             setattr(self, k, v)

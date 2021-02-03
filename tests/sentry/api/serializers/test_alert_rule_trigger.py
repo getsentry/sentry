@@ -4,7 +4,7 @@ from sentry.incidents.logic import create_alert_rule_trigger
 from sentry.testutils import TestCase
 
 
-class BaseAlertRuleTriggerSerializerTest(object):
+class BaseAlertRuleTriggerSerializerTest:
     def assert_alert_rule_trigger_serialized(self, trigger, result):
         assert result["id"] == str(trigger.id)
         assert result["alertRuleId"] == str(trigger.alert_rule_id)

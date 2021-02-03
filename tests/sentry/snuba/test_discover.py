@@ -13,7 +13,7 @@ from sentry.utils.snuba import Dataset
 
 class QueryIntegrationTest(SnubaTestCase, TestCase):
     def setUp(self):
-        super(QueryIntegrationTest, self).setUp()
+        super().setUp()
         self.environment = self.create_environment(self.project, name="prod")
         self.release = self.create_release(self.project, version="first-release")
 
@@ -2118,7 +2118,7 @@ class QueryTransformTest(TestCase):
 
 class TimeseriesQueryTest(SnubaTestCase, TestCase):
     def setUp(self):
-        super(TimeseriesQueryTest, self).setUp()
+        super().setUp()
 
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
 
@@ -2336,7 +2336,7 @@ def format_project_event(project_slug, event_id):
 
 class GetFacetsTest(SnubaTestCase, TestCase):
     def setUp(self):
-        super(GetFacetsTest, self).setUp()
+        super().setUp()
 
         self.project = self.create_project()
         self.min_ago = before_now(minutes=1)

@@ -10,7 +10,7 @@ from sentry.utils.compat import map
 
 class ProjectUserReportListTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(ProjectUserReportListTest, self).setUp()
+        super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
         self.environment = self.create_environment(project=self.project, name="production")
         self.event = self.store_event(
@@ -146,7 +146,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert set([report["eventID"] for report in response.data]) == set(["a" * 32, "b" * 32])
+        assert {report["eventID"] for report in response.data} == {"a" * 32, "b" * 32}
 
         # Invalid environment
         response = self.client.get(base_url + "?environment=invalid_env")
@@ -156,7 +156,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
 
 class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(CreateProjectUserReportTest, self).setUp()
+        super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
         self.hour_ago = iso_format(before_now(minutes=60))
 

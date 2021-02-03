@@ -690,7 +690,7 @@ class OrganizationDeleteTest(APITestCase):
     @patch("sentry.api.endpoints.organization_details.uuid4")
     @patch("sentry.api.endpoints.organization_details.delete_organization")
     def test_can_remove_as_owner(self, mock_delete_organization, mock_uuid4):
-        class uuid(object):
+        class uuid:
             hex = "abc123"
 
         mock_uuid4.return_value = uuid
@@ -727,7 +727,7 @@ class OrganizationDeleteTest(APITestCase):
 
         # Make sure we've emailed all owners
         assert len(mail.outbox) == len(owners)
-        owner_emails = set(o.email for o in owners)
+        owner_emails = {o.email for o in owners}
         for msg in mail.outbox:
             assert "Deletion" in msg.subject
             assert len(msg.to) == 1

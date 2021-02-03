@@ -5,7 +5,7 @@ from .issue_details import IssueDetailsPage
 
 class IssueListPage(BasePage):
     def __init__(self, browser, client):
-        super(IssueListPage, self).__init__(browser)
+        super().__init__(browser)
         self.client = client
         self.global_selection = GlobalSelectionPage(browser)
 

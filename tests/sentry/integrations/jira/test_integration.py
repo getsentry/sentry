@@ -46,7 +46,7 @@ class JiraIntegrationTest(APITestCase):
         return integration
 
     def setUp(self):
-        super(JiraIntegrationTest, self).setUp()
+        super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
         self.login_as(self.user)
 
@@ -851,7 +851,7 @@ class JiraInstallationTest(IntegrationTestCase):
     provider = JiraIntegrationProvider
 
     def setUp(self):
-        super(JiraInstallationTest, self).setUp()
+        super().setUp()
         self.metadata = {
             "oauth_client_id": "oauth-client-id",
             "shared_secret": "a-super-secret-key-from-atlassian",

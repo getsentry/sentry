@@ -11,7 +11,7 @@ UNSET = object()
 
 class BaseWebhookTest(TestCase):
     def setUp(self):
-        super(BaseWebhookTest, self).setUp()
+        super().setUp()
         self.user = self.create_user(is_superuser=False)
         self.org = self.create_organization(owner=None)
         self.team = self.create_team(organization=self.org)

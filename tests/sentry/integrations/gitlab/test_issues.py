@@ -11,7 +11,7 @@ from .testutils import GitLabTestCase
 
 class GitlabIssuesTest(GitLabTestCase):
     def setUp(self):
-        super(GitlabIssuesTest, self).setUp()
+        super().setUp()
         min_ago = iso_format(before_now(minutes=1))
         event = self.store_event(
             data={

@@ -13,7 +13,7 @@ def test_builtin_types():
         ("a", "b", "c"),
         ["a", "b", "c"],
         {"a": 1, "b": 2, "c": 3},
-        set(["a", "b", "c"]),
+        {"a", "b", "c"},
         frozenset(["a", "b", "c"]),
         [{"a": 1}, set("b"), ["c"], "text"],
     ]
@@ -32,7 +32,7 @@ def test_builtin_types():
 
 
 def test_custom_types():
-    class Widget(object):
+    class Widget:
         def __init__(self, color):
             self.color = color
 

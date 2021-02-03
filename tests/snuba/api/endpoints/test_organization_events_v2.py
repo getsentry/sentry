@@ -16,7 +16,7 @@ from sentry.utils.snuba import RateLimitExceeded, QueryIllegalTypeOfArgument, Qu
 
 class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationEventsV2EndpointTest, self).setUp()
+        super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
         self.two_min_ago = iso_format(before_now(minutes=2))
         self.transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
@@ -1614,8 +1614,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 2
-        result = set([r["user.display"] for r in data])
-        assert result == set(["catherine", "cathy@example.com"])
+        result = {r["user.display"] for r in data}
+        assert result == {"catherine", "cathy@example.com"}
 
     def test_user_display_with_aggregates(self):
         self.login_as(user=self.user)
@@ -1641,8 +1641,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 1
-        result = set([r["user.display"] for r in data])
-        assert result == set(["cathy@example.com"])
+        result = {r["user.display"] for r in data}
+        assert result == {"cathy@example.com"}
 
         query = {"field": ["event.type", "count_unique(user.display)"], "statsPeriod": "24h"}
         response = self.do_request(query, features=features)

@@ -30,7 +30,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
     provider = AwsLambdaIntegrationProvider
 
     def setUp(self):
-        super(AwsLambdaIntegrationTest, self).setUp()
+        super().setUp()
         self.projectA = self.create_project(organization=self.organization, slug="projA")
         self.projectB = self.create_project(organization=self.organization, slug="projB")
 

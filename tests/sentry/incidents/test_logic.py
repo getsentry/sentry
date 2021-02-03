@@ -857,7 +857,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert self.alert_rule.id == updated_rule.id
         assert self.alert_rule.name == name
         updated_subscriptions = self.alert_rule.snuba_query.subscriptions.all()
-        assert set([sub.project for sub in updated_subscriptions]) == set(updated_projects)
+        assert {sub.project for sub in updated_subscriptions} == set(updated_projects)
         for subscription in updated_subscriptions:
             assert subscription.snuba_query.query == query
             assert subscription.snuba_query.aggregate == aggregate
@@ -910,7 +910,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         with self.tasks():
             update_alert_rule(alert_rule, projects=updated_projects, query=query_update)
         updated_subscriptions = alert_rule.snuba_query.subscriptions.all()
-        assert set([sub.project for sub in updated_subscriptions]) == set(updated_projects)
+        assert {sub.project for sub in updated_subscriptions} == set(updated_projects)
         for sub in updated_subscriptions:
             assert sub.snuba_query.query == query_update
 
@@ -920,9 +920,10 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         new_project = self.create_project(fire_project_created=True)
         assert not alert_rule.snuba_query.subscriptions.filter(project=new_project).exists()
         update_alert_rule(alert_rule, include_all_projects=True)
-        assert set([sub.project for sub in alert_rule.snuba_query.subscriptions.all()]) == set(
-            [new_project, orig_project]
-        )
+        assert {sub.project for sub in alert_rule.snuba_query.subscriptions.all()} == {
+            new_project,
+            orig_project,
+        }
 
     def test_update_to_include_all_with_exclude(self):
         orig_project = self.project
@@ -933,27 +934,28 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         update_alert_rule(
             alert_rule, include_all_projects=True, excluded_projects=[excluded_project]
         )
-        assert set([sub.project for sub in alert_rule.snuba_query.subscriptions.all()]) == set(
-            [orig_project, new_project]
-        )
+        assert {sub.project for sub in alert_rule.snuba_query.subscriptions.all()} == {
+            orig_project,
+            new_project,
+        }
 
     def test_update_include_all_exclude_list(self):
         new_project = self.create_project(fire_project_created=True)
-        projects = set([new_project, self.project])
+        projects = {new_project, self.project}
         alert_rule = self.create_alert_rule(include_all_projects=True)
-        assert set([sub.project for sub in alert_rule.snuba_query.subscriptions.all()]) == projects
+        assert {sub.project for sub in alert_rule.snuba_query.subscriptions.all()} == projects
         with self.tasks():
             update_alert_rule(alert_rule, excluded_projects=[self.project])
         assert [sub.project for sub in alert_rule.snuba_query.subscriptions.all()] == [new_project]
 
         update_alert_rule(alert_rule, excluded_projects=[])
-        assert set([sub.project for sub in alert_rule.snuba_query.subscriptions.all()]) == projects
+        assert {sub.project for sub in alert_rule.snuba_query.subscriptions.all()} == projects
 
     def test_update_from_include_all(self):
         new_project = self.create_project(fire_project_created=True)
-        projects = set([new_project, self.project])
+        projects = {new_project, self.project}
         alert_rule = self.create_alert_rule(include_all_projects=True)
-        assert set([sub.project for sub in alert_rule.snuba_query.subscriptions.all()]) == projects
+        assert {sub.project for sub in alert_rule.snuba_query.subscriptions.all()} == projects
         with self.tasks():
             update_alert_rule(alert_rule, projects=[new_project], include_all_projects=False)
         assert [sub.project for sub in alert_rule.snuba_query.subscriptions.all()] == [new_project]
@@ -1195,7 +1197,7 @@ class UpdateAlertRuleTriggerTest(TestCase):
         excluded_projects = [
             exclusion.query_subscription.project for exclusion in trigger.exclusions.all()
         ]
-        assert set(excluded_projects) == set([other_project, excluded_project])
+        assert set(excluded_projects) == {other_project, excluded_project}
 
     def test_excluded_projects_not_associated_with_rule(self):
         other_project = self.create_project(fire_project_created=True)
@@ -1231,7 +1233,7 @@ class GetTriggersForAlertRuleTest(TestCase):
         assert get_triggers_for_alert_rule(alert_rule).get() == trigger
 
 
-class BaseAlertRuleTriggerActionTest(object):
+class BaseAlertRuleTriggerActionTest:
     @fixture
     def alert_rule(self):
         return self.create_alert_rule()

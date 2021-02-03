@@ -5,7 +5,7 @@ from sentry.utils.retries import TimedRetryPolicy
 
 class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationSwitchTest, self).setUp()
+        super().setUp()
 
         self.primary_projects = [
             self.create_project(organization=self.organization, teams=[self.team], name=name)

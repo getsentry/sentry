@@ -16,7 +16,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
     base_url = "https://app.pagerduty.com"
 
     def setUp(self):
-        super(PagerDutyIntegrationTest, self).setUp()
+        super().setUp()
         self.app_id = "app_1"
         self.account_slug = "test-app"
         self._stub_pagerduty()

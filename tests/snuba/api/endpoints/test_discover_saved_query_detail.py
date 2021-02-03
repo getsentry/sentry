@@ -8,7 +8,7 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
     feature_name = "organizations:discover"
 
     def setUp(self):
-        super(DiscoverSavedQueryDetailTest, self).setUp()
+        super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
         self.org_without_access = self.create_organization()

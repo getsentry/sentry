@@ -15,7 +15,7 @@ from sentry.utils import json
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
 
-class AlertRuleBase(object):
+class AlertRuleBase:
     @fixture
     def organization(self):
         return self.create_organization()

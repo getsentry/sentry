@@ -950,7 +950,7 @@ class OrganizationReleaseCreateTest(APITestCase):
 
 class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
     def setUp(self):
-        super(OrganizationReleaseCommitRangesTest, self).setUp()
+        super().setUp()
         self.url = reverse(
             "sentry-api-0-organization-releases", kwargs={"organization_slug": self.org.slug}
         )
@@ -1311,7 +1311,7 @@ class OrganizationReleaseCreateCommitPatch(ReleaseCommitPatchTest):
 
 class ReleaseSerializerWithProjectsTest(TestCase):
     def setUp(self):
-        super(ReleaseSerializerWithProjectsTest, self).setUp()
+        super().setUp()
         self.version = "1234567890"
         self.repo_name = "repo/name"
         self.repo2_name = "repo2/name"
@@ -1457,7 +1457,7 @@ class ReleaseSerializerWithProjectsTest(TestCase):
 
 class ReleaseHeadCommitSerializerTest(TestCase):
     def setUp(self):
-        super(ReleaseHeadCommitSerializerTest, self).setUp()
+        super().setUp()
         self.repo_name = "repo/name"
         self.commit = "b" * 40
         self.commit_range = "{}..{}".format("a" * 40, "b" * 40)

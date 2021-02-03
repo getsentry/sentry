@@ -21,7 +21,7 @@ class SlackMigrationTest(IntegrationTestCase):
     provider = SlackIntegrationProvider
 
     def setUp(self):
-        super(SlackMigrationTest, self).setUp()
+        super().setUp()
         self.team = self.create_team(
             organization=self.organization, name="Go Team", members=[self.user]
         )

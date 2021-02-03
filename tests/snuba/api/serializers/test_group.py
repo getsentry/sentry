@@ -29,7 +29,7 @@ from sentry.utils.compat.mock import patch
 
 class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(GroupSerializerSnubaTest, self).setUp()
+        super().setUp()
         self.min_ago = before_now(minutes=1)
         self.day_ago = before_now(days=1)
         self.week_ago = before_now(days=7)
@@ -296,7 +296,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
             )
 
         # Assert all events are in the same group
-        (group_id,) = set(e.group.id for e in events)
+        (group_id,) = {e.group.id for e in events}
 
         group = Group.objects.get(id=group_id)
         group.times_seen = 3
