@@ -26,7 +26,7 @@ class CreateSnubaQueryTest(TestCase):
         assert snuba_query.time_window == int(time_window.total_seconds())
         assert snuba_query.resolution == int(resolution.total_seconds())
         assert snuba_query.environment is None
-        assert set(snuba_query.event_types) == set([SnubaQueryEventType.EventType.ERROR])
+        assert set(snuba_query.event_types) == {SnubaQueryEventType.EventType.ERROR}
 
     def test_environment(self):
         dataset = QueryDatasets.EVENTS
@@ -43,7 +43,7 @@ class CreateSnubaQueryTest(TestCase):
         assert snuba_query.time_window == int(time_window.total_seconds())
         assert snuba_query.resolution == int(resolution.total_seconds())
         assert snuba_query.environment == self.environment
-        assert set(snuba_query.event_types) == set([SnubaQueryEventType.EventType.ERROR])
+        assert set(snuba_query.event_types) == {SnubaQueryEventType.EventType.ERROR}
 
     def test_event_types(self):
         dataset = QueryDatasets.EVENTS
@@ -66,7 +66,7 @@ class CreateSnubaQueryTest(TestCase):
         assert snuba_query.time_window == int(time_window.total_seconds())
         assert snuba_query.resolution == int(resolution.total_seconds())
         assert snuba_query.environment is None
-        assert set(snuba_query.event_types) == set([SnubaQueryEventType.EventType.DEFAULT])
+        assert set(snuba_query.event_types) == {SnubaQueryEventType.EventType.DEFAULT}
 
 
 class CreateSnubaSubscriptionTest(TestCase):

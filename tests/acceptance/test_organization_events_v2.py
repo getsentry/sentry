@@ -1,11 +1,10 @@
 import copy
-import six
 import pytest
 import pytz
 from sentry.utils.compat.mock import patch
 from datetime import timedelta
 
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 from selenium.webdriver.common.keys import Keys
 
 from sentry.discover.models import DiscoverSavedQuery
@@ -109,7 +108,7 @@ def generate_transaction(trace=None, span=None):
 
             if isinstance(child, dict):
                 spans = build_span_tree(child, spans, span_id)
-            elif isinstance(child, six.string_types):
+            elif isinstance(child, str):
                 parent_span_id = span_id
                 span_id = child
 
@@ -134,7 +133,7 @@ def generate_transaction(trace=None, span=None):
 
 class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationEventsV2Test, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com", is_superuser=True)
         self.org = self.create_organization(name="Rowdy Tiger")
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
@@ -142,8 +141,8 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
 
         self.login_as(self.user)
-        self.landing_path = "/organizations/{}/discover/queries/".format(self.org.slug)
-        self.result_path = "/organizations/{}/discover/results/".format(self.org.slug)
+        self.landing_path = f"/organizations/{self.org.slug}/discover/queries/"
+        self.result_path = f"/organizations/{self.org.slug}/discover/results/"
 
     def wait_until_loaded(self):
         self.browser.wait_until_not(".loading-indicator")
@@ -456,9 +455,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.element('input[name="query_name"]').send_keys(query_name)
             self.browser.element('[aria-label="Save"]').click()
 
-            self.browser.wait_until(
-                'div[name="discover2-query-name"][value="{}"]'.format(query_name)
-            )
+            self.browser.wait_until(f'div[name="discover2-query-name"][value="{query_name}"]')
 
             # Page title should update.
             title_input = self.browser.element('div[name="discover2-query-name"]')
@@ -480,7 +477,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
             # Look at the results for our query.
-            self.browser.element('[data-test-id="card-{}"]'.format(query.name)).click()
+            self.browser.element(f'[data-test-id="card-{query.name}"]').click()
             self.wait_until_loaded()
 
             input = self.browser.element('div[name="discover2-query-name"]')
@@ -491,7 +488,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.element("table").click()
 
             new_name = "Custom queryupdated!"
-            new_card_selector = 'div[name="discover2-query-name"][value="{}"]'.format(new_name)
+            new_card_selector = f'div[name="discover2-query-name"][value="{new_name}"]'
             self.browser.wait_until(new_card_selector)
 
         # Assert the name was updated.
@@ -511,7 +508,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
             # Get the card with the new query
-            card_selector = '[data-test-id="card-{}"]'.format(query.name)
+            card_selector = f'[data-test-id="card-{query.name}"]'
             card = self.browser.element(card_selector)
 
             # Open the context menu
@@ -538,16 +535,16 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
 
             # Get the card with the new query
-            card_selector = '[data-test-id="card-{}"]'.format(query.name)
+            card_selector = f'[data-test-id="card-{query.name}"]'
             card = self.browser.element(card_selector)
 
             # Open the context menu, and duplicate
             card.find_element_by_css_selector('[data-test-id="context-menu"]').click()
             card.find_element_by_css_selector('[data-test-id="duplicate-query"]').click()
 
-            duplicate_name = "{} copy".format(query.name)
+            duplicate_name = f"{query.name} copy"
             # Wait for new element to show up.
-            self.browser.element('[data-test-id="card-{}"]'.format(duplicate_name))
+            self.browser.element(f'[data-test-id="card-{duplicate_name}"]')
         # Assert the new query exists and has 'copy' added to the name.
         assert DiscoverSavedQuery.objects.filter(name=duplicate_name).exists()
 

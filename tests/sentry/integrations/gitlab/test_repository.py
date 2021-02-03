@@ -18,7 +18,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
     provider_name = "integrations:gitlab"
 
     def setUp(self):
-        super(GitLabRepositoryProviderTest, self).setUp()
+        super().setUp()
         self.integration = Integration.objects.create(
             provider="gitlab",
             name="Example GitLab",
@@ -54,7 +54,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
         return GitlabRepositoryProvider("gitlab")
 
     def tearDown(self):
-        super(GitLabRepositoryProviderTest, self).tearDown()
+        super().tearDown()
         responses.reset()
 
     def add_create_repository_responses(self, repository_config):

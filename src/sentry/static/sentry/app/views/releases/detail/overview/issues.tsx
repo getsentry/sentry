@@ -10,6 +10,7 @@ import DiscoverButton from 'app/components/discoverButton';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import GroupList from 'app/components/issues/groupList';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel} from 'app/components/panels';
 import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
@@ -40,6 +41,7 @@ type Props = {
   version: string;
   selection: GlobalSelection;
   location: Location;
+  defaultStatsPeriod: string;
 };
 
 type State = {
@@ -90,10 +92,12 @@ class Issues extends React.Component<Props, State> {
   }
 
   getIssuesEndpoint(): {path: string; queryParams: IssuesQueryParams} {
-    const {version, orgId, location} = this.props;
+    const {version, orgId, location, defaultStatsPeriod} = this.props;
     const {issuesType} = this.state;
     const queryParams = {
-      ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
+      ...getParams(pick(location.query, [...Object.values(URL_PARAM), 'cursor']), {
+        defaultStatsPeriod,
+      }),
       limit: 10,
       sort: 'new',
     };

@@ -3,11 +3,9 @@ from sentry.testutils import AcceptanceTestCase
 
 class ProjectOwnershipTest(AcceptanceTestCase):
     def setUp(self):
-        super(ProjectOwnershipTest, self).setUp()
+        super().setUp()
         self.login_as(self.user)
-        self.path = "/settings/{}/projects/{}/ownership/".format(
-            self.organization.slug, self.project.slug
-        )
+        self.path = f"/settings/{self.organization.slug}/projects/{self.project.slug}/ownership/"
 
     def test_simple(self):
         self.browser.get(self.path)

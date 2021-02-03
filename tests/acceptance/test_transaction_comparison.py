@@ -12,7 +12,7 @@ FEATURE_NAMES = ["organizations:performance-view"]
 
 class TransactionComparison(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
-        super(TransactionComparison, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com", is_superuser=True)
         self.org = self.create_organization(name="Rowdy Tiger")
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
@@ -33,7 +33,7 @@ class TransactionComparison(AcceptanceTestCase, SnubaTestCase):
         baseline_event = self.store_event(
             data=baseline_event_data, project_id=self.project.id, assert_no_errors=True
         )
-        baseline_event_slug = "{}:{}".format(self.project.slug, baseline_event.event_id)
+        baseline_event_slug = f"{self.project.slug}:{baseline_event.event_id}"
 
         regression_event_data = generate_transaction(trace="b" * 32, span="bc" * 8)
         regression_event_data.update({"event_id": "b" * 32})
@@ -43,11 +43,9 @@ class TransactionComparison(AcceptanceTestCase, SnubaTestCase):
         regression_event = self.store_event(
             data=regression_event_data, project_id=self.project.id, assert_no_errors=True
         )
-        regression_event_slug = "{}:{}".format(self.project.slug, regression_event.event_id)
+        regression_event_slug = f"{self.project.slug}:{regression_event.event_id}"
 
-        comparison_page_path = "/organizations/{}/performance/compare/{}/{}/".format(
-            self.org.slug, baseline_event_slug, regression_event_slug
-        )
+        comparison_page_path = f"/organizations/{self.org.slug}/performance/compare/{baseline_event_slug}/{regression_event_slug}/"
 
         with self.feature(FEATURE_NAMES):
             self.browser.get(comparison_page_path)

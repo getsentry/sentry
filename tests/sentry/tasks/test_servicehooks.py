@@ -9,7 +9,7 @@ from sentry.testutils.helpers.faux import faux
 from sentry.utils import json
 
 
-class DictContaining(object):
+class DictContaining:
     def __init__(self, *keys):
         self.keys = keys
 
@@ -17,7 +17,7 @@ class DictContaining(object):
         return all([k in other.keys() for k in self.keys])
 
 
-class Any(object):
+class Any:
     def __eq__(self, other):
         return True
 
@@ -83,11 +83,11 @@ class TestServiceHooks(TestCase):
 
         process_service_hook(self.hook.id, event)
         body = get_payload_v0(event)
-        assert body["group"]["url"] == "http://testserver/organizations/{}/issues/{}/".format(
-            self.organization.slug, event.group.id
+        assert (
+            body["group"]["url"]
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{event.group.id}/"
         )
-        assert body["event"][
-            "url"
-        ] == "http://testserver/organizations/{}/issues/{}/events/{}/".format(
-            self.organization.slug, event.group.id, event.event_id
+        assert (
+            body["event"]["url"]
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{event.group.id}/events/{event.event_id}/"
         )
