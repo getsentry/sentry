@@ -732,7 +732,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             assert response.data[0]["inbox"] is not None
             assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
 
-    def test_owner_search(self):
+    def test_assigned_or_suggested_search(self):
         event = self.store_event(
             data={
                 "timestamp": iso_format(before_now(seconds=180)),
@@ -801,7 +801,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 2
         assert int(response.data[0]["id"]) == event.group.id
         assert int(response.data[1]["id"]) == assigned_to_other_event.group.id
-        # Because assigned_to_other_event is assigned to self.other_user, it should not show up in owner search for anyone but self.other_user. (aka. they are now the only owner)
+        # Because assigned_to_other_event is assigned to self.other_user, it should not show up in assigned_or_suggested search for anyone but self.other_user. (aka. they are now the only owner)
         other_user = self.create_user("other@user.com", is_superuser=False)
         GroupAssignee.objects.create(
             group=assigned_to_other_event.group,
