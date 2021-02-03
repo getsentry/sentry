@@ -58,6 +58,7 @@ type Props = {
   hasHealthData: boolean;
   hasDiscover: boolean;
   hasPerformance: boolean;
+  defaultStatsPeriod: string;
 };
 type State = {
   reloading: boolean;
@@ -233,10 +234,12 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
   }
 
   get baseQueryParams() {
-    const {location, selection} = this.props;
+    const {location, selection, defaultStatsPeriod} = this.props;
 
     return {
-      ...getParams(pick(location.query, [...Object.values(URL_PARAM)])),
+      ...getParams(pick(location.query, [...Object.values(URL_PARAM)]), {
+        defaultStatsPeriod,
+      }),
       interval: getInterval(selection.datetime),
     };
   }
