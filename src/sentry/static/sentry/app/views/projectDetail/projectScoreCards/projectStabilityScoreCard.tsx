@@ -122,7 +122,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
   }
 
   get cardTitle() {
-    return t('Stability Score');
+    return t('Crash Free Rate');
   }
 
   get cardHelp() {
