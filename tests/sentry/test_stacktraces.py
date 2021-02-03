@@ -293,6 +293,11 @@ class NormalizeInApptest(TestCase):
                                     "instruction_addr": 4295098388,
                                 },
                                 {
+                                    "function": "+[SentryHub ]",
+                                    "package": "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/SentryTest",
+                                    "instruction_addr": 4295098388,
+                                },
+                                {
                                     "function": "+[SentryClient ]",
                                     "package": "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/SentryTest",
                                     "instruction_addr": 4295098388,
@@ -340,8 +345,9 @@ class NormalizeInApptest(TestCase):
         assert frames[2]["in_app"] is False
         assert frames[3]["in_app"] is False
         assert frames[4]["in_app"] is False
-        assert frames[5]["in_app"] is True
+        assert frames[5]["in_app"] is False
         assert frames[6]["in_app"] is True
+        assert frames[7]["in_app"] is True
 
 
 @pytest.mark.parametrize(
