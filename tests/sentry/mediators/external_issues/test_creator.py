@@ -35,3 +35,4 @@ class TestCreator(TestCase):
         assert external_issue.project_id == self.group.project.id
         assert external_issue.web_url == "https://example.com/project/issue-id"
         assert external_issue.display_name == "Projectname#issue-1"
+        assert external_issue.service_type == self.sentry_app.slug
