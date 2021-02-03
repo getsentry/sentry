@@ -38,7 +38,7 @@ class IssueLinkCreator(Mediator):
             install=self.install,
             group=self.group,
             web_url=self.response["webUrl"],
-            project=self.group.project.slug,
+            project=self.response["project"],
             identifier=self.response["identifier"],
         )
 

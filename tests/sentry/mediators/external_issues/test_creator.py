@@ -28,7 +28,7 @@ class TestCreator(TestCase):
             method=responses.POST,
             url="https://example.com/link-issue",
             json={
-                "project": self.project.slug,
+                "project": "Projectname",
                 "webUrl": "https://example.com/project/issue-id",
                 "identifier": "issue-1",
             },
@@ -40,7 +40,7 @@ class TestCreator(TestCase):
             install=self.install,
             group=self.group,
             web_url="https://example.com/project/issue-id",
-            project=self.project.slug,
+            project="Projectname",
             identifier="issue-1",
         )
 
@@ -49,4 +49,4 @@ class TestCreator(TestCase):
         assert external_issue.group_id == self.group.id
         assert external_issue.project_id == self.group.project.id
         assert external_issue.web_url == "https://example.com/project/issue-id"
-        assert external_issue.display_name == "boop#issue-1"
+        assert external_issue.display_name == "Projectname#issue-1"
