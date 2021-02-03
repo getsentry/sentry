@@ -60,6 +60,10 @@ export function addRoutePerformanceContext(selection: GlobalSelection) {
   const seconds = Math.floor(days * 86400);
 
   transaction?.setTag('query.period', seconds.toString());
+  transaction?.setTag(
+    'query.period.grouped',
+    seconds <= 86400 ? '<=24h' : seconds <= 2592000 ? '<=30d' : '>30d'
+  );
 }
 
 export function getTransactionName(location: Location): string | undefined {

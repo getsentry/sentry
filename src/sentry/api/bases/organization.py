@@ -20,7 +20,7 @@ from sentry.models import (
 )
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
-from sentry.utils.sdk import bind_organization_context, configure_scope
+from sentry.utils.sdk import bind_organization_context
 from sentry.utils.compat import map
 
 
@@ -276,8 +276,16 @@ class OrganizationEndpoint(Endpoint):
         try:
             start, end = get_date_range_from_params(request.GET, optional=date_filter_optional)
             if start and end:
-                with configure_scope() as scope:
-                    scope.set_tag("query.period", (end - start).total_seconds())
+                total_seconds = (end - start).total_seconds()
+                sentry_sdk.set_tag("query.period", total_seconds)
+                sentry_sdk.set_tag(
+                    "query.period.grouped",
+                    "<=24h"
+                    if total_seconds <= 86400
+                    else "<=30d"
+                    if total_seconds <= 2592000
+                    else ">30d",
+                )
         except InvalidParams as e:
             raise ParseError(detail="Invalid date range: {}".format(e))
 
@@ -288,6 +296,13 @@ class OrganizationEndpoint(Endpoint):
 
         if not projects:
             raise NoProjects
+
+        len_projects = len(projects)
+        sentry_sdk.set_tag("query.num_projects", len_projects)
+        sentry_sdk.set_tag(
+            "query.num_projects.grouped",
+            "<10" if len_projects < 10 else "<100" if len_projects < 100 else ">100",
+        )
 
         environments = self.get_environments(request, organization)
         params = {
