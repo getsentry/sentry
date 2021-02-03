@@ -111,16 +111,74 @@ class GroupListTest(APITestCase, SnubaTestCase):
         inbox_2.update(date_added=inbox_1.date_added - timedelta(hours=1))
 
         self.login_as(user=self.user)
-        response = self.get_valid_response(sort="inbox", query="is:for_review", limit=1)
-        print([rd["id"] for rd in response.data])
+        response = self.get_valid_response(
+            sort="inbox", query="is:unresolved is:for_review", limit=1
+        )
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group_1.id)
 
         header_links = parse_link_header(response["Link"])
         cursor = [link for link in header_links.values() if link["rel"] == "next"][0]["cursor"]
-        response = self.get_response(sort="inbox", cursor=cursor, query="is:for_review", limit=1)
+        response = self.get_response(
+            sort="inbox", cursor=cursor, query="is:unresolved is:for_review", limit=1
+        )
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group_2.id)
+
+    def test_sort_by_inbox_me_or_none(self):
+        group_1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        ).group
+        inbox_1 = add_group_to_inbox(group_1, GroupInboxReason.NEW)
+        group_2 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        ).group
+        inbox_2 = add_group_to_inbox(group_2, GroupInboxReason.NEW)
+        inbox_2.update(date_added=inbox_1.date_added - timedelta(hours=1))
+        GroupOwner.objects.create(
+            group=group_2,
+            project=self.project,
+            organization=self.organization,
+            type=GroupOwnerType.OWNERSHIP_RULE.value,
+            user=self.user,
+        )
+        owner_by_other = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        ).group
+        inbox_2 = add_group_to_inbox(owner_by_other, GroupInboxReason.NEW)
+        inbox_2.update(date_added=inbox_1.date_added - timedelta(hours=1))
+        GroupOwner.objects.create(
+            group=owner_by_other,
+            project=self.project,
+            organization=self.organization,
+            type=GroupOwnerType.OWNERSHIP_RULE.value,
+            user=self.create_user(),
+        )
+
+        self.login_as(user=self.user)
+        response = self.get_valid_response(
+            sort="inbox",
+            query="is:unresolved is:for_review assigned_or_suggested:me_or_none",
+            limit=10,
+        )
+        assert len(response.data) == 2
+        assert response.data[0]["id"] == str(group_1.id)
+        assert response.data[1]["id"] == str(group_2.id)
 
     def test_trace_search(self):
         event = self.store_event(
