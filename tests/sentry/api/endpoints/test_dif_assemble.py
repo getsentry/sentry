@@ -129,7 +129,7 @@ class DifAssembleEndpoint(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data[not_found_checksum]["state"] == ChunkFileState.NOT_FOUND
-        assert set(response.data[not_found_checksum]["missingChunks"]) == set([not_found_checksum])
+        assert set(response.data[not_found_checksum]["missingChunks"]) == {not_found_checksum}
 
     @patch("sentry.tasks.assemble.assemble_dif")
     def test_assemble(self, mock_assemble_dif):

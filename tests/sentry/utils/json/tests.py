@@ -18,7 +18,7 @@ class JSONTest(TestCase):
         self.assertEquals(json.dumps(res), '"2011-01-01T01:01:01.000000Z"')
 
     def test_set(self):
-        res = set(["foo"])
+        res = {"foo"}
         self.assertEquals(json.dumps(res), '["foo"]')
 
     def test_frozenset(self):

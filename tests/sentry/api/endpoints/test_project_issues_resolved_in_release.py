@@ -55,7 +55,7 @@ class ProjectIssuesResolvedInReleaseEndpointTest(APITestCase):
         response = self.get_valid_response(self.org.slug, self.project.slug, self.release.version)
         assert len(response.data) == len(expected_groups)
         expected = set(map(str, [g.id for g in expected_groups]))
-        assert set([item["id"] for item in response.data]) == expected
+        assert {item["id"] for item in response.data} == expected
 
     def test_shows_issues_from_groupresolution(self):
         """

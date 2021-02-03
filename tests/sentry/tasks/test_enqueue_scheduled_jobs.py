@@ -55,9 +55,7 @@ class EnqueueScheduledJobsTest(TestCase):
         schedule_jobs(job)
         assert set(
             ScheduledJob.objects.filter(payload={"foo": "baz"}).values_list("name", flat=True)
-        ) == set(
-            ["sentry.tasks.enqueue_scheduled_jobs", "sentry.tasks.enqueue_scheduled_jobs_followup"]
-        )
+        ) == {"sentry.tasks.enqueue_scheduled_jobs", "sentry.tasks.enqueue_scheduled_jobs_followup"}
 
     def test_schedule_job_order(self):
         with pytest.raises(

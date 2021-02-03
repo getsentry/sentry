@@ -56,7 +56,7 @@ class GetSentryAppsTest(SentryAppsTest):
         self.login_as(user=self.superuser, superuser=True)
 
         response = self.client.get(self.url, format="json")
-        response_uuids = set(o["uuid"] for o in response.data)
+        response_uuids = {o["uuid"] for o in response.data}
 
         assert response.status_code == 200
         assert self.published_app.uuid in response_uuids
@@ -121,7 +121,7 @@ class GetSentryAppsTest(SentryAppsTest):
             "featureData": [],
         } in json.loads(response.content)
 
-        response_uuids = set(o["uuid"] for o in response.data)
+        response_uuids = {o["uuid"] for o in response.data}
         assert self.published_app.uuid not in response_uuids
         assert self.unpublished_app.uuid not in response_uuids
         assert self.unowned_unpublished_app.uuid not in response_uuids
@@ -158,7 +158,7 @@ class GetSentryAppsTest(SentryAppsTest):
             "featureData": [],
         } in json.loads(response.content)
 
-        response_uuids = set(o["uuid"] for o in response.data)
+        response_uuids = {o["uuid"] for o in response.data}
         assert internal_app.uuid in response_uuids
         assert self.published_app.uuid not in response_uuids
         assert self.unpublished_app.uuid not in response_uuids
@@ -196,7 +196,7 @@ class GetSentryAppsTest(SentryAppsTest):
             ],
         } in json.loads(response.content)
 
-        response_uuids = set(o["uuid"] for o in response.data)
+        response_uuids = {o["uuid"] for o in response.data}
         assert self.unpublished_app.uuid not in response_uuids
         assert self.unowned_unpublished_app.uuid not in response_uuids
 
@@ -206,7 +206,7 @@ class GetSentryAppsTest(SentryAppsTest):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
-        response_uuids = set(o["uuid"] for o in response.data)
+        response_uuids = {o["uuid"] for o in response.data}
         assert self.unpublished_app.uuid in response_uuids
         assert self.unowned_unpublished_app.uuid in response_uuids
         assert self.published_app.uuid not in response_uuids
@@ -243,7 +243,7 @@ class GetSentryAppsTest(SentryAppsTest):
             ],
         } in json.loads(response.content)
 
-        response_uuids = set(o["uuid"] for o in response.data)
+        response_uuids = {o["uuid"] for o in response.data}
         assert self.published_app.uuid not in response_uuids
         assert self.unowned_unpublished_app.uuid not in response_uuids
 
@@ -253,7 +253,7 @@ class GetSentryAppsTest(SentryAppsTest):
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
-        response_uuids = set(o["uuid"] for o in response.data)
+        response_uuids = {o["uuid"] for o in response.data}
         assert self.published_app.uuid in response_uuids
         assert self.unpublished_app not in response_uuids
         assert self.unowned_unpublished_app.uuid not in response_uuids

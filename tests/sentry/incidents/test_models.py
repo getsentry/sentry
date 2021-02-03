@@ -412,7 +412,7 @@ class AlertRuleFetchForOrganizationTest(TestCase):
         assert [alert_rule1] == list(
             AlertRule.objects.fetch_for_organization(self.organization, [self.project])
         )
-        assert set([alert_rule1, alert_rule2]) == set(
+        assert {alert_rule1, alert_rule2} == set(
             AlertRule.objects.fetch_for_organization(self.organization, [project])
         )
 

@@ -63,9 +63,10 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             target_identifier=str(self.team.id),
         )
         handler = EmailActionHandler(action, self.incident, self.project)
-        assert set(handler.get_targets()) == set(
-            [(self.user.id, self.user.email), (new_user.id, new_user.email)]
-        )
+        assert set(handler.get_targets()) == {
+            (self.user.id, self.user.email),
+            (new_user.id, new_user.email),
+        }
 
     def test_team_alert_disabled(self):
         UserOption.objects.set_value(
@@ -81,7 +82,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             target_identifier=str(self.team.id),
         )
         handler = EmailActionHandler(action, self.incident, self.project)
-        assert set(handler.get_targets()) == set([(new_user.id, new_user.email)])
+        assert set(handler.get_targets()) == {(new_user.id, new_user.email)}
 
 
 @freeze_time()

@@ -84,6 +84,7 @@ class OrganizationUserIssuesSearchTest(APITestCase, SnubaTestCase):
         # now result should include results from team2/project2
         assert response.status_code == 200
         assert len(response.data) == 2
-        assert set([r["project"]["slug"] for r in response.data]) == set(
-            [self.project1.slug, self.project2.slug]
-        )
+        assert {r["project"]["slug"] for r in response.data} == {
+            self.project1.slug,
+            self.project2.slug,
+        }

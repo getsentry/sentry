@@ -36,7 +36,7 @@ class FindStacktracesTest(TestCase):
         infos = find_stacktraces_in_data(data)
         assert len(infos) == 1
         assert len(infos[0].stacktrace["frames"]) == 2
-        assert infos[0].platforms == set(["javascript", "native"])
+        assert infos[0].platforms == {"javascript", "native"}
 
     def test_stacktraces_exception(self):
         data = {

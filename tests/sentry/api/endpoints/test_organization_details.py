@@ -727,7 +727,7 @@ class OrganizationDeleteTest(APITestCase):
 
         # Make sure we've emailed all owners
         assert len(mail.outbox) == len(owners)
-        owner_emails = set(o.email for o in owners)
+        owner_emails = {o.email for o in owners}
         for msg in mail.outbox:
             assert "Deletion" in msg.subject
             assert len(msg.to) == 1

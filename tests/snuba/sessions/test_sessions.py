@@ -114,7 +114,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         data = check_has_health_data(
             [(self.project.id, self.session_release), (self.project.id, "dummy-release")]
         )
-        assert data == set([(self.project.id, self.session_release)])
+        assert data == {(self.project.id, self.session_release)}
 
     def test_get_project_releases_by_stability(self):
         # Add an extra session with a different `distinct_id` so that sorting by users
