@@ -4,6 +4,7 @@ import LazyLoad from 'react-lazyload';
 import {DndContext} from '@dnd-kit/core';
 import {SortableContext, useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
+import {motion} from 'framer-motion';
 
 import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
@@ -18,6 +19,7 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import {DashboardDetails, Widget} from './types';
 import WidgetCard from './widgetCard';
 
+const ADD_WIDGET_BUTTON_DRAG_ID = 'add-widget-button';
 type Props = {
   api: Client;
   organization: Organization;
@@ -103,9 +105,12 @@ class Dashboard extends React.Component<Props, State> {
   };
 
   getWidgetIds() {
-    return this.props.dashboard.widgets.map((widget, index): string => {
-      return generateWidgetId(widget, index);
-    });
+    return [
+      ...this.props.dashboard.widgets.map((widget, index): string => {
+        return generateWidgetId(widget, index);
+      }),
+      ADD_WIDGET_BUTTON_DRAG_ID,
+    ];
   }
 
   renderWidget(widget: Widget, index: number) {
@@ -121,7 +126,6 @@ class Dashboard extends React.Component<Props, State> {
           dragId={dragId}
           isEditing={isEditing}
           isDragging={this.state.isDragging}
-          currentWidgetDragging={this.state.activeDragId === dragId}
           onDelete={this.handleDeleteWidget(index)}
           onEdit={this.handleEditWidget(widget, index)}
         />
@@ -151,7 +155,7 @@ class Dashboard extends React.Component<Props, State> {
 
           const activeIndex = activeDragId ? getIndex(activeDragId) : -1;
 
-          if (over) {
+          if (over && over.id !== ADD_WIDGET_BUTTON_DRAG_ID) {
             const overIndex = getIndex(over.id);
             if (activeIndex !== overIndex) {
               const newWidgets = [...this.props.dashboard.widgets];
@@ -176,18 +180,8 @@ class Dashboard extends React.Component<Props, State> {
         <WidgetContainer>
           <SortableContext items={this.getWidgetIds()}>
             {dashboard.widgets.map((widget, index) => this.renderWidget(widget, index))}
+            {isEditing && <AddWidget onClick={this.handleStartAdd} />}
           </SortableContext>
-          {isEditing && (
-            <WidgetWrapper key="add" displayType="big_number">
-              <AddWidgetWrapper
-                key="add"
-                data-test-id="widget-add"
-                onClick={this.handleStartAdd}
-              >
-                <IconAdd size="lg" isCircled color="inactive" />
-              </AddWidgetWrapper>
-            </WidgetWrapper>
-          )}
         </WidgetContainer>
       </DndContext>
     );
@@ -207,7 +201,7 @@ const WidgetContainer = styled('div')`
   }
 `;
 
-const WidgetWrapper = styled('div')<{displayType: Widget['displayType']}>`
+const WidgetWrapper = styled(motion.div)<{displayType: Widget['displayType']}>`
   position: relative;
   /* Min-width prevents grid items from stretching the grid */
   min-width: 200px;
@@ -242,21 +236,23 @@ type SortableWidgetProps = {
   dragId: string;
   isEditing: boolean;
   isDragging: boolean;
-  currentWidgetDragging: boolean;
   onDelete: () => void;
   onEdit: () => void;
 };
 
 function SortableWidget(props: SortableWidgetProps) {
+  const {widget, dragId, isDragging, isEditing, onDelete, onEdit} = props;
+
   const {
-    widget,
-    dragId,
-    isDragging,
-    currentWidgetDragging,
-    isEditing,
-    onDelete,
-    onEdit,
-  } = props;
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    isDragging: currentWidgetDragging,
+  } = useSortable({
+    id: dragId,
+    transition: null,
+  });
 
   useEffect(() => {
     if (!currentWidgetDragging) {
@@ -270,27 +266,46 @@ function SortableWidget(props: SortableWidgetProps) {
     };
   }, [currentWidgetDragging]);
 
-  const {attributes, listeners, setNodeRef, transform, transition} = useSortable({
-    id: dragId,
-  });
-
-  const style = {
-    zIndex: currentWidgetDragging ? theme.zIndex.modal : 0,
-    transition,
-    '--translate-x': transform ? `${Math.round(transform.x)}px` : undefined,
-    '--translate-y': transform ? `${Math.round(transform.y)}px` : undefined,
-    // Never scale up widgets (e.g. don't resize Big Number to a World Map)
-    '--scale-x':
-      transform?.scaleX && transform.scaleX <= 1 ? `${transform.scaleX}` : undefined,
-    '--scale-y':
-      transform?.scaleY && transform.scaleY <= 1 ? `${transform.scaleY}` : undefined,
-  } as React.CSSProperties;
+  const initialStyles = {
+    x: 0,
+    y: 0,
+    scaleX: 1,
+    scaleY: 1,
+    boxShadow: 'none',
+  };
 
   return (
     <WidgetWrapper
       ref={setNodeRef}
-      style={isDragging ? style : {}}
       displayType={widget.displayType}
+      layoutId={dragId}
+      animate={
+        transform
+          ? {
+              x: transform.x,
+              y: transform.y,
+              scaleX: transform?.scaleX && transform.scaleX <= 1 ? transform.scaleX : 1,
+              scaleY: transform?.scaleY && transform.scaleY <= 1 ? transform.scaleY : 1,
+              zIndex: currentWidgetDragging ? theme.zIndex.modal : 0,
+              boxShadow: currentWidgetDragging
+                ? '0 0 0 1px rgba(63, 63, 68, 0.05), 0px 15px 15px 0 rgba(34, 33, 81, 0.25)'
+                : 'none',
+            }
+          : initialStyles
+      }
+      transition={{
+        duration: !currentWidgetDragging ? 0.25 : 0,
+        easings: {
+          type: 'spring',
+        },
+        transform: {duration: 0},
+        scale: {
+          duration: 0.25,
+        },
+        zIndex: {
+          delay: currentWidgetDragging ? 0 : 0.25,
+        },
+      }}
     >
       <WidgetCard
         widget={widget}
@@ -305,6 +320,56 @@ function SortableWidget(props: SortableWidgetProps) {
           listeners,
         }}
       />
+    </WidgetWrapper>
+  );
+}
+
+function AddWidget(props: {onClick: () => void}) {
+  const {onClick} = props;
+
+  const initialStyles = {
+    x: 0,
+    y: 0,
+    scaleX: 1,
+    scaleY: 1,
+  };
+
+  const {setNodeRef, transform} = useSortable({
+    disabled: true,
+    id: ADD_WIDGET_BUTTON_DRAG_ID,
+    transition: null,
+  });
+
+  return (
+    <WidgetWrapper
+      key="add"
+      ref={setNodeRef}
+      displayType="big_number"
+      layoutId={ADD_WIDGET_BUTTON_DRAG_ID}
+      animate={
+        transform
+          ? {
+              x: transform.x,
+              y: transform.y,
+              scaleX: transform?.scaleX && transform.scaleX <= 1 ? transform.scaleX : 1,
+              scaleY: transform?.scaleY && transform.scaleY <= 1 ? transform.scaleY : 1,
+            }
+          : initialStyles
+      }
+      transition={{
+        duration: 0,
+        easings: {
+          type: 'spring',
+        },
+        transform: {duration: 0},
+        scale: {
+          duration: 0.25,
+        },
+      }}
+    >
+      <AddWidgetWrapper key="add" data-test-id="widget-add" onClick={onClick}>
+        <IconAdd size="lg" isCircled color="inactive" />
+      </AddWidgetWrapper>
     </WidgetWrapper>
   );
 }
