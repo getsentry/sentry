@@ -214,7 +214,7 @@ export class Line extends React.Component<Props, State> {
           }
           onClick={this.toggleContext}
         >
-          <IconChevron direction={isExpanded ? 'down' : 'up'} size="8px" />
+          <IconChevron direction={isExpanded ? 'up' : 'down'} size="8px" />
         </ToggleContextButton>
       </ToggleContextButtonWrapper>
     );
