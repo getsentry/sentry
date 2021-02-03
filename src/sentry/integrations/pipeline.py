@@ -51,10 +51,9 @@ class IntegrationPipeline(Pipeline):
         response = self._finish_pipeline(data)
 
         extra = data.get("post_install_data")
-        action = "upgrade" if extra else "install"
-        # to Slack
+
         self.provider.create_audit_log_entry(
-            self.integration, self.organization, self.request, action, extra=extra
+            self.integration, self.organization, self.request, "install", extra=extra
         )
         self.provider.post_install(self.integration, self.organization, extra=extra)
         self.clear_session()
@@ -67,11 +66,6 @@ class IntegrationPipeline(Pipeline):
             )
             self.integration.update(external_id=data["external_id"], status=ObjectStatus.VISIBLE)
             self.integration.get_installation(self.organization.id).reinstall()
-        if "integration_id" in data:
-            self.integration = Integration.objects.get(
-                provider=self.provider.integration_key, id=data["integration_id"]
-            )
-            self.integration.reauthorize(data)
         elif "expect_exists" in data:
             self.integration = Integration.objects.get(
                 provider=self.provider.integration_key, external_id=data["external_id"]

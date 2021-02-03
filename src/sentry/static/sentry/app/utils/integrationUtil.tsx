@@ -14,10 +14,8 @@ import HookStore from 'app/stores/hookStore';
 import {
   AppOrProviderOrPlugin,
   DocumentIntegration,
-  Integration,
   IntegrationFeature,
   IntegrationInstallationStatus,
-  IntegrationProvider,
   IntegrationType,
   Organization,
   PluginWithProjectList,
@@ -62,8 +60,6 @@ export type SingleIntegrationEvent = {
     | 'integrations.plugin_add_to_project_clicked'
     | 'integrations.upgrade_plan_modal_opened'
     | 'integrations.resolve_now_clicked'
-    | 'integrations.reauth_start'
-    | 'integrations.reauth_complete'
     | 'integrations.request_install'
     | 'integrations.code_mappings_viewed'
     | 'integrations.cloudformation_link_clicked'
@@ -83,8 +79,6 @@ export type SingleIntegrationEvent = {
     | 'Integrations: Plugin Add to Project Clicked'
     | 'Integrations: Upgrade Plan Modal Opened'
     | 'Integrations: Resolve Now Clicked'
-    | 'Integrations: Reauth Start'
-    | 'Integrations: Reauth Complete'
     | 'Integrations: Request Install'
     | 'Integrations: Code Mappings Viewed'
     | 'Integrations: CloudFormation Link Clicked'
@@ -368,15 +362,6 @@ export function isDocumentIntegration(
   integration: AppOrProviderOrPlugin
 ): integration is DocumentIntegration {
   return integration.hasOwnProperty('docUrl');
-}
-
-export function isSlackWorkspaceApp(integration: Integration) {
-  return integration.configData.installationType === 'workspace_app';
-}
-
-//returns the text in the alert asking the user to re-authenticate a first-party integration
-export function getReauthAlertText(provider: IntegrationProvider) {
-  return provider.metadata.aspects?.reauthentication_alert?.alertText;
 }
 
 export const convertIntegrationTypeToSnakeCase = (

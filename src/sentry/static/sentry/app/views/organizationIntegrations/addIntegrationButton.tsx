@@ -14,7 +14,7 @@ type Props = {
 } & React.ComponentProps<typeof Button> &
   Pick<
     React.ComponentProps<typeof AddIntegration>,
-    'provider' | 'organization' | 'integrationId' | 'analyticsParams' | 'modalParams'
+    'provider' | 'organization' | 'analyticsParams' | 'modalParams'
   >;
 
 export default class AddIntegrationButton extends React.Component<Props> {
@@ -25,7 +25,6 @@ export default class AddIntegrationButton extends React.Component<Props> {
       onAddIntegration,
       organization,
       reinstall,
-      integrationId,
       analyticsParams,
       modalParams,
       ...buttonProps
@@ -44,7 +43,6 @@ export default class AddIntegrationButton extends React.Component<Props> {
           onInstall={onAddIntegration}
           organization={organization}
           analyticsParams={analyticsParams}
-          integrationId={integrationId}
           modalParams={modalParams}
         >
           {onClick => (
