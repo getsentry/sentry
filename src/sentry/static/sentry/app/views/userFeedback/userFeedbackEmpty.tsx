@@ -108,7 +108,9 @@ class UserFeedbackEmpty extends React.Component<Props> {
                   eventName: 'User Feedback Docs Clicked',
                 })
               }
-              href="https://docs.sentry.io/enriching-error-data/user-feedback/"
+              href={`https://docs.sentry.io/platforms/${
+                this.props.projects[0].platform || 'javascript'
+              }/enriching-events/user-feedback/`}
             >
               {t('Read the docs')}
             </Button>
