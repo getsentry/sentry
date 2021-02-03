@@ -18,7 +18,6 @@ import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {convertDatasetEventTypesToSource} from 'app/views/alerts/utils';
 import Form from 'app/views/settings/components/forms/form';
 import FormModel from 'app/views/settings/components/forms/model';
 import RuleNameForm from 'app/views/settings/incidentRules/ruleNameForm';
@@ -28,17 +27,12 @@ import {getEventTypeFilter} from 'app/views/settings/incidentRules/utils/getEven
 import hasThresholdValue from 'app/views/settings/incidentRules/utils/hasThresholdValue';
 
 import {addOrUpdateRule} from '../actions';
-import {
-  createDefaultTrigger,
-  DATASET_EVENT_TYPE_FILTERS,
-  DATASOURCE_EVENT_TYPE_FILTERS,
-} from '../constants';
+import {createDefaultTrigger} from '../constants';
 import RuleConditionsForm from '../ruleConditionsForm';
 import RuleConditionsFormWithGuiFilters from '../ruleConditionsFormWithGuiFilters';
 import {
   AlertRuleThresholdType,
   Dataset,
-  Datasource,
   IncidentRule,
   MetricActionTemplate,
   Trigger,
@@ -128,17 +122,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     return [
       ['availableActions', `/organizations/${orgId}/alert-rules/available-actions/`],
     ];
-  }
-
-  get eventTypeFilter() {
-    if (this.state.eventTypes) {
-      return DATASOURCE_EVENT_TYPE_FILTERS[
-        convertDatasetEventTypesToSource(this.state.dataset, this.state.eventTypes) ??
-          Datasource.ERROR
-      ];
-    } else {
-      return DATASET_EVENT_TYPE_FILTERS[this.state.dataset ?? Dataset.ERRORS];
-    }
   }
 
   goBack() {
