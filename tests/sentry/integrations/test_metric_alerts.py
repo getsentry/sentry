@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from datetime import timedelta
 
 
@@ -23,7 +21,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         metric_value = 123
         data = incident_attachment_info(incident, metric_value)
 
-        assert data["title"] == "Resolved: {}".format(alert_rule.name)
+        assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"
         assert data["text"] == "123 events in the last 10 minutes\nFilter: level:error"
         assert data["ts"] == date_started
@@ -63,7 +61,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
 
         data = incident_attachment_info(incident)
 
-        assert data["title"] == "Resolved: {}".format(alert_rule.name)
+        assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"
         assert data["text"] == "4 events in the last 10 minutes\nFilter: level:error"
         assert data["ts"] == date_started

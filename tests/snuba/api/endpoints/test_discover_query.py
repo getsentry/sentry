@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 
 from datetime import datetime, timedelta
@@ -11,7 +9,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 
 class DiscoverQueryTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(DiscoverQueryTest, self).setUp()
+        super().setUp()
 
         self.now = datetime.now()
         self.one_second_ago = iso_format(before_now(seconds=1))

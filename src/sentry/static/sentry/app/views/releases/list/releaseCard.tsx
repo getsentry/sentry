@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import {Panel} from 'app/components/panels';
 import ReleaseStats from 'app/components/releaseStats';
 import TextOverflow from 'app/components/textOverflow';
@@ -13,6 +14,24 @@ import {GlobalSelection, Release} from 'app/types';
 
 import ReleaseHealth from './releaseHealth';
 import {DisplayOption} from './utils';
+
+function getReleaseProjectId(release: Release, selection: GlobalSelection) {
+  // if a release has only one project
+  if (release.projects.length === 1) {
+    return release.projects[0].id;
+  }
+
+  // if only one project is selected in global header and release has it (second condition will prevent false positives like -1)
+  if (
+    selection.projects.length === 1 &&
+    release.projects.map(p => p.id).includes(selection.projects[0])
+  ) {
+    return selection.projects[0];
+  }
+
+  // project selector on release detail page will pick it up
+  return undefined;
+}
 
 type Props = {
   release: Release;
@@ -39,9 +58,18 @@ const ReleaseCard = ({
     <StyledPanel reloading={reloading ? 1 : 0}>
       <ReleaseInfo>
         <ReleaseInfoHeader>
-          <VersionWrapper>
-            <StyledVersion version={version} tooltipRawVersion anchor={false} />
-          </VersionWrapper>
+          <GlobalSelectionLink
+            to={{
+              pathname: `/organizations/${orgSlug}/releases/${encodeURIComponent(
+                version
+              )}/`,
+              query: {project: getReleaseProjectId(release, selection)},
+            }}
+          >
+            <VersionWrapper>
+              <StyledVersion version={version} tooltipRawVersion anchor={false} />
+            </VersionWrapper>
+          </GlobalSelectionLink>
           {commitCount > 0 && <ReleaseStats release={release} withHeading={false} />}
         </ReleaseInfoHeader>
         <ReleaseInfoSubheader>
@@ -92,11 +120,9 @@ const ReleaseInfo = styled('div')`
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     border-right: 1px solid ${p => p.theme.border};
-    min-width: 250px;
-    width: 25%;
-  }
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    min-width: 300px;
+    min-width: 260px;
+    width: 22%;
+    max-width: 300px;
   }
 `;
 

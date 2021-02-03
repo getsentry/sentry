@@ -1,9 +1,6 @@
-from __future__ import absolute_import
-
 import responses
-import six
 
-from six.moves.urllib.parse import parse_qs, urlencode, urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
 
 from sentry.integrations.slack import SlackIntegrationProvider, SlackIntegration
 from sentry.models import (
@@ -48,7 +45,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert params.get("user_scope") == ["links:read"]
         # once we've asserted on it, switch to a singular values to make life
         # easier
-        authorize_params = {k: v[0] for k, v in six.iteritems(params)}
+        authorize_params = {k: v[0] for k, v in params.items()}
 
         access_json = {
             "ok": True,
@@ -71,7 +68,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         )
 
         resp = self.client.get(
-            u"{}?{}".format(
+            "{}?{}".format(
                 self.setup_path,
                 urlencode({"code": "oauth-code", "state": authorize_params["state"]}),
             )
@@ -158,7 +155,8 @@ class SlackIntegrationTest(IntegrationTestCase):
             {"slack-v2.client-id": "other-id", "slack-v2.client-secret": "other-secret"}
         ):
             self.assert_setup_flow(
-                expected_client_id="other-id", expected_client_secret="other-secret",
+                expected_client_id="other-id",
+                expected_client_secret="other-secret",
             )
 
 

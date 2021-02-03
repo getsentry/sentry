@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from datetime import datetime
 from django.utils import timezone
 from jwt import ExpiredSignatureError
@@ -20,7 +16,7 @@ CLICK_TO_FINISH = b"Click to Finish Installation"
 
 class JiraIssueHookTest(APITestCase):
     def setUp(self):
-        super(JiraIssueHookTest, self).setUp()
+        super().setUp()
         self.first_seen = datetime(2015, 8, 13, 3, 8, 25, tzinfo=timezone.utc)
         self.last_seen = datetime(2016, 1, 13, 3, 8, 25, tzinfo=timezone.utc)
         self.first_release = self.create_release(
@@ -38,7 +34,7 @@ class JiraIssueHookTest(APITestCase):
             first_release=self.first_release,
         )
         group = self.group
-        self.path = absolute_uri(u"extensions/jira/issue/{}/".format("APP-123")) + "?xdm_e=base_url"
+        self.path = absolute_uri("extensions/jira/issue/APP-123/") + "?xdm_e=base_url"
 
         self.integration = Integration.objects.create(
             provider="jira",
@@ -86,7 +82,7 @@ class JiraIssueHookTest(APITestCase):
         mock_get_integration_from_request.return_value = self.integration
         response = self.client.get(self.path)
         assert response.status_code == 200
-        resp_content = six.text_type(response.content)
+        resp_content = str(response.content)
         assert self.group.title in resp_content
         assert self.first_seen.strftime("%b. %d, %Y") in resp_content
         assert self.last_seen.strftime("%b. %d, %Y") in resp_content
@@ -96,7 +92,7 @@ class JiraIssueHookTest(APITestCase):
     @patch("sentry.integrations.jira.issue_hook.get_integration_from_request")
     def test_simple_not_linked(self, mock_get_integration_from_request):
         mock_get_integration_from_request.return_value = self.integration
-        path = absolute_uri(u"extensions/jira/issue/{}/".format("bad-key")) + "?xdm_e=base_url"
+        path = absolute_uri("extensions/jira/issue/bad-key/") + "?xdm_e=base_url"
         response = self.client.get(path)
         assert response.status_code == 200
         assert b"This Sentry issue is not linked to a Jira issue" in response.content

@@ -89,16 +89,6 @@ class VitalChart extends React.Component<Props> {
     const legend = {
       right: 10,
       top: 0,
-      icon: 'circle',
-      itemHeight: 8,
-      itemWidth: 8,
-      itemGap: 12,
-      align: 'left' as const,
-      textStyle: {
-        verticalAlign: 'top',
-        fontSize: 11,
-        fontFamily: 'Rubik',
-      },
       selected: getSeriesSelection(location),
     };
 
@@ -197,7 +187,13 @@ class VitalChart extends React.Component<Props> {
               title={t(`The durations shown should fall under the vital threshold.`)}
             />
           </HeaderTitleLegend>
-          <ChartZoom router={router} period={statsPeriod}>
+          <ChartZoom
+            router={router}
+            period={statsPeriod}
+            start={start}
+            end={end}
+            utc={utc}
+          >
             {zoomRenderProps => (
               <EventsRequest
                 api={api}

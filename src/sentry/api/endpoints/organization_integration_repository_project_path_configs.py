@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import status, serializers
 
@@ -26,10 +24,12 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
     stack_root = gen_path_regex_field()
     source_root = gen_path_regex_field()
     default_branch = serializers.RegexField(
-        r"^[\w-]+$",
+        r"^(^(?![\/]))([\w\/-]+)(?<![\/])$",
         required=True,
         error_messages={
-            "invalid": _("Branch name may only have letters, numbers, underscores, and dashes")
+            "invalid": _(
+                "Branch name may only have letters, numbers, underscores, forward slashes and dashes. Branch name may not start or end with a forward slash."
+            )
         },
     )
 
@@ -114,7 +114,8 @@ class OrganizationIntegrationRepositoryProjectPathConfigEndpoint(
         org_integration = self.get_organization_integration(organization, integration_id)
 
         serializer = RepositoryProjectPathConfigSerializer(
-            context={"organization_integration": org_integration}, data=request.data,
+            context={"organization_integration": org_integration},
+            data=request.data,
         )
         if serializer.is_valid():
             repository_project_path_config = serializer.save()

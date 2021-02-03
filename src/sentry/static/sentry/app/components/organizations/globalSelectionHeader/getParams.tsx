@@ -140,10 +140,15 @@ type InputParams = {
 type GetParamsOptions = {
   allowEmptyPeriod?: boolean;
   allowAbsoluteDatetime?: boolean;
+  defaultStatsPeriod?: string;
 };
 export function getParams(
   params: InputParams,
-  {allowEmptyPeriod = false, allowAbsoluteDatetime = true}: GetParamsOptions = {}
+  {
+    allowEmptyPeriod = false,
+    allowAbsoluteDatetime = true,
+    defaultStatsPeriod = DEFAULT_STATS_PERIOD,
+  }: GetParamsOptions = {}
 ): ParsedParams {
   const {start, end, period, statsPeriod, utc, ...otherParams} = params;
 
@@ -155,7 +160,7 @@ export function getParams(
 
   if (!(dateTimeStart && dateTimeEnd)) {
     if (!coercedPeriod && !allowEmptyPeriod) {
-      coercedPeriod = DEFAULT_STATS_PERIOD;
+      coercedPeriod = defaultStatsPeriod;
     }
   }
 

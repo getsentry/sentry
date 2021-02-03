@@ -11,9 +11,12 @@ export const EMPTY_DASHBOARD: DashboardDetails = {
 };
 
 export const DISPLAY_TYPE_CHOICES = [
-  {label: t('Area chart'), value: 'area'},
-  {label: t('Bar chart'), value: 'bar'},
-  {label: t('Line chart'), value: 'line'},
+  {label: t('Area Chart'), value: 'area'},
+  {label: t('Bar Chart'), value: 'bar'},
+  {label: t('Line Chart'), value: 'line'},
+  {label: t('Table'), value: 'table'},
+  {label: t('World Map'), value: 'world_map'},
+  {label: t('Big Number'), value: 'big_number'},
 ];
 
 export const INTERVAL_CHOICES = [
@@ -24,3 +27,5 @@ export const INTERVAL_CHOICES = [
   {label: t('1 Hour'), value: '1h'},
   {label: t('1 Day'), value: '1d'},
 ];
+
+export const DEFAULT_STATS_PERIOD = '24h';

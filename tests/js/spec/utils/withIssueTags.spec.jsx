@@ -67,7 +67,7 @@ describe('withIssueTags HoC', function () {
       'joe@example.com',
       '#best-team-na',
     ]);
-    expect(tagsProp.owner.values).toEqual([
+    expect(tagsProp.assigned_or_suggested.values).toEqual([
       'me_or_none',
       'me',
       'foo@example.com',

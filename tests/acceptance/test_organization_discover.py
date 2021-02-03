@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytz
 from sentry.utils.compat.mock import patch
 
@@ -9,7 +7,7 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 
 class OrganizationDiscoverTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationDiscoverTest, self).setUp()
+        super().setUp()
 
         self.login_as(user=self.user, superuser=False)
 
@@ -50,7 +48,7 @@ class OrganizationDiscoverTest(AcceptanceTestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        self.path = u"/organizations/{}/discover/".format(self.org.slug)
+        self.path = f"/organizations/{self.org.slug}/discover/"
 
     def test_no_access(self):
         with self.feature(

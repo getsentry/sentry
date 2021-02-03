@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-
 from requests.exceptions import RequestException
 from sentry import analytics
 from sentry.mediators import Mediator, Param

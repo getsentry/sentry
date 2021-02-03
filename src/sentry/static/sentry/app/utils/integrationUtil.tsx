@@ -65,7 +65,8 @@ export type SingleIntegrationEvent = {
     | 'integrations.reauth_start'
     | 'integrations.reauth_complete'
     | 'integrations.request_install'
-    | 'integrations.code_mappings_viewed';
+    | 'integrations.code_mappings_viewed'
+    | 'integrations.cloudformation_link_clicked';
   eventName:
     | 'Integrations: Install Modal Opened' //TODO: remove
     | 'Integrations: Installation Start'
@@ -84,7 +85,8 @@ export type SingleIntegrationEvent = {
     | 'Integrations: Reauth Start'
     | 'Integrations: Reauth Complete'
     | 'Integrations: Request Install'
-    | 'Integrations: Code Mappings Viewed';
+    | 'Integrations: Code Mappings Viewed'
+    | 'Integrations: CloudFormation Link Clicked';
   integration: string; //the slug
   integration_type: IntegrationType;
   already_installed?: boolean;
@@ -151,6 +153,14 @@ type IntegrationStacktraceLinkEvent = {
   error_reason?: 'file_not_found' | 'stack_root_mismatch';
 };
 
+type IntegrationInstalltionInputValueChangeEvent = {
+  eventKey: 'integrations.installation_input_value_changed';
+  eventName: 'Integrations: Installation Input Value Changed';
+  integration: string; //the slug
+  integration_type: IntegrationType;
+  field_name: string;
+};
+
 type IntegrationsEventParams = (
   | MultipleIntegrationsEvent
   | SingleIntegrationEvent
@@ -159,6 +169,7 @@ type IntegrationsEventParams = (
   | IntegrationStacktraceLinkEvent
   | IntegrationServerlessFunctionsViewed
   | IntegrationServerlessFunctionAction
+  | IntegrationInstalltionInputValueChangeEvent
 ) & {
   view?:
     | 'external_install'
@@ -167,7 +178,8 @@ type IntegrationsEventParams = (
     | 'integrations_directory'
     | 'integrations_directory_integration_detail'
     | 'stacktrace_issue_details'
-    | 'integration_configuration_detail';
+    | 'integration_configuration_detail'
+    | 'onboarding';
   project_id?: string;
 } & Parameters<Hooks['analytics:track-event']>[0];
 

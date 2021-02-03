@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from datetime import timedelta
 
 from django.core.urlresolvers import reverse
@@ -10,12 +8,12 @@ from sentry.models import Group
 
 
 def format_project_event(project_slug, event_id):
-    return "{}:{}".format(project_slug, event_id)
+    return f"{project_slug}:{event_id}"
 
 
 class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationEventDetailsEndpointTest, self).setUp()
+        super().setUp()
         min_ago = iso_format(before_now(minutes=1))
         two_min_ago = iso_format(before_now(minutes=2))
         three_min_ago = iso_format(before_now(minutes=3))
@@ -215,7 +213,9 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
 
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
-                url, data={"field": ["", " "], "statsPeriod": "24h"}, format="json",
+                url,
+                data={"field": ["", " "], "statsPeriod": "24h"},
+                format="json",
             )
 
         assert response.status_code == 200, response.content

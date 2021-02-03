@@ -1,10 +1,9 @@
-from __future__ import absolute_import
-
 import sys
 import jsonschema
 import logging
 import six
 import time
+import base64
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -57,7 +56,9 @@ HTTP_SOURCE_SCHEMA = {
     "properties": dict(
         type={"type": "string", "enum": ["http"]},
         url={"type": "string"},
-        **COMMON_SOURCE_PROPERTIES
+        username={"type": "string"},
+        password={"type": "string"},
+        **COMMON_SOURCE_PROPERTIES,
     ),
     "required": ["type", "id", "url", "layout"],
     "additionalProperties": False,
@@ -72,7 +73,7 @@ S3_SOURCE_SCHEMA = {
         access_key={"type": "string"},
         secret_key={"type": "string"},
         prefix={"type": "string"},
-        **COMMON_SOURCE_PROPERTIES
+        **COMMON_SOURCE_PROPERTIES,
     ),
     "required": ["type", "id", "bucket", "region", "access_key", "secret_key", "layout"],
     "additionalProperties": False,
@@ -86,7 +87,7 @@ GCS_SOURCE_SCHEMA = {
         client_email={"type": "string"},
         private_key={"type": "string"},
         prefix={"type": "string"},
-        **COMMON_SOURCE_PROPERTIES
+        **COMMON_SOURCE_PROPERTIES,
     ),
     "required": ["type", "id", "bucket", "client_email", "private_key", "layout"],
     "additionalProperties": False,
@@ -99,7 +100,7 @@ SOURCES_SCHEMA = {
 
 
 def _task_id_cache_key_for_event(project_id, event_id):
-    return u"symbolicator:{1}:{0}".format(project_id, event_id)
+    return "symbolicator:{1}:{0}".format(project_id, event_id)
 
 
 class Symbolicator(object):
@@ -173,14 +174,15 @@ class Symbolicator(object):
                 metrics.timing(
                     "events.symbolicator.response.completed.size", len(json.dumps(json_response))
                 )
-                return json_response
+                return redact_internal_sources(json_response)
 
     def process_minidump(self, minidump):
         return self._process(lambda: self.sess.upload_minidump(minidump), "process_minidump")
 
     def process_applecrashreport(self, report):
         return self._process(
-            lambda: self.sess.upload_applecrashreport(report), "process_applecrashreport",
+            lambda: self.sess.upload_applecrashreport(report),
+            "process_applecrashreport",
         )
 
     def process_payload(self, stacktraces, modules, signal=None):
@@ -190,6 +192,74 @@ class Symbolicator(object):
             ),
             "symbolicate_stacktraces",
         )
+
+
+def redact_internal_sources(response):
+    """Redacts information about internal sources from a response.
+
+    Symbolicator responses can contain a section about DIF object file candidates where were
+    attempted to be downloaded from the sources.  This includes a full URI of where the
+    download was attempted from.  For internal sources we want to redact this in order to
+    not leak any internal details.
+
+    Note that this modifies the argument passed in, thus redacting in-place.  It still
+    returns the modified response.
+    """
+    for module in response.get("modules", []):
+        redact_internal_sources_from_module(module)
+    return response
+
+
+def redact_internal_sources_from_module(module):
+    """Redacts information about internal sources from a single module.
+
+    This in-place redacts candidates from only a single module of the symbolicator response.
+
+    The strategy here is for each internal source to replace the location with the DebugID.
+    Furthermore if there are any "notfound" entries collapse them into a single entry and
+    only show this entry if there are no entries with another status.
+    """
+    sources_notfound = set()
+    sources_other = set()
+    new_candidates = []
+
+    for candidate in module.get("candidates", []):
+        source_id = candidate["source"]
+        if is_internal_source_id(source_id):
+
+            # Only keep location for sentry:project.
+            if source_id != "sentry:project":
+                candidate.pop("location", None)
+
+            # Collapse nofound statuses, collect info on sources which both have a notfound
+            # as well as other statusses.  This allows us to later filter the notfound ones.
+            try:
+                status = candidate.get("download", {})["status"]
+            except KeyError:
+                pass
+            else:
+                if status == "notfound":
+                    candidate.pop("location", None)  # This location is bogus, remove it.
+                    if source_id in sources_notfound:
+                        continue
+                    else:
+                        sources_notfound.add(source_id)
+                else:
+                    sources_other.add(source_id)
+        new_candidates.append(candidate)
+
+    def should_keep(candidate):
+        """Returns `False` if the candidate should be kept in the list of candidates.
+
+        This removes the candidates with a status of ``notfound`` *if* they also have
+        another status.
+        """
+        source_id = candidate["source"]
+        status = candidate.get("download", {}).get("status")
+        return status != "notfound" or source_id not in sources_other
+
+    if "candidates" in module:
+        module["candidates"] = [c for c in new_candidates if should_keep(c)]
 
 
 class TaskIdNotFound(Exception):
@@ -233,6 +303,32 @@ def get_internal_source(project):
     }
 
 
+def is_internal_source_id(source_id):
+    """Determines if a DIF object source identifier is reserved for internal sentry use.
+
+    This is trivial, but multiple functions in this file need to use the same definition.
+    """
+    return source_id.startswith("sentry")
+
+
+def normalize_user_source(source):
+    """Sources supplied from the user frontend might not match the format that
+    symbolicator expects.  For instance we currently do not permit headers to be
+    configured in the UI, but we allow basic auth to be configured for HTTP.
+    This means that we need to convert from username/password into the HTTP
+    basic auth header.
+    """
+    if source.get("type") == "http":
+        username = source.pop("username", None)
+        password = source.pop("password", None)
+        if username or password:
+            auth = base64.b64encode(("%s:%s" % (username or "", password or "")).encode("utf-8"))
+            source["headers"] = {
+                "authorization": "Basic %s" % auth.decode("ascii"),
+            }
+    return source
+
+
 def parse_sources(config):
     """
     Parses the given sources in the config string (from JSON).
@@ -253,7 +349,7 @@ def parse_sources(config):
 
     ids = set()
     for source in sources:
-        if source["id"].startswith("sentry"):
+        if is_internal_source_id(source["id"]):
             raise InvalidSourcesError('Source ids must not start with "sentry:"')
         if source["id"] in ids:
             raise InvalidSourcesError("Duplicate source id: %s" % (source["id"],))
@@ -297,7 +393,7 @@ def get_sources_for_project(project):
     if sources_config:
         try:
             custom_sources = parse_sources(sources_config)
-            sources.extend(custom_sources)
+            sources.extend(normalize_user_source(source) for source in custom_sources)
         except InvalidSourcesError:
             # Source configs should be validated when they are saved. If this
             # did not happen, this indicates a bug. Record this, but do not stop

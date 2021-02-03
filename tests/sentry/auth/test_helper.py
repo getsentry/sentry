@@ -1,6 +1,4 @@
-from __future__ import absolute_import
-
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 from django.test import RequestFactory
 from django.contrib.auth.models import AnonymousUser
 

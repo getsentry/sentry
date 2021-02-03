@@ -39,8 +39,8 @@ export default Item;
 
 const Wrapper = styled('div')`
   display: grid;
-  grid-auto-flow: column;
-  grid-column-gap: ${space(1.5)};
+  grid-template-columns: max-content 1fr;
+  grid-column-gap: ${space(0.5)};
   align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
   white-space: nowrap;

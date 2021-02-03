@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from copy import deepcopy
 from datetime import datetime, timedelta
 from itertools import chain
@@ -243,7 +241,7 @@ def create_incident_activity(
         value=value,
         previous_value=previous_value,
         comment=comment,
-        **kwargs
+        **kwargs,
     )
 
     if mentioned_user_ids:
@@ -320,7 +318,10 @@ def create_incident_snapshot(incident, windowed_stats=False):
         return IncidentSnapshot.objects.create(
             incident=incident,
             event_stats_snapshot=TimeSeriesSnapshot.objects.create(
-                start=start, end=end, values=[], period=incident.alert_rule.snuba_query.time_window,
+                start=start,
+                end=end,
+                values=[],
+                period=incident.alert_rule.snuba_query.time_window,
             ),
             unique_users=0,
             total_events=0,
@@ -447,7 +448,7 @@ def get_incident_event_stats(incident, start=None, end=None, windowed_stats=Fals
             groupby=["time"],
             rollup=time_window,
             limit=10000,
-            **query_params
+            **query_params,
         )
     ]
 
@@ -460,7 +461,7 @@ def get_incident_event_stats(incident, start=None, end=None, windowed_stats=Fals
         return SnubaQueryParams(
             aggregations=[(aggregations[0], aggregations[1], "count")],
             limit=1,
-            **extra_bucket_query_params
+            **extra_bucket_query_params,
         )
 
     # We want to include the specific buckets for the incident start and closed times,
@@ -598,7 +599,7 @@ def create_alert_rule(
     dataset=QueryDatasets.EVENTS,
     user=None,
     event_types=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Creates an alert rule for an organization.
@@ -725,7 +726,7 @@ def update_alert_rule(
     excluded_projects=None,
     user=None,
     event_types=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Updates an alert rule.
@@ -804,7 +805,7 @@ def update_alert_rule(
                 alert_rule.snuba_query,
                 resolution=timedelta(minutes=DEFAULT_ALERT_RULE_RESOLUTION),
                 environment=environment,
-                **updated_query_fields
+                **updated_query_fields,
             )
 
         existing_subs = []
@@ -910,7 +911,7 @@ def delete_alert_rule(alert_rule, user=None):
     with transaction.atomic():
         incidents = Incident.objects.filter(alert_rule=alert_rule)
         bulk_delete_snuba_subscriptions(list(alert_rule.snuba_query.subscriptions.all()))
-        if incidents:
+        if incidents.exists():
             alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
             AlertRuleActivity.objects.create(
                 alert_rule=alert_rule, user=user, type=AlertRuleActivityType.DELETED.value

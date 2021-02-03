@@ -1,7 +1,5 @@
-from __future__ import absolute_import
-
 from exam import fixture
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry.api.serializers import serialize
 from sentry.incidents.models import AlertRule, AlertRuleStatus, Incident, IncidentStatus
@@ -9,7 +7,7 @@ from sentry.models import Integration
 from sentry.testutils import APITestCase
 
 
-class AlertRuleDetailsBase(object):
+class AlertRuleDetailsBase:
     endpoint = "sentry-api-0-project-alert-rule-details"
 
     @fixture
@@ -188,7 +186,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
                 self.project.slug,
                 alert_rule.id,
                 status_code=404,
-                **serialized_alert_rule
+                **serialized_alert_rule,
             )
 
     @patch(
@@ -200,7 +198,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
     def test_kicks_off_slack_async_job(
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
     ):
-        class uuid(object):
+        class uuid:
             hex = "abc123"
 
         mock_uuid4.return_value = uuid

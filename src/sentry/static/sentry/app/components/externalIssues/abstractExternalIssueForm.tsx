@@ -5,11 +5,11 @@ import * as queryString from 'query-string';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import AsyncComponent from 'app/components/asyncComponent';
 import {tct} from 'app/locale';
-import {IntegrationIssueConfig, IssueConfigField} from 'app/types';
+import {Choices, IntegrationIssueConfig, IssueConfigField} from 'app/types';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
 import {FieldValue} from 'app/views/settings/components/forms/model';
-import {FormField} from 'app/views/settings/projectAlerts/issueEditor/ruleNode';
+import {FormField} from 'app/views/settings/projectAlerts/issueRuleEditor/ruleNode';
 
 export type ExternalIssueAction = 'create' | 'link';
 
@@ -26,6 +26,8 @@ type State = {
    * `integrationDetails` when it loads. Null until set.
    */
   dynamicFieldValues: {[key: string]: FieldValue | null} | null;
+  /** Cache of options fetched for async fields. */
+  fetchedFieldOptionsCache: Record<string, Choices>;
 } & AsyncComponent['state'];
 
 const DEBOUNCE_MS = 200;
@@ -43,6 +45,7 @@ export default class AbstractExternalIssueForm<
       ...super.getDefaultState(),
       action: 'create',
       dynamicFieldValues: null,
+      fetchedFieldOptionsCache: {},
       integrationDetails: null,
     };
   }
@@ -126,20 +129,32 @@ export default class AbstractExternalIssueForm<
     }
   };
 
+  /** For fields with dynamic fields, cache the fetched choices. */
   updateFetchedFieldOptionsCache = (
-    _field: IssueConfigField,
-    _result: {options: {value: string; label: string}[]}
+    field: IssueConfigField,
+    result: {value: string; label: string}[]
   ): void => {
-    // Do nothing.
+    const {fetchedFieldOptionsCache} = this.state;
+    this.setState({
+      fetchedFieldOptionsCache: {
+        ...fetchedFieldOptionsCache,
+        [field.name]: result.map(obj => [obj.value, obj.label]),
+      },
+    });
   };
 
+  /**
+   * Get the list of options for a field via debounced API call. For example,
+   * the list of users that match the input string. The Promise rejects if there
+   * are any errors.
+   */
   getOptions = (field: IssueConfigField, input: string) =>
     new Promise((resolve, reject) => {
       if (!input) {
         const choices =
           (field.choices as Array<[number | string, number | string]>) || [];
         const options = choices.map(([value, label]) => ({value, label}));
-        return resolve({options});
+        return resolve(options);
       }
       return this.debouncedOptionLoad(field, input, (err, result) => {
         if (err) {
@@ -170,7 +185,7 @@ export default class AbstractExternalIssueForm<
       // API endpoints (which the client prefixes)
       try {
         const response = await fetch(url + separator + query);
-        cb(null, {options: response.ok ? await response.json() : []});
+        cb(null, response.ok ? await response.json() : []);
       } catch (err) {
         cb(err);
       }
@@ -179,6 +194,7 @@ export default class AbstractExternalIssueForm<
     {trailing: true}
   );
 
+  /** If this field is an async select (field.url is not null), add async props. */
   getFieldProps = (field: IssueConfigField) =>
     field.url
       ? {
@@ -215,6 +231,21 @@ export default class AbstractExternalIssueForm<
     };
   };
 
+  getCleanedFields = (): IssueConfigField[] => {
+    const {fetchedFieldOptionsCache, integrationDetails} = this.state;
+
+    const configsFromAPI = (integrationDetails || {})[this.getConfigName()];
+    return (configsFromAPI || []).map(field => {
+      const fieldCopy = {...field};
+      // Overwrite choices from cache.
+      if (fetchedFieldOptionsCache?.hasOwnProperty(field.name)) {
+        fieldCopy.choices = fetchedFieldOptionsCache[field.name];
+      }
+
+      return fieldCopy;
+    });
+  };
+
   renderComponent() {
     return this.state.error
       ? this.renderError(new Error('Unable to load all required endpoints'))
@@ -249,12 +280,13 @@ export default class AbstractExternalIssueForm<
                   .filter((field: FormField) => field.hasOwnProperty('name'))
                   .map(field => (
                     <FieldFromConfig
-                      key={`${field.name}-${field.default}-${field.required}`}
-                      field={field}
-                      inline={false}
-                      stacked
-                      flexibleControlStateSize
+                      deprecatedSelectControl={false}
                       disabled={this.state.reloading}
+                      field={field}
+                      flexibleControlStateSize
+                      inline={false}
+                      key={`${field.name}-${field.default}-${field.required}`}
+                      stacked
                       {...this.getFieldProps(field)}
                     />
                   ))}

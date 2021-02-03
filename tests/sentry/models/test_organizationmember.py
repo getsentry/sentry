@@ -1,7 +1,3 @@
-# coding: utf-8
-
-from __future__ import absolute_import
-
 from datetime import timedelta
 from django.core import mail
 from django.utils import timezone
@@ -190,7 +186,9 @@ class OrganizationMemberTest(TestCase):
     def test_scopes_with_member_admin_config(self):
         organization = self.create_organization()
         member = OrganizationMember.objects.create(
-            organization=organization, role="member", email="test@example.com",
+            organization=organization,
+            role="member",
+            email="test@example.com",
         )
 
         assert "event:admin" in member.get_scopes()
@@ -206,10 +204,14 @@ class OrganizationMemberTest(TestCase):
     def test_scopes_with_member_alert_write(self):
         organization = self.create_organization()
         member = OrganizationMember.objects.create(
-            organization=organization, role="member", email="test@example.com",
+            organization=organization,
+            role="member",
+            email="test@example.com",
         )
         admin = OrganizationMember.objects.create(
-            organization=organization, role="admin", email="admin@example.com",
+            organization=organization,
+            role="admin",
+            email="admin@example.com",
         )
 
         assert "alerts:write" in member.get_scopes()

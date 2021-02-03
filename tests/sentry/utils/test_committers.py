@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import unittest
 
 from datetime import timedelta
@@ -12,7 +10,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.committers import (
     _get_commit_file_changes,
-    _get_frame_paths,
+    get_frame_paths,
     _match_commits_path,
     get_serialized_event_file_committers,
     get_previous_releases,
@@ -113,24 +111,24 @@ class GetFramePathsTestCase(unittest.TestCase):
 
     def test_data_in_stacktrace_frames(self):
         self.event.data = {"stacktrace": {"frames": ["data"]}}
-        assert ["data"] == _get_frame_paths(self.event)
+        assert ["data"] == get_frame_paths(self.event.data)
 
     def test_data_in_exception_values(self):
         self.event.data = {"exception": {"values": [{"stacktrace": {"frames": ["data"]}}]}}
-        assert ["data"] == _get_frame_paths(self.event)
+        assert ["data"] == get_frame_paths(self.event.data)
 
     def test_data_does_not_match(self):
         self.event.data = {"this does not": "match"}
-        assert [] == _get_frame_paths(self.event)
+        assert [] == get_frame_paths(self.event.data)
 
     def test_no_stacktrace_in_exception_values(self):
         self.event.data = {"exception": {"values": [{"this does not": "match"}]}}
-        assert [] == _get_frame_paths(self.event)
+        assert [] == get_frame_paths(self.event.data)
 
 
 class GetCommitFileChangesTestCase(CommitTestCase):
     def setUp(self):
-        super(GetCommitFileChangesTestCase, self).setUp()
+        super().setUp()
         file_change_1 = self.create_commitfilechange(filename="hello/app.py", type="A")
         file_change_2 = self.create_commitfilechange(filename="hello/templates/app.html", type="A")
         file_change_3 = self.create_commitfilechange(filename="hello/app.py", type="M")
@@ -217,7 +215,7 @@ class GetPreviousReleasesTestCase(TestCase):
 
 class GetEventFileCommitters(CommitTestCase):
     def setUp(self):
-        super(GetEventFileCommitters, self).setUp()
+        super().setUp()
         self.release = self.create_release(project=self.project, version="v12")
         self.group = self.create_group(
             project=self.project, message="Kaboom!", first_release=self.release
@@ -450,7 +448,7 @@ class GetEventFileCommitters(CommitTestCase):
 
 class DedupeCommits(CommitTestCase):
     def setUp(self):
-        super(DedupeCommits, self).setUp()
+        super().setUp()
 
     def test_dedupe_with_same_commit(self):
         commit = self.create_commit().__dict__

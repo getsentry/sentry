@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.core.urlresolvers import reverse
 from django.utils.html import escape, mark_safe
 from six.moves.urllib.parse import urlparse, urlunparse
@@ -12,6 +10,7 @@ from sentry.models import (
     UserAvatar,
     UserOption,
 )
+from sentry.utils import json
 from sentry.utils.assets import get_asset_url
 from sentry.utils.avatar import get_email_avatar
 from sentry.utils.email import MessageBuilder, group_id_to_email
@@ -62,7 +61,7 @@ class ActivityEmail(object):
         return "sentry/emails/activity/generic.html"
 
     def get_project_link(self):
-        return absolute_uri(u"/{}/{}/".format(self.organization.slug, self.project.slug))
+        return absolute_uri("/{}/{}/".format(self.organization.slug, self.project.slug))
 
     def get_group_link(self):
         referrer = self.__class__.__name__
@@ -95,15 +94,15 @@ class ActivityEmail(object):
         }
 
     def get_email_type(self):
-        return u"notify.activity.{}".format(self.activity.get_type_display())
+        return "notify.activity.{}".format(self.activity.get_type_display())
 
     def get_subject(self):
         group = self.group
 
-        return u"%s - %s" % (group.qualified_short_id, group.title)
+        return "%s - %s" % (group.qualified_short_id, group.title)
 
     def get_subject_with_prefix(self):
-        return u"{}{}".format(self._get_subject_prefix(), self.get_subject()).encode("utf-8")
+        return "{}{}".format(self._get_subject_prefix(), self.get_subject()).encode("utf-8")
 
     def get_context(self):
         description = self.get_description()
@@ -133,7 +132,10 @@ class ActivityEmail(object):
         project = self.project
         group = self.group
 
-        headers = {"X-Sentry-Project": project.slug}
+        headers = {
+            "X-Sentry-Project": project.slug,
+            "X-SMTPAPI": json.dumps({"category": self.get_category()}),
+        }
 
         if group:
             headers.update(
@@ -141,7 +143,6 @@ class ActivityEmail(object):
                     "X-Sentry-Logger": group.logger,
                     "X-Sentry-Logger-Level": group.get_level_display(),
                     "X-Sentry-Reply-To": group_id_to_email(group.id),
-                    "category": self.get_category(),
                 }
             )
 
@@ -153,14 +154,12 @@ class ActivityEmail(object):
     def avatar_as_html(self):
         user = self.activity.user
         if not user:
-            return u'<img class="avatar" src="{}" width="20px" height="20px" />'.format(
+            return '<img class="avatar" src="{}" width="20px" height="20px" />'.format(
                 escape(self._get_sentry_avatar_url())
             )
         avatar_type = user.get_avatar_type()
         if avatar_type == "upload":
-            return u'<img class="avatar" src="{}" />'.format(
-                escape(self._get_user_avatar_url(user))
-            )
+            return '<img class="avatar" src="{}" />'.format(escape(self._get_user_avatar_url(user)))
         elif avatar_type == "letter_avatar":
             return get_email_avatar(user.get_display_name(), user.get_label(), 20, False)
         else:
@@ -178,7 +177,7 @@ class ActivityEmail(object):
 
         url = reverse("sentry-user-avatar-url", args=[avatar.ident])
         if size:
-            url = u"{}?s={}".format(url, int(size))
+            url = "{}?s={}".format(url, int(size))
         return absolute_uri(url)
 
     def description_as_text(self, description, params):
@@ -186,9 +185,9 @@ class ActivityEmail(object):
         if user:
             name = user.name or user.email
         else:
-            name = u"Sentry"
+            name = "Sentry"
 
-        context = {"author": name, "an issue": u"an issue"}
+        context = {"author": name, "an issue": "an issue"}
         context.update(params)
 
         return description.format(**context)
@@ -200,11 +199,11 @@ class ActivityEmail(object):
         else:
             name = "Sentry"
 
-        fmt = u'<span class="avatar-container">{}</span> <strong>{}</strong>'
+        fmt = '<span class="avatar-container">{}</span> <strong>{}</strong>'
 
         author = mark_safe(fmt.format(self.avatar_as_html(), escape(name)))
 
-        an_issue = u'<a href="{}">an issue</a>'.format(escape(self.get_group_link()))
+        an_issue = '<a href="{}">an issue</a>'.format(escape(self.get_group_link()))
 
         context = {"author": author, "an issue": an_issue}
         context.update(params)

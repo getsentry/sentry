@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import six
 
 from collections import defaultdict
@@ -10,6 +8,7 @@ from time import time
 from sentry.models import (
     Activity,
     Group,
+    GroupInboxRemoveAction,
     GroupStatus,
     Project,
     ProjectOption,
@@ -74,7 +73,7 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
         happened = Group.objects.filter(id=group.id, status=GroupStatus.UNRESOLVED).update(
             status=GroupStatus.RESOLVED, resolved_at=timezone.now()
         )
-        remove_group_from_inbox(group, action="resolved")
+        remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
 
         if happened:
             Activity.objects.create(

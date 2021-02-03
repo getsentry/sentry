@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.core.urlresolvers import reverse
 
 from sentry.models import User, UserEmail
@@ -8,7 +6,7 @@ from sentry.testutils import APITestCase
 
 class UserEmailsTest(APITestCase):
     def setUp(self):
-        super(UserEmailsTest, self).setUp()
+        super().setUp()
         self.user = self.create_user(email="foo@example.com")
         self.login_as(user=self.user)
         self.url = reverse("sentry-api-0-user-emails", kwargs={"user_id": self.user.id})

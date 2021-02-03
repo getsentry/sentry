@@ -1,8 +1,6 @@
-from __future__ import absolute_import
-
 import responses
 
-from six.moves.urllib.parse import parse_qs
+from urllib.parse import parse_qs
 
 from sentry.utils import json
 from sentry.models import Integration
@@ -340,7 +338,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
         form = rule.get_form_instance()
         assert not form.is_valid()
-        assert [u"Slack workspace is a required field."] in form.errors.values()
+        assert ["Slack workspace is a required field."] in form.errors.values()
 
     @responses.activate
     @with_feature("organizations:slack-allow-workspace")

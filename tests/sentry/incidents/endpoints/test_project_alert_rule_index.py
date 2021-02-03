@@ -1,12 +1,9 @@
-from __future__ import absolute_import
-
-import six
 import requests
 import pytz
 
 from exam import fixture
 from freezegun import freeze_time
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from sentry.utils import json
 from sentry.api.serializers import serialize
@@ -148,7 +145,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
     def test_kicks_off_slack_async_job(
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
     ):
-        class uuid(object):
+        class uuid:
             hex = "abc123"
 
         mock_uuid4.return_value = uuid
@@ -241,8 +238,8 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
         self.yet_another_alert_rule = self.create_alert_rule(
             projects=self.projects, date_added=before_now(minutes=3).replace(tzinfo=pytz.UTC)
         )
-        self.combined_rules_url = "/api/0/projects/{0}/{1}/combined-rules/".format(
-            self.org.slug, self.project.slug
+        self.combined_rules_url = (
+            f"/api/0/projects/{self.org.slug}/{self.project.slug}/combined-rules/"
         )
 
     def test_invalid_limit(self):
@@ -266,7 +263,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
         result = json.loads(response.content)
         assert len(result) == 4
         self.assert_alert_rule_serialized(self.yet_another_alert_rule, result[0], skip_dates=True)
-        assert result[1]["id"] == six.text_type(self.issue_rule.id)
+        assert result[1]["id"] == str(self.issue_rule.id)
         assert result[1]["type"] == "rule"
         self.assert_alert_rule_serialized(self.other_alert_rule, result[2], skip_dates=True)
         self.assert_alert_rule_serialized(self.alert_rule, result[3], skip_dates=True)
@@ -300,7 +297,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
         assert response.status_code == 200
         result = json.loads(response.content)
         assert len(result) == 1
-        assert result[0]["id"] == six.text_type(self.issue_rule.id)
+        assert result[0]["id"] == str(self.issue_rule.id)
         assert result[0]["type"] == "rule"
 
     def test_limit_as_2_with_paging(self):
@@ -317,7 +314,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
         result = json.loads(response.content)
         assert len(result) == 2
         self.assert_alert_rule_serialized(self.yet_another_alert_rule, result[0], skip_dates=True)
-        assert result[1]["id"] == six.text_type(self.issue_rule.id)
+        assert result[1]["id"] == str(self.issue_rule.id)
         assert result[1]["type"] == "rule"
 
         links = requests.utils.parse_header_links(

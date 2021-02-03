@@ -10,7 +10,8 @@ import SelectControl from './selectControl';
 
 export default class SelectField extends FormField {
   static propTypes = {
-    ...FormField.propTypes,
+    // TODO(ts)
+    // ...FormField.propTypes,
     options: SelectControl.propTypes.options,
     choices: SelectControl.propTypes.choices,
     clearable: SelectControl.propTypes.clearable,

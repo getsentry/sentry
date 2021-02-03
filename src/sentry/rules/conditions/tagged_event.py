@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from collections import OrderedDict
 from django import forms
 
@@ -49,7 +47,7 @@ class TaggedEventForm(forms.Form):
 
 class TaggedEventCondition(EventCondition):
     form_cls = TaggedEventForm
-    label = u"The event's tags match {key} {match} {value}"
+    label = "The event's tags match {key} {match} {value}"
 
     form_fields = {
         "key": {"type": "string", "placeholder": "key"},

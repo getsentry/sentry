@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.core.urlresolvers import reverse
 
 from sentry.models import Organization, OrganizationStatus
@@ -8,7 +6,7 @@ from sentry.testutils import TestCase, PermissionTestCase
 
 class RestoreOrganizationPermissionTest(PermissionTestCase):
     def setUp(self):
-        super(RestoreOrganizationPermissionTest, self).setUp()
+        super().setUp()
         self.organization = self.create_organization(
             name="foo", owner=self.user, status=OrganizationStatus.PENDING_DELETION
         )
@@ -26,7 +24,7 @@ class RestoreOrganizationPermissionTest(PermissionTestCase):
 
 class RemoveOrganizationTest(TestCase):
     def setUp(self):
-        super(RemoveOrganizationTest, self).setUp()
+        super().setUp()
 
         self.organization = self.create_organization(
             name="foo", owner=self.user, status=OrganizationStatus.PENDING_DELETION

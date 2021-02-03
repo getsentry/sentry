@@ -8,6 +8,7 @@ import LoadingPanel from 'app/components/charts/loadingPanel';
 import {getInterval} from 'app/components/charts/utils';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel} from 'app/components/panels';
+import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {Organization} from 'app/types';
@@ -47,11 +48,10 @@ class Container extends React.Component<Props> {
     const globalSelection = eventView.getGlobalSelection();
     const start = globalSelection.datetime.start
       ? getUtcToLocalDateObject(globalSelection.datetime.start)
-      : undefined;
-
+      : null;
     const end = globalSelection.datetime.end
       ? getUtcToLocalDateObject(globalSelection.datetime.end)
-      : undefined;
+      : null;
 
     const {utc} = getParams(location.query);
     const axisOptions = this.getChartParameters();
@@ -68,8 +68,8 @@ class Container extends React.Component<Props> {
           end={end}
           interval={getInterval(
             {
-              start: start || null,
-              end: end || null,
+              start,
+              end,
               period: globalSelection.datetime.period,
             },
             true
@@ -112,10 +112,12 @@ class Container extends React.Component<Props> {
                         loading={loading || reloading}
                         router={router}
                         statsPeriod={globalSelection.datetime.period}
+                        start={start}
+                        end={end}
                         utc={utc === 'true'}
                       />
                     ),
-                    fixed: 'apdex and throughput charts',
+                    fixed: <Placeholder height="200px" testId="skeleton-ui" />,
                   })
                 ) : (
                   <LoadingPanel data-test-id="events-request-loading" />

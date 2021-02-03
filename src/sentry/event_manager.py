@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import logging
 
 
@@ -22,6 +20,7 @@ from sentry.constants import (
     LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH,
 )
+from sentry.eventstore.processing import event_processing_store
 from sentry.grouping.api import (
     get_grouping_config_dict_for_project,
     get_grouping_config_dict_for_event_data,
@@ -60,10 +59,11 @@ from sentry.models import (
 from sentry.plugins.base import plugins
 from sentry import quotas
 from sentry.signals import first_event_received, issue_unresolved
+from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import json, metrics
+from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
-from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.utils.dates import to_timestamp, to_datetime
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.safe import safe_execute, trim, get_path, setdefault_path
@@ -260,7 +260,7 @@ class EventManager(object):
             remove_other=self._remove_other,
             normalize_user_agent=True,
             sent_at=self.sent_at.isoformat() if self.sent_at is not None else None,
-            **DEFAULT_STORE_NORMALIZER_ARGS
+            **DEFAULT_STORE_NORMALIZER_ARGS,
         )
 
         self._data = CanonicalKeyDict(rust_normalizer.normalize_event(dict(self._data)))
@@ -434,8 +434,8 @@ class EventManager(object):
         _tsdb_record_all_metrics(jobs)
 
         if job["group"]:
-            UserReport.objects.filter(project=project, event_id=job["event"].event_id).update(
-                group=job["group"], environment=job["environment"]
+            UserReport.objects.filter(project_id=project.id, event_id=job["event"].event_id).update(
+                group_id=job["group"].id, environment_id=job["environment"].id
             )
 
         with metrics.timer("event_manager.filter_attachments_for_group"):
@@ -450,7 +450,7 @@ class EventManager(object):
             job["event_metrics"][key] = old_bytes + attachment.size
 
         _nodestore_save_many(jobs)
-        save_unprocessed_event(project, event_id=job["event"].event_id)
+        save_unprocessed_event(project, job["event"].event_id)
 
         if job["release"]:
             if job["is_new"]:
@@ -521,7 +521,6 @@ def _pull_out_data(jobs, projects):
         data = job["data"]
 
         # Pull the toplevel data we're interested in
-        job["culprit"] = get_culprit(data)
 
         transaction_name = data.get("transaction")
         if transaction_name:
@@ -656,7 +655,12 @@ def _materialize_metadata_many(jobs):
         # picks up the data right from the snuba topic.  For most usage
         # however the data is dynamically overridden by Event.title and
         # Event.location (See Event.as_dict)
+        #
+        # We also need to ensure the culprit is accurately reflected at
+        # the point of metadata materialization as we need to ensure that
+        # processing happens before.
         data = job["data"]
+        job["culprit"] = get_culprit(data)
         job["materialized_metadata"] = metadata = materialize_metadata(data)
         data.update(metadata)
         data["culprit"] = job["culprit"]
@@ -753,7 +757,18 @@ def _tsdb_record_all_metrics(jobs):
 def _nodestore_save_many(jobs):
     for job in jobs:
         # Write the event to Nodestore
-        job["event"].data.save()
+        subkeys = {}
+
+        if job["group"]:
+            event = job["event"]
+            data = event_processing_store.get(
+                cache_key_for_event({"project": event.project_id, "event_id": event.event_id}),
+                unprocessed=True,
+            )
+            if data is not None:
+                subkeys["unprocessed"] = data
+
+        job["event"].data.save(subkeys=subkeys)
 
 
 @metrics.wraps("save_event.eventstream_insert_many")
@@ -838,7 +853,7 @@ def _get_event_user_impl(project, data, metrics_tags):
     if not euser.hash:
         return
 
-    cache_key = u"euserid:1:{}:{}".format(project.id, euser.hash)
+    cache_key = "euserid:1:{}:{}".format(project.id, euser.hash)
     euser_id = cache.get(cache_key)
     if euser_id is None:
         metrics_tags["cache_hit"] = "false"
@@ -927,7 +942,7 @@ def _save_aggregate(event, hashes, release, **kwargs):
                     .first()
                     if first_release
                     else None,
-                    **kwargs
+                    **kwargs,
                 ),
                 True,
             )
@@ -1147,7 +1162,9 @@ def discard_event(job, attachments):
         )
 
     metrics.incr(
-        "events.discarded", skip_internal=True, tags={"platform": job["platform"]},
+        "events.discarded",
+        skip_internal=True,
+        tags={"platform": job["platform"]},
     )
 
 
@@ -1324,7 +1341,7 @@ def save_attachment(
         project_id=project.id,
         group_id=group_id,
         name=attachment.name,
-        file=file,
+        file_id=file.id,
         type=attachment.type,
     )
 

@@ -1,10 +1,8 @@
-from __future__ import absolute_import
-
 import sys
 
 import pytest
-from six.moves.queue import Full
-from six.moves import _thread
+from queue import Full
+import _thread
 from concurrent.futures import CancelledError, Future
 from contextlib import contextmanager
 from threading import Event

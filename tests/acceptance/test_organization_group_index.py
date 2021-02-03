@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytz
 
 from datetime import datetime
@@ -17,7 +15,7 @@ event_time = before_now(days=3).replace(tzinfo=pytz.utc)
 
 class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationGroupIndexTest, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(

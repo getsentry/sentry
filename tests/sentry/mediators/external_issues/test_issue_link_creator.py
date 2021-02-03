@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import responses
 
 from sentry.coreapi import APIUnauthorized
@@ -10,7 +8,7 @@ from sentry.testutils import TestCase
 
 class TestIssueLinkCreator(TestCase):
     def setUp(self):
-        super(TestIssueLinkCreator, self).setUp()
+        super().setUp()
 
         self.user = self.create_user(name="foo")
         self.org = self.create_organization(owner=self.user)

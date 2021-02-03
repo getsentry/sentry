@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 from datetime import datetime, timedelta
-import six
 import time
 import logging
 from sentry.utils.compat.mock import patch, Mock
@@ -15,7 +12,7 @@ from sentry.utils import snuba, json
 
 class SnubaEventStreamTest(TestCase, SnubaTestCase):
     def setUp(self):
-        super(SnubaEventStreamTest, self).setUp()
+        super().setUp()
 
         self.kafka_eventstream = KafkaEventStream()
         self.kafka_eventstream.producer = Mock()
@@ -40,7 +37,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
         produce_args, produce_kwargs = list(self.kafka_eventstream.producer.produce.call_args)
         assert not produce_args
         assert produce_kwargs["topic"] == "events"
-        assert produce_kwargs["key"] == six.text_type(self.project.id).encode("utf-8")
+        assert produce_kwargs["key"] == str(self.project.id).encode("utf-8")
 
         version, type_, payload1, payload2 = json.loads(produce_kwargs["value"])
         assert version == 2

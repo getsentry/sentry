@@ -63,16 +63,11 @@ function transformEventStats(data: EventsStatsData, seriesName?: string): Series
 }
 
 function getLegend(trendFunction: string) {
-  const legend = {
+  return {
     right: 10,
     top: 0,
     itemGap: 12,
     align: 'left' as const,
-    textStyle: {
-      verticalAlign: 'top',
-      fontSize: 11,
-      fontFamily: 'Rubik',
-    },
     data: [
       {
         name: 'Baseline',
@@ -89,7 +84,6 @@ function getLegend(trendFunction: string) {
       },
     ],
   };
-  return legend;
 }
 
 function getIntervalLine(
@@ -255,8 +249,8 @@ class Chart extends React.Component<Props> {
     const end = props.end ? getUtcToLocalDateObject(props.end) : null;
     const utc = decodeScalar(router.location.query.utc) !== 'false';
 
-    const seriesSelection = (
-      decodeList(location.query[getUnselectedSeries(trendChangeType)]) ?? []
+    const seriesSelection = decodeList(
+      location.query[getUnselectedSeries(trendChangeType)]
     ).reduce((selection, metric) => {
       selection[metric] = false;
       return selection;
@@ -310,7 +304,7 @@ class Chart extends React.Component<Props> {
     };
 
     return (
-      <ChartZoom router={router} period={statsPeriod}>
+      <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
         {zoomRenderProps => {
           const smoothedSeries = smoothedResults
             ? smoothedResults.map(values => {

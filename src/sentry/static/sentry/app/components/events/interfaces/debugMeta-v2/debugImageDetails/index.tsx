@@ -13,10 +13,12 @@ import {BuiltinSymbolSource, DebugFile} from 'app/types/debugFiles';
 import {CandidateDownloadStatus, Image} from 'app/types/debugImage';
 import theme from 'app/utils/theme';
 
+import Address from '../address';
 import NotAvailable from '../notAvailable';
+import {getFileName} from '../utils';
 
 import Candidates from './candidates';
-import {INTERNAL_SOURCE} from './utils';
+import {INTERNAL_SOURCE, INTERNAL_SOURCE_LOCATION} from './utils';
 
 type Candidates = Image['candidates'];
 
@@ -24,9 +26,7 @@ type Props = AsyncComponent['props'] &
   ModalRenderProps & {
     projectId: Project['id'];
     organization: Organization;
-    image: Image;
-    imageAddress: React.ReactElement | null;
-    title?: string;
+    image?: Image;
   };
 
 type State = AsyncComponent['state'] & {
@@ -49,6 +49,11 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, projectId, image} = this.props;
+
+    if (!image) {
+      return [];
+    }
+
     const {debug_id, candidates = []} = image;
     const {builtinSymbolSources} = this.state || {};
 
@@ -69,7 +74,10 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
       ]);
     }
 
-    if (!builtinSymbolSources && organization.features.includes('symbol-sources')) {
+    if (
+      !builtinSymbolSources?.length &&
+      organization.features.includes('symbol-sources')
+    ) {
       endpoints.push(['builtinSymbolSources', '/builtin-symbol-sources/', {}]);
     }
 
@@ -79,15 +87,20 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
   getCandidates() {
     const {debugFiles, loading} = this.state;
     const {image} = this.props;
-    const {candidates = []} = image;
+    const {candidates = []} = image ?? {};
 
     if (!debugFiles || loading) {
       return candidates;
     }
 
+    const imageCandidates = candidates.map(candidate => ({
+      ...candidate,
+      location: candidate.location?.split(INTERNAL_SOURCE_LOCATION)[1],
+    }));
+
     // Check for unapplied debug files
     const candidateLocations = new Set(
-      candidates.map(candidate => candidate.location).filter(candidate => !!candidate)
+      imageCandidates.map(({location}) => location).filter(location => !!location)
     );
 
     const unAppliedDebugFiles = debugFiles
@@ -96,7 +109,7 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
         download: {
           status: CandidateDownloadStatus.UNAPPLIED,
         },
-        location: debugFile.id,
+        location: `${INTERNAL_SOURCE_LOCATION}${debugFile.id}`,
         source: INTERNAL_SOURCE,
         source_name: debugFile.objectName,
       }));
@@ -104,15 +117,17 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
     // Check for deleted debug files
     const debugFileIds = new Set(debugFiles.map(debugFile => debugFile.id));
 
-    const convertedCandidates = candidates.map(candidate => {
+    const convertedCandidates = imageCandidates.map(candidate => {
       if (
         candidate.source === INTERNAL_SOURCE &&
         candidate.location &&
-        !debugFileIds.has(candidate.location)
+        !debugFileIds.has(candidate.location) &&
+        candidate.download.status === CandidateDownloadStatus.OK
       ) {
         return {
           ...candidate,
           download: {
+            ...candidate.download,
             status: CandidateDownloadStatus.DELETED,
           },
         };
@@ -145,22 +160,16 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {
-      Header,
-      Body,
-      Footer,
-      image,
-      title,
-      imageAddress,
-      organization,
-      projectId,
-    } = this.props;
+    const {Header, Body, Footer, image, organization, projectId} = this.props;
     const {loading, builtinSymbolSources} = this.state;
 
-    const {debug_id, debug_file, code_file, code_id, arch: architecture} = image;
+    const {debug_id, debug_file, code_file, code_id, arch: architecture} = image ?? {};
 
     const candidates = this.getCandidates();
     const baseUrl = this.api.baseUrl;
+
+    const title = getFileName(code_file);
+    const imageAddress = image ? <Address image={image} /> : undefined;
 
     return (
       <React.Fragment>
@@ -175,13 +184,13 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
               <Value coloredBg>{debug_id ?? <NotAvailable />}</Value>
 
               <Label>{t('Debug File')}</Label>
-              <Value>{debug_file}</Value>
+              <Value>{debug_file ?? <NotAvailable />}</Value>
 
               <Label coloredBg>{t('Code ID')}</Label>
-              <Value coloredBg>{code_id}</Value>
+              <Value coloredBg>{code_id ?? <NotAvailable />}</Value>
 
               <Label>{t('Code File')}</Label>
-              <Value>{code_file}</Value>
+              <Value>{code_file ?? <NotAvailable />}</Value>
 
               <Label coloredBg>{t('Architecture')}</Label>
               <Value coloredBg>{architecture ?? <NotAvailable />}</Value>
@@ -245,8 +254,15 @@ export const modalCss = css`
 
   @media (min-width: ${theme.breakpoints[0]}) {
     .modal-dialog {
-      width: 40%;
-      margin-left: -20%;
+      width: 55%;
+      margin-left: -27.5%;
+    }
+  }
+
+  @media (min-width: ${theme.breakpoints[3]}) {
+    .modal-dialog {
+      width: 70%;
+      margin-left: -35%;
     }
   }
 `;

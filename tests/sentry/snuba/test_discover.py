@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-import six
 import pytest
 
 from sentry.utils.compat.mock import patch
@@ -10,14 +7,13 @@ from sentry.api.event_search import InvalidSearchQuery
 from sentry.snuba import discover
 from sentry.testutils import TestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
-from sentry.utils.compat import zip
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import Dataset
 
 
 class QueryIntegrationTest(SnubaTestCase, TestCase):
     def setUp(self):
-        super(QueryIntegrationTest, self).setUp()
+        super().setUp()
         self.environment = self.create_environment(self.project, name="prod")
         self.release = self.create_release(self.project, version="first-release")
 
@@ -241,7 +237,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
         result = discover.query(
             selected_columns=["id", "message"],
-            query="release:{}".format(self.release.version),
+            query=f"release:{self.release.version}",
             params={"project_id": [self.project.id]},
         )
         assert len(result["data"]) == 1
@@ -272,7 +268,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
         result = discover.query(
             selected_columns=["id", "message"],
-            query="environment:{}".format(self.environment.name),
+            query=f"environment:{self.environment.name}",
             params={"project_id": [self.project.id]},
         )
         assert len(result["data"]) == 1
@@ -295,7 +291,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
         result = discover.query(
             selected_columns=["project", "message"],
-            query="project:{} OR project:{}".format(self.project.slug, project2.slug),
+            query=f"project:{self.project.slug} OR project:{project2.slug}",
             params={"project_id": [self.project.id, project2.id]},
             orderby="message",
         )
@@ -380,7 +376,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             for i in range(ev[1]):
                 data = load_data("transaction")
                 data["timestamp"] = iso_format(before_now(seconds=1))
-                data["transaction"] = "{}-{}".format(val, i)
+                data["transaction"] = f"{val}-{i}"
                 data["message"] = val
                 data["tags"] = {"trek": val}
                 self.store_event(data=data, project_id=self.project.id)
@@ -407,7 +403,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             for i in range(ev[1]):
                 data = load_data("transaction")
                 data["timestamp"] = iso_format(before_now(seconds=1))
-                data["transaction"] = "{}-{}".format(val, i)
+                data["transaction"] = f"{val}-{i}"
                 data["message"] = val
                 data["tags"] = {"trek": val}
                 self.store_event(data=data, project_id=self.project.id)
@@ -444,13 +440,14 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             val = ev[0] * 32
             for i in range(ev[1]):
                 data = load_data("transaction", timestamp=before_now(seconds=3 * t + 1))
-                data["transaction"] = "{}".format(val)
+                data["transaction"] = f"{val}"
                 self.store_event(data=data, project_id=self.project.id)
 
         results = discover.query(
             selected_columns=["transaction", "count()"],
             query="event.type:transaction AND (timestamp:<{} OR timestamp:>{})".format(
-                iso_format(before_now(seconds=5)), iso_format(before_now(seconds=3)),
+                iso_format(before_now(seconds=5)),
+                iso_format(before_now(seconds=3)),
             ),
             params={"project_id": [self.project.id]},
             orderby="transaction",
@@ -543,7 +540,7 @@ class QueryTransformTest(TestCase):
                 query="event.type:transaction",
                 params={"project_id": [self.project.id]},
             )
-        assert "No columns selected" in six.text_type(err)
+        assert "No columns selected" in str(err)
         assert mock_query.call_count == 0
 
     @patch("sentry.snuba.discover.raw_query")
@@ -563,8 +560,8 @@ class QueryTransformTest(TestCase):
                     "transform",
                     [
                         ["toString", ["project_id"]],
-                        ["array", [u"'{}'".format(self.project.id)]],
-                        ["array", [u"'{}'".format(self.project.slug)]],
+                        ["array", [f"'{self.project.id}'"]],
+                        ["array", [f"'{self.project.slug}'"]],
                         "''",
                     ],
                     "project",
@@ -593,7 +590,7 @@ class QueryTransformTest(TestCase):
         }
         discover.query(
             selected_columns=["title", "project"],
-            query="project:{}".format(project2.slug),
+            query=f"project:{project2.slug}",
             params={"project_id": [self.project.id, project2.id]},
         )
         mock_query.assert_called_with(
@@ -604,8 +601,8 @@ class QueryTransformTest(TestCase):
                     "transform",
                     [
                         ["toString", ["project_id"]],
-                        ["array", [u"'{}'".format(project2.id)]],
-                        ["array", [u"'{}'".format(project2.slug)]],
+                        ["array", [f"'{project2.id}'"]],
+                        ["array", [f"'{project2.slug}'"]],
                         "''",
                     ],
                     "project",
@@ -634,7 +631,7 @@ class QueryTransformTest(TestCase):
         }
         discover.query(
             selected_columns=["title", "project", "p99()"],
-            query="project:{}".format(project2.slug),
+            query=f"project:{project2.slug}",
             params={"project_id": [self.project.id, project2.id]},
         )
         mock_query.assert_called_with(
@@ -645,14 +642,14 @@ class QueryTransformTest(TestCase):
                     "transform",
                     [
                         ["toString", ["project_id"]],
-                        ["array", [u"'{}'".format(project2.id)]],
-                        ["array", [u"'{}'".format(project2.slug)]],
+                        ["array", [f"'{project2.id}'"]],
+                        ["array", [f"'{project2.slug}'"]],
                         "''",
                     ],
                     "project",
                 ],
             ],
-            aggregations=[[u"quantile(0.99)", "duration", u"p99"]],
+            aggregations=[["quantile(0.99)", "duration", "p99"]],
             filter_keys={"project_id": [project2.id]},
             dataset=Dataset.Discover,
             end=None,
@@ -1040,7 +1037,7 @@ class QueryTransformTest(TestCase):
             selected_columns=["transaction"],
             conditions=[
                 ["type", "=", "transaction"],
-                [["match", ["email", "'(?i)^.*@sentry\.io$'"]], "=", 1],
+                [["match", ["email", r"'(?i)^.*@sentry\.io$'"]], "=", 1],
                 [["positionCaseInsensitive", ["message", "'recent-searches'"]], "!=", 0],
             ],
             aggregations=[["count", None, "count"]],
@@ -1124,7 +1121,7 @@ class QueryTransformTest(TestCase):
         # project_id condition.
         discover.query(
             selected_columns=["transaction", "transaction.duration"],
-            query="project.name:{}".format(project2.slug),
+            query=f"project.name:{project2.slug}",
             params={"project_id": [self.project.id, project2.id]},
         )
         mock_query.assert_called_with(
@@ -1254,7 +1251,7 @@ class QueryTransformTest(TestCase):
             }
             discover.query(
                 selected_columns=["transaction", "p95()"],
-                query="http.method:GET p95():>{}".format(query_string),
+                query=f"http.method:GET p95():>{query_string}",
                 params={"project_id": [self.project.id], "start": start_time, "end": end_time},
                 use_aggregate_conditions=True,
             )
@@ -1358,7 +1355,7 @@ class QueryTransformTest(TestCase):
             }
             discover.query(
                 selected_columns=["transaction", "avg(transaction.duration)", "max(time)"],
-                query="http.method:GET avg(transaction.duration):>{}".format(query_string),
+                query=f"http.method:GET avg(transaction.duration):>{query_string}",
                 params={"project_id": [self.project.id], "start": start_time, "end": end_time},
                 use_aggregate_conditions=True,
             )
@@ -1530,406 +1527,6 @@ class QueryTransformTest(TestCase):
         )
 
     @patch("sentry.snuba.discover.raw_query")
-    def test_histogram_deprecated_translations(self, mock_query):
-        mock_query.side_effect = [
-            {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
-            {
-                "meta": [
-                    {"name": "histogram_deprecated_transaction_duration_10_1000_0"},
-                    {"name": "count"},
-                ],
-                "data": [
-                    {"histogram_deprecated_transaction_duration_10_1000_0": 1000, "count": 1123}
-                ],
-            },
-        ]
-        discover.query(
-            selected_columns=["histogram_deprecated(transaction.duration, 10)", "count()"],
-            query="",
-            params={"project_id": [self.project.id], "environment": self.environment.name},
-            auto_fields=True,
-            use_aggregate_conditions=False,
-        )
-        mock_query.assert_called_with(
-            selected_columns=[
-                [
-                    "multiply",
-                    [["floor", [["divide", ["duration", 1000]]]], 1000],
-                    "histogram_deprecated_transaction_duration_10_1000_0",
-                ]
-            ],
-            aggregations=[["count", None, "count"]],
-            filter_keys={"project_id": [self.project.id]},
-            dataset=Dataset.Discover,
-            groupby=["histogram_deprecated_transaction_duration_10_1000_0"],
-            conditions=[[["environment", "=", self.environment.name]]],
-            end=None,
-            start=None,
-            orderby=None,
-            having=[],
-            limit=50,
-            offset=None,
-            referrer=None,
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_bad_histogram_deprecated_translations(self, mock_query):
-        mock_query.side_effect = [
-            {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
-            {
-                "meta": [
-                    {"name": "histogram_deprecated_transaction_duration_10_1000_0"},
-                    {"name": "count"},
-                ],
-                "data": [
-                    {"histogram_deprecated_transaction_duration_10_1000_0": 1000, "count": 1123}
-                ],
-            },
-        ]
-        with pytest.raises(InvalidSearchQuery) as err:
-            discover.query(
-                selected_columns=["histogram_deprecated(transaction.duration)", "count()"],
-                query="",
-                params={"project_id": [self.project.id]},
-                auto_fields=True,
-                use_aggregate_conditions=False,
-            )
-        assert (
-            "histogram_deprecated(...) expects 2 column arguments, received 1 arguments"
-            in six.text_type(err)
-        )
-
-        with pytest.raises(InvalidSearchQuery) as err:
-            discover.query(
-                selected_columns=["histogram_deprecated(stack.colno, 10)", "count()"],
-                query="",
-                params={"project_id": [self.project.id]},
-                auto_fields=True,
-                use_aggregate_conditions=False,
-            )
-        assert (
-            "histogram_deprecated(...) can only be used with the transaction.duration column"
-            in six.text_type(err)
-        )
-
-        with pytest.raises(InvalidSearchQuery) as err:
-            discover.query(
-                selected_columns=["histogram_deprecated(transaction.duration, 1000)", "count()"],
-                query="",
-                params={"project_id": [self.project.id]},
-                auto_fields=True,
-                use_aggregate_conditions=False,
-            )
-        assert (
-            "histogram_deprecated(...) requires a bucket value between 1 and 500, not 1000"
-            in six.text_type(err)
-        )
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_histogram_deprecated_zerofill_narrow_range(self, mock_query):
-        mock_query.side_effect = [
-            {"data": [{"max_transaction.duration": 505, "min_transaction.duration": 490}]},
-            {
-                "meta": [
-                    {"name": "histogram_deprecated_transaction_duration_15_1_490"},
-                    {"name": "count"},
-                ],
-                "data": [
-                    {"histogram_deprecated_transaction_duration_15_1_490": 490, "count": 1},
-                    {"histogram_deprecated_transaction_duration_15_1_490": 492, "count": 2},
-                    {"histogram_deprecated_transaction_duration_15_1_490": 500, "count": 4},
-                    {"histogram_deprecated_transaction_duration_15_1_490": 501, "count": 3},
-                ],
-            },
-        ]
-        results = discover.query(
-            selected_columns=["histogram_deprecated(transaction.duration, 15)", "count()"],
-            query="",
-            params={"project_id": [self.project.id]},
-            orderby="histogram_deprecated_transaction_duration_15",
-            auto_fields=True,
-            use_aggregate_conditions=False,
-        )
-        expected = (1, 0, 2, 0, 0, 0, 0, 0, 0, 0, 4, 3, 0, 0, 0, 0)
-        for result, exp in zip(results["data"], expected):
-            assert result["count"] == exp
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_histogram_deprecated_zerofill_uneven_start_end(self, mock_query):
-        # the start end values don't align well with bucket boundaries.
-        mock_query.side_effect = [
-            {"data": [{"max_transaction.duration": 507, "min_transaction.duration": 392}]},
-            {
-                "meta": [
-                    {"name": "histogram_deprecated_transaction_duration_10_12_384"},
-                    {"name": "count"},
-                ],
-                "data": [
-                    {"histogram_deprecated_transaction_duration_10_12_384": 396, "count": 1},
-                    {"histogram_deprecated_transaction_duration_10_12_384": 420, "count": 2},
-                    {"histogram_deprecated_transaction_duration_10_12_384": 456, "count": 4},
-                    {"histogram_deprecated_transaction_duration_10_12_384": 492, "count": 3},
-                ],
-            },
-        ]
-        results = discover.query(
-            selected_columns=["histogram_deprecated(transaction.duration, 10)", "count()"],
-            query="",
-            params={"project_id": [self.project.id]},
-            orderby="histogram_deprecated_transaction_duration_10",
-            auto_fields=True,
-            use_aggregate_conditions=False,
-        )
-        data = results["data"]
-        assert len(data) == 10, data
-        expected = (0, 1, 0, 2, 0, 0, 4, 0, 0, 3)
-        for result, exp in zip(data, expected):
-            assert result["count"] == exp
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_histogram_deprecated_zerofill_empty_results(self, mock_query):
-        mock_query.side_effect = [
-            {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
-            {
-                "meta": [
-                    {"name": "histogram_deprecated_transaction_duration_10_1000_0"},
-                    {"name": "count"},
-                ],
-                "data": [
-                    {"histogram_deprecated_transaction_duration_10_1000_0": 10000, "count": 1}
-                ],
-            },
-        ]
-
-        results = discover.query(
-            selected_columns=["histogram_deprecated(transaction.duration, 10)", "count()"],
-            query="",
-            params={"project_id": [self.project.id]},
-            orderby="histogram_deprecated_transaction_duration_10",
-            auto_fields=True,
-            use_aggregate_conditions=False,
-        )
-
-        expected = [i * 1000 for i in range(10)]
-        for result, exp in zip(results["data"], expected):
-            assert result["histogram_deprecated_transaction_duration_10"] == exp
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_histogram_deprecated_zerofill_full_results(self, mock_query):
-        mock_query.side_effect = [
-            {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
-            {
-                "meta": [
-                    {"name": "histogram_deprecated_transaction_duration_10_1000_0"},
-                    {"name": "count"},
-                ],
-                "data": [
-                    {"histogram_deprecated_transaction_duration_10_1000_0": i * 1000, "count": i}
-                    for i in range(11)
-                ],
-            },
-        ]
-
-        results = discover.query(
-            selected_columns=["histogram_deprecated(transaction.duration, 10)", "count()"],
-            query="",
-            params={"project_id": [self.project.id]},
-            orderby="histogram_deprecated_transaction_duration_10",
-            auto_fields=True,
-            use_aggregate_conditions=False,
-        )
-
-        expected = [i * 1000 for i in range(11)]
-        for result, exp in zip(results["data"], expected):
-            assert result["histogram_deprecated_transaction_duration_10"] == exp
-            assert result["count"] == exp / 1000
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_histogram_deprecated_zerofill_missing_results_asc_sort(self, mock_query):
-        mock_query.side_effect = [
-            {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
-            {
-                "meta": [
-                    {"name": "histogram_deprecated_transaction_duration_10_1000_0"},
-                    {"name": "count"},
-                ],
-                "data": [
-                    {"histogram_deprecated_transaction_duration_10_1000_0": i * 1000, "count": i}
-                    for i in range(0, 11, 2)
-                ],
-            },
-        ]
-
-        results = discover.query(
-            selected_columns=["histogram_deprecated(transaction.duration, 10)", "count()"],
-            query="",
-            params={"project_id": [self.project.id]},
-            orderby="histogram_deprecated_transaction_duration_10",
-            auto_fields=True,
-            use_aggregate_conditions=False,
-        )
-
-        expected = [i * 1000 for i in range(11)]
-        for result, exp in zip(results["data"], expected):
-            assert result["histogram_deprecated_transaction_duration_10"] == exp
-            assert result["count"] == (exp / 1000 if (exp / 1000) % 2 == 0 else 0)
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_histogram_deprecated_zerofill_missing_results_desc_sort(self, mock_query):
-        seed = list(range(0, 11, 2))
-        seed.reverse()
-        mock_query.side_effect = [
-            {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
-            {
-                "meta": [
-                    {"name": "histogram_deprecated_transaction_duration_10_1000_0"},
-                    {"name": "count"},
-                ],
-                "data": [
-                    {"histogram_deprecated_transaction_duration_10_1000_0": i * 1000, "count": i}
-                    for i in seed
-                ],
-            },
-        ]
-
-        results = discover.query(
-            selected_columns=["histogram_deprecated(transaction.duration, 10)", "count()"],
-            query="",
-            params={"project_id": [self.project.id]},
-            orderby="-histogram_deprecated_transaction_duration_10",
-            auto_fields=True,
-            use_aggregate_conditions=False,
-        )
-
-        expected = [i * 1000 for i in range(11)]
-        expected.reverse()
-        for result, exp in zip(results["data"], expected):
-            assert result["histogram_deprecated_transaction_duration_10"] == exp
-            assert result["count"] == (exp / 1000 if (exp / 1000) % 2 == 0 else 0)
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_histogram_deprecated_zerofill_missing_results_no_sort(self, mock_query):
-        mock_query.side_effect = [
-            {"data": [{"max_transaction.duration": 10000, "min_transaction.duration": 0}]},
-            {
-                "meta": [
-                    {"name": "histogram_deprecated_transaction_duration_10_1000_0"},
-                    {"name": "count"},
-                ],
-                "data": [
-                    {"histogram_deprecated_transaction_duration_10_1000_0": i * 1000, "count": i}
-                    for i in range(0, 10, 2)
-                ],
-            },
-        ]
-
-        results = discover.query(
-            selected_columns=["histogram_deprecated(transaction.duration, 10)", "count()"],
-            query="",
-            params={"project_id": [self.project.id]},
-            orderby="count",
-            auto_fields=True,
-            use_aggregate_conditions=False,
-        )
-
-        expected = [0, 2000, 4000, 6000, 8000]
-        for result, exp in zip(results["data"], expected):
-            assert result["histogram_deprecated_transaction_duration_10"] == exp
-            assert result["count"] == exp / 1000
-
-        expected_extra_buckets = set([1000, 3000, 5000, 7000, 9000])
-        extra_buckets = set(
-            r["histogram_deprecated_transaction_duration_10"] for r in results["data"][5:]
-        )
-        assert expected_extra_buckets == extra_buckets
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_histogram_deprecated_zerofill_on_weird_bucket(self, mock_query):
-        mock_query.side_effect = [
-            {"data": [{"max_transaction.duration": 869, "min_transaction.duration": 0}]},
-            {
-                "meta": [
-                    {"name": "histogram_deprecated_transaction_duration_10_87_0"},
-                    {"name": "count"},
-                ],
-                "data": [
-                    {"histogram_deprecated_transaction_duration_10_87_0": i * 87, "count": i}
-                    for i in range(1, 10, 2)
-                ],
-            },
-        ]
-
-        results = discover.query(
-            selected_columns=["histogram_deprecated(transaction.duration, 10)", "count()"],
-            query="",
-            params={"project_id": [self.project.id]},
-            orderby="histogram_deprecated_transaction_duration_10",
-            auto_fields=True,
-            use_aggregate_conditions=False,
-        )
-
-        expected = [i * 87 for i in range(11)]
-        for result, exp in zip(results["data"], expected):
-            assert result["histogram_deprecated_transaction_duration_10"] == exp
-            assert result["count"] == (exp / 87 if (exp / 87) % 2 == 1 else 0)
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_histogram_deprecated_min_equal_max(self, mock_query):
-        mock_query.side_effect = [
-            {"data": [{"max_transaction.duration": 869, "min_transaction.duration": 869}]},
-            {
-                "meta": [
-                    {"name": "histogram_deprecated_transaction_duration_10_1_869"},
-                    {"name": "count"},
-                ],
-                "data": [{"histogram_deprecated_transaction_duration_10_1_869": 869, "count": 1}],
-            },
-        ]
-
-        results = discover.query(
-            selected_columns=["histogram_deprecated(transaction.duration, 10)", "count()"],
-            query="",
-            params={"project_id": [self.project.id]},
-            orderby="histogram_deprecated_transaction_duration_10",
-            auto_fields=True,
-            use_aggregate_conditions=False,
-        )
-
-        assert results["data"][0]["histogram_deprecated_transaction_duration_10"] == 869
-        assert results["data"][0]["count"] == 1
-
-    @patch("sentry.snuba.discover.raw_query")
-    def test_histogram_deprecated_enormous_max(self, mock_query):
-        mock_query.side_effect = [
-            {"data": [{"max_transaction.duration": 64733000000, "min_transaction.duration": 1}]},
-            {
-                "meta": [
-                    {"name": "histogram_deprecated_transaction_duration_10_6473300000_0"},
-                    {"name": "count"},
-                ],
-                "data": [
-                    {
-                        "histogram_deprecated_transaction_duration_10_6473300000_0": 64733000000,
-                        "count": 1,
-                    }
-                ],
-            },
-        ]
-
-        results = discover.query(
-            selected_columns=["histogram_deprecated(transaction.duration, 10)", "count()"],
-            query="",
-            params={"project_id": [self.project.id]},
-            orderby="histogram_deprecated_transaction_duration_10",
-            auto_fields=True,
-            use_aggregate_conditions=False,
-        )
-
-        assert len(results["data"]) == 11
-        assert results["data"][-1]["histogram_deprecated_transaction_duration_10"] == 64733000000
-        assert results["data"][-1]["count"] == 1
-
-    @patch("sentry.snuba.discover.raw_query")
     def test_find_histogram_min_max(self, mock_query):
         # no rows returned from snuba
         mock_query.side_effect = [{"meta": [], "data": []}]
@@ -2066,14 +1663,14 @@ class QueryTransformTest(TestCase):
         assert discover.find_histogram_params(1, 1, None, 100) == (1, 1, 100, 100)
 
         assert discover.find_histogram_params(10, 0, 9, 1) == (10, 1, 0, 1)
-        assert discover.find_histogram_params(10, 0, 10, 1) == (10, 2, 0, 1)
+        assert discover.find_histogram_params(10, 0, 10, 1) == (6, 2, 0, 1)
         assert discover.find_histogram_params(10, 0, 99, 1) == (10, 10, 0, 1)
-        assert discover.find_histogram_params(10, 0, 100, 1) == (10, 11, 0, 1)
-        assert discover.find_histogram_params(5, 10, 19, 10) == (5, 19, 100, 10)
+        assert discover.find_histogram_params(10, 0, 100, 1) == (6, 20, 0, 1)
+        assert discover.find_histogram_params(5, 10, 19, 10) == (5, 20, 100, 10)
         assert discover.find_histogram_params(5, 10, 19.9, 10) == (5, 20, 100, 10)
-        assert discover.find_histogram_params(10, 10, 20, 1) == (10, 2, 10, 1)
-        assert discover.find_histogram_params(10, 10, 20, 10) == (10, 11, 100, 10)
-        assert discover.find_histogram_params(10, 10, 20, 100) == (10, 101, 1000, 100)
+        assert discover.find_histogram_params(10, 10, 20, 1) == (6, 2, 10, 1)
+        assert discover.find_histogram_params(10, 10, 20, 10) == (6, 20, 100, 10)
+        assert discover.find_histogram_params(10, 10, 20, 100) == (9, 120, 1000, 100)
 
     def test_normalize_histogram_results_empty(self):
         results = {
@@ -2452,9 +2049,8 @@ class QueryTransformTest(TestCase):
                 3,
                 0,
             )
-        assert (
-            "multihistogram expected all measurements, received: transaction.duration"
-            in six.text_type(err)
+        assert "multihistogram expected all measurements, received: transaction.duration" in str(
+            err
         )
 
     @patch("sentry.snuba.discover.raw_query")
@@ -2522,7 +2118,7 @@ class QueryTransformTest(TestCase):
 
 class TimeseriesQueryTest(SnubaTestCase, TestCase):
     def setUp(self):
-        super(TimeseriesQueryTest, self).setUp()
+        super().setUp()
 
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
 
@@ -2575,7 +2171,7 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
                 params={"project_id": [self.project.id]},
                 rollup=1800,
             )
-        assert "without a start and end" in six.text_type(err)
+        assert "without a start and end" in str(err)
 
     def test_no_aggregations(self):
         with pytest.raises(InvalidSearchQuery) as err:
@@ -2589,7 +2185,7 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
                 },
                 rollup=1800,
             )
-        assert "no aggregation" in six.text_type(err)
+        assert "no aggregation" in str(err)
 
     def test_field_alias(self):
         result = discover.timeseries_query(
@@ -2679,7 +2275,7 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
 
         result = discover.timeseries_query(
             selected_columns=["count()"],
-            query="project:{} OR project:{}".format(self.project.slug, project2.slug),
+            query=f"project:{self.project.slug} OR project:{project2.slug}",
             params={
                 "start": before_now(minutes=5),
                 "end": before_now(seconds=1),
@@ -2735,12 +2331,12 @@ class TimeseriesQueryTest(SnubaTestCase, TestCase):
 
 
 def format_project_event(project_slug, event_id):
-    return "{}:{}".format(project_slug, event_id)
+    return f"{project_slug}:{event_id}"
 
 
 class GetFacetsTest(SnubaTestCase, TestCase):
     def setUp(self):
-        super(GetFacetsTest, self).setUp()
+        super().setUp()
 
         self.project = self.create_project()
         self.min_ago = before_now(minutes=1)

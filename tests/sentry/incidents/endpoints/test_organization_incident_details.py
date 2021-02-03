@@ -1,10 +1,7 @@
-from __future__ import absolute_import
-
 from datetime import datetime
 
 from sentry.utils.compat import mock
 import pytz
-import six
 from exam import fixture
 
 from sentry.api.serializers import serialize
@@ -12,7 +9,7 @@ from sentry.incidents.models import Incident, IncidentActivity, IncidentStatus
 from sentry.testutils import APITestCase
 
 
-class BaseIncidentDetailsTest(object):
+class BaseIncidentDetailsTest:
     endpoint = "sentry-api-0-organization-incident-details"
 
     def setUp(self):
@@ -72,7 +69,7 @@ class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest, APITestCase)
 
     def get_valid_response(self, *args, **params):
         params.setdefault("status", IncidentStatus.CLOSED.value)
-        return super(OrganizationIncidentUpdateStatusTest, self).get_valid_response(*args, **params)
+        return super().get_valid_response(*args, **params)
 
     def test_simple(self):
         incident = self.create_incident()
@@ -105,7 +102,7 @@ class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest, APITestCase)
         incident = Incident.objects.get(id=incident.id)
         assert incident.status == status
         activity = IncidentActivity.objects.filter(incident=incident).order_by("-id")[:1].get()
-        assert activity.value == six.text_type(status)
+        assert activity.value == str(status)
         assert activity.comment == comment
         assert activity.user == self.user
 

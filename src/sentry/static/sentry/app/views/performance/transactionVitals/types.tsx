@@ -31,3 +31,5 @@ export type Rectangle = {
   point1: Point;
   point2: Point;
 };
+
+export type DataFilter = 'all' | 'exclude_outliers';

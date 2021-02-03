@@ -1,16 +1,16 @@
-from __future__ import absolute_import
-
 import time
+import logging
 
 from django.db import transaction
 
 from sentry import eventstore, eventstream, models, nodestore
 from sentry.eventstore.models import Event
 from sentry.utils.query import celery_run_batch_query
-
 from sentry.tasks.base import instrumented_task, retry
 
 GROUP_REPROCESSING_CHUNK_SIZE = 100
+
+nodestore_stats_logger = logging.getLogger("sentry.nodestore.stats")
 
 
 @instrumented_task(
@@ -22,6 +22,7 @@ GROUP_REPROCESSING_CHUNK_SIZE = 100
 def reprocess_group(
     project_id,
     group_id,
+    remaining_events="delete",
     new_group_id=None,
     query_state=None,
     start_time=None,
@@ -34,7 +35,11 @@ def reprocess_group(
         assert new_group_id is None
         start_time = time.time()
         new_group_id = start_group_reprocessing(
-            project_id, group_id, max_events=max_events, acting_user_id=acting_user_id
+            project_id,
+            group_id,
+            max_events=max_events,
+            acting_user_id=acting_user_id,
+            remaining_events=remaining_events,
         )
 
     assert new_group_id is not None
@@ -49,22 +54,27 @@ def reprocess_group(
     if not events:
         return
 
-    tombstoned_event_ids = []
+    remaining_event_ids = []
 
     for event in events:
         if max_events is None or max_events > 0:
             reprocess_event.delay(
-                project_id=project_id, event_id=event.event_id, start_time=start_time,
+                project_id=project_id,
+                event_id=event.event_id,
+                start_time=start_time,
             )
             if max_events is not None:
                 max_events -= 1
         else:
-            tombstoned_event_ids.append(event.event_id)
+            remaining_event_ids.append(event.event_id)
 
-    # len(tombstoned_event_ids) is upper-bounded by GROUP_REPROCESSING_CHUNK_SIZE
-    if tombstoned_event_ids:
-        tombstone_events.delay(
-            project_id=project_id, group_id=group_id, event_ids=tombstoned_event_ids
+    # len(remaining_event_ids) is upper-bounded by GROUP_REPROCESSING_CHUNK_SIZE
+    if remaining_event_ids:
+        handle_remaining_events.delay(
+            project_id=project_id,
+            new_group_id=new_group_id,
+            event_ids=remaining_event_ids,
+            remaining_events=remaining_events,
         )
 
     reprocess_group.delay(
@@ -74,20 +84,21 @@ def reprocess_group(
         query_state=query_state,
         start_time=start_time,
         max_events=max_events,
+        remaining_events=remaining_events,
     )
 
 
 @instrumented_task(
-    name="sentry.tasks.reprocessing2.tombstone_events",
+    name="sentry.tasks.reprocessing2.handle_remaining_events",
     queue="events.reprocessing.process_event",
     time_limit=60 * 5,
     max_retries=5,
 )
 @retry
-def tombstone_events(project_id, group_id, event_ids):
+def handle_remaining_events(project_id, new_group_id, event_ids, remaining_events):
     """
-    Delete associated per-event data: nodestore, event attachments, user
-    reports. Mark the event as "tombstoned" in Snuba.
+    Delete or merge/move associated per-event data: nodestore, event
+    attachments, user reports. Mark the event as "tombstoned" in Snuba.
 
     This is not full event deletion. Snuba can still only delete entire groups,
     however we must only run this task for event IDs that we don't intend to
@@ -97,19 +108,24 @@ def tombstone_events(project_id, group_id, event_ids):
     See doccomment in sentry.reprocessing2.
     """
 
-    from sentry.reprocessing2 import delete_unprocessed_events
+    assert remaining_events in ("delete", "keep")
 
-    models.EventAttachment.objects.filter(project_id=project_id, event_id__in=event_ids).delete()
-    models.UserReport.objects.filter(project_id=project_id, event_id__in=event_ids).delete()
+    if remaining_events == "delete":
+        models.EventAttachment.objects.filter(
+            project_id=project_id, event_id__in=event_ids
+        ).delete()
+        models.UserReport.objects.filter(project_id=project_id, event_id__in=event_ids).delete()
 
-    # Remove from nodestore
-    node_ids = [Event.generate_node_id(project_id, event_id) for event_id in event_ids]
-    nodestore.delete_multi(node_ids)
+        # Remove from nodestore
+        node_ids = [Event.generate_node_id(project_id, event_id) for event_id in event_ids]
+        nodestore.delete_multi(node_ids)
 
-    delete_unprocessed_events(project_id, event_ids)
-
-    # Tell Snuba to delete the event data.
-    eventstream.tombstone_events(project_id, event_ids)
+        # Tell Snuba to delete the event data.
+        eventstream.tombstone_events_unsafe(project_id, event_ids)
+    elif remaining_events == "keep":
+        eventstream.replace_group_unsafe(project_id, event_ids, new_group_id=new_group_id)
+    else:
+        raise ValueError("Invalid value for remaining_events: {}".format(remaining_events))
 
 
 @instrumented_task(

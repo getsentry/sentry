@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.utils.compat import mock
 from selenium.common.exceptions import TimeoutException
 
@@ -10,7 +8,7 @@ from sentry.utils.retries import TimedRetryPolicy
 
 class OrganizationOnboardingTest(AcceptanceTestCase):
     def setUp(self):
-        super(OrganizationOnboardingTest, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Rowdy Tiger", owner=None)
         self.team = self.create_team(organization=self.org, name="Mariachi Band")

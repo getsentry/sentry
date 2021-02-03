@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry.testutils import AcceptanceTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
@@ -12,11 +10,9 @@ FEATURE_NAMES = [
 
 class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     def setUp(self):
-        super(OrganizationDashboardsAcceptanceTest, self).setUp()
+        super().setUp()
         min_ago = iso_format(before_now(minutes=1))
-        self.default_path = u"/organizations/{}/dashboards/default-overview/".format(
-            self.organization.slug
-        )
+        self.default_path = f"/organizations/{self.organization.slug}/dashboards/default-overview/"
         self.store_event(
             data={"event_id": "a" * 32, "message": "oh no", "timestamp": min_ago},
             project_id=self.project.id,

@@ -1,5 +1,3 @@
-from __future__ import absolute_import, print_function
-
 import collections
 import logging
 import six
@@ -49,7 +47,7 @@ def trim(
     object_hook=None,
     _depth=0,
     _size=0,
-    **kwargs
+    **kwargs,
 ):
     """
     Truncates a value to ```MAX_VARIABLE_SIZE```.
@@ -136,7 +134,7 @@ def get_path(data, *path, **kwargs):
     default = kwargs.pop("default", None)
     f = kwargs.pop("filter", None)
     for k in kwargs:
-        raise TypeError("set_path() got an undefined keyword argument '%s'" % k)
+        raise TypeError("get_path() got an undefined keyword argument '%s'" % k)
 
     for p in path:
         if isinstance(data, collections.Mapping) and p in data:

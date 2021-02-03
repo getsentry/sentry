@@ -42,17 +42,17 @@ type CandidateDownloadOkStatus = {
   status: CandidateDownloadStatus.OK;
   features: CandidateFeatures;
   details?: string;
-  unwind?: CandidateProcessingInfo;
-  debug?: CandidateProcessingInfo;
+};
+
+type CandidateDownloadDeletedStatus = {
+  status: CandidateDownloadStatus.DELETED;
+  features: CandidateFeatures;
+  details?: string;
 };
 
 type CandidateDownloadNotFoundStatus = {
   status: CandidateDownloadStatus.NOT_FOUND;
   details?: string;
-};
-
-type CandidateDownloadDeletedStatus = {
-  status: CandidateDownloadStatus.DELETED;
 };
 
 type CandidateDownloadUnAppliedStatus = {
@@ -74,12 +74,30 @@ export type CandidateDownload =
   | CandidateDownloadUnAppliedStatus
   | CandidateDownloadOtherStatus;
 
-export type ImageCandidate = {
-  download: CandidateDownload;
+type ImageCandidateBase = {
   source: string;
   source_name?: string;
   location?: string;
 };
+
+export type ImageCandidateOk = ImageCandidateBase & {
+  download: CandidateDownloadOkStatus;
+  unwind?: CandidateProcessingInfo;
+  debug?: CandidateProcessingInfo;
+};
+
+type ImageCandidateOthers = ImageCandidateBase & {
+  download:
+    | CandidateDownloadNotFoundStatus
+    | CandidateDownloadDeletedStatus
+    | CandidateDownloadUnAppliedStatus
+    | CandidateDownloadOtherStatus;
+  source: string;
+  source_name?: string;
+  location?: string;
+};
+
+export type ImageCandidate = ImageCandidateOk | ImageCandidateOthers;
 
 // Debug Status
 export enum ImageStatus {
@@ -93,13 +111,13 @@ export enum ImageStatus {
 }
 
 export type Image = {
-  debug_file: string;
-  code_file: string;
-  code_id: string;
   type: string;
-  image_size: number;
   features: ImageFeatures;
   candidates: Array<ImageCandidate>;
+  image_size?: number;
+  debug_file?: string;
+  code_file?: string;
+  code_id?: string;
   debug_id?: string;
   debug_status?: ImageStatus | null;
   unwind_status?: ImageStatus | null;

@@ -99,4 +99,6 @@ const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
 
 type ConfigStore = Reflux.Store & ConfigStoreInterface;
 
-export default Reflux.createStore(configStoreConfig) as ConfigStore;
+const ConfigStore = Reflux.createStore(configStoreConfig) as ConfigStore;
+
+export default ConfigStore;

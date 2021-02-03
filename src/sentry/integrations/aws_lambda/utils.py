@@ -1,4 +1,8 @@
-from __future__ import absolute_import
+import re
+import six
+
+from django.utils.translation import ugettext_lazy as _
+from functools import wraps
 
 from django.conf import settings
 from django.core.cache import cache
@@ -12,11 +16,31 @@ from sentry.utils.compat import filter, map
 
 SUPPORTED_RUNTIMES = ["nodejs12.x", "nodejs10.x"]
 
+INVALID_LAYER_TEXT = "Invalid existing layer %s"
+
 DEFAULT_NUM_RETRIES = 3
 
 OPTION_VERSION = "layer-version"
 OPTION_LAYER_NAME = "layer-name"
 OPTION_ACCOUNT_NUMBER = "account-number"
+
+ALL_AWS_REGIONS = [
+    "us-east-1",
+    "us-east-2",
+    "us-west-1",
+    "us-west-2",
+    "ap-south-1",
+    "ap-southeast-1",
+    "ap-southeast-2",
+    "ap-northeast-1",
+    "ap-northeast-2",
+    "ca-central-1",
+    "eu-central-1",
+    "eu-west-1",
+    "eu-west-2",
+    "eu-west-3",
+    "sa-east-1",
+]
 
 
 # Taken from: https://gist.github.com/gene1wood/5299969edc4ef21d8efcfea52158dd40
@@ -53,7 +77,7 @@ def get_option_value(function, option):
     if option == OPTION_ACCOUNT_NUMBER:
         option_field = "aws-lambda.account-number"
     else:
-        option_field = u"aws-lambda.{}.{}".format(prefix, option)
+        option_field = "aws-lambda.{}.{}".format(prefix, option)
 
     # if we don't have the settings set, read from our options
     if not settings.SENTRY_RELEASE_REGISTRY_BASEURL:
@@ -61,11 +85,11 @@ def get_option_value(function, option):
 
     # otherwise, read from the cache
     cache_options = cache.get(LAYER_INDEX_CACHE_KEY) or {}
-    key = u"aws-layer:{}".format(prefix)
+    key = "aws-layer:{}".format(prefix)
     cache_value = cache_options.get(key)
 
     if cache_value is None:
-        raise IntegrationError(u"Could not find cache value with key {}".format(key))
+        raise IntegrationError("Could not find cache value with key {}".format(key))
 
     # special lookup for the version since it depends on the region
     if option == OPTION_VERSION:
@@ -76,21 +100,13 @@ def get_option_value(function, option):
             version = matched_regions[0]["version"]
             return version
         else:
-            raise IntegrationError(u"Unsupported region {}".format(region))
+            raise IntegrationError("Unsupported region {}".format(region))
 
     # we use - in options but _ in the registry
     registry_field = option.replace("-", "_")
 
     # return the value out of the cache
     return cache_value.get(registry_field)
-
-
-def check_arn_is_valid_cloudformation_stack(arn):
-    try:
-        parsed = parse_arn(arn)
-    except Exception:
-        return False
-    return parsed["service"] == "cloudformation"
 
 
 def _get_arn_without_version(arn):
@@ -115,7 +131,7 @@ def get_function_layer_arns(function):
 
 def get_latest_layer_for_function(function):
     region = parse_arn(function["FunctionArn"])["region"]
-    return u"arn:aws:lambda:{}:{}:layer:{}:{}".format(
+    return "arn:aws:lambda:{}:{}:layer:{}:{}".format(
         region,
         get_option_value(function, OPTION_ACCOUNT_NUMBER),
         get_option_value(function, OPTION_LAYER_NAME),
@@ -123,16 +139,8 @@ def get_latest_layer_for_function(function):
     )
 
 
-<<<<<<< HEAD
 def get_latest_layer_version(function):
     return int(get_option_value(function, OPTION_VERSION))
-=======
-def get_latest_layer_version(runtime):
-    if runtime.startswith("nodejs"):
-        return int(options.get("aws-lambda.node.layer-version"))
-    # update when we can handle other runtimes like Python
-    raise Exception("Unsupported runtime")
->>>>>>> 2c7cd83bab4211be6ad6495f7dc825ecf4912f55
 
 
 def get_index_of_sentry_layer(layers, arn_to_match):
@@ -158,7 +166,10 @@ def get_supported_functions(lambda_client):
     for page in response_iterator:
         functions += page["Functions"]
 
-    return filter(lambda x: x.get("Runtime") in SUPPORTED_RUNTIMES, functions,)
+    return filter(
+        lambda x: x.get("Runtime") in SUPPORTED_RUNTIMES,
+        functions,
+    )
 
 
 def get_dsn_for_project(organization_id, project_id):
@@ -180,7 +191,7 @@ def enable_single_lambda(lambda_client, function, sentry_project_dsn, layer_arn,
     # note the env variables would be different for non-Node runtimes
     env_variables.update(
         {
-            "NODE_OPTIONS": "-r @sentry/serverless/dist/auto",
+            "NODE_OPTIONS": "-r @sentry/serverless/dist/awslambda-auto",
             "SENTRY_DSN": sentry_project_dsn,
             "SENTRY_TRACES_SAMPLE_RATE": "1.0",
         }
@@ -214,7 +225,10 @@ def disable_single_lambda(lambda_client, function, layer_arn):
             del env_variables[env_name]
 
     return update_lambda_with_retries(
-        lambda_client, FunctionName=name, Layers=layers, Environment={"Variables": env_variables},
+        lambda_client,
+        FunctionName=name,
+        Layers=layers,
+        Environment={"Variables": env_variables},
     )
 
 
@@ -232,3 +246,43 @@ def update_lambda_with_retries(lambda_client, **kwargs):
             kwargs["num_retries"] = num_retries - 1
             return update_lambda_with_retries(lambda_client, **kwargs)
         raise
+
+
+def get_invalid_layer_name(err_message):
+    """
+    Check to see if an error matches the invalid layer message
+    :param err_message: error string
+    :return the layer name if it's a invalid layer
+    """
+    match = re.search(
+        "Layer version arn:aws:lambda:[^:]+:\d+:layer:([^:]+):\d+ does not exist",
+        err_message,
+    )
+    if match:
+        return match[1]
+    return None
+
+
+def wrap_lambda_updater():
+    """
+    Wraps any function that updates a layer
+    Throws an IntegrationError for specific known errors
+    """
+
+    def inner(func):
+        @wraps(func)
+        def wrapped(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                err_message = six.text_type(e)
+                invalid_layer = get_invalid_layer_name(err_message)
+                # only have one specific error to catch
+                if invalid_layer:
+                    raise IntegrationError(_(INVALID_LAYER_TEXT) % invalid_layer)
+                # otherwise, re-raise the original error
+                raise
+
+        return wrapped
+
+    return inner

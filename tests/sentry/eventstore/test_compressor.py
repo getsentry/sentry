@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-from six import PY2
-
 import copy
 
 from sentry.eventstore.compressor import deduplicate, assemble
@@ -32,7 +28,7 @@ def test_basic():
     _assert_roundtrip({"debug_meta": {"images": None}})
     _assert_roundtrip({"debug_meta": {"images": [{}]}})
 
-    checksum = "1a3e017bec533f3f4e59e44a3f53784e" if not PY2 else "557c616fbeb6324611944ebce945d06e"
+    checksum = "1a3e017bec533f3f4e59e44a3f53784e"
     _assert_roundtrip(
         {
             "debug_meta": {

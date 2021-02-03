@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import {
   addErrorMessage,
@@ -23,16 +22,6 @@ type Props = Form['props'] & {
 
 export default class ApiForm extends Form<Props> {
   api = new Client();
-
-  static propTypes = {
-    ...Form.propTypes,
-    omitDisabled: PropTypes.bool,
-    onSubmit: PropTypes.func,
-    apiMethod: PropTypes.string.isRequired,
-    apiEndpoint: PropTypes.string.isRequired,
-    submitLoadingMessage: PropTypes.string,
-    submitErrorMessage: PropTypes.string,
-  };
 
   static defaultProps = {
     ...Form.defaultProps,

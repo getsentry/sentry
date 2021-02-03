@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import pytest
 import time
 
@@ -7,8 +5,6 @@ from sentry.digests import Record
 from sentry.digests.backends.base import InvalidState
 from sentry.digests.backends.redis import RedisBackend
 from sentry.testutils import TestCase
-
-from six.moves import xrange
 
 
 class RedisBackendTestCase(TestCase):
@@ -29,14 +25,14 @@ class RedisBackendTestCase(TestCase):
         assert set(backend.schedule(time.time())) == set()
 
         with backend.digest("timeline", 0) as records:
-            assert set(records) == set([record_1, record_2])
+            assert set(records) == {record_1, record_2}
 
         # The schedule should now contain the timeline.
-        assert set(entry.key for entry in backend.schedule(time.time())) == set(["timeline"])
+        assert {entry.key for entry in backend.schedule(time.time())} == {"timeline"}
 
         # We didn't add any new records so there's nothing to do here.
         with backend.digest("timeline", 0) as records:
-            assert set(records) == set([])
+            assert set(records) == set()
 
         # There's nothing to move between sets since the timeline contents no
         # longer exist at this point.
@@ -45,7 +41,7 @@ class RedisBackendTestCase(TestCase):
     def test_truncation(self):
         backend = RedisBackend(capacity=2, truncation_chance=1.0)
 
-        records = [Record(u"record:{}".format(i), "value", time.time()) for i in xrange(4)]
+        records = [Record(f"record:{i}", "value", time.time()) for i in range(4)]
         for record in records:
             backend.add("timeline", record)
 
@@ -76,12 +72,12 @@ class RedisBackendTestCase(TestCase):
         backend.add("timeline", record_2)
 
         # The schedule should now contain the timeline.
-        assert set(entry.key for entry in backend.schedule(time.time())) == set(["timeline"])
+        assert {entry.key for entry in backend.schedule(time.time())} == {"timeline"}
 
         # The existing and new record should be there because the timeline
         # contents were merged back into the digest.
         with backend.digest("timeline", 0) as records:
-            assert set(records) == set([record_1, record_2])
+            assert set(records) == {record_1, record_2}
 
     def test_maintenance_failure_recovery_with_capacity(self):
         backend = RedisBackend(capacity=10, truncation_chance=0.0)
@@ -89,8 +85,8 @@ class RedisBackendTestCase(TestCase):
         t = time.time()
 
         # Add 10 items to the timeline.
-        for i in xrange(10):
-            backend.add("timeline", Record(u"record:{}".format(i), u"{}".format(i), t + i))
+        for i in range(10):
+            backend.add("timeline", Record(f"record:{i}", f"{i}", t + i))
 
         try:
             with backend.digest("timeline", 0) as records:
@@ -102,20 +98,20 @@ class RedisBackendTestCase(TestCase):
         # prevented the close operation from occurring, so they were never
         # deleted from Redis or removed from the digest set.) If we add 10 more
         # items, they should be added to the timeline set (not the digest set.)
-        for i in xrange(10, 20):
-            backend.add("timeline", Record(u"record:{}".format(i), u"{}".format(i), t + i))
+        for i in range(10, 20):
+            backend.add("timeline", Record(f"record:{i}", f"{i}", t + i))
 
         # Maintenance should move the timeline back to the waiting state, ...
         backend.maintenance(time.time())
 
         # The schedule should now contain the timeline.
-        assert set(entry.key for entry in backend.schedule(time.time())) == set(["timeline"])
+        assert {entry.key for entry in backend.schedule(time.time())} == {"timeline"}
 
         # Only the new records should exist -- the older one should have been
         # trimmed to avoid the digest growing beyond the timeline capacity.
         with backend.digest("timeline", 0) as records:
-            expected_keys = set(u"record:{}".format(i) for i in xrange(10, 20))
-            assert set(record.key for record in records) == expected_keys
+            expected_keys = {f"record:{i}" for i in range(10, 20)}
+            assert {record.key for record in records} == expected_keys
 
     def test_delete(self):
         backend = RedisBackend()
@@ -124,7 +120,7 @@ class RedisBackendTestCase(TestCase):
 
         with pytest.raises(InvalidState):
             with backend.digest("timeline", 0) as records:
-                assert set(records) == set([])
+                assert set(records) == set()
 
         assert set(backend.schedule(time.time())) == set()
         assert len(backend._get_connection("timeline").keys("d:*")) == 0
@@ -142,15 +138,15 @@ class RedisBackendTestCase(TestCase):
         # The existing and new record should be there because the timeline
         # contents were merged back into the digest.
         with backend.digest("timeline", 0) as records:
-            assert set(records) == set([record_2])
+            assert set(records) == {record_2}
 
     def test_large_digest(self):
         backend = RedisBackend()
 
         n = 8192
         t = time.time()
-        for i in xrange(n):
-            backend.add("timeline", Record(u"record:{}".format(i), u"{}".format(i), t))
+        for i in range(n):
+            backend.add("timeline", Record(f"record:{i}", f"{i}", t))
 
         with backend.digest("timeline", 0) as records:
             assert len(set(records)) == n

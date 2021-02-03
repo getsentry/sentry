@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import os
 
 from django.conf import settings
@@ -18,7 +16,7 @@ class APIDocsTestCase(APITestCase):
     def create_schema(self):
         if not APIDocsTestCase.cached_schema:
             path = os.path.join(os.path.dirname(__file__), "openapi-derefed.json")
-            with open(path, "r") as json_file:
+            with open(path) as json_file:
                 data = json.load(json_file)
                 data["servers"][0]["url"] = settings.SENTRY_OPTIONS["system.url-prefix"]
                 del data["components"]

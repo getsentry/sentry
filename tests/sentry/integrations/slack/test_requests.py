@@ -1,11 +1,8 @@
-from __future__ import absolute_import
-
 import hmac
 import time
-import six
 from datetime import datetime
 from hashlib import sha256
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from sentry import options
 from sentry.utils import json
@@ -23,7 +20,7 @@ from sentry.integrations.slack.requests import (
 
 class SlackRequestTest(TestCase):
     def setUp(self):
-        super(SlackRequestTest, self).setUp()
+        super().setUp()
 
         self.request = mock.Mock()
         self.request.data = {
@@ -95,7 +92,7 @@ class SlackRequestTest(TestCase):
 
 class SlackEventRequestTest(TestCase):
     def setUp(self):
-        super(SlackEventRequestTest, self).setUp()
+        super().setUp()
 
         self.request = mock.Mock()
         self.request.data = {
@@ -110,7 +107,7 @@ class SlackEventRequestTest(TestCase):
         self.request.META = {}
 
     def set_signature(self, secret, data):
-        timestamp = six.text_type(int(time.mktime(datetime.utcnow().timetuple())))
+        timestamp = str(int(time.mktime(datetime.utcnow().timetuple())))
         req = b"v0:%s:%s" % (timestamp.encode("utf-8"), data)
 
         signature = "v0=" + hmac.new(secret.encode("utf-8"), req, sha256).hexdigest()
@@ -204,7 +201,7 @@ class SlackEventRequestTest(TestCase):
 
 class SlackActionRequestTest(TestCase):
     def setUp(self):
-        super(SlackActionRequestTest, self).setUp()
+        super().setUp()
 
         self.request = mock.Mock()
         self.request.data = {

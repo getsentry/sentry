@@ -1,11 +1,9 @@
-from __future__ import absolute_import
-
 from sentry.testutils import AcceptanceTestCase
 
 
 class ProjectDataForwardingSettingsTest(AcceptanceTestCase):
     def setUp(self):
-        super(ProjectDataForwardingSettingsTest, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Rowdy Tiger", owner=None)
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
@@ -13,7 +11,7 @@ class ProjectDataForwardingSettingsTest(AcceptanceTestCase):
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
 
         self.login_as(self.user)
-        self.path = u"/{}/{}/settings/data-forwarding/".format(self.org.slug, self.project.slug)
+        self.path = f"/{self.org.slug}/{self.project.slug}/settings/data-forwarding/"
 
     def test_simple(self):
         self.browser.get(self.path)

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from datetime import datetime
 
 import six
@@ -219,18 +217,18 @@ class QueryDefinition(object):
         raw_groupby = query.getlist("groupBy", [])
 
         if len(raw_fields) == 0:
-            raise InvalidField(u'Request is missing a "field"')
+            raise InvalidField('Request is missing a "field"')
 
         self.fields = {}
         for key in raw_fields:
             if key not in COLUMN_MAP:
-                raise InvalidField(u'Invalid field: "{}"'.format(key))
+                raise InvalidField('Invalid field: "{}"'.format(key))
             self.fields[key] = COLUMN_MAP[key]
 
         self.groupby = []
         for key in raw_groupby:
             if key not in GROUPBY_MAP:
-                raise InvalidField(u'Invalid groupBy: "{}"'.format(key))
+                raise InvalidField('Invalid groupBy: "{}"'.format(key))
             self.groupby.append(GROUPBY_MAP[key])
 
         start, end, rollup = get_date_range_rollup_from_params(query, "1h", round_range=True)
@@ -365,13 +363,14 @@ def massage_sessions_result(query, result_totals, result_timeseries):
         }
 
     groups = []
-    for key, totals in total_groups.items():
+    keys = set(total_groups.keys()) | set(timeseries_groups.keys())
+    for key in keys:
         by = dict(key)
 
         group = {
             "by": by,
-            "totals": make_totals(totals, by),
-            "series": make_timeseries(timeseries_groups[key], by),
+            "totals": make_totals(total_groups.get(key, [None]), by),
+            "series": make_timeseries(timeseries_groups.get(key, []), by),
         }
 
         groups.append(group)

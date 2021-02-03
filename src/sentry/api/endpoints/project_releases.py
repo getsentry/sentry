@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 
@@ -45,7 +43,10 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
             environment = None
         else:
             queryset = (
-                Release.objects.filter(projects=project, organization_id=project.organization_id,)
+                Release.objects.filter(
+                    projects=project,
+                    organization_id=project.organization_id,
+                )
                 .filter(Q(status=ReleaseStatus.OPEN) | Q(status=None))
                 .select_related("owner")
             )
@@ -180,6 +181,9 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                     created_status=status,
                 )
                 scope.set_tag("success_status", status)
-                return Response(serialize(release, request.user), status=status)
+
+                # Disable snuba here as it often causes 429s when overloaded and
+                # a freshly created release won't have health data anyways.
+                return Response(serialize(release, request.user, no_snuba=True), status=status)
             scope.set_tag("failure_reason", "serializer_error")
             return Response(serializer.errors, status=400)

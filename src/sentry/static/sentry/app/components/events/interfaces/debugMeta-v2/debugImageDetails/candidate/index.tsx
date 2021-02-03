@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
@@ -50,7 +49,7 @@ function Candidate({
       </DebugFileColumn>
 
       <Column>
-        <Processings download={download} />
+        <Processings candidate={candidate} />
       </Column>
 
       <Column>
@@ -73,15 +72,6 @@ function Candidate({
 }
 
 export default Candidate;
-
-Candidate.propTypes = {
-  candidate: PropTypes.shape({
-    download: PropTypes.shape({
-      status: PropTypes.string.isRequired,
-      features: PropTypes.object,
-    }),
-  }),
-};
 
 const Column = styled('div')`
   display: flex;

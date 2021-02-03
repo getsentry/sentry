@@ -16,12 +16,13 @@ import GlobalSelectionHeader from 'app/components/organizations/globalSelectionH
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
 import Controls from './controls';
 import Dashboard from './dashboard';
-import {EMPTY_DASHBOARD} from './data';
+import {DEFAULT_STATS_PERIOD, EMPTY_DASHBOARD} from './data';
 import OrgDashboards from './orgDashboards';
 import DashboardTitle from './title';
 import {DashboardDetails, DashboardState, Widget} from './types';
@@ -60,6 +61,11 @@ class DashboardDetail extends React.Component<Props, State> {
     if (!dashboard) {
       return;
     }
+    trackAnalyticsEvent({
+      eventKey: 'dashboards2.edit.start',
+      eventName: 'Dashboards2: Edit start',
+      organization_id: parseInt(this.props.organization.id, 10),
+    });
     this.setState({
       dashboardState: 'edit',
       modifiedDashboard: cloneDashboard(dashboard),
@@ -83,6 +89,11 @@ class DashboardDetail extends React.Component<Props, State> {
   };
 
   onCreate = () => {
+    trackAnalyticsEvent({
+      eventKey: 'dashboards2.create.start',
+      eventName: 'Dashboards2: Create start',
+      organization_id: parseInt(this.props.organization.id, 10),
+    });
     this.setState({
       dashboardState: 'create',
       modifiedDashboard: cloneDashboard(EMPTY_DASHBOARD),
@@ -90,6 +101,19 @@ class DashboardDetail extends React.Component<Props, State> {
   };
 
   onCancel = () => {
+    if (this.state.dashboardState === 'create') {
+      trackAnalyticsEvent({
+        eventKey: 'dashboards2.create.cancel',
+        eventName: 'Dashboards2: Create cancel',
+        organization_id: parseInt(this.props.organization.id, 10),
+      });
+    } else if (this.state.dashboardState === 'edit') {
+      trackAnalyticsEvent({
+        eventKey: 'dashboards2.edit.cancel',
+        eventName: 'Dashboards2: Edit cancel',
+        organization_id: parseInt(this.props.organization.id, 10),
+      });
+    }
     this.setState({
       dashboardState: 'view',
       modifiedDashboard: null,
@@ -97,7 +121,7 @@ class DashboardDetail extends React.Component<Props, State> {
   };
 
   onDelete = (dashboard: State['modifiedDashboard']) => () => {
-    const {api, organization} = this.props;
+    const {api, organization, location} = this.props;
     if (!dashboard?.id) {
       return;
     }
@@ -109,13 +133,20 @@ class DashboardDetail extends React.Component<Props, State> {
         dashboardState: 'pending_delete',
       },
       () => {
+        trackAnalyticsEvent({
+          eventKey: 'dashboards2.delete',
+          eventName: 'Dashboards2: Delete',
+          organization_id: parseInt(this.props.organization.id, 10),
+        });
         deleteDashboard(api, organization.slug, dashboard.id)
           .then(() => {
             addSuccessMessage(t('Dashboard deleted'));
 
             browserHistory.replace({
               pathname: `/organizations/${organization.slug}/dashboards/`,
-              query: {},
+              query: {
+                ...location.query,
+              },
             });
           })
           .catch(() => {
@@ -143,7 +174,11 @@ class DashboardDetail extends React.Component<Props, State> {
           createDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
-
+              trackAnalyticsEvent({
+                eventKey: 'dashboards2.create.complete',
+                eventName: 'Dashboards2: Create complete',
+                organization_id: parseInt(organization.id, 10),
+              });
               this.setState({
                 dashboardState: 'view',
                 modifiedDashboard: null,
@@ -176,6 +211,11 @@ class DashboardDetail extends React.Component<Props, State> {
           updateDashboard(api, organization.slug, modifiedDashboard).then(
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard updated'));
+              trackAnalyticsEvent({
+                eventKey: 'dashboards2.edit.complete',
+                eventName: 'Dashboards2: Edit complete',
+                organization_id: parseInt(organization.id, 10),
+              });
 
               this.setState({
                 dashboardState: 'view',
@@ -247,6 +287,14 @@ class DashboardDetail extends React.Component<Props, State> {
     return (
       <GlobalSelectionHeader
         skipLoadLastUsed={organization.features.includes('global-views')}
+        defaultSelection={{
+          datetime: {
+            start: null,
+            end: null,
+            utc: false,
+            period: DEFAULT_STATS_PERIOD,
+          },
+        }}
       >
         <OrgDashboards
           api={api}

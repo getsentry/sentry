@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import responses
 import time
 
@@ -45,15 +43,13 @@ class MsTeamsIntegrationUnlinkIdentityTest(TestCase):
         access_json = {"expires_in": 86399, "access_token": "3ld3rw4nd"}
         responses.add(
             responses.POST,
-            u"https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
+            "https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token",
             json=access_json,
         )
 
         responses.add(
             method=responses.POST,
-            url=u"https://smba.trafficmanager.net/amer/v3/conversations/{}/activities".format(
-                self.conversation_id
-            ),
+            url=f"https://smba.trafficmanager.net/amer/v3/conversations/{self.conversation_id}/activities",
             status=200,
             json={},
         )
@@ -91,10 +87,9 @@ class MsTeamsIntegrationUnlinkIdentityTest(TestCase):
         identity = Identity.objects.filter(external_id=teams_user_id, user=self.user1)
 
         assert len(identity) == 0
-        assert "Your Microsoft Teams identity has been unlinked to your Sentry account." in responses.calls[
-            1
-        ].request.body.decode(
-            "utf-8"
+        assert (
+            "Your Microsoft Teams identity has been unlinked to your Sentry account."
+            in responses.calls[1].request.body.decode("utf-8")
         )
         assert len(responses.calls) == 2
 

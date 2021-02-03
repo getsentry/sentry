@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import pytest
-import six
 import re
 
 from uuid import uuid4
@@ -13,6 +10,7 @@ from sentry.constants import ObjectStatus
 from sentry.utils import safe, json
 from sentry.models.relay import Relay
 from sentry.models import Project
+from sentry.testutils.helpers import Feature
 
 from sentry_relay.auth import generate_key_pair
 
@@ -45,14 +43,12 @@ def private_key(key_pair):
 
 @pytest.fixture
 def relay_id():
-    return six.text_type(uuid4())
+    return str(uuid4())
 
 
 @pytest.fixture
 def relay(relay_id, public_key):
-    return Relay.objects.create(
-        relay_id=relay_id, public_key=six.text_type(public_key), is_internal=True
-    )
+    return Relay.objects.create(relay_id=relay_id, public_key=str(public_key), is_internal=True)
 
 
 @pytest.fixture(autouse=True)
@@ -66,7 +62,7 @@ def call_endpoint(client, relay, private_key, default_project):
         path = reverse("sentry-api-0-relay-projectconfigs")
 
         if projects is None:
-            projects = [six.text_type(default_project.id)]
+            projects = [str(default_project.id)]
 
         if full_config is None:
             raw_json, signature = private_key.pack({"projects": projects})
@@ -113,9 +109,9 @@ def test_internal_relays_should_receive_minimal_configs_if_they_do_not_explicitl
 
     # Sweeping assertion that we do not have any snake_case in that config.
     # Might need refining.
-    assert not set(x for x in _get_all_keys(result) if "-" in x or "_" in x)
+    assert not {x for x in _get_all_keys(result) if "-" in x or "_" in x}
 
-    cfg = safe.get_path(result, "configs", six.text_type(default_project.id))
+    cfg = safe.get_path(result, "configs", str(default_project.id))
     assert safe.get_path(cfg, "config", "filterSettings") is None
     assert safe.get_path(cfg, "config", "groupingConfig") is None
 
@@ -130,9 +126,9 @@ def test_internal_relays_should_receive_full_configs(
 
     # Sweeping assertion that we do not have any snake_case in that config.
     # Might need refining.
-    assert not set(x for x in _get_all_keys(result) if "-" in x or "_" in x)
+    assert not {x for x in _get_all_keys(result) if "-" in x or "_" in x}
 
-    cfg = safe.get_path(result, "configs", six.text_type(default_project.id))
+    cfg = safe.get_path(result, "configs", str(default_project.id))
     assert safe.get_path(cfg, "disabled") is False
 
     (public_key,) = cfg["publicKeys"]
@@ -170,6 +166,22 @@ def test_internal_relays_should_receive_full_configs(
 
 
 @pytest.mark.django_db
+def test_relays_dyamic_sampling(client, call_endpoint, default_project, dyn_sampling_data):
+    """
+    Tests that dynamic sampling configuration set in project details are retrieved in relay configs
+    """
+    default_project.update_option("sentry:dynamic_sampling", dyn_sampling_data())
+
+    with Feature({"organizations:filters-and-sampling": True}):
+        result, status_code = call_endpoint(full_config=False)
+        assert status_code < 400
+        dynamic_sampling = safe.get_path(
+            result, "configs", str(default_project.id), "config", "dynamicSampling"
+        )
+        assert dynamic_sampling == dyn_sampling_data()
+
+
+@pytest.mark.django_db
 def test_trusted_external_relays_should_not_be_able_to_request_full_configs(
     add_org_key, call_endpoint, no_internal_networks
 ):
@@ -185,7 +197,7 @@ def test_when_not_sending_full_config_info_into_a_internal_relay_a_restricted_co
 
     assert status_code < 400
 
-    cfg = safe.get_path(result, "configs", six.text_type(default_project.id))
+    cfg = safe.get_path(result, "configs", str(default_project.id))
     assert safe.get_path(cfg, "config", "filterSettings") is None
     assert safe.get_path(cfg, "config", "groupingConfig") is None
 
@@ -201,7 +213,7 @@ def test_when_not_sending_full_config_info_into_an_external_relay_a_restricted_c
 
     assert status_code < 400
 
-    cfg = safe.get_path(result, "configs", six.text_type(default_project.id))
+    cfg = safe.get_path(result, "configs", str(default_project.id))
     assert safe.get_path(cfg, "config", "filterSettings") is None
     assert safe.get_path(cfg, "config", "groupingConfig") is None
 
@@ -217,7 +229,7 @@ def test_trusted_external_relays_should_receive_minimal_configs(
 
     assert status_code < 400
 
-    cfg = safe.get_path(result, "configs", six.text_type(default_project.id))
+    cfg = safe.get_path(result, "configs", str(default_project.id))
     assert safe.get_path(cfg, "disabled") is False
     (public_key,) = cfg["publicKeys"]
     assert public_key["publicKey"] == default_projectkey.public_key
@@ -253,7 +265,7 @@ def test_untrusted_external_relays_should_not_receive_configs(
 
     assert status_code < 400
 
-    cfg = result["configs"][six.text_type(default_project.id)]
+    cfg = result["configs"][str(default_project.id)]
 
     assert cfg["disabled"]
 
@@ -292,10 +304,10 @@ def test_relay_projectconfig_cache_full_config(
         result, status_code = call_endpoint(full_config=True)
         assert status_code < 400
 
-    (http_cfg,) = six.itervalues(result["configs"])
+    (http_cfg,) = result["configs"].values()
     (call,) = projectconfig_cache_set
     assert len(call) == 1
-    redis_cfg = call[six.text_type(default_project.id)]
+    redis_cfg = call[str(default_project.id)]
 
     del http_cfg["lastFetch"]
     del http_cfg["lastChange"]
@@ -313,10 +325,10 @@ def test_relay_nonexistent_project(call_endpoint, projectconfig_cache_set, task_
         result, status_code = call_endpoint(full_config=True, projects=[wrong_id])
         assert status_code < 400
 
-    (http_cfg,) = six.itervalues(result["configs"])
+    (http_cfg,) = result["configs"].values()
     assert http_cfg == {"disabled": True}
 
-    assert projectconfig_cache_set == [{six.text_type(wrong_id): http_cfg}]
+    assert projectconfig_cache_set == [{str(wrong_id): http_cfg}]
 
 
 @pytest.mark.django_db
@@ -331,7 +343,7 @@ def test_relay_disabled_project(
         result, status_code = call_endpoint(full_config=True, projects=[wrong_id])
         assert status_code < 400
 
-    (http_cfg,) = six.itervalues(result["configs"])
+    (http_cfg,) = result["configs"].values()
     assert http_cfg == {"disabled": True}
 
-    assert projectconfig_cache_set == [{six.text_type(wrong_id): http_cfg}]
+    assert projectconfig_cache_set == [{str(wrong_id): http_cfg}]

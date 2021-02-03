@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from sentry import tagstore
 from sentry.plugins.bases import notify
 from sentry.utils import json
@@ -200,7 +198,7 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
                 rules.append((rule_link, rule.label))
 
             if rules:
-                value = u", ".join(u"<{} | {}>".format(*r) for r in rules)
+                value = ", ".join("<{} | {}>".format(*r) for r in rules)
 
                 fields.append(
                     {"title": "Triggered By", "value": value.encode("utf-8"), "short": False}

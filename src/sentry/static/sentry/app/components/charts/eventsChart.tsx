@@ -3,7 +3,6 @@ import {InjectedRouter} from 'react-router/lib/Router';
 import {EChartOption} from 'echarts/lib/echarts';
 import {Query} from 'history';
 import isEqual from 'lodash/isEqual';
-import PropTypes from 'prop-types';
 
 import {Client} from 'app/api';
 import AreaChart from 'app/components/charts/areaChart';
@@ -38,10 +37,10 @@ type ChartProps = {
   previousTimeseriesData?: Series | null;
   previousSeriesName?: string;
   /**
-   * The default series names are based on the column names. This callback
-   * allows for custom naming of series.
+   * A callback to allow for post-processing of the series data.
+   * Can be used to rename series or even insert a new series.
    */
-  seriesNameTransformer?: (string) => string;
+  seriesTransformer?: (series: Series[]) => Series[];
   showDaily?: boolean;
   interval?: string;
   yAxis: string;
@@ -60,26 +59,6 @@ type State = {
 };
 
 class Chart extends React.Component<ChartProps, State> {
-  static propTypes = {
-    loading: PropTypes.bool,
-    reloading: PropTypes.bool,
-    releaseSeries: PropTypes.array,
-    zoomRenderProps: PropTypes.object,
-    timeseriesData: PropTypes.array,
-    showLegend: PropTypes.bool,
-    previousTimeseriesData: PropTypes.object,
-    currentSeriesName: PropTypes.string,
-    previousSeriesName: PropTypes.string,
-    seriesNameTransformer: PropTypes.func,
-    showDaily: PropTypes.bool,
-    yAxis: PropTypes.string,
-    stacked: PropTypes.bool,
-    colors: PropTypes.array,
-    disableableSeries: PropTypes.array,
-    legendOptions: PropTypes.object,
-    chartOptions: PropTypes.object,
-  };
-
   state: State = {
     seriesSelection: {},
     forceUpdate: false,
@@ -162,7 +141,7 @@ class Chart extends React.Component<ChartProps, State> {
       chartOptions: chartOptionsProp,
       currentSeriesName,
       previousSeriesName,
-      seriesNameTransformer,
+      seriesTransformer,
       colors,
       ...props
     } = this.props;
@@ -177,26 +156,23 @@ class Chart extends React.Component<ChartProps, State> {
       ? {
           right: 16,
           top: 12,
-          icon: 'circle',
-          itemHeight: 8,
-          itemWidth: 8,
-          itemGap: 12,
-          align: 'left' as const,
-          textStyle: {
-            color: theme.textColor,
-            verticalAlign: 'top',
-            fontSize: 11,
-            fontFamily: 'Rubik',
-          },
           data,
           selected: seriesSelection,
           ...(legendOptions ?? {}),
         }
       : undefined;
 
+    let series = Array.isArray(releaseSeries)
+      ? [...timeseriesData, ...releaseSeries]
+      : timeseriesData;
+
+    if (seriesTransformer) {
+      series = seriesTransformer(series);
+    }
+
     const chartOptions = {
       colors: timeseriesData.length
-        ? colors?.slice(0, timeseriesData.length) ?? [
+        ? colors?.slice(0, series.length) ?? [
             ...theme.charts.getColorPalette(timeseriesData.length - 2),
           ]
         : undefined,
@@ -216,7 +192,7 @@ class Chart extends React.Component<ChartProps, State> {
       },
       yAxis: {
         axisLabel: {
-          color: theme.gray200,
+          color: theme.chartLabel,
           formatter: (value: number) => axisLabelFormatter(value, yAxis),
         },
       },
@@ -224,15 +200,6 @@ class Chart extends React.Component<ChartProps, State> {
     };
 
     const Component = this.getChartComponent();
-    const series = Array.isArray(releaseSeries)
-      ? [...timeseriesData, ...releaseSeries]
-      : timeseriesData;
-
-    if (seriesNameTransformer) {
-      series.forEach(s => {
-        s.seriesName = seriesNameTransformer(s.seriesName);
-      });
-    }
 
     return (
       <Component
@@ -332,7 +299,7 @@ type Props = {
   ChartProps,
   | 'currentSeriesName'
   | 'previousSeriesName'
-  | 'seriesNameTransformer'
+  | 'seriesTransformer'
   | 'showLegend'
   | 'disableableSeries'
   | 'legendOptions'
@@ -351,38 +318,6 @@ type ChartDataProps = {
 };
 
 class EventsChart extends React.Component<Props> {
-  static propTypes = {
-    api: PropTypes.object,
-    projects: PropTypes.arrayOf(PropTypes.number),
-    environments: PropTypes.arrayOf(PropTypes.string),
-    period: PropTypes.string,
-    query: PropTypes.string,
-    start: PropTypes.instanceOf(Date),
-    end: PropTypes.instanceOf(Date),
-    utc: PropTypes.bool,
-    router: PropTypes.object,
-    showLegend: PropTypes.bool,
-    yAxis: PropTypes.string,
-    disablePrevious: PropTypes.bool,
-    disableReleases: PropTypes.bool,
-    emphasizeReleases: PropTypes.array,
-    currentSeriesName: PropTypes.string,
-    previousSeriesName: PropTypes.string,
-    seriesNameTransformer: PropTypes.func,
-    topEvents: PropTypes.number,
-    field: PropTypes.arrayOf(PropTypes.string),
-    showDaily: PropTypes.bool,
-    orderby: PropTypes.string,
-    confirmedQuery: PropTypes.bool,
-    colors: PropTypes.array,
-    preserveReleaseQueryParams: PropTypes.bool,
-    releaseQueryExtras: PropTypes.object,
-    disableableSeries: PropTypes.array,
-    chartHeader: PropTypes.object,
-    legendOptions: PropTypes.object,
-    chartOptions: PropTypes.object,
-  };
-
   render() {
     const {
       api,
@@ -401,7 +336,7 @@ class EventsChart extends React.Component<Props> {
       emphasizeReleases,
       currentSeriesName: currentName,
       previousSeriesName: previousName,
-      seriesNameTransformer,
+      seriesTransformer,
       field,
       interval,
       showDaily,
@@ -460,7 +395,7 @@ class EventsChart extends React.Component<Props> {
             previousTimeseriesData={previousTimeseriesData}
             currentSeriesName={currentSeriesName}
             previousSeriesName={previousSeriesName}
-            seriesNameTransformer={seriesNameTransformer}
+            seriesTransformer={seriesTransformer}
             stacked={typeof topEvents === 'number' && topEvents > 0}
             yAxis={yAxis}
             showDaily={showDaily}
@@ -492,7 +427,14 @@ class EventsChart extends React.Component<Props> {
     }
 
     return (
-      <ChartZoom router={router} period={period} utc={utc} {...props}>
+      <ChartZoom
+        router={router}
+        period={period}
+        start={start}
+        end={end}
+        utc={utc}
+        {...props}
+      >
         {zoomRenderProps => (
           <EventsRequest
             {...props}

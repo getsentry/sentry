@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from django.core.urlresolvers import reverse
 
 from sentry.models import Integration, Repository, RepositoryProjectPathConfig
@@ -10,7 +6,7 @@ from sentry.testutils import APITestCase
 
 class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
     def setUp(self):
-        super(OrganizationIntegrationRepositoryProjectPathConfigTest, self).setUp()
+        super().setUp()
 
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user, name="baz")
@@ -62,10 +58,10 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
         assert response.status_code == 200, response.content
 
         assert response.data[0] == {
-            "id": six.text_type(path_config1.id),
-            "projectId": six.text_type(self.project1.id),
+            "id": str(path_config1.id),
+            "projectId": str(self.project1.id),
             "projectSlug": self.project1.slug,
-            "repoId": six.text_type(self.repo1.id),
+            "repoId": str(self.repo1.id),
             "repoName": self.repo1.name,
             "provider": {
                 "aspects": {},
@@ -76,17 +72,17 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
                 "slug": "github",
                 "canAdd": True,
             },
-            "integrationId": six.text_type(self.integration.id),
+            "integrationId": str(self.integration.id),
             "stackRoot": "stack/root",
             "sourceRoot": "source/root",
             "defaultBranch": "master",
         }
 
         assert response.data[1] == {
-            "id": six.text_type(path_config2.id),
-            "projectId": six.text_type(self.project2.id),
+            "id": str(path_config2.id),
+            "projectId": str(self.project2.id),
             "projectSlug": self.project2.slug,
-            "repoId": six.text_type(self.repo1.id),
+            "repoId": str(self.repo1.id),
             "repoName": self.repo1.name,
             "provider": {
                 "aspects": {},
@@ -97,7 +93,7 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
                 "slug": "github",
                 "canAdd": True,
             },
-            "integrationId": six.text_type(self.integration.id),
+            "integrationId": str(self.integration.id),
             "stackRoot": "another/path",
             "sourceRoot": "hey/there",
             "defaultBranch": None,
@@ -107,10 +103,10 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
         response = self.make_post()
         assert response.status_code == 201, response.content
         assert response.data == {
-            "id": six.text_type(response.data["id"]),
-            "projectId": six.text_type(self.project1.id),
+            "id": str(response.data["id"]),
+            "projectId": str(self.project1.id),
             "projectSlug": self.project1.slug,
-            "repoId": six.text_type(self.repo1.id),
+            "repoId": str(self.repo1.id),
             "repoName": self.repo1.name,
             "provider": {
                 "aspects": {},
@@ -121,7 +117,7 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
                 "slug": "github",
                 "canAdd": True,
             },
-            "integrationId": six.text_type(self.integration.id),
+            "integrationId": str(self.integration.id),
             "stackRoot": "/stack/root",
             "sourceRoot": "/source/root",
             "defaultBranch": "master",
@@ -155,7 +151,7 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
         assert response.status_code == 400
         assert response.data == {
             "nonFieldErrors": [
-                u"Code path config already exists with this project and stack trace root"
+                "Code path config already exists with this project and stack trace root"
             ]
         }
 
@@ -185,6 +181,28 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
         assert response.status_code == 400
         assert response.data == {
             "defaultBranch": [
-                "Branch name may only have letters, numbers, underscores, and dashes"
+                "Branch name may only have letters, numbers, underscores, forward slashes and dashes. Branch name may not start or end with a forward slash."
+            ],
+        }
+
+    def test_forward_slash_in_branch(self):
+        response = self.make_post({"defaultBranch": "prod/deploy-branch"})
+        assert response.status_code == 201, response.content
+
+    def test_leading_forward_slash_in_branch_conflict(self):
+        response = self.make_post({"defaultBranch": "/prod/deploy-branch"})
+        assert response.status_code == 400
+        assert response.data == {
+            "defaultBranch": [
+                "Branch name may only have letters, numbers, underscores, forward slashes and dashes. Branch name may not start or end with a forward slash."
+            ],
+        }
+
+    def test_ending_forward_slash_in_branch_conflict(self):
+        response = self.make_post({"defaultBranch": "prod/deploy-branch/"})
+        assert response.status_code == 400
+        assert response.data == {
+            "defaultBranch": [
+                "Branch name may only have letters, numbers, underscores, forward slashes and dashes. Branch name may not start or end with a forward slash."
             ],
         }

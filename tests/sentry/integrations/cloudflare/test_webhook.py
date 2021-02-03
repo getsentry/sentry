@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-
 from hashlib import sha256
 import hmac
-import six
 
 from sentry import options
 from sentry.utils import json
@@ -14,7 +11,7 @@ UNSET = object()
 
 class BaseWebhookTest(TestCase):
     def setUp(self):
-        super(BaseWebhookTest, self).setUp()
+        super().setUp()
         self.user = self.create_user(is_superuser=False)
         self.org = self.create_organization(owner=None)
         self.team = self.create_team(organization=self.org)
@@ -28,7 +25,7 @@ class BaseWebhookTest(TestCase):
     def post_webhook(self, data, signature=UNSET, variant=UNSET, key=None):
         if key is None:
             key = options.get("cloudflare.secret-key")
-        if not isinstance(data, six.string_types):
+        if not isinstance(data, str):
             body = json.dumps(data)
         else:
             body = data
@@ -99,31 +96,29 @@ class PreviewWebhookTest(BaseWebhookTest):
         webhook_data = json.loads(
             self.load_fixture("cloudflare/preview-webhook-authenticated.json")
         )
-        webhook_data["install"]["options"]["organization"] = six.text_type(self.org.id)
+        webhook_data["install"]["options"]["organization"] = str(self.org.id)
         resp = self.post_webhook(data=webhook_data)
 
         assert resp.status_code == 200, resp.content
         assert resp.data["proceed"]
         assert resp.data["install"]["schema"]["properties"]["organization"]["enum"] == [
-            six.text_type(self.org.id)
+            str(self.org.id)
         ]
         assert resp.data["install"]["schema"]["properties"]["organization"]["enumNames"] == {
-            six.text_type(self.org.id): self.org.slug
+            str(self.org.id): self.org.slug
         }
-        assert resp.data["install"]["options"]["organization"] == six.text_type(self.org.id)
+        assert resp.data["install"]["options"]["organization"] == str(self.org.id)
         assert resp.data["install"]["schema"]["properties"]["project"]["enum"] == [
-            six.text_type(self.project.id)
+            str(self.project.id)
         ]
         assert resp.data["install"]["schema"]["properties"]["project"]["enumNames"] == {
-            six.text_type(self.project.id): self.project.slug
+            str(self.project.id): self.project.slug
         }
-        assert resp.data["install"]["options"]["project"] == six.text_type(self.project.id)
+        assert resp.data["install"]["options"]["project"] == str(self.project.id)
         assert resp.data["install"]["schema"]["properties"]["dsn"]["enum"] == [
             self.key.get_dsn(public=True)
         ]
-        assert resp.data["install"]["options"]["dsn"] == six.text_type(
-            self.key.get_dsn(public=True)
-        )
+        assert resp.data["install"]["options"]["dsn"] == str(self.key.get_dsn(public=True))
 
     def test_multiple_projects(self):
         project2 = self.create_project(name="b", teams=[self.team])
@@ -131,26 +126,24 @@ class PreviewWebhookTest(BaseWebhookTest):
         webhook_data = json.loads(
             self.load_fixture("cloudflare/preview-webhook-authenticated.json")
         )
-        webhook_data["install"]["options"]["organization"] = six.text_type(self.org.id)
+        webhook_data["install"]["options"]["organization"] = str(self.org.id)
         resp = self.post_webhook(webhook_data)
 
         assert resp.status_code == 200, resp.content
         assert resp.data["proceed"]
         assert resp.data["install"]["schema"]["properties"]["organization"]["enum"] == [
-            six.text_type(self.org.id)
+            str(self.org.id)
         ]
-        assert resp.data["install"]["options"]["organization"] == six.text_type(self.org.id)
+        assert resp.data["install"]["options"]["organization"] == str(self.org.id)
         assert resp.data["install"]["schema"]["properties"]["project"]["enum"] == [
-            six.text_type(self.project.id),
-            six.text_type(project2.id),
+            str(self.project.id),
+            str(project2.id),
         ]
-        assert resp.data["install"]["options"]["project"] == six.text_type(self.project.id)
+        assert resp.data["install"]["options"]["project"] == str(self.project.id)
         assert resp.data["install"]["schema"]["properties"]["dsn"]["enum"] == [
             self.key.get_dsn(public=True)
         ]
-        assert resp.data["install"]["options"]["dsn"] == six.text_type(
-            self.key.get_dsn(public=True)
-        )
+        assert resp.data["install"]["options"]["dsn"] == str(self.key.get_dsn(public=True))
 
     def test_no_projects(self):
         self.project.delete()
@@ -158,15 +151,15 @@ class PreviewWebhookTest(BaseWebhookTest):
         webhook_data = json.loads(
             self.load_fixture("cloudflare/preview-webhook-authenticated.json")
         )
-        webhook_data["install"]["options"]["organization"] = six.text_type(self.org.id)
+        webhook_data["install"]["options"]["organization"] = str(self.org.id)
         resp = self.post_webhook(webhook_data)
 
         assert resp.status_code == 200, resp.content
         assert resp.data["proceed"]
         assert resp.data["install"]["schema"]["properties"]["organization"]["enum"] == [
-            six.text_type(self.org.id)
+            str(self.org.id)
         ]
-        assert resp.data["install"]["options"]["organization"] == six.text_type(self.org.id)
+        assert resp.data["install"]["options"]["organization"] == str(self.org.id)
         assert resp.data["install"]["schema"]["properties"]["project"]["enum"] == []
         assert "dsn" not in resp.data["install"]["schema"]["properties"]
 
@@ -190,19 +183,17 @@ class OptionChangeAccountWebhookTest(BaseWebhookTest):
         assert resp.status_code == 200, resp.content
         assert resp.data["proceed"]
         assert resp.data["install"]["schema"]["properties"]["organization"]["enum"] == [
-            six.text_type(self.org.id)
+            str(self.org.id)
         ]
-        assert resp.data["install"]["options"]["organization"] == six.text_type(self.org.id)
+        assert resp.data["install"]["options"]["organization"] == str(self.org.id)
         assert resp.data["install"]["schema"]["properties"]["project"]["enum"] == [
-            six.text_type(self.project.id)
+            str(self.project.id)
         ]
-        assert resp.data["install"]["options"]["project"] == six.text_type(self.project.id)
+        assert resp.data["install"]["options"]["project"] == str(self.project.id)
         assert resp.data["install"]["schema"]["properties"]["dsn"]["enum"] == [
             self.key.get_dsn(public=True)
         ]
-        assert resp.data["install"]["options"]["dsn"] == six.text_type(
-            self.key.get_dsn(public=True)
-        )
+        assert resp.data["install"]["options"]["dsn"] == str(self.key.get_dsn(public=True))
 
     def test_with_invalid_organization_selected(self):
         webhook_data = json.loads(
@@ -215,19 +206,17 @@ class OptionChangeAccountWebhookTest(BaseWebhookTest):
         assert resp.status_code == 200, resp.content
         assert resp.data["proceed"]
         assert resp.data["install"]["schema"]["properties"]["organization"]["enum"] == [
-            six.text_type(self.org.id)
+            str(self.org.id)
         ]
-        assert resp.data["install"]["options"]["organization"] == six.text_type(self.org.id)
+        assert resp.data["install"]["options"]["organization"] == str(self.org.id)
         assert resp.data["install"]["schema"]["properties"]["project"]["enum"] == [
-            six.text_type(self.project.id)
+            str(self.project.id)
         ]
-        assert resp.data["install"]["options"]["project"] == six.text_type(self.project.id)
+        assert resp.data["install"]["options"]["project"] == str(self.project.id)
         assert resp.data["install"]["schema"]["properties"]["dsn"]["enum"] == [
             self.key.get_dsn(public=True)
         ]
-        assert resp.data["install"]["options"]["dsn"] == six.text_type(
-            self.key.get_dsn(public=True)
-        )
+        assert resp.data["install"]["options"]["dsn"] == str(self.key.get_dsn(public=True))
 
     def test_with_existing_project_selected_and_no_keys(self):
         project2 = self.create_project(name="b", teams=[self.team])
@@ -237,21 +226,21 @@ class OptionChangeAccountWebhookTest(BaseWebhookTest):
         webhook_data = json.loads(
             self.load_fixture("cloudflare/option-change-account-webhook.json")
         )
-        webhook_data["install"]["options"]["organization"] = six.text_type(self.org.id)
-        webhook_data["install"]["options"]["project"] = six.text_type(project2.id)
+        webhook_data["install"]["options"]["organization"] = str(self.org.id)
+        webhook_data["install"]["options"]["project"] = str(project2.id)
 
         resp = self.post_webhook(webhook_data)
 
         assert resp.status_code == 200, resp.content
         assert resp.data["proceed"]
         assert resp.data["install"]["schema"]["properties"]["organization"]["enum"] == [
-            six.text_type(self.org.id)
+            str(self.org.id)
         ]
-        assert resp.data["install"]["options"]["organization"] == six.text_type(self.org.id)
+        assert resp.data["install"]["options"]["organization"] == str(self.org.id)
         assert resp.data["install"]["schema"]["properties"]["project"]["enum"] == [
-            six.text_type(self.project.id),
-            six.text_type(project2.id),
+            str(self.project.id),
+            str(project2.id),
         ]
-        assert resp.data["install"]["options"]["project"] == six.text_type(project2.id)
+        assert resp.data["install"]["options"]["project"] == str(project2.id)
         assert resp.data["install"]["schema"]["properties"]["dsn"]["enum"] == []
         assert "dsn" not in resp.data["install"]["options"]

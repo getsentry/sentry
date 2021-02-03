@@ -365,8 +365,7 @@ describe('IssueListActions', function () {
           realtimeActive={false}
           statsPeriod="24h"
           queryCount={100}
-          queryMaxCount={100}
-          pageCount={3}
+          displayCount="3 of 3"
           hasInbox
         />,
         TestStubs.routerContext()

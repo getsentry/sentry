@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from exam import fixture
 
 from sentry.models import Monitor, MonitorStatus, MonitorType, ScheduleType
@@ -23,12 +19,12 @@ class ListOrganizationMonitorsTest(APITestCase):
 
     @fixture
     def path(self):
-        return u"/api/0/organizations/{}/monitors/".format(self.org.slug)
+        return f"/api/0/organizations/{self.org.slug}/monitors/"
 
     def check_valid_response(self, response, expected_monitors):
         assert response.status_code == 200, response.content
-        assert [six.text_type(monitor.guid) for monitor in expected_monitors] == [
-            six.text_type(monitor_resp["id"]) for monitor_resp in response.data
+        assert [str(monitor.guid) for monitor in expected_monitors] == [
+            str(monitor_resp["id"]) for monitor_resp in response.data
         ]
 
     def test_simple(self):
@@ -57,7 +53,7 @@ class CreateOrganizationMonitorTest(APITestCase):
 
     @fixture
     def path(self):
-        return u"/api/0/organizations/{}/monitors/".format(self.org.slug)
+        return f"/api/0/organizations/{self.org.slug}/monitors/"
 
     def test_simple(self):
         self.login_as(user=self.user)

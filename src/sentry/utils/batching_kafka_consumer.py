@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import abc
 import logging
 import six
@@ -37,9 +35,7 @@ def wait_for_topics(admin_client, topics, timeout=10):
         while True:
             if time.time() > start + timeout:
                 raise RuntimeError(
-                    "Timeout when waiting for Kafka topic '%s' to become available, last error: %s".format(
-                        topic, last_error
-                    )
+                    f"Timeout when waiting for Kafka topic '{topic}' to become available, last error: {last_error}"
                 )
 
             result = admin_client.list_topics(topic=topic)

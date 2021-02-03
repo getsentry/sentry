@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-
-import six
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -10,7 +7,7 @@ from sentry.utils.compat.mock import patch
 
 class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(EventIdLookupEndpointTest, self).setUp()
+        super().setUp()
         min_ago = iso_format(before_now(minutes=1))
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
@@ -38,9 +35,9 @@ class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["organizationSlug"] == self.org.slug
         assert response.data["projectSlug"] == self.project.slug
-        assert response.data["groupId"] == six.text_type(self.group.id)
-        assert response.data["eventId"] == six.text_type(self.event.event_id)
-        assert response.data["event"]["id"] == six.text_type(self.event.event_id)
+        assert response.data["groupId"] == str(self.group.id)
+        assert response.data["eventId"] == str(self.event.event_id)
+        assert response.data["event"]["id"] == str(self.event.event_id)
 
     def test_missing_eventid(self):
         url = reverse(
@@ -52,7 +49,9 @@ class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 404, response.content
 
     @patch(
-        "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True,
+        "sentry.api.helpers.group_index.ratelimiter.is_limited",
+        autospec=True,
+        return_value=True,
     )
     def test_ratelimit(self, is_limited):
         url = reverse(

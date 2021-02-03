@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import six
 import logging
 from uuid import uuid4
@@ -69,9 +67,9 @@ class SelectRequester(Mediator):
             logger.info(
                 "select-requester.error",
                 extra={
-                    "sentry_app": self.sentry_app.slug,
-                    "install": self.install.uuid,
-                    "project": self.project and self.project.slug,
+                    "sentry_app_slug": self.sentry_app.slug,
+                    "install_uuid": self.install.uuid,
+                    "project_slug": self.project and self.project.slug,
                     "uri": self.uri,
                     "error_message": six.text_type(e),
                 },

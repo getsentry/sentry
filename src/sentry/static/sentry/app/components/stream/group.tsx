@@ -2,7 +2,6 @@ import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-import $ from 'jquery';
 // eslint-disable-next-line no-restricted-imports
 import {Box} from 'reflexbox';
 
@@ -32,6 +31,7 @@ import {
   GlobalSelection,
   Group,
   GroupReprocessing,
+  InboxDetails,
   NewQuery,
   Organization,
   User,
@@ -74,6 +74,7 @@ type Props = {
   query?: string;
   hasGuideAnchor?: boolean;
   memberList?: User[];
+  onMarkReviewed?: (itemIds: string[]) => void;
   // TODO(ts): higher order functions break defaultprops export types
 } & Partial<typeof defaultProps>;
 
@@ -144,22 +145,30 @@ class StreamGroup extends React.Component<Props, State> {
       // On the inbox tab and the inbox reason is removed
       const reviewed =
         state.reviewed ||
-        ((query === Query.NEEDS_REVIEW || query === Query.NEEDS_REVIEW_OWNER) &&
-          state.data.inbox?.reason !== undefined &&
+        ((query === Query.FOR_REVIEW || query === Query.FOR_REVIEW_OWNER) &&
+          (state.data.inbox as InboxDetails)?.reason !== undefined &&
           data.inbox === false);
       return {data, reviewed};
     });
   }
 
   toggleSelect = (evt: React.MouseEvent<HTMLDivElement>) => {
-    if ((evt.target as HTMLElement)?.tagName === 'A') {
+    const targetElement = evt.target as Partial<HTMLElement>;
+
+    if (targetElement?.tagName?.toLowerCase() === 'a') {
       return;
     }
-    if ((evt.target as HTMLElement)?.tagName === 'INPUT') {
+
+    if (targetElement?.tagName?.toLowerCase() === 'input') {
       return;
     }
-    if ($(evt.target).parents('a').length !== 0) {
-      return;
+
+    let e = targetElement;
+    while (e.parentElement) {
+      if (e?.tagName?.toLowerCase() === 'a') {
+        return;
+      }
+      e = e.parentElement!;
     }
 
     SelectedGroupStore.toggleSelect(this.state.data.id);
@@ -275,6 +284,7 @@ class StreamGroup extends React.Component<Props, State> {
       selection,
       organization,
       displayReprocessingLayout,
+      onMarkReviewed,
     } = this.props;
 
     const {period, start, end} = selection.datetime || {};
@@ -319,9 +329,14 @@ class StreamGroup extends React.Component<Props, State> {
             query={query}
             size="normal"
           />
-          <EventOrGroupExtraDetails organization={organization} data={data} />
+          <EventOrGroupExtraDetails
+            hasGuideAnchor={hasGuideAnchor}
+            organization={organization}
+            data={data}
+          />
         </GroupSummary>
         {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
+        {hasGuideAnchor && <GuideAnchor target="inbox_guide_issue" position="bottom" />}
         {withChart && !displayReprocessingLayout && (
           <ChartWrapper className="hidden-xs hidden-sm">
             {!data.filtered?.stats && !data.stats ? (
@@ -472,6 +487,7 @@ class StreamGroup extends React.Component<Props, State> {
                   group={data}
                   orgId={organization.slug}
                   selection={selection}
+                  onMarkReviewed={onMarkReviewed}
                   query={query}
                 />
               </ActionsWrapper>
@@ -497,6 +513,26 @@ const Wrapper = styled(PanelItem)<{reviewed: boolean; hasInbox: boolean}>`
     p.reviewed &&
     css`
       animation: tintRow 0.2s linear forwards;
+      position: relative;
+
+      /*
+       * A mask that fills the entire row and makes the text opaque. Doing this because
+       * opacity adds a stacking context in CSS so we need to apply it to another element.
+       */
+      &:after {
+        content: '';
+        pointer-events: none;
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+        height: 100%;
+        background-color: ${p.theme.bodyBackground};
+        opacity: 0.4;
+        z-index: 1;
+      }
 
       @keyframes tintRow {
         0% {

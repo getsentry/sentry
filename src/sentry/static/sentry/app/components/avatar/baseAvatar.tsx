@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-import PropTypes from 'prop-types';
 import * as qs from 'query-string';
 
 import BackgroundAvatar from 'app/components/avatar/backgroundAvatar';
@@ -80,51 +79,6 @@ type State = {
 };
 
 class BaseAvatar extends React.Component<Props, State> {
-  static propTypes = {
-    size: PropTypes.number,
-    /**
-     * This is the size of the remote image to request.
-     */
-    remoteImageSize: PropTypes.oneOf(ALLOWED_SIZES),
-    /**
-     * Default gravatar to display
-     */
-    default: PropTypes.string,
-    /**
-     * Enable to display tooltips.
-     */
-    hasTooltip: PropTypes.bool,
-    /**
-     * The type of avatar being rendered.
-     */
-    type: PropTypes.string,
-    /**
-     * Path to uploaded avatar (differs based on model type)
-     */
-    uploadPath: PropTypes.oneOf([
-      'avatar',
-      'team-avatar',
-      'organization-avatar',
-      'project-avatar',
-    ]),
-    uploadId: PropTypes.string,
-    gravatarId: PropTypes.string,
-    letterId: PropTypes.string,
-    title: PropTypes.string,
-    /**
-     * The content for the tooltip. Requires hasTooltip to display
-     */
-    tooltip: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
-    /**
-     * Additional props for the tooltip
-     */
-    tooltipOptions: PropTypes.object,
-    /**
-     * Should avatar be round instead of a square
-     */
-    round: PropTypes.bool,
-  };
-
   static defaultProps = defaultProps;
 
   constructor(props: Props) {
@@ -234,6 +188,7 @@ class BaseAvatar extends React.Component<Props, State> {
       round,
       hasTooltip,
       size,
+      suggested,
       tooltip,
       tooltipOptions,
       forwardedRef,
@@ -255,6 +210,7 @@ class BaseAvatar extends React.Component<Props, State> {
           loaded={this.state.hasLoaded}
           className={classNames('avatar', className)}
           round={!!round}
+          suggested={!!suggested}
           style={{
             ...sizeStyle,
             ...style,
@@ -273,10 +229,16 @@ export default BaseAvatar;
 
 // Note: Avatar will not always be a child of a flex layout, but this seems like a
 // sensible default.
-const StyledBaseAvatar = styled('span')<{round: boolean; loaded: boolean}>`
+const StyledBaseAvatar = styled('span')<{
+  round: boolean;
+  loaded: boolean;
+  suggested: boolean;
+}>`
   flex-shrink: 0;
-  ${p => !p.loaded && 'background-color: rgba(200, 200, 200, 0.1);'};
-  ${p => p.round && 'border-radius: 100%;'};
+  border-radius: ${p => (p.round ? '50%' : '3px')};
+  border: ${p => (p.suggested ? `1px dashed ${p.theme.gray400}` : 'none')};
+  background-color: ${p =>
+    p.loaded ? p.theme.background : 'background-color: rgba(200, 200, 200, 0.1);'};
 `;
 
 const Image = styled('img')<ImageStyleProps>`

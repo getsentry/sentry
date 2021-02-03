@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-
-import six
-
 from base64 import b64encode
 from sentry.testutils import APITestCase
 
@@ -14,7 +10,7 @@ class AuthDetailsEndpointTest(APITestCase):
         self.login_as(user)
         response = self.client.get(self.path)
         assert response.status_code == 200
-        assert response.data["id"] == six.text_type(user.id)
+        assert response.data["id"] == str(user.id)
 
     def test_logged_out(self):
         response = self.client.get(self.path)
@@ -28,18 +24,16 @@ class AuthLoginEndpointTest(APITestCase):
         user = self.create_user("foo@example.com")
         response = self.client.post(
             self.path,
-            HTTP_AUTHORIZATION=b"Basic "
-            + b64encode(u"{}:{}".format(user.username, "admin").encode("utf-8")),
+            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{user.username}:admin".encode("utf-8")),
         )
         assert response.status_code == 200
-        assert response.data["id"] == six.text_type(user.id)
+        assert response.data["id"] == str(user.id)
 
     def test_invalid_password(self):
         user = self.create_user("foo@example.com")
         response = self.client.post(
             self.path,
-            HTTP_AUTHORIZATION=b"Basic "
-            + b64encode(u"{}:{}".format(user.username, "foobar").encode("utf-8")),
+            HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{user.username}:foobar".encode("utf-8")),
         )
         assert response.status_code == 401
 
@@ -52,7 +46,7 @@ class AuthVerifyEndpointTest(APITestCase):
         self.login_as(user)
         response = self.client.put(self.path, data={"password": "admin"})
         assert response.status_code == 200
-        assert response.data["id"] == six.text_type(user.id)
+        assert response.data["id"] == str(user.id)
 
     def test_invalid_password(self):
         user = self.create_user("foo@example.com")

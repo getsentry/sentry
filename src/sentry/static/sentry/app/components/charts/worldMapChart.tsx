@@ -124,7 +124,7 @@ class WorldMapChart extends React.Component<Props, State> {
     return (
       <BaseChart
         options={{
-          backgroundColor: theme.backgroundSecondary,
+          backgroundColor: theme.background,
           visualMap: [
             VisualMap({
               left: 'right',
@@ -134,6 +134,9 @@ class WorldMapChart extends React.Component<Props, State> {
                 color: [theme.purple200, theme.purple300],
               },
               text: ['High', 'Low'],
+              textStyle: {
+                color: theme.textColor,
+              },
 
               // Whether show handles, which can be dragged to adjust "selected range".
               // False because the handles are pretty ugly

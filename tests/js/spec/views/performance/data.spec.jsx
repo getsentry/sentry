@@ -11,7 +11,10 @@ describe('generatePerformanceEventView()', function () {
     expect(result.id).toBeUndefined();
     expect(result.name).toEqual('Performance');
     expect(result.fields.length).toBeGreaterThanOrEqual(7);
-    expect(result.query).toEqual('event.type:transaction transaction.duration:<15m');
+    expect(result.query).toEqual('transaction.duration:<15m');
+    expect(result.getQueryWithAdditionalConditions()).toEqual(
+      'transaction.duration:<15m event.type:transaction'
+    );
     expect(result.sorts).toEqual([{kind: 'desc', field: 'tpm'}]);
     expect(result.statsPeriod).toEqual('24h');
   });
@@ -57,7 +60,9 @@ describe('generatePerformanceEventView()', function () {
       },
     });
     expect(result.query).toEqual(expect.stringContaining('transaction:*things.update*'));
-    expect(result.query).toEqual(expect.stringContaining('event.type:transaction'));
+    expect(result.getQueryWithAdditionalConditions()).toEqual(
+      expect.stringContaining('event.type:transaction')
+    );
   });
 
   it('bare query overwrites transaction condition', function () {
@@ -67,7 +72,9 @@ describe('generatePerformanceEventView()', function () {
       },
     });
     expect(result.query).toEqual(expect.stringContaining('transaction:*things.update*'));
-    expect(result.query).toEqual(expect.stringContaining('event.type:transaction'));
+    expect(result.getQueryWithAdditionalConditions()).toEqual(
+      expect.stringContaining('event.type:transaction')
+    );
     expect(result.query).toEqual(expect.not.stringContaining('transaction:thing.gone'));
   });
 
@@ -79,6 +86,8 @@ describe('generatePerformanceEventView()', function () {
     });
     expect(result.query).toEqual(expect.stringContaining('key:value'));
     expect(result.query).toEqual(expect.stringContaining('tag:value'));
-    expect(result.query).toEqual(expect.stringContaining('event.type:transaction'));
+    expect(result.getQueryWithAdditionalConditions()).toEqual(
+      expect.stringContaining('event.type:transaction')
+    );
   });
 });

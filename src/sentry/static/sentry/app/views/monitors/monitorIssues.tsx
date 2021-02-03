@@ -24,7 +24,6 @@ const MonitorIssues = ({orgId, monitor}: Props) => (
     showActions={false}
     noBorder
     noMargin
-    params={{orgId}}
   />
 );
 

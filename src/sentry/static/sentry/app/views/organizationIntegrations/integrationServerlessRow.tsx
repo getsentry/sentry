@@ -8,7 +8,7 @@ import {
 } from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
-import Switch from 'app/components/switch';
+import Switch from 'app/components/switchButton';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {IntegrationWithConfig, Organization, ServerlessFunction} from 'app/types';
@@ -20,10 +20,17 @@ type Props = {
   api: Client;
   integration: IntegrationWithConfig;
   organization: Organization;
-  onUpdateFunction: (serverlessFunction: ServerlessFunction) => void;
+  onUpdateFunction: (serverlessFunctionUpdate: Partial<ServerlessFunction>) => void;
 };
 
-class IntegrationServerlessRow extends React.Component<Props> {
+type State = {
+  submitting: boolean;
+};
+
+class IntegrationServerlessRow extends React.Component<Props, State> {
+  state = {
+    submitting: false,
+  };
   get enabled() {
     return this.props.serverlessFunction.enabled;
   }
@@ -45,58 +52,95 @@ class IntegrationServerlessRow extends React.Component<Props> {
     );
   };
   toggleEnable = async () => {
+    const {serverlessFunction} = this.props;
     const action = this.enabled ? 'disable' : 'enable';
     const data = {
       action,
-      target: this.props.serverlessFunction.name,
+      target: serverlessFunction.name,
     };
     try {
       addLoadingMessage();
+      this.setState({submitting: true});
+      //optimistically update enable state
+      this.props.onUpdateFunction({enabled: !this.enabled});
       this.recordAction(action);
       const resp = await this.props.api.requestPromise(this.endpoint, {
         method: 'POST',
         data,
       });
+      //update remaining after response
       this.props.onUpdateFunction(resp);
       addSuccessMessage(t('Success'));
     } catch (err) {
-      // TODO: specific error handling
-      addErrorMessage(t('An error ocurred'));
+      //restore original on failure
+      this.props.onUpdateFunction(serverlessFunction);
+      addErrorMessage(err.responseJSON?.detail ?? t('Error occurred'));
     }
+    this.setState({submitting: false});
   };
   updateVersion = async () => {
+    const {serverlessFunction} = this.props;
     const data = {
       action: 'updateVersion',
-      target: this.props.serverlessFunction.name,
+      target: serverlessFunction.name,
     };
     try {
+      this.setState({submitting: true});
+      // don't know the latest version but at least optimistically remove the update button
+      this.props.onUpdateFunction({outOfDate: false});
       addLoadingMessage();
       this.recordAction('updateVersion');
       const resp = await this.props.api.requestPromise(this.endpoint, {
         method: 'POST',
         data,
       });
+      //update remaining after response
       this.props.onUpdateFunction(resp);
       addSuccessMessage(t('Success'));
     } catch (err) {
-      // TODO: specific error handling
-      addErrorMessage(t('An error ocurred'));
+      //restore original on failure
+      this.props.onUpdateFunction(serverlessFunction);
+      addErrorMessage(err.responseJSON?.detail ?? t('Error occurred'));
     }
+    this.setState({submitting: false});
   };
+  renderLayerStatus() {
+    const {serverlessFunction} = this.props;
+    if (!serverlessFunction.outOfDate) {
+      return this.enabled ? t('Latest') : t('Disabled');
+    }
+    return (
+      <UpdateButton size="small" priority="primary" onClick={this.updateVersion}>
+        {t('Update')}
+      </UpdateButton>
+    );
+  }
   render() {
     const {serverlessFunction} = this.props;
-    const versionDisplay = this.enabled ? serverlessFunction.version : 'None';
+    const {version} = serverlessFunction;
+    //during optimistic update, we might be enabled without a version
+    const versionText =
+      this.enabled && version > 0 ? (
+        <React.Fragment>&nbsp;|&nbsp;v{version}</React.Fragment>
+      ) : null;
     return (
       <Item>
-        <NameWrapper>{serverlessFunction.name}</NameWrapper>
-        <RuntimeWrapper>{serverlessFunction.runtime}</RuntimeWrapper>
-        <VersionWrapper>{versionDisplay}</VersionWrapper>
-        <StyledSwitch isActive={this.enabled} size="sm" toggle={this.toggleEnable} />
-        {serverlessFunction.outOfDate && (
-          <UpdateButton size="small" priority="primary" onClick={this.updateVersion}>
-            Update
-          </UpdateButton>
-        )}
+        <NameWrapper>
+          <NameRuntimeVersionWrapper>
+            <Name>{serverlessFunction.name}</Name>
+            <RuntimeAndVersion>
+              <DetailWrapper>{serverlessFunction.runtime}</DetailWrapper>
+              <DetailWrapper>{versionText}</DetailWrapper>
+            </RuntimeAndVersion>
+          </NameRuntimeVersionWrapper>
+        </NameWrapper>
+        <LayerStatusWrapper>{this.renderLayerStatus()}</LayerStatusWrapper>
+        <StyledSwitch
+          isActive={this.enabled}
+          isDisabled={this.state.submitting}
+          size="sm"
+          toggle={this.toggleEnable}
+        />
       </Item>
     );
   }
@@ -105,7 +149,7 @@ class IntegrationServerlessRow extends React.Component<Props> {
 export default withApi(IntegrationServerlessRow);
 
 const Item = styled('div')`
-  padding: ${space(1)};
+  padding: ${space(2)};
 
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.innerBorder};
@@ -114,28 +158,46 @@ const Item = styled('div')`
   display: grid;
   grid-column-gap: ${space(1)};
   align-items: center;
-  grid-template-columns: 2fr 1fr 0.5fr 0.25fr 0.5fr;
-  grid-template-areas: 'function-name runtime version enable-switch update-button';
+  grid-template-columns: 2fr 1fr 0.5fr;
+  grid-template-areas: 'function-name layer-status enable-switch';
 `;
 
-const ItemWrapper = styled('span')``;
+const ItemWrapper = styled('span')`
+  height: 32px;
+  vertical-align: middle;
+  display: flex;
+  align-items: center;
+`;
 
 const NameWrapper = styled(ItemWrapper)`
   grid-area: function-name;
 `;
 
-const RuntimeWrapper = styled(ItemWrapper)`
-  grid-area: runtime;
-`;
-
-const VersionWrapper = styled(ItemWrapper)`
-  grid-area: version;
+const LayerStatusWrapper = styled(ItemWrapper)`
+  grid-area: layer-status;
 `;
 
 const StyledSwitch = styled(Switch)`
   grid-area: enable-switch;
 `;
 
-const UpdateButton = styled(Button)`
-  grid-area: update-button;
+const UpdateButton = styled(Button)``;
+
+const NameRuntimeVersionWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+`;
+
+const Name = styled(`span`)`
+  padding-bottom: ${space(1)};
+`;
+
+const RuntimeAndVersion = styled('div')`
+  display: flex;
+  flex-direction: row;
+  color: ${p => p.theme.gray300};
+`;
+
+const DetailWrapper = styled('div')`
+  line-height: 1.2;
 `;

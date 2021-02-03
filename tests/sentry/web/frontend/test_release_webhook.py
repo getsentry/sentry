@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import hmac
 
 from django.core.urlresolvers import reverse
@@ -14,7 +12,7 @@ from sentry.utils import json
 
 class ReleaseWebhookTestBase(TestCase):
     def setUp(self):
-        super(ReleaseWebhookTestBase, self).setUp()
+        super().setUp()
         self.organization = self.create_organization()
         self.team = self.create_team(organization=self.organization)
         self.project = self.create_project(teams=[self.team])
@@ -25,7 +23,7 @@ class ReleaseWebhookTestBase(TestCase):
     def signature(self):
         return hmac.new(
             key=self.token.encode("utf-8"),
-            msg=("{}-{}".format(self.plugin_id, self.project.id)).encode("utf-8"),
+            msg=(f"{self.plugin_id}-{self.project.id}").encode("utf-8"),
             digestmod=sha256,
         ).hexdigest()
 
@@ -43,7 +41,7 @@ class ReleaseWebhookTestBase(TestCase):
 
 class ReleaseWebhookTest(ReleaseWebhookTestBase):
     def setUp(self):
-        super(ReleaseWebhookTest, self).setUp()
+        super().setUp()
         self.plugin_id = "dummy"
 
     def test_no_token(self):
@@ -95,7 +93,7 @@ class ReleaseWebhookTest(ReleaseWebhookTestBase):
 
 class BuiltinReleaseWebhookTest(ReleaseWebhookTestBase):
     def setUp(self):
-        super(BuiltinReleaseWebhookTest, self).setUp()
+        super().setUp()
         self.plugin_id = "builtin"
 
     def test_invalid_params(self):

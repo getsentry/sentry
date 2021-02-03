@@ -1,8 +1,6 @@
-from __future__ import absolute_import
-
 import pytz
 
-from mock import patch
+from sentry.utils.compat.mock import patch
 
 from django.db.models import F
 from sentry.models import Project
@@ -20,7 +18,7 @@ FEATURE_NAMES = (
 
 class PerformanceOverviewTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
-        super(PerformanceOverviewTest, self).setUp()
+        super().setUp()
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(
             organization=self.org, name="Mariachi Band", members=[self.user]
@@ -28,7 +26,7 @@ class PerformanceOverviewTest(AcceptanceTestCase, SnubaTestCase):
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.group = self.create_group(project=self.project)
         self.login_as(self.user)
-        self.path = u"/organizations/{}/performance/".format(self.org.slug)
+        self.path = f"/organizations/{self.org.slug}/performance/"
 
         self.page = BasePage(self.browser)
 

@@ -1,16 +1,13 @@
-from __future__ import absolute_import
-
-import mock
-
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.compat import mock
 
 
 class OrganizationTagsTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationTagsTest, self).setUp()
+        super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
 
     def test_simple(self):

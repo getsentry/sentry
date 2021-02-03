@@ -1,9 +1,6 @@
 import React from 'react';
 import {Location} from 'history';
-import isEqual from 'lodash/isEqual';
-import pick from 'lodash/pick';
 
-import AsyncComponent from 'app/components/asyncComponent';
 import BarChart from 'app/components/charts/barChart';
 import BarChartZoom from 'app/components/charts/barChartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
@@ -14,12 +11,15 @@ import {t} from 'app/locale';
 import {OrganizationSummary} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
-import {getDuration} from 'app/utils/formatters';
+import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 
+import {computeBuckets, formatHistogramData} from '../charts/utils';
 import {HeaderTitleLegend} from '../styles';
+import HistogramQuery from '../transactionVitals/histogramQuery';
+import {HistogramData} from '../transactionVitals/types';
 
-const NUM_BUCKETS = 15;
+const NUM_BUCKETS = 50;
 const QUERY_KEYS = [
   'environment',
   'project',
@@ -31,75 +31,27 @@ const QUERY_KEYS = [
 
 type ViewProps = Pick<EventView, typeof QUERY_KEYS[number]>;
 
-type ApiResult = {
-  histogram_deprecated_transaction_duration_15: number;
-  count: number;
+type Props = ViewProps & {
+  organization: OrganizationSummary;
+  location: Location;
 };
 
-type Props = AsyncComponent['props'] &
-  ViewProps & {
-    organization: OrganizationSummary;
-    location: Location;
-  };
-
-type State = AsyncComponent['state'] & {
-  chartData: {data: ApiResult[]} | null;
-  zoomError?: boolean;
+type State = {
+  zoomError: boolean;
 };
 
 /**
  * Fetch and render a bar chart that shows event volume
- * for each duration bucket. We always render 15 buckets of
+ * for each duration bucket. We always render 50 buckets of
  * equal widths based on the endpoints min + max durations.
  *
  * This graph visualizes how many transactions were recorded
  * at each duration bucket, showing the modality of the transaction.
  */
-class LatencyChart extends AsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {
-      organization,
-      query,
-      start,
-      end,
-      statsPeriod,
-      environment,
-      project,
-      location,
-    } = this.props;
-    const eventView = EventView.fromSavedQuery({
-      id: '',
-      name: '',
-      version: 2,
-      fields: [`histogram_deprecated(transaction.duration,${NUM_BUCKETS})`, 'count()'],
-      orderby: 'histogram_deprecated_transaction_duration_15',
-      projects: project,
-      range: statsPeriod,
-      query,
-      environment,
-      start,
-      end,
-    });
-    const apiPayload = eventView.getEventsAPIPayload(location);
-    apiPayload.referrer = 'api.performance.latencychart';
-
-    return [
-      ['chartData', `/organizations/${organization.slug}/eventsv2/`, {query: apiPayload}],
-    ];
-  }
-
-  componentDidUpdate(prevProps: Props) {
-    if (this.shouldRefetchData(prevProps)) {
-      this.fetchData();
-    }
-  }
-
-  shouldRefetchData(prevProps: Props) {
-    if (this.state.loading) {
-      return false;
-    }
-    return !isEqual(pick(prevProps, QUERY_KEYS), pick(this.props, QUERY_KEYS));
-  }
+class LatencyChart extends React.Component<Props, State> {
+  state = {
+    zoomError: false,
+  };
 
   handleMouseOver = () => {
     // Hide the zoom error tooltip on the next hover.
@@ -122,18 +74,11 @@ class LatencyChart extends AsyncComponent<Props, State> {
     this.setState({zoomError: true});
   };
 
-  get bucketWidth() {
-    if (this.state.chartData === null) {
-      return 0;
-    }
+  bucketWidth(data: HistogramData[]) {
     // We can assume that all buckets are of equal width, use the first two
     // buckets to get the width. The value of each histogram function indicates
     // the beginning of the bucket.
-    const data = this.state.chartData.data;
-    return data.length > 2
-      ? data[1].histogram_deprecated_transaction_duration_15 -
-          data[0].histogram_deprecated_transaction_duration_15
-      : 0;
+    return data.length > 2 ? data[1].bin - data[0].bin : 0;
   }
 
   renderLoading() {
@@ -149,12 +94,10 @@ class LatencyChart extends AsyncComponent<Props, State> {
     );
   }
 
-  renderBody() {
+  renderChart(data: HistogramData[]) {
     const {location} = this.props;
-    const {chartData, zoomError} = this.state;
-    if (chartData === null) {
-      return null;
-    }
+    const {zoomError} = this.state;
+
     const xAxis = {
       type: 'category' as const,
       truncate: true,
@@ -163,6 +106,7 @@ class LatencyChart extends AsyncComponent<Props, State> {
         alignWithLabel: true,
       },
     };
+
     const colors = [...theme.charts.getColorPalette(1)];
 
     // Use a custom tooltip formatter as we need to replace
@@ -196,9 +140,10 @@ class LatencyChart extends AsyncComponent<Props, State> {
       },
     };
 
-    const bucketWidth = this.bucketWidth;
-
-    const buckets = computeBuckets(chartData.data, bucketWidth);
+    const series = {
+      seriesName: t('Count'),
+      data: formatHistogramData(data, {type: 'duration'}),
+    };
 
     return (
       <BarChartZoom
@@ -207,7 +152,7 @@ class LatencyChart extends AsyncComponent<Props, State> {
         paramStart="startDuration"
         paramEnd="endDuration"
         xAxisIndex={[0]}
-        buckets={buckets}
+        buckets={computeBuckets(data)}
         onDataZoomCancelled={this.handleDataZoomCancelled}
       >
         {zoomRenderProps => (
@@ -215,7 +160,7 @@ class LatencyChart extends AsyncComponent<Props, State> {
             grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
             xAxis={xAxis}
             yAxis={{type: 'value'}}
-            series={transformData(chartData.data, bucketWidth)}
+            series={[series]}
             tooltip={tooltip}
             colors={colors}
             onMouseOver={this.handleMouseOver}
@@ -227,6 +172,34 @@ class LatencyChart extends AsyncComponent<Props, State> {
   }
 
   render() {
+    const {
+      organization,
+      query,
+      start,
+      end,
+      statsPeriod,
+      environment,
+      project,
+      location,
+    } = this.props;
+    const eventView = EventView.fromNewQueryWithLocation(
+      {
+        id: undefined,
+        version: 2,
+        name: '',
+        fields: ['transaction.duration'],
+        projects: project,
+        range: statsPeriod,
+        query,
+        environment,
+        start,
+        end,
+      },
+      location
+    );
+
+    const min = parseInt(decodeScalar(location.query.startDuration, '0'), 10);
+
     return (
       <React.Fragment>
         <HeaderTitleLegend>
@@ -239,53 +212,29 @@ class LatencyChart extends AsyncComponent<Props, State> {
             )}
           />
         </HeaderTitleLegend>
-        {this.renderComponent()}
+        <HistogramQuery
+          location={location}
+          orgSlug={organization.slug}
+          eventView={eventView}
+          numBuckets={NUM_BUCKETS}
+          fields={['transaction.duration']}
+          min={min}
+          dataFilter="exclude_outliers"
+        >
+          {({histograms, isLoading, error}) => {
+            if (isLoading) {
+              return this.renderLoading();
+            } else if (error) {
+              return this.renderError();
+            }
+
+            const data = histograms?.['transaction.duration'] ?? [];
+            return this.renderChart(data);
+          }}
+        </HistogramQuery>
       </React.Fragment>
     );
   }
-}
-
-function computeBuckets(data: ApiResult[], bucketWidth: number) {
-  return data.map(item => {
-    const bucket = item.histogram_deprecated_transaction_duration_15;
-    return {
-      start: bucket,
-      end: bucket + bucketWidth,
-    };
-  });
-}
-
-/**
- * Convert a discover response into a barchart compatible series
- */
-function transformData(data: ApiResult[], bucketWidth: number) {
-  let precision;
-  if (bucketWidth < 10) {
-    precision = 4;
-  } else if (bucketWidth < 100) {
-    precision = 3;
-  } else if (bucketWidth < 1000) {
-    precision = 2;
-  } else if (bucketWidth < 10000) {
-    precision = 1;
-  } else {
-    precision = 0;
-  }
-  const seriesData = data.map(item => {
-    const bucket = item.histogram_deprecated_transaction_duration_15;
-    const midPoint = bucketWidth > 1 ? Math.ceil(bucket + bucketWidth / 2) : bucket;
-    return {
-      value: item.count,
-      name: getDuration(midPoint / 1000, midPoint > 1000 ? precision : 0, true),
-    };
-  });
-
-  return [
-    {
-      seriesName: t('Count'),
-      data: seriesData,
-    },
-  ];
 }
 
 export default LatencyChart;

@@ -1,16 +1,32 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
+import styled from '@emotion/styled';
 
 import PlatformList from 'app/components/platformList';
+import space from 'app/styles/space';
 
 export default {
   title: 'UI/Platform List',
+  component: PlatformList,
 };
 
-export const _PlatformList = withInfo('Stacked list of platform and framework icons')(
-  () => (
-    <div style={{padding: 20, backgroundColor: '#ffffff'}}>
-      <PlatformList platforms={['java', 'php', 'javascript', 'cocoa', 'ruby']} />
-    </div>
-  )
+const platforms = ['java', 'php', 'javascript', 'cocoa', 'ruby'];
+
+export const _PlatformList = ({...args}) => (
+  <Wrapper>
+    <PlatformList {...args} />
+  </Wrapper>
 );
+
+_PlatformList.storyName = 'PlatformList';
+_PlatformList.args = {
+  platforms,
+  showCounter: false,
+  max: platforms.length,
+  size: 28,
+};
+
+const Wrapper = styled('div')`
+  padding: ${space(3)};
+  background: ${p => p.theme.white};
+  display: flex;
+`;

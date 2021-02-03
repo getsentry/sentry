@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
-import six
-
 from sentry.api.serializers import serialize, SimpleEventSerializer
 from sentry.api.serializers.models.event import SharedEventSerializer
 from sentry.models import EventError
@@ -28,7 +22,7 @@ class EventSerializerTest(TestCase):
             data={
                 "event_id": "a" * 32,
                 "timestamp": iso_format(before_now(minutes=1)),
-                "stacktrace": [u"ü"],
+                "stacktrace": ["ü"],
             },
             project_id=self.project.id,
             assert_no_errors=False,
@@ -39,9 +33,9 @@ class EventSerializerTest(TestCase):
         assert "data" in result["errors"][0]
         assert result["errors"][0]["type"] == EventError.INVALID_DATA
         assert result["errors"][0]["data"] == {
-            u"name": u"stacktrace",
-            u"reason": u"expected rawstacktrace",
-            u"value": [u"\xfc"],
+            "name": "stacktrace",
+            "reason": "expected rawstacktrace",
+            "value": ["\xfc"],
         }
         assert "startTimestamp" not in result
         assert "timestamp" not in result
@@ -51,7 +45,7 @@ class EventSerializerTest(TestCase):
             data={
                 "event_id": "a" * 32,
                 "timestamp": iso_format(before_now(minutes=1)),
-                "breadcrumbs": [u"ü"],
+                "breadcrumbs": ["ü"],
             },
             project_id=self.project.id,
             assert_no_errors=False,
@@ -254,8 +248,8 @@ class SimpleEventSerializerTest(TestCase):
         result = serialize(event, None, SimpleEventSerializer())
 
         assert result["eventID"] == event.event_id
-        assert result["projectID"] == six.text_type(event.project_id)
-        assert result["groupID"] == six.text_type(event.group.id)
+        assert result["projectID"] == str(event.project_id)
+        assert result["groupID"] == str(event.group.id)
         assert result["message"] == event.message
         assert result["title"] == event.title
         assert result["location"] == event.location

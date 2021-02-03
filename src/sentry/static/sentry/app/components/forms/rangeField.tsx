@@ -1,6 +1,5 @@
 import ReactDOM from 'react-dom';
 import $ from 'jquery';
-import PropTypes from 'prop-types';
 
 import InputField from 'app/components/forms/inputField';
 
@@ -18,19 +17,10 @@ type ExtendedJQuery = {
   simpleSlider: any;
 } & JQuery;
 
-export default class RangeField extends InputField<Props> {
+class RangeField extends InputField<Props> {
   static formatMinutes = value => {
     value = value / 60;
     return `${value} minute${value !== 1 ? 's' : ''}`;
-  };
-
-  static propTypes = {
-    ...InputField.propTypes,
-    min: PropTypes.number,
-    max: PropTypes.number,
-    step: PropTypes.number,
-    snap: PropTypes.bool,
-    allowedValues: PropTypes.arrayOf(PropTypes.number),
   };
 
   static defaultProps = {
@@ -100,3 +90,5 @@ export default class RangeField extends InputField<Props> {
     return 'range';
   }
 }
+
+export default RangeField;
