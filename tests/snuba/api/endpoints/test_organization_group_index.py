@@ -733,197 +733,272 @@ class GroupListTest(APITestCase, SnubaTestCase):
             assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
 
     def test_owner_search(self):
-        with self.feature("organizations:workflow-owners"):
-            event = self.store_event(
-                data={
-                    "timestamp": iso_format(before_now(seconds=180)),
-                    "fingerprint": ["group-1"],
-                    "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
-                },
-                project_id=self.project.id,
-            )
-            event1 = self.store_event(
-                data={
-                    "timestamp": iso_format(before_now(seconds=185)),
-                    "fingerprint": ["group-2"],
-                    "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
-                },
-                project_id=self.project.id,
-            )
-            event2 = self.store_event(
-                data={
-                    "timestamp": iso_format(before_now(seconds=190)),
-                    "fingerprint": ["group-3"],
-                    "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
-                },
-                project_id=self.project.id,
-            )
+        event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=180)),
+                "fingerprint": ["group-1"],
+                "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
+            },
+            project_id=self.project.id,
+        )
+        event1 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=185)),
+                "fingerprint": ["group-2"],
+                "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
+            },
+            project_id=self.project.id,
+        )
+        event2 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=190)),
+                "fingerprint": ["group-3"],
+                "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
+            },
+            project_id=self.project.id,
+        )
 
-            assigned_event = self.store_event(
-                data={
-                    "timestamp": iso_format(before_now(seconds=195)),
-                    "fingerprint": ["group-4"],
-                },
-                project_id=self.project.id,
-            )
+        assigned_event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=195)),
+                "fingerprint": ["group-4"],
+            },
+            project_id=self.project.id,
+        )
 
-            assigned_to_other_event = self.store_event(
-                data={
-                    "timestamp": iso_format(before_now(seconds=195)),
-                    "fingerprint": ["group-5"],
-                },
-                project_id=self.project.id,
-            )
+        assigned_to_other_event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=195)),
+                "fingerprint": ["group-5"],
+            },
+            project_id=self.project.id,
+        )
 
-            self.login_as(user=self.user)
-            response = self.get_response(sort_by="date", limit=10, query="assigned_or_suggested:me")
-            assert response.status_code == 200
-            assert len(response.data) == 0
+        self.login_as(user=self.user)
+        response = self.get_response(sort_by="date", limit=10, query="assigned_or_suggested:me")
+        assert response.status_code == 200
+        assert len(response.data) == 0
 
-            GroupOwner.objects.create(
-                group=assigned_to_other_event.group,
-                project=assigned_to_other_event.group.project,
-                organization=assigned_to_other_event.group.project.organization,
-                type=0,
-                team_id=None,
-                user_id=self.user.id,
-            )
-            GroupOwner.objects.create(
-                group=event.group,
-                project=event.group.project,
-                organization=event.group.project.organization,
-                type=0,
-                team_id=None,
-                user_id=self.user.id,
-            )
+        GroupOwner.objects.create(
+            group=assigned_to_other_event.group,
+            project=assigned_to_other_event.group.project,
+            organization=assigned_to_other_event.group.project.organization,
+            type=0,
+            team_id=None,
+            user_id=self.user.id,
+        )
+        GroupOwner.objects.create(
+            group=event.group,
+            project=event.group.project,
+            organization=event.group.project.organization,
+            type=0,
+            team_id=None,
+            user_id=self.user.id,
+        )
 
-            response = self.get_response(sort_by="date", limit=10, query="assigned_or_suggested:me")
-            assert response.status_code == 200
-            assert len(response.data) == 2
-            assert int(response.data[0]["id"]) == event.group.id
-            assert int(response.data[1]["id"]) == assigned_to_other_event.group.id
-            # Because assigned_to_other_event is assigned to self.other_user, it should not show up in owner search for anyone but self.other_user. (aka. they are now the only owner)
-            other_user = self.create_user("other@user.com", is_superuser=False)
-            GroupAssignee.objects.create(
-                group=assigned_to_other_event.group,
-                project=assigned_to_other_event.group.project,
-                user=other_user,
-            )
-            response = self.get_response(sort_by="date", limit=10, query="assigned_or_suggested:me")
-            assert response.status_code == 200
-            assert len(response.data) == 1
-            assert int(response.data[0]["id"]) == event.group.id
+        response = self.get_response(sort_by="date", limit=10, query="assigned_or_suggested:me")
+        assert response.status_code == 200
+        assert len(response.data) == 2
+        assert int(response.data[0]["id"]) == event.group.id
+        assert int(response.data[1]["id"]) == assigned_to_other_event.group.id
+        # Because assigned_to_other_event is assigned to self.other_user, it should not show up in owner search for anyone but self.other_user. (aka. they are now the only owner)
+        other_user = self.create_user("other@user.com", is_superuser=False)
+        GroupAssignee.objects.create(
+            group=assigned_to_other_event.group,
+            project=assigned_to_other_event.group.project,
+            user=other_user,
+        )
+        response = self.get_response(sort_by="date", limit=10, query="assigned_or_suggested:me")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
 
-            response = self.get_response(
-<<<<<<< HEAD
-                sort_by="date", limit=10, query="assigned_or_suggested:{}".format(other_user.email)
-=======
-                sort_by="date", limit=10, query=f"owner:{other_user.email}"
->>>>>>> origin
-            )
-            assert response.status_code == 200
-            assert len(response.data) == 1
-            assert int(response.data[0]["id"]) == assigned_to_other_event.group.id
+        response = self.get_response(
+            sort_by="date", limit=10, query=f"assigned_or_suggested:{other_user.email}"
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == assigned_to_other_event.group.id
 
-            GroupAssignee.objects.create(
-                group=assigned_event.group, project=assigned_event.group.project, user=self.user
-            )
-<<<<<<< HEAD
-            response = self.get_response(
-                sort_by="date", limit=10, query="assigned_or_suggested:{}".format(self.user.email)
-            )
-=======
-            response = self.get_response(sort_by="date", limit=10, query=f"owner:{self.user.email}")
->>>>>>> origin
-            assert response.status_code == 200
-            assert len(response.data) == 2
-            assert int(response.data[0]["id"]) == event.group.id
-            assert int(response.data[1]["id"]) == assigned_event.group.id
+        GroupAssignee.objects.create(
+            group=assigned_event.group, project=assigned_event.group.project, user=self.user
+        )
+        response = self.get_response(sort_by="date", limit=10, query=f"assigned_or_suggested:{self.user.email}")
+        assert response.status_code == 200
+        assert len(response.data) == 2
+        assert int(response.data[0]["id"]) == event.group.id
+        assert int(response.data[1]["id"]) == assigned_event.group.id
 
-<<<<<<< HEAD
-            response = self.get_response(
-                sort_by="date", limit=10, query="assigned_or_suggested:#{}".format(self.team.slug)
-            )
-=======
-            response = self.get_response(sort_by="date", limit=10, query=f"owner:#{self.team.slug}")
->>>>>>> origin
-            assert response.status_code == 200
-            assert len(response.data) == 0
-            GroupOwner.objects.create(
-                group=event.group,
-                project=event.group.project,
-                organization=event.group.project.organization,
-                type=0,
-                team_id=self.team.id,
-                user_id=None,
-            )
-<<<<<<< HEAD
-            response = self.get_response(
-                sort_by="date", limit=10, query="assigned_or_suggested:#{}".format(self.team.slug)
-            )
-=======
-            response = self.get_response(sort_by="date", limit=10, query=f"owner:#{self.team.slug}")
->>>>>>> origin
-            assert response.status_code == 200
-            assert len(response.data) == 1
-            assert int(response.data[0]["id"]) == event.group.id
+        response = self.get_response(sort_by="date", limit=10, query=f"assigned_or_suggested:#{self.team.slug}")
+        assert response.status_code == 200
+        assert len(response.data) == 0
+        GroupOwner.objects.create(
+            group=event.group,
+            project=event.group.project,
+            organization=event.group.project.organization,
+            type=0,
+            team_id=self.team.id,
+            user_id=None,
+        )
+        response = self.get_response(sort_by="date", limit=10, query=f"assigned_or_suggested:#{self.team.slug}")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
 
-            response = self.get_response(
-                sort_by="date", limit=10, query="assigned_or_suggested:me_or_none"
-            )
-            assert response.status_code == 200
-            assert len(response.data) == 4
-            assert int(response.data[0]["id"]) == event.group.id
-            assert int(response.data[1]["id"]) == event1.group.id
-            assert int(response.data[2]["id"]) == event2.group.id
-            assert int(response.data[3]["id"]) == assigned_event.group.id
+        response = self.get_response(
+            sort_by="date", limit=10, query="assigned_or_suggested:me_or_none"
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 4
+        assert int(response.data[0]["id"]) == event.group.id
+        assert int(response.data[1]["id"]) == event1.group.id
+        assert int(response.data[2]["id"]) == event2.group.id
+        assert int(response.data[3]["id"]) == assigned_event.group.id
 
-            not_me = self.create_user(email="notme@sentry.io")
-            GroupOwner.objects.create(
-                group=event2.group,
-                project=event2.group.project,
-                organization=event2.group.project.organization,
-                type=0,
-                team_id=None,
-                user_id=not_me.id,
-            )
-            response = self.get_response(
-                sort_by="date", limit=10, query="assigned_or_suggested:me_or_none"
-            )
-            assert response.status_code == 200
-            assert len(response.data) == 3
-            assert int(response.data[0]["id"]) == event.group.id
-            assert int(response.data[1]["id"]) == event1.group.id
-            assert int(response.data[2]["id"]) == assigned_event.group.id
+        not_me = self.create_user(email="notme@sentry.io")
+        GroupOwner.objects.create(
+            group=event2.group,
+            project=event2.group.project,
+            organization=event2.group.project.organization,
+            type=0,
+            team_id=None,
+            user_id=not_me.id,
+        )
+        response = self.get_response(
+            sort_by="date", limit=10, query="assigned_or_suggested:me_or_none"
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 3
+        assert int(response.data[0]["id"]) == event.group.id
+        assert int(response.data[1]["id"]) == event1.group.id
+        assert int(response.data[2]["id"]) == assigned_event.group.id
 
-            GroupOwner.objects.create(
-                group=event2.group,
-                project=event2.group.project,
-                organization=event2.group.project.organization,
-                type=0,
-                team_id=None,
-                user_id=self.user.id,
-            )
-            # Should now include event2 as it has shared ownership.
-            response = self.get_response(
-                sort_by="date", limit=10, query="assigned_or_suggested:me_or_none"
-            )
-            assert response.status_code == 200
-            assert len(response.data) == 4
-            assert int(response.data[0]["id"]) == event.group.id
-            assert int(response.data[1]["id"]) == event1.group.id
-            assert int(response.data[2]["id"]) == event2.group.id
-            assert int(response.data[3]["id"]) == assigned_event.group.id
+        GroupOwner.objects.create(
+            group=event2.group,
+            project=event2.group.project,
+            organization=event2.group.project.organization,
+            type=0,
+            team_id=None,
+            user_id=self.user.id,
+        )
+        # Should now include event2 as it has shared ownership.
+        response = self.get_response(
+            sort_by="date", limit=10, query="assigned_or_suggested:me_or_none"
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 4
+        assert int(response.data[0]["id"]) == event.group.id
+        assert int(response.data[1]["id"]) == event1.group.id
+        assert int(response.data[2]["id"]) == event2.group.id
+        assert int(response.data[3]["id"]) == assigned_event.group.id
 
-            # Assign group to another user and now it shouldn't show up in owner search for this team.
-            GroupAssignee.objects.create(
-                group=event.group,
-                project=event.group.project,
-                user=other_user,
-            )
-            response = self.get_response(sort_by="date", limit=10, query=f"owner:#{self.team.slug}")
-            assert response.status_code == 200
-            assert len(response.data) == 0
+        # Assign group to another user and now it shouldn't show up in owner search for this team.
+        GroupAssignee.objects.create(
+            group=event.group,
+            project=event.group.project,
+            user=other_user,
+        )
+        response = self.get_response(sort_by="date", limit=10, query=f"assigned_or_suggested:#{self.team.slug}")
+        assert response.status_code == 200
+        assert len(response.data) == 0
+
+        response = self.get_response(sort_by="date", limit=10, query="assigned_or_suggested:me")
+        assert response.status_code == 200
+        assert len(response.data) == 2
+        assert int(response.data[0]["id"]) == event.group.id
+        assert int(response.data[1]["id"]) == assigned_to_other_event.group.id
+        # Because assigned_to_other_event is assigned to self.other_user, it should not show up in owner search for anyone but self.other_user. (aka. they are now the only owner)
+        other_user = self.create_user("other@user.com", is_superuser=False)
+        GroupAssignee.objects.create(
+            group=assigned_to_other_event.group,
+            project=assigned_to_other_event.group.project,
+            user=other_user,
+        )
+        response = self.get_response(sort_by="date", limit=10, query="assigned_or_suggested:me")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+
+        response = self.get_response(sort_by="date", limit=10, query=f"assigned_or_suggested:{other_user.email}")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == assigned_to_other_event.group.id
+
+        GroupAssignee.objects.create(
+            group=assigned_event.group, project=assigned_event.group.project, user=self.user
+        )
+        response = self.get_response(sort_by="date", limit=10, query=f"assigned_or_suggested:{self.user.email}")
+        assert response.status_code == 200
+        assert len(response.data) == 2
+        assert int(response.data[0]["id"]) == event.group.id
+        assert int(response.data[1]["id"]) == assigned_event.group.id
+
+        response = self.get_response(sort_by="date", limit=10, query=f"assigned_or_suggested:#{self.team.slug}")
+        assert response.status_code == 200
+        assert len(response.data) == 0
+        GroupOwner.objects.create(
+            group=event.group,
+            project=event.group.project,
+            organization=event.group.project.organization,
+            type=0,
+            team_id=self.team.id,
+            user_id=None,
+        )
+        response = self.get_response(sort_by="date", limit=10, query=f"assigned_or_suggested:#{self.team.slug}")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+
+        response = self.get_response(sort_by="date", limit=10, query="assigned_or_suggested:me_or_none")
+        assert response.status_code == 200
+        assert len(response.data) == 4
+        assert int(response.data[0]["id"]) == event.group.id
+        assert int(response.data[1]["id"]) == event1.group.id
+        assert int(response.data[2]["id"]) == event2.group.id
+        assert int(response.data[3]["id"]) == assigned_event.group.id
+
+        not_me = self.create_user(email="notme@sentry.io")
+        GroupOwner.objects.create(
+            group=event2.group,
+            project=event2.group.project,
+            organization=event2.group.project.organization,
+            type=0,
+            team_id=None,
+            user_id=not_me.id,
+        )
+        response = self.get_response(sort_by="date", limit=10, query="assigned_or_suggested:me_or_none")
+        assert response.status_code == 200
+        assert len(response.data) == 3
+        assert int(response.data[0]["id"]) == event.group.id
+        assert int(response.data[1]["id"]) == event1.group.id
+        assert int(response.data[2]["id"]) == assigned_event.group.id
+
+        GroupOwner.objects.create(
+            group=event2.group,
+            project=event2.group.project,
+            organization=event2.group.project.organization,
+            type=0,
+            team_id=None,
+            user_id=self.user.id,
+        )
+        # Should now include event2 as it has shared ownership.
+        response = self.get_response(sort_by="date", limit=10, query="assigned_or_suggested:me_or_none")
+        assert response.status_code == 200
+        assert len(response.data) == 4
+        assert int(response.data[0]["id"]) == event.group.id
+        assert int(response.data[1]["id"]) == event1.group.id
+        assert int(response.data[2]["id"]) == event2.group.id
+        assert int(response.data[3]["id"]) == assigned_event.group.id
+
+        # Assign group to another user and now it shouldn't show up in owner search for this team.
+        GroupAssignee.objects.create(
+            group=event.group,
+            project=event.group.project,
+            user=other_user,
+        )
+        response = self.get_response(sort_by="date", limit=10, query=f"assigned_or_suggested:#{self.team.slug}")
+        assert response.status_code == 200
+        assert len(response.data) == 0
 
     def test_aggregate_stats_regression_test(self):
         self.store_event(
@@ -1020,51 +1095,48 @@ class GroupListTest(APITestCase, SnubaTestCase):
             assert response.data[0]["inbox"]["reason_details"] is None
 
     def test_expand_owners(self):
-        with self.feature("organizations:workflow-owners"):
-            event = self.store_event(
-                data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
-                project_id=self.project.id,
-            )
-            query = "status:unresolved"
-            self.login_as(user=self.user)
-            # Test with no owner
-            response = self.get_response(sort_by="date", limit=10, query=query, expand="owners")
-            assert response.status_code == 200
-            assert len(response.data) == 1
-            assert int(response.data[0]["id"]) == event.group.id
-            assert response.data[0]["owners"] is None
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        query = "status:unresolved"
+        self.login_as(user=self.user)
+        # Test with no owner
+        response = self.get_response(sort_by="date", limit=10, query=query, expand="owners")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert response.data[0]["owners"] is None
 
-            # Test with owners
-            GroupOwner.objects.create(
-                group=event.group,
-                project=event.project,
-                organization=event.project.organization,
-                type=GroupOwnerType.SUSPECT_COMMIT.value,
-                user=self.user,
-            )
-            GroupOwner.objects.create(
-                group=event.group,
-                project=event.project,
-                organization=event.project.organization,
-                type=GroupOwnerType.OWNERSHIP_RULE.value,
-                team=self.team,
-            )
-            response = self.get_response(sort_by="date", limit=10, query=query, expand="owners")
-            assert response.status_code == 200
-            assert len(response.data) == 1
-            assert int(response.data[0]["id"]) == event.group.id
-            assert response.data[0]["owners"] is not None
-            assert len(response.data[0]["owners"]) == 2
-            assert response.data[0]["owners"][0]["owner"] == f"user:{self.user.id}"
-            assert response.data[0]["owners"][1]["owner"] == f"team:{self.team.id}"
-            assert (
-                response.data[0]["owners"][0]["type"]
-                == GROUP_OWNER_TYPE[GroupOwnerType.SUSPECT_COMMIT]
-            )
-            assert (
-                response.data[0]["owners"][1]["type"]
-                == GROUP_OWNER_TYPE[GroupOwnerType.OWNERSHIP_RULE]
-            )
+        # Test with owners
+        GroupOwner.objects.create(
+            group=event.group,
+            project=event.project,
+            organization=event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user=self.user,
+        )
+        GroupOwner.objects.create(
+            group=event.group,
+            project=event.project,
+            organization=event.project.organization,
+            type=GroupOwnerType.OWNERSHIP_RULE.value,
+            team=self.team,
+        )
+        response = self.get_response(sort_by="date", limit=10, query=query, expand="owners")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert response.data[0]["owners"] is not None
+        assert len(response.data[0]["owners"]) == 2
+        assert response.data[0]["owners"][0]["owner"] == f"user:{self.user.id}"
+        assert response.data[0]["owners"][1]["owner"] == f"team:{self.team.id}"
+        assert (
+            response.data[0]["owners"][0]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.SUSPECT_COMMIT]
+        )
+        assert (
+            response.data[0]["owners"][1]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.OWNERSHIP_RULE]
+        )
 
     @patch(
         "sentry.api.helpers.group_index.ratelimiter.is_limited", autospec=True, return_value=True
