@@ -595,6 +595,33 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         assert options.set("snuba.search.hits-sample-size", old_sample_size)
 
+    def test_assigned_me_or_none(self):
+        self.login_as(user=self.user)
+        groups = []
+        for i in range(5):
+            group = self.store_event(
+                data={
+                    "timestamp": iso_format(before_now(days=i)),
+                    "fingerprint": [f"group-{i}"],
+                },
+                project_id=self.project.id,
+            ).group
+            groups.append(group)
+
+        assigned_groups = groups[:2]
+        for ag in assigned_groups:
+            GroupAssignee.objects.assign(ag, self.user)
+
+        response = self.get_response(limit=10, query="assigned:me")
+        assert len(response.data) == 2
+
+        response = self.get_response(limit=10, query="assigned:me_or_none")
+        assert len(response.data) == 5
+
+        GroupAssignee.objects.assign(assigned_groups[1], self.create_user("other@user.com"))
+        response = self.get_response(limit=10, query="assigned:me_or_none")
+        assert len(response.data) == 4
+
     def test_seen_stats(self):
         self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},

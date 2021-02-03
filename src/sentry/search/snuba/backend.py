@@ -37,6 +37,11 @@ def assigned_to_filter(actor, projects):
             ).values_list("group_id", flat=True)
         )
 
+    include_none = False
+    if isinstance(actor, list) and actor[0] == "me_or_none":
+        include_none = True
+        actor = actor[1]
+
     assigned_to_user = Q(
         id__in=GroupAssignee.objects.filter(
             user=actor, project_id__in=[p.id for p in projects]
@@ -55,7 +60,13 @@ def assigned_to_filter(actor, projects):
             ),
         ).values_list("group_id", flat=True)
     )
-    return assigned_to_user | assigned_to_team
+
+    assigned_query = assigned_to_user | assigned_to_team
+
+    if include_none:
+        return assigned_query | unassigned_filter(True, projects)
+    else:
+        return assigned_query
 
 
 def unassigned_filter(unassigned, projects):
