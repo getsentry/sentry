@@ -214,7 +214,7 @@ export class Line extends React.Component<Props, State> {
           }
           onClick={this.toggleContext}
         >
-          <IconChevron direction={isExpanded ? 'down' : 'up'} size="8px" />
+          <IconChevron direction={isExpanded ? 'up' : 'down'} size="8px" />
         </ToggleContextButton>
       </ToggleContextButtonWrapper>
     );
@@ -450,7 +450,7 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
   flex: 1;
   grid-gap: ${space(0.5)};
   grid-template-columns: ${p => (p.isFrameAfterLastNonApp ? '167px' : '117px')} 1fr;
-  align-items: flex-start;
+  align-items: center;
   justify-content: flex-start;
 
   @media (min-width: ${props => props.theme.breakpoints[0]}) {

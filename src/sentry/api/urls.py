@@ -461,9 +461,9 @@ urlpatterns = [
     ),
     url(r"^api-tokens/$", ApiTokensEndpoint.as_view(), name="sentry-api-0-api-tokens"),
     url(
-        r"^promptsactivity/$",
+        r"^prompts-activity/$",
         PromptsActivityEndpoint.as_view(),
-        name="sentry-api-0-promptsactivity",
+        name="sentry-api-0-prompts-activity",
     ),
     # Auth
     url(

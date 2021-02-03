@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
-import six
 from django.utils.encoding import force_text
 
 from sentry.utils.compat import mock, pickle
@@ -21,7 +17,7 @@ class RedisBufferTest(TestCase):
         assert self.buf._coerce_val(Project(id=1)) == b"1"
 
     def test_coerce_val_handles_unicode(self):
-        assert self.buf._coerce_val("\u201d") == "”".encode("utf-8")
+        assert self.buf._coerce_val("\u201d") == "”".encode()
 
     @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     @mock.patch("sentry.buffer.redis.process_incr")
@@ -101,7 +97,7 @@ class RedisBufferTest(TestCase):
         self.buf.incr(model, columns, filters, extra={"foo": "bar", "datetime": now})
         result = client.hgetall("foo")
         # Force keys to strings
-        result = {force_text(k): v for k, v in six.iteritems(result)}
+        result = {force_text(k): v for k, v in result.items()}
 
         f = result.pop("f")
         assert pickle.loads(f) == {"pk": 1, "datetime": now}
@@ -114,7 +110,7 @@ class RedisBufferTest(TestCase):
         self.buf.incr(model, columns, filters, extra={"foo": "baz", "datetime": now})
         result = client.hgetall("foo")
         # Force keys to strings
-        result = {force_text(k): v for k, v in six.iteritems(result)}
+        result = {force_text(k): v for k, v in result.items()}
         f = result.pop("f")
         assert pickle.loads(f) == {"pk": 1, "datetime": now}
         assert pickle.loads(result.pop("e+datetime")) == now

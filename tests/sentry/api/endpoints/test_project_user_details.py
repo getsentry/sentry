@@ -1,5 +1,3 @@
-import six
-
 from django.core.urlresolvers import reverse
 
 from sentry.models import EventUser
@@ -8,7 +6,7 @@ from sentry.testutils import APITestCase
 
 class ProjectUserDetailsTest(APITestCase):
     def setUp(self):
-        super(ProjectUserDetailsTest, self).setUp()
+        super().setUp()
         self.user = self.create_user()
         self.org = self.create_organization(owner=None)
         self.team = self.create_team(organization=self.org)
@@ -28,4 +26,4 @@ class ProjectUserDetailsTest(APITestCase):
     def test_simple(self):
         response = self.client.get(self.path)
         assert response.status_code == 200
-        assert response.data["id"] == six.text_type(self.euser.id)
+        assert response.data["id"] == str(self.euser.id)

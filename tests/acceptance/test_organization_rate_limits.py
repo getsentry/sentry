@@ -6,14 +6,14 @@ from sentry.testutils import AcceptanceTestCase
 
 class OrganizationRateLimitsTest(AcceptanceTestCase):
     def setUp(self):
-        super(OrganizationRateLimitsTest, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Rowdy Tiger", owner=None)
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
         self.login_as(self.user)
-        self.path = "/organizations/{}/rate-limits/".format(self.org.slug)
+        self.path = f"/organizations/{self.org.slug}/rate-limits/"
 
     @patch("sentry.app.quotas.get_maximum_quota", Mock(return_value=(100, 60)))
     def test_with_rate_limits(self):

@@ -63,13 +63,13 @@ class TransactionRuleModal extends Form<Props, State> {
       return [
         [DynamicSamplingInnerName.TRACE_RELEASE, t('Releases')],
         [DynamicSamplingInnerName.TRACE_ENVIRONMENT, t('Environments')],
-        [DynamicSamplingInnerName.TRACE_USER_SEGMENT, t('Users')],
+        [DynamicSamplingInnerName.TRACE_USER, t('Users')],
       ];
     }
     return [
       [DynamicSamplingInnerName.EVENT_RELEASE, t('Releases')],
       [DynamicSamplingInnerName.EVENT_ENVIRONMENT, t('Environments')],
-      [DynamicSamplingInnerName.EVENT_USER_SEGMENT, t('Users')],
+      [DynamicSamplingInnerName.EVENT_USER, t('Users')],
     ];
   }
 
@@ -112,12 +112,14 @@ class TransactionRuleModal extends Form<Props, State> {
     }));
   };
 
-  handleSubmit = async () => {
+  handleSubmit = () => {
     const {tracing, sampleRate, conditions} = this.state;
 
     if (!sampleRate) {
       return;
     }
+
+    const {rule, errorRules, transactionRules} = this.props;
 
     const newRule: DynamicSamplingRule = {
       type: tracing ? DynamicSamplingRuleType.TRACE : DynamicSamplingRuleType.TRANSACTION,
@@ -125,12 +127,20 @@ class TransactionRuleModal extends Form<Props, State> {
         op: DynamicSamplingConditionOperator.AND,
         inner: conditions.map(this.getNewCondition),
       },
-      sampleRate,
+      sampleRate: sampleRate / 100,
     };
 
-    const {onSubmit, closeModal} = this.props;
-    onSubmit(newRule);
-    closeModal();
+    const newRules = rule
+      ? [
+          ...errorRules,
+          ...transactionRules.map(transactionRule =>
+            transactionRule === rule ? newRule : transactionRule
+          ),
+        ]
+      : [...errorRules, ...transactionRules, newRule];
+
+    const currentRuleIndex = newRules.findIndex(newR => newR === newRule);
+    this.submitRules(newRules, currentRuleIndex);
   };
 }
 

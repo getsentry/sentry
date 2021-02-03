@@ -141,6 +141,10 @@ const SelectControl = props => {
       ...provided,
       alignItems: 'center',
     }),
+    input: provided => ({
+      ...provided,
+      color: theme.formText,
+    }),
     singleValue: provided => ({
       ...provided,
       color: theme.formText,
