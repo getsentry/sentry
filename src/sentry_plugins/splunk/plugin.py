@@ -17,6 +17,7 @@ For more details on the payload: http://dev.splunk.com/view/event-collector/SP-C
 import logging
 
 from requests.exceptions import ConnectTimeout, ReadTimeout
+import six
 
 from sentry import tagstore
 from sentry.utils import metrics
@@ -39,6 +40,7 @@ Send Sentry events to Splunk.
 """
 
 
+<<<<<<< HEAD
 class SplunkError(Exception):
     def __init__(self, status_code, code=0, text="unknown error"):
         self.status_code = status_code
@@ -93,6 +95,8 @@ class SplunkConfigError(SplunkError):
     KNOWN_CODES = frozenset([7, 10, 11])
 
 
+=======
+>>>>>>> f3385e1034... rm legacy error handling
 class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
     title = "Splunk"
     slug = "splunk"
@@ -266,10 +270,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
 
         try:
             # https://docs.splunk.com/Documentation/Splunk/7.2.3/Data/TroubleshootHTTPEventCollector
-            resp = client.request(payload)
-
-            if resp.status_code != 200:
-                raise SplunkError.from_response(resp)
+            client.request(payload)
 
             metrics.incr(
                 "integrations.splunk.forward-event.success",
@@ -288,7 +289,6 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
                     "project_id": event.project_id,
                     "organization_id": event.project.organization_id,
                     "event_type": event.get_event_type(),
-                    "error_code": getattr(exc, "code", None),
                 },
             )
             logger.info(
@@ -301,13 +301,4 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
                 },
             )
 
-            if isinstance(exc, (ConnectTimeout, ReadTimeout)):
-                # If we get a ConnectTimeout or ReadTimeout we don't need to raise an error here.
-                # Just log and return.
-                return False
-
-            if isinstance(exc, SplunkError) and exc.status_code == 403:
-                # 403s are not errors or actionable for us do not re-raise
-                return False
-
-            raise
+            raise exc

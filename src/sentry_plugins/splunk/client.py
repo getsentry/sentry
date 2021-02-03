@@ -4,6 +4,7 @@ from sentry_plugins.client import ApiClient
 class SplunkApiClient(ApiClient):
     plugin_name = "splunk"
     allow_redirects = False
+    datadog_prefix = "integrations.splunk"
 
     def __init__(self, endpoint, token):
         self.endpoint = endpoint
