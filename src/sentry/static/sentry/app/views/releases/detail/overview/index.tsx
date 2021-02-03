@@ -245,7 +245,7 @@ class ReleaseOverview extends AsyncView<Props> {
 
     return (
       <ReleaseContext.Consumer>
-        {({release, project, deploys, releaseMeta, refetchData}) => {
+        {({release, project, deploys, releaseMeta, refetchData, defaultStatsPeriod}) => {
           const {commitCount, version} = release;
           const {hasHealthData} = project.healthData || {};
           const hasDiscover = organization.features.includes('discover-basic');
@@ -293,6 +293,7 @@ class ReleaseOverview extends AsyncView<Props> {
               hasHealthData={hasHealthData}
               hasDiscover={hasDiscover}
               hasPerformance={hasPerformance}
+              defaultStatsPeriod={defaultStatsPeriod}
             >
               {({crashFreeTimeBreakdown, ...releaseStatsProps}) => (
                 <Body>
@@ -330,6 +331,7 @@ class ReleaseOverview extends AsyncView<Props> {
                       selection={selection}
                       version={version}
                       location={location}
+                      defaultStatsPeriod={defaultStatsPeriod}
                     />
                     <Feature features={['performance-view']}>
                       <TransactionsList

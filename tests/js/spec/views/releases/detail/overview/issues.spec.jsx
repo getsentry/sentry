@@ -27,20 +27,22 @@ describe('Release Issues', function () {
     });
 
     newIssuesEndpoint = MockApiClient.addMockResponse({
-      url: `/organizations/${props.orgId}/issues/?limit=10&query=first-release%3A1.0.0&sort=new`,
+      url: `/organizations/${props.orgId}/issues/?limit=10&query=first-release%3A1.0.0&sort=new&statsPeriod=14d`,
       body: [],
     });
     resolvedIssuesEndpoint = MockApiClient.addMockResponse({
-      url: '/organizations/org/releases/1.0.0/resolved/?limit=10&query=&sort=new',
+      url:
+        '/organizations/org/releases/1.0.0/resolved/?limit=10&query=&sort=new&statsPeriod=14d',
       body: [],
     });
     unhandledIssuesEndpoint = MockApiClient.addMockResponse({
       url:
-        '/organizations/org/issues/?limit=10&query=release%3A1.0.0%20error.handled%3A0&sort=new',
+        '/organizations/org/issues/?limit=10&query=release%3A1.0.0%20error.handled%3A0&sort=new&statsPeriod=14d',
       body: [],
     });
     allIssuesEndpoint = MockApiClient.addMockResponse({
-      url: '/organizations/org/issues/?limit=10&query=release%3A1.0.0&sort=new',
+      url:
+        '/organizations/org/issues/?limit=10&query=release%3A1.0.0&sort=new&statsPeriod=14d',
       body: [],
     });
   });
@@ -146,25 +148,49 @@ describe('Release Issues', function () {
 
     expect(wrapper.find('Link[data-test-id="issues-button"]').prop('to')).toEqual({
       pathname: '/organizations/org/issues/',
-      query: {sort: 'new', query: 'firstRelease:1.0.0'},
+      query: {
+        sort: 'new',
+        query: 'firstRelease:1.0.0',
+        cursor: undefined,
+        limit: undefined,
+        statsPeriod: '14d',
+      },
     });
 
     filterIssues(wrapper, 'resolved');
     expect(wrapper.find('Link[data-test-id="issues-button"]').prop('to')).toEqual({
       pathname: '/organizations/org/issues/',
-      query: {sort: 'new', query: 'release:1.0.0'},
+      query: {
+        sort: 'new',
+        query: 'release:1.0.0',
+        cursor: undefined,
+        limit: undefined,
+        statsPeriod: '14d',
+      },
     });
 
     filterIssues(wrapper, 'unhandled');
     expect(wrapper.find('Link[data-test-id="issues-button"]').prop('to')).toEqual({
       pathname: '/organizations/org/issues/',
-      query: {sort: 'new', query: 'release:1.0.0 error.handled:0'},
+      query: {
+        sort: 'new',
+        query: 'release:1.0.0 error.handled:0',
+        cursor: undefined,
+        limit: undefined,
+        statsPeriod: '14d',
+      },
     });
 
     filterIssues(wrapper, 'all');
     expect(wrapper.find('Link[data-test-id="issues-button"]').prop('to')).toEqual({
       pathname: '/organizations/org/issues/',
-      query: {sort: 'new', query: 'release:1.0.0'},
+      query: {
+        sort: 'new',
+        query: 'release:1.0.0',
+        cursor: undefined,
+        limit: undefined,
+        statsPeriod: '14d',
+      },
     });
   });
 });
