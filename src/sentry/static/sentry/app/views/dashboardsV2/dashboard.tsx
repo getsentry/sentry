@@ -205,10 +205,6 @@ const WidgetWrapper = styled(motion.div)<{displayType: Widget['displayType']}>`
   position: relative;
   /* Min-width prevents grid items from stretching the grid */
   min-width: 200px;
-
-  transform: translate3d(var(--translate-x, 0), var(--translate-y, 0), 0)
-    scaleX(var(--scale-x, 1)) scaleY(var(--scale-y, 1));
-  transform-origin: 0 0;
   touch-action: manipulation;
 
   ${p => {
