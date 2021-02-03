@@ -1,5 +1,3 @@
-import responses
-
 from sentry.mediators.external_issues import Creator
 from sentry.models import PlatformExternalIssue
 from sentry.testutils import TestCase
@@ -22,20 +20,7 @@ class TestCreator(TestCase):
             slug="foo", organization=self.org, user=self.user
         )
 
-    @responses.activate
     def test_creates_platform_external_issue(self):
-        responses.add(
-            method=responses.POST,
-            url="https://example.com/link-issue",
-            json={
-                "project": "Projectname",
-                "webUrl": "https://example.com/project/issue-id",
-                "identifier": "issue-1",
-            },
-            status=200,
-            content_type="application/json",
-        )
-
         result = Creator.run(
             install=self.install,
             group=self.group,
