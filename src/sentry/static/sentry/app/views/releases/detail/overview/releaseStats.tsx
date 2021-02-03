@@ -81,10 +81,10 @@ function ReleaseStats({organization, release, project, location, selection}: Pro
       </div>
 
       <div>
-        <SectionHeading>{t('Crash Free Users')}</SectionHeading>
+        <SectionHeading>{t('Crash Free Sessions')}</SectionHeading>
         <div>
-          {defined(crashFreeUsers) ? (
-            <CrashFree percent={crashFreeUsers} iconSize="md" />
+          {defined(crashFreeSessions) ? (
+            <CrashFree percent={crashFreeSessions} iconSize="md" />
           ) : (
             <NotAvailable tooltip={NOT_AVAILABLE_MESSAGES.releaseHealth} />
           )}
@@ -92,10 +92,10 @@ function ReleaseStats({organization, release, project, location, selection}: Pro
       </div>
 
       <div>
-        <SectionHeading>{t('Crash Free Sessions')}</SectionHeading>
+        <SectionHeading>{t('Crash Free Users')}</SectionHeading>
         <div>
-          {defined(crashFreeSessions) ? (
-            <CrashFree percent={crashFreeSessions} iconSize="md" />
+          {defined(crashFreeUsers) ? (
+            <CrashFree percent={crashFreeUsers} iconSize="md" />
           ) : (
             <NotAvailable tooltip={NOT_AVAILABLE_MESSAGES.releaseHealth} />
           )}
