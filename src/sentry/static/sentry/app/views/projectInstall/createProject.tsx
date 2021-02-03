@@ -107,7 +107,6 @@ class CreateProject extends React.Component<Props, State> {
           <FormLabel>{t('Team')}</FormLabel>
           <TeamSelectInput>
             <SelectControl
-              deprecatedSelectControl
               name="select-team"
               clearable={false}
               value={team}

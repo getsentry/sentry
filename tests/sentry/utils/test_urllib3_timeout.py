@@ -10,7 +10,7 @@ from sentry.utils.snuba import RetrySkipTimeout
 class FakeConnectionPool(HTTPConnectionPool):
     def __init__(self, connection, **kwargs):
         self.connection = connection
-        super(FakeConnectionPool, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def _new_conn(self):
         return self.connection

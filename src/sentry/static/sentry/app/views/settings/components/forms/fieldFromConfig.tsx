@@ -90,7 +90,10 @@ export default class FieldFromConfig extends React.Component<Props> {
         }
         return <RadioField {...props} choices={choices} />;
       case 'rich_list':
-        return <RichListField {...props} />;
+        // TODO(ts) The switch on field.type is not resolving
+        // the Field union for this component. It isn't clear why the spread
+        // works for project_mapper but not this component.
+        return <RichListField {...(props as any)} />;
       case 'table':
         return <TableField {...props} />;
       case 'project_mapper':

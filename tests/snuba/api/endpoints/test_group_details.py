@@ -1,4 +1,3 @@
-import six
 from sentry.utils.compat import mock
 
 from sentry.models import Environment, Release, GroupInboxReason
@@ -15,7 +14,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         environment = Environment.get_or_create(group.project, "production")
         environment2 = Environment.get_or_create(group.project, "staging")
 
-        url = "/api/0/issues/{}/".format(group.id)
+        url = f"/api/0/issues/{group.id}/"
 
         from sentry.api.endpoints.group_details import tsdb
 
@@ -23,14 +22,14 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             "sentry.api.endpoints.group_details.tsdb.get_range", side_effect=tsdb.get_range
         ) as get_range:
             response = self.client.get(
-                "%s?environment=production&environment=staging" % (url,), format="json"
+                f"{url}?environment=production&environment=staging", format="json"
             )
             assert response.status_code == 200
             assert get_range.call_count == 2
             for args, kwargs in get_range.call_args_list:
                 assert kwargs["environment_ids"] == [environment.id, environment2.id]
 
-        response = self.client.get("%s?environment=invalid" % (url,), format="json")
+        response = self.client.get(f"{url}?environment=invalid", format="json")
         assert response.status_code == 404
 
     def test_with_first_last_release(self):
@@ -61,18 +60,18 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         group = event.group
 
-        url = "/api/0/issues/{}/".format(group.id)
+        url = f"/api/0/issues/{group.id}/"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(group.id)
+        assert response.data["id"] == str(group.id)
         release = response.data["firstRelease"]
         assert release["version"] == "1.0"
-        for event, timestamp in six.iteritems(first_release):
+        for event, timestamp in first_release.items():
             assert release[event].ctime() == timestamp.ctime()
         release = response.data["lastRelease"]
         assert release["version"] == "1.0a"
-        for event, timestamp in six.iteritems(last_release):
+        for event, timestamp in last_release.items():
             assert release[event].ctime() == timestamp.ctime()
 
     def test_first_last_only_one_tagstore(self):
@@ -89,7 +88,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         group = event.group
 
-        url = "/api/0/issues/{}/".format(group.id)
+        url = f"/api/0/issues/{group.id}/"
 
         with mock.patch(
             "sentry.api.endpoints.group_details.tagstore.get_release_tags"
@@ -116,7 +115,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         group = event.group
 
-        url = "/api/0/issues/{}/".format(group.id)
+        url = f"/api/0/issues/{group.id}/"
 
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
@@ -140,7 +139,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             group = event.group
             add_group_to_inbox(group, GroupInboxReason.NEW)
 
-            url = "/api/0/issues/{}/?expand=inbox".format(group.id)
+            url = f"/api/0/issues/{group.id}/?expand=inbox"
 
             response = self.client.get(url, format="json")
             assert response.status_code == 200, response.content
