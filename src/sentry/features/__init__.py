@@ -128,6 +128,7 @@ default_manager.add("projects:data-forwarding", ProjectFeature)  # NOQA
 default_manager.add("projects:discard-groups", ProjectFeature)  # NOQA
 default_manager.add("projects:issue-alerts-targeting", ProjectFeature)  # NOQA
 default_manager.add("projects:minidump", ProjectFeature)  # NOQA
+default_manager.add("projects:race-free-group-creation", ProjectFeature)  # NOQA
 default_manager.add("projects:rate-limits", ProjectFeature)  # NOQA
 default_manager.add("projects:sample-events", ProjectFeature)  # NOQA
 default_manager.add("projects:servicehooks", ProjectFeature)  # NOQA

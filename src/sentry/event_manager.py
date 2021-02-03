@@ -396,8 +396,14 @@ class EventManager(object):
         with metrics.timer("event_manager.get_attachments"):
             attachments = get_attachments(cache_key, job)
 
+        save_aggregate_fn = (
+            _save_aggregate2
+            if features.has("projects:race-free-group-creation", project)
+            else _save_aggregate
+        )
+
         try:
-            job["group"], job["is_new"], job["is_regression"] = _save_aggregate(
+            job["group"], job["is_new"], job["is_regression"] = save_aggregate_fn(
                 event=job["event"], hashes=hashes, release=job["release"], **kwargs
             )
         except HashDiscarded:
@@ -950,7 +956,9 @@ def _save_aggregate2(event, hashes, release, **kwargs):
                     **kwargs,
                 )
 
-                # invariant: all_hashes have group_id=None
+                # invariant: existing_group_id is None, therefore all hashes
+                # have group_id=None, therefore none of them can be locked in
+                # migration either
                 GroupHash.objects.filter(id__in=[h.id for h in all_hashes]).update(group=group)
 
                 is_new = True
@@ -969,7 +977,7 @@ def _save_aggregate2(event, hashes, release, **kwargs):
     is_regression = _process_existing_aggregate(
         group=group, event=event, data=kwargs, release=release
     )
-    # XXX: new_hashes is not updated here like in the original _save_aggregate,
+    # new_hashes is not updated here like in the original _save_aggregate,
     # not sure if it matters though
     return group, is_new, is_regression
 
