@@ -286,7 +286,6 @@ const SelectControl = props => {
       value={mappedValue}
       isMulti={props.multiple || props.multi}
       isDisabled={props.isDisabled || props.disabled}
-      defaultOptions={choicesOrOptions}
       options={choicesOrOptions}
       openMenuOnFocus={props.openMenuOnFocus === undefined ? true : props.openMenuOnFocus}
       {...rest}
