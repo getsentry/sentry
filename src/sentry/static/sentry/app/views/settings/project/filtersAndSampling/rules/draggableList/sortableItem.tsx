@@ -1,5 +1,5 @@
 import React from 'react';
-import {DraggableSyntheticListeners} from '@dnd-kit/core';
+import {DraggableSyntheticListeners, UseDraggableArguments} from '@dnd-kit/core';
 import {useSortable} from '@dnd-kit/sortable';
 import {Transform} from '@dnd-kit/utilities';
 
@@ -7,6 +7,7 @@ type Props = {
   id: string;
   renderItem(args: {
     value: React.ReactNode;
+    attributes?: UseDraggableArguments['attributes'];
     listeners?: DraggableSyntheticListeners;
     transform?: Transform | null;
     transition?: string;
@@ -24,7 +25,7 @@ function SortableItem({id, renderItem}: Props) {
     transform,
     transition,
     listeners,
-    ...attributes,
+    attributes,
   });
 }
 

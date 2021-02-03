@@ -77,6 +77,7 @@ class Rules extends React.PureComponent<Props, State> {
           renderItem={({
             value,
             listeners,
+            attributes,
             forwardRef,
             transform,
             transition,
@@ -108,6 +109,7 @@ class Rules extends React.PureComponent<Props, State> {
                 grabStyle={grabStyle}
                 forwardRef={forwardRef as React.Ref<HTMLDivElement> | undefined}
                 listeners={listeners}
+                grabAttributes={attributes}
               />
             );
           }}

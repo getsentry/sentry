@@ -1,5 +1,5 @@
 import React from 'react';
-import {DraggableSyntheticListeners} from '@dnd-kit/core';
+import {DraggableSyntheticListeners, UseDraggableArguments} from '@dnd-kit/core';
 import styled from '@emotion/styled';
 
 import {IconGrabbable} from 'app/icons/iconGrabbable';
@@ -19,6 +19,7 @@ type Props = {
   onDeleteRule: () => void;
   disabled: boolean;
   listeners: DraggableSyntheticListeners;
+  grabAttributes?: UseDraggableArguments['attributes'];
   rootStyle?: React.CSSProperties;
   grabStyle?: React.CSSProperties;
   forwardRef?: React.Ref<HTMLDivElement>;
@@ -30,6 +31,7 @@ function Rule({
   onDeleteRule,
   disabled,
   listeners,
+  grabAttributes,
   rootStyle,
   forwardRef,
   grabStyle,
@@ -40,7 +42,12 @@ function Rule({
     <Wrapper ref={forwardRef} style={rootStyle}>
       <Columns>
         <Column>
-          <IconGrabbableWrapper {...listeners} disabled={disabled} style={grabStyle}>
+          <IconGrabbableWrapper
+            {...listeners}
+            disabled={disabled}
+            style={grabStyle}
+            {...grabAttributes}
+          >
             <IconGrabbable />
           </IconGrabbableWrapper>
         </Column>
