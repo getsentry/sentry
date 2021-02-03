@@ -21,44 +21,46 @@ type OptionType = {
   description: string;
 };
 
-const RoleSelector = ({roles, disableUnallowed, ...props}: Props) => (
-  <SelectControl
-    options={roles?.map(
-      (r: MemberRole) =>
-        ({
-          value: r.id,
-          label: r.name,
-          disabled: disableUnallowed && !r.allowed,
-          description: r.desc,
-        } as OptionType)
-    )}
-    components={{
-      Option: ({label, data, ...optionProps}: OptionProps<OptionType>) => (
-        <components.Option label={label} {...(optionProps as any)}>
-          <RoleItem>
-            <h1>{label}</h1>
-            <div>{data.description}</div>
-          </RoleItem>
-        </components.Option>
-      ),
-    }}
-    styles={{
-      control: provided => ({
-        ...provided,
-        borderBottomLeftRadius: theme.borderRadius,
-        borderBottomRightRadius: theme.borderRadius,
-      }),
-      menu: provided => ({
-        ...provided,
-        borderRadius: theme.borderRadius,
-        marginTop: space(0.5),
-        width: '350px',
-        overflow: 'hidden',
-      }),
-    }}
-    {...props}
-  />
-);
+function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {
+  return (
+    <SelectControl
+      options={roles?.map(
+        (r: MemberRole) =>
+          ({
+            value: r.id,
+            label: r.name,
+            disabled: disableUnallowed && !r.allowed,
+            description: r.desc,
+          } as OptionType)
+      )}
+      components={{
+        Option: ({label, data, ...optionProps}: OptionProps<OptionType>) => (
+          <components.Option label={label} {...(optionProps as any)}>
+            <RoleItem>
+              <h1>{label}</h1>
+              <div>{data.description}</div>
+            </RoleItem>
+          </components.Option>
+        ),
+      }}
+      styles={{
+        control: provided => ({
+          ...provided,
+          borderBottomLeftRadius: theme.borderRadius,
+          borderBottomRightRadius: theme.borderRadius,
+        }),
+        menu: provided => ({
+          ...provided,
+          borderRadius: theme.borderRadius,
+          marginTop: space(0.5),
+          width: '350px',
+          overflow: 'hidden',
+        }),
+      }}
+      {...props}
+    />
+  );
+}
 
 const RoleItem = styled('div')`
   display: grid;
@@ -73,4 +75,4 @@ const RoleItem = styled('div')`
   }
 `;
 
-export default RoleSelector;
+export default RoleSelectControl;

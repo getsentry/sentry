@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {findOption, openMenu} from 'sentry-test/select-new';
+import {selectByValueAsync} from 'sentry-test/select-new';
 
 import MemberListStore from 'app/stores/memberListStore';
 import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
@@ -79,14 +79,7 @@ describe('Project Ownership Input', function () {
     pathInput.simulate('change', {target: {value: 'file.js'}});
 
     // Select the user.
-    let userSelect = wrapper.find('RuleBuilder SelectOwners');
-    openMenu(userSelect, {control: true});
-    await tick();
-    await wrapper.update();
-
-    // Because this menu is async we can't use selectByValue()
-    userSelect = wrapper.find('RuleBuilder SelectOwners');
-    findOption(userSelect, {value: 'user:1'}, {control: true}).at(0).simulate('click');
+    await selectByValueAsync(wrapper, 'user:1', {control: true, name: 'owners'});
     await wrapper.update();
 
     // Add the new rule.

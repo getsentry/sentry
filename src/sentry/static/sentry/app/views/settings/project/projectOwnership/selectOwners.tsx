@@ -283,6 +283,7 @@ class SelectOwners extends React.Component<Props, State> {
   render() {
     return (
       <MultiSelectControl
+        name="owners"
         filterOption={(option, filterText) =>
           option.data.searchKey.indexOf(filterText) > -1
         }
