@@ -13,7 +13,7 @@ from sentry.api.event_search import (
 from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.search.utils import (
     parse_actor_value,
-    parse_assigned_or_suggested_value,
+    parse_actor_or_none_value,
     parse_user_value,
     parse_release,
     parse_status_value,
@@ -94,8 +94,8 @@ def convert_actor_value(value, projects, user, environments):
     return parse_actor_value(projects, value, user)
 
 
-def convert_assigned_or_suggested_value(value, projects, user, environments):
-    return parse_assigned_or_suggested_value(projects, value, user)
+def convert_actor_or_none_value(value, projects, user, environments):
+    return parse_actor_or_none_value(projects, value, user)
 
 
 def convert_user_value(value, projects, user, environments):
@@ -114,8 +114,8 @@ def convert_status_value(value, projects, user, environments):
 
 
 value_converters = {
-    "assigned_or_suggested": convert_assigned_or_suggested_value,
-    "assigned_to": convert_actor_value,
+    "assigned_or_suggested": convert_actor_or_none_value,
+    "assigned_to": convert_actor_or_none_value,
     "bookmarked_by": convert_user_value,
     "subscribed_by": convert_user_value,
     "first_release": convert_release_value,
