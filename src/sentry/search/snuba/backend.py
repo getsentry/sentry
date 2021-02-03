@@ -36,26 +36,39 @@ def assigned_to_filter(actor, projects):
                 team=actor, project_id__in=[p.id for p in projects]
             ).values_list("group_id", flat=True)
         )
+    elif isinstance(actor, User) or (isinstance(actor, list) and actor[0] == "me_or_none"):
+        include_none = False
+        if isinstance(actor, list) and actor[0] == "me_or_none":
+            include_none = True
+            actor = actor[1]
 
-    assigned_to_user = Q(
-        id__in=GroupAssignee.objects.filter(
-            user=actor, project_id__in=[p.id for p in projects]
-        ).values_list("group_id", flat=True)
-    )
-    assigned_to_team = Q(
-        id__in=GroupAssignee.objects.filter(
-            project_id__in=[p.id for p in projects],
-            team_id__in=Team.objects.filter(
-                id__in=OrganizationMemberTeam.objects.filter(
-                    organizationmember__in=OrganizationMember.objects.filter(
-                        user=actor, organization_id=projects[0].organization_id
-                    ),
-                    is_active=True,
-                ).values("team")
-            ),
-        ).values_list("group_id", flat=True)
-    )
-    return assigned_to_user | assigned_to_team
+        assigned_to_user = Q(
+            id__in=GroupAssignee.objects.filter(
+                user=actor, project_id__in=[p.id for p in projects]
+            ).values_list("group_id", flat=True)
+        )
+        assigned_to_team = Q(
+            id__in=GroupAssignee.objects.filter(
+                project_id__in=[p.id for p in projects],
+                team_id__in=Team.objects.filter(
+                    id__in=OrganizationMemberTeam.objects.filter(
+                        organizationmember__in=OrganizationMember.objects.filter(
+                            user=actor, organization_id=projects[0].organization_id
+                        ),
+                        is_active=True,
+                    ).values("team")
+                ),
+            ).values_list("group_id", flat=True)
+        )
+
+        assigned_query = assigned_to_user | assigned_to_team
+
+        if include_none:
+            return assigned_query | unassigned_filter(True, projects)
+        else:
+            return assigned_query
+
+    raise InvalidSearchQuery("Unsupported assignee type.")
 
 
 def unassigned_filter(unassigned, projects):
