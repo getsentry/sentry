@@ -40,7 +40,7 @@ def read_txt_email_fixture(name):
     path = join(dirname(__file__), os.pardir, "fixtures", "emails", filename)
 
     fixture = None
-    with open(path, "r") as f:
+    with open(path) as f:
         fixture = f.read()
     return fixture
 
