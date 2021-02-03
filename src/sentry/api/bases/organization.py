@@ -279,17 +279,16 @@ class OrganizationEndpoint(Endpoint):
                 total_seconds = (end - start).total_seconds()
                 sentry_sdk.set_tag("query.period", total_seconds)
                 one_day = 86400
+                grouped_period = ">30d"
                 if total_seconds <= one_day:
-                    return "<=1d"
+                    grouped_period = "<=1d"
                 elif total_seconds <= one_day * 7:
-                    return "<=7d"
+                    grouped_period = "<=7d"
                 elif total_seconds <= one_day * 14:
-                    return "<=14d"
+                    grouped_period = "<=14d"
                 elif total_seconds <= one_day * 30:
-                    return "<=30d"
-                else:
-                    return ">30d"
-                sentry_sdk.set_tag("query.period.grouped", self.group_query_period(total_seconds))
+                    grouped_period = "<=30d"
+                sentry_sdk.set_tag("query.period.grouped", grouped_period)
         except InvalidParams as e:
             raise ParseError(detail="Invalid date range: {}".format(e))
 
