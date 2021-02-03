@@ -1,4 +1,3 @@
-import io
 import os
 
 from urllib.parse import parse_qsl
@@ -54,7 +53,7 @@ class UserAuthenticatorEnrollTest(APITestCase):
 
         assert resp.status_code == 200
         assert resp.data["secret"] == "Z" * 32
-        with io.open(get_fixture_path("totp_qrcode.json")) as f:
+        with open(get_fixture_path("totp_qrcode.json")) as f:
             assert resp.data["qrcode"] == json.loads(f.read())
         assert resp.data["form"]
         assert resp.data["secret"]
