@@ -2,7 +2,7 @@
 import React, {useEffect} from 'react';
 import LazyLoad from 'react-lazyload';
 import {DndContext} from '@dnd-kit/core';
-import {SortableContext, useSortable} from '@dnd-kit/sortable';
+import {rectSwappingStrategy, SortableContext, useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
@@ -178,7 +178,7 @@ class Dashboard extends React.Component<Props, State> {
         }}
       >
         <WidgetContainer>
-          <SortableContext items={this.getWidgetIds()}>
+          <SortableContext items={this.getWidgetIds()} strategy={rectSwappingStrategy}>
             {dashboard.widgets.map((widget, index) => this.renderWidget(widget, index))}
             {isEditing && <AddWidget onClick={this.handleStartAdd} />}
           </SortableContext>
@@ -272,6 +272,7 @@ function SortableWidget(props: SortableWidgetProps) {
     scaleX: 1,
     scaleY: 1,
     boxShadow: 'none',
+    zIndex: 0,
   };
 
   return (
@@ -332,6 +333,7 @@ function AddWidget(props: {onClick: () => void}) {
     y: 0,
     scaleX: 1,
     scaleY: 1,
+    zIndex: 0,
   };
 
   const {setNodeRef, transform} = useSortable({
