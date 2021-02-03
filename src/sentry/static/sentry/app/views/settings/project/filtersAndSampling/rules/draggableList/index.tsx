@@ -3,10 +3,9 @@ import {createPortal} from 'react-dom';
 import {DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 
-import Item from './item';
 import SortableItem from './sortableItem';
 
-type Props = Pick<React.ComponentProps<typeof Item>, 'renderItem'> & {
+type Props = Pick<React.ComponentProps<typeof SortableItem>, 'renderItem'> & {
   items: Array<string>;
   onUpdateItems: (items: Array<string>) => void;
 };
@@ -15,7 +14,7 @@ type State = {
   activeId?: string;
 };
 
-class DragHandle extends React.Component<Props, State> {
+class DraggableList extends React.Component<Props, State> {
   state: State = {};
 
   handleChangeActive = (activeId: State['activeId']) => {
@@ -52,18 +51,14 @@ class DragHandle extends React.Component<Props, State> {
       >
         <SortableContext items={items} strategy={verticalListSortingStrategy}>
           {items.map(item => (
-            <SortableItem key={item} id={item} value={item} renderItem={renderItem} />
+            <SortableItem key={item} id={item} renderItem={renderItem} />
           ))}
         </SortableContext>
         {createPortal(
           <DragOverlay>
-            {activeId ? (
-              <Item
-                value={items[activeIndex]}
-                renderItem={renderItem}
-                style={{cursor: 'grabbing'}}
-              />
-            ) : null}
+            {activeId
+              ? renderItem({value: items[activeIndex], style: {cursor: 'grabbing'}})
+              : null}
           </DragOverlay>,
           document.body
         )}
@@ -72,4 +67,4 @@ class DragHandle extends React.Component<Props, State> {
   }
 }
 
-export default DragHandle;
+export default DraggableList;

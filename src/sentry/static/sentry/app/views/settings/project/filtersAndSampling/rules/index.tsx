@@ -5,7 +5,7 @@ import {PanelTable} from 'app/components/panels';
 import {t} from 'app/locale';
 import {DynamicSamplingRule} from 'app/types/dynamicSampling';
 
-import DragHandle from './dragHandle';
+import DraggableList from './draggableList';
 import Rule from './rule';
 import {layout} from './utils';
 
@@ -71,7 +71,7 @@ class Rules extends React.PureComponent<Props, State> {
         isEmpty={!rules.length}
         emptyMessage={t('There are no rules to display')}
       >
-        <DragHandle
+        <DraggableList
           items={rules.map(rule => rule.id)}
           onUpdateItems={this.handleUpdateRules}
           renderItem={({

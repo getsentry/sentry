@@ -96,7 +96,6 @@ const Columns = styled('div')`
   transition: box-shadow 200ms cubic-bezier(0.18, 0.67, 0.6, 1.22);
 
   animation: pop 200ms cubic-bezier(0.18, 0.67, 0.6, 1.22);
-  transform: scale(var(--scale));
   box-shadow: var(--box-shadow-picked-up);
   opacity: 1;
 
@@ -110,7 +109,6 @@ const Columns = styled('div')`
       box-shadow: var(--box-shadow);
     }
     100% {
-      transform: scale(var(--scale));
       box-shadow: var(--box-shadow-picked-up);
     }
   }
