@@ -75,6 +75,7 @@ type Props = {
   hasGuideAnchor?: boolean;
   memberList?: User[];
   onMarkReviewed?: (itemIds: string[]) => void;
+  showInboxTime?: boolean;
   // TODO(ts): higher order functions break defaultprops export types
 } & Partial<typeof defaultProps>;
 
@@ -284,6 +285,7 @@ class StreamGroup extends React.Component<Props, State> {
       selection,
       organization,
       displayReprocessingLayout,
+      showInboxTime,
       onMarkReviewed,
     } = this.props;
 
@@ -333,6 +335,7 @@ class StreamGroup extends React.Component<Props, State> {
             hasGuideAnchor={hasGuideAnchor}
             organization={organization}
             data={data}
+            showInboxTime={showInboxTime}
           />
         </GroupSummary>
         {hasGuideAnchor && <GuideAnchor target="issue_stream" />}

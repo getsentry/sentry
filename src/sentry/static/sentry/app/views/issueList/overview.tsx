@@ -66,13 +66,14 @@ import {
   getTabs,
   getTabsWithCounts,
   isForReviewQuery,
+  IssueSortOptions,
   Query,
   QueryCounts,
   TAB_MAX_COUNT,
 } from './utils';
 
 const MAX_ITEMS = 25;
-const DEFAULT_SORT = 'date';
+const DEFAULT_SORT = IssueSortOptions.DATE;
 // the default period for the graph in each issue row
 const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 // the allowed period choices for graph in each issue row
@@ -745,7 +746,7 @@ class IssueListOverview extends React.Component<Props, State> {
     }
 
     // Remove inbox tab specific sort
-    if (query.sort === 'time' && !isForReviewQuery(query.query)) {
+    if (query.sort === IssueSortOptions.INBOX && !isForReviewQuery(query.query)) {
       delete query.sort;
     }
 
@@ -779,6 +780,7 @@ class IssueListOverview extends React.Component<Props, State> {
     const topIssue = ids[0];
     const {memberList} = this.state;
     const query = this.getQuery();
+    const showInboxTime = this.getSort() === 'inbox';
 
     return ids.map(id => {
       const hasGuideAnchor = id === topIssue;
@@ -805,6 +807,7 @@ class IssueListOverview extends React.Component<Props, State> {
           displayReprocessingLayout={displayReprocessingLayout}
           onMarkReviewed={this.onMarkReviewed}
           useFilteredStats
+          showInboxTime={showInboxTime}
         />
       );
     });

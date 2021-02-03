@@ -125,3 +125,13 @@ type QueryCount = {
 };
 
 export type QueryCounts = Partial<Record<Query, QueryCount>>;
+
+export enum IssueSortOptions {
+  DATE = 'date',
+  NEW = 'new',
+  PRIORITY = 'priority',
+  FREQ = 'freq',
+  USER = 'user',
+  TREND = 'trend',
+  INBOX = 'inbox',
+}

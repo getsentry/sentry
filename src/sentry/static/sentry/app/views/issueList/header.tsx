@@ -16,7 +16,14 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withProjects from 'app/utils/withProjects';
 
 import SavedSearchTab from './savedSearchTab';
-import {getTabs, isForReviewQuery, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
+import {
+  getTabs,
+  isForReviewQuery,
+  IssueSortOptions,
+  Query,
+  QueryCounts,
+  TAB_MAX_COUNT,
+} from './utils';
 
 type Props = {
   organization: Organization;
@@ -102,7 +109,8 @@ function IssueListHeader({
                   ...queryParms,
                   query: tabQuery,
                   sort:
-                    queryParms.sort === 'inbox' && !isForReviewQuery(tabQuery)
+                    queryParms.sort === IssueSortOptions.INBOX &&
+                    !isForReviewQuery(tabQuery)
                       ? undefined
                       : queryParms.sort,
                 },
