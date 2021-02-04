@@ -60,7 +60,7 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
         return True
 
     def is_configured(self, project, **kwargs):
-        return all((self.get_option(k, project) for k in ("host", "key", "project_id")))
+        return all(self.get_option(k, project) for k in ("host", "key", "project_id"))
 
     def get_new_issue_title(self, **kwargs):
         return "Create Redmine Task"

@@ -26,7 +26,6 @@ from sentry.incidents.models import (
 )
 from sentry.models import Integration, PagerDutyService, UserOption
 from sentry.testutils import TestCase
-from sentry.testutils.helpers import with_feature
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
@@ -248,18 +247,18 @@ class SlackWorkspaceActionHandlerTest(FireTest, TestCase):
     def run_test(self, incident, method):
         from sentry.integrations.slack.utils import build_incident_attachment
 
-        token = "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        token = "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         integration = Integration.objects.create(
             external_id="1",
             provider="slack",
-            metadata={"access_token": token},
+            metadata={"access_token": token, "installation_type": "born_as_bot"},
         )
         integration.add_organization(self.organization, self.user)
         channel_id = "some_id"
         channel_name = "#hello"
         responses.add(
             method=responses.GET,
-            url="https://slack.com/api/channels.list",
+            url="https://slack.com/api/conversations.list",
             status=200,
             content_type="application/json",
             body=json.dumps(
@@ -291,18 +290,19 @@ class SlackWorkspaceActionHandlerTest(FireTest, TestCase):
             incident, metric_value
         )
 
-    @with_feature("organizations:slack-allow-workspace")
     def test_fire_metric_alert(self):
         self.run_fire_test()
 
-    @with_feature("organizations:slack-allow-workspace")
     def test_fire_metric_alert_with_missing_integration(self):
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
         integration = Integration.objects.create(
             external_id="1",
             provider="slack",
-            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+            metadata={
+                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
         )
         action = AlertRuleTriggerAction.objects.create(
             alert_rule_trigger=self.create_alert_rule_trigger(),
@@ -319,7 +319,6 @@ class SlackWorkspaceActionHandlerTest(FireTest, TestCase):
         with self.tasks():
             handler.fire(metric_value)
 
-    @with_feature("organizations:slack-allow-workspace")
     def test_resolve_metric_alert(self):
         self.run_fire_test("resolve")
 

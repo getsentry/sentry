@@ -38,8 +38,7 @@ export function getTabs(organization: Organization) {
         analyticsName: 'unresolved',
         count: true,
         enabled: true,
-        tooltipTitle: t(`All unresolved issues, including those that need review.
-        If an issue doesn’t occur for seven days it’s automatically resolved.`),
+        tooltipTitle: t(`All unresolved issues, including those that need review.`),
       },
     ],
     [
@@ -49,7 +48,7 @@ export function getTabs(organization: Organization) {
         analyticsName: 'needs_review',
         count: true,
         enabled: organization.features.includes('inbox-owners-query'),
-        tooltipTitle: t(`New and reopened issues. You can review, ignore, or resolve
+        tooltipTitle: t(`New and reopened issues that you can review, ignore, or resolve
         to move them out of this list. After seven days these issues are
         automatically marked as reviewed.`),
       },
@@ -107,6 +106,13 @@ export function getTabs(organization: Organization) {
 export function getTabsWithCounts(organization: Organization) {
   const tabs = getTabs(organization);
   return tabs.filter(([_query, tab]) => tab.count).map(([query]) => query);
+}
+
+export function isForReviewQuery(query: string | undefined) {
+  return (
+    query !== undefined &&
+    (query === Query.FOR_REVIEW || query === Query.FOR_REVIEW_OWNER)
+  );
 }
 
 // the tab counts will look like 99+

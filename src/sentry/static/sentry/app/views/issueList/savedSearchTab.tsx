@@ -43,7 +43,7 @@ function SavedSearchTab({
 
   const title = (
     <TitleWrapper>
-      <Tooltip title={tooltipTitle} position="bottom" isHoverable>
+      <Tooltip title={tooltipTitle} position="bottom" isHoverable delay={1000}>
         {isActive ? (
           <React.Fragment>
             {savedSearch ? savedSearch.name : t('Custom Search')}{' '}

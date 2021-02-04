@@ -1,6 +1,5 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import $ from 'jquery';
 
 const ASPECT_RATIO = 16 / 9;
 
@@ -24,7 +23,7 @@ class SessionStackContextType extends React.Component<Props, State> {
   componentDidMount() {
     // eslint-disable-next-line react/no-find-dom-node
     const domNode = ReactDOM.findDOMNode(this) as HTMLElement;
-    this.parentNode = domNode.parentNode;
+    this.parentNode = domNode.parentNode as HTMLElement;
     window.addEventListener('resize', () => this.setIframeSize(), false);
     this.setIframeSize();
   }
@@ -32,19 +31,21 @@ class SessionStackContextType extends React.Component<Props, State> {
   componentWillUnmount() {
     window.removeEventListener('resize', () => this.setIframeSize(), false);
   }
-  parentNode?: HTMLElement['parentNode'];
+  parentNode?: HTMLElement;
 
   getTitle = () => 'SessionStack';
 
   setIframeSize() {
-    if (!this.state.showIframe && this.parentNode) {
-      const parentWidth = $(this.parentNode).width();
-
-      this.setState({
-        width: parentWidth,
-        height: parentWidth / ASPECT_RATIO,
-      });
+    if (this.state.showIframe || !this.parentNode) {
+      return;
     }
+
+    const parentWidth = this.parentNode.clientWidth;
+
+    this.setState({
+      width: parentWidth,
+      height: parentWidth / ASPECT_RATIO,
+    });
   }
 
   playSession() {

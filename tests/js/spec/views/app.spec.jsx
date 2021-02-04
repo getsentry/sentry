@@ -5,8 +5,6 @@ import {mount} from 'sentry-test/enzyme';
 import ConfigStore from 'app/stores/configStore';
 import App from 'app/views/app';
 
-jest.mock('jquery');
-
 describe('App', function () {
   beforeEach(function () {
     MockApiClient.addMockResponse({

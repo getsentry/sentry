@@ -1,4 +1,3 @@
-import io
 import six
 import sys
 
@@ -89,7 +88,7 @@ def load_settings(mod_or_filename, settings, silent=False):
         conf.__file__ = mod_or_filename
 
         try:
-            with io.open(mod_or_filename, mode="rb") as source_file:
+            with open(mod_or_filename, mode="rb") as source_file:
                 six.exec_(source_file.read(), conf.__dict__)
         except IOError as e:
             import errno

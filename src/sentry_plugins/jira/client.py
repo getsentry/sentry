@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 
 
 def md5(*bits):
-    return _md5(b":".join((force_bytes(bit, errors="replace") for bit in bits)))
+    return _md5(b":".join(force_bytes(bit, errors="replace") for bit in bits))
 
 
 class JiraClient(ApiClient):
