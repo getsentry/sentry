@@ -54,7 +54,9 @@ def validate_dependency(settings, dependency_type, dependency, package):
     try:
         import_string(package)
     except ImportError:
-        msg = ConfigurationError.get_error_message("%s %s" % (dependency_type, dependency), package)
+        msg = ConfigurationError.get_error_message(
+            "{} {}".format(dependency_type, dependency), package
+        )
         reraise_as(ConfigurationError(msg))
 
 

@@ -124,7 +124,7 @@ def make_msgid(domain):
     utcdate = time.strftime("%Y%m%d%H%M%S", time.gmtime(timeval))
     pid = os.getpid()
     randint = randrange(100000)
-    msgid = "<%s.%s.%s@%s>" % (utcdate, pid, randint, domain)
+    msgid = "<{}.{}.{}@{}>".format(utcdate, pid, randint, domain)
     return msgid
 
 

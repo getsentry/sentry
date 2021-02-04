@@ -21,7 +21,7 @@ def origin_from_url(url):
     if not url:
         return url
     url = urlparse(url)
-    return "%s://%s" % (url.scheme, url.netloc)
+    return "{}://{}".format(url.scheme, url.netloc)
 
 
 def safe_urlencode(params, doseq=0):
@@ -103,7 +103,7 @@ def parse_uri_match(value):
     domain = domain.encode("idna").decode("utf-8")
 
     if port:
-        domain = "%s:%s" % (domain, port)
+        domain = "{}:{}".format(domain, port)
 
     return ParsedUriMatch(scheme, domain, path)
 

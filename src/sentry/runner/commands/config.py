@@ -18,7 +18,7 @@ def list(pattern):
 
     for key in manager.all():
         if fnmatch(key.name, pattern):
-            click.echo("%s %s" % (key.name, key.type.name.upper()))
+            click.echo("{} {}".format(key.name, key.type.name.upper()))
 
 
 @config.command()

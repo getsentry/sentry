@@ -42,7 +42,7 @@ def get_or_create(client, thing, name):
     try:
         return getattr(client, thing + "s").get(name)
     except NotFound:
-        click.secho("> Creating '%s' %s" % (name, thing), err=True, fg="yellow")
+        click.secho("> Creating '{}' {}".format(name, thing), err=True, fg="yellow")
         return getattr(client, thing + "s").create(name)
 
 
@@ -334,7 +334,7 @@ def _start_service(
 
         if should_reuse_container:
             click.secho(
-                "> Starting EXISTING container '%s' %s" % (container.name, listening),
+                "> Starting EXISTING container '{}' {}".format(container.name, listening),
                 err=True,
                 fg="yellow",
             )
@@ -353,7 +353,9 @@ def _start_service(
 
     click.secho("> Creating container '%s'" % options["name"], err=True, fg="yellow")
     container = client.containers.create(**options)
-    click.secho("> Starting container '%s' %s" % (container.name, listening), err=True, fg="yellow")
+    click.secho(
+        "> Starting container '{}' {}".format(container.name, listening), err=True, fg="yellow"
+    )
     container.start()
     healthcheck_options = options.get("healthcheck")
     if healthcheck_options:

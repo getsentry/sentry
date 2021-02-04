@@ -129,7 +129,7 @@ def sync_docs(quiet=False):
 
 def sync_integration_docs(platform_id, integration_id, path, quiet=False):
     if not quiet:
-        echo("  syncing documentation for %s.%s integration" % (platform_id, integration_id))
+        echo("  syncing documentation for {}.{} integration".format(platform_id, integration_id))
 
     data = json.load(urlopen_with_retries(BASE_URL.format(path)))
 

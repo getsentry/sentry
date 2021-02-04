@@ -558,7 +558,7 @@ class PluginTestCase(TestCase):
                     "Found app in entry_points, but wrong class. Got %r, expected %r"
                     % (ep_path, path)
                 )
-        self.fail("Missing app from entry_points: %r" % (name,))
+        self.fail("Missing app from entry_points: {!r}".format(name))
 
     def assertPluginInstalled(self, name, plugin):
         path = type(plugin).__module__ + ":" + type(plugin).__name__
@@ -571,7 +571,7 @@ class PluginTestCase(TestCase):
                     "Found plugin in entry_points, but wrong class. Got %r, expected %r"
                     % (ep_path, path)
                 )
-        self.fail("Missing plugin from entry_points: %r" % (name,))
+        self.fail("Missing plugin from entry_points: {!r}".format(name))
 
 
 class CliTestCase(TestCase):

@@ -29,9 +29,9 @@ _pool_lock = Lock()
 
 def _shared_pool(**opts):
     if "host" in opts:
-        key = "%s:%s/%s" % (opts["host"], opts["port"], opts["db"])
+        key = "{}:{}/{}".format(opts["host"], opts["port"], opts["db"])
     else:
-        key = "%s/%s" % (opts["path"], opts["db"])
+        key = "{}/{}".format(opts["path"], opts["db"])
     pool = _pool_cache.get(key)
     if pool is not None:
         return pool
@@ -250,7 +250,7 @@ def check_cluster_versions(cluster, required, recommended=None, label=None):
         versions[key] = Version(map(int, info["redis_version"].split(".", 3)))
 
     check_versions(
-        "Redis" if label is None else "Redis (%s)" % (label,), versions, required, recommended
+        "Redis" if label is None else "Redis ({})".format(label), versions, required, recommended
     )
 
 
