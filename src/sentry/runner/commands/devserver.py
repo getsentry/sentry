@@ -194,7 +194,7 @@ def devserver(
             {
                 # Make sure uWSGI spawns an HTTP server for us as we don't
                 # have a proxy/load-balancer in front in dev mode.
-                "http": "%s:%s" % (host, port),
+                "http": f"{host}:{port}",
                 "protocol": "uwsgi",
                 # This is needed to prevent https://git.io/fj7Lw
                 "uwsgi-socket": None,

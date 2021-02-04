@@ -28,9 +28,7 @@ def register_plugins(settings, raise_on_plugin_load_failure=False):
         except Exception:
             import traceback
 
-            click.echo(
-                "Failed to load plugin %r:\n%s" % (ep.name, traceback.format_exc()), err=True
-            )
+            click.echo(f"Failed to load plugin {ep.name!r}:\n{traceback.format_exc()}", err=True)
             if raise_on_plugin_load_failure:
                 raise
         else:
@@ -49,7 +47,7 @@ def register_plugins(settings, raise_on_plugin_load_failure=False):
             import traceback
 
             click.echo(
-                "Failed to load integration %r:\n%s" % (integration_path, traceback.format_exc()),
+                f"Failed to load integration {integration_path!r}:\n{traceback.format_exc()}",
                 err=True,
             )
         else:
@@ -276,12 +274,12 @@ def show_big_error(message):
         lines = message
     maxline = max(map(len, lines))
     click.echo("", err=True)
-    click.secho("!!!%s!!!" % ("!" * min(maxline, 80),), err=True, fg="red")
+    click.secho("!!!{}!!!".format("!" * min(maxline, 80)), err=True, fg="red")
     click.secho("!! %s !!" % "".center(maxline), err=True, fg="red")
     for line in lines:
         click.secho("!! %s !!" % line.center(maxline), err=True, fg="red")
     click.secho("!! %s !!" % "".center(maxline), err=True, fg="red")
-    click.secho("!!!%s!!!" % ("!" * min(maxline, 80),), err=True, fg="red")
+    click.secho("!!!{}!!!".format("!" * min(maxline, 80)), err=True, fg="red")
     click.echo("", err=True)
 
 

@@ -29,7 +29,7 @@ def safe_execute(func, *args, **kwargs):
 
         func_name = getattr(func, "__name__", str(func))
         cls_name = cls.__name__
-        logger = logging.getLogger("sentry.safe.%s" % (cls_name.lower(),))
+        logger = logging.getLogger(f"sentry.safe.{cls_name.lower()}")
 
         if expected_errors and isinstance(e, expected_errors):
             logger.info("%s.process_error_ignored", func_name, extra={"exception": e})

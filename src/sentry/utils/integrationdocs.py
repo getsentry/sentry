@@ -72,7 +72,7 @@ def load_doc(path):
 def get_integration_id(platform_id, integration_id):
     if integration_id == "_self":
         return platform_id
-    return "{}-{}".format(platform_id, integration_id)
+    return f"{platform_id}-{integration_id}"
 
 
 def urlopen_with_retries(url, timeout=5, retries=10):
@@ -129,7 +129,7 @@ def sync_docs(quiet=False):
 
 def sync_integration_docs(platform_id, integration_id, path, quiet=False):
     if not quiet:
-        echo("  syncing documentation for %s.%s integration" % (platform_id, integration_id))
+        echo(f"  syncing documentation for {platform_id}.{integration_id} integration")
 
     data = json.load(urlopen_with_retries(BASE_URL.format(path)))
 
@@ -143,5 +143,5 @@ def integration_doc_exists(integration_id):
     # and using os.path.join() would allow directory traversal vulnerabilities
     # which we don't want.
     docs = os.listdir(DOC_FOLDER)
-    filename = "{}.json".format(integration_id)
+    filename = f"{integration_id}.json"
     return filename in docs

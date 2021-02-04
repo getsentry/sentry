@@ -45,7 +45,7 @@ def get_frame_paths(data):
 
 
 def release_cache_key(release):
-    return "release_commits:{}".format(release.id)
+    return f"release_commits:{release.id}"
 
 
 def _get_commits(releases):

@@ -117,7 +117,7 @@ def soft_break(value, length, process=lambda chunk: chunk):
 
         return "".join(results).rstrip("\u200b")
 
-    return re.sub(r"\S{{{},}}".format(length), soft_break_delimiter, value)
+    return re.sub(fr"\S{{{length},}}", soft_break_delimiter, value)
 
 
 def to_unicode(value):
@@ -231,9 +231,9 @@ def oxfordize_list(strings):
     elif len(strings) == 1:
         return strings[0]
     elif len(strings) == 2:
-        return "%s and %s" % (strings[0], strings[1])
+        return "{} and {}".format(strings[0], strings[1])
     else:
-        return "%s, and %s" % (", ".join(strings[:-1]), strings[-1])
+        return "{}, and {}".format(", ".join(strings[:-1]), strings[-1])
 
 
 def to_single_line_str(original_str):

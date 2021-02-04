@@ -29,9 +29,9 @@ _pool_lock = Lock()
 
 def _shared_pool(**opts):
     if "host" in opts:
-        key = "%s:%s/%s" % (opts["host"], opts["port"], opts["db"])
+        key = "{}:{}/{}".format(opts["host"], opts["port"], opts["db"])
     else:
-        key = "%s/%s" % (opts["path"], opts["db"])
+        key = "{}/{}".format(opts["path"], opts["db"])
     pool = _pool_cache.get(key)
     if pool is not None:
         return pool
@@ -159,10 +159,10 @@ class ClusterManager:
             # that it's necessary.
             configuration = self.__options_manager.get("redis.clusters").get(key)
             if configuration is None:
-                raise KeyError("Invalid cluster name: {}".format(key))
+                raise KeyError(f"Invalid cluster name: {key}")
 
             if not self.__cluster_type.supports(configuration):
-                raise KeyError("Invalid cluster type, expected: {}".format(self.__cluster_type))
+                raise KeyError(f"Invalid cluster type, expected: {self.__cluster_type}")
 
             cluster = self.__clusters[key] = self.__cluster_type.factory(**configuration)
 
@@ -199,7 +199,7 @@ def get_cluster_from_options(setting, options, cluster_manager=clusters):
                     "{} parameter of {}".format(
                         ", ".join(map(repr, cluster_constructor_option_names)), setting
                     ),
-                    '{}["{}"]'.format(setting, cluster_option_name),
+                    f'{setting}["{cluster_option_name}"]',
                     removed_in_version="8.5",
                 ),
                 stacklevel=2,
@@ -246,11 +246,11 @@ def check_cluster_versions(cluster, required, recommended=None, label=None):
         host = cluster.hosts[id]
         # NOTE: This assumes there is no routing magic going on here, and
         # all requests to this host are being served by the same database.
-        key = "{host}:{port}".format(host=host.host, port=host.port)
+        key = f"{host.host}:{host.port}"
         versions[key] = Version(map(int, info["redis_version"].split(".", 3)))
 
     check_versions(
-        "Redis" if label is None else "Redis (%s)" % (label,), versions, required, recommended
+        "Redis" if label is None else f"Redis ({label})", versions, required, recommended
     )
 
 
