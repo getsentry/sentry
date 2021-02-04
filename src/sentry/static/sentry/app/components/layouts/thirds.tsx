@@ -14,7 +14,7 @@ export const Body = styled('div')`
   flex-grow: 1;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    padding: ${space(2)} ${space(4)};
+    padding: ${space(3)} ${space(4)};
   }
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {

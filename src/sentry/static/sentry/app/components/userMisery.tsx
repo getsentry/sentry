@@ -2,8 +2,8 @@ import React from 'react';
 
 import ScoreBar from 'app/components/scoreBar';
 import Tooltip from 'app/components/tooltip';
+import CHART_PALETTE from 'app/constants/chartPalette';
 import {tct} from 'app/locale';
-import theme from 'app/utils/theme';
 
 type Props = {
   bars: number;
@@ -16,7 +16,7 @@ type Props = {
 function UserMisery(props: Props) {
   const {bars, barHeight, miserableUsers, miseryLimit, totalUsers} = props;
 
-  const palette = new Array(bars).fill(theme.purple300);
+  const palette = new Array(bars).fill([CHART_PALETTE[0][0]]);
   const rawScore = Math.floor(
     (miserableUsers / Math.max(totalUsers, 1)) * palette.length
   );
