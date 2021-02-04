@@ -36,7 +36,7 @@ jobs:
         id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-yarn-
 
@@ -121,7 +121,7 @@ jobs:
         id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
         with:
           path: ${{ steps.setup.outputs.yarn-cache-dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-yarn-
 
