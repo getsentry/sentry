@@ -11,6 +11,7 @@ import Placeholder from 'app/components/placeholder';
 import TextOverflow from 'app/components/textOverflow';
 import Version from 'app/components/version';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
+import {IconOpen} from 'app/icons';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -19,6 +20,7 @@ import {analytics} from 'app/utils/analytics';
 import {RELEASES_TOUR_STEPS} from 'app/views/releases/list/releaseLanding';
 
 import MissingReleasesButtons from './missingFeatureButtons/missingReleasesButtons';
+import {SectionHeadingLink, SectionHeadingWrapper, SidebarSection} from './styles';
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
@@ -93,6 +95,21 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
     });
   };
 
+  get releasesLink() {
+    const {organization} = this.props;
+
+    // as this is a link to latest releases, we want to only preserve project and environment
+    return {
+      pathname: `/organizations/${organization.slug}/releases/`,
+      query: {
+        statsPeriod: undefined,
+        start: undefined,
+        end: undefined,
+        utc: undefined,
+      },
+    };
+  }
+
   renderReleaseRow = (release: Release) => {
     const {projectId} = this.props;
     const {lastDeploy, dateCreated} = release;
@@ -139,17 +156,18 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
 
   renderBody() {
     return (
-      <Section>
-        <SectionHeading>{t('Latest Releases')}</SectionHeading>
+      <SidebarSection>
+        <SectionHeadingWrapper>
+          <SectionHeading>{t('Latest Releases')}</SectionHeading>
+          <SectionHeadingLink to={this.releasesLink}>
+            <IconOpen />
+          </SectionHeadingLink>
+        </SectionHeadingWrapper>
         <div>{this.renderInnerBody()}</div>
-      </Section>
+      </SidebarSection>
     );
   }
 }
-
-const Section = styled('section')`
-  margin-bottom: ${space(2)};
-`;
 
 const ReleasesTable = styled('div')`
   display: grid;
