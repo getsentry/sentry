@@ -140,15 +140,13 @@ def split_camelcase(word):
     if sum(len(x) for x in pieces) != len(word):
         yield word
     else:
-        for piece in pieces:
-            yield piece
+        yield from pieces
 
 
 def split_any_wordlike(value, handle_camelcase=False):
     for word in _word_sep_re.split(value):
         if handle_camelcase:
-            for chunk in split_camelcase(word):
-                yield chunk
+            yield from split_camelcase(word)
         else:
             yield word
 

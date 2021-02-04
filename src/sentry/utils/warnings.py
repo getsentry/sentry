@@ -12,7 +12,7 @@ class DeprecatedSettingWarning(DeprecationWarning):
         self.replacement = replacement
         self.url = url
         self.removed_in_version = removed_in_version
-        super(DeprecatedSettingWarning, self).__init__(setting, replacement, url)
+        super().__init__(setting, replacement, url)
 
     def __str__(self):
         chunks = [

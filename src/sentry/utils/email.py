@@ -61,7 +61,7 @@ class _CaseInsensitiveSigner(Signer):
     """
 
     def signature(self, value):
-        sig = super(_CaseInsensitiveSigner, self).signature(value)
+        sig = super().signature(value)
         return sig.lower()
 
     def unsign(self, signed_value):

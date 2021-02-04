@@ -231,14 +231,14 @@ class BaseTestCase(Fixtures, Exam):
             return fp.read()
 
     def _pre_setup(self):
-        super(BaseTestCase, self)._pre_setup()
+        super()._pre_setup()
 
         cache.clear()
         ProjectOption.objects.clear_local_cache()
         GroupMeta.objects.clear_local_cache()
 
     def _post_teardown(self):
-        super(BaseTestCase, self)._post_teardown()
+        super()._post_teardown()
 
     def options(self, options):
         """
@@ -280,10 +280,10 @@ class _AssertQueriesContext(CaptureQueriesContext):
         self.test_case = test_case
         self.queries = queries
         self.debug = debug
-        super(_AssertQueriesContext, self).__init__(connection)
+        super().__init__(connection)
 
     def __exit__(self, exc_type, exc_value, traceback):
-        super(_AssertQueriesContext, self).__exit__(exc_type, exc_value, traceback)
+        super().__exit__(exc_type, exc_value, traceback)
         if exc_type is not None:
             return
 
@@ -414,7 +414,7 @@ class AuthProviderTestCase(TestCase):
     provider_name = "dummy"
 
     def setUp(self):
-        super(AuthProviderTestCase, self).setUp()
+        super().setUp()
         # TestCase automatically sets up dummy provider
         if self.provider_name != "dummy" or self.provider != DummyProvider:
             auth.register(self.provider_name, self.provider)
@@ -454,7 +454,7 @@ class RuleTestCase(TestCase):
 
 class PermissionTestCase(TestCase):
     def setUp(self):
-        super(PermissionTestCase, self).setUp()
+        super().setUp()
         self.owner = self.create_user(is_superuser=False)
         self.organization = self.create_organization(
             owner=self.owner, flags=0  # disable default allow_joinleave access
@@ -540,7 +540,7 @@ class PluginTestCase(TestCase):
     plugin = None
 
     def setUp(self):
-        super(PluginTestCase, self).setUp()
+        super().setUp()
 
         # Old plugins, plugin is a class, new plugins, it's an instance
         # New plugins don't need to be registered
@@ -594,7 +594,7 @@ class AcceptanceTestCase(TransactionTestCase):
         )
         patcher.start()
         self.addCleanup(patcher.stop)
-        super(AcceptanceTestCase, self).setUp()
+        super().setUp()
 
     def save_cookie(self, name, value, **params):
         self.browser.save_cookie(name=name, value=value, **params)
@@ -626,7 +626,7 @@ class IntegrationTestCase(TestCase):
     def setUp(self):
         from sentry.integrations.pipeline import IntegrationPipeline
 
-        super(IntegrationTestCase, self).setUp()
+        super().setUp()
 
         self.organization = self.create_organization(name="foo", owner=self.user)
         self.login_as(self.user)
@@ -663,7 +663,7 @@ class SnubaTestCase(BaseTestCase):
     """
 
     def setUp(self):
-        super(SnubaTestCase, self).setUp()
+        super().setUp()
         self.init_snuba()
 
     @pytest.fixture(autouse=True)
@@ -818,7 +818,7 @@ class BaseIncidentsTest(SnubaTestCase):
 @requires_snuba
 class OutcomesSnubaTest(TestCase):
     def setUp(self):
-        super(OutcomesSnubaTest, self).setUp()
+        super().setUp()
         assert requests.post(settings.SENTRY_SNUBA + "/tests/outcomes/drop").status_code == 200
 
     def __format(self, org_id, project_id, outcome, timestamp, key_id):
@@ -846,7 +846,7 @@ class OutcomesSnubaTest(TestCase):
 
 class IntegrationRepositoryTestCase(APITestCase):
     def setUp(self):
-        super(IntegrationRepositoryTestCase, self).setUp()
+        super().setUp()
         self.login_as(self.user)
 
     def add_create_repository_responses(self, repository_config):
@@ -911,7 +911,7 @@ class ReleaseCommitPatchTest(APITestCase):
 
 class SetRefsTestCase(APITestCase):
     def setUp(self):
-        super(SetRefsTestCase, self).setUp()
+        super().setUp()
         self.user = self.create_user(is_staff=False, is_superuser=False)
         self.org = self.create_organization()
 
@@ -950,7 +950,7 @@ class SetRefsTestCase(APITestCase):
 
 class OrganizationDashboardWidgetTestCase(APITestCase):
     def setUp(self):
-        super(OrganizationDashboardWidgetTestCase, self).setUp()
+        super().setUp()
         self.login_as(self.user)
         self.dashboard = Dashboard.objects.create(
             title="Dashboard 1", created_by=self.user, organization=self.organization

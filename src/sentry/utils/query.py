@@ -155,7 +155,7 @@ class RangeQuerySetWrapperWithProgressBar(RangeQuerySetWrapper):
         total_count = self.queryset.count()
         if not total_count:
             return iter([])
-        iterator = super(RangeQuerySetWrapperWithProgressBar, self).__iter__()
+        iterator = super().__iter__()
         label = self.queryset.model._meta.verbose_name_plural.title()
         return iter(WithProgressBar(iterator, total_count, label))
 

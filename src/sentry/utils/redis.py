@@ -309,6 +309,6 @@ class SentryScript(Script):
     def __init__(self, registered_client, script):
         if registered_client is None:
             registered_client = self.FakeEncoderClient()
-        super(SentryScript, self).__init__(registered_client, script)
+        super().__init__(registered_client, script)
         if isinstance(self.registered_client, self.FakeEncoderClient):
             self.registered_client = None
