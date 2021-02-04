@@ -67,7 +67,7 @@ class Rules extends React.PureComponent<Props, State> {
 
     return (
       <StyledPanelTable
-        headers={['', t('Event Type'), t('Category'), t('Sampling Rate'), '']}
+        headers={['', t('Type'), t('Category'), t('Sampling Rate'), '']}
         isEmpty={!rules.length}
         emptyMessage={t('There are no rules to display')}
       >
