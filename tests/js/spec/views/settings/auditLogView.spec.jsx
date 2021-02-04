@@ -5,8 +5,6 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {Client} from 'app/api';
 import OrganizationAuditLog from 'app/views/settings/organizationAuditLog';
 
-jest.mock('jquery');
-
 describe('OrganizationAuditLog', function () {
   const org = TestStubs.Organization();
   const ENDPOINT = `/organizations/${org.slug}/audit-logs/`;

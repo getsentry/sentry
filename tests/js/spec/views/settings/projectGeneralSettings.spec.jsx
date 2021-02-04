@@ -9,8 +9,6 @@ import ProjectsStore from 'app/stores/projectsStore';
 import ProjectContext from 'app/views/projects/projectContext';
 import ProjectGeneralSettings from 'app/views/settings/projectGeneralSettings';
 
-jest.mock('jquery');
-
 describe('projectGeneralSettings', function () {
   const org = TestStubs.Organization();
   const project = TestStubs.ProjectDetails();

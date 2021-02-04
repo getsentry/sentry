@@ -6,8 +6,6 @@ import {Client} from 'app/api';
 import ConfigStore from 'app/stores/configStore';
 import App from 'app/views/app';
 
-jest.mock('jquery');
-
 describe('Sudo Modal', function () {
   beforeEach(function () {
     Client.clearMockResponses();

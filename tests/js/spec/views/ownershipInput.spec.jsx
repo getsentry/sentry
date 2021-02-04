@@ -6,7 +6,6 @@ import {findOption, openMenu} from 'sentry-test/select';
 import MemberListStore from 'app/stores/memberListStore';
 import OwnerInput from 'app/views/settings/project/projectOwnership/ownerInput';
 
-jest.mock('jquery');
 describe('Project Ownership Input', function () {
   let org;
   let project;

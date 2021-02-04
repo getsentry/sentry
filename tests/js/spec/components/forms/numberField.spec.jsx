@@ -5,8 +5,6 @@ import {mount, mountWithTheme} from 'sentry-test/enzyme';
 import {NumberField} from 'app/components/forms';
 import Form from 'app/components/forms/form';
 
-jest.mock('jquery');
-
 describe('NumberField', function () {
   describe('render()', function () {
     it('renders', function () {

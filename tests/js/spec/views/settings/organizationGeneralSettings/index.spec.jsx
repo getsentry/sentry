@@ -7,8 +7,6 @@ import {mountGlobalModal} from 'sentry-test/modal';
 
 import OrganizationGeneralSettings from 'app/views/settings/organizationGeneralSettings';
 
-jest.mock('jquery');
-
 describe('OrganizationGeneralSettings', function () {
   let organization;
   let routerContext;
