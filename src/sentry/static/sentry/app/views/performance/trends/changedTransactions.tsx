@@ -390,8 +390,8 @@ function TrendsListItem(props: TrendsListItemProps) {
 
   const percentChangeExplanation = t(
     'Over this period, the %s for %s has %s %s from %s to %s',
-    currentTrendColumn,
     currentTrendFunction,
+    currentTrendColumn,
     trendChangeType === TrendChangeType.IMPROVED ? t('decreased') : t('increased'),
     absolutePercentChange,
     previousDuration,
