@@ -22,7 +22,7 @@ import six
 from sentry import tagstore
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
-
+from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ApiError
 from sentry_plugins.base import CorePluginMixin
 from sentry.plugins.bases.data_forwarding import DataForwardingPlugin
 from sentry_plugins.utils import get_secret_field_config
@@ -300,5 +300,10 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
                     "error": str(exc),
                 },
             )
+
+            if isinstance(exc, (ApiHostError, ApiTimeoutError, ApiError)):
+                # The above errors are already handled by the API client.
+                # Just log and return.
+                return False
 
             raise exc
