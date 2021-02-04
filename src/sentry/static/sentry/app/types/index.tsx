@@ -232,7 +232,7 @@ export type Project = {
   // XXX: These are part of the DetailedProject serializer
   dynamicSampling: {
     rules: DynamicSamplingRules;
-  };
+  } | null;
   plugins: Plugin[];
   processingIssues: number;
   relayPiiConfig: string;
@@ -562,72 +562,73 @@ export type GlobalSelection = {
   };
 };
 
-type AuthenticatorDevice = {
+export type AuthenticatorDevice = {
   key_handle: string;
   authId: string;
   name: string;
+  timestamp?: string;
 };
+
+type QRCode = (0 | 1)[][];
 
 export type Authenticator = {
   /**
    * String used to display on button for user as CTA to enroll
    */
   enrollButton: string;
-
   /**
    * Display name for the authenticator
    */
   name: string;
-
   /**
    * Allows multiple enrollments to authenticator
    */
   allowMultiEnrollment: boolean;
-
   /**
    * String to display on button for user to remove authenticator
    */
   removeButton: string | null;
-
   canValidateOtp: boolean;
-
   /**
    * Is user enrolled to this authenticator
    */
   isEnrolled: boolean;
-
   /**
    * String to display on button for additional information about authenticator
    */
   configureButton: string;
-
-  /**
-   * Type of authenticator
-   */
-  id: string;
-
   /**
    * Is this used as a backup interface?
    */
   isBackupInterface: boolean;
-
   /**
    * Description of the authenticator
    */
   description: string;
-
   createdAt: string | null;
-
   lastUsedAt: string | null;
-
   codes: string[];
-
   devices: AuthenticatorDevice[];
-
   phone?: string;
-
-  challenge?: ChallengeData;
-} & Partial<EnrolledAuthenticator>;
+  secret?: string;
+  /**
+   * The form configuration for the authenticator is present during enrollment
+   */
+  form?: Field[];
+} & Partial<EnrolledAuthenticator> &
+  (
+    | {
+        id: 'sms';
+      }
+    | {
+        id: 'totp';
+        qrcode: QRCode;
+      }
+    | {
+        id: 'u2f';
+        challenge: ChallengeData;
+      }
+  );
 
 export type ChallengeData = {
   authenticateRequests: u2f.SignRequest;
@@ -737,6 +738,7 @@ export enum GroupActivityType {
   UNASSIGNED = 'unassigned',
   MERGE = 'merge',
   REPROCESS = 'reprocess',
+  MARK_REVIEWED = 'mark_reviewed',
 }
 
 type GroupActivityBase = {
@@ -787,6 +789,11 @@ type GroupActivityUnassigned = GroupActivityBase & {
 
 type GroupActivityFirstSeen = GroupActivityBase & {
   type: GroupActivityType.FIRST_SEEN;
+  data: Record<string, any>;
+};
+
+type GroupActivityMarkReviewed = GroupActivityBase & {
+  type: GroupActivityType.MARK_REVIEWED;
   data: Record<string, any>;
 };
 
@@ -900,6 +907,7 @@ export type GroupActivity =
   | GroupActivityMerge
   | GroupActivityReprocess
   | GroupActivityUnassigned
+  | GroupActivityMarkReviewed
   | GroupActivityUnmergeDestination
   | GroupActivitySetPublic
   | GroupActivitySetPrivate
@@ -1051,6 +1059,11 @@ export type AccessRequest = {
   id: string;
   team: Team;
   member: Member;
+  requester?: Partial<{
+    name: string;
+    username: string;
+    email: string;
+  }>;
 };
 
 export type Repository = {
@@ -1099,7 +1112,6 @@ type IntegrationDialog = {
 
 type IntegrationAspects = {
   alerts?: Array<AlertProps & {text: string}>;
-  reauthentication_alert?: {alertText: string};
   disable_dialog?: IntegrationDialog;
   removal_dialog?: IntegrationDialog;
   externalInstall?: {

@@ -1,5 +1,4 @@
 import React from 'react';
-import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -38,48 +37,6 @@ type State = AsyncView['state'] & {
   projectDetails: Project | null;
 };
 
-const dynamicSampling = {
-  rules: [
-    // {
-    //   condition: {
-    //     op: 'not',
-    //     inner: {op: 'glob', name: 'event.release', value: ['a', 'b']},
-    //   },
-    //   sampleRate: 0.8,
-    //   type: 'error',
-    // },
-    {
-      condition: {
-        op: 'and',
-        inner: [
-          {op: 'glob', name: 'event.release', value: ['a', 'b']},
-          {op: 'eq', name: 'event.environment', value: ['x']},
-        ],
-      },
-      sampleRate: 0.1,
-      type: 'error',
-    },
-    {
-      condition: {
-        op: 'and',
-        inner: [{op: 'glob', name: 'trace.release', value: ['trace1', 'trace2']}],
-      },
-      sampleRate: 0.1,
-      type: 'trace',
-    },
-    {
-      condition: {
-        op: 'and',
-        inner: [
-          {op: 'glob', name: 'event.release', value: ['tranc1', 'tranc2', 'tranc3']},
-        ],
-      },
-      sampleRate: 0.5,
-      type: 'transaction',
-    },
-  ],
-} as {rules: DynamicSamplingRules};
-
 class FiltersAndSampling extends AsyncView<Props, State> {
   getTitle() {
     return t('Filters & Sampling');
@@ -108,85 +65,44 @@ class FiltersAndSampling extends AsyncView<Props, State> {
       this.getRules();
       return;
     }
-
-    if (
-      !isEqual(
-        [...this.state.errorRules, ...this.state.transactionRules],
-        dynamicSampling.rules
-      )
-    ) {
-      this.submitRules();
-    }
   }
 
   getRules() {
+    const {projectDetails} = this.state;
+
+    if (!projectDetails) {
+      return;
+    }
+
+    const {dynamicSampling} = projectDetails;
+    const rules = dynamicSampling?.rules ?? [];
+
     const [errorRules, transactionRules] = partition(
-      dynamicSampling.rules,
+      rules,
       rule => rule.type === DynamicSamplingRuleType.ERROR
     );
 
     this.setState({errorRules, transactionRules});
   }
 
-  getRequestResponseMessage(rules: DynamicSamplingRules) {
-    const {projectDetails} = this.state;
-
-    if (!projectDetails) {
-      return {
-        succesMessage: t('Successfully saved dynamic sampling rule'),
-        errorMessage: t('An unknown error occurred while saving dynamic sampling rule'),
-      };
-    }
-
-    // const {dynamicSampling} = this.state
-
-    if (rules.length !== dynamicSampling.rules.length) {
-      if (rules.length > dynamicSampling.rules.length) {
-        return {
-          succesMessage: t('Successfully added dynamic sampling rule'),
-          errorMessage: t('An unknown error occurred while adding dynamic sampling rule'),
-        };
-      }
-      return {
-        succesMessage: t('Successfully deleted dynamic sampling rule'),
-        errorMessage: t('An unknown error occurred while deleting dynamic sampling rule'),
-      };
-    }
-
-    return {
-      succesMessage: t('Successfully edited dynamic sampling rule'),
-      errorMessage: t('An unknown error occurred while editing dynamic sampling rule'),
-    };
-  }
-
-  async submitRules() {
-    const {organization, project} = this.props;
-    const {errorRules, transactionRules} = this.state;
-
-    const rules = [...errorRules, ...transactionRules];
-    const {succesMessage, errorMessage} = this.getRequestResponseMessage(rules);
-
-    try {
-      const projectDetails = await this.api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/`,
-        {method: 'PUT', data: {dynamicSampling: {rules}}}
-      );
-      this.setState({projectDetails});
-      addSuccessMessage(succesMessage);
-    } catch (error) {
-      addErrorMessage(errorMessage);
-    }
-  }
+  successfullySubmitted = (projectDetails: Project) => {
+    this.setState({projectDetails});
+  };
 
   handleOpenErrorRule = (rule?: DynamicSamplingRule) => () => {
-    const {organization} = this.props;
+    const {organization, project} = this.props;
+    const {errorRules, transactionRules} = this.state;
     return openModal(
       modalProps => (
         <ErrorRuleModal
           {...modalProps}
+          api={this.api}
           organization={organization}
-          onSubmit={this.handleSaveRule(rule)}
+          project={project}
           rule={rule}
+          errorRules={errorRules}
+          transactionRules={transactionRules}
+          onSubmitSuccess={this.successfullySubmitted}
         />
       ),
       {
@@ -196,14 +112,19 @@ class FiltersAndSampling extends AsyncView<Props, State> {
   };
 
   handleOpenTransactionRule = (rule?: DynamicSamplingRule) => () => {
-    const {organization} = this.props;
+    const {organization, project} = this.props;
+    const {errorRules, transactionRules} = this.state;
     return openModal(
       modalProps => (
         <TransactionRuleModal
           {...modalProps}
+          api={this.api}
           organization={organization}
-          onSubmit={this.handleSaveRule(rule)}
+          project={project}
           rule={rule}
+          errorRules={errorRules}
+          transactionRules={transactionRules}
+          onSubmitSuccess={this.successfullySubmitted}
         />
       ),
       {
@@ -232,52 +153,59 @@ class FiltersAndSampling extends AsyncView<Props, State> {
     this.handleOpenTransactionRule(rule)();
   };
 
-  handleSaveRule = (rule?: DynamicSamplingRule) => async (
-    newRule: DynamicSamplingRule
-  ) => {
-    if (rule) {
-      if (rule.type === DynamicSamplingRuleType.ERROR) {
-        this.setState(state => ({
-          errorRules: state.errorRules.map(errorRule => {
-            if (rule === errorRule) {
-              return newRule;
-            }
-            return errorRule;
-          }),
-        }));
+  handleDeleteRule = (rule: DynamicSamplingRule) => () => {
+    const {errorRules, transactionRules} = this.state;
+
+    const newErrorRules =
+      rule.type === DynamicSamplingRuleType.ERROR
+        ? errorRules.filter(errorRule => errorRule !== rule)
+        : errorRules;
+
+    const newTransactionRules =
+      rule.type !== DynamicSamplingRuleType.ERROR
+        ? transactionRules.filter(transactionRule => transactionRule !== rule)
+        : transactionRules;
+
+    const newRules = [...newErrorRules, ...newTransactionRules];
+
+    this.submitRules(
+      newRules,
+      t('Successfully deleted dynamic sampling rule'),
+      t('An error occurred while deleting dynamic sampling rule')
+    );
+  };
+
+  handleUpdateRules = (rules: Array<DynamicSamplingRule>) => {
+    const {errorRules, transactionRules} = this.state;
+    if (rules[0].type === DynamicSamplingRuleType.ERROR) {
+      this.submitRules([...rules, ...transactionRules]);
+      return;
+    }
+    this.submitRules([...errorRules, ...rules]);
+  };
+
+  async submitRules(
+    newRules: DynamicSamplingRules,
+    successMessage?: string,
+    errorMessage?: string
+  ) {
+    const {organization, project} = this.props;
+    try {
+      const projectDetails = await this.api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/`,
+        {method: 'PUT', data: {dynamicSampling: {rules: newRules}}}
+      );
+      this.setState({projectDetails});
+      if (successMessage) {
+        addSuccessMessage(successMessage);
       }
-
-      this.setState(state => ({
-        transactionRules: state.transactionRules.map(transactionRule => {
-          if (rule === transactionRule) {
-            return newRule;
-          }
-          return transactionRule;
-        }),
-      }));
-
-      return;
+    } catch (error) {
+      this.getRules();
+      if (errorMessage) {
+        addErrorMessage(errorMessage);
+      }
     }
-
-    this.setState(state => ({
-      transactionRules: [...state.transactionRules, newRule],
-    }));
-  };
-
-  handleDeleteRule = (rule: DynamicSamplingRule) => async () => {
-    if (rule.type === DynamicSamplingRuleType.ERROR) {
-      this.setState(state => ({
-        errorRules: state.errorRules.filter(errorRule => errorRule !== rule),
-      }));
-      return;
-    }
-
-    this.setState(state => ({
-      transactionRules: state.transactionRules.filter(
-        transactionRule => transactionRule !== rule
-      ),
-    }));
-  };
+  }
 
   renderBody() {
     const {errorRules, transactionRules} = this.state;
@@ -310,10 +238,11 @@ class FiltersAndSampling extends AsyncView<Props, State> {
         </TextBlock>
         <RulesPanel
           rules={errorRules}
+          disabled={disabled}
           onAddRule={this.handleAddRule('errorRules')}
           onEditRule={this.handleEditRule}
           onDeleteRule={this.handleDeleteRule}
-          disabled={disabled}
+          onUpdateRules={this.handleUpdateRules}
         />
         <TextBlock>
           {t(
@@ -322,10 +251,11 @@ class FiltersAndSampling extends AsyncView<Props, State> {
         </TextBlock>
         <RulesPanel
           rules={transactionRules}
+          disabled={disabled}
           onAddRule={this.handleAddRule('transactionRules')}
           onEditRule={this.handleEditRule}
           onDeleteRule={this.handleDeleteRule}
-          disabled={disabled}
+          onUpdateRules={this.handleUpdateRules}
         />
       </React.Fragment>
     );

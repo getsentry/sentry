@@ -10,7 +10,7 @@ import {Hooks} from 'app/types/hooks';
  * sentry.io these are currently mapped to our in-house analytics backend
  * 'Reload' and the Amplitude service.
  *
- * NOTE: sentry.io contributors, you will need to nesure that the eventKey
+ * NOTE: sentry.io contributors, you will need to ensure that the eventKey
  *       passed exists as an event key in the Reload events.py configuration:
  *
  *       https://github.com/getsentry/reload/blob/master/reload_app/events.py

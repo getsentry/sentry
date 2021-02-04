@@ -1,5 +1,4 @@
 import logging
-import six
 import types
 
 from sentry.utils.compat.mock import patch, PropertyMock
@@ -10,15 +9,15 @@ from sentry.testutils import TestCase
 from sentry.testutils.helpers.faux import faux
 
 
-class Double(object):
+class Double:
     def __init__(self, **kwargs):
-        for k, v in six.iteritems(kwargs):
+        for k, v in kwargs.items():
             setattr(self, k, v)
 
 
 class MockMediator(Mediator):
     user = Param(dict)
-    name = Param(six.string_types, default=lambda self: self.user["name"])
+    name = Param((str,), default=lambda self: self.user["name"])
     age = Param(int, required=False)
 
     def call(self):

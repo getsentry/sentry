@@ -1,6 +1,5 @@
 from sentry.utils.compat import mock
 from sentry.testutils.helpers import Feature
-import six
 import pytest
 
 from django.core.urlresolvers import reverse
@@ -58,7 +57,7 @@ class ProjectDetailsTest(APITestCase):
         )
         response = self.client.get(url)
         assert response.status_code == 200
-        assert response.data["id"] == six.text_type(project.id)
+        assert response.data["id"] == str(project.id)
 
     def test_numeric_org_slug(self):
         # Regression test for https://github.com/getsentry/sentry/issues/2236
@@ -67,10 +66,10 @@ class ProjectDetailsTest(APITestCase):
         team = self.create_team(organization=org, name="foo", slug="foo")
         project = self.create_project(name="Bar", slug="bar", teams=[team])
         # We want to make sure we don't hit the LegacyProjectRedirect view at all.
-        url = "/api/0/projects/%s/%s/" % (org.slug, project.slug)
+        url = f"/api/0/projects/{org.slug}/{project.slug}/"
         response = self.client.get(url)
         assert response.status_code == 200
-        assert response.data["id"] == six.text_type(project.id)
+        assert response.data["id"] == str(project.id)
 
     def test_with_stats(self):
         project = self.create_project()
@@ -111,11 +110,11 @@ class ProjectDetailsTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 302
         assert response.data["slug"] == "foobar"
-        assert response.data["detail"]["extra"]["url"] == "/api/0/projects/%s/%s/" % (
-            project.organization.slug,
-            "foobar",
+        assert (
+            response.data["detail"]["extra"]["url"]
+            == f"/api/0/projects/{project.organization.slug}/foobar/"
         )
-        redirect_path = "/api/0/projects/%s/%s/" % (project.organization.slug, "foobar")
+        redirect_path = f"/api/0/projects/{project.organization.slug}/foobar/"
         # XXX: AttributeError: 'Response' object has no attribute 'url'
         # (this is with self.assertRedirects(response, ...))
         assert response["Location"] == redirect_path
@@ -141,7 +140,7 @@ class ProjectDetailsTest(APITestCase):
 
 class ProjectUpdateTest(APITestCase):
     def setUp(self):
-        super(ProjectUpdateTest, self).setUp()
+        super().setUp()
         self.path = reverse(
             "sentry-api-0-project-details",
             kwargs={
@@ -601,7 +600,7 @@ class ProjectUpdateTest(APITestCase):
 
 class CopyProjectSettingsTest(APITestCase):
     def setUp(self):
-        super(CopyProjectSettingsTest, self).setUp()
+        super().setUp()
         self.login_as(user=self.user)
 
         self.options_dict = {
@@ -610,7 +609,7 @@ class CopyProjectSettingsTest(APITestCase):
             "sentry:scrub_defaults": False,
         }
         self.other_project = self.create_project()
-        for key, value in six.iteritems(self.options_dict):
+        for key, value in self.options_dict.items():
             self.other_project.update_option(key=key, value=value)
 
         self.teams = [self.create_team(), self.create_team(), self.create_team()]
@@ -644,7 +643,7 @@ class CopyProjectSettingsTest(APITestCase):
         self.assert_settings_copied(self.other_project)
 
     def assert_settings_copied(self, project):
-        for key, value in six.iteritems(self.options_dict):
+        for key, value in self.options_dict.items():
             assert project.get_option(key) == value
 
         project_teams = ProjectTeam.objects.filter(project_id=project.id, team__in=self.teams)
@@ -664,7 +663,7 @@ class CopyProjectSettingsTest(APITestCase):
             assert rule.label == other_rule.label
 
     def assert_settings_not_copied(self, project, teams=()):
-        for key in six.iterkeys(self.options_dict):
+        for key in self.options_dict.keys():
             assert project.get_option(key) is None
 
         project_teams = ProjectTeam.objects.filter(project_id=project.id, team__in=teams)
@@ -793,7 +792,7 @@ class ProjectDeleteTest(APITestCase):
     @mock.patch("sentry.api.endpoints.project_details.uuid4")
     @mock.patch("sentry.api.endpoints.project_details.delete_project")
     def test_simple(self, mock_delete_project, mock_uuid4_project, mock_uuid4_mixin):
-        class uuid(object):
+        class uuid:
             hex = "abc123"
 
         mock_uuid4_mixin.return_value = uuid
