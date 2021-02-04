@@ -357,7 +357,7 @@ class SentryAppInstallationExternalIssuePermission(SentryAppInstallationPermissi
     }
 
 
-class SentryAppInstallationExternalIssueEndpoint(SentryAppInstallationBaseEndpoint):
+class SentryAppInstallationExternalIssueBaseEndpoint(SentryAppInstallationBaseEndpoint):
     permission_classes = (SentryAppInstallationExternalIssuePermission,)
 
 
