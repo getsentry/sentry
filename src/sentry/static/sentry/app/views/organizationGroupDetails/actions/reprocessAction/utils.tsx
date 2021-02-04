@@ -26,22 +26,23 @@ function getStackTracePlatforms(event: Event, exceptionEntry: EntryException) {
   );
 
   // Fetch platforms in an exception entry
-  const stackTraceEntry = event.entries.find(entry => entry.type === EntryType.STACKTRACE)
-    ?.data as StacktraceType;
+  const stackTraceEntry = (event.entries.find(
+    entry => entry.type === EntryType.STACKTRACE
+  )?.data ?? {}) as StacktraceType;
 
   // Fetch platforms in an exception entry
-  const stackTraceEntryPlatforms = Object.keys(stackTraceEntry ?? {}).flatMap(key =>
+  const stackTraceEntryPlatforms = Object.keys(stackTraceEntry).flatMap(key =>
     getPlatforms(stackTraceEntry[key])
   );
 
   // Fetch platforms in an thread entry
-  const threadEntry = event.entries.find(entry => entry.type === EntryType.THREADS)?.data
-    .values;
+  const threadEntry = (event.entries.find(entry => entry.type === EntryType.THREADS)?.data
+    .values ?? []) as Array<Thread>;
 
   // Fetch platforms in a thread entry
-  const threadEntryPlatforms = ((threadEntry ?? []) as Array<
-    Thread
-  >).flatMap(({stacktrace}) => getPlatforms(stacktrace));
+  const threadEntryPlatforms = threadEntry.flatMap(({stacktrace}) =>
+    getPlatforms(stacktrace)
+  );
 
   return new Set([
     ...exceptionEntryPlatforms,
