@@ -75,7 +75,7 @@ def load_doc(path):
         return None
     fn = os.path.join(DOC_FOLDER, path + ".json")
     try:
-        with open(fn, "rt", encoding="utf-8") as f:
+        with open(fn, encoding="utf-8") as f:
             return json.load(f)
     except IOError:
         return None
