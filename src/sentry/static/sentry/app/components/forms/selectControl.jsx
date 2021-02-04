@@ -70,6 +70,7 @@ const SelectControl = props => {
     padding: '4px',
     alignItems: 'center',
     cursor: 'pointer',
+    color: theme.subText,
   });
 
   const defaultStyles = {

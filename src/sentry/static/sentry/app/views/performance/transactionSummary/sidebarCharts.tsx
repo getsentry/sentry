@@ -15,7 +15,6 @@ import {getInterval} from 'app/components/charts/utils';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 import {LightWeightOrganization} from 'app/types';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
 import {tooltipFormatter} from 'app/utils/discover/charts';
@@ -57,22 +56,22 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
     },
   };
   const chartOptions = {
-    height: 580,
+    height: 460,
     grid: [
       {
         top: '40px',
         left: '10px',
         right: '10px',
-        height: '120px',
+        height: '100px',
       },
       {
-        top: '230px',
+        top: '190px',
         left: '10px',
         right: '10px',
-        height: '150px',
+        height: '100px',
       },
       {
-        top: '450px',
+        top: '330px',
         left: '10px',
         right: '10px',
         height: '120px',
@@ -154,7 +153,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         />
       </ChartTitle>
 
-      <ChartTitle top="190px" key="failure-rate">
+      <ChartTitle top="150px" key="failure-rate">
         {t('Failure Rate')}
         <QuestionTooltip
           position="top"
@@ -163,7 +162,7 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
         />
       </ChartTitle>
 
-      <ChartTitle top="410px" key="throughput">
+      <ChartTitle top="300px" key="throughput">
         {t('TPM')}
         <QuestionTooltip
           position="top"
@@ -227,7 +226,6 @@ function SidebarCharts({api, eventView, organization, router}: Props) {
 
 const RelativeBox = styled('div')`
   position: relative;
-  margin-bottom: ${space(1)};
 `;
 
 const ChartTitle = styled(SectionHeading)<{top: string}>`
