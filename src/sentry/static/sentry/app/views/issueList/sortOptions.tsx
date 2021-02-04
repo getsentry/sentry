@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
 import Feature from 'app/components/acl/feature';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
@@ -42,10 +41,7 @@ const IssueListSortOptions = ({onSelect, sort, query}: Props) => {
   );
 
   return (
-    <StyledDropdownControl
-      buttonProps={{prefix: t('Sort by')}}
-      label={getSortLabel(sortKey)}
-    >
+    <DropdownControl buttonProps={{prefix: t('Sort by')}} label={getSortLabel(sortKey)}>
       {getMenuItem(IssueSortOptions.PRIORITY)}
       {getMenuItem(IssueSortOptions.DATE)}
       {getMenuItem(IssueSortOptions.NEW)}
@@ -57,12 +53,8 @@ const IssueListSortOptions = ({onSelect, sort, query}: Props) => {
       <Feature features={['inbox']}>
         {isForReviewQuery(query) && getMenuItem(IssueSortOptions.INBOX)}
       </Feature>
-    </StyledDropdownControl>
+    </DropdownControl>
   );
 };
 
 export default IssueListSortOptions;
-
-const StyledDropdownControl = styled(DropdownControl)`
-  min-width: 140px;
-`;
