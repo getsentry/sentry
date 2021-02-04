@@ -14,7 +14,7 @@ import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization} from 'app/types';
-import {Series} from 'app/types/echarts';
+import {EChartEventHandler, Series} from 'app/types/echarts';
 import getDynamicText from 'app/utils/getDynamicText';
 import {Theme} from 'app/utils/theme';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -181,8 +181,11 @@ class Chart extends React.Component<ChartProps, ChartState> {
   }
 
   // inspired by app/components/charts/eventsChart.tsx@handleLegendSelectChanged
-  handleLegendSelectChanged = legendChange => {
-    const {selected} = legendChange;
+  handleLegendSelectChanged: EChartEventHandler<{
+    name: string;
+    selected: Record<string, boolean>;
+    type: 'legendselectchanged';
+  }> = ({selected}) => {
     const seriesSelection = Object.keys(selected).reduce((state, key) => {
       state[key] = selected[key];
       return state;
