@@ -6,6 +6,7 @@ import Count from 'app/components/count';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {parseStatsPeriod} from 'app/components/organizations/timeRangeSelector/utils';
 import ScoreCard from 'app/components/scoreCard';
+import {IconArrow} from 'app/icons';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization} from 'app/types';
 import {defined} from 'app/utils';
@@ -129,7 +130,10 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
   }
 
   get cardHelp() {
-    return getTermHelp(this.props.organization, PERFORMANCE_TERM.APDEX);
+    return (
+      getTermHelp(this.props.organization, PERFORMANCE_TERM.APDEX) +
+      t(' This shows how it has changed since the last period.')
+    );
   }
 
   get currentApdex() {
@@ -193,7 +197,11 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
     // we want to show trend only after currentApdex has loaded to prevent jumping
     return defined(this.currentApdex) && defined(this.trend) ? (
       <React.Fragment>
-        {this.trend >= 0 ? '+' : '-'}
+        {this.trend >= 0 ? (
+          <IconArrow direction="up" size="xs" />
+        ) : (
+          <IconArrow direction="down" size="xs" />
+        )}
         <Count value={Math.abs(this.trend)} />
       </React.Fragment>
     ) : null;
