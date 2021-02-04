@@ -8,7 +8,7 @@ import time
 import pytest
 from os import path
 
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 import requests
 
 from sentry.runner.commands.devservices import get_docker_client

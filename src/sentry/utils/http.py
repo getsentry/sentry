@@ -1,6 +1,6 @@
 from collections import namedtuple
 from django.conf import settings
-from six.moves.urllib.parse import parse_qs, quote, urlencode, urljoin, urlparse
+from urllib.parse import parse_qs, quote, urlencode, urljoin, urlparse
 from functools import partial
 
 from sentry import options

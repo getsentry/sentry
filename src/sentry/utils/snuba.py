@@ -16,7 +16,7 @@ from sentry_sdk import Hub
 
 from concurrent.futures import ThreadPoolExecutor
 from django.conf import settings
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 from sentry import quotas
 from sentry.models import (

@@ -1,6 +1,6 @@
 import click
 import types
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 import threading
 
 from sentry.runner.decorators import configuration, log_options

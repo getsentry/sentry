@@ -1,6 +1,6 @@
 from celery.signals import task_prerun, task_postrun
 from django.conf import settings
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 from time import time
 
 from sentry.net.http import SafeSession

@@ -5,7 +5,7 @@ import qrcode
 import hashlib
 
 from datetime import datetime
-from six.moves.urllib.parse import quote
+from urllib.parse import quote
 
 from sentry.utils.dates import to_timestamp
 

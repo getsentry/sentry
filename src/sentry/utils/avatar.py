@@ -9,7 +9,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.utils.encoding import force_text
 from django.utils.html import escape
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from sentry.utils.hashlib import md5_text
 from sentry.http import safe_urlopen

@@ -49,7 +49,7 @@ from exam import before, fixture, Exam
 from sentry.utils.compat.mock import patch
 from pkg_resources import iter_entry_points
 from rest_framework.test import APITestCase as BaseAPITestCase
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from sentry import auth
 from sentry import eventstore
