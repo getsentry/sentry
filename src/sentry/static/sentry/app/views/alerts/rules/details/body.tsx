@@ -297,7 +297,7 @@ export default class DetailsBody extends React.Component<Props> {
                         )}
                         start={timePeriod.start}
                         end={timePeriod.end}
-                        filter={DATASET_EVENT_TYPE_FILTERS[rule.dataset]}
+                        filter={queryWithTypeFilter}
                       />
                     )}
                   </ActivityWrapper>
