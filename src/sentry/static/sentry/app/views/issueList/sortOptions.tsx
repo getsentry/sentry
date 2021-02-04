@@ -13,7 +13,7 @@ type Props = {
 };
 
 const IssueListSortOptions = ({onSelect, sort, query}: Props) => {
-  const sortKey = sort || 'date';
+  const sortKey = sort || IssueSortOptions.DATE;
 
   const getSortLabel = (key: string) => {
     switch (key) {
@@ -46,14 +46,16 @@ const IssueListSortOptions = ({onSelect, sort, query}: Props) => {
       buttonProps={{prefix: t('Sort by')}}
       label={getSortLabel(sortKey)}
     >
-      {getMenuItem('priority')}
-      {getMenuItem('date')}
-      {getMenuItem('new')}
-      {getMenuItem('freq')}
-      {getMenuItem('user')}
-      <Feature features={['issue-list-trend-sort']}>{getMenuItem('trend')}</Feature>
+      {getMenuItem(IssueSortOptions.PRIORITY)}
+      {getMenuItem(IssueSortOptions.DATE)}
+      {getMenuItem(IssueSortOptions.NEW)}
+      {getMenuItem(IssueSortOptions.FREQ)}
+      {getMenuItem(IssueSortOptions.USER)}
+      <Feature features={['issue-list-trend-sort']}>
+        {getMenuItem(IssueSortOptions.TREND)}
+      </Feature>
       <Feature features={['inbox']}>
-        {isForReviewQuery(query) && getMenuItem('inbox')}
+        {isForReviewQuery(query) && getMenuItem(IssueSortOptions.INBOX)}
       </Feature>
     </StyledDropdownControl>
   );
