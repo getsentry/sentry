@@ -147,7 +147,7 @@ const GuideAnchor = createReactClass<Props, State>({
                 )}
                 <StyledButton
                   size="small"
-                  href="#" // to clear `#assistant` from the url
+                  href={currentGuide.carryAssistantForward ? '#assistant' : '#'} // to clear `#assistant` from the url
                   to={to}
                   onClick={this.handleFinish}
                 >

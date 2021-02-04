@@ -201,7 +201,7 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
           return true;
         } else if (dateThreshold) {
           // Don't show the guide to users who've joined after the date threshold
-          return userDateJoined < dateThreshold;
+          return userDateJoined > dateThreshold;
         } else {
           return userDateJoined > assistantThreshold;
         }
