@@ -123,7 +123,7 @@ class Project(Model, PendingDeletionMixin):
 
     _rename_fields_on_pending_delete = frozenset(["slug"])
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s (%s)" % (self.name, self.slug)
 
     def next_short_id(self):

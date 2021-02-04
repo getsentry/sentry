@@ -1,13 +1,11 @@
+import functools
 import os
 import re
 import logging
-import six
-
 from pkg_resources import parse_version
-from sentry.utils.compat import functools
 
+import six
 import sentry
-
 from django.conf import settings
 from sentry.utils import json
 from sentry.utils.compat import map

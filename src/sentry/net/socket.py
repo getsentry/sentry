@@ -1,10 +1,10 @@
 import six
 import ipaddress
 import socket
-from sentry.utils.compat import functools
+import functools
 from ssl import wrap_socket
-from six.moves.urllib.parse import urlparse
 
+from six.moves.urllib.parse import urlparse
 from django.conf import settings
 from django.utils.encoding import force_text
 from urllib3.util.connection import allowed_gai_family, _set_socket_options

@@ -1,6 +1,7 @@
+import pickle
+
 import pytest
 
-from sentry.utils.compat import pickle
 from sentry.db.models.fields.node import NodeData
 from sentry.eventstore.models import Event
 from sentry.models import Environment

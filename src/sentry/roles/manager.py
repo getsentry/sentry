@@ -15,9 +15,6 @@ class Role(object):
         self.is_global = bool(is_global)
 
     def __str__(self):
-        return self.name.encode("utf-8")
-
-    def __unicode__(self):
         return six.text_type(self.name)
 
     def __repr__(self):

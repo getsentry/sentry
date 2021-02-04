@@ -3,7 +3,6 @@ import posixpath
 from sentry.constants import NATIVE_UNKNOWN_STRING
 from sentry.interfaces.exception import upgrade_legacy_mechanism
 from sentry.lang.native.utils import image_name
-from sentry.utils.compat import implements_to_string
 from sentry.utils.safe import get_path
 
 from symbolic import parse_addr
@@ -12,7 +11,6 @@ from sentry.utils.compat import map
 REPORT_VERSION = "104"
 
 
-@implements_to_string
 class AppleCrashReport(object):
     def __init__(
         self, threads=None, context=None, debug_images=None, symbolicated=False, exceptions=None

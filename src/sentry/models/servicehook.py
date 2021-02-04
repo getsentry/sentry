@@ -84,7 +84,7 @@ class ServiceHook(Model):
         if self.guid is None:
             self.guid = uuid4().hex
 
-    def __unicode__(self):
+    def __str__(self):
         return six.text_type(self.guid)
 
     def build_signature(self, body):

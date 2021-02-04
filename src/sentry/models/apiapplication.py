@@ -63,7 +63,7 @@ class ApiApplication(Model):
 
     __repr__ = sane_repr("name", "owner_id")
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     @property

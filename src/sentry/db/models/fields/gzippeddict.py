@@ -1,10 +1,10 @@
 import logging
+import pickle
 import six
 
 from django.db.models import TextField
 
 from sentry.db.models.utils import Creator
-from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress, compress
 
 __all__ = ("GzippedDictField",)

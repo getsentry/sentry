@@ -65,7 +65,7 @@ def patch_pickle_loaders():
         # functionality. Sentry isn't really running if kombu isn't available.
         return
 
-    from sentry.utils.compat import pickle
+    import pickle
 
     # TODO(python3): We use the pickles `2` protocol as it is supported in 2 and 3.
     #

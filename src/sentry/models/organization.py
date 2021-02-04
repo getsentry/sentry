@@ -153,7 +153,7 @@ class Organization(Model):
 
         return cls.objects.filter(status=OrganizationStatus.ACTIVE)[0]
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s (%s)" % (self.name, self.slug)
 
     def save(self, *args, **kwargs):
