@@ -7,6 +7,7 @@ import os
 import sys
 import logging
 import time
+from urllib.request import urlopen
 
 # Import the stdlib json instead of sentry.utils.json, since this command is
 # run at build time
@@ -21,22 +22,6 @@ DOC_FOLDER = os.environ.get("INTEGRATION_DOC_FOLDER") or os.path.abspath(
     os.path.join(os.path.dirname(sentry.__file__), "integration-docs")
 )
 
-# We cannot leverage six here, so we need to vendor
-# bits that we need.
-if sys.version_info[0] == 3:
-    unicode = str  # NOQA
-
-    def iteritems(d, **kw):
-        return iter(d.items(**kw))
-
-    from urllib.request import urlopen
-
-else:
-
-    def iteritems(d, **kw):
-        return d.iteritems(**kw)  # NOQA
-
-    from urllib2 import urlopen
 """
 Looking to add a new framework/language to /settings/install?
 
@@ -52,6 +37,10 @@ the latest list of integrations and serve them in your local Sentry install.
 logger = logging.getLogger("sentry")
 
 
+def iteritems(d, **kw):
+    return iter(d.items(**kw))
+
+
 def echo(what):
     sys.stdout.write(what + "\n")
     sys.stdout.flush()
@@ -65,8 +54,7 @@ def dump_doc(path, data):
     except OSError:
         pass
     with open(fn, "wt", encoding="utf-8") as f:
-        # XXX: ideally, we use six.text_type here, but we can't use six.
-        f.write(unicode(json.dumps(data, indent=2)))  # NOQA
+        f.write(json.dumps(data, indent=2))
         f.write("\n")
 
 

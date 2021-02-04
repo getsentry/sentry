@@ -1,11 +1,11 @@
 import cProfile
+from io import StringIO
 import re
 import pstats
 import sys
 
 from django.conf import settings
 from django.http import HttpResponse
-from six import StringIO
 
 from sentry.auth.superuser import is_active_superuser
 

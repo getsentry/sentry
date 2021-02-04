@@ -111,7 +111,6 @@ class _RedisCluster(object):
         # StrictRedisCluster expects a list of { host, port } dicts. Coerce the
         # configuration into the correct format if necessary.
         hosts = config.get("hosts")
-        # TODO(joshuarli): modernize dict_six fixer
         hosts = list(hosts.values()) if isinstance(hosts, dict) else hosts
 
         # Redis cluster does not wait to attempt to connect. We'd prefer to not

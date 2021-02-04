@@ -8,7 +8,6 @@ import functools
 import os
 import pytz
 import re
-import six
 import time
 import urllib3
 import sentry_sdk
@@ -286,7 +285,7 @@ class RetrySkipTimeout(urllib3.Retry):
         immediately give up
         """
         if error and isinstance(error, urllib3.exceptions.ReadTimeoutError):
-            raise six.reraise(type(error), error, _stacktrace)
+            raise error.with_traceback(_stacktrace)
 
         metrics.incr(
             "snuba.client.retry",

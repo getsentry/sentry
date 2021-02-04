@@ -6,7 +6,6 @@ import click
 from django.utils import timezone
 
 from sentry.runner.decorators import log_options
-from six.moves import xrange
 
 
 # allows services like tagstore to add their own (abstracted) models
@@ -138,7 +137,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
     pool = []
     task_queue = Queue(1000)
-    for _ in xrange(concurrency):
+    for _ in range(concurrency):
         p = Process(target=multiprocess_worker, args=(task_queue,))
         p.daemon = True
         p.start()

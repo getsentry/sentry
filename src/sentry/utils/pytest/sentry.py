@@ -274,7 +274,6 @@ def pytest_collection_modifyitems(config, items):
         # In the case where we group by round robin (e.g. TEST_GROUP_STRATEGY is not `file`),
         # we want to only include items in `accepted` list
 
-        # TODO(joshuarli): six 1.12.0 adds ensure_binary: six.ensure_binary(item.location[0])
         item_to_group = (
             int(md5(str(item.location[0]).encode("utf-8")).hexdigest(), 16)
             if grouping_strategy == "file"

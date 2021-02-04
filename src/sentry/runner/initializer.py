@@ -1,7 +1,6 @@
 import click
 import logging
 import os
-import six
 import sys
 
 from django.conf import settings
@@ -410,20 +409,16 @@ def setup_services(validate=True):
         if validate:
             try:
                 service.validate()
-            except AttributeError as exc:
+            except AttributeError as e:
                 reraise_as(
-                    ConfigurationError(
-                        f"{service.__name__} service failed to call validate()\n{six.text_type(exc)}"
-                    )
+                    ConfigurationError(f"{service.__name__} service failed to call validate()\n{e}")
                 )
         try:
             service.setup()
-        except AttributeError as exc:
+        except AttributeError as e:
             if not hasattr(service, "setup") or not callable(service.setup):
                 reraise_as(
-                    ConfigurationError(
-                        f"{service.__name__} service failed to call setup()\n{six.text_type(exc)}"
-                    )
+                    ConfigurationError(f"{service.__name__} service failed to call setup()\n{e}")
                 )
             raise
 
