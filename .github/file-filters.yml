@@ -31,6 +31,8 @@ backend_lintable: &backend_lintable
 
 backend: &backend
   - *backend_lintable
+  - '.pre-commit-config.yaml'
+  - '**/*.sh'
   - '**/*.pysnap'
   - 'src/sentry/!(static)/**'
   - 'requirements-*.txt'
