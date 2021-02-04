@@ -7,7 +7,6 @@ from simplejson import JSONEncoder, JSONDecodeError, _default_decoder  # NOQA
 from enum import Enum
 import datetime
 import uuid
-import six
 import decimal
 
 from bitfield.types import BitHandler
@@ -132,4 +131,4 @@ def prune_empty_keys(obj):
     # example would be `event.logentry.formatted`, where `{}` means "this
     # message has no params" and `None` means "this message is already
     # formatted".
-    return dict((k, v) for k, v in six.iteritems(obj) if v is not None)
+    return dict((k, v) for k, v in obj.items() if v is not None)

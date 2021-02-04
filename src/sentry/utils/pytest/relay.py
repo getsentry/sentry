@@ -8,7 +8,6 @@ import time
 import pytest
 from os import path
 
-import six
 from six.moves.urllib.parse import urlparse
 import requests
 
@@ -83,7 +82,7 @@ def relay_server_setup(live_server, tmpdir_factory):
         with open(source_path) as input:
             content = input.read()
 
-        for var_name, var_val in six.iteritems(template_vars):
+        for var_name, var_val in template_vars.items():
             content = content.replace("${%s}" % var_name, str(var_val))
 
         with open(dest_path, "wt") as output:

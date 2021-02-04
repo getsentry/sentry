@@ -1,6 +1,5 @@
 import logging
 import os
-import six
 import subprocess
 import tempfile
 import time
@@ -383,7 +382,7 @@ class MessageBuilder(object):
         fmt = options.get("system.logging-format")
         messages = self.get_built_messages(to, cc=cc, bcc=bcc)
         extra = {"message_type": self.type}
-        loggable = [v for k, v in six.iteritems(self.context) if hasattr(v, "id")]
+        loggable = [v for k, v in self.context.items() if hasattr(v, "id")]
         for context in loggable:
             extra["%s_id" % type(context).__name__.lower()] = context.id
 

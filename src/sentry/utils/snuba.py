@@ -498,7 +498,7 @@ def _prepare_query_params(query_params):
 
     query_params.kwargs.update(params_to_update)
 
-    for col, keys in six.iteritems(forward(deepcopy(query_params.filter_keys))):
+    for col, keys in forward(deepcopy(query_params.filter_keys)).items():
         if keys:
             if len(keys) == 1 and None in keys:
                 query_params.conditions.append((col, "IS NULL", None))
@@ -540,7 +540,7 @@ def _prepare_query_params(query_params):
             "granularity": query_params.rollup,  # TODO name these things the same
         }
     )
-    kwargs = {k: v for k, v in six.iteritems(query_params.kwargs) if v is not None}
+    kwargs = {k: v for k, v in query_params.kwargs.items() if v is not None}
 
     kwargs.update(OVERRIDE_OPTIONS)
     return kwargs, forward, reverse
@@ -657,7 +657,7 @@ def bulk_raw_query(snuba_param_list, referrer=None):
                     op="snuba", description="query {}".format(referrer)
                 ) as span:
                     span.set_tag("referrer", referrer)
-                    for param_key, param_data in six.iteritems(query_params):
+                    for param_key, param_data in query_params.items():
                         span.set_data(param_key, param_data)
                     return (
                         _snuba_pool.urlopen("POST", "/query", body=body, headers=headers),
@@ -799,9 +799,7 @@ def nest_groups(data, groups, aggregate_cols):
         inter = OrderedDict()
         for d in data:
             inter.setdefault(d[g], []).append(d)
-        return OrderedDict(
-            (k, nest_groups(v, rest, aggregate_cols)) for k, v in six.iteritems(inter)
-        )
+        return OrderedDict((k, nest_groups(v, rest, aggregate_cols)) for k, v in inter.items())
 
 
 def resolve_column(dataset):
@@ -1003,7 +1001,7 @@ def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None
     translated_columns = {}
     derived_columns = set()
     if function_translations:
-        for snuba_name, sentry_name in six.iteritems(function_translations):
+        for snuba_name, sentry_name in function_translations.items():
             derived_columns.add(snuba_name)
             translated_columns[snuba_name] = sentry_name
 
@@ -1160,7 +1158,7 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
         "release": (Release, "version", identity),
     }
 
-    for col, (model, field, fmt) in six.iteritems(map_columns):
+    for col, (model, field, fmt) in map_columns.items():
         fwd, rev = None, None
         ids = filter_keys.get(col)
         if not ids:
@@ -1180,7 +1178,7 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
                 Release.objects.filter(id__in=[x[2] for x in gr_map]).values_list("id", "version")
             )
             fwd_map = {gr: (group, ver[release]) for (gr, group, release) in gr_map}
-            rev_map = dict(reversed(t) for t in six.iteritems(fwd_map))
+            rev_map = dict(reversed(t) for t in fwd_map.items())
             fwd = (
                 lambda col, trans: lambda filters: replace(
                     filters, col, [trans[k][1] for k in filters[col]]
@@ -1200,7 +1198,7 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
             fwd_map = {
                 k: fmt(v) for k, v in model.objects.filter(id__in=ids).values_list("id", field)
             }
-            rev_map = dict(reversed(t) for t in six.iteritems(fwd_map))
+            rev_map = dict(reversed(t) for t in fwd_map.items())
             fwd = (
                 lambda col, trans: lambda filters: replace(
                     filters, col, [trans[k] for k in filters[col] if k]

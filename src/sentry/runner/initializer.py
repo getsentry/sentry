@@ -183,21 +183,21 @@ def bootstrap_options(settings, config=None):
     from sentry.conf.server import DEAD
 
     # First move options from settings into options
-    for k, v in six.iteritems(options_mapper):
+    for k, v in options_mapper.items():
         if getattr(settings, v, DEAD) is not DEAD and k not in options:
             warnings.warn(DeprecatedSettingWarning(options_mapper[k], "SENTRY_OPTIONS['%s']" % k))
             options[k] = getattr(settings, v)
 
     # Stuff everything else into SENTRY_OPTIONS
     # these will be validated later after bootstrapping
-    for k, v in six.iteritems(options):
+    for k, v in options.items():
         settings.SENTRY_OPTIONS[k] = v
 
     # Now go back through all of SENTRY_OPTIONS and promote
     # back into settings. This catches the case when values are defined
     # only in SENTRY_OPTIONS and no config.yml file
     for o in (settings.SENTRY_DEFAULT_OPTIONS, settings.SENTRY_OPTIONS):
-        for k, v in six.iteritems(o):
+        for k, v in o.items():
             if k in options_mapper:
                 # Map the mail.backend aliases to something Django understands
                 if k == "mail.backend":

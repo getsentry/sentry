@@ -1,5 +1,3 @@
-import six
-
 from celery.signals import task_prerun, task_postrun
 from django.conf import settings
 from six.moves.urllib.parse import urlparse
@@ -35,7 +33,7 @@ def connect(app):
         if hasattr(app.conf, "beat_schedule")
         else app.conf["CELERYBEAT_SCHEDULE"]
     )
-    for schedule_name, monitor_id in six.iteritems(settings.SENTRY_CELERYBEAT_MONITORS):
+    for schedule_name, monitor_id in settings.SENTRY_CELERYBEAT_MONITORS.items():
         schedule[schedule_name].setdefault("options", {}).setdefault("headers", {}).setdefault(
             "X-Sentry-Monitor", monitor_id
         )

@@ -1,5 +1,4 @@
 import inspect
-import six
 import sys
 
 from sentry.utils.imports import import_string
@@ -34,7 +33,7 @@ def reraise_as(new_exception_or_type):
     new_exception.__cause__ = e_value
 
     try:
-        six.reraise(new_type, new_exception, e_traceback)
+        raise new_exception.with_traceback(e_traceback)
     finally:
         del e_traceback
 

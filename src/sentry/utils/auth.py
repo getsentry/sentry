@@ -1,4 +1,3 @@
-import six
 import logging
 
 from django.conf import settings
@@ -27,7 +26,7 @@ class AuthUserPasswordExpired(Exception):
 def get_auth_providers():
     return [
         key
-        for key, cfg_names in six.iteritems(settings.AUTH_PROVIDERS)
+        for key, cfg_names in settings.AUTH_PROVIDERS.items()
         if all(getattr(settings, c, None) for c in cfg_names)
     ]
 

@@ -24,7 +24,6 @@ import os
 import os.path
 import pytest
 import requests
-import six
 import time
 import inspect
 from uuid import uuid4
@@ -155,7 +154,7 @@ class BaseTestCase(Fixtures, Exam):
 
     def save_cookie(self, name, value, **params):
         self.client.cookies[name] = value
-        self.client.cookies[name].update({k.replace("_", "-"): v for k, v in six.iteritems(params)})
+        self.client.cookies[name].update({k.replace("_", "-"): v for k, v in params.items()})
 
     def make_request(self, user=None, auth=None, method=None):
         request = HttpRequest()

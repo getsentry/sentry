@@ -1,4 +1,3 @@
-import six
 from six.moves.queue import Queue, Empty
 
 from collections import defaultdict
@@ -53,6 +52,6 @@ class ThreadPool(object):
         results = defaultdict(list)
         for worker in self.workers:
             worker.join()
-            for k, v in six.iteritems(worker.results):
+            for k, v in worker.results.items():
                 results[k].extend(v)
         return results

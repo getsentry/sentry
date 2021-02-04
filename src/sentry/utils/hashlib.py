@@ -1,4 +1,3 @@
-import six
 from hashlib import md5 as _md5
 from hashlib import sha1 as _sha1
 
@@ -34,7 +33,7 @@ def hash_value(h, value):
             hash_value(h, item)
     elif isinstance(value, dict):
         h.update(b"\x05" + str(len(value)).encode("utf-8"))
-        for k, v in six.iteritems(value):
+        for k, v in value.items():
             hash_value(h, k)
             hash_value(h, v)
     elif isinstance(value, bytes):

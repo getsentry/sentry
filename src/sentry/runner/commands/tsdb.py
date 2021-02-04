@@ -1,6 +1,5 @@
 import click
 import pytz
-import six
 
 from collections import OrderedDict
 from datetime import datetime, timedelta
@@ -99,7 +98,7 @@ def organizations(metrics, since, until):
         for metric in metrics.values():
             results[metric] = tsdb.get_range(metric, list(instances.keys()), since, until)
 
-        for key, instance in six.iteritems(instances):
+        for key, instance in instances.items():
             values = []
             for metric in metrics.values():
                 values.append(aggregate(results[metric][key]))

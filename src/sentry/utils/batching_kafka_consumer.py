@@ -1,6 +1,5 @@
 import abc
 import logging
-import six
 import time
 
 from confluent_kafka import (
@@ -58,8 +57,7 @@ def wait_for_topics(admin_client, topics, timeout=10):
                 )
 
 
-@six.add_metaclass(abc.ABCMeta)
-class AbstractBatchWorker(object):
+class AbstractBatchWorker(object, metaclass=abc.ABCMeta):
     """The `BatchingKafkaConsumer` requires an instance of this class to
     handle user provided work such as processing raw messages and flushing
     processed batches to a custom backend."""
