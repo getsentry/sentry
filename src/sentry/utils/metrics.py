@@ -75,7 +75,7 @@ def _sampled_value(value, sample_rate):
     return value
 
 
-class InternalMetrics(object):
+class InternalMetrics:
     def __init__(self):
         self._started = False
 

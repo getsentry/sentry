@@ -18,7 +18,7 @@ class ConfigurationError(ValueError, click.ClickException):
         click.secho("!! Configuration error: %s" % str(self), file=file, fg="red")
 
 
-class Importer(object):
+class Importer:
     def __init__(self, name, config_path, default_settings=None, callback=None):
         self.name = name
         self.config_path = config_path

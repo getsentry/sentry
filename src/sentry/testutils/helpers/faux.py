@@ -4,7 +4,7 @@ from sentry.utils import json
 from sentry.utils.functional import compact
 
 
-class Faux(object):
+class Faux:
     """
     Convenience functions for testing, and asserting, with ``unittest.mock``
     objects.
@@ -160,7 +160,7 @@ class Faux(object):
         return ", ".join("{}={!r}".format(k, v) for k, v in kwargs.items())
 
 
-class Mock(object):
+class Mock:
     def __init__(self, *args, **kwargs):
         for k, v in kwargs.items():
             setattr(self, k, v)

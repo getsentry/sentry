@@ -18,7 +18,7 @@ group_prefix_re = [
 ]
 
 
-class ProfileMiddleware(object):
+class ProfileMiddleware:
     def can(self, request):
         if "prof" not in request.GET:
             return False

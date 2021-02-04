@@ -12,7 +12,7 @@ from sentry.utils.kafka_config import get_kafka_producer_cluster_options
 logger = logging.getLogger(__name__)
 
 
-class ProducerManager(object):
+class ProducerManager:
     """
     Manages one `confluent_kafka.Producer` per Kafka cluster.
 

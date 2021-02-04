@@ -1,4 +1,4 @@
-class classproperty(object):
+class classproperty:
     # Vendored from newer Django:
     # https://github.com/django/django/blob/1.9.6/django/utils/decorators.py#L188-L197
     def __init__(self, method=None):

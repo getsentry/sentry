@@ -5,7 +5,7 @@ from django.core.cache import cache
 default_cache = cache
 
 
-class memoize(object):
+class memoize:
     """
     Memoize the result of a property call.
 

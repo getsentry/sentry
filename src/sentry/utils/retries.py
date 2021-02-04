@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class RetryException(Exception):
     def __init__(self, message, exception):
-        super(RetryException, self).__init__(message)
+        super().__init__(message)
         self.message = message
         self.exception = exception
 
@@ -25,7 +25,7 @@ class RetryException(Exception):
         return "<{}: {!r}>".format(type(self).__name__, self.message)
 
 
-class RetryPolicy(object):
+class RetryPolicy:
     def __call__(self, function):
         raise NotImplementedError
 

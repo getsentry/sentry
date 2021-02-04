@@ -57,7 +57,7 @@ def wait_for_topics(admin_client, topics, timeout=10):
                 )
 
 
-class AbstractBatchWorker(object, metaclass=abc.ABCMeta):
+class AbstractBatchWorker(metaclass=abc.ABCMeta):
     """The `BatchingKafkaConsumer` requires an instance of this class to
     handle user provided work such as processing raw messages and flushing
     processed batches to a custom backend."""
@@ -95,7 +95,7 @@ class AbstractBatchWorker(object, metaclass=abc.ABCMeta):
         pass
 
 
-class BatchingKafkaConsumer(object):
+class BatchingKafkaConsumer:
     """The `BatchingKafkaConsumer` is an abstraction over most Kafka consumer's main event
     loops. For this reason it uses inversion of control: the user provides an implementation
     for the `AbstractBatchWorker` and then the `BatchingKafkaConsumer` handles the rest.

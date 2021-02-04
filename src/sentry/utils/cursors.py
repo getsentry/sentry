@@ -1,7 +1,7 @@
 from collections import Sequence
 
 
-class Cursor(object):
+class Cursor:
     def __init__(self, value, offset=0, is_prev=False, has_results=None):
         self.value = value
         self.offset = int(offset)

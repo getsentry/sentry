@@ -34,7 +34,7 @@ def ensure_relay_is_registered():
         pass  # NOQA
 
 
-class RelayStoreHelper(object):
+class RelayStoreHelper:
     """
     Tests that post to the store entry point should use this helper class
     (together with RelayStoreHelper) to check the functionality with relay.

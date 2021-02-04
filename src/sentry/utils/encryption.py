@@ -8,7 +8,7 @@ MARKER = "\xef\xbb\xbf"
 _marker_length = len(MARKER)
 
 
-class EncryptionManager(object):
+class EncryptionManager:
     def __init__(self, schemes=()):
         for key, value in schemes:
             if not isinstance(key, str):

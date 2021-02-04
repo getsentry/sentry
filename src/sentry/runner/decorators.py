@@ -8,7 +8,7 @@ LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL", "FATAL")
 class CaseInsensitiveChoice(Choice):
     def convert(self, value, param, ctx):
         self.choices = [choice.upper() for choice in self.choices]
-        return super(CaseInsensitiveChoice, self).convert(value.upper(), param, ctx)
+        return super().convert(value.upper(), param, ctx)
 
 
 def configuration(f):

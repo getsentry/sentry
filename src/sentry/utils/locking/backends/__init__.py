@@ -1,4 +1,4 @@
-class LockBackend(object):
+class LockBackend:
     """
     Interface for providing lock behavior that is used by the
     ``sentry.utils.locking.Lock`` class.
