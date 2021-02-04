@@ -92,7 +92,7 @@ class TagStorage(Service):
     def prefix_reserved_key(self, key):
         # XXX(dcramer): kill sentry prefix for internal reserved tags
         if self.is_reserved_key(key):
-            return "sentry:{0}".format(key)
+            return "sentry:{}".format(key)
         else:
             return key
 

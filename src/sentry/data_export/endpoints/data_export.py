@@ -47,7 +47,7 @@ class DataExportQuerySerializer(serializers.Serializer):
                 fields = [fields]
 
             if len(fields) > MAX_FIELDS:
-                detail = "You can export up to {0} fields at a time. Please delete some and try again.".format(
+                detail = "You can export up to {} fields at a time. Please delete some and try again.".format(
                     MAX_FIELDS
                 )
                 raise serializers.ValidationError(detail)
