@@ -52,8 +52,8 @@ describe('InviteMembersModal', function () {
 
     // We have two roles loaded from the members/me endpoint, defaulting to the
     // 'member' role.
-    expect(wrapper.find('RoleSelectControl').props().options).toHaveLength(roles.length);
-    expect(wrapper.find('RoleSelectControl Value').text()).toBe('Member');
+    expect(wrapper.find('RoleSelectControl').props().roles).toHaveLength(roles.length);
+    expect(wrapper.find('RoleSelectControl SingleValue').text()).toBe('Member');
   });
 
   it('renders without organization.access', async function () {

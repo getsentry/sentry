@@ -207,7 +207,6 @@ class MonitorForm extends Component<Props> {
                               required
                             />
                             <SelectField
-                              deprecatedSelectControl
                               name="config.schedule.interval"
                               label={t('Interval')}
                               disabled={!hasAccess}

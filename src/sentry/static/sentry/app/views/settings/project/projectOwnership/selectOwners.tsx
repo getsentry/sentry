@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import {MultiValueProps} from 'react-select';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
@@ -16,6 +17,7 @@ import {t} from 'app/locale';
 import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
+import space from 'app/styles/space';
 import {Actor, Member, Organization, Project, Team, User} from 'app/types';
 import {buildTeamId, buildUserId} from 'app/utils';
 import withApi from 'app/utils/withApi';
@@ -29,16 +31,11 @@ export type Owner = {
   disabled?: boolean;
 };
 
-type ValueProps = {
-  value: Owner;
-  onRemove: (item: Owner) => void;
-};
-
-function ValueComponent({value, onRemove}: ValueProps) {
+function ValueComponent({data, removeProps}: MultiValueProps<Owner>) {
   return (
-    <a onClick={() => onRemove(value)}>
-      <ActorAvatar actor={value.actor} size={28} />
-    </a>
+    <ValueWrapper onClick={removeProps.onClick}>
+      <ActorAvatar actor={data.actor} size={28} />
+    </ValueWrapper>
   );
 }
 
@@ -278,17 +275,17 @@ class SelectOwners extends React.Component<Props, State> {
               .map(this.createUnmentionableUser)
           : []
       )
-      .then(members => ({
-        options: [...usersInProject, ...teamsInProject, ...teamsNotInProject, ...members],
-      }));
+      .then(members => {
+        return [...usersInProject, ...teamsInProject, ...teamsNotInProject, ...members];
+      });
   };
 
   render() {
     return (
       <MultiSelectControl
-        deprecatedSelectControl
-        filterOptions={(options, filterText) =>
-          options.filter(({searchKey}) => searchKey.indexOf(filterText) > -1)
+        name="owners"
+        filterOption={(option, filterText) =>
+          option.data.searchKey.indexOf(filterText) > -1
         }
         ref={this.selectRef}
         loadOptions={this.handleLoadOptions}
@@ -297,8 +294,10 @@ class SelectOwners extends React.Component<Props, State> {
         clearable
         disabled={this.props.disabled}
         cache={false}
-        valueComponent={ValueComponent}
         placeholder={t('owners')}
+        components={{
+          MultiValue: ValueComponent,
+        }}
         onInputChange={this.handleInputChange}
         onChange={this.handleChange}
         value={this.props.value}
@@ -322,4 +321,8 @@ const DisabledLabel = styled('div')`
 
 const AddToProjectButton = styled(Button)`
   flex-shrink: 0;
+`;
+
+const ValueWrapper = styled('a')`
+  margin-right: ${space(0.5)};
 `;
