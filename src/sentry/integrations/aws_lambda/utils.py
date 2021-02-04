@@ -184,7 +184,10 @@ def get_dsn_for_project(organization_id, project_id):
     return enabled_dsn.get_dsn(public=True)
 
 
-def enable_single_lambda(lambda_client, function, sentry_project_dsn, layer_arn, retries_left=3):
+def enable_single_lambda(lambda_client, function, sentry_project_dsn, retries_left=3):
+    # find the latest layer for this function
+    layer_arn = get_latest_layer_for_function(function)
+
     name = function["FunctionName"]
     # update the env variables
     env_variables = function.get("Environment", {}).get("Variables", {})

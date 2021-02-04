@@ -127,13 +127,12 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
     @wrap_lambda_updater()
     def enable_function(self, target):
         function = self.get_one_lambda_function(target)
-        layer_arn = get_latest_layer_for_function(function)
         config_data = self.get_config_data()
         project_id = config_data["default_project_id"]
 
         sentry_project_dsn = get_dsn_for_project(self.organization_id, project_id)
 
-        enable_single_lambda(self.client, function, sentry_project_dsn, layer_arn)
+        enable_single_lambda(self.client, function, sentry_project_dsn)
 
         return self.get_serialized_lambda_function(target)
 
@@ -357,11 +356,8 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
             if not enabled_lambdas.get(name):
                 continue
 
-            # find the latest layer for this function
-            # TODO(Steve): push get_latest_layer_for_function into enable_single_lambda
-            layer_arn = get_latest_layer_for_function(function)
             try:
-                enable_single_lambda(lambda_client, function, sentry_project_dsn, layer_arn)
+                enable_single_lambda(lambda_client, function, sentry_project_dsn)
                 success_count += 1
             except Exception as e:
                 # need to make sure we catch any error to continue to the next function
