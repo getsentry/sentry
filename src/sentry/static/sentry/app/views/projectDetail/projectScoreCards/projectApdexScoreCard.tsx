@@ -130,7 +130,10 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
   }
 
   get cardHelp() {
-    return getTermHelp(this.props.organization, PERFORMANCE_TERM.APDEX);
+    return (
+      getTermHelp(this.props.organization, PERFORMANCE_TERM.APDEX) +
+      t(' This shows how it has changed since the last period.')
+    );
   }
 
   get currentApdex() {
