@@ -28,7 +28,7 @@ const IssueListSortOptions = ({onSelect, sort, query}: Props) => {
       case IssueSortOptions.TREND:
         return t('Relative Change');
       case IssueSortOptions.INBOX:
-        return t('Time');
+        return t('Date Added');
       case IssueSortOptions.DATE:
       default:
         return t('Last Seen');
