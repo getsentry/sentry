@@ -2,7 +2,7 @@ __all__ = ["timing", "incr"]
 
 import logging
 import time
-from typing import Mapping, Optional
+import typing as t
 
 import functools
 from contextlib import contextmanager
@@ -126,8 +126,8 @@ internal = InternalMetrics()
 def incr(
     key: str,
     amount: int = 1,
-    instance: Optional[str] = None,
-    tags: Optional[Mapping[str, str]] = None,
+    instance: t.Optional[str] = None,
+    tags: t.Optional[t.Mapping[str, str]] = None,
     skip_internal: bool = True,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
 ) -> None:
