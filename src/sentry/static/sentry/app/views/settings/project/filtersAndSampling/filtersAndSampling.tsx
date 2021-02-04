@@ -153,8 +153,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
     this.handleOpenTransactionRule(rule)();
   };
 
-  handleDeleteRule = (rule: DynamicSamplingRule) => async () => {
-    const {organization, project} = this.props;
+  handleDeleteRule = (rule: DynamicSamplingRule) => () => {
     const {errorRules, transactionRules} = this.state;
 
     const newErrorRules =
@@ -169,18 +168,44 @@ class FiltersAndSampling extends AsyncView<Props, State> {
 
     const newRules = [...newErrorRules, ...newTransactionRules];
 
+    this.submitRules(
+      newRules,
+      t('Successfully deleted dynamic sampling rule'),
+      t('An error occurred while deleting dynamic sampling rule')
+    );
+  };
+
+  handleUpdateRules = (rules: Array<DynamicSamplingRule>) => {
+    const {errorRules, transactionRules} = this.state;
+    if (rules[0].type === DynamicSamplingRuleType.ERROR) {
+      this.submitRules([...rules, ...transactionRules]);
+      return;
+    }
+    this.submitRules([...errorRules, ...rules]);
+  };
+
+  async submitRules(
+    newRules: DynamicSamplingRules,
+    successMessage?: string,
+    errorMessage?: string
+  ) {
+    const {organization, project} = this.props;
     try {
       const projectDetails = await this.api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/`,
         {method: 'PUT', data: {dynamicSampling: {rules: newRules}}}
       );
       this.setState({projectDetails});
-      addSuccessMessage(t('Successfully deleted dynamic sampling rule'));
+      if (successMessage) {
+        addSuccessMessage(successMessage);
+      }
     } catch (error) {
       this.getRules();
-      addErrorMessage(t('An error occurred while deleting dynamic sampling rule'));
+      if (errorMessage) {
+        addErrorMessage(errorMessage);
+      }
     }
-  };
+  }
 
   renderBody() {
     const {errorRules, transactionRules} = this.state;
@@ -213,10 +238,11 @@ class FiltersAndSampling extends AsyncView<Props, State> {
         </TextBlock>
         <RulesPanel
           rules={errorRules}
+          disabled={disabled}
           onAddRule={this.handleAddRule('errorRules')}
           onEditRule={this.handleEditRule}
           onDeleteRule={this.handleDeleteRule}
-          disabled={disabled}
+          onUpdateRules={this.handleUpdateRules}
         />
         <TextBlock>
           {t(
@@ -225,10 +251,11 @@ class FiltersAndSampling extends AsyncView<Props, State> {
         </TextBlock>
         <RulesPanel
           rules={transactionRules}
+          disabled={disabled}
           onAddRule={this.handleAddRule('transactionRules')}
           onEditRule={this.handleEditRule}
           onDeleteRule={this.handleDeleteRule}
-          disabled={disabled}
+          onUpdateRules={this.handleUpdateRules}
         />
       </React.Fragment>
     );
