@@ -73,9 +73,7 @@ def wait_for_healthcheck(low_level_client, container_name, healthcheck_options):
         time.sleep(delay)
 
     raise click.ClickException(
-        "Timed out waiting for {container_name}: healthcheck status {health_status}".format(
-            container_name=container_name, health_status=health_status
-        )
+        f"Timed out waiting for {container_name}: healthcheck status {health_status}"
     )
 
 

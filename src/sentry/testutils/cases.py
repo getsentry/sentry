@@ -700,9 +700,7 @@ class SnubaTestCase(BaseTestCase):
             attempt += 1
             time.sleep(0.05)
         if attempt == attempts:
-            assert False, "Could not ensure event was persisted within {} attempt(s)".format(
-                attempt
-            )
+            assert False, f"Could not ensure event was persisted within {attempt} attempt(s)"
 
     def store_session(self, session):
         assert (

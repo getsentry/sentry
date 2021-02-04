@@ -47,9 +47,7 @@ def register_plugins(settings, raise_on_plugin_load_failure=False):
             import traceback
 
             click.echo(
-                "Failed to load integration {!r}:\n{}".format(
-                    integration_path, traceback.format_exc()
-                ),
+                f"Failed to load integration {integration_path!r}:\n{traceback.format_exc()}",
                 err=True,
             )
         else:

@@ -16,9 +16,7 @@ class DeprecatedSettingWarning(DeprecationWarning):
 
     def __str__(self):
         chunks = [
-            "The {} setting is deprecated. Please use {} instead.".format(
-                self.setting, self.replacement
-            )
+            f"The {self.setting} setting is deprecated. Please use {self.replacement} instead."
         ]
 
         if self.removed_in_version:
