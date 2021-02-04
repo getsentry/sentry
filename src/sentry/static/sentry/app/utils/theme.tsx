@@ -134,6 +134,12 @@ const aliases = {
   secondaryButtonText: colors.gray500,
 
   /**
+   * Primary button colors
+   */
+  primaryButtonBorder: '#3d328e',
+  primaryButtonBorderActive: '#352b7b',
+
+  /**
    * Gradient for sidebar
    */
   sidebarGradient:
@@ -280,8 +286,8 @@ const generateButtonTheme = alias => ({
     colorActive: colors.white,
     background: colors.purple300,
     backgroundActive: '#4e3fb4',
-    border: '#3d328e',
-    borderActive: '#352b7b',
+    border: alias.primaryButtonBorder,
+    borderActive: alias.primaryButtonBorderActive,
     focusShadow: color(colors.purple300).alpha(0.4).string(),
   },
   success: {
@@ -506,6 +512,8 @@ const darkAliases = {
   inactive: colors.gray200,
   error: colors.red300,
   success: colors.green300,
+  primaryButtonBorder: colors.purple200,
+  primaryButtonBorderActive: colors.purple200,
   secondaryButtonText: colors.purple200,
   secondaryButtonBorder: colors.purple200,
   sidebarGradient: 'linear-gradient(6.01deg, #0A090F -8.44%, #1B0921 85.02%)',
