@@ -104,7 +104,7 @@ jobs:
           # this is fine to not have for forks, it shouldn't fail
           SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
         run: |
-          yarn build-acceptance
+          yarn webpack --display errors-only
 
 
       - name: Save frontend dist
@@ -163,6 +163,7 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: frontend-dist
+          path: static/dist
 
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         if: always()
