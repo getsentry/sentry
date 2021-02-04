@@ -56,7 +56,7 @@ def track_outcome(
 
     assert isinstance(org_id, int)
     assert isinstance(project_id, int)
-    assert isinstance(key_id, (type(None), (int,)))
+    assert isinstance(key_id, (type(None), int))
     assert isinstance(outcome, Outcome)
     assert isinstance(timestamp, (type(None), datetime))
     assert isinstance(category, (type(None), DataCategory))

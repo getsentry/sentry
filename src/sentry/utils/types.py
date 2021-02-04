@@ -61,7 +61,7 @@ class BoolType(Type):
     name = "boolean"
     default = False
     expected_types = (bool,)
-    compatible_types = (str,) + (int,)
+    compatible_types = (str, int)
 
     def convert(self, value):
         if isinstance(value, int):
@@ -93,7 +93,7 @@ class FloatType(Type):
     name = "float"
     default = 0.0
     expected_types = (float,)
-    compatible_types = (str,) + (int,) + (float,)
+    compatible_types = (str, int, float)
 
     def convert(self, value):
         try:
@@ -134,7 +134,7 @@ class SequenceType(Type):
     name = "sequence"
     default = ()
     expected_types = (tuple, list)
-    compatible_types = (str,) + (tuple, list)
+    compatible_types = (str, tuple, list)
 
     def convert(self, value):
         if isinstance(value, str):
