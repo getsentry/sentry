@@ -1,5 +1,3 @@
-import six
-
 from collections import deque
 
 from sentry.utils import json
@@ -159,12 +157,12 @@ class Faux(object):
     def _kwargs_to_s(self, **kwargs):
         if not len(kwargs):
             return None
-        return ", ".join("{}={!r}".format(k, v) for k, v in six.iteritems(kwargs))
+        return ", ".join("{}={!r}".format(k, v) for k, v in kwargs.items())
 
 
 class Mock(object):
     def __init__(self, *args, **kwargs):
-        for k, v in six.iteritems(kwargs):
+        for k, v in kwargs.items():
             setattr(self, k, v)
 
 

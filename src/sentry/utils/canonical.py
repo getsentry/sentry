@@ -2,7 +2,6 @@ from django.conf import settings
 
 import copy
 import collections
-import six
 
 __all__ = ("CanonicalKeyDict", "CanonicalKeyView", "get_canonical_name")
 
@@ -93,7 +92,7 @@ class CanonicalKeyDict(collections.MutableMapping):
         norm_func = legacy and get_legacy_name or get_canonical_name
         self._norm_func = norm_func
         self.data = {}
-        for key, value in six.iteritems(data):
+        for key, value in data.items():
             canonical_key = norm_func(key)
             if key == canonical_key or canonical_key not in self.data:
                 self.data[canonical_key] = value

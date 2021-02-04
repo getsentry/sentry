@@ -1,7 +1,6 @@
 import click
 import logging
 import os
-import six
 import sys
 
 from django.conf import settings
@@ -169,7 +168,7 @@ def bootstrap_options(settings, config=None):
         except (AttributeError, ParserError, ScannerError) as e:
             from .importer import ConfigurationError
 
-            raise ConfigurationError("Malformed config.yml file: %s" % six.text_type(e))
+            raise ConfigurationError("Malformed config.yml file: %s" % str(e))
 
         # Empty options file, so fail gracefully
         if options is None:
@@ -183,21 +182,21 @@ def bootstrap_options(settings, config=None):
     from sentry.conf.server import DEAD
 
     # First move options from settings into options
-    for k, v in six.iteritems(options_mapper):
+    for k, v in options_mapper.items():
         if getattr(settings, v, DEAD) is not DEAD and k not in options:
             warnings.warn(DeprecatedSettingWarning(options_mapper[k], "SENTRY_OPTIONS['%s']" % k))
             options[k] = getattr(settings, v)
 
     # Stuff everything else into SENTRY_OPTIONS
     # these will be validated later after bootstrapping
-    for k, v in six.iteritems(options):
+    for k, v in options.items():
         settings.SENTRY_OPTIONS[k] = v
 
     # Now go back through all of SENTRY_OPTIONS and promote
     # back into settings. This catches the case when values are defined
     # only in SENTRY_OPTIONS and no config.yml file
     for o in (settings.SENTRY_DEFAULT_OPTIONS, settings.SENTRY_OPTIONS):
-        for k, v in six.iteritems(o):
+        for k, v in o.items():
             if k in options_mapper:
                 # Map the mail.backend aliases to something Django understands
                 if k == "mail.backend":
@@ -271,7 +270,7 @@ def configure_structlog():
 
 
 def show_big_error(message):
-    if isinstance(message, six.string_types):
+    if isinstance(message, str):
         lines = message.strip().splitlines()
     else:
         lines = message
@@ -410,20 +409,16 @@ def setup_services(validate=True):
         if validate:
             try:
                 service.validate()
-            except AttributeError as exc:
+            except AttributeError as e:
                 reraise_as(
-                    ConfigurationError(
-                        f"{service.__name__} service failed to call validate()\n{six.text_type(exc)}"
-                    )
+                    ConfigurationError(f"{service.__name__} service failed to call validate()\n{e}")
                 )
         try:
             service.setup()
-        except AttributeError as exc:
+        except AttributeError as e:
             if not hasattr(service, "setup") or not callable(service.setup):
                 reraise_as(
-                    ConfigurationError(
-                        f"{service.__name__} service failed to call setup()\n{six.text_type(exc)}"
-                    )
+                    ConfigurationError(f"{service.__name__} service failed to call setup()\n{e}")
                 )
             raise
 

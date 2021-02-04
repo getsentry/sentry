@@ -1,6 +1,6 @@
 from django.core import signing
 from django.core.urlresolvers import reverse
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from sentry import options
 from sentry.models import User
