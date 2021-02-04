@@ -20,8 +20,7 @@ class RepositoryMixin:
         Calls the client's `check_file` method to see if the file exists.
         Returns the link to the file if it's exists, otherwise return `None`.
 
-        So far only GitHub and GitLab have this implemented, both of which
-        give use back 404s. If for some reason an integration gives back
+        So far only GitHub and GitLab have this implemented. Github returns 404s and Gitlab returns 400s. If for some reason an integration gives back
         a different status code, this method could be overwritten.
 
         repo: Repository (object)
@@ -32,7 +31,7 @@ class RepositoryMixin:
         try:
             self.get_client().check_file(repo, filepath, branch)
         except ApiError as e:
-            if e.code != 404:
+            if e.code not in [404, 400]:
                 raise
             return None
 

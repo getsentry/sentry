@@ -120,7 +120,7 @@ describe('StacktraceLink', function () {
     );
     expect(wrapper.state('match').sourceUrl).toBeFalsy();
     expect(wrapper.find('CodeMappingButtonContainer').text()).toContain(
-      'Could not find source file, check your repository and source code root.'
+      'Could not find source file, check our troubleshooting docs.'
     );
   });
 
