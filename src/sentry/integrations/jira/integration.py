@@ -340,7 +340,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def get_issue(self, issue_id, **kwargs):
         """
-        Jira installation's implementation IssueSyncMixin's `get_issue`.
+        Jira installation's implementation of IssueSyncMixin's `get_issue`.
         """
         client = self.get_client()
         issue = client.get_issue(issue_id)
