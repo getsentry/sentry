@@ -19,7 +19,7 @@ const IssueListSortOptions = ({onSelect, sort, query}: Props) => {
     switch (key) {
       case IssueSortOptions.NEW:
         return t('First Seen');
-      case 'priority':
+      case IssueSortOptions.PRIORITY:
         return t('Priority');
       case IssueSortOptions.FREQ:
         return t('Events');
