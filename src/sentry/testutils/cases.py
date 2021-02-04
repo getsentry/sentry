@@ -24,7 +24,6 @@ import os
 import os.path
 import pytest
 import requests
-import six
 import time
 import inspect
 from uuid import uuid4
@@ -50,7 +49,7 @@ from exam import before, fixture, Exam
 from sentry.utils.compat.mock import patch
 from pkg_resources import iter_entry_points
 from rest_framework.test import APITestCase as BaseAPITestCase
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from sentry import auth
 from sentry import eventstore
@@ -155,7 +154,7 @@ class BaseTestCase(Fixtures, Exam):
 
     def save_cookie(self, name, value, **params):
         self.client.cookies[name] = value
-        self.client.cookies[name].update({k.replace("_", "-"): v for k, v in six.iteritems(params)})
+        self.client.cookies[name].update({k.replace("_", "-"): v for k, v in params.items()})
 
     def make_request(self, user=None, auth=None, method=None):
         request = HttpRequest()
@@ -200,7 +199,7 @@ class BaseTestCase(Fixtures, Exam):
 
         # TODO(dcramer): ideally this would get abstracted
         if organization_ids:
-            request.session[SSO_SESSION_KEY] = ",".join(six.text_type(o) for o in organization_ids)
+            request.session[SSO_SESSION_KEY] = ",".join(str(o) for o in organization_ids)
 
         # logging in implicitly binds superuser, but for test cases we
         # want that action to be explicit to avoid accidentally testing
@@ -609,7 +608,7 @@ class AcceptanceTestCase(TransactionTestCase):
     def dismiss_assistant(self, which=None):
         if which is None:
             which = ("issue", "issue_stream")
-        if isinstance(which, six.string_types):
+        if isinstance(which, str):
             which = [which]
 
         for item in which:
@@ -1000,7 +999,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
 
     def assert_serialized_widget_query(self, data, widget_data_source):
         if "id" in data:
-            assert data["id"] == six.text_type(widget_data_source.id)
+            assert data["id"] == str(widget_data_source.id)
         if "name" in data:
             assert data["name"] == widget_data_source.name
         if "fields" in data:
@@ -1015,7 +1014,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
 
     def assert_serialized_widget(self, data, expected_widget):
         if "id" in data:
-            assert data["id"] == six.text_type(expected_widget.id)
+            assert data["id"] == str(expected_widget.id)
         if "title" in data:
             assert data["title"] == expected_widget.title
         if "interval" in data:

@@ -1,5 +1,5 @@
 from django.conf import settings
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 import os
 import socket
 import pytest

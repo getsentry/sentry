@@ -14,7 +14,7 @@ from selenium.common.exceptions import NoSuchElementException, WebDriverExceptio
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.common.action_chains import ActionChains
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.compat import map

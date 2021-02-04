@@ -1,5 +1,4 @@
 import pkgutil
-import six
 
 
 class ModuleProxyCache(dict):
@@ -41,7 +40,7 @@ def import_submodules(context, root_module, path):
         # this causes a Runtime error with model conflicts
         # module = loader.find_module(module_name).load_module(module_name)
         module = __import__(module_name, globals(), locals(), ["__name__"])
-        for k, v in six.iteritems(vars(module)):
+        for k, v in vars(module).items():
             if not k.startswith("_"):
                 context[k] = v
         context[module_name] = module

@@ -2,7 +2,6 @@ import time
 import signal
 import os
 import click
-from six import text_type
 
 from sentry.utils.compat import map
 
@@ -294,7 +293,7 @@ def _start_service(
 
     listening = ""
     if options["ports"]:
-        listening = "(listening: %s)" % ", ".join(map(text_type, options["ports"].values()))
+        listening = "(listening: %s)" % ", ".join(map(str, options["ports"].values()))
 
     # If a service is associated with the devserver, then do not run the created container.
     # This was mainly added since it was not desirable for nginx to occupy port 8000 on the

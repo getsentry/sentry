@@ -1,5 +1,3 @@
-import six
-
 from collections import Sequence
 
 
@@ -109,7 +107,7 @@ def _build_next_values(cursor, results, key, limit, is_desc):
     # skipped, as we know we want to start from that item and do not
     # need to offset from it.
     if has_next:
-        six.next(result_iter)
+        next(result_iter)
 
     for result in result_iter:
         result_value = key(result)
@@ -172,11 +170,11 @@ def _build_prev_values(cursor, results, key, limit, is_desc):
     # If we know there are more previous results, we need to move past
     # the item indicating that more items exist.
     if has_prev:
-        six.next(result_iter)
+        next(result_iter)
 
     # Always move past the first item, this is the prev_value item and will
     # already be offset in the next query.
-    six.next(result_iter)
+    next(result_iter)
 
     for result in result_iter:
         result_value = key(result, for_prev=True)

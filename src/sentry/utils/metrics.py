@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from django.conf import settings
 from random import random
 from threading import Thread, local
-from six.moves.queue import Queue
+from queue import Queue
 
 
 metrics_skip_all_internal = getattr(settings, "SENTRY_METRICS_SKIP_ALL_INTERNAL", False)

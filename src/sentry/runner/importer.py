@@ -1,4 +1,3 @@
-import six
 import sys
 
 import click
@@ -16,7 +15,7 @@ class ConfigurationError(ValueError, click.ClickException):
             from click._compat import get_text_stderr
 
             file = get_text_stderr()
-        click.secho("!! Configuration error: %s" % six.text_type(self), file=file, fg="red")
+        click.secho("!! Configuration error: %s" % str(self), file=file, fg="red")
 
 
 class Importer(object):
@@ -44,7 +43,7 @@ class Importer(object):
         except Exception as e:
             from sentry.utils.settings import reraise_as
 
-            msg = six.text_type(e)
+            msg = str(e)
             if msg:
                 msg = "%s: %s" % (type(e).__name__, msg)
             else:
@@ -83,13 +82,13 @@ class Importer(object):
 
 
 def load_settings(mod_or_filename, settings, silent=False):
-    if isinstance(mod_or_filename, six.string_types):
+    if isinstance(mod_or_filename, str):
         conf = new_module("temp_config")
         conf.__file__ = mod_or_filename
 
         try:
             with open(mod_or_filename, mode="rb") as source_file:
-                six.exec_(source_file.read(), conf.__dict__)
+                exec(source_file.read(), conf.__dict__)
         except IOError as e:
             import errno
 
@@ -130,7 +129,7 @@ def add_settings(mod, settings):
             continue
 
         setting_value = getattr(mod, setting)
-        if setting in ("INSTALLED_APPS",) and isinstance(setting_value, six.string_types):
+        if setting in ("INSTALLED_APPS",) and isinstance(setting_value, str):
             setting_value = (setting_value,)  # In case the user forgot the comma.
 
         # Any setting that starts with EXTRA_ and matches a setting that is a list or tuple

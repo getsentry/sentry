@@ -1,5 +1,3 @@
-import six
-
 from django.utils.functional import empty
 from sentry.utils.compat import zip
 
@@ -54,7 +52,7 @@ def compact(seq):
     [1, 2]
     """
     if isinstance(seq, dict):
-        return {k: v for k, v in six.iteritems(seq) if v is not None}
+        return {k: v for k, v in seq.items() if v is not None}
 
     elif isinstance(seq, list):
         return [k for k in seq if k is not None]

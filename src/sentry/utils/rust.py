@@ -1,5 +1,4 @@
 import re
-import six
 
 from sentry_sdk.hub import Hub
 from sentry_sdk.integrations import Integration
@@ -198,7 +197,7 @@ def strip_backtrace_message(target, field):
     """
     Strips the backtrace off a message, if it contains one.
     """
-    if target and isinstance(target.get(field), six.string_types):
+    if target and isinstance(target.get(field), str):
         target[field] = target[field].split("\n\nstacktrace:", 1)[0].strip()
 
 

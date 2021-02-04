@@ -1,7 +1,6 @@
 import os.path
 import random
 import pytz
-import six
 from uuid import uuid4
 
 from datetime import datetime, timedelta
@@ -31,10 +30,10 @@ def random_ip():
 
     return ".".join(
         (
-            six.text_type(first),
-            six.text_type(random.randrange(1, 256)),
-            six.text_type(random.randrange(1, 256)),
-            six.text_type(random.randrange(1, 256)),
+            str(first),
+            str(random.randrange(1, 256)),
+            str(random.randrange(1, 256)),
+            str(random.randrange(1, 256)),
         )
     )
 

@@ -2,7 +2,7 @@ import redis
 import logging
 
 from threading import Thread
-from six.moves.queue import Queue, Full
+from queue import Queue, Full
 
 
 class QueuedPublisherService(object):

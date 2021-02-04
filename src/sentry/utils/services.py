@@ -4,7 +4,6 @@ import itertools
 import logging
 import threading
 
-import six
 from django.utils.functional import empty, LazyObject
 
 from sentry.utils import warnings, metrics
@@ -108,7 +107,7 @@ class LazyServiceWrapper(LazyObject):
 def resolve_callable(value):
     if callable(value):
         return value
-    elif isinstance(value, six.string_types):
+    elif isinstance(value, str):
         return import_string(value)
     else:
         raise TypeError("Expected callable or string")

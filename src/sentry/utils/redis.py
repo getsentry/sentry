@@ -2,7 +2,6 @@ from copy import deepcopy
 import functools
 import logging
 import posixpath
-import six
 
 from threading import Lock
 
@@ -112,7 +111,6 @@ class _RedisCluster(object):
         # StrictRedisCluster expects a list of { host, port } dicts. Coerce the
         # configuration into the correct format if necessary.
         hosts = config.get("hosts")
-        # TODO(joshuarli): modernize dict_six fixer
         hosts = list(hosts.values()) if isinstance(hosts, dict) else hosts
 
         # Redis cluster does not wait to attempt to connect. We'd prefer to not
@@ -232,7 +230,7 @@ def validate_dynamic_cluster(is_redis_cluster, cluster):
             with cluster.all() as client:
                 client.ping()
     except Exception as e:
-        raise InvalidConfiguration(six.text_type(e))
+        raise InvalidConfiguration(str(e))
 
 
 def check_cluster_versions(cluster, required, recommended=None, label=None):
@@ -241,7 +239,7 @@ def check_cluster_versions(cluster, required, recommended=None, label=None):
             results = client.info()
     except Exception as e:
         # Any connection issues should be caught here.
-        raise InvalidConfiguration(six.text_type(e))
+        raise InvalidConfiguration(str(e))
 
     versions = {}
     for id, info in results.value.items():

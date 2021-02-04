@@ -1,5 +1,4 @@
 import inspect
-import six
 
 from django.conf import settings
 from django.urls import resolve
@@ -105,7 +104,7 @@ def get_project_key():
             extra={
                 "project_id": settings.SENTRY_PROJECT,
                 "project_key": settings.SENTRY_PROJECT_KEY,
-                "error_message": six.text_type(exc),
+                "error_message": str(exc),
             },
         )
     if key is None:

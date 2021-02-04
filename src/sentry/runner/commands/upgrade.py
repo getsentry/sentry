@@ -1,5 +1,4 @@
 import click
-import six
 
 from django.db import connections, ProgrammingError
 from django.conf import settings
@@ -32,7 +31,7 @@ def _has_applied_django_migration(connection, app_name, migration):
             [app_name, migration],
         )
     except ProgrammingError as exc:
-        if 'relation "django_migrations" does not exist' in six.text_type(exc):
+        if 'relation "django_migrations" does not exist' in str(exc):
             return False
         raise
     else:
@@ -77,7 +76,7 @@ def _has_south_history(connection):
     try:
         cursor.execute("SELECT 1 FROM south_migrationhistory LIMIT 1")
     except ProgrammingError as exc:
-        if 'relation "south_migrationhistory" does not exist' in six.text_type(exc):
+        if 'relation "south_migrationhistory" does not exist' in str(exc):
             return False
         raise
     return True

@@ -3,14 +3,13 @@ Note: Also see letterAvatar.jsx. Anything changed in this file (how colors are
       selected, the svg, etc) will also need to be changed there.
 """
 
-import six
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.utils.encoding import force_text
 from django.utils.html import escape
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from sentry.utils.hashlib import md5_text
 from sentry.http import safe_urlopen
@@ -27,7 +26,7 @@ def get_gravatar_url(email, size=None, default="mm"):
 
     properties = {}
     if size:
-        properties["s"] = six.text_type(size)
+        properties["s"] = str(size)
     if default:
         properties["d"] = default
     if properties:

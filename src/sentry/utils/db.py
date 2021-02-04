@@ -1,5 +1,3 @@
-import six
-
 from django.db import connections, DEFAULT_DB_ALIAS
 
 from django.db.models.fields.related_descriptors import ReverseOneToOneDescriptor
@@ -55,7 +53,7 @@ def attach_foreignkey(objects, field, related=(), database=None):
         if len(values) > 1:
             qs = qs.filter(**{"%s__in" % lookup: values})
         else:
-            qs = [qs.get(**{lookup: six.next(iter(values))})]
+            qs = [qs.get(**{lookup: next(iter(values))})]
 
         queryset = dict((getattr(o, key), o) for o in qs)
     else:

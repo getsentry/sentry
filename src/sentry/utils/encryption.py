@@ -1,5 +1,3 @@
-import six
-
 from base64 import b64encode, b64decode
 from collections import OrderedDict
 from django.conf import settings
@@ -13,7 +11,7 @@ _marker_length = len(MARKER)
 class EncryptionManager(object):
     def __init__(self, schemes=()):
         for key, value in schemes:
-            if not isinstance(key, six.string_types):
+            if not isinstance(key, str):
                 raise ValueError(
                     "Encryption scheme type must be a string. Value was: {!r}".format(value)
                 )

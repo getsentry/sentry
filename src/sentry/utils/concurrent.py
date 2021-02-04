@@ -2,13 +2,10 @@ import logging
 import threading
 import collections
 import functools
-
-from six.moves.queue import Full, PriorityQueue
+from queue import Full, PriorityQueue
 from concurrent.futures import Future
 from concurrent.futures._base import RUNNING, FINISHED
 from time import time
-
-from six.moves import xrange
 
 
 logger = logging.getLogger(__name__)
@@ -195,7 +192,7 @@ class ThreadedExecutor(Executor):
             if self.__started:
                 return
 
-            for i in xrange(self.__worker_count):
+            for i in range(self.__worker_count):
                 t = threading.Thread(target=self.__worker)
                 t.daemon = True
                 t.start()
