@@ -1,4 +1,5 @@
 import React from 'react';
+import round from 'lodash/round';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import Count from 'app/components/count';
@@ -10,7 +11,6 @@ import {GlobalSelection, Organization} from 'app/types';
 import {defined} from 'app/utils';
 import {TableData} from 'app/utils/discover/discoverQuery';
 import {getAggregateAlias} from 'app/utils/discover/fields';
-import {formatAbbreviatedNumber} from 'app/utils/formatters';
 import {getPeriod} from 'app/utils/getPeriod';
 import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 
@@ -156,7 +156,7 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
 
   get trend() {
     if (this.currentApdex && this.previousApdex) {
-      return Number(formatAbbreviatedNumber(this.currentApdex - this.previousApdex));
+      return round(this.currentApdex - this.previousApdex, 3);
     }
 
     return null;

@@ -349,6 +349,7 @@ class EventsChart extends React.Component<Props> {
       chartOptions,
       preserveReleaseQueryParams,
       releaseQueryExtra,
+      disableableSeries,
       ...props
     } = this.props;
     // Include previous only on relative dates (defaults to relative if no start and end)
@@ -402,6 +403,7 @@ class EventsChart extends React.Component<Props> {
             colors={colors}
             legendOptions={legendOptions}
             chartOptions={chartOptions}
+            disableableSeries={disableableSeries}
           />
         </TransitionChart>
       );

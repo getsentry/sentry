@@ -96,7 +96,12 @@ class ProjectDetail extends AsyncView<Props, State> {
               <Layout.HeaderActions>
                 <ButtonBar gap={1}>
                   <Button
-                    to={`/organizations/${params.orgId}/issues/?project=${params.projectId}`}
+                    to={
+                      // if we are still fetching project, we can use project slug to build issue stream url and let the redirect handle it
+                      project?.id
+                        ? `/organizations/${params.orgId}/issues/?project=${project.id}`
+                        : `/${params.orgId}/${params.projectId}`
+                    }
                   >
                     {t('View All Issues')}
                   </Button>
