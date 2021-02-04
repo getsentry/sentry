@@ -79,13 +79,13 @@ def createuser(email, password, superuser, no_password, no_input, force_update):
     if User.objects.filter(username=email).exists():
         if force_update:
             user.save(force_update=force_update)
-            click.echo("User updated: %s" % (email,))
+            click.echo(f"User updated: {email}")
         else:
-            click.echo("User: %s exists, use --force-update to force" % (email,))
+            click.echo(f"User: {email} exists, use --force-update to force")
             sys.exit(3)
     else:
         user.save()
-        click.echo("User created: %s" % (email,))
+        click.echo(f"User created: {email}")
 
         # TODO(dcramer): kill this when we improve flows
         if settings.SENTRY_SINGLE_ORGANIZATION:
@@ -103,4 +103,4 @@ def createuser(email, password, superuser, no_password, no_input, force_update):
             teams = list(Team.objects.filter(organization=org)[0:2])
             if len(teams) == 1:
                 OrganizationMemberTeam.objects.create(team=teams[0], organizationmember=member)
-            click.echo("Added to organization: %s" % (org.slug,))
+            click.echo(f"Added to organization: {org.slug}")

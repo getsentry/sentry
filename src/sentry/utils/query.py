@@ -171,7 +171,7 @@ class WithProgressBar:
     def __iter__(self):
         if self.count != 0:
             widgets = [
-                "%s: " % (self.caption,),
+                f"{self.caption}: ",
                 progressbar.Percentage(),
                 " ",
                 progressbar.Bar(),
@@ -203,11 +203,11 @@ def bulk_delete_objects(
 
     if partition_key:
         for column, value in partition_key.items():
-            partition_query.append("%s = %%s" % (quote_name(column),))
+            partition_query.append("{} = %s".format(quote_name(column)))
             params.append(value)
 
     for column, value in filters.items():
-        query.append("%s = %%s" % (quote_name(column),))
+        query.append("{} = %s".format(quote_name(column)))
         params.append(value)
 
     query = """

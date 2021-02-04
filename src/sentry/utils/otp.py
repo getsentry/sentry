@@ -85,7 +85,7 @@ class TOTP:
     def get_provision_url(self, user, issuer=None):
         if issuer is None:
             issuer = "Sentry"
-        rv = "otpauth://totp/%s?issuer=%s&secret=%s" % (
+        rv = "otpauth://totp/{}?issuer={}&secret={}".format(
             quote(user.encode("utf-8")),
             quote(issuer.encode("utf-8")),
             self.secret,

@@ -8,12 +8,12 @@ def user_param_to_user(value):
 
     users = find_users(value)
     if not users:
-        raise click.ClickException("No user matching `{}`".format(value))
+        raise click.ClickException(f"No user matching `{value}`")
     if len(users) > 1:
-        raise click.ClickException("Found more than one user matching `{}`".format(value))
+        raise click.ClickException(f"Found more than one user matching `{value}`")
     user = users[0]
     if not user.is_superuser:
-        raise click.ClickException("User `{}` does not have superuser status".format(user.username))
+        raise click.ClickException(f"User `{user.username}` does not have superuser status")
     return user
 
 
@@ -37,9 +37,9 @@ def add(user, permission):
         with transaction.atomic():
             UserPermission.objects.create(user=user, permission=permission)
     except IntegrityError:
-        click.echo("Permission already exists for `{}`".format(user.username))
+        click.echo(f"Permission already exists for `{user.username}`")
     else:
-        click.echo("Added permission `{}` to `{}`".format(permission, user.username))
+        click.echo(f"Added permission `{permission}` to `{user.username}`")
 
 
 @permissions.command()
@@ -55,10 +55,10 @@ def remove(user, permission):
     try:
         up = UserPermission.objects.get(user=user, permission=permission)
     except UserPermission.DoesNotExist:
-        click.echo("Permission does not exist for `{}`".format(user.username))
+        click.echo(f"Permission does not exist for `{user.username}`")
     else:
         up.delete()
-        click.echo("Removed permission `{}` from `{}`".format(permission, user.username))
+        click.echo(f"Removed permission `{permission}` from `{user.username}`")
 
 
 @permissions.command()
@@ -70,6 +70,6 @@ def list(user):
 
     user = user_param_to_user(user)
     up_list = UserPermission.objects.filter(user=user).order_by("permission")
-    click.echo("Permissions for `{}`:".format(user.username))
+    click.echo(f"Permissions for `{user.username}`:")
     for permission in up_list:
-        click.echo("- {}".format(permission.permission))
+        click.echo(f"- {permission.permission}")

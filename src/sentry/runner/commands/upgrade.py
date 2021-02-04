@@ -59,7 +59,7 @@ def _fake_django_migration(connection, app_name, migration, verbosity=0):
         return False
 
     if verbosity:
-        click.echo("Faking migration for {}.{}".format(app_name, migration))
+        click.echo(f"Faking migration for {app_name}.{migration}")
 
     cursor = connection.cursor()
     try:

@@ -343,7 +343,7 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
         # this here.
         if "qs_params" in params:
             query_string = urlencode(params.pop("qs_params"), doseq=True)
-            url = "{}?{}".format(url, query_string)
+            url = f"{url}?{query_string}"
 
         method = params.pop("method", self.method)
 
@@ -558,7 +558,7 @@ class PluginTestCase(TestCase):
                     "Found app in entry_points, but wrong class. Got %r, expected %r"
                     % (ep_path, path)
                 )
-        self.fail("Missing app from entry_points: %r" % (name,))
+        self.fail(f"Missing app from entry_points: {name!r}")
 
     def assertPluginInstalled(self, name, plugin):
         path = type(plugin).__module__ + ":" + type(plugin).__name__
@@ -571,7 +571,7 @@ class PluginTestCase(TestCase):
                     "Found plugin in entry_points, but wrong class. Got %r, expected %r"
                     % (ep_path, path)
                 )
-        self.fail("Missing plugin from entry_points: %r" % (name,))
+        self.fail(f"Missing plugin from entry_points: {name!r}")
 
 
 class CliTestCase(TestCase):
@@ -644,7 +644,7 @@ class IntegrationTestCase(TestCase):
         self.setup_path = reverse(
             "sentry-extension-setup", kwargs={"provider_id": self.provider.key}
         )
-        self.configure_path = "/extensions/{}/configure/".format(self.provider.key)
+        self.configure_path = f"/extensions/{self.provider.key}/configure/"
 
         self.pipeline.initialize()
         self.save_session()
@@ -700,9 +700,7 @@ class SnubaTestCase(BaseTestCase):
             attempt += 1
             time.sleep(0.05)
         if attempt == attempts:
-            assert False, "Could not ensure event was persisted within {} attempt(s)".format(
-                attempt
-            )
+            assert False, f"Could not ensure event was persisted within {attempt} attempt(s)"
 
     def store_session(self, session):
         assert (

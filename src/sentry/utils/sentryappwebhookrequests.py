@@ -39,9 +39,9 @@ class SentryAppWebhookRequestsBuffer:
         sentry_app_id = self.sentry_app.id
 
         if error:
-            return "sentry-app-webhook-error:{{{0}}}:{1}".format(sentry_app_id, event)
+            return f"sentry-app-webhook-error:{{{sentry_app_id}}}:{event}"
         else:
-            return "sentry-app-webhook-request:{{{0}}}:{1}".format(sentry_app_id, event)
+            return f"sentry-app-webhook-request:{{{sentry_app_id}}}:{event}"
 
     def _convert_redis_request(self, redis_request, event):
         """

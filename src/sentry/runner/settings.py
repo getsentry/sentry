@@ -16,7 +16,7 @@ def generate_secret_key():
 def load_config_template(path, version="default"):
     from pkg_resources import resource_string
 
-    return resource_string("sentry", "data/config/%s.%s" % (path, version)).decode("utf8")
+    return resource_string("sentry", f"data/config/{path}.{version}").decode("utf8")
 
 
 def generate_settings(dev=False):

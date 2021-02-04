@@ -49,7 +49,7 @@ class RedisSessionStore:
 
     @property
     def session_key(self):
-        return "store:{}".format(self.prefix)
+        return f"store:{self.prefix}"
 
     @property
     def redis_key(self):
@@ -59,7 +59,7 @@ class RedisSessionStore:
         if initial_state is None:
             initial_state = {}
 
-        redis_key = "session-cache:{}:{}".format(self.prefix, uuid4().hex)
+        redis_key = f"session-cache:{self.prefix}:{uuid4().hex}"
 
         self.request.session[self.session_key] = redis_key
 

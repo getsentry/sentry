@@ -99,4 +99,4 @@ def monkeypatch_honcho_write(self, message):
     )
 
     for line in string.splitlines():
-        self.output.write("{}{}\n".format(prefix, line))
+        self.output.write(f"{prefix}{line}\n")

@@ -9,7 +9,7 @@ class Cursor:
         self.has_results = has_results
 
     def __str__(self):
-        return "%s:%s:%s" % (self.value, self.offset, int(self.is_prev))
+        return "{}:{}:{}".format(self.value, self.offset, int(self.is_prev))
 
     def __eq__(self, other):
         return all(
@@ -18,7 +18,7 @@ class Cursor:
         )
 
     def __repr__(self):
-        return "<%s: value=%s offset=%s is_prev=%s>" % (
+        return "<{}: value={} offset={} is_prev={}>".format(
             type(self).__name__,
             self.value,
             self.offset,
@@ -61,7 +61,7 @@ class CursorResult(Sequence):
         return self.results[key]
 
     def __repr__(self):
-        return "<%s: results=%s>" % (type(self).__name__, len(self.results))
+        return "<{}: results={}>".format(type(self).__name__, len(self.results))
 
 
 def _build_next_values(cursor, results, key, limit, is_desc):

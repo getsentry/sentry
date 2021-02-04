@@ -376,7 +376,7 @@ class Factories:
         # add commits
         if user:
             author = Factories.create_commit_author(project=project, user=user)
-            repo = Factories.create_repo(project, name="organization-{}".format(project.slug))
+            repo = Factories.create_repo(project, name=f"organization-{project.slug}")
             commit = Factories.create_commit(
                 project=project,
                 repo=repo,
@@ -474,7 +474,7 @@ class Factories:
     def create_commit_author(organization_id=None, project=None, user=None):
         return CommitAuthor.objects.get_or_create(
             organization_id=organization_id or project.organization_id,
-            email=user.email if user else "{}@example.com".format(make_word()),
+            email=user.email if user else f"{make_word()}@example.com",
             defaults={"name": user.name if user else make_word()},
         )[0]
 

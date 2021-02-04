@@ -37,7 +37,7 @@ class BuildAssetsCommand(BaseBuildCommand):
     description = "build static media assets"
 
     def initialize_options(self):
-        self.asset_json_path = "{}/assets.json".format(self.distribution.get_name())
+        self.asset_json_path = f"{self.distribution.get_name()}/assets.json"
         BaseBuildCommand.initialize_options(self)
 
     def get_dist_paths(self):
@@ -73,7 +73,7 @@ class BuildAssetsCommand(BaseBuildCommand):
             except Exception:
                 pass
             else:
-                log.info("pulled version information from '{}'".format(json_path))
+                log.info(f"pulled version information from '{json_path}'")
                 version, build = data["version"], data["build"]
 
         return {"version": version, "build": build}

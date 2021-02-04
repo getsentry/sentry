@@ -439,9 +439,7 @@ class BatchingKafkaConsumer:
 
                 self.producer.produce(
                     self.commit_log_topic,
-                    key="{}:{}:{}".format(item.topic, item.partition, self.group_id).encode(
-                        "utf-8"
-                    ),
-                    value="{}".format(item.offset).encode("utf-8"),
+                    key=f"{item.topic}:{item.partition}:{self.group_id}".encode("utf-8"),
+                    value=f"{item.offset}".encode("utf-8"),
                     on_delivery=self._commit_message_delivery_callback,
                 )
