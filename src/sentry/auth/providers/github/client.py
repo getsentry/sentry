@@ -18,11 +18,11 @@ class GitHubClient(object):
         self.access_token = access_token
 
     def _request(self, path):
-        headers = {"Authorization": "token {0}".format(self.access_token)}
+        headers = {"Authorization": "token {}".format(self.access_token)}
 
         try:
             req = self.http.get(
-                "https://{0}/{1}".format(API_DOMAIN, path.lstrip("/")),
+                "https://{}/{}".format(API_DOMAIN, path.lstrip("/")),
                 headers=headers,
             )
         except RequestException as e:
@@ -43,6 +43,6 @@ class GitHubClient(object):
     def is_org_member(self, org_id):
         org_id = six.text_type(org_id)
         for o in self.get_org_list():
-            if six.text_type((o["id"])) == org_id:
+            if six.text_type(o["id"]) == org_id:
                 return True
         return False

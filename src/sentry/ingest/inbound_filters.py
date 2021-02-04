@@ -124,7 +124,7 @@ def get_filter_state(filter_id, project):
 
     if filter_state is None:
         raise ValueError(
-            "Could not find filter state for filter {0}."
+            "Could not find filter state for filter {}."
             " You need to register default filter state in projectoptions.defaults.".format(
                 filter_id
             )

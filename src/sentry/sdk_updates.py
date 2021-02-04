@@ -98,7 +98,7 @@ class UpdateSDKSuggestion(Suggestion):
 
         new_sdk_version = self.new_sdk_version
         if self.ignore_patch_version:
-            new_sdk_version = ".".join((v for v in new_sdk_version.split(".")[:2]))
+            new_sdk_version = ".".join(v for v in new_sdk_version.split(".")[:2])
 
         try:
             has_newer_version = LooseVersion(old_state.sdk_version) < LooseVersion(new_sdk_version)

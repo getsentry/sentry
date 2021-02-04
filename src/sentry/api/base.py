@@ -97,13 +97,13 @@ class Endpoint(APIView):
 
     def build_cursor_link(self, request, name, cursor):
         querystring = "&".join(
-            "{0}={1}".format(urlquote(k), urlquote(v))
+            "{}={}".format(urlquote(k), urlquote(v))
             for k, v in six.iteritems(request.GET)
             if k != "cursor"
         )
         base_url = absolute_uri(urlquote(request.path))
         if querystring:
-            base_url = "{0}?{1}".format(base_url, querystring)
+            base_url = "{}?{}".format(base_url, querystring)
         else:
             base_url = base_url + "?"
 

@@ -273,7 +273,7 @@ def fetch_release_file(filename, release, dist=None):
             # This is O(N*M) but there are only ever at most 4 things here
             # so not really worth optimizing.
             releasefile = next(
-                (rf for ident in filename_idents for rf in possible_files if rf.ident == ident)
+                rf for ident in filename_idents for rf in possible_files if rf.ident == ident
             )
 
         # If the release file is not in cache, check if we can retrieve at

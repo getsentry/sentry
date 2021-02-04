@@ -31,5 +31,5 @@ DOMAIN = getattr(settings, "GITHUB_DOMAIN", "api.github.com")
 BASE_DOMAIN = settings.GITHUB_BASE_DOMAIN
 API_DOMAIN = settings.GITHUB_API_DOMAIN
 
-ACCESS_TOKEN_URL = "https://{0}/login/oauth/access_token".format(BASE_DOMAIN)
-AUTHORIZE_URL = "https://{0}/login/oauth/authorize".format(BASE_DOMAIN)
+ACCESS_TOKEN_URL = "https://{}/login/oauth/access_token".format(BASE_DOMAIN)
+AUTHORIZE_URL = "https://{}/login/oauth/authorize".format(BASE_DOMAIN)

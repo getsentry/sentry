@@ -211,7 +211,7 @@ def get_invalid_layer_name(err_message):
     :return the layer name if it's a invalid layer
     """
     match = re.search(
-        "Layer version arn:aws:lambda:[^:]+:\d+:layer:([^:]+):\d+ does not exist",
+        r"Layer version arn:aws:lambda:[^:]+:\d+:layer:([^:]+):\d+ does not exist",
         err_message,
     )
     if match:

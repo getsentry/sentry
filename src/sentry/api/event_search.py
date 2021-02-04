@@ -1452,7 +1452,7 @@ VALID_FIELD_PATTERN = re.compile(r"^[a-zA-Z0-9_.:-]*$")
 
 # The regex for alias here is to match any word, but exclude anything that is only digits
 # eg. 123 doesn't match, but test_123 will match
-ALIAS_REGEX = "(\w+)?(?!\d+)\w+"
+ALIAS_REGEX = r"(\w+)?(?!\d+)\w+"
 
 ALIAS_PATTERN = re.compile(r"{}$".format(ALIAS_REGEX))
 FUNCTION_PATTERN = re.compile(
@@ -2373,7 +2373,7 @@ def get_function_alias(field):
 
 
 def get_function_alias_with_columns(function_name, columns):
-    columns = re.sub("[^\w]", "_", "_".join(columns))
+    columns = re.sub(r"[^\w]", "_", "_".join(columns))
     return "{}_{}".format(function_name, columns).rstrip("_")
 
 
