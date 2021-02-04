@@ -29,13 +29,16 @@ frontend_components_modified_lintable:
 backend_lintable: &backend_lintable
   - '**/*.py'
 
+backend_dependencies: &backend_dependencies
+  - 'requirements-*.txt'
+
 backend: &backend
+  - *backend_dependencies
   - *backend_lintable
   - '.pre-commit-config.yaml'
   - '**/*.sh'
   - '**/*.pysnap'
   - 'src/sentry/!(static)/**'
-  - 'requirements-*.txt'
   - 'migrations_lockfile.txt'
   - '.python-version'
   - '.github/workflows/!(js-*)'
