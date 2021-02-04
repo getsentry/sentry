@@ -7,6 +7,7 @@ import Button from 'app/components/button';
 import {SectionHeading} from 'app/components/charts/styles';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import GroupList from 'app/components/issues/groupList';
+import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel, PanelBody} from 'app/components/panels';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
@@ -56,8 +57,9 @@ function ProjectIssues({organization, location}: Props) {
   const endpointPath = `/organizations/${organization.slug}/issues/`;
   const queryParams = {
     limit: 5,
-    ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
+    ...getParams(pick(location.query, [...Object.values(URL_PARAM), 'cursor'])),
     query: 'is:unresolved',
+    sort: 'freq',
   };
 
   const issueSearch = {

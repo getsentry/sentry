@@ -19,7 +19,7 @@ FUNCTION_CHANGE = {
     "last_seen": "last_seen()",
     "latest_event": "latest_event()",
 }
-COUNT_REGEX = re.compile(".*(count\([a-zA-Z\._]+\)).*")
+COUNT_REGEX = re.compile(r".*(count\([a-zA-Z\._]+\)).*")
 FUNCTION_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<columns>[^\)]*)\)$")
 
 

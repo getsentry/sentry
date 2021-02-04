@@ -90,7 +90,7 @@ def parse_stats_period(period):
     Convert a value such as 1h into a
     proper timedelta.
     """
-    m = re.match("^(\d+)([hdmsw]?)$", period)
+    m = re.match(r"^(\d+)([hdmsw]?)$", period)
     if not m:
         return None
     value, unit = m.groups()

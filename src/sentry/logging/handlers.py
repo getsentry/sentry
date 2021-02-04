@@ -115,7 +115,7 @@ class MessageContainsFilter(logging.Filter):
         return any(c in message for c in self.contains)
 
 
-whitespace_re = re.compile("\s+")
+whitespace_re = re.compile(r"\s+")
 metrics_badchars_re = re.compile("[^a-z0-9_.]")
 
 

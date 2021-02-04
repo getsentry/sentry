@@ -258,7 +258,7 @@ class _ConfigBase(object):
             return "Content Error:{}".format(e)
 
     def __repr__(self):
-        return "({0}){1}".format(self.__class__.__name__, self)
+        return "({}){}".format(self.__class__.__name__, self)
 
 
 class ProjectConfig(_ConfigBase):
@@ -299,7 +299,7 @@ def _filter_option_to_config_setting(flt, setting):
     """
     if setting is None:
         raise ValueError(
-            "Could not find filter state for filter {0}."
+            "Could not find filter state for filter {}."
             " You need to register default filter state in projectoptions.defaults.".format(flt.id)
         )
 

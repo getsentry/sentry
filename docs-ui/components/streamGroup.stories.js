@@ -22,7 +22,7 @@ const selection = {
 const organization = {
   id: '1',
   slug: 'test-org',
-  features: ['unhandled-issue-flag'],
+  features: [],
 };
 
 function loadGroups() {
@@ -256,7 +256,7 @@ export const Default = () => {
 export const WithInbox = () => {
   const inboxOrganization = {
     ...organization,
-    features: ['inbox', 'unhandled-issue-flag'],
+    features: ['inbox'],
   };
   loadGroups();
   return (

@@ -22,11 +22,7 @@ import RadioField from 'app/views/settings/components/forms/radioField';
 
 import ConditionFields from './conditionFields';
 import handleXhrErrorResponse from './handleXhrErrorResponse';
-
-enum Transaction {
-  ALL = 'all',
-  MATCH_CONDITIONS = 'match-conditions',
-}
+import {Transaction} from './utils';
 
 const transactionChoices = [
   [Transaction.ALL, t('All')],

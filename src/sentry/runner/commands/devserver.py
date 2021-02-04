@@ -178,7 +178,7 @@ def devserver(
 
         # webpack and/or typescript is causing memory issues
         os.environ["NODE_OPTIONS"] = (
-            (os.environ.get("NODE_OPTIONS", "") + " --max-old-space-size=4096")
+            os.environ.get("NODE_OPTIONS", "") + " --max-old-space-size=4096"
         ).lstrip()
 
         # Replace the webpack watcher with the drop-in webpack-dev-server

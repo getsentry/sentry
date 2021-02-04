@@ -74,7 +74,7 @@ def parse_link_header(instr):
         url, params = link.split(">", 1)
         url = url[1:]
         param_dict = {}
-        for param in _splitstring(params, PARAMETER, "\s*;\s*"):
+        for param in _splitstring(params, PARAMETER, r"\s*;\s*"):
             try:
                 a, v = param.split("=", 1)
                 param_dict[a.lower()] = _unquotestring(v)

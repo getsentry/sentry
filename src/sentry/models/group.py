@@ -329,7 +329,7 @@ class Group(Model):
 
     __repr__ = sane_repr("project_id")
 
-    def __unicode__(self):
+    def __str__(self):
         return "(%s) %s" % (self.times_seen, self.error())
 
     def save(self, *args, **kwargs):
