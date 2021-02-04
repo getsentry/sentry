@@ -10,7 +10,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 # XXX(dcramer): this is a compatibility layer to transition to pytest-based fixtures
 # all of the memoized fixtures are copypasta due to our inability to use pytest fixtures
 # on a per-class method basis
-class Fixtures(object):
+class Fixtures:
     @cached_property
     def session(self):
         return Factories.create_session()

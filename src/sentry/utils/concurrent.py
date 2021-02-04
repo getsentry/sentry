@@ -104,7 +104,7 @@ class TimedFuture(Future):
             return super(TimedFuture, self).set_exception(*args, **kwargs)
 
 
-class Executor(object):
+class Executor:
     """
     This class provides an API for executing tasks in different contexts
     (immediately, or asynchronously.)
@@ -224,7 +224,7 @@ class ThreadedExecutor(Executor):
         return future
 
 
-class FutureSet(object):
+class FutureSet:
     """\
     Coordinates a set of ``Future`` objects (either from
     ``concurrent.futures``, or otherwise API compatible), and allows for

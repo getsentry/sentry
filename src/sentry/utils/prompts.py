@@ -5,7 +5,7 @@ DEFAULT_PROMPTS = {
 }
 
 
-class PromptsConfig(object):
+class PromptsConfig:
     """
     Used to configure available 'prompts' (frontend modals or UI that may be
     dismissed or have some other action recorded about it). This config

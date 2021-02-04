@@ -6,7 +6,7 @@ from sentry.utils.json import dumps, loads
 EXPIRATION_TTL = 10 * 60
 
 
-class RedisSessionStore(object):
+class RedisSessionStore:
     """
     RedisSessionStore provides a convenience object, which when initalized will
     store attributes assigned to it into redis. The redis key is stored into

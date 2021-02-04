@@ -27,7 +27,7 @@ class Worker(Thread):
         return self.results
 
 
-class ThreadPool(object):
+class ThreadPool:
     def __init__(self, workers=10):
         self.queue = Queue()
         self.workers = []

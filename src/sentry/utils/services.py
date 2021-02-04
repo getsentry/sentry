@@ -23,7 +23,7 @@ def raises(exceptions):
     return decorator
 
 
-class Service(object):
+class Service:
     __all__ = ()
 
     def validate(self):
@@ -113,7 +113,7 @@ def resolve_callable(value):
         raise TypeError("Expected callable or string")
 
 
-class Context(object):
+class Context:
     def __init__(self, request, backends):
         self.request = request
         self.backends = backends

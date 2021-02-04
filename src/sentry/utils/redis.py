@@ -60,7 +60,7 @@ def make_rb_cluster(*args, **kwargs):
     return _make_rb_cluster(*args, **kwargs)
 
 
-class _RBCluster(object):
+class _RBCluster:
     def supports(self, config):
         return not config.get("is_redis_cluster", False)
 
@@ -99,7 +99,7 @@ class RetryingRedisCluster(RedisCluster):
             return super(self.__class__, self).execute_command(*args, **kwargs)
 
 
-class _RedisCluster(object):
+class _RedisCluster:
     def supports(self, config):
         # _RedisCluster supports two configurations:
         #  * Explicitly configured with is_redis_cluster. This mode is for real redis-cluster.
@@ -142,7 +142,7 @@ class _RedisCluster(object):
         return "Redis Cluster"
 
 
-class ClusterManager(object):
+class ClusterManager:
     def __init__(self, options_manager, cluster_type=_RBCluster):
         self.__clusters = {}
         self.__options_manager = options_manager
@@ -298,11 +298,11 @@ class SentryScript(Script):
     kill this hack.
     """
 
-    class FakeConnectionPool(object):
+    class FakeConnectionPool:
         def get_encoder(self):
             return Encoder(encoding="utf-8", encoding_errors="strict", decode_responses=False)
 
-    class FakeEncoderClient(object):
+    class FakeEncoderClient:
         def __init__(self):
             self.connection_pool = SentryScript.FakeConnectionPool()
 

@@ -545,7 +545,7 @@ def _prepare_query_params(query_params):
     return kwargs, forward, reverse
 
 
-class SnubaQueryParams(object):
+class SnubaQueryParams:
     """
     Represents the information needed to make a query to Snuba.
 

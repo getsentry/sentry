@@ -25,7 +25,7 @@ class RetryException(Exception):
         return "<{}: {!r}>".format(type(self).__name__, self.message)
 
 
-class RetryPolicy(object):
+class RetryPolicy:
     def __call__(self, function):
         raise NotImplementedError
 

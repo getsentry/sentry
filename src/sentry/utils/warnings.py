@@ -34,7 +34,7 @@ class DeprecatedSettingWarning(DeprecationWarning):
         return " ".join(chunks)
 
 
-class WarningManager(object):
+class WarningManager:
     """
     Transforms warnings into a standard form and invokes handlers.
     """
