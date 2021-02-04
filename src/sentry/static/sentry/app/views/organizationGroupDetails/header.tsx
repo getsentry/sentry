@@ -140,12 +140,7 @@ class GroupHeader extends React.Component<Props, State> {
             </TitleWrapper>
             <StyledTagAndMessageWrapper>
               {hasInbox && group.level && <ErrorLevel level={group.level} size="11px" />}
-              {group.isUnhandled &&
-                (hasInbox ? (
-                  <UnhandledInboxTag organization={organization} />
-                ) : (
-                  <UnhandledTag />
-                ))}
+              {group.isUnhandled && (hasInbox ? <UnhandledInboxTag /> : <UnhandledTag />)}
               <EventMessage
                 message={message}
                 level={hasInbox ? undefined : group.level}
