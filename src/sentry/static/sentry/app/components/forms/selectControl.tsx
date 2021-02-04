@@ -1,5 +1,10 @@
 import React from 'react';
-import ReactSelect, {components as selectComponents, StylesConfig} from 'react-select';
+import ReactSelect, {
+  components as selectComponents,
+  mergeStyles,
+  OptionTypeBase,
+  StylesConfig,
+} from 'react-select';
 import Async from 'react-select/async';
 import AsyncCreatable from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
@@ -13,49 +18,29 @@ import {Theme} from 'app/utils/theme';
 
 import SelectControlLegacy from './selectControlLegacy';
 
-const ClearIndicator = (props: any) => (
+const ClearIndicator = (
+  props: React.ComponentProps<typeof selectComponents.ClearIndicator>
+) => (
   <selectComponents.ClearIndicator {...props}>
     <IconClose size="10px" />
   </selectComponents.ClearIndicator>
 );
 
-const DropdownIndicator = (props: any) => (
+const DropdownIndicator = (
+  props: React.ComponentProps<typeof selectComponents.DropdownIndicator>
+) => (
   <selectComponents.DropdownIndicator {...props}>
     <IconChevron direction="down" size="14px" />
   </selectComponents.DropdownIndicator>
 );
 
-const MultiValueRemove = (props: any) => (
+const MultiValueRemove = (
+  props: React.ComponentProps<typeof selectComponents.MultiValueRemove>
+) => (
   <selectComponents.MultiValueRemove {...props}>
     <IconClose size="8px" />
   </selectComponents.MultiValueRemove>
 );
-
-/**
- * Applies one set of styles onto the other while maintaining the same function
- * interface that is used by react-styled.
- *
- * @param newStyles the styles to apply on top of base
- * @param baseStyles the style to override
- */
-const combineStyles = (
-  newStyles: StylesConfig | undefined,
-  baseStyles: StylesConfig
-): StylesConfig => {
-  if (!newStyles) {
-    return baseStyles;
-  }
-  return Object.keys(newStyles).reduce((computedStyles, key) => {
-    const styleFunc = (provided: React.CSSProperties, state: any) =>
-      newStyles[key](
-        computedStyles[key] === undefined
-          ? provided
-          : computedStyles[key](provided, state),
-        state
-      );
-    return {...computedStyles, [key]: styleFunc};
-  }, baseStyles);
-};
 
 type ControlProps = React.ComponentProps<typeof ReactSelect> & {
   theme: Theme;
@@ -107,17 +92,16 @@ function SelectControl(props: ControlProps) {
     control: (_, state: any) => ({
       height: '100%',
       fontSize: '15px',
-      // @ts-ignore Ignore merging errors as only defining the property once
-      // makes code harder to understand.
-      color: theme.formText,
       display: 'flex',
-      // @ts-ignore
-      background: theme.background,
-      // @ts-ignore
-      border: `1px solid ${theme.border}`,
+      // @ts-ignore Ignore merge errors as only defining the property once
+      // makes code harder to understand.
+      ...{
+        color: theme.formText,
+        background: theme.background,
+        border: `1px solid ${theme.border}`,
+        boxShadow: `inset ${theme.dropShadowLight}`,
+      },
       borderRadius: theme.borderRadius,
-      // @ts-ignore
-      boxShadow: `inset ${theme.dropShadowLight}`,
       transition: 'border 0.1s linear',
       alignItems: 'center',
       minHeight: '40px',
@@ -297,13 +281,15 @@ function SelectControl(props: ControlProps) {
     }),
   };
   const labelOrDefaultStyles = inFieldLabel
-    ? combineStyles(inFieldLabelStyles, defaultStyles)
+    ? mergeStyles(inFieldLabelStyles, defaultStyles)
     : defaultStyles;
 
   // Allow the provided `styles` prop to override default styles using the same
   // function interface provided by react-styled. This ensures the `provided`
   // styles include our overridden default styles
-  const mappedStyles = combineStyles(styles, labelOrDefaultStyles);
+  const mappedStyles = styles
+    ? mergeStyles(styles, labelOrDefaultStyles)
+    : labelOrDefaultStyles;
 
   const replacedComponents = {
     ClearIndicator,
