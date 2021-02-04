@@ -1,7 +1,6 @@
 # NOTE: This is run external to sentry as well as part of the setup
 # process.  Thus we do not want to import non stdlib things here.
 
-import io
 import multiprocessing
 import multiprocessing.dummy
 import os
@@ -65,7 +64,7 @@ def dump_doc(path, data):
         os.makedirs(directory)
     except OSError:
         pass
-    with io.open(fn, "wt", encoding="utf-8") as f:
+    with open(fn, "wt", encoding="utf-8") as f:
         # XXX: ideally, we use six.text_type here, but we can't use six.
         f.write(unicode(json.dumps(data, indent=2)))  # NOQA
         f.write("\n")
@@ -76,7 +75,7 @@ def load_doc(path):
         return None
     fn = os.path.join(DOC_FOLDER, path + ".json")
     try:
-        with io.open(fn, "rt", encoding="utf-8") as f:
+        with open(fn, "rt", encoding="utf-8") as f:
             return json.load(f)
     except IOError:
         return None
