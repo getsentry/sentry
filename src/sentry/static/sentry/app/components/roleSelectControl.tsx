@@ -1,5 +1,5 @@
 import React from 'react';
-import ReactSelect, {components, OptionProps} from 'react-select';
+import {components, OptionProps} from 'react-select';
 import styled from '@emotion/styled';
 
 import SelectControl from 'app/components/forms/selectControl';
