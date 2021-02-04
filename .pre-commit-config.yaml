@@ -34,6 +34,11 @@ repos:
     hooks:
     -   id: check-github-actions
     -   id: check-github-workflows
+-   repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.7.1.1
+    hooks:
+      - id: shellcheck
+        types: [shell]
 -   repo: git://github.com/pre-commit/pre-commit-hooks
     rev: v3.4.0
     hooks:
