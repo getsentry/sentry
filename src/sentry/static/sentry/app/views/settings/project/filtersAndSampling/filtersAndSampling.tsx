@@ -1,4 +1,5 @@
 import React from 'react';
+import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -158,12 +159,12 @@ class FiltersAndSampling extends AsyncView<Props, State> {
 
     const newErrorRules =
       rule.type === DynamicSamplingRuleType.ERROR
-        ? errorRules.filter(errorRule => errorRule !== rule)
+        ? errorRules.filter(errorRule => !isEqual(errorRule, rule))
         : errorRules;
 
     const newTransactionRules =
       rule.type !== DynamicSamplingRuleType.ERROR
-        ? transactionRules.filter(transactionRule => transactionRule !== rule)
+        ? transactionRules.filter(transactionRule => !isEqual(transactionRule, rule))
         : transactionRules;
 
     const newRules = [...newErrorRules, ...newTransactionRules];

@@ -1,3 +1,5 @@
+import isEqual from 'lodash/isEqual';
+
 import {t} from 'app/locale';
 import {
   DynamicSamplingConditionOperator,
@@ -7,6 +9,7 @@ import {
 } from 'app/types/dynamicSampling';
 
 import Form from './form';
+import {Transaction} from './utils';
 
 type Props = Form['props'];
 
@@ -57,7 +60,7 @@ class ErrorRuleModal extends Form<Props, State> {
   };
 
   handleSubmit = () => {
-    const {sampleRate, conditions} = this.state;
+    const {sampleRate, conditions, transaction} = this.state;
 
     if (!sampleRate) {
       return;
@@ -69,14 +72,17 @@ class ErrorRuleModal extends Form<Props, State> {
       type: DynamicSamplingRuleType.ERROR,
       condition: {
         op: DynamicSamplingConditionOperator.AND,
-        inner: conditions.map(this.getNewCondition),
+        inner:
+          transaction === Transaction.ALL ? [] : conditions.map(this.getNewCondition),
       },
       sampleRate: sampleRate / 100,
     };
 
     const newRules = rule
       ? [
-          ...errorRules.map(errorRule => (errorRule === rule ? newRule : errorRule)),
+          ...errorRules.map(errorRule =>
+            isEqual(errorRule, rule) ? newRule : errorRule
+          ),
           ...transactionRules,
         ]
       : [...errorRules, newRule, ...transactionRules];

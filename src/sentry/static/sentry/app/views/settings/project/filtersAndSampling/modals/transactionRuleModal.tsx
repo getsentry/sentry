@@ -1,5 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
+import isEqual from 'lodash/isEqual';
 
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
 import ExternalLink from 'app/components/links/externalLink';
@@ -16,6 +18,7 @@ import Field from 'app/views/settings/components/forms/field';
 import {DYNAMIC_SAMPLING_DOC_LINK} from '../utils';
 
 import Form from './form';
+import {Transaction} from './utils';
 
 type Props = Form['props'];
 
@@ -24,6 +27,23 @@ type State = Form['state'] & {
 };
 
 class TransactionRuleModal extends Form<Props, State> {
+  componentDidUpdate(prevProps: Props, prevState: State) {
+    if (prevState.tracing !== this.state.tracing && !!this.state.conditions.length) {
+      this.updateConditions();
+    }
+
+    super.componentDidUpdate(prevProps, prevState);
+  }
+
+  updateConditions() {
+    this.setState(state => ({
+      conditions: state.conditions.map(condition => ({
+        ...condition,
+        category: this.getNewConditionCategory(condition.category),
+      })),
+    }));
+  }
+
   getDefaultState() {
     const {rule} = this.props;
 
@@ -57,8 +77,51 @@ class TransactionRuleModal extends Form<Props, State> {
     };
   }
 
+  getNewConditionCategory(category: DynamicSamplingInnerName) {
+    const {tracing} = this.state;
+
+    if (!tracing) {
+      switch (category) {
+        case DynamicSamplingInnerName.TRACE_RELEASE:
+          return DynamicSamplingInnerName.EVENT_RELEASE;
+        case DynamicSamplingInnerName.TRACE_USER:
+          return DynamicSamplingInnerName.EVENT_USER;
+        case DynamicSamplingInnerName.TRACE_ENVIRONMENT:
+          return DynamicSamplingInnerName.EVENT_ENVIRONMENT;
+        default: {
+          Sentry.withScope(scope => {
+            scope.setLevel(Sentry.Severity.Warning);
+            Sentry.captureException(
+              new Error('Unknown dynamic sampling rule condition category')
+            );
+          });
+          return category; //this shall not happen
+        }
+      }
+    }
+
+    switch (category) {
+      case DynamicSamplingInnerName.EVENT_RELEASE:
+        return DynamicSamplingInnerName.TRACE_RELEASE;
+      case DynamicSamplingInnerName.EVENT_ENVIRONMENT:
+        return DynamicSamplingInnerName.TRACE_ENVIRONMENT;
+      case DynamicSamplingInnerName.EVENT_USER:
+        return DynamicSamplingInnerName.TRACE_USER;
+      default: {
+        Sentry.withScope(scope => {
+          scope.setLevel(Sentry.Severity.Warning);
+          Sentry.captureException(
+            new Error('Unknown dynamic sampling rule condition category')
+          );
+        });
+        return category; //this shall not happen
+      }
+    }
+  }
+
   getCategoryOptions(): Array<[DynamicSamplingInnerName, string]> {
     const {tracing} = this.state;
+
     if (tracing) {
       return [
         [DynamicSamplingInnerName.TRACE_RELEASE, t('Releases')],
@@ -113,7 +176,7 @@ class TransactionRuleModal extends Form<Props, State> {
   };
 
   handleSubmit = () => {
-    const {tracing, sampleRate, conditions} = this.state;
+    const {tracing, sampleRate, conditions, transaction} = this.state;
 
     if (!sampleRate) {
       return;
@@ -125,7 +188,8 @@ class TransactionRuleModal extends Form<Props, State> {
       type: tracing ? DynamicSamplingRuleType.TRACE : DynamicSamplingRuleType.TRANSACTION,
       condition: {
         op: DynamicSamplingConditionOperator.AND,
-        inner: conditions.map(this.getNewCondition),
+        inner:
+          transaction === Transaction.ALL ? [] : conditions.map(this.getNewCondition),
       },
       sampleRate: sampleRate / 100,
     };
@@ -134,7 +198,7 @@ class TransactionRuleModal extends Form<Props, State> {
       ? [
           ...errorRules,
           ...transactionRules.map(transactionRule =>
-            transactionRule === rule ? newRule : transactionRule
+            isEqual(transactionRule, rule) ? newRule : transactionRule
           ),
         ]
       : [...errorRules, ...transactionRules, newRule];
