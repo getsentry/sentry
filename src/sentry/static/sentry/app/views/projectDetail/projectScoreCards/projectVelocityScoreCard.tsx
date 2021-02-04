@@ -5,7 +5,8 @@ import AsyncComponent from 'app/components/asyncComponent';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {parseStatsPeriod} from 'app/components/organizations/timeRangeSelector/utils';
 import ScoreCard from 'app/components/scoreCard';
-import {t, tn} from 'app/locale';
+import {IconArrow} from 'app/icons';
+import {t} from 'app/locale';
 import {GlobalSelection, Organization} from 'app/types';
 import {defined} from 'app/utils';
 import {getPeriod} from 'app/utils/getPeriod';
@@ -113,11 +114,13 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
   }
 
   get cardTitle() {
-    return t('Release Count');
+    return t('Number of Releases');
   }
 
   get cardHelp() {
-    return t('Number of releases in the given timeframe.');
+    return t(
+      'The number of releases for this project and how it has changed since the last period.'
+    );
   }
 
   get trend() {
@@ -180,8 +183,12 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
 
     return (
       <React.Fragment>
-        {this.trend >= 0 ? '+' : '-'}
-        {tn('%s release', '%s releases', Math.abs(this.trend))}
+        {this.trend >= 0 ? (
+          <IconArrow direction="up" size="xs" />
+        ) : (
+          <IconArrow direction="down" size="xs" />
+        )}
+        {Math.abs(this.trend)}
       </React.Fragment>
     );
   }

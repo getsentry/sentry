@@ -29,7 +29,9 @@ export const commonTermsDescription = {
   [SessionTerm.CRASHES]: t('Number of sessions with a crashed state'),
   [SessionTerm.CRASH_FREE_USERS]: t('Number of unique users with non-crashed sessions'),
   [SessionTerm.CRASH_FREE_SESSIONS]: t('Number of non-crashed sessions'),
-  [SessionTerm.STABILITY]: t('The percentage of crash free sessions.'),
+  [SessionTerm.STABILITY]: t(
+    'The percentage of crash free sessions and how it has changed since the last period.'
+  ),
 };
 
 // This should never be used directly (except in tests)
