@@ -55,9 +55,8 @@ function KeyValueList({
   }
 
   data = isSorted ? sortBy(data, [([key]) => key]) : data;
-  const props = onClick ? {onClick} : {};
   return (
-    <table className="table key-value" {...props}>
+    <table className="table key-value" onClick={onClick}>
       <tbody>
         {data.map(([key, value]) => {
           if (isContextData) {
