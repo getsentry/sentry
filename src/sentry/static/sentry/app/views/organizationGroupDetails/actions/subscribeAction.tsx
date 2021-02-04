@@ -1,19 +1,16 @@
 import React from 'react';
 
-import ActionButton from 'app/components/actions/button';
-import {IconBell} from 'app/icons';
-import {t} from 'app/locale';
+import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
 import {Group} from 'app/types';
-
-import {getSubscriptionReason} from '../utils';
 
 type Props = {
   group: Group;
   onClick: (event: React.MouseEvent) => void;
   disabled?: boolean;
+  title: string;
 };
 
-function SubscribeAction({disabled, group, onClick}: Props) {
+function SubscribeAction({title, disabled, group, onClick}: Props) {
   const canChangeSubscriptionState = !(group.subscriptionDetails?.disabled ?? false);
 
   if (!canChangeSubscriptionState) {
@@ -21,15 +18,9 @@ function SubscribeAction({disabled, group, onClick}: Props) {
   }
 
   return (
-    <ActionButton
-      disabled={disabled}
-      title={getSubscriptionReason(group, true)}
-      priority={group.isSubscribed ? 'primary' : 'default'}
-      size="zero"
-      label={t('Subscribe')}
-      onClick={onClick}
-      icon={<IconBell size="xs" />}
-    />
+    <MenuItemActionLink disabled={disabled} title={title} onClick={onClick}>
+      {title}
+    </MenuItemActionLink>
   );
 }
 

@@ -283,14 +283,12 @@ class Actions extends React.Component<Props, State> {
           }
           anchorRight
         >
-          <MenuItemActionLink
+          <SubscribeAction
             disabled={disabled}
-            onAction={() => this.handleClick(disabled, this.onToggleSubscribe)}
-            shouldConfirm={false}
+            group={group}
+            onClick={this.handleClick(disabled, this.onToggleSubscribe)}
             title={subscribeTitle}
-          >
-            {subscribeTitle}
-          </MenuItemActionLink>
+          />
           {orgFeatures.has('discover-basic') && (
             <MenuItemActionLink
               disabled={disabled}
@@ -302,7 +300,7 @@ class Actions extends React.Component<Props, State> {
           )}
           <MenuItemActionLink
             disabled={disabled}
-            onAction={() => this.handleClick(disabled, this.onToggleBookmark)}
+            onClick={this.handleClick(disabled, this.onToggleBookmark)}
             title={bookmarkTitle}
           >
             {bookmarkTitle}
@@ -310,7 +308,7 @@ class Actions extends React.Component<Props, State> {
 
           {orgFeatures.has('reprocessing-v2') && (
             <MenuItemActionLink
-              onAction={() => this.handleClick(disabled, this.onReprocess)}
+              onClick={this.handleClick(disabled, this.onReprocess)}
               title={t('Reprocess')}
             >
               {t('Reprocess')}
@@ -325,54 +323,10 @@ class Actions extends React.Component<Props, State> {
             onDiscard={this.onDiscard}
           />
         </DropdownLink>
-
-        {/* --------------------------------------------- */}
-
-        {/* {orgFeatures.has('discover-basic') && (
-          <ActionButton disabled={disabled} to={disabled ? '' : this.getDiscoverUrl()}>
-            {t('Open in Discover')}
-          </ActionButton>
-        )} */}
-
-        {/* <BookmarkButton
-          disabled={disabled}
-          isActive={group.isBookmarked}
-          title={bookmarkTitle}
-          label={bookmarkTitle}
-          onClick={this.handleClick(disabled, this.onToggleBookmark)}
-          icon={<IconStar isSolid size="xs" />}
-        /> */}
-
-        {/* <SubscribeAction
-          disabled={disabled}
-          group={group}
-          onClick={this.handleClick(disabled, this.onToggleSubscribe)}
-        /> */}
-
-        {/* {orgFeatures.has('reprocessing-v2') && (
-          <ActionButton
-            disabled={disabled}
-            icon={<IconRefresh size="xs" />}
-            title={t('Reprocess this issue')}
-            label={t('Reprocess this issue')}
-            onClick={this.handleClick(disabled, this.onReprocess)}
-          />
-        )} */}
       </Wrapper>
     );
   }
 }
-
-const BookmarkButton = styled(ActionButton)<{isActive: boolean}>`
-  ${p =>
-    p.isActive &&
-    `
-    background: ${p.theme.yellow100};
-    color: ${p.theme.yellow300};
-    border-color: ${p.theme.yellow300};
-    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
-  `}
-`;
 
 const Wrapper = styled('div')`
   display: grid;
