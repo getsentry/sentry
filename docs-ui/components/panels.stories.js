@@ -16,10 +16,13 @@ import {_BulkController} from './bulkController.stories';
 
 export default {
   title: 'Core/Tables/Panels',
+  args: {
+    dashedBorder: false,
+  },
 };
 
-export const BasicPanel = () => (
-  <Panel>
+export const BasicPanel = ({...args}) => (
+  <Panel {...args}>
     <PanelHeader>Panel Header</PanelHeader>
 
     <PanelBody>
@@ -37,8 +40,8 @@ BasicPanel.parameters = {
   },
 };
 
-export const PanelAlerts = () => (
-  <Panel>
+export const PanelAlerts = ({...args}) => (
+  <Panel {...args}>
     <PanelHeader>Panel Header</PanelHeader>
 
     <PanelBody>
@@ -117,8 +120,8 @@ _PanelTable.parameters = {
   },
 };
 
-export const WithFields = () => (
-  <Panel>
+export const WithFields = ({...args}) => (
+  <Panel {...args}>
     <PanelHeader>Panel Header</PanelHeader>
 
     <PanelBody>

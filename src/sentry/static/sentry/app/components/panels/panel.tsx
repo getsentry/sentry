@@ -1,32 +1,12 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
-import PanelBody from 'app/components/panels/panelBody';
-import PanelHeader from 'app/components/panels/panelHeader';
 import space from 'app/styles/space';
 
 type Props = {
-  title?: React.ReactNode;
-  body?: React.ReactNode;
   dashedBorder?: boolean;
 };
 
-type PanelProps = Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props;
-
-const Panel = styled(
-  ({title, body, dashedBorder: _dashedBorder, ...props}: PanelProps) => {
-    const hasHeaderAndBody = !!title && !!body;
-
-    return !hasHeaderAndBody ? (
-      <div {...props} />
-    ) : (
-      <div {...props}>
-        <PanelHeader>{title}</PanelHeader>
-        <PanelBody>{body}</PanelBody>
-      </div>
-    );
-  }
-)<PanelProps>`
+const Panel = styled('div')<Props>`
   background: ${p => (p.dashedBorder ? p.theme.backgroundSecondary : p.theme.background)};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px
