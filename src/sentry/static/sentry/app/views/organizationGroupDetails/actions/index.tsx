@@ -12,10 +12,12 @@ import GroupActions from 'app/actions/groupActions';
 import {Client} from 'app/api';
 import ActionButton from 'app/components/actions/button';
 import IgnoreActions from 'app/components/actions/ignore';
+import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
 import ResolveActions from 'app/components/actions/resolve';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import DropdownLink from 'app/components/dropdownLink';
 import Tooltip from 'app/components/tooltip';
-import {IconRefresh, IconStar} from 'app/icons';
+import {IconEllipsis} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {
@@ -222,7 +224,9 @@ class Actions extends React.Component<Props, State> {
     const {status, isBookmarked} = group;
 
     const orgFeatures = new Set(organization.features);
-
+    const subscribeTitle = group.isSubscribed
+      ? t('Subscribe to Notifications')
+      : t('Unsubscribe to Notifications');
     const bookmarkTitle = isBookmarked ? t('Remove bookmark') : t('Bookmark');
     const hasRelease = !!project.features?.includes('releases');
 
@@ -258,13 +262,6 @@ class Actions extends React.Component<Props, State> {
             disabled={disabled}
           />
         </GuideAnchor>
-        <DeleteAction
-          disabled={disabled}
-          organization={organization}
-          project={project}
-          onDelete={this.onDelete}
-          onDiscard={this.onDiscard}
-        />
         {orgFeatures.has('shared-issues') && (
           <ShareIssue
             disabled={disabled}
@@ -276,28 +273,83 @@ class Actions extends React.Component<Props, State> {
           />
         )}
 
-        {orgFeatures.has('discover-basic') && (
+        <DropdownLink
+          caret={false}
+          customTitle={
+            <ActionButton
+              label={t('More issue actions')}
+              icon={<IconEllipsis size="sm" />}
+            />
+          }
+          anchorRight
+        >
+          <MenuItemActionLink
+            disabled={disabled}
+            onAction={() => this.handleClick(disabled, this.onToggleSubscribe)}
+            shouldConfirm={false}
+            title={subscribeTitle}
+          >
+            {subscribeTitle}
+          </MenuItemActionLink>
+          {orgFeatures.has('discover-basic') && (
+            <MenuItemActionLink
+              disabled={disabled}
+              title={t('Open in Discover')}
+              to={disabled ? '' : this.getDiscoverUrl()}
+            >
+              {t('Open in Discover')}
+            </MenuItemActionLink>
+          )}
+          <MenuItemActionLink
+            disabled={disabled}
+            onAction={() => this.handleClick(disabled, this.onToggleBookmark)}
+            title={bookmarkTitle}
+          >
+            {bookmarkTitle}
+          </MenuItemActionLink>
+
+          {orgFeatures.has('reprocessing-v2') && (
+            <MenuItemActionLink
+              onAction={() => this.handleClick(disabled, this.onReprocess)}
+              title={t('Reprocess')}
+            >
+              {t('Reprocess')}
+            </MenuItemActionLink>
+          )}
+
+          <DeleteAction
+            disabled={disabled}
+            organization={organization}
+            project={project}
+            onDelete={this.onDelete}
+            onDiscard={this.onDiscard}
+          />
+        </DropdownLink>
+
+        {/* --------------------------------------------- */}
+
+        {/* {orgFeatures.has('discover-basic') && (
           <ActionButton disabled={disabled} to={disabled ? '' : this.getDiscoverUrl()}>
             {t('Open in Discover')}
           </ActionButton>
-        )}
+        )} */}
 
-        <BookmarkButton
+        {/* <BookmarkButton
           disabled={disabled}
           isActive={group.isBookmarked}
           title={bookmarkTitle}
           label={bookmarkTitle}
           onClick={this.handleClick(disabled, this.onToggleBookmark)}
           icon={<IconStar isSolid size="xs" />}
-        />
+        /> */}
 
-        <SubscribeAction
+        {/* <SubscribeAction
           disabled={disabled}
           group={group}
           onClick={this.handleClick(disabled, this.onToggleSubscribe)}
-        />
+        /> */}
 
-        {orgFeatures.has('reprocessing-v2') && (
+        {/* {orgFeatures.has('reprocessing-v2') && (
           <ActionButton
             disabled={disabled}
             icon={<IconRefresh size="xs" />}
@@ -305,7 +357,7 @@ class Actions extends React.Component<Props, State> {
             label={t('Reprocess this issue')}
             onClick={this.handleClick(disabled, this.onReprocess)}
           />
-        )}
+        )} */}
       </Wrapper>
     );
   }
