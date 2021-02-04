@@ -50,3 +50,8 @@ export const LEGACY_BROWSER_LIST = {
     title: t('Android Version 3 and lower'),
   },
 };
+
+export enum Transaction {
+  ALL = 'all',
+  MATCH_CONDITIONS = 'match-conditions',
+}
