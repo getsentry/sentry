@@ -93,7 +93,7 @@ export function paramsToQueryArgs(params: ParamsType): QueryArgs {
 
 export function initApiClient() {
   jQuery.ajaxSetup({
-    //jQuery won't allow using the ajaxCsrfSetup function directly
+    // jQuery won't allow using the ajaxCsrfSetup function directly
     beforeSend: ajaxCsrfSetup,
     // Completely disable evaluation of script responses using jQuery ajax
     // Typically the `text script` converter will eval the text [1]. Instead we
