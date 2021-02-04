@@ -8,7 +8,7 @@ from sentry.utils.json import prune_empty_keys
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.utils.safe import get_path
 
-_type_value_re = re.compile("^(\w+):(.*)$")
+_type_value_re = re.compile(r"^(\w+):(.*)$")
 
 
 def upgrade_legacy_mechanism(data):
@@ -434,7 +434,7 @@ class Exception(Interface):
             if not exc:
                 continue
 
-            output.append("{0}: {1}\n".format(exc.type, exc.value))
+            output.append("{}: {}\n".format(exc.type, exc.value))
             if exc.stacktrace:
                 output.append(
                     exc.stacktrace.get_stacktrace(

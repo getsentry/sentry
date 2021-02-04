@@ -541,20 +541,20 @@ def _gather_url(item, report, driver, summary, extra):
     try:
         url = driver.current_url
     except Exception as e:
-        summary.append("WARNING: Failed to gather URL: {0}".format(e))
+        summary.append("WARNING: Failed to gather URL: {}".format(e))
         return
     pytest_html = item.config.pluginmanager.getplugin("html")
     if pytest_html is not None:
         # add url to the html report
         extra.append(pytest_html.extras.url(url))
-    summary.append("URL: {0}".format(url))
+    summary.append("URL: {}".format(url))
 
 
 def _gather_screenshot(item, report, driver, summary, extra):
     try:
         screenshot = driver.get_screenshot_as_base64()
     except Exception as e:
-        summary.append("WARNING: Failed to gather screenshot: {0}".format(e))
+        summary.append("WARNING: Failed to gather screenshot: {}".format(e))
         return
     pytest_html = item.config.pluginmanager.getplugin("html")
     if pytest_html is not None:
@@ -566,7 +566,7 @@ def _gather_html(item, report, driver, summary, extra):
     try:
         html = driver.page_source.encode("utf-8")
     except Exception as e:
-        summary.append("WARNING: Failed to gather HTML: {0}".format(e))
+        summary.append("WARNING: Failed to gather HTML: {}".format(e))
         return
     pytest_html = item.config.pluginmanager.getplugin("html")
     if pytest_html is not None:
@@ -579,13 +579,13 @@ def _gather_logs(item, report, driver, summary, extra):
         types = driver.log_types
     except Exception as e:
         # note that some drivers may not implement log types
-        summary.append("WARNING: Failed to gather log types: {0}".format(e))
+        summary.append("WARNING: Failed to gather log types: {}".format(e))
         return
     for name in types:
         try:
             log = driver.get_log(name)
         except Exception as e:
-            summary.append("WARNING: Failed to gather {0} log: {1}".format(name, e))
+            summary.append("WARNING: Failed to gather {} log: {}".format(name, e))
             return
         pytest_html = item.config.pluginmanager.getplugin("html")
         if pytest_html is not None:
