@@ -1,4 +1,3 @@
-import io
 import os
 
 import six
@@ -51,7 +50,7 @@ class Command(makemigrations.Command):
             for app_label, name in sorted(latest_migration_by_app.items())
         )
 
-        with io.open(
+        with open(
             os.path.join(settings.MIGRATIONS_LOCKFILE_PATH, "migrations_lockfile.txt"), "w"
         ) as f:
             f.write(template % result)

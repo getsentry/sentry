@@ -80,7 +80,7 @@ def relay_server_setup(live_server, tmpdir_factory):
     for source in sources:
         source_path = path.join(template_path, source)
         dest_path = path.join(config_path, source)
-        with open(source_path, "rt") as input:
+        with open(source_path) as input:
             content = input.read()
 
         for var_name, var_val in six.iteritems(template_vars):

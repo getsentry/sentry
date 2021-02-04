@@ -12,6 +12,6 @@ def dirname_to_local(dir_name):
     return dir_name
 
 
-with open(os.path.join(os.path.dirname(sentry.__file__), "locale", "catalogs.json"), "r") as f:
+with open(os.path.join(os.path.dirname(sentry.__file__), "locale", "catalogs.json")) as f:
     CATALOGS = json.load(f)["supported_locales"]
     CATALOGS = [dirname_to_local(dirname) for dirname in CATALOGS]
