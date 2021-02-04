@@ -16,8 +16,8 @@ type Props = {
   loading: boolean;
   fields: string[];
   title: string;
-  metadata: TableData['meta'];
-  data: TableData['data'];
+  metadata: TableData['meta'] | undefined;
+  data: TableData['data'] | undefined;
   className?: string;
 };
 
@@ -56,7 +56,7 @@ class SimpleTableChart extends React.Component<Props> {
             );
           })}
         >
-          {data.map((row, index) => this.renderRow(index, row, meta, columns))}
+          {data?.map((row, index) => this.renderRow(index, row, meta, columns))}
         </StyledPanelTable>
       </React.Fragment>
     );
