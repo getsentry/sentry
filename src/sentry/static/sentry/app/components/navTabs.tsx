@@ -1,6 +1,5 @@
 import React from 'react';
 import classnames from 'classnames';
-import PropTypes from 'prop-types';
 
 type Props = {
   underlined?: boolean;
@@ -16,9 +15,5 @@ function NavTabs(props: NavProps) {
   });
   return <ul className={mergedClassName} {...tabProps} />;
 }
-
-NavTabs.propTypes = {
-  underlined: PropTypes.bool,
-};
 
 export default NavTabs;

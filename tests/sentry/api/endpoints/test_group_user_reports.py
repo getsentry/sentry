@@ -7,7 +7,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 
 class GroupUserReport(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(GroupUserReport, self).setUp()
+        super().setUp()
         self.project = self.create_project()
         self.env1 = self.create_environment(self.project, "production")
         self.env2 = self.create_environment(self.project, "staging")
@@ -26,7 +26,7 @@ class GroupUserReport(APITestCase, SnubaTestCase):
 
     @fixture
     def path(self):
-        return "/api/0/groups/{}/user-feedback/".format(self.group.id)
+        return f"/api/0/groups/{self.group.id}/user-feedback/"
 
     def create_environment(self, project, name):
         env = Environment.objects.create(

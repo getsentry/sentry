@@ -66,6 +66,9 @@ class DashboardWidgetQuery(Model):
     name = models.CharField(max_length=255)
     fields = ArrayField()
     conditions = models.TextField()
+    # Orderby condition for the query
+    orderby = models.TextField(default="")
+    # Order of the widget query in the widget.
     order = BoundedPositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
 

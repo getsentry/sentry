@@ -1,9 +1,17 @@
-type DisplayType = 'line' | 'area' | 'stacked_area' | 'bar' | 'table' | 'world_map';
+type DisplayType =
+  | 'line'
+  | 'area'
+  | 'stacked_area'
+  | 'bar'
+  | 'table'
+  | 'world_map'
+  | 'big_number';
 
 export type WidgetQuery = {
   name: string;
   fields: string[];
   conditions: string;
+  orderby: string;
 };
 
 export type Widget = {

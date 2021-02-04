@@ -13,7 +13,7 @@ from sentry.api.event_search import (
 from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.search.utils import (
     parse_actor_value,
-    parse_owner_value,
+    parse_actor_or_none_value,
     parse_user_value,
     parse_release,
     parse_status_value,
@@ -26,7 +26,7 @@ class IssueSearchVisitor(SearchVisitor):
         "assigned_to": ["assigned"],
         "bookmarked_by": ["bookmarks"],
         "subscribed_by": ["subscribed"],
-        "owner": ["owner"],
+        "assigned_or_suggested": ["assigned_or_suggested"],
         "first_release": ["first-release", "firstRelease"],
         "first_seen": ["age", "firstSeen"],
         "last_seen": ["lastSeen"],
@@ -94,8 +94,8 @@ def convert_actor_value(value, projects, user, environments):
     return parse_actor_value(projects, value, user)
 
 
-def convert_owner_value(value, projects, user, environments):
-    return parse_owner_value(projects, value, user)
+def convert_actor_or_none_value(value, projects, user, environments):
+    return parse_actor_or_none_value(projects, value, user)
 
 
 def convert_user_value(value, projects, user, environments):
@@ -114,8 +114,8 @@ def convert_status_value(value, projects, user, environments):
 
 
 value_converters = {
-    "owner": convert_owner_value,
-    "assigned_to": convert_actor_value,
+    "assigned_or_suggested": convert_actor_or_none_value,
+    "assigned_to": convert_actor_or_none_value,
     "bookmarked_by": convert_user_value,
     "subscribed_by": convert_user_value,
     "first_release": convert_release_value,

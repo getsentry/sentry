@@ -10,7 +10,7 @@ from sentry.utils.samples import load_data
 
 class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationEventsVitalsEndpointTest, self).setUp()
+        super().setUp()
         self.start = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
         self.end = self.start + timedelta(hours=6)
 
@@ -25,7 +25,7 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
             for vital, value in measurements.items():
                 data["measurements"][vital]["value"] = value
 
-        return super(OrganizationEventsVitalsEndpointTest, self).store_event(
+        return super().store_event(
             data.copy(),
             project_id=self.project.id,
         )

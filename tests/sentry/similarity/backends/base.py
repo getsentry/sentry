@@ -1,7 +1,7 @@
 import abc
 
 
-class MinHashIndexBackendTestMixin(object):
+class MinHashIndexBackendTestMixin:
     __meta__ = abc.ABCMeta
 
     @abc.abstractproperty

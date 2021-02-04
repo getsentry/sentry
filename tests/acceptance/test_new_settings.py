@@ -3,7 +3,7 @@ from sentry.testutils import AcceptanceTestCase
 
 class NewSettingsTest(AcceptanceTestCase):
     def setUp(self):
-        super(NewSettingsTest, self).setUp()
+        super().setUp()
         self.user = self.create_user(
             name="A Very Very Very Very Long Username", email="foo@example.com"
         )

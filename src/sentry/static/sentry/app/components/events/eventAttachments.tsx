@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import PropTypes from 'prop-types';
 
 import {Client} from 'app/api';
 import ImageViewer from 'app/components/events/attachmentViewers/imageViewer';
@@ -36,13 +35,6 @@ type State = {
 };
 
 class EventAttachments extends React.Component<Props, State> {
-  static propTypes: any = {
-    api: PropTypes.object.isRequired,
-    event: PropTypes.object.isRequired,
-    orgId: PropTypes.string.isRequired,
-    projectId: PropTypes.string.isRequired,
-  };
-
   state: State = {
     attachmentList: [],
     expanded: false,

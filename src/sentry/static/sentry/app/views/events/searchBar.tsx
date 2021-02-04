@@ -5,13 +5,11 @@ import flatten from 'lodash/flatten';
 import isEqual from 'lodash/isEqual';
 import memoize from 'lodash/memoize';
 import omit from 'lodash/omit';
-import PropTypes from 'prop-types';
 
 import {fetchTagValues} from 'app/actionCreators/tags';
 import {Client} from 'app/api';
 import SmartSearchBar from 'app/components/smartSearchBar';
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'app/constants';
-import SentryTypes from 'app/sentryTypes';
 import {Organization, SavedSearchType, TagCollection} from 'app/types';
 import {defined} from 'app/utils';
 import {
@@ -40,15 +38,6 @@ type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, 'tags'> 
 };
 
 class SearchBar extends React.PureComponent<SearchBarProps> {
-  static propTypes: any = {
-    api: PropTypes.object,
-    organization: SentryTypes.Organization,
-    tags: PropTypes.objectOf(SentryTypes.Tag),
-    omitTags: PropTypes.arrayOf(PropTypes.string.isRequired),
-    projectIds: PropTypes.arrayOf(PropTypes.number.isRequired),
-    fields: PropTypes.arrayOf(PropTypes.object.isRequired) as any,
-  };
-
   componentDidMount() {
     // Clear memoized data on mount to make tests more consistent.
     this.getEventFieldValues.cache.clear?.();

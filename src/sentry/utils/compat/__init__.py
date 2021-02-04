@@ -1,6 +1,3 @@
-import pickle  # NOQA
-import functools  # NOQA
-
 from six.moves import map as _map
 from six.moves import filter as _filter
 from six.moves import zip as _zip
@@ -16,15 +13,6 @@ def filter(a, b):
 
 def zip(*a):
     return list(_zip(*a))
-
-
-def _identity(x):
-    return x
-
-
-implements_to_string = _identity
-implements_iterator = _identity
-implements_bool = _identity
 
 
 from binascii import crc32 as _crc32

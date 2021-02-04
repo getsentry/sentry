@@ -9,7 +9,6 @@ export {default as MultiSelectField} from './multiSelectField';
 export {default as NumberField} from './numberField';
 export {default as PasswordField} from './passwordField';
 export {default as RadioBooleanField} from './radioBooleanField';
-export {default as RangeField} from './rangeField';
 export {default as SelectAsyncField} from './selectAsyncField';
 export {default as SelectCreatableField} from './selectCreatableField';
 export {default as SelectField} from './selectField';

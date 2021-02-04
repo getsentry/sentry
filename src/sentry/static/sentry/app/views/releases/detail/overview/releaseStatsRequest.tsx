@@ -58,6 +58,7 @@ type Props = {
   hasHealthData: boolean;
   hasDiscover: boolean;
   hasPerformance: boolean;
+  defaultStatsPeriod: string;
 };
 type State = {
   reloading: boolean;
@@ -233,10 +234,12 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
   }
 
   get baseQueryParams() {
-    const {location, selection} = this.props;
+    const {location, selection, defaultStatsPeriod} = this.props;
 
     return {
-      ...getParams(pick(location.query, [...Object.values(URL_PARAM)])),
+      ...getParams(pick(location.query, [...Object.values(URL_PARAM)]), {
+        defaultStatsPeriod,
+      }),
       interval: getInterval(selection.datetime),
     };
   }
@@ -251,9 +254,9 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       crashed: {
         seriesName: sessionTerm.crashed,
         data: [],
-        color: CHART_PALETTE[3][0],
+        color: CHART_PALETTE[3][2],
         areaStyle: {
-          color: CHART_PALETTE[3][0],
+          color: CHART_PALETTE[3][2],
           opacity: 1,
         },
         lineStyle: {
@@ -277,9 +280,9 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       errored: {
         seriesName: sessionTerm.errored,
         data: [],
-        color: CHART_PALETTE[3][2],
+        color: CHART_PALETTE[3][0],
         areaStyle: {
-          color: CHART_PALETTE[3][2],
+          color: CHART_PALETTE[3][0],
           opacity: 1,
         },
         lineStyle: {

@@ -217,7 +217,7 @@ def parse_actor_value(projects, value, user):
     return parse_user_value(value, user)
 
 
-def parse_owner_value(projects, value, user):
+def parse_actor_or_none_value(projects, value, user):
     if value == "me_or_none":
         return ["me_or_none", user]
     return parse_actor_value(projects, value, user)
@@ -450,9 +450,9 @@ def parse_query(projects, query, user, environments):
                     except KeyError:
                         raise InvalidQuery("'is:' had unknown status code '{}'.".format(value))
             elif key == "assigned":
-                results["assigned_to"] = parse_actor_value(projects, value, user)
-            elif key == "owner":
-                results["owner"] = parse_owner_value(projects, value, user)
+                results["assigned_to"] = parse_actor_or_none_value(projects, value, user)
+            elif key == "assigned_or_suggested":
+                results["assigned_or_suggested"] = parse_actor_or_none_value(projects, value, user)
             elif key == "bookmarks":
                 results["bookmarked_by"] = parse_user_value(value, user)
             elif key == "subscribed":

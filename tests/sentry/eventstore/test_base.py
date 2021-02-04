@@ -1,7 +1,6 @@
 import logging
 from sentry.utils.compat import mock
 import pytest
-import six
 
 from sentry import eventstore
 from sentry.eventstore.models import Event
@@ -43,7 +42,7 @@ class EventStorageTest(TestCase):
 
 class ServiceDelegationTest(TestCase, SnubaTestCase):
     def setUp(self):
-        super(ServiceDelegationTest, self).setUp()
+        super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
         self.two_min_ago = iso_format(before_now(minutes=2))
         self.project = self.create_project()
@@ -89,7 +88,7 @@ class ServiceDelegationTest(TestCase, SnubaTestCase):
                 "discover.result-mismatch",
                 extra={
                     "snuba_result": None,
-                    "snuba_discover_result": (six.text_type(self.project.id), "b" * 32),
+                    "snuba_discover_result": (str(self.project.id), "b" * 32),
                     "method": "get_next_event_id",
                     "event_id": event.event_id,
                     "filter_keys": _filter.filter_keys,

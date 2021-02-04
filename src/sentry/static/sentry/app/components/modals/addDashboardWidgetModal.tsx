@@ -66,6 +66,7 @@ const newQuery = {
   name: '',
   fields: ['count()'],
   conditions: '',
+  orderby: '',
 };
 
 function mapErrors(
@@ -162,11 +163,17 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       set(newState, field, value);
 
       if (field === 'displayType') {
+        let newQueries = prevState.queries;
+
+        if (['table', 'world_map', 'big_number'].includes(value)) {
+          // Some display types may only support at most 1 query.
+          set(newState, 'queries', prevState.queries.slice(0, 1));
+          newQueries = newState.queries;
+        }
+
         if (value === 'table') {
           return newState;
         }
-
-        let newQueries = prevState.queries;
 
         // Filter out non-aggregate fields
         newQueries = newQueries.map(query => {
@@ -266,7 +273,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
             </Field>
             <Field
               data-test-id="chart-type"
-              label={t('Chart Type')}
+              label={t('Visualization')}
               inline={false}
               flexibleControlStateSize
               stacked

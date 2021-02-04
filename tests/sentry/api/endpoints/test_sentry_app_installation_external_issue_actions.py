@@ -1,4 +1,3 @@
-import six
 import responses
 
 from django.core.urlresolvers import reverse
@@ -23,7 +22,7 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
         )
 
         self.url = reverse(
-            "sentry-api-0-sentry-app-installation-external-issues", args=[self.install.uuid]
+            "sentry-api-0-sentry-app-installation-external-issue-actions", args=[self.install.uuid]
         )
 
     @responses.activate
@@ -52,8 +51,8 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {
-            "id": six.text_type(external_issue.id),
-            "groupId": six.text_type(self.group.id),
+            "id": str(external_issue.id),
+            "groupId": str(self.group.id),
             "serviceType": self.sentry_app.slug,
             "displayName": "ProjectName#issue-1",
             "webUrl": "https://example.com/project/issue-id",

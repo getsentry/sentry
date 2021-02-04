@@ -1,5 +1,3 @@
-import six
-
 from sentry.models import Group
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
@@ -21,8 +19,8 @@ class GroupTagDetailsTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        url = "/api/0/issues/{}/tags/{}/".format(group.id, "foo")
+        url = f"/api/0/issues/{group.id}/tags/foo/"
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
-        assert response.data["key"] == six.text_type("foo")
+        assert response.data["key"] == "foo"
         assert response.data["totalValues"] == 3

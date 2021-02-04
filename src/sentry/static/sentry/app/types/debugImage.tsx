@@ -111,13 +111,13 @@ export enum ImageStatus {
 }
 
 export type Image = {
-  debug_file: string;
-  code_file: string;
-  code_id: string;
   type: string;
-  image_size: number;
   features: ImageFeatures;
   candidates: Array<ImageCandidate>;
+  image_size?: number;
+  debug_file?: string;
+  code_file?: string;
+  code_id?: string;
   debug_id?: string;
   debug_status?: ImageStatus | null;
   unwind_status?: ImageStatus | null;

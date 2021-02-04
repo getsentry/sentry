@@ -59,3 +59,6 @@ register(key="filters:browser-extensions", epoch_defaults={1: "0"})
 
 # Default legacy-browsers filter
 register(key="filters:localhost", epoch_defaults={1: "0"})
+
+# Default dynamic sampling rules
+register(key="sentry:dynamicSampling", epoch_defaults={1: []})

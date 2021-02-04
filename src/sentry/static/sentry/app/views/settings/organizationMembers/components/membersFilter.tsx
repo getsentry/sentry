@@ -1,9 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import Checkbox from 'app/components/checkbox';
-import Switch from 'app/components/switch';
+import Switch from 'app/components/switchButton';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {MemberRole} from 'app/types';
@@ -130,17 +129,6 @@ const BooleanFilter = ({onChange, value, children}: BooleanFilterProps) => (
     />
   </label>
 );
-
-MembersFilter.propTypes = {
-  roles: PropTypes.arrayOf(PropTypes.object).isRequired as any,
-  query: PropTypes.string.isRequired,
-  onChange: PropTypes.func.isRequired,
-};
-
-BooleanFilter.propTypes = {
-  onChange: PropTypes.func.isRequired,
-  value: PropTypes.oneOf([null, true, false]),
-};
 
 const FilterContainer = styled('div')`
   border-radius: 4px;

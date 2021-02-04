@@ -109,7 +109,7 @@ class TeamworkPlugin(CorePluginMixin, IssuePlugin):
         return "\n".join(output)
 
     def is_configured(self, request, project, **kwargs):
-        return all((self.get_option(key, project) for key in ("url", "token")))
+        return all(self.get_option(key, project) for key in ("url", "token"))
 
     def get_client(self, project):
         return TeamworkClient(

@@ -26,11 +26,11 @@ class TeamworkClient(object):
         return self._request(path="/projects.json")["projects"]
 
     def list_tasklists(self, project_id):
-        return self._request(path="/projects/{0}/tasklists.json".format(project_id))["tasklists"]
+        return self._request(path="/projects/{}/tasklists.json".format(project_id))["tasklists"]
 
     def create_task(self, tasklist_id, **kwargs):
         return self._request(
             method="POST",
-            path="/tasklists/{0}/tasks.json".format(tasklist_id),
+            path="/tasklists/{}/tasks.json".format(tasklist_id),
             data={"todo-item": kwargs},
         )["id"]

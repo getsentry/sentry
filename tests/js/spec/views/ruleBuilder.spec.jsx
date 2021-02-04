@@ -7,8 +7,6 @@ import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
 import RuleBuilder from 'app/views/settings/project/projectOwnership/ruleBuilder';
 
-jest.mock('jquery');
-
 describe('RuleBuilder', function () {
   const organization = TestStubs.Organization();
   let project;

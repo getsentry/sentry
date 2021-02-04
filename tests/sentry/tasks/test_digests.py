@@ -26,7 +26,7 @@ class DeliverDigestTest(TestCase):
             data={"timestamp": iso_format(before_now(days=1)), "fingerprint": ["group-2"]},
             project_id=self.project.id,
         )
-        key = "mail:p:{}".format(self.project.id)
+        key = f"mail:p:{self.project.id}"
         backend.add(key, event_to_record(event, [rule]), increment_delay=0, maximum_delay=0)
         backend.add(key, event_to_record(event_2, [rule]), increment_delay=0, maximum_delay=0)
         digests.digest = backend.digest
@@ -36,12 +36,12 @@ class DeliverDigestTest(TestCase):
 
     @patch.object(sentry, "digests")
     def test_old_key(self, digests):
-        self.run_test("mail:p:{}".format(self.project.id), digests)
+        self.run_test(f"mail:p:{self.project.id}", digests)
 
     @patch.object(sentry, "digests")
     def test_new_key(self, digests):
-        self.run_test("mail:p:{}:IssueOwners:".format(self.project.id), digests)
+        self.run_test(f"mail:p:{self.project.id}:IssueOwners:", digests)
 
     @patch.object(sentry, "digests")
     def test_member_key(self, digests):
-        self.run_test("mail:p:{}:Member:{}".format(self.project.id, self.user.id), digests)
+        self.run_test(f"mail:p:{self.project.id}:Member:{self.user.id}", digests)

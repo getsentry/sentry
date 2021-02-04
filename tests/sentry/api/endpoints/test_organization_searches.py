@@ -15,7 +15,7 @@ class OrgLevelOrganizationSearchesListTest(APITestCase):
         return self.create_user("test@test.com")
 
     def get_response(self, *args, **params):
-        return super(OrgLevelOrganizationSearchesListTest, self).get_response(*args, **params)
+        return super().get_response(*args, **params)
 
     def create_base_data(self):
         # Depending on test we run migrations in Django 1.8. This causes

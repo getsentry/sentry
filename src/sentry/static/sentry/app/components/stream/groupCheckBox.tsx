@@ -1,6 +1,5 @@
 import React from 'react';
 import createReactClass from 'create-react-class';
-import PropTypes from 'prop-types';
 import Reflux from 'reflux';
 
 import Checkbox from 'app/components/checkbox';
@@ -18,11 +17,6 @@ type State = {
 
 const GroupCheckBox = createReactClass<Props, State>({
   displayName: 'GroupCheckBox',
-
-  propTypes: {
-    id: PropTypes.string.isRequired,
-    disabled: PropTypes.bool,
-  },
 
   mixins: [Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange') as any],
 

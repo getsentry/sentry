@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
-import PropTypes from 'prop-types';
 
 import {
   addErrorMessage,
@@ -34,15 +33,6 @@ type State = {
 };
 
 class PluginConfig extends React.Component<Props, State> {
-  static propTypes: any = {
-    api: PropTypes.object,
-    organization: PropTypes.object.isRequired,
-    project: PropTypes.object.isRequired,
-    data: PropTypes.object.isRequired,
-    onDisablePlugin: PropTypes.func,
-    enabled: PropTypes.bool,
-  };
-
   static defaultProps = {
     onDisablePlugin: () => {},
   };

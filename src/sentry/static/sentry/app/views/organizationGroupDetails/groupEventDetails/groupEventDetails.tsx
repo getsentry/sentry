@@ -3,7 +3,6 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
-import PropTypes from 'prop-types';
 
 import {fetchSentryAppComponents} from 'app/actionCreators/sentryAppComponents';
 import {Client} from 'app/api';
@@ -15,7 +14,6 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import MutedBox from 'app/components/mutedBox';
 import ReprocessedBox from 'app/components/reprocessedBox';
 import ResolutionBox from 'app/components/resolutionBox';
-import SentryTypes from 'app/sentryTypes';
 import {
   Environment,
   Group,
@@ -58,14 +56,6 @@ type State = {
 };
 
 class GroupEventDetails extends React.Component<Props, State> {
-  static propTypes = {
-    api: PropTypes.object.isRequired,
-    group: SentryTypes.Group.isRequired,
-    project: SentryTypes.Project.isRequired,
-    organization: SentryTypes.Organization.isRequired,
-    environments: PropTypes.arrayOf(SentryTypes.Environment).isRequired,
-  };
-
   state: State = {
     eventNavLinks: '',
     releasesCompletion: null,

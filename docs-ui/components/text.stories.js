@@ -1,13 +1,13 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 
 import Text from 'app/components/text';
 
 export default {
   title: 'Core/Style/Text',
+  component: Text,
 };
 
-export const Default = withInfo('On-demand styling for native dom elements')(() => (
+export const Default = () => (
   <div style={{padding: 20, backgroundColor: '#ffffff'}}>
     <Text>
       <h1>Text styles</h1>
@@ -76,8 +76,13 @@ export const Default = withInfo('On-demand styling for native dom elements')(() 
       </p>
     </Text>
   </div>
-));
+);
 
-Default.story = {
-  name: 'default',
+Default.storyName = 'default';
+Default.parameters = {
+  docs: {
+    description: {
+      story: 'On-demand styling for native dom elements',
+    },
+  },
 };

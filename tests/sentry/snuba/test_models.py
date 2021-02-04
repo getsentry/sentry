@@ -16,6 +16,7 @@ class SnubaQueryEventTypesTest(TestCase):
             None,
             [SnubaQueryEventType.EventType.DEFAULT, SnubaQueryEventType.EventType.ERROR],
         )
-        assert set(snuba_query.event_types) == set(
-            [SnubaQueryEventType.EventType.DEFAULT, SnubaQueryEventType.EventType.ERROR]
-        )
+        assert set(snuba_query.event_types) == {
+            SnubaQueryEventType.EventType.DEFAULT,
+            SnubaQueryEventType.EventType.ERROR,
+        }
