@@ -146,9 +146,6 @@ jest.mock('popper.js', () => {
   };
 });
 
-// We generally use actual jQuery, and jest mocks takes precedence over node_modules.
-jest.unmock('jquery');
-
 /**
  * Test Globals
  */
