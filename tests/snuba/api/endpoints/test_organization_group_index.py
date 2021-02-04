@@ -630,7 +630,8 @@ class GroupListTest(APITestCase, SnubaTestCase):
             GroupAssignee.objects.assign(ag, self.user)
 
         # This side_effect is meant to override the `calculate_hits` snuba query specifically.
-        # If this test is failing it's because the -last_seen override is being applied to a different snuba query.
+        # If this test is failing it's because the -last_seen override is being applied to
+        # different snuba query.
         def _my_patched_params(query_params, **kwargs):
             if query_params.aggregations == [
                 ["uniq", "group_id", "total"],
