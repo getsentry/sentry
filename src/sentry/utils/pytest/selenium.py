@@ -22,7 +22,7 @@ from sentry.utils.compat import map
 logger = logging.getLogger("sentry.testutils")
 
 
-class Browser(object):
+class Browser:
     def __init__(self, driver, live_server):
         self.driver = driver
         self.live_server_url = live_server.url

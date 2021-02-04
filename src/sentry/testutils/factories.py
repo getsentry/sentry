@@ -218,7 +218,7 @@ def _patch_artifact_manifest(path, org, release, project=None):
 
 
 # TODO(dcramer): consider moving to something more scaleable like factoryboy
-class Factories(object):
+class Factories:
     @staticmethod
     def create_organization(name=None, owner=None, **kwargs):
         if not name:

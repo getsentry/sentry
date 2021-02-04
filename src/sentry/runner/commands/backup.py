@@ -126,8 +126,7 @@ def export(dest, silent, indent, exclude):
                 continue
 
             queryset = model._base_manager.order_by(model._meta.pk.name)
-            for obj in queryset.iterator():
-                yield obj
+            yield from queryset.iterator()
 
     if not silent:
         click.echo(">> Beginning export", err=True)

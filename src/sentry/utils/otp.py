@@ -32,7 +32,7 @@ def _get_ts(ts):
     return int(ts)
 
 
-class TOTP(object):
+class TOTP:
     def __init__(self, secret=None, digits=6, interval=30, default_window=2):
         if secret is None:
             secret = generate_secret_key()

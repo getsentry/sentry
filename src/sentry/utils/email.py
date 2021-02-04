@@ -61,7 +61,7 @@ class _CaseInsensitiveSigner(Signer):
     """
 
     def signature(self, value):
-        sig = super(_CaseInsensitiveSigner, self).signature(value)
+        sig = super().signature(value)
         return sig.lower()
 
     def unsign(self, signed_value):
@@ -182,7 +182,7 @@ def get_email_addresses(user_ids, project=None):
     return results
 
 
-class ListResolver(object):
+class ListResolver:
     """
     Manages the generation of RFC 2919 compliant list-id strings from varying
     objects types.
@@ -239,7 +239,7 @@ make_listid_from_instance = ListResolver(
 )
 
 
-class MessageBuilder(object):
+class MessageBuilder:
     def __init__(
         self,
         subject,

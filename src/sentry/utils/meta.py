@@ -2,7 +2,7 @@ import collections
 from sentry.utils.compat import map
 
 
-class Meta(object):
+class Meta:
     """
     A lazy view to detached validation and normalization meta data. It allows to
     safely traverse the meta tree and create a deep path lazily. Use ``enter``

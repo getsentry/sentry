@@ -291,7 +291,7 @@ class RetrySkipTimeout(urllib3.Retry):
             "snuba.client.retry",
             tags={"method": method, "path": urlparse(url).path if url else None},
         )
-        return super(RetrySkipTimeout, self).increment(
+        return super().increment(
             method=method,
             url=url,
             response=response,
@@ -545,7 +545,7 @@ def _prepare_query_params(query_params):
     return kwargs, forward, reverse
 
 
-class SnubaQueryParams(object):
+class SnubaQueryParams:
     """
     Represents the information needed to make a query to Snuba.
 

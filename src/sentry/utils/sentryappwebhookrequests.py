@@ -23,7 +23,7 @@ EXTENDED_VALID_EVENTS = VALID_EVENTS + (
 )
 
 
-class SentryAppWebhookRequestsBuffer(object):
+class SentryAppWebhookRequestsBuffer:
     """
     Create a data structure to store basic information about Sentry App webhook requests in Redis
     This should store the last 100 requests and last 100 errors (in different keys) for each event type, for each Sentry App

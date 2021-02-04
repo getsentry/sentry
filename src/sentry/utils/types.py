@@ -10,7 +10,7 @@ class InvalidTypeError(TypeError):
     pass
 
 
-class Type(object):
+class Type:
     """Base Type that provides type coersion"""
 
     name = ""

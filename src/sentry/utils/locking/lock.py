@@ -7,7 +7,7 @@ from sentry.utils.locking import UnableToAcquireLock
 logger = logging.getLogger(__name__)
 
 
-class Lock(object):
+class Lock:
     def __init__(self, backend, key, duration, routing_key=None):
         self.backend = backend
         self.key = key
