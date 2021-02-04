@@ -83,7 +83,7 @@ class WarningSet(collections.Set):
         return six.itervalues(self.__warnings)
 
     def __get_key(self, warning):
-        return (type(warning), warning.args if hasattr(warning, "args") else six.text_type(warning))
+        return (type(warning), warning.args if hasattr(warning, "args") else str(warning))
 
     def add(self, warning, stacklevel=None):
         self.__warnings[self.__get_key(warning)] = warning

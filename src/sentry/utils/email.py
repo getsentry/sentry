@@ -91,7 +91,7 @@ def email_to_group_id(address):
 
 
 def group_id_to_email(group_id):
-    signed_data = signer.sign(six.text_type(group_id))
+    signed_data = signer.sign(str(group_id))
     return "@".join(
         (
             signed_data.replace(":", "+"),
@@ -223,7 +223,7 @@ class ListResolver(object):
                 "Cannot generate mailing list identifier for {!r}".format(instance)
             )
 
-        label = ".".join(map(six.text_type, handler(instance)))
+        label = ".".join(map(str, handler(instance)))
         assert is_valid_dot_atom(label)
 
         return "<{}.{}>".format(label, self.__namespace)
@@ -279,9 +279,9 @@ class MessageBuilder(object):
             try:
                 headers["List-Id"] = make_listid_from_instance(reference)
             except ListResolver.UnregisteredTypeError as error:
-                logger.debug(six.text_type(error))
+                logger.debug(str(error))
             except AssertionError as error:
-                logger.warning(six.text_type(error))
+                logger.warning(str(error))
 
     def __render_html_body(self):
         html_body = None
@@ -474,7 +474,7 @@ class PreviewBackend(BaseEmailBackend):
 
     def send_messages(self, email_messages):
         for message in email_messages:
-            content = six.binary_type(message.message())
+            content = bytes(message.message())
             preview = tempfile.NamedTemporaryFile(
                 delete=False, prefix="sentry-email-preview-", suffix=".eml"
             )

@@ -2,7 +2,6 @@ from copy import deepcopy
 import functools
 import logging
 import posixpath
-import six
 
 from threading import Lock
 
@@ -232,7 +231,7 @@ def validate_dynamic_cluster(is_redis_cluster, cluster):
             with cluster.all() as client:
                 client.ping()
     except Exception as e:
-        raise InvalidConfiguration(six.text_type(e))
+        raise InvalidConfiguration(str(e))
 
 
 def check_cluster_versions(cluster, required, recommended=None, label=None):
@@ -241,7 +240,7 @@ def check_cluster_versions(cluster, required, recommended=None, label=None):
             results = client.info()
     except Exception as e:
         # Any connection issues should be caught here.
-        raise InvalidConfiguration(six.text_type(e))
+        raise InvalidConfiguration(str(e))
 
     versions = {}
     for id, info in results.value.items():

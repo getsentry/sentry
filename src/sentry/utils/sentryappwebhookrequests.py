@@ -1,5 +1,3 @@
-import six
-
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 from django.utils import timezone
@@ -113,7 +111,7 @@ class SentryAppWebhookRequestsBuffer(object):
 
         time = timezone.now()
         request_data = {
-            "date": six.text_type(time),
+            "date": str(time),
             "response_code": response_code,
             "webhook_url": url,
         }

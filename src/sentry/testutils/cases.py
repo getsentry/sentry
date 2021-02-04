@@ -200,7 +200,7 @@ class BaseTestCase(Fixtures, Exam):
 
         # TODO(dcramer): ideally this would get abstracted
         if organization_ids:
-            request.session[SSO_SESSION_KEY] = ",".join(six.text_type(o) for o in organization_ids)
+            request.session[SSO_SESSION_KEY] = ",".join(str(o) for o in organization_ids)
 
         # logging in implicitly binds superuser, but for test cases we
         # want that action to be explicit to avoid accidentally testing
@@ -609,7 +609,7 @@ class AcceptanceTestCase(TransactionTestCase):
     def dismiss_assistant(self, which=None):
         if which is None:
             which = ("issue", "issue_stream")
-        if isinstance(which, six.string_types):
+        if isinstance(which, str):
             which = [which]
 
         for item in which:
@@ -1000,7 +1000,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
 
     def assert_serialized_widget_query(self, data, widget_data_source):
         if "id" in data:
-            assert data["id"] == six.text_type(widget_data_source.id)
+            assert data["id"] == str(widget_data_source.id)
         if "name" in data:
             assert data["name"] == widget_data_source.name
         if "fields" in data:
@@ -1015,7 +1015,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
 
     def assert_serialized_widget(self, data, expected_widget):
         if "id" in data:
-            assert data["id"] == six.text_type(expected_widget.id)
+            assert data["id"] == str(expected_widget.id)
         if "title" in data:
             assert data["title"] == expected_widget.title
         if "interval" in data:

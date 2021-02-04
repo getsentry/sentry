@@ -1,5 +1,3 @@
-import six
-
 from sentry.models import Activity, OrganizationMember, OrganizationMemberTeam
 from sentry.incidents.models import IncidentActivityType
 
@@ -281,7 +279,7 @@ class Fixtures(object):
             alert_rule_trigger = self.create_alert_rule_trigger()
 
         if not target_identifier:
-            target_identifier = six.text_type(self.user.id)
+            target_identifier = str(self.user.id)
 
         if triggered_for_incident is not None:
             Factories.create_incident_trigger(triggered_for_incident, alert_rule_trigger)

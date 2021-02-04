@@ -169,7 +169,7 @@ def bootstrap_options(settings, config=None):
         except (AttributeError, ParserError, ScannerError) as e:
             from .importer import ConfigurationError
 
-            raise ConfigurationError("Malformed config.yml file: %s" % six.text_type(e))
+            raise ConfigurationError("Malformed config.yml file: %s" % str(e))
 
         # Empty options file, so fail gracefully
         if options is None:
@@ -271,7 +271,7 @@ def configure_structlog():
 
 
 def show_big_error(message):
-    if isinstance(message, six.string_types):
+    if isinstance(message, str):
         lines = message.strip().splitlines()
     else:
         lines = message

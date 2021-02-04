@@ -4,7 +4,6 @@ import io
 import os
 import petname
 import random
-import six
 import warnings
 from binascii import hexlify
 from hashlib import sha1
@@ -256,7 +255,7 @@ class Factories(object):
         if not kwargs.get("name"):
             kwargs["name"] = petname.Generate(2, " ", letters=10).title()
         if not kwargs.get("slug"):
-            kwargs["slug"] = slugify(six.text_type(kwargs["name"]))
+            kwargs["slug"] = slugify(str(kwargs["name"]))
         members = kwargs.pop("members", None)
 
         team = Team.objects.create(organization=organization, **kwargs)
@@ -283,7 +282,7 @@ class Factories(object):
         if not kwargs.get("name"):
             kwargs["name"] = petname.Generate(2, " ", letters=10).title()
         if not kwargs.get("slug"):
-            kwargs["slug"] = slugify(six.text_type(kwargs["name"]))
+            kwargs["slug"] = slugify(str(kwargs["name"]))
         if not organization and teams:
             organization = teams[0].organization
 
@@ -387,9 +386,7 @@ class Factories(object):
                 message="placeholder commit message",
             )
 
-            release.update(
-                authors=[six.text_type(author.id)], commit_count=1, last_commit_id=commit.id
-            )
+            release.update(authors=[str(author.id)], commit_count=1, last_commit_id=commit.id)
 
         return release
 
@@ -591,7 +588,7 @@ class Factories(object):
         **kwargs,
     ):
         if debug_id is None:
-            debug_id = six.text_type(uuid4())
+            debug_id = str(uuid4())
 
         if object_name is None:
             object_name = "%s.dSYM" % debug_id

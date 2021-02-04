@@ -375,9 +375,7 @@ def get_function_index(column_expr, depth=0):
         while i < len(column_expr) - 1:
             # The assumption here is that a list that follows a string means
             # the string is a function name
-            if isinstance(column_expr[i], six.string_types) and isinstance(
-                column_expr[i + 1], (tuple, list)
-            ):
+            if isinstance(column_expr[i], str) and isinstance(column_expr[i + 1], (tuple, list)):
                 assert SAFE_FUNCTION_RE.match(column_expr[i])
                 index = i
                 break
@@ -810,11 +808,9 @@ def resolve_column(dataset):
     def _resolve_column(col):
         if col is None:
             return col
-        if isinstance(col, six.integer_types) or isinstance(col, float):
+        if isinstance(col, int) or isinstance(col, float):
             return col
-        if isinstance(col, six.string_types) and (
-            col.startswith("tags[") or QUOTED_LITERAL_RE.match(col)
-        ):
+        if isinstance(col, str) and (col.startswith("tags[") or QUOTED_LITERAL_RE.match(col)):
             return col
 
         # Some dataset specific logic:
@@ -868,7 +864,7 @@ def resolve_condition(cond, column_resolver):
                     else:
                         func_args[i] = column_resolver(arg)
                 else:
-                    if isinstance(arg, six.string_types):
+                    if isinstance(arg, str):
                         func_args[i] = "'{}'".format(arg)
                     elif isinstance(arg, datetime):
                         func_args[i] = "'{}'".format(arg.isoformat())
@@ -891,7 +887,7 @@ def resolve_condition(cond, column_resolver):
     # No function name found
     if isinstance(cond, (list, tuple)) and len(cond):
         # Condition is [col, operator, value]
-        if isinstance(cond[0], six.string_types) and len(cond) == 3:
+        if isinstance(cond[0], str) and len(cond) == 3:
             cond[0] = column_resolver(cond[0])
             return cond
         if isinstance(cond[0], (list, tuple)):
@@ -998,7 +994,7 @@ def resolve_complex_column(col, resolve_func):
     for i in range(len(args)):
         if isinstance(args[i], (list, tuple)):
             resolve_complex_column(args[i], resolve_func)
-        elif isinstance(args[i], six.string_types):
+        elif isinstance(args[i], str):
             args[i] = resolve_func(args[i])
 
 
@@ -1043,7 +1039,7 @@ def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None
     # need to get derived_columns first, so that they don't get resolved as functions
     derived_columns = derived_columns.union([aggregation[2] for aggregation in aggregations])
     for aggregation in aggregations or []:
-        if isinstance(aggregation[1], six.string_types):
+        if isinstance(aggregation[1], str):
             aggregation[1] = resolve_func(aggregation[1])
         elif isinstance(aggregation[1], (set, tuple, list)):
             formatted = []
@@ -1318,7 +1314,7 @@ def quantize_time(time, key_hash, duration=300):
 
 
 def is_measurement(key):
-    return isinstance(key, six.string_types) and MEASUREMENTS_KEY_RE.match(key)
+    return isinstance(key, str) and MEASUREMENTS_KEY_RE.match(key)
 
 
 def is_duration_measurement(key):
