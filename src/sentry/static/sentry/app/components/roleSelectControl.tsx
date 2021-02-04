@@ -1,57 +1,66 @@
 import React from 'react';
+import ReactSelect, {components, OptionProps} from 'react-select';
 import styled from '@emotion/styled';
 
 import SelectControl from 'app/components/forms/selectControl';
 import space from 'app/styles/space';
 import {MemberRole} from 'app/types';
+import theme from 'app/utils/theme';
 
-type Props = SelectControl['props'] & {
+// TODO(ts) Add SelectControl types when it gets them.
+type Props = Omit<React.ComponentProps<typeof ReactSelect>, 'value'> & {
   roles: MemberRole[];
   disableUnallowed: boolean;
+  value?: string;
 };
 
-const RoleSelector = ({roles, disableUnallowed, ...props}: Props) => (
-  <RoleSelectControl
-    deprecatedSelectControl
-    options={
-      roles &&
-      roles.map(r => ({
-        value: r.id,
-        label: r.name,
-        disabled: disableUnallowed && !r.allowed,
-      }))
-    }
-    optionRenderer={option => {
-      const {name, desc} = roles.find(r => r.id === option.value)!;
+type OptionType = {
+  label: string;
+  value: string;
+  disabled: boolean;
+  description: string;
+};
 
-      return (
-        <RoleItem>
-          <h1>{name}</h1>
-          <div>{desc}</div>
-        </RoleItem>
-      );
-    }}
-    {...props}
-  />
-);
-
-const RoleSelectControl = styled(SelectControl)`
-  .Select-menu-outer {
-    margin-top: ${space(1)};
-    width: 350px;
-    border-radius: 4px;
-    overflow: hidden;
-    box-shadow: 0 0 6px rgba(0, 0, 0, 0.15);
-  }
-
-  &.Select.is-focused.is-open > .Select-control {
-    border-radius: 4px;
-  }
-
-  .Select-option:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
-  }
-`;
+function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {
+  return (
+    <SelectControl
+      options={roles?.map(
+        (r: MemberRole) =>
+          ({
+            value: r.id,
+            label: r.name,
+            disabled: disableUnallowed && !r.allowed,
+            description: r.desc,
+          } as OptionType)
+      )}
+      components={{
+        Option: ({label, data, ...optionProps}: OptionProps<OptionType>) => (
+          <components.Option label={label} {...(optionProps as any)}>
+            <RoleItem>
+              <h1>{label}</h1>
+              <div>{data.description}</div>
+            </RoleItem>
+          </components.Option>
+        ),
+      }}
+      styles={{
+        control: provided => ({
+          ...provided,
+          borderBottomLeftRadius: theme.borderRadius,
+          borderBottomRightRadius: theme.borderRadius,
+        }),
+        menu: provided => ({
+          ...provided,
+          borderRadius: theme.borderRadius,
+          marginTop: space(0.5),
+          width: '350px',
+          overflow: 'hidden',
+        }),
+      }}
+      {...props}
+    />
+  );
+}
 
 const RoleItem = styled('div')`
   display: grid;
@@ -66,4 +75,4 @@ const RoleItem = styled('div')`
   }
 `;
 
-export default RoleSelector;
+export default RoleSelectControl;

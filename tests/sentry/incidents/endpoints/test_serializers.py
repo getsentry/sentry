@@ -1,5 +1,3 @@
-import six
-
 from exam import fixture
 from sentry.utils.compat.mock import patch
 from rest_framework import serializers
@@ -69,7 +67,7 @@ class TestAlertRuleSerializer(TestCase):
         return {"organization": self.organization, "access": self.access}
 
     def Any(self, cls):
-        class Any(object):
+        class Any:
             def __eq__(self, other):
                 return isinstance(other, cls)
 
@@ -339,7 +337,7 @@ class TestAlertRuleSerializer(TestCase):
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
                 "targetIdentifier": "123",
-                "integration": six.text_type(integration.id),
+                "integration": str(integration.id),
             }
         )
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
@@ -418,7 +416,7 @@ class TestAlertRuleSerializer(TestCase):
         with self.assertRaises(ChannelLookupTimeoutError) as err:
             serializer.save()
         assert (
-            six.text_type(err.exception)
+            str(err.exception)
             == "Could not find channel my-channel. We have timed out trying to look for it."
         )
 
@@ -472,16 +470,14 @@ class TestAlertRuleSerializer(TestCase):
         serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
         assert serializer.is_valid()
         alert_rule = serializer.save()
-        assert set(alert_rule.snuba_query.event_types) == set(
-            [SnubaQueryEventType.EventType.DEFAULT]
-        )
+        assert set(alert_rule.snuba_query.event_types) == {SnubaQueryEventType.EventType.DEFAULT}
         params["event_types"] = [SnubaQueryEventType.EventType.ERROR.name.lower()]
         serializer = AlertRuleSerializer(
             context=self.context, instance=alert_rule, data=params, partial=True
         )
         assert serializer.is_valid()
         alert_rule = serializer.save()
-        assert set(alert_rule.snuba_query.event_types) == set([SnubaQueryEventType.EventType.ERROR])
+        assert set(alert_rule.snuba_query.event_types) == {SnubaQueryEventType.EventType.ERROR}
 
     def test_unsupported_query(self):
         self.run_fail_validation_test(
@@ -617,7 +613,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
         self.run_fail_validation_test(
             {
                 "target_type": action_target_type_to_string[AlertRuleTriggerAction.TargetType.USER],
-                "target_identifier": six.text_type(other_user.id),
+                "target_identifier": str(other_user.id),
             },
             {"nonFieldErrors": ["User does not belong to this organization"]},
         )
@@ -662,7 +658,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
                     AlertRuleTriggerAction.TargetType.SPECIFIC
                 ],
                 "targetIdentifier": "123",
-                "integration": six.text_type(integration.id),
+                "integration": str(integration.id),
             }
         )
         serializer = AlertRuleTriggerActionSerializer(context=self.context, data=base_params)

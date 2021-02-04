@@ -5,7 +5,7 @@ from sentry.incidents.models import IncidentSubscription
 from sentry.testutils import APITestCase
 
 
-class BaseOrganizationSubscriptionEndpointTest(object):
+class BaseOrganizationSubscriptionEndpointTest:
     endpoint = "sentry-api-0-organization-incident-subscription-index"
 
     @fixture

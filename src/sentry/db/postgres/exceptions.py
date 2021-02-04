@@ -2,8 +2,6 @@ import psycopg2
 import six
 import traceback
 
-from sentry.utils.compat import implements_to_string
-
 
 class CompositeTraceback(object):
     def __init__(self, tb_list):
@@ -32,7 +30,6 @@ class CompositeTraceback(object):
         return self
 
 
-@implements_to_string
 class TransactionAborted(psycopg2.DatabaseError):
     def __init__(self, exc_info, cur_exc_info):
         self.exc_info = exc_info

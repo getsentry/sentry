@@ -1,4 +1,3 @@
-import six
 from datetime import timedelta
 
 from django.core.urlresolvers import reverse
@@ -14,7 +13,7 @@ from sentry.api.endpoints.organization_events_trends import OrganizationEventsTr
 
 class OrganizationEventsTrendsBase(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationEventsTrendsBase, self).setUp()
+        super().setUp()
         self.login_as(user=self.user)
 
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
@@ -51,7 +50,7 @@ class OrganizationEventsTrendsBase(APITestCase, SnubaTestCase):
 
 class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
     def setUp(self):
-        super(OrganizationEventsTrendsEndpointTest, self).setUp()
+        super().setUp()
         self.url = reverse(
             "sentry-api-0-organization-events-trends",
             kwargs={"organization_slug": self.project.organization.slug},
@@ -382,7 +381,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsBase):
 
 class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
     def setUp(self):
-        super(OrganizationEventsTrendsStatsEndpointTest, self).setUp()
+        super().setUp()
         self.url = reverse(
             "sentry-api-0-organization-events-trends-stats",
             kwargs={"organization_slug": self.project.organization.slug},
@@ -756,7 +755,7 @@ class OrganizationEventsTrendsStatsEndpointTest(OrganizationEventsTrendsBase):
 
 class OrganizationEventsTrendsPagingTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationEventsTrendsPagingTest, self).setUp()
+        super().setUp()
         self.login_as(user=self.user)
         self.url = reverse(
             "sentry-api-0-organization-events-trends-stats",
@@ -785,7 +784,7 @@ class OrganizationEventsTrendsPagingTest(APITestCase, SnubaTestCase):
     def _parse_links(self, header):
         # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
         links = {}
-        for url, attrs in six.iteritems(parse_link_header(header)):
+        for url, attrs in parse_link_header(header).items():
             links[attrs["rel"]] = attrs
             attrs["href"] = url
         return links

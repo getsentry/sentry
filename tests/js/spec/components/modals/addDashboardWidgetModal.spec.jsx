@@ -289,7 +289,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(wrapper.find('IconDelete')).toHaveLength(0);
 
     // Select Table display
-    selectByLabel(wrapper, 'Table results', {name: 'displayType', at: 0, control: true});
+    selectByLabel(wrapper, 'Table', {name: 'displayType', at: 0, control: true});
     expect(getDisplayType(wrapper).props().value).toEqual('table');
 
     // Add field column
@@ -301,7 +301,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
 
     // Select Line chart display
-    selectByLabel(wrapper, 'Line chart', {name: 'displayType', at: 0, control: true});
+    selectByLabel(wrapper, 'Line Chart', {name: 'displayType', at: 0, control: true});
     expect(getDisplayType(wrapper).props().value).toEqual('line');
 
     // Expect event.type field to be converted to count()
@@ -327,7 +327,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(wrapper.find('IconDelete')).toHaveLength(0);
 
     // Select Table display
-    selectByLabel(wrapper, 'Table results', {name: 'displayType', at: 0, control: true});
+    selectByLabel(wrapper, 'Table', {name: 'displayType', at: 0, control: true});
     expect(getDisplayType(wrapper).props().value).toEqual('table');
 
     // Click the add button
@@ -354,7 +354,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
 
     // Select Line chart display
-    selectByLabel(wrapper, 'Line chart', {name: 'displayType', at: 0, control: true});
+    selectByLabel(wrapper, 'Line Chart', {name: 'displayType', at: 0, control: true});
     expect(getDisplayType(wrapper).props().value).toEqual('line');
 
     // Expect event.type field to be converted to count()

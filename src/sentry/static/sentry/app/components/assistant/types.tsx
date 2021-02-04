@@ -9,12 +9,15 @@ export type GuideStep = {
   target?: string;
   description: React.ReactNode;
   nextText?: string;
+  dismissText?: string;
   cantDismiss?: boolean;
+  hasNextGuide?: boolean;
 };
 
 export type Guide = {
   guide: string;
   requiredTargets: string[];
+  dateThreshold?: Date;
   steps: GuideStep[];
   seen: boolean;
 };
@@ -26,6 +29,7 @@ export type GuidesContent = {
    * guide to be shown regardless.
    */
   requiredTargets: string[];
+  dateThreshold?: Date;
   steps: GuideStep[];
 }[];
 

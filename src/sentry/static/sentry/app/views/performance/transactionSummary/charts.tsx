@@ -42,7 +42,7 @@ export enum DisplayModes {
 const DISPLAY_OPTIONS: SelectValue<string>[] = [
   {value: DisplayModes.DURATION, label: t('Duration Breakdown')},
   {value: DisplayModes.DURATION_PERCENTILE, label: t('Duration Percentiles')},
-  {value: DisplayModes.LATENCY, label: t('Latency Distribution')},
+  {value: DisplayModes.LATENCY, label: t('Duration Distribution')},
   {value: DisplayModes.TREND, label: t('Trends')},
   {value: DisplayModes.VITALS, label: t('Web Vitals')},
 ];

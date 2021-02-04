@@ -6,7 +6,6 @@ import responses
 from django.utils import timezone
 from exam import patcher
 from sentry.utils.compat.mock import Mock, patch
-from six import add_metaclass
 
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
@@ -22,8 +21,7 @@ from sentry.utils import json
 from sentry.testutils import TestCase
 
 
-@add_metaclass(abc.ABCMeta)
-class BaseSnubaTaskTest(object):
+class BaseSnubaTaskTest(metaclass=abc.ABCMeta):
     metrics = patcher("sentry.snuba.tasks.metrics")
 
     status_translations = {
@@ -132,7 +130,7 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
     task = update_subscription_in_snuba
 
     def test(self):
-        subscription_id = "1/{}".format(uuid4().hex)
+        subscription_id = f"1/{uuid4().hex}"
         sub = self.create_subscription(
             QuerySubscription.Status.UPDATING, subscription_id=subscription_id
         )
@@ -156,7 +154,7 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest, TestCase):
     task = delete_subscription_from_snuba
 
     def test(self):
-        subscription_id = "1/{}".format(uuid4().hex)
+        subscription_id = f"1/{uuid4().hex}"
         sub = self.create_subscription(
             QuerySubscription.Status.DELETING, subscription_id=subscription_id
         )

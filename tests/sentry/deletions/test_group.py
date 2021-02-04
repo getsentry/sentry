@@ -21,7 +21,7 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 
 class DeleteGroupTest(TestCase, SnubaTestCase):
     def setUp(self):
-        super(DeleteGroupTest, self).setUp()
+        super().setUp()
         self.event_id = "a" * 32
         self.event_id2 = "b" * 32
         self.event_id3 = "c" * 32

@@ -5,7 +5,7 @@ from sentry.testutils import AcceptanceTestCase
 
 class OrganizationReleasesTest(AcceptanceTestCase):
     def setUp(self):
-        super(OrganizationReleasesTest, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(
@@ -17,7 +17,7 @@ class OrganizationReleasesTest(AcceptanceTestCase):
         )
         self.create_project(organization=self.org, teams=[self.team], name="Bengal 3")
         self.login_as(self.user)
-        self.path = "/organizations/{}/releases/".format(self.org.slug)
+        self.path = f"/organizations/{self.org.slug}/releases/"
         self.project.update(first_event=timezone.now())
 
     def test_list(self):

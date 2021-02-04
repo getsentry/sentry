@@ -19,7 +19,7 @@ MockResponse = namedtuple(
 MockResponseInstance = MockResponse({}, {}, True, 200, raiseStatusFalse)
 
 
-class DictContaining(object):
+class DictContaining:
     def __init__(self, *keys):
         self.keys = keys
 
@@ -29,7 +29,7 @@ class DictContaining(object):
 
 class TestInstallationNotifier(TestCase):
     def setUp(self):
-        super(TestInstallationNotifier, self).setUp()
+        super().setUp()
 
         self.user = self.create_user(name="foo")
         self.org = self.create_organization(owner=self.user)

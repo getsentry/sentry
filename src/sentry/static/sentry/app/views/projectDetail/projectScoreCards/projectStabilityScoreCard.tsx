@@ -1,4 +1,5 @@
 import React from 'react';
+import round from 'lodash/round';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import {getDiffInMinutes} from 'app/components/charts/utils';
@@ -122,7 +123,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
   }
 
   get cardTitle() {
-    return t('Stability Score');
+    return t('Crash Free Rate');
   }
 
   get cardHelp() {
@@ -144,7 +145,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
       return undefined;
     }
 
-    return this.score - previousScore;
+    return round(this.score - previousScore, 3);
   }
 
   get trendStatus(): React.ComponentProps<typeof ScoreCard>['trendStatus'] {

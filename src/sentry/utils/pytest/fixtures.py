@@ -5,7 +5,6 @@ All model-related fixtures defined here require the database, and should imply a
 including ``db`` fixture in the function resolution scope.
 """
 
-import io
 import os
 import re
 import sys
@@ -317,7 +316,7 @@ def insta_snapshot(request, log):
             )
 
         try:
-            with io.open(reference_file, "rt", encoding="utf-8") as f:
+            with open(reference_file, encoding="utf-8") as f:
                 match = _yaml_snap_re.match(f.read())
                 if match is None:
                     raise IOError()

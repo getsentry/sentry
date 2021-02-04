@@ -1,5 +1,4 @@
 import responses
-import six
 import copy
 
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -12,7 +11,7 @@ from .testutils import GitLabTestCase
 
 class GitlabIssuesTest(GitLabTestCase):
     def setUp(self):
-        super(GitlabIssuesTest, self).setUp()
+        super().setUp()
         min_ago = iso_format(before_now(minutes=1))
         event = self.store_event(
             data={
@@ -28,10 +27,10 @@ class GitlabIssuesTest(GitLabTestCase):
     def test_make_external_key(self):
         project_name = "getsentry/sentry"
         issue_iid = "7"
-        external_key = "%s#%s" % (project_name, issue_iid)
+        external_key = f"{project_name}#{issue_iid}"
         domain_name = self.installation.model.metadata["domain_name"]
         data = {"key": external_key}
-        assert self.installation.make_external_key(data) == "%s:%s" % (domain_name, external_key)
+        assert self.installation.make_external_key(data) == f"{domain_name}:{external_key}"
 
     def test_get_issue_url(self):
         issue_id = "example.gitlab.com:project/project#7"
@@ -138,7 +137,7 @@ class GitlabIssuesTest(GitLabTestCase):
         issue_iid = "1"
         project_id = "10"
         project_name = "getsentry/sentry"
-        key = "%s#%s" % (project_name, issue_iid)
+        key = f"{project_name}#{issue_iid}"
         responses.add(
             responses.POST,
             "https://example.gitlab.com/api/v4/projects/%s/issues" % project_id,
@@ -147,7 +146,7 @@ class GitlabIssuesTest(GitLabTestCase):
                 "iid": issue_iid,
                 "title": "hello",
                 "description": "This is the description",
-                "web_url": "https://example.gitlab.com/%s/issues/%s" % (project_name, issue_iid),
+                "web_url": f"https://example.gitlab.com/{project_name}/issues/{issue_iid}",
             },
         )
         responses.add(
@@ -165,7 +164,7 @@ class GitlabIssuesTest(GitLabTestCase):
             "key": key,
             "description": "This is the description",
             "title": "hello",
-            "url": "https://example.gitlab.com/%s/issues/%s" % (project_name, issue_iid),
+            "url": f"https://example.gitlab.com/{project_name}/issues/{issue_iid}",
             "project": project_id,
             "metadata": {"display_name": key},
         }
@@ -175,16 +174,16 @@ class GitlabIssuesTest(GitLabTestCase):
         project_id = "12"
         project_name = "getsentry/sentry"
         issue_iid = "13"
-        key = "%s#%s" % (project_name, issue_iid)
+        key = f"{project_name}#{issue_iid}"
         responses.add(
             responses.GET,
-            "https://example.gitlab.com/api/v4/projects/%s/issues/%s" % (project_id, issue_iid),
+            f"https://example.gitlab.com/api/v4/projects/{project_id}/issues/{issue_iid}",
             json={
                 "id": 18,
                 "iid": issue_iid,
                 "title": "hello",
                 "description": "This is the description",
-                "web_url": "https://example.gitlab.com/%s/issues/%s" % (project_name, issue_iid),
+                "web_url": f"https://example.gitlab.com/{project_name}/issues/{issue_iid}",
             },
         )
         responses.add(
@@ -193,11 +192,11 @@ class GitlabIssuesTest(GitLabTestCase):
             json={"id": project_id, "path_with_namespace": project_name},
         )
 
-        assert self.installation.get_issue(issue_id="%s#%s" % (project_id, issue_iid), data={}) == {
+        assert self.installation.get_issue(issue_id=f"{project_id}#{issue_iid}", data={}) == {
             "key": key,
             "description": "This is the description",
             "title": "hello",
-            "url": "https://example.gitlab.com/%s/issues/%s" % (project_name, issue_iid),
+            "url": f"https://example.gitlab.com/{project_name}/issues/{issue_iid}",
             "project": project_id,
             "metadata": {"display_name": key},
         }
@@ -217,7 +216,7 @@ class GitlabIssuesTest(GitLabTestCase):
         project_name = "This_is / a_project"
         org_integration = self.installation.org_integration
         org_integration.config["project_issue_defaults"] = {
-            six.text_type(self.group.project_id): {"project": project_id}
+            str(self.group.project_id): {"project": project_id}
         }
         org_integration.save()
 
@@ -282,7 +281,7 @@ class GitlabIssuesTest(GitLabTestCase):
         project_name = "This_is / a_project"
         org_integration = self.installation.org_integration
         org_integration.config["project_issue_defaults"] = {
-            six.text_type(self.group.project_id): {"project": project_id}
+            str(self.group.project_id): {"project": project_id}
         }
         org_integration.save()
 

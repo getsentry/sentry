@@ -25,7 +25,7 @@ class ConfigValidator(object):
         self.result = {}
         self.context = context or {}
 
-        self.config = OrderedDict(((f["name"], f) for f in config))
+        self.config = OrderedDict((f["name"], f) for f in config)
 
         self._data = data or {}
         self._initial = initial or {}

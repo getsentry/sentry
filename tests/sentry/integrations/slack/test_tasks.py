@@ -165,15 +165,6 @@ class SlackTasksTest(TestCase):
     @responses.activate
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
     def test_task_failed_channel_id_lookup(self, mock_set_value):
-        groups = {"ok": "true", "groups": [{"name": "my-private-channel", "id": "chan-id"}]}
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/groups.list",
-            status=200,
-            content_type="application/json",
-            body=json.dumps(groups),
-        )
-
         members = {"ok": "true", "members": [{"name": "morty", "id": "morty-id"}]}
         responses.add(
             method=responses.GET,
