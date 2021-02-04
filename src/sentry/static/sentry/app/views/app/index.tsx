@@ -1,8 +1,6 @@
 import React from 'react';
 import keydown from 'react-keydown';
-import {browserHistory, RouteComponentProps} from 'react-router';
-import $ from 'jquery';
-import Cookies from 'js-cookie';
+import {RouteComponentProps} from 'react-router';
 import isEqual from 'lodash/isEqual';
 import PropTypes from 'prop-types';
 
@@ -13,7 +11,7 @@ import {
 import {fetchGuides} from 'app/actionCreators/guides';
 import {openCommandPalette} from 'app/actionCreators/modal';
 import AlertActions from 'app/actions/alertActions';
-import {Client} from 'app/api';
+import {Client, initApiClientErrorHandling} from 'app/api';
 import ErrorBoundary from 'app/components/errorBoundary';
 import GlobalModal from 'app/components/globalModal';
 import Indicators from 'app/components/indicators';
@@ -29,14 +27,6 @@ import withConfig from 'app/utils/withConfig';
 import NewsletterConsent from 'app/views/newsletterConsent';
 
 import SystemAlerts from './systemAlerts';
-
-// TODO: Need better way of identifying anonymous pages that don't trigger redirect
-const ALLOWED_ANON_PAGES = [
-  /^\/accept\//,
-  /^\/share\//,
-  /^\/auth\/login\//,
-  /^\/join-request\//,
-];
 
 function getAlertTypeForProblem(problem) {
   switch (problem.severity) {
@@ -127,40 +117,7 @@ class App extends React.Component<Props, State> {
       displayExperimentalSpaAlert();
     }
 
-    $(document).ajaxError(function (_evt, jqXHR) {
-      const pageAllowsAnon = ALLOWED_ANON_PAGES.find(regex =>
-        regex.test(window.location.pathname)
-      );
-
-      // Ignore error unless it is a 401
-      if (!jqXHR || jqXHR.status !== 401 || pageAllowsAnon) {
-        return;
-      }
-
-      const code = jqXHR?.responseJSON?.detail?.code;
-      const extra = jqXHR?.responseJSON?.detail?.extra;
-
-      // 401s can also mean sudo is required or it's a request that is allowed to fail
-      // Ignore if these are the cases
-      if (code === 'sudo-required' || code === 'ignore') {
-        return;
-      }
-
-      // If user must login via SSO, redirect to org login page
-      if (code === 'sso-required') {
-        window.location.assign(extra.loginUrl);
-        return;
-      }
-
-      // Otherwise, the user has become unauthenticated. Send them to auth
-      Cookies.set('session_expired', '1');
-
-      if (EXPERIMENTAL_SPA) {
-        browserHistory.replace('/auth/login/');
-      } else {
-        window.location.reload();
-      }
-    });
+    initApiClientErrorHandling();
 
     const user = ConfigStore.get('user');
     if (user) {

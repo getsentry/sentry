@@ -17,12 +17,12 @@ import moment from 'moment';
 import PropTypes from 'prop-types';
 import Reflux from 'reflux';
 
+import {initApiClient} from 'app/api';
 import {DISABLE_RR_WEB, NODE_ENV, SPA_DSN} from 'app/constants';
 import Main from 'app/main';
 import plugins from 'app/plugins';
 import routes from 'app/routes';
 import ConfigStore from 'app/stores/configStore';
-import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
 import {metric} from 'app/utils/analytics';
 import {init as initApiSentryClient} from 'app/utils/apiSentryClient';
 import {setupColorScheme} from 'app/utils/matchMedia';
@@ -108,18 +108,7 @@ Sentry.setTag('rrweb.active', hasReplays ? 'yes' : 'no');
 // bundle was loaded by browser.
 metric.mark({name: 'sentry-app-init'});
 
-// setup jquery for CSRF tokens
-jQuery.ajaxSetup({
-  //jQuery won't allow using the ajaxCsrfSetup function directly
-  beforeSend: ajaxCsrfSetup,
-  // Completely disable evaluation of script responses using jQuery ajax
-  // Typically the `text script` converter will eval the text [1]. Instead we
-  // just immediately return.
-  // [1]: https://github.com/jquery/jquery/blob/8969732518470a7f8e654d5bc5be0b0076cb0b87/src/ajax/script.js#L39-L42
-  converters: {
-    'text script': (value: any) => value,
-  },
-});
+initApiClient();
 
 const ROOT_ELEMENT = 'blk_router';
 

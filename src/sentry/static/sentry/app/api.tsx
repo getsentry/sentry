@@ -1,5 +1,7 @@
+import {browserHistory} from 'react-router';
 import {Severity} from '@sentry/react';
-import $ from 'jquery';
+import jQuery from 'jquery';
+import Cookies from 'js-cookie';
 import isNil from 'lodash/isNil';
 import isUndefined from 'lodash/isUndefined';
 
@@ -10,10 +12,13 @@ import {
   SUDO_REQUIRED,
   SUPERUSER_REQUIRED,
 } from 'app/constants/apiErrorCodes';
+import ajaxCsrfSetup from 'app/utils/ajaxCsrfSetup';
 import {metric} from 'app/utils/analytics';
 import {run} from 'app/utils/apiSentryClient';
 import {uniqueId} from 'app/utils/guid';
 import createRequestError from 'app/utils/requestError/createRequestError';
+
+import {EXPERIMENTAL_SPA} from './constants';
 
 export class Request {
   alive: boolean;
@@ -84,6 +89,65 @@ export function paramsToQueryArgs(params: ParamsType): QueryArgs {
     });
   }
   return p;
+}
+
+export function initApiClient() {
+  jQuery.ajaxSetup({
+    // jQuery won't allow using the ajaxCsrfSetup function directly
+    beforeSend: ajaxCsrfSetup,
+    // Completely disable evaluation of script responses using jQuery ajax
+    // Typically the `text script` converter will eval the text [1]. Instead we
+    // just immediately return.
+    // [1]: https://github.com/jquery/jquery/blob/8969732518470a7f8e654d5bc5be0b0076cb0b87/src/ajax/script.js#L39-L42
+    converters: {
+      'text script': (value: any) => value,
+    },
+  });
+}
+
+// TODO: Need better way of identifying anonymous pages that don't trigger redirect
+const ALLOWED_ANON_PAGES = [
+  /^\/accept\//,
+  /^\/share\//,
+  /^\/auth\/login\//,
+  /^\/join-request\//,
+];
+
+export function initApiClientErrorHandling() {
+  jQuery(document).ajaxError(function (_evt, jqXHR) {
+    const pageAllowsAnon = ALLOWED_ANON_PAGES.find(regex =>
+      regex.test(window.location.pathname)
+    );
+
+    // Ignore error unless it is a 401
+    if (!jqXHR || jqXHR.status !== 401 || pageAllowsAnon) {
+      return;
+    }
+
+    const code = jqXHR?.responseJSON?.detail?.code;
+    const extra = jqXHR?.responseJSON?.detail?.extra;
+
+    // 401s can also mean sudo is required or it's a request that is allowed to fail
+    // Ignore if these are the cases
+    if (code === 'sudo-required' || code === 'ignore') {
+      return;
+    }
+
+    // If user must login via SSO, redirect to org login page
+    if (code === 'sso-required') {
+      window.location.assign(extra.loginUrl);
+      return;
+    }
+
+    // Otherwise, the user has become unauthenticated. Send them to auth
+    Cookies.set('session_expired', '1');
+
+    if (EXPERIMENTAL_SPA) {
+      browserHistory.replace('/auth/login/');
+    } else {
+      window.location.reload();
+    }
+  });
 }
 
 // TODO: move this somewhere
@@ -239,7 +303,7 @@ export class Client {
 
     let query: string;
     try {
-      query = $.param(options.query || [], true);
+      query = jQuery.param(options.query || [], true);
     } catch (err) {
       run(Sentry =>
         Sentry.withScope(scope => {
@@ -271,7 +335,7 @@ export class Client {
     const errorObject = new Error();
 
     this.activeRequests[id] = new Request(
-      $.ajax({
+      jQuery.ajax({
         url: fullUrl,
         method,
         data,
