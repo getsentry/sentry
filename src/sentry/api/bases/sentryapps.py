@@ -350,6 +350,17 @@ class SentryAppInstallationBaseEndpoint(IntegrationPlatformEndpoint):
         return (args, kwargs)
 
 
+class SentryAppInstallationExternalIssuePermission(SentryAppInstallationPermission):
+    scope_map = {
+        "POST": ("event:read", "event:write", "event:admin"),
+        "DELETE": ("event:admin"),
+    }
+
+
+class SentryAppInstallationExternalIssueBaseEndpoint(SentryAppInstallationBaseEndpoint):
+    permission_classes = (SentryAppInstallationExternalIssuePermission,)
+
+
 class SentryAppAuthorizationsPermission(SentryPermission):
     def has_object_permission(self, request, view, installation):
         if not hasattr(request, "user") or not request.user:
