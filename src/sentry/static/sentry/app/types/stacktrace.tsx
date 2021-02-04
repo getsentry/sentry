@@ -12,10 +12,10 @@ export enum STACK_TYPE {
 }
 
 export type StacktraceType = {
-  frames?: Array<Frame>;
   hasSystemFrames: boolean;
   registers: Record<string, any> | null;
   framesOmitted: any;
+  frames?: Array<Frame>;
 };
 
 export type RawStacktrace = StacktraceType | null;

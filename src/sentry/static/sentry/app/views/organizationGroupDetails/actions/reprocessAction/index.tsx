@@ -5,7 +5,7 @@ import {IconRefresh} from 'app/icons/iconRefresh';
 import {t} from 'app/locale';
 import {EntryException, EntryType, Event} from 'app/types/event';
 
-import {isNativeEvent} from './utils';
+import {isAppleCrashReportEvent, isMinidumpEvent, isNativeEvent} from './utils';
 
 type Props = {
   disabled: boolean;
@@ -27,7 +27,13 @@ function ReprocessAction({event, disabled, onClick}: Props) {
     return null;
   }
 
-  isNativeEvent(event, exceptionEntry);
+  if (
+    !isMinidumpEvent(exceptionEntry) &&
+    !isAppleCrashReportEvent(exceptionEntry) &&
+    !isNativeEvent(event, exceptionEntry)
+  ) {
+    return null;
+  }
 
   return (
     <ActionButton

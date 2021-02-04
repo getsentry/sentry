@@ -3,11 +3,11 @@ import {EntryException, EntryType, Event} from 'app/types/event';
 import {Thread} from 'app/types/events';
 import {StacktraceType} from 'app/types/stacktrace';
 
-// Finds all stracktraces in a given data blob and returns it
-// together with some meta information.
-// Raw stacktraces are not included and stacktraces of the exception are not always included.
-export function getPlatforms(exceptionValue: ExceptionValue | StacktraceType) {
-  const frames = exceptionValue.frames ?? [];
+const NATIVE_PLATFORMS = ['cocoa', 'native'] as Array<PlatformType>;
+
+// Finds all frames in a given data blob and returns it's platforms
+function getPlatforms(exceptionValue: ExceptionValue | StacktraceType) {
+  const frames = exceptionValue?.frames ?? [];
   const stacktraceFrames = (exceptionValue as ExceptionValue)?.stacktrace?.frames ?? [];
 
   if (!frames.length && !stacktraceFrames.length) {
@@ -16,62 +16,51 @@ export function getPlatforms(exceptionValue: ExceptionValue | StacktraceType) {
 
   return [...frames, ...stacktraceFrames]
     .map(frame => frame.platform)
-    .filter(platform => !!platform) as Array<PlatformType>;
+    .filter(platform => !!platform);
 }
 
-//     if not is_exception and (not stacktrace or not get_path(stacktrace, "frames", filter=True)):
-//     return
-// platforms = set(
-//     frame.get("platform") or data.get("platform")
-//     for frame in get_path(stacktrace, "frames", filter=True, default=())
-// )
-// rv.append(
-//     StacktraceInfo(
-//         stacktrace=stacktrace,
-//         container=container,
-//         platforms=platforms,
-//         is_exception=is_exception,
-//     )
-// )
-
-// Checks whether an event indicates that it has an apple crash report.
-export function isNativeEvent(event: Event, exceptionEntry: EntryException) {
-  const {platform} = event;
-
-  // if (platform === 'cocoa' || platform === 'native') {
-  //   return true;
-  // }
-
+function getStackTracePlatforms(event: Event, exceptionEntry: EntryException) {
   // Fetch platforms in stack traces of an exception entry
-  const exceptionEntryStackTraces = (exceptionEntry.data.values ?? []).map(value => {
-    const platforms: Array<PlatformType> = getPlatforms(value) ?? [event.platform];
-    return {...value, platforms};
-  });
+  const exceptionEntryPlatforms = (exceptionEntry.data.values ?? []).flatMap(
+    getPlatforms
+  );
 
   // Fetch platforms in an exception entry
   const stackTraceEntry = event.entries.find(entry => entry.type === EntryType.STACKTRACE)
     ?.data as StacktraceType;
 
   // Fetch platforms in an exception entry
-  const stackTraceEntryStackTraces = Object.keys(stackTraceEntry ?? {}).map(key => {
-    const stacktrace = stackTraceEntry[key];
-    const platforms: Array<PlatformType> = getPlatforms(stacktrace) ?? [event.platform];
-    return {...stacktrace, platforms};
-  });
+  const stackTraceEntryPlatforms = Object.keys(stackTraceEntry ?? {}).flatMap(key =>
+    getPlatforms(stackTraceEntry[key])
+  );
 
   // Fetch platforms in an thread entry
   const threadEntry = event.entries.find(entry => entry.type === EntryType.THREADS)?.data
     .values;
 
   // Fetch platforms in a thread entry
-  const threadEntryStackTraces = ((threadEntry ?? []) as Array<Thread>).map(
-    ({stacktrace}) => {
-      const platforms: Array<PlatformType> = getPlatforms(stacktrace) ?? [event.platform];
-      return {...stacktrace, platforms};
-    }
-  );
+  const threadEntryPlatforms = ((threadEntry ?? []) as Array<
+    Thread
+  >).flatMap(({stacktrace}) => getPlatforms(stacktrace));
 
-  return true;
+  return new Set([
+    ...exceptionEntryPlatforms,
+    ...stackTraceEntryPlatforms,
+    ...threadEntryPlatforms,
+  ]);
+}
+
+// Checks whether an event indicates that it has an apple crash report.
+export function isNativeEvent(event: Event, exceptionEntry: EntryException) {
+  const {platform} = event;
+
+  if (platform && NATIVE_PLATFORMS[platform]) {
+    return true;
+  }
+
+  const stackTracePlatforms = getStackTracePlatforms(event, exceptionEntry);
+
+  return NATIVE_PLATFORMS.some(nativePlatform => stackTracePlatforms.has(nativePlatform));
 }
 
 //  Checks whether an event indicates that it has an associated minidump.

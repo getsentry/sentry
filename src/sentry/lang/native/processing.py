@@ -414,11 +414,11 @@ def process_payload(data):
 
 
 def get_symbolication_function(data):
-    # if is_minidump_event(data):
-    #     return process_minidump
-    # elif is_applecrashreport_event(data):
-    #     return process_applecrashreport
-    if is_native_event(data):
+    if is_minidump_event(data):
+        return process_minidump
+    elif is_applecrashreport_event(data):
+        return process_applecrashreport
+    elif is_native_event(data):
         return process_payload
 
 
