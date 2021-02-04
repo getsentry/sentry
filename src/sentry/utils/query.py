@@ -171,7 +171,7 @@ class WithProgressBar:
     def __iter__(self):
         if self.count != 0:
             widgets = [
-                "{}: ".format(self.caption),
+                f"{self.caption}: ",
                 progressbar.Percentage(),
                 " ",
                 progressbar.Bar(),

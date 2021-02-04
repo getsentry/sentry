@@ -28,9 +28,7 @@ def register_plugins(settings, raise_on_plugin_load_failure=False):
         except Exception:
             import traceback
 
-            click.echo(
-                "Failed to load plugin {!r}:\n{}".format(ep.name, traceback.format_exc()), err=True
-            )
+            click.echo(f"Failed to load plugin {ep.name!r}:\n{traceback.format_exc()}", err=True)
             if raise_on_plugin_load_failure:
                 raise
         else:

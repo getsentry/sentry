@@ -124,7 +124,7 @@ def make_msgid(domain):
     utcdate = time.strftime("%Y%m%d%H%M%S", time.gmtime(timeval))
     pid = os.getpid()
     randint = randrange(100000)
-    msgid = "<{}.{}.{}@{}>".format(utcdate, pid, randint, domain)
+    msgid = f"<{utcdate}.{pid}.{randint}@{domain}>"
     return msgid
 
 
@@ -147,7 +147,7 @@ def create_fake_email(unique_id, namespace):
 
     For example: c74e5b75-e037-4e75-ad27-1a0d21a6b203@cloudfoundry.sentry-fake
     """
-    return "{}@{}{}".format(unique_id, namespace, FAKE_EMAIL_TLD)
+    return f"{unique_id}@{namespace}{FAKE_EMAIL_TLD}"
 
 
 def is_fake_email(email):
@@ -219,13 +219,13 @@ class ListResolver:
             handler = self.__type_handlers[type(instance)]
         except KeyError:
             raise self.UnregisteredTypeError(
-                "Cannot generate mailing list identifier for {!r}".format(instance)
+                f"Cannot generate mailing list identifier for {instance!r}"
             )
 
         label = ".".join(map(str, handler(instance)))
         assert is_valid_dot_atom(label)
 
-        return "<{}.{}>".format(label, self.__namespace)
+        return f"<{label}.{self.__namespace}>"
 
 
 default_list_type_handlers = {

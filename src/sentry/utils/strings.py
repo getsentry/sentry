@@ -117,7 +117,7 @@ def soft_break(value, length, process=lambda chunk: chunk):
 
         return "".join(results).rstrip("\u200b")
 
-    return re.sub(r"\S{{{},}}".format(length), soft_break_delimiter, value)
+    return re.sub(fr"\S{{{length},}}", soft_break_delimiter, value)
 
 
 def to_unicode(value):

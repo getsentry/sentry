@@ -86,7 +86,7 @@ def name_for_username(username):
 def generate_user(username=None, email=None, ip_address=None, id=None):
     if username is None and email is None:
         username = random_username()
-        email = "{}@example.com".format(username)
+        email = f"{username}@example.com"
     return UserInterface.to_python(
         {
             "id": id,
@@ -132,7 +132,7 @@ def load_data(
 
         # Verify by checking if the file is within our folder explicitly
         # avoids being able to have a name that invokes traversing directories.
-        json_path = "{}.json".format(platform)
+        json_path = f"{platform}.json"
 
         if json_path not in all_samples:
             continue
@@ -201,7 +201,7 @@ def load_data(
             measurement_markers = {}
             for key, entry in measurements.items():
                 if key in ["fp", "fcp", "lcp", "fid"]:
-                    measurement_markers["mark.{}".format(key)] = {
+                    measurement_markers[f"mark.{key}"] = {
                         "value": round(data["start_timestamp"] + entry["value"] / 1000, 3)
                     }
             measurements.update(measurement_markers)

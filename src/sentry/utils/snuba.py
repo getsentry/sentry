@@ -240,7 +240,7 @@ def timer(name, prefix="snuba.client"):
     try:
         yield
     finally:
-        metrics.timing("{}.{}".format(prefix, name), time.time() - t)
+        metrics.timing(f"{prefix}.{name}", time.time() - t)
 
 
 @contextmanager
@@ -344,9 +344,9 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
 
     measurement_name = get_measurement_name(name)
     if "measurements_key" in DATASETS[dataset] and measurement_name:
-        default = "measurements[{}]".format(measurement_name)
+        default = f"measurements[{measurement_name}]"
     else:
-        default = "tags[{}]".format(name)
+        default = f"tags[{name}]"
 
     return DATASETS[dataset].get(name, default)
 
@@ -652,9 +652,7 @@ def bulk_raw_query(snuba_param_list, referrer=None):
                     logger.info("{}.body: {}".format(referrer, json.dumps(query_params)))
                     query_params["debug"] = True
                 body = json.dumps(query_params)
-                with thread_hub.start_span(
-                    op="snuba", description="query {}".format(referrer)
-                ) as span:
+                with thread_hub.start_span(op="snuba", description=f"query {referrer}") as span:
                     span.set_tag("referrer", referrer)
                     for param_key, param_data in query_params.items():
                         span.set_data(param_key, param_data)
@@ -699,9 +697,7 @@ def bulk_raw_query(snuba_param_list, referrer=None):
             if response.status != 200:
                 logger.error("snuba.query.invalid-json")
                 raise SnubaError("Failed to parse snuba error response")
-            raise UnexpectedResponseError(
-                "Could not decode JSON response: {}".format(response.data)
-            )
+            raise UnexpectedResponseError(f"Could not decode JSON response: {response.data}")
 
         if response.status != 200:
             if body.get("error"):
@@ -717,7 +713,7 @@ def bulk_raw_query(snuba_param_list, referrer=None):
                 else:
                     raise SnubaError(error["message"])
             else:
-                raise SnubaError("HTTP {}".format(response.status))
+                raise SnubaError(f"HTTP {response.status}")
 
         # Forward and reverse translation maps from model ids to snuba keys, per column
         body["data"] = [reverse(d) for d in body["data"]]
@@ -769,7 +765,7 @@ def query(
     expected_cols = set(groupby + aggregate_names + selected_names)
     got_cols = set(c["name"] for c in body["meta"])
 
-    assert expected_cols == got_cols, "expected {}, got {}".format(expected_cols, got_cols)
+    assert expected_cols == got_cols, f"expected {expected_cols}, got {got_cols}"
 
     with timer("process_result"):
         if totals:
@@ -825,9 +821,9 @@ def resolve_column(dataset):
 
         measurement_name = get_measurement_name(col)
         if "measurements_key" in DATASETS[dataset] and measurement_name:
-            return "measurements[{}]".format(measurement_name)
+            return f"measurements[{measurement_name}]"
 
-        return "tags[{}]".format(col)
+        return f"tags[{col}]"
 
     return _resolve_column
 
@@ -862,9 +858,9 @@ def resolve_condition(cond, column_resolver):
                         func_args[i] = column_resolver(arg)
                 else:
                     if isinstance(arg, str):
-                        func_args[i] = "'{}'".format(arg)
+                        func_args[i] = f"'{arg}'"
                     elif isinstance(arg, datetime):
-                        func_args[i] = "'{}'".format(arg.isoformat())
+                        func_args[i] = f"'{arg.isoformat()}'"
                     else:
                         func_args[i] = arg
 

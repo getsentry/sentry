@@ -296,7 +296,7 @@ def insta_snapshot(request, log):
             name = name.strip("/")
 
             if subname is not None:
-                name += "_{}".format(subname)
+                name += f"_{subname}"
 
             reference_file = os.path.join(
                 os.path.dirname(str(request.node.fspath)),
