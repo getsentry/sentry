@@ -215,9 +215,9 @@ export default class AbstractExternalIssueForm<
   handleReceiveIntegrationDetails = (_data: any) => {
     // Do nothing.
   };
-  getEndPointString = (): string => {
+  getEndPointString(): string {
     throw new Error("Method 'getEndPointString()' must be implemented.");
-  };
+  }
   renderNavTabs = (): React.ReactNode => null;
   renderBodyText = (): React.ReactNode => null;
   getTitle = () => tct('Issue Link Settings', {});

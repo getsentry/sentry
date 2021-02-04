@@ -80,10 +80,10 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
       .map(field => field.name);
   };
 
-  getEndPointString = (): string => {
+  getEndPointString(): string {
     const {instance, organization} = this.props;
     return `/organizations/${organization.slug}/integrations/${instance.integration}/`;
-  };
+  }
 
   /**
    * Clean up the form data before saving it to state.

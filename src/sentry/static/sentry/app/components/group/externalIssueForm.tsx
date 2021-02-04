@@ -89,10 +89,10 @@ export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, 
     this.loadTransaction?.finish();
   };
 
-  getEndPointString = () => {
+  getEndPointString() {
     const {group, integration} = this.props;
     return `/groups/${group.id}/integrations/${integration.id}/`;
-  };
+  }
 
   getTitle = () => {
     const {integration} = this.props;
