@@ -450,7 +450,11 @@ let appConfig: Configuration = {
     // Grabbed this example from https://github.com/webpack-contrib/css-minimizer-webpack-plugin
     minimizer: ['...', new CssMinimizerPlugin()],
   },
-  devtool: IS_PRODUCTION ? 'source-map' : 'eval-cheap-module-source-map',
+  devtool: IS_PRODUCTION
+    ? 'source-map'
+    : IS_ACCEPTANCE_TEST
+    ? false
+    : 'eval-cheap-module-source-map',
 };
 
 if (IS_TEST || IS_ACCEPTANCE_TEST || IS_STORYBOOK) {
