@@ -2,7 +2,6 @@ import React from 'react';
 import ReactSelect, {
   components as selectComponents,
   mergeStyles,
-  OptionTypeBase,
   StylesConfig,
 } from 'react-select';
 import Async from 'react-select/async';
