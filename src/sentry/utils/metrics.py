@@ -2,6 +2,7 @@ __all__ = ["timing", "incr"]
 
 import logging
 import time
+from typing import Mapping, Optional
 
 import functools
 from contextlib import contextmanager
@@ -123,13 +124,13 @@ internal = InternalMetrics()
 
 
 def incr(
-    key,
-    amount=1,
-    instance=None,
-    tags=None,
-    skip_internal=True,
-    sample_rate=settings.SENTRY_METRICS_SAMPLE_RATE,
-):
+    key: str,
+    amount: int = 1,
+    instance: Optional[str] = None,
+    tags: Optional[Mapping[str, str]] = None,
+    skip_internal: bool = True,
+    sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
+) -> None:
     current_tags = _get_current_global_tags()
     if tags is not None:
         current_tags.update(tags)

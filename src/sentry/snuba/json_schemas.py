@@ -1,3 +1,5 @@
+import typing as t
+
 SUBSCRIPTION_WRAPPER_SCHEMA = {
     "type": "object",
     "properties": {"version": {"type": "integer"}, "payload": {"type": "object"}},
@@ -6,7 +8,7 @@ SUBSCRIPTION_WRAPPER_SCHEMA = {
 }
 
 
-SUBSCRIPTION_PAYLOAD_VERSIONS = {
+SUBSCRIPTION_PAYLOAD_VERSIONS: t.Mapping[int, t.Mapping[str, t.Any]] = {
     1: {
         "type": "object",
         "properties": {
