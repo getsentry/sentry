@@ -173,7 +173,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
                 deps =>
                   this.project && (
                     <StacktraceLinkModal
-                      onSubmit={() => this.handleSubmit()}
+                      onSubmit={this.handleSubmit}
                       filename={filename}
                       project={this.project}
                       organization={organization}
