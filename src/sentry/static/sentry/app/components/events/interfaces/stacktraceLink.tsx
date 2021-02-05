@@ -68,25 +68,15 @@ class StacktraceLink extends AsyncComponent<Props, State> {
   }
 
   get errorText() {
-    const {config, error} = this.match;
+    const {error} = this.match;
 
     switch (error) {
       case 'stack_root_mismatch':
         return t('Error matching your configuration, check your stack trace root.');
       case 'file_not_found':
-        return tct(`Could not find source file, check our [link].`, {
-          link: (
-            <ExternalLink
-              href={`https://docs.sentry.io/product/integrations/${config?.provider.key}/#stack-trace-linking-1`}
-              openInNewTab
-            >
-              <span>
-                {t('troubleshooting docs')}
-                <StyledIconOpen size="xs" />
-              </span>
-            </ExternalLink>
-          ),
-        });
+        return t(
+          'Could not find source file, check your repository and source code root.'
+        );
       default:
         return t('There was an error encountered with the code mapping for this project');
     }
@@ -256,9 +246,17 @@ class StacktraceLink extends AsyncComponent<Props, State> {
   }
 
   renderMatchNoUrl() {
+    const {config} = this.match;
+    const {organization} = this.props;
     const text = this.errorText;
+    const url = `/settings/${organization.slug}/integrations/${config?.provider.key}/${config?.integrationId}/?tab=codeMappings`;
     return (
-      <CodeMappingButtonContainer columnQuantity={2}>{text}</CodeMappingButtonContainer>
+      <CodeMappingButtonContainer columnQuantity={2}>
+        {text}
+        <Button onClick={() => this.onReconfigureMapping()} to={url} size="xsmall">
+          {t('Configure Stack Trace Linking')}
+        </Button>
+      </CodeMappingButtonContainer>
     );
   }
   renderMatchWithUrl(config: RepositoryProjectPathConfigWithIntegration, url: string) {
