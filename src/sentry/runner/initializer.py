@@ -105,7 +105,7 @@ def get_asset_version(settings):
     try:
         with open(path) as fp:
             return fp.read().strip()
-    except IOError:
+    except OSError:
         from time import time
 
         return int(time())
@@ -160,7 +160,7 @@ def bootstrap_options(settings, config=None):
         try:
             with open(config, "rb") as fp:
                 options = safe_load(fp)
-        except IOError:
+        except OSError:
             # Gracefully fail if yaml file doesn't exist
             pass
         except (AttributeError, ParserError, ScannerError) as e:

@@ -59,7 +59,7 @@ def exec_(c, file):
             try:
                 with open(file, "rb") as fp:
                     c = fp.read().decode("utf8")
-            except (IOError, OSError) as e:
+            except OSError as e:
                 raise click.ClickException(str(e))
     else:
         file = "<string>"

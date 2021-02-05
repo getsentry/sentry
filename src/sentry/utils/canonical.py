@@ -48,7 +48,7 @@ def get_legacy_name(key):
 class CanonicalKeyView(collections.Mapping):
     def __init__(self, data):
         self.data = data
-        self._len = len(set(get_canonical_name(key) for key in self.data))
+        self._len = len({get_canonical_name(key) for key in self.data})
 
     def copy(self):
         return self

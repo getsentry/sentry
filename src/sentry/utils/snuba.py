@@ -334,7 +334,7 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
     the column is assumed to be a tag. If name is falsy or name is a quoted literal
     (e.g. "'name'"), leave unchanged.
     """
-    no_conversion = set(["group_id", "project_id", "start", "end"])
+    no_conversion = {"group_id", "project_id", "start", "end"}
 
     if name in no_conversion:
         return name
@@ -763,7 +763,7 @@ def query(
     aggregate_names = [a[2] for a in aggregations]
     selected_names = [c[2] if isinstance(c, (list, tuple)) else c for c in selected_columns]
     expected_cols = set(groupby + aggregate_names + selected_names)
-    got_cols = set(c["name"] for c in body["meta"])
+    got_cols = {c["name"] for c in body["meta"]}
 
     assert expected_cols == got_cols, f"expected {expected_cols}, got {got_cols}"
 

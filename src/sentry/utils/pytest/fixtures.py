@@ -318,9 +318,9 @@ def insta_snapshot(request, log):
             with open(reference_file, encoding="utf-8") as f:
                 match = _yaml_snap_re.match(f.read())
                 if match is None:
-                    raise IOError()
+                    raise OSError()
                 _header, refval = match.groups()
-        except IOError:
+        except OSError:
             refval = ""
 
         refval = refval.rstrip()
