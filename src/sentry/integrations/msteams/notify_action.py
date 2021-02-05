@@ -19,7 +19,7 @@ class MsTeamsNotifyServiceForm(forms.Form):
         team_list = [(i.id, i.name) for i in kwargs.pop("integrations")]
         self.channel_transformer = kwargs.pop("channel_transformer")
 
-        super(MsTeamsNotifyServiceForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         if team_list:
             self.fields["team"].initial = team_list[0][0]
@@ -28,7 +28,7 @@ class MsTeamsNotifyServiceForm(forms.Form):
         self.fields["team"].widget.choices = self.fields["team"].choices
 
     def clean(self):
-        cleaned_data = super(MsTeamsNotifyServiceForm, self).clean()
+        cleaned_data = super().clean()
 
         integration_id = cleaned_data.get("team")
         channel = cleaned_data.get("channel", "")
@@ -59,7 +59,7 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
     integration_key = "team"
 
     def __init__(self, *args, **kwargs):
-        super(MsTeamsNotifyServiceAction, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.form_fields = {
             "team": {
                 "type": "choice",

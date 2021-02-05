@@ -48,7 +48,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
     ]
 
     def get_group_urls(self):
-        return super(AsanaPlugin, self).get_group_urls() + [
+        return super().get_group_urls() + [
             url(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
@@ -68,7 +68,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
         return [(w["gid"], w["name"]) for w in workspaces["data"]]
 
     def get_new_issue_fields(self, request, group, event, **kwargs):
-        fields = super(AsanaPlugin, self).get_new_issue_fields(request, group, event, **kwargs)
+        fields = super().get_new_issue_fields(request, group, event, **kwargs)
         client = self.get_client(request.user)
         workspaces = client.get_workspaces()
         workspace_choices = self.get_workspace_choices(workspaces)

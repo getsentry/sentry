@@ -29,7 +29,7 @@ class MailgunInboundWebhookView(View):
 
     @method_decorator(csrf_exempt)
     def dispatch(self, *args, **kwargs):
-        return super(MailgunInboundWebhookView, self).dispatch(*args, **kwargs)
+        return super().dispatch(*args, **kwargs)
 
     def post(self, request):
         token = request.POST["token"]

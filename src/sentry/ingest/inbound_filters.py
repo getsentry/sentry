@@ -7,7 +7,7 @@ from sentry.models.projectoption import ProjectOption
 from sentry.signals import inbound_filter_toggled
 
 
-class FilterStatKeys(object):
+class FilterStatKeys:
     """
     NOTE: This enum also exists in Relay, check if alignment is needed when
     editing this.
@@ -40,7 +40,7 @@ FILTER_STAT_KEYS_TO_VALUES = {
 }
 
 
-class FilterTypes(object):
+class FilterTypes:
     ERROR_MESSAGES = "error_messages"
     RELEASES = "releases"
 
@@ -159,7 +159,7 @@ class _FilterSerializer(serializers.Serializer):
     active = serializers.BooleanField()
 
 
-class _FilterSpec(object):
+class _FilterSpec:
     """
     Data associated with a filter, it defines its name, id, default enable state and how its  state is serialized
     in the database

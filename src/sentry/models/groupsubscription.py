@@ -12,7 +12,7 @@ from sentry.db.models import (
 )
 
 
-class GroupSubscriptionReason(object):
+class GroupSubscriptionReason:
     implicit = -1  # not for use as a persisted field value
     committed = -2  # not for use as a persisted field value
     processing_issue = -3  # not for use as a persisted field value

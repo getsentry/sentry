@@ -368,7 +368,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         ):
             return []
 
-        return super(OrganizationReleasesBaseEndpoint, self).get_projects(
+        return super().get_projects(
             request,
             organization,
             force_global_perms=has_valid_api_key,

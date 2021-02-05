@@ -11,4 +11,4 @@ class RepositoryDeletionTask(ModelDeletionTask):
 
     def delete_instance(self, instance):
         pending_delete.send(sender=type(instance), instance=instance, actor=self.get_actor())
-        return super(RepositoryDeletionTask, self).delete_instance(instance)
+        return super().delete_instance(instance)

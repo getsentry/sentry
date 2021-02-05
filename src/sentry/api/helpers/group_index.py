@@ -162,7 +162,7 @@ class InCommitValidator(serializers.Serializer):
         return value
 
     def validate(self, attrs):
-        attrs = super(InCommitValidator, self).validate(attrs)
+        attrs = super().validate(attrs)
         repository = attrs.get("repository")
         commit = attrs.get("commit")
         if not repository:
@@ -288,7 +288,7 @@ class GroupValidator(serializers.Serializer):
         return value
 
     def validate(self, attrs):
-        attrs = super(GroupValidator, self).validate(attrs)
+        attrs = super().validate(attrs)
         if len(attrs) > 1 and "discard" in attrs:
             raise serializers.ValidationError("Other attributes cannot be updated when discarding")
         return attrs

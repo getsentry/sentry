@@ -17,7 +17,7 @@ from sentry import VERSION as SENTRY_VERSION
 from sentry.net.socket import safe_create_connection
 
 
-class SafeConnectionMixin(object):
+class SafeConnectionMixin:
     """
     HACK(mattrobenolt): Most of this is yanked out of core urllib3
     to override `_new_conn` with the ability to create our own socket.
@@ -173,7 +173,7 @@ class UnixHTTPConnection(HTTPConnection):
         # So we fake this by sending along `localhost` by default as
         # other libraries do.
         self.socket_path = host
-        super(UnixHTTPConnection, self).__init__(host="localhost", **kwargs)
+        super().__init__(host="localhost", **kwargs)
 
     def _new_conn(self):
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)

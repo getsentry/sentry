@@ -31,7 +31,7 @@ class UserPasswordSerializer(serializers.Serializer):
         return value
 
     def validate(self, attrs):
-        attrs = super(UserPasswordSerializer, self).validate(attrs)
+        attrs = super().validate(attrs)
 
         # make sure `passwordNew` matches `passwordVerify`
         if not constant_time_compare(attrs.get("passwordNew"), attrs.get("passwordVerify")):

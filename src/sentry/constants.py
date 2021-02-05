@@ -399,7 +399,7 @@ def get_integration_id_for_event(platform, sdk_name, integrations):
         return platform
 
 
-class ObjectStatus(object):
+class ObjectStatus:
     VISIBLE = 0
     HIDDEN = 1
     PENDING_DELETION = 2
@@ -418,7 +418,7 @@ class ObjectStatus(object):
         )
 
 
-class SentryAppStatus(object):
+class SentryAppStatus:
     UNPUBLISHED = 0
     PUBLISHED = 1
     INTERNAL = 2
@@ -449,7 +449,7 @@ class SentryAppStatus(object):
             return cls.PUBLISH_REQUEST_INPROGRESS_STR
 
 
-class SentryAppInstallationStatus(object):
+class SentryAppInstallationStatus:
     PENDING = 0
     INSTALLED = 1
     PENDING_STR = "pending"
@@ -470,7 +470,7 @@ class SentryAppInstallationStatus(object):
             return cls.INSTALLED_STR
 
 
-class ExportQueryType(object):
+class ExportQueryType:
     ISSUES_BY_TAG = 0
     DISCOVER = 1
     ISSUES_BY_TAG_STR = "Issues-by-Tag"
