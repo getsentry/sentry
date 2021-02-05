@@ -34,7 +34,7 @@ type Props = {
 
 type State = {
   isDragging: boolean;
-  activeDragId: undefined | string;
+  activeDragId?: string;
 };
 
 class Dashboard extends React.Component<Props, State> {
