@@ -48,7 +48,6 @@ function SortableWidget(props: Props) {
     y: 0,
     scaleX: 1,
     scaleY: 1,
-    boxShadow: 'none',
     zIndex: 0,
   };
 
@@ -57,7 +56,13 @@ function SortableWidget(props: Props) {
       ref={setNodeRef}
       displayType={widget.displayType}
       layoutId={dragId}
-      style={{originX: 0, originY: 0}}
+      style={{
+        originX: 0,
+        originY: 0,
+        boxShadow: currentWidgetDragging
+          ? '0 0 0 1px rgba(63, 63, 68, 0.05), 0px 15px 15px 0 rgba(34, 33, 81, 0.25)'
+          : 'none',
+      }}
       animate={
         transform
           ? {
@@ -66,9 +71,6 @@ function SortableWidget(props: Props) {
               scaleX: transform?.scaleX && transform.scaleX <= 1 ? transform.scaleX : 1,
               scaleY: transform?.scaleY && transform.scaleY <= 1 ? transform.scaleY : 1,
               zIndex: currentWidgetDragging ? theme.zIndex.modal : 0,
-              boxShadow: currentWidgetDragging
-                ? '0 0 0 1px rgba(63, 63, 68, 0.05), 0px 15px 15px 0 rgba(34, 33, 81, 0.25)'
-                : 'none',
             }
           : initialStyles
       }
@@ -76,13 +78,6 @@ function SortableWidget(props: Props) {
         duration: !currentWidgetDragging ? 0.25 : 0,
         easings: {
           type: 'spring',
-        },
-        transform: {duration: 0},
-        scale: {
-          duration: 0.25,
-        },
-        zIndex: {
-          delay: currentWidgetDragging ? 0 : 0.25,
         },
       }}
     >

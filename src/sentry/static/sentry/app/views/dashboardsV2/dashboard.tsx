@@ -221,7 +221,6 @@ function AddWidget(props: {onClick: () => void}) {
     y: 0,
     scaleX: 1,
     scaleY: 1,
-    zIndex: 0,
   };
 
   const {setNodeRef, transform} = useSortable({
@@ -236,6 +235,7 @@ function AddWidget(props: {onClick: () => void}) {
       ref={setNodeRef}
       displayType="big_number"
       layoutId={ADD_WIDGET_BUTTON_DRAG_ID}
+      style={{originX: 0, originY: 0}}
       animate={
         transform
           ? {
@@ -247,14 +247,7 @@ function AddWidget(props: {onClick: () => void}) {
           : initialStyles
       }
       transition={{
-        duration: 0,
-        easings: {
-          type: 'spring',
-        },
-        transform: {duration: 0},
-        scale: {
-          duration: 0.25,
-        },
+        duration: 0.25,
       }}
     >
       <AddWidgetWrapper key="add" data-test-id="widget-add" onClick={onClick}>
