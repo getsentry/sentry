@@ -59,9 +59,8 @@ function SortableWidget(props: Props) {
       style={{
         originX: 0,
         originY: 0,
-        boxShadow: currentWidgetDragging
-          ? '0 0 0 1px rgba(63, 63, 68, 0.05), 0px 15px 15px 0 rgba(34, 33, 81, 0.25)'
-          : 'none',
+        boxShadow: currentWidgetDragging ? theme.dropShadowHeavy : 'none',
+        borderRadius: currentWidgetDragging ? theme.borderRadius : undefined,
       }}
       animate={
         transform
