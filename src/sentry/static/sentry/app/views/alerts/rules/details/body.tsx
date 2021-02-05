@@ -277,27 +277,6 @@ class DetailsBody extends React.Component<Props> {
     );
   }
 
-  renderLoading() {
-    return (
-      <Layout.Body>
-        <Layout.Main>
-          <Placeholder height="38px" />
-          <ChartPanel>
-            <PanelBody withPadding>
-              <Placeholder height="200px" />
-            </PanelBody>
-          </ChartPanel>
-        </Layout.Main>
-        <Layout.Side>
-          <SidebarHeading>
-            <span>{t('Alert Rule')}</span>
-          </SidebarHeading>
-          {this.renderRuleDetails()}
-        </Layout.Side>
-      </Layout.Body>
-    );
-  }
-
   renderMetricStatus() {
     const {incidents, theme} = this.props;
 
