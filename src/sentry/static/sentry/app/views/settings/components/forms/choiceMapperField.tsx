@@ -1,9 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import Button from 'app/components/button';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
+import {Item} from 'app/components/dropdownAutoComplete/types';
 import DropdownButton from 'app/components/dropdownButton';
 import SelectControl from 'app/components/forms/selectControl';
 import {IconAdd, IconDelete} from 'app/icons';
@@ -12,78 +12,98 @@ import space from 'app/styles/space';
 import {defined, objectIsEmpty} from 'app/utils';
 import InputField from 'app/views/settings/components/forms/inputField';
 
-const selectControlShape = PropTypes.object;
+type InputFieldProps = React.ComponentProps<typeof InputField>;
+type SelectControlProps = React.ComponentProps<typeof SelectControl>;
 
-export default class ChoiceMapper extends React.Component {
-  static propTypes = {
-    // TODO(ts)
-    // ...InputField.propTypes,
-    /**
-     * Text used for the 'add row' button.
-     */
-    addButtonText: PropTypes.node,
-    /**
-     * Configuration for the add item dropdown.
-     */
-    addDropdown: PropTypes.object.isRequired,
-    /**
-     * The label to show above the row name selected from the dropdown.
-     */
-    mappedColumnLabel: PropTypes.node,
-    /**
-     * A list of column labels (headers) for the multichoice table. This should
-     * have the same mapping keys as the mappedSelectors prop.
-     */
-    columnLabels: PropTypes.objectOf(PropTypes.node).isRequired,
-    /**
-     * mappedSelectors controls how the Select control should render for each
-     * column. This can be generalised so that each column renders the same set
-     * of choices for each mapped item by providing an object with column
-     * label keys mapping to the select descriptor, OR you may specify the set
-     * of select descriptors *specific* to a mapped item, where the item value
-     * maps to the object of column label keys to select descriptor.
-     *
-     * Example - All selects are the same per column:
-     *
-     * {
-     *   'column_key1: {...select1},
-     *   'column_key2: {...select2},
-     * }
-     *
-     * Example - Selects differ for each of the items available:
-     *
-     * {
-     *   'my_object_value':  {'colum_key1': {...select1}, 'column_key2': {...select2}},
-     *   'other_object_val': {'colum_key1': {...select3}, 'column_key2': {...select4}},
-     * }
-     */
-    mappedSelectors: PropTypes.objectOf(
-      PropTypes.oneOfType([selectControlShape, PropTypes.objectOf(selectControlShape)])
-    ).isRequired,
-    /**
-     * If using mappedSelectors to specifically map different choice selectors
-     * per item specify this as true.
-     */
-    perItemMapping: PropTypes.bool,
-    /**
-     * Automatically save even if fields are empty
-     */
-    allowEmpty: PropTypes.bool,
-  };
+type DefaultProps = {
+  /**
+   * Text used for the 'add row' button.
+   */
+  addButtonText: React.ReactNode;
+  /**
+   * If using mappedSelectors to specifically map different choice selectors
+   * per item specify this as true.
+   */
+  perItemMapping: boolean;
+  /**
+   * Automatically save even if fields are empty
+   */
+  allowEmpty: boolean;
+};
 
-  static defaultProps = {
-    addButtonText: t('Add Item'),
-    perItemMapping: false,
-    allowEmpty: false,
-    // Since we're saving an object, there isn't a great way to render the
-    // change within the toast. Just turn off displaying the from/to portion of
-    // the message.
-    formatMessageValue: false,
-  };
+const defaultProps: DefaultProps = {
+  addButtonText: t('Add Item'),
+  perItemMapping: false,
+  allowEmpty: false,
+};
 
-  hasValue = value => defined(value) && !objectIsEmpty(value);
+type MappedSelectors = Record<string, Partial<SelectControlProps>>;
 
-  renderField = props => {
+export type ChoiceMapperProps = {
+  /**
+   * The label to show above the row name selected from the dropdown.
+   */
+  mappedColumnLabel?: React.ReactNode;
+  /**
+   * A list of column labels (headers) for the multichoice table. This should
+   * have the same mapping keys as the mappedSelectors prop.
+   */
+  columnLabels: Record<string, React.ReactNode>;
+  /**
+   * mappedSelectors controls how the Select control should render for each
+   * column. This can be generalised so that each column renders the same set
+   * of choices for each mapped item by providing an object with column
+   * label keys mapping to the select descriptor, OR you may specify the set
+   * of select descriptors *specific* to a mapped item, where the item value
+   * maps to the object of column label keys to select descriptor.
+   *
+   * Example - All selects are the same per column:
+   *
+   * {
+   *   'column_key1: {...select1},
+   *   'column_key2: {...select2},
+   * }
+   *
+   * Example - Selects differ for each of the items available:
+   *
+   * {
+   *   'my_object_value':  {'colum_key1': {...select1}, 'column_key2': {...select2}},
+   *   'other_object_val': {'colum_key1': {...select3}, 'column_key2': {...select4}},
+   * }
+   */
+  mappedSelectors: MappedSelectors;
+  /**
+   * Props forwarded to the add mapping dropdown.
+   */
+  addDropdown: React.ComponentProps<typeof DropdownAutoComplete>;
+  /**
+   * Since we're saving an object, there isn't a great way to render the
+   * change within the toast. Just turn off displaying the from/to portion of
+   * the message.
+   */
+  formatMessageValue: boolean;
+  /**
+   * Field controls get a boolean.
+   */
+  disabled?: boolean;
+
+  // TODO(ts) This isn't aligned with InputField but that's what the runtime code had.
+  onBlur?: () => void;
+
+  onChange: InputFieldProps['onChange'];
+
+  // TODO(ts) tighten this up.
+  value: Record<string, any>;
+} & DefaultProps;
+
+type FieldProps = ChoiceMapperProps & InputFieldProps;
+
+export default class ChoiceMapper extends React.Component<FieldProps> {
+  static defaultProps = defaultProps;
+
+  hasValue = (value: FieldProps['value']) => defined(value) && !objectIsEmpty(value);
+
+  renderField = (props: ChoiceMapperProps) => {
     const {
       onChange,
       onBlur,
@@ -103,29 +123,33 @@ export default class ChoiceMapper extends React.Component {
     const valueIsEmpty = this.hasValue(props.value);
     const value = valueIsEmpty ? props.value : {};
 
-    const saveChanges = nextValue => {
-      onChange(nextValue, {});
+    const saveChanges = (nextValue: ChoiceMapperProps['value']) => {
+      onChange?.(nextValue, {});
 
       const validValues = !Object.values(nextValue)
         .map(o => Object.values(o).find(v => v === null))
         .includes(null);
 
       if (allowEmpty || validValues) {
-        onBlur();
+        onBlur?.();
       }
     };
 
-    const addRow = data => {
+    const addRow = (data: Item) => {
       saveChanges({...value, [data.value]: emptyValue});
     };
 
-    const removeRow = itemKey => {
+    const removeRow = (itemKey: string) => {
       //eslint-disable-next-line no-unused-vars
       const {[itemKey]: _, ...updatedValue} = value;
       saveChanges(updatedValue);
     };
 
-    const setValue = (itemKey, fieldKey, fieldValue) => {
+    const setValue = (
+      itemKey: string,
+      fieldKey: string,
+      fieldValue: string | number | null
+    ) => {
       saveChanges({...value, [itemKey]: {...value[itemKey], [fieldKey]: fieldValue}});
     };
 
