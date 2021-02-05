@@ -335,7 +335,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               )
             }
             isDragging={false}
-            startWidgetDrag={() => undefined}
+            currentWidgetDragging={false}
           />
         </Body>
         <Footer>

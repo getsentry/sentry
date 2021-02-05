@@ -37,7 +37,7 @@ type Props = ReactRouter.WithRouterProps & {
   isDragging: boolean;
   currentWidgetDragging: boolean;
   hideToolbar?: boolean;
-  draggableProps: {
+  draggableProps?: {
     attributes: ReturnType<typeof useSortable>['attributes'];
     listeners: ReturnType<typeof useSortable>['listeners'];
   };
@@ -62,11 +62,7 @@ class WidgetCard extends React.Component<Props> {
       return null;
     }
 
-    const {
-      onEdit,
-      onDelete,
-      draggableProps: {attributes, listeners},
-    } = this.props;
+    const {onEdit, onDelete, draggableProps} = this.props;
 
     return (
       <ToolbarPanel>
@@ -77,8 +73,8 @@ class WidgetCard extends React.Component<Props> {
             <StyledIconGrabbable
               color="gray500"
               size="md"
-              {...listeners}
-              {...attributes}
+              {...draggableProps?.listeners}
+              {...draggableProps?.attributes}
             />
           </IconClick>
           <IconClick
