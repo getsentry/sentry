@@ -168,7 +168,7 @@ class ThreadedExecutor(Executor):
 
     def __init__(self, worker_count=1, maxsize=0):
         self.__worker_count = worker_count
-        self.__workers = set([])
+        self.__workers = set()
         self.__started = False
         self.__queue = PriorityQueue(maxsize)
         self.__lock = threading.Lock()

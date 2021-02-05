@@ -89,7 +89,7 @@ def load_settings(mod_or_filename, settings, silent=False):
         try:
             with open(mod_or_filename, mode="rb") as source_file:
                 exec(source_file.read(), conf.__dict__)
-        except IOError as e:
+        except OSError as e:
             import errno
 
             if silent and e.errno in (errno.ENOENT, errno.EISDIR):

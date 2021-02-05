@@ -97,7 +97,7 @@ class BaseBuildCommand(Command):
             for path in self.get_dist_paths():
                 try:
                     shutil.rmtree(path)
-                except (OSError, IOError):
+                except OSError:
                     pass
 
         # In place means build_lib is src.  We also log this.

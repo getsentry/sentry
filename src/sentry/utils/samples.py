@@ -124,7 +124,7 @@ def load_data(
         language = platform_data["language"]
 
     samples_root = os.path.join(DATA_ROOT, "samples")
-    all_samples = set(f for f in os.listdir(samples_root) if f.endswith(".json"))
+    all_samples = {f for f in os.listdir(samples_root) if f.endswith(".json")}
 
     for platform in (platform, language, default):
         if not platform:
