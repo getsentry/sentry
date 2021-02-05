@@ -366,10 +366,10 @@ class S3Boto3Storage(Storage):
         Get the locally cached files for the bucket.
         """
         if self.preload_metadata and not self._entries:
-            self._entries = dict(
-                (self._decode_name(entry.key), entry)
+            self._entries = {
+                self._decode_name(entry.key): entry
                 for entry in self.bucket.objects.filter(Prefix=self.location)
-            )
+            }
         return self._entries
 
     def _get_access_keys(self):

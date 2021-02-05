@@ -275,7 +275,7 @@ class BaseAuth:
             "next": next_idx,
             "backend": self.AUTH_BACKEND.name,
             "args": tuple(map(model_to_ctype, args)),
-            "kwargs": dict((key, model_to_ctype(val)) for key, val in six.iteritems(kwargs)),
+            "kwargs": {key: model_to_ctype(val) for key, val in six.iteritems(kwargs)},
         }
 
     def from_session_dict(self, session_data, *args, **kwargs):
@@ -285,9 +285,9 @@ class BaseAuth:
         args = args[:] + tuple(map(ctype_to_model, session_data["args"]))
 
         kwargs = kwargs.copy()
-        saved_kwargs = dict(
-            (key, ctype_to_model(val)) for key, val in six.iteritems(session_data["kwargs"])
-        )
+        saved_kwargs = {
+            key: ctype_to_model(val) for key, val in six.iteritems(session_data["kwargs"])
+        }
         saved_kwargs.update((key, val) for key, val in six.iteritems(kwargs))
         return (session_data["next"], args, saved_kwargs)
 

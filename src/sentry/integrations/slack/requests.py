@@ -84,7 +84,7 @@ class SlackRequest:
         if self.integration:
             data["integration_id"] = self.integration.id
 
-        return dict((k, v) for k, v in data.items() if v)
+        return {k: v for k, v in data.items() if v}
 
     def _validate_data(self):
         try:

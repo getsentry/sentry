@@ -86,10 +86,10 @@ class UserOptionManager(OptionManager):
         metakey = self._make_key(user, project=project, organization=organization)
 
         if metakey not in self._option_cache or force_reload:
-            result = dict(
-                (i.key, i.value)
+            result = {
+                i.key: i.value
                 for i in self.filter(user=user, project=project, organization=organization)
-            )
+            }
             self._option_cache[metakey] = result
         return self._option_cache.get(metakey, {})
 

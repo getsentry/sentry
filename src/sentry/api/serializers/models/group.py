@@ -159,7 +159,7 @@ class GroupSerializerBase(Serializer):
             referrer="group.unhandled-flag",
         )
 
-        return dict((x["group_id"], {"unhandled": x["unhandled"]}) for x in rv["data"])
+        return {x["group_id"]: {"unhandled": x["unhandled"]} for x in rv["data"]}
 
     def _get_subscriptions(self, item_list, user):
         """
