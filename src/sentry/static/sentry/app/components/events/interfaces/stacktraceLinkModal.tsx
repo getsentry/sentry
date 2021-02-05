@@ -62,7 +62,7 @@ class StacktraceLinkModal extends React.Component<Props, State> {
         setup_type: 'automatic',
         view: 'stacktrace_issue_details',
       },
-      this.props.organization
+      organization
     );
 
     const parsingEndpoint = `/projects/${organization.slug}/${project.slug}/repo-path-parsing/`;
@@ -90,10 +90,10 @@ class StacktraceLinkModal extends React.Component<Props, State> {
           provider: configData.config?.provider.key,
           view: 'stacktrace_issue_details',
         },
-        this.props.organization
+        organization
       );
-      this.props.closeModal();
-      this.props.onSubmit();
+      closeModal();
+      onSubmit();
     } catch (err) {
       const errors = err?.responseJSON
         ? Array.isArray(err?.responseJSON)
