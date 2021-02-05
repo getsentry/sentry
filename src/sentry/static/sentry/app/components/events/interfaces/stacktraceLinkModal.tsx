@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
+import {Client} from 'app/api';
 import Alert from 'app/components/alert';
-import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import {IconInfo} from 'app/icons';
@@ -12,28 +12,26 @@ import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Integration, Organization, Project} from 'app/types';
 import {getIntegrationIcon, trackIntegrationEvent} from 'app/utils/integrationUtil';
+import withApi from 'app/utils/withApi';
 import InputField from 'app/views/settings/components/forms/inputField';
 
-type Props = AsyncComponent['props'] &
-  ModalRenderProps & {
-    filename: string;
-    organization: Organization;
-    project: Project;
-    integrations: Integration[];
-    onSubmit: () => void;
-  };
+type Props = ModalRenderProps & {
+  api: Client;
+  filename: string;
+  integrations: Integration[];
+  onSubmit: () => void;
+  organization: Organization;
+  project: Project;
+};
 
-type State = AsyncComponent['state'] & {
+type State = {
   sourceCodeInput: string;
 };
 
-class StacktraceLinkModal extends AsyncComponent<Props, State> {
-  getDefaultState(): State {
-    return {
-      ...super.getDefaultState(),
-      sourceCodeInput: '',
-    };
-  }
+class StacktraceLinkModal extends React.Component<Props, State> {
+  state: State = {
+    sourceCodeInput: '',
+  };
 
   onHandleChange(sourceCodeInput: string) {
     this.setState({
@@ -56,7 +54,7 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
 
   handleSubmit = async () => {
     const {sourceCodeInput} = this.state;
-    const {organization, filename, project} = this.props;
+    const {api, closeModal, filename, onSubmit, organization, project} = this.props;
     trackIntegrationEvent(
       {
         eventKey: 'integrations.stacktrace_submit_config',
@@ -69,7 +67,7 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
 
     const parsingEndpoint = `/projects/${organization.slug}/${project.slug}/repo-path-parsing/`;
     try {
-      const configData = await this.api.requestPromise(parsingEndpoint, {
+      const configData = await api.requestPromise(parsingEndpoint, {
         method: 'POST',
         data: {
           sourceUrl: sourceCodeInput,
@@ -78,7 +76,7 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
       });
 
       const configEndpoint = `/organizations/${organization.slug}/integrations/${configData.integrationId}/repo-project-path-configs/`;
-      await this.api.requestPromise(configEndpoint, {
+      await api.requestPromise(configEndpoint, {
         method: 'POST',
         data: {...configData, projectId: project.id},
       });
@@ -107,7 +105,7 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
     }
   };
 
-  renderBody() {
+  render() {
     const {sourceCodeInput} = this.state;
     const {Header, Body, Footer, filename, integrations, organization} = this.props;
     const baseUrl = `/settings/${organization.slug}/integrations`;
@@ -188,8 +186,6 @@ class StacktraceLinkModal extends AsyncComponent<Props, State> {
   }
 }
 
-export default StacktraceLinkModal;
-
 const SourceCodeInput = styled('div')`
   display: grid;
   grid-template-columns: 5fr 1fr;
@@ -218,3 +214,5 @@ const StyledInputField = styled(InputField)`
 const IntegrationName = styled('p')`
   padding-left: 10px;
 `;
+
+export default withApi(StacktraceLinkModal);
