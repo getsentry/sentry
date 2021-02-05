@@ -36,7 +36,7 @@ describe('ProjectDetail > ProjectIssues', function () {
       routerContext
     );
 
-    expect(wrapper.find('SectionHeading').text()).toBe('Project Issues');
+    expect(wrapper.find('SectionHeading').text()).toBe('Frequent Issues');
     expect(wrapper.find('StreamGroup').length).toBe(2);
   });
 

@@ -70,7 +70,7 @@ function ProjectIssues({organization, location}: Props) {
   return (
     <React.Fragment>
       <ControlsWrapper>
-        <SectionHeading>{t('Project Issues')}</SectionHeading>
+        <SectionHeading>{t('Frequent Issues')}</SectionHeading>
         <Button
           data-test-id="issues-open"
           size="small"

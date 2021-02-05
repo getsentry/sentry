@@ -94,7 +94,7 @@ function ProjectStabilityChart({
                           <TransparentLoadingMask visible={reloading} />
 
                           <HeaderTitleLegend>
-                            {t('Crash Free Rate')}
+                            {t('Crash Free Sessions')}
                             <QuestionTooltip
                               size="sm"
                               position="top"
@@ -126,7 +126,7 @@ function ProjectStabilityChart({
             )}
           </ChartZoom>
         ),
-        fixed: t('Crash Free Rate Chart'),
+        fixed: t('Crash Free Sessions Chart'),
       })}
     </React.Fragment>
   );
@@ -233,7 +233,13 @@ class Chart extends React.Component<ChartProps, ChartState> {
       tooltip: {
         trigger: 'axis' as const,
         truncate: 80,
-        valueFormatter: (value: number) => displayCrashFreePercent(value, 0, 3),
+        valueFormatter: (value: number | null) => {
+          if (value === null) {
+            return '\u2014';
+          }
+
+          return displayCrashFreePercent(value, 0, 3);
+        },
       },
       yAxis: {
         axisLabel: {

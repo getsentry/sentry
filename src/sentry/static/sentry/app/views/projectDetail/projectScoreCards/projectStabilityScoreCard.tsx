@@ -196,7 +196,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
       <ScoreCard
         title={this.cardTitle}
         help={this.cardHelp}
-        score={<MissingReleasesButtons organization={organization} />}
+        score={<MissingReleasesButtons organization={organization} health />}
       />
     );
   }
