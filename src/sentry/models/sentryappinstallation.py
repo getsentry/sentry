@@ -1,4 +1,3 @@
-import six
 import uuid
 
 from django.db import models
@@ -10,7 +9,7 @@ from sentry.models import Project, DefaultFieldsModel
 
 
 def default_uuid():
-    return six.text_type(uuid.uuid4())
+    return str(uuid.uuid4())
 
 
 # connects a sentry app installation to an organization and a provider

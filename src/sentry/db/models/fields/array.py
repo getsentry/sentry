@@ -1,5 +1,3 @@
-import six
-
 from django.db import models
 
 from sentry.db.models.utils import Creator
@@ -41,6 +39,6 @@ class ArrayField(models.Field):
     def to_python(self, value):
         if not value:
             value = []
-        if isinstance(value, six.text_type):
+        if isinstance(value, str):
             value = json.loads(value)
         return map(self.of.to_python, value)

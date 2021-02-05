@@ -1,5 +1,4 @@
 import logging
-import six
 
 from datetime import timedelta
 from enum import IntEnum
@@ -38,14 +37,14 @@ class OrganizationStatus(IntEnum):
     @classmethod
     def as_choices(cls):
         result = []
-        for name, member in six.iteritems(cls.__members__):
+        for name, member in cls.__members__.items():
             # an alias
             if name != member.name:
                 continue
             # realistically Enum shouldn't even creating these, but alas
             if name.startswith("_"):
                 continue
-            result.append((member.value, six.text_type(member.label)))
+            result.append((member.value, str(member.label)))
         return tuple(result)
 
 
@@ -105,7 +104,7 @@ class Organization(Model):
         related_name="org_memberships",
         through_fields=("organization", "user"),
     )
-    default_role = models.CharField(max_length=32, default=six.text_type(roles.get_default().id))
+    default_role = models.CharField(max_length=32, default=str(roles.get_default().id))
 
     flags = BitField(
         flags=(

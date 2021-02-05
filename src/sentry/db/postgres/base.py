@@ -1,4 +1,3 @@
-from six import string_types, binary_type
 import psycopg2 as Database
 
 # Some of these imports are unused, but they are inherited from other engines
@@ -47,7 +46,7 @@ def remove_surrogates(value):
 def clean_bad_params(params):
     params = list(params)
     for idx, param in enumerate(params):
-        if isinstance(param, (string_types, binary_type)):
+        if isinstance(param, ((str,), bytes)):
             params[idx] = remove_null(remove_surrogates(param))
     return params
 

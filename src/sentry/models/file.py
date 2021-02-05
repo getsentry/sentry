@@ -1,5 +1,4 @@
 import os
-import six
 import mmap
 import tempfile
 import time
@@ -499,7 +498,7 @@ class ChunkedFileBlobIndexWrapper:
         old_file = self._curfile
         try:
             try:
-                self._curidx = six.next(self._idxiter)
+                self._curidx = next(self._idxiter)
                 self._curfile = self._curidx.blob.getfile()
             except StopIteration:
                 self._curidx = None

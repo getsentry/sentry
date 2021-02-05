@@ -1,5 +1,4 @@
 import datetime
-import six
 
 from decimal import Decimal
 
@@ -17,7 +16,7 @@ def default(o):
     if hasattr(o, "to_json"):
         return o.to_json()
     if isinstance(o, Decimal):
-        return six.text_type(o)
+        return str(o)
     if isinstance(o, datetime.datetime):
         if o.tzinfo:
             return o.strftime("%Y-%m-%dT%H:%M:%S%z")
@@ -77,7 +76,7 @@ class JSONField(models.TextField):
             default = self.default
             if callable(default):
                 default = default()
-            if isinstance(default, six.string_types):
+            if isinstance(default, str):
                 return json.loads(default)
             return json.loads(json.dumps(default))
         return super().get_default()
@@ -89,7 +88,7 @@ class JSONField(models.TextField):
         return "text"
 
     def to_python(self, value):
-        if isinstance(value, six.string_types):
+        if isinstance(value, str):
             if value == "":
                 if self.null:
                     return None

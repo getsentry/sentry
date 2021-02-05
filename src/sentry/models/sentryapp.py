@@ -1,4 +1,3 @@
-import six
 import uuid
 import itertools
 import hmac
@@ -52,7 +51,7 @@ UUID_CHARS_IN_SLUG = 6
 
 
 def default_uuid():
-    return six.text_type(uuid.uuid4())
+    return str(uuid.uuid4())
 
 
 def generate_slug(name, is_internal=False):

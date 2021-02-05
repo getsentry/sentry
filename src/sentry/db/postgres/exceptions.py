@@ -1,5 +1,4 @@
 import psycopg2
-import six
 import traceback
 
 
@@ -26,7 +25,7 @@ class CompositeTraceback:
         return self.__curframe.tb_lineno
 
     def tb_next(self):
-        six.next(self.__iterator)
+        next(self.__iterator)
         return self
 
 

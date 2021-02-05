@@ -1,5 +1,3 @@
-import six
-
 from bitfield import BitField
 from django.db import models
 from django.utils import timezone
@@ -67,7 +65,7 @@ class ApiKey(Model):
     __repr__ = sane_repr("organization_id", "key")
 
     def __str__(self):
-        return six.text_type(self.key)
+        return str(self.key)
 
     @classmethod
     def generate_api_key(cls):
@@ -98,7 +96,7 @@ class ApiKey(Model):
     def get_scopes(self):
         if self.scope_list:
             return self.scope_list
-        return [k for k, v in six.iteritems(self.scopes) if v]
+        return [k for k, v in self.scopes.items() if v]
 
     def has_scope(self, scope):
         return scope in self.get_scopes()

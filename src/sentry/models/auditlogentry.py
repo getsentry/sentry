@@ -1,5 +1,3 @@
-import six
-
 from django.db import models
 from django.utils import timezone
 
@@ -238,7 +236,7 @@ class AuditLogEntry(Model):
             return "edited member %s (role: %s, teams: %s)" % (
                 self.data.get("email") or self.target_user.get_display_name(),
                 self.data.get("role") or "N/A",
-                ", ".join(six.text_type(x) for x in self.data.get("team_slugs", [])) or "N/A",
+                ", ".join(str(x) for x in self.data.get("team_slugs", [])) or "N/A",
             )
         elif self.event == AuditLogEntryEvent.MEMBER_JOIN_TEAM:
             if self.target_user == self.actor:
@@ -281,9 +279,7 @@ class AuditLogEntry(Model):
             return "created project %s" % (self.data["slug"],)
         elif self.event == AuditLogEntryEvent.PROJECT_EDIT:
             return "edited project settings " + (
-                " ".join(
-                    [" in %s to %s" % (key, value) for (key, value) in six.iteritems(self.data)]
-                )
+                " ".join([" in %s to %s" % (key, value) for (key, value) in self.data.items()])
             )
         elif self.event == AuditLogEntryEvent.PROJECT_REMOVE:
             return "removed project %s" % (self.data["slug"],)
