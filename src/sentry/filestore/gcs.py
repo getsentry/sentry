@@ -135,7 +135,7 @@ def safe_join(base, *paths):
 class FancyBlob(Blob):
     def __init__(self, download_url, *args, **kwargs):
         self.download_url = download_url
-        super(FancyBlob, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def _get_download_url(self):
         if self.media_link is None:
@@ -194,13 +194,13 @@ class GoogleCloudFile(File):
         if num_bytes is None:
             num_bytes = -1
 
-        return super(GoogleCloudFile, self).read(num_bytes)
+        return super().read(num_bytes)
 
     def write(self, content):
         if "w" not in self._mode:
             raise AttributeError("File was not opened in write mode.")
         self._is_dirty = True
-        return super(GoogleCloudFile, self).write(force_bytes(content))
+        return super().write(force_bytes(content))
 
     def close(self):
         def _try_upload():
@@ -356,4 +356,4 @@ class GoogleCloudStorage(Storage):
         if self.file_overwrite:
             name = clean_name(name)
             return name
-        return super(GoogleCloudStorage, self).get_available_name(name, max_length)
+        return super().get_available_name(name, max_length)

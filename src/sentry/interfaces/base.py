@@ -59,7 +59,7 @@ class InterfaceValidationError(Exception):
     pass
 
 
-class Interface(object):
+class Interface:
     """
     An interface is a structured representation of data, which may
     render differently than the default ``extra`` metadata in an event.

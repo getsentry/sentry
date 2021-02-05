@@ -2,7 +2,7 @@ import pickle
 import zlib
 
 
-class Codec(object):
+class Codec:
     def encode(self, value):
         raise NotImplementedError
 

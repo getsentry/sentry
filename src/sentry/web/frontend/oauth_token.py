@@ -17,7 +17,7 @@ class OAuthTokenView(View):
     @csrf_exempt
     @never_cache
     def dispatch(self, request, *args, **kwargs):
-        return super(OAuthTokenView, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     # Note: the reason parameter is for internal use only
     def error(self, request, name, reason=None, status=400):

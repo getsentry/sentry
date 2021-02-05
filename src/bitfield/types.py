@@ -7,7 +7,7 @@ def cmp(a, b):
     return (a > b) - (a < b)
 
 
-class Bit(object):
+class Bit:
     def __init__(self, number, is_set=True):
         self.number = number
         self.is_set = bool(is_set)
@@ -105,7 +105,7 @@ class Bit(object):
         return evaluator.prepare_node(self, query, allow_joins)
 
 
-class BitHandler(object):
+class BitHandler:
     """
     Represents an array of bits, each as a ``Bit`` object.
     """

@@ -20,9 +20,7 @@ class ExampleIssueTrackingPlugin(IssuePlugin2):
         return bool(self.get_option("repo", project))
 
     def get_new_issue_fields(self, request, group, event, **kwargs):
-        fields = super(ExampleIssueTrackingPlugin, self).get_new_issue_fields(
-            request, group, event, **kwargs
-        )
+        fields = super().get_new_issue_fields(request, group, event, **kwargs)
         return [{"name": "tracker_url", "label": "Issue Tracker URL", "type": "text"}] + fields
 
     def create_issue(self, request, group, form_data, **kwargs):

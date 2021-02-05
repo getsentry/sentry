@@ -28,7 +28,7 @@ class InterfaceDoesNotExist(KeyError):
     pass
 
 
-class ExceptionFeature(object):
+class ExceptionFeature:
     def __init__(self, function):
         self.function = function
 
@@ -40,7 +40,7 @@ class ExceptionFeature(object):
         return self.function(interface.values[0])
 
 
-class MessageFeature(object):
+class MessageFeature:
     def __init__(self, function):
         self.function = function
 
@@ -52,7 +52,7 @@ class MessageFeature(object):
         return self.function(interface)
 
 
-class FeatureSet(object):
+class FeatureSet:
     def __init__(
         self,
         index,

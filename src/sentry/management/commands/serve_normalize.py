@@ -103,7 +103,7 @@ def handle_data(data):
     )
 
 
-class MetricCollector(object):
+class MetricCollector:
     def __init__(self):
         self.is_linux = sys.platform.startswith("linux")
         self.pid = os.getpid()

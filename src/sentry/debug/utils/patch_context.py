@@ -2,7 +2,7 @@ from threading import Lock
 from sentry.utils.imports import import_string
 
 
-class PatchContext(object):
+class PatchContext:
     def __init__(self, target, callback):
         target, attr = target.rsplit(".", 1)
         target = import_string(target)

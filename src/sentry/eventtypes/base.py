@@ -8,7 +8,7 @@ from sentry.utils.safe import get_path
 # Note: Detecting eventtypes is implemented in the Relay Rust library.
 
 
-class BaseEvent(object):
+class BaseEvent:
     id = None
 
     def get_metadata(self, data):

@@ -19,7 +19,7 @@ ERR_FIELD_REQUIRED = "This field is required."
 
 # TODO(dcramer): replace one-off validation code with standardized validator
 # (e.g. project_plugin_details.py)
-class ConfigValidator(object):
+class ConfigValidator:
     def __init__(self, config, data=None, initial=None, context=None):
         self.errors = {}
         self.result = {}

@@ -105,7 +105,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
     inbound_assignee_key = "sync_reverse_assignment"
 
     def __init__(self, *args, **kwargs):
-        super(VstsIntegration, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.default_identity = None
 
     def reinstall(self):
@@ -528,7 +528,7 @@ class AccountConfigView(PipelineView):
 
 class AccountForm(forms.Form):
     def __init__(self, accounts, *args, **kwargs):
-        super(AccountForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.fields["account"] = forms.ChoiceField(
             choices=[(acct["accountId"], acct["accountName"]) for acct in accounts],
             label="Account",

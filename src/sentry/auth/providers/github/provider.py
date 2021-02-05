@@ -14,7 +14,7 @@ class GitHubOAuth2Provider(OAuth2Provider):
     client_secret = CLIENT_SECRET
 
     def __init__(self, org=None, **config):
-        super(GitHubOAuth2Provider, self).__init__(**config)
+        super().__init__(**config)
         self.org = org
 
     def get_configure_view(self):

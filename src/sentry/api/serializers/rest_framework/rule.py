@@ -14,7 +14,7 @@ ValidationError = serializers.ValidationError
 
 class RuleNodeField(serializers.Field):
     def __init__(self, type):
-        super(RuleNodeField, self).__init__()
+        super().__init__()
         self.type_name = type
 
     def to_representation(self, value):

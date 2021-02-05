@@ -34,7 +34,7 @@ class GzipChunk(BytesIO):
         data = GzipFile(fileobj=file, mode="rb").read()
         self.size = len(data)
         self.name = file.name
-        super(GzipChunk, self).__init__(data)
+        super().__init__(data)
 
 
 class ChunkUploadEndpoint(OrganizationEndpoint):

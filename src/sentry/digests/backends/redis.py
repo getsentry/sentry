@@ -83,7 +83,7 @@ class RedisBackend(Backend):
         # too early.
         self.ttl = options.pop("ttl", 60 * 60)
 
-        super(RedisBackend, self).__init__(**options)
+        super().__init__(**options)
 
     def validate(self):
         logger.debug("Validating Redis version...")

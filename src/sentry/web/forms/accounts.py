@@ -68,7 +68,7 @@ class AuthenticationForm(forms.Form):
         """
         self.request = request
         self.user_cache = None
-        super(AuthenticationForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # Set the label for the "username" field.
         UserModel = get_user_model()
@@ -176,7 +176,7 @@ class PasswordlessRegistrationForm(forms.ModelForm):
     )
 
     def __init__(self, *args, **kwargs):
-        super(PasswordlessRegistrationForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         if not newsletter.is_enabled():
             del self.fields["subscribe"]
         else:
@@ -208,7 +208,7 @@ class PasswordlessRegistrationForm(forms.ModelForm):
         return value.lower()
 
     def save(self, commit=True):
-        user = super(PasswordlessRegistrationForm, self).save(commit=False)
+        user = super().save(commit=False)
         user.email = user.username
         if commit:
             user.save()
@@ -230,7 +230,7 @@ class RegistrationForm(PasswordlessRegistrationForm):
         return password
 
     def save(self, commit=True):
-        user = super(RegistrationForm, self).save(commit=False)
+        user = super().save(commit=False)
         user.set_password(self.cleaned_data["password"])
         if commit:
             user.save()
@@ -298,7 +298,7 @@ class EmailForm(forms.Form):
 
     def __init__(self, user, *args, **kwargs):
         self.user = user
-        super(EmailForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         needs_password = user.has_usable_password()
 

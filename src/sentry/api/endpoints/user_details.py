@@ -68,7 +68,7 @@ class BaseUserSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
-        attrs = super(BaseUserSerializer, self).validate(attrs)
+        attrs = super().validate(attrs)
 
         if self.instance.email == self.instance.username:
             if attrs.get("username", self.instance.email) != self.instance.email:
@@ -80,7 +80,7 @@ class BaseUserSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         if "isActive" not in validated_data:
             validated_data["isActive"] = instance.is_active
-        return super(BaseUserSerializer, self).update(instance, validated_data)
+        return super().update(instance, validated_data)
 
 
 class UserSerializer(BaseUserSerializer):
@@ -92,7 +92,7 @@ class UserSerializer(BaseUserSerializer):
         for field in settings.SENTRY_MANAGED_USER_FIELDS:
             attrs.pop(field, None)
 
-        return super(UserSerializer, self).validate(attrs)
+        return super().validate(attrs)
 
 
 class SuperuserUserSerializer(BaseUserSerializer):

@@ -138,7 +138,7 @@ class UserSerializer(Serializer):
 
 class DetailedUserSerializer(UserSerializer):
     def get_attrs(self, item_list, user):
-        attrs = super(DetailedUserSerializer, self).get_attrs(item_list, user)
+        attrs = super().get_attrs(item_list, user)
 
         # ignore things that aren't user controlled (like recovery codes)
         authenticators = manytoone_to_dict(
@@ -168,7 +168,7 @@ class DetailedUserSerializer(UserSerializer):
         return attrs
 
     def serialize(self, obj, attrs, user):
-        d = super(DetailedUserSerializer, self).serialize(obj, attrs, user)
+        d = super().serialize(obj, attrs, user)
         # XXX(dcramer): we dont use is_active_superuser here as we simply
         # want to tell the UI that we're an authenticated superuser, and
         # for requests that require an *active* session, they should prompt

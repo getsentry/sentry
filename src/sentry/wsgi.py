@@ -31,7 +31,7 @@ class FileWrapperWSGIHandler(WSGIHandler):
     we upgraded, this wouldn't be relevant anymore."""
 
     def __call__(self, environ, start_response):
-        response = super(FileWrapperWSGIHandler, self).__call__(environ, start_response)
+        response = super().__call__(environ, start_response)
         if hasattr(response, "streaming") and response.streaming:
             try:
                 response = environ["wsgi.file_wrapper"](response.streaming_content)

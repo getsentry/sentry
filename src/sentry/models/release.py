@@ -64,7 +64,7 @@ class ReleaseProject(Model):
         unique_together = (("project", "release"),)
 
 
-class ReleaseStatus(object):
+class ReleaseStatus:
     OPEN = 0
     ARCHIVED = 1
 

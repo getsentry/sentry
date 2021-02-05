@@ -8,7 +8,7 @@ from sentry.tagstore.base import TagKeyStatus
 
 
 @functools.total_ordering
-class TagType(object):
+class TagType:
     _sort_key = None
 
     def __repr__(self):

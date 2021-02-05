@@ -13,7 +13,7 @@ class GroupEventAttachmentSerializer(EventAttachmentSerializer):
     """
 
     def serialize(self, obj, attrs, user):
-        result = super(GroupEventAttachmentSerializer, self).serialize(obj, attrs, user)
+        result = super().serialize(obj, attrs, user)
         result["event_id"] = obj.event_id
         return result
 

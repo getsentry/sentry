@@ -8,7 +8,7 @@ from .base import MetricsBackend
 class StatsdMetricsBackend(MetricsBackend):
     def __init__(self, host="127.0.0.1", port=8125, **kwargs):
         self.client = statsd.StatsClient(host=host, port=port)
-        super(StatsdMetricsBackend, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def _full_key(self, key, instance=None):
         if instance:

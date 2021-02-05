@@ -5,7 +5,7 @@ import six
 from sentry.exceptions import NotRegistered
 
 
-class IdentityManager(object):
+class IdentityManager:
     def __init__(self):
         self.__values = {}
 

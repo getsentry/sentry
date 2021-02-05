@@ -152,7 +152,7 @@ class OAuthAuthorizeView(AuthLoginView):
         request.session["oa2"] = payload
 
         if not request.user.is_authenticated():
-            return super(OAuthAuthorizeView, self).get(request, application=application)
+            return super().get(request, application=application)
 
         if not force_prompt:
             try:
@@ -232,9 +232,7 @@ class OAuthAuthorizeView(AuthLoginView):
             )
 
         if not request.user.is_authenticated():
-            response = super(OAuthAuthorizeView, self).post(
-                request, application=application, **kwargs
-            )
+            response = super().post(request, application=application, **kwargs)
             # once they login, bind their user ID
             if request.user.is_authenticated():
                 request.session["oa2"]["uid"] = request.user.id

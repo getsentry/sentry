@@ -33,7 +33,7 @@ class OrganizationSerializer(serializers.Serializer):
     agreeTerms = serializers.BooleanField(required=True)
 
     def __init__(self, *args, **kwargs):
-        super(OrganizationSerializer, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         if not (settings.TERMS_URL and settings.PRIVACY_URL):
             del self.fields["agreeTerms"]
 

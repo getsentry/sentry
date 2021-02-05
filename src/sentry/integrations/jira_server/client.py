@@ -104,7 +104,7 @@ class JiraServerSetupClient(ApiClient):
         return self._request(*args, **kwargs)
 
 
-class JiraServer(object):
+class JiraServer:
     """
     Contains the jira-server specifics that a JiraClient needs
     in order to communicate with jira

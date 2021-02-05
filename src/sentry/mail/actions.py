@@ -24,7 +24,7 @@ class MemberTeamForm(forms.Form):
     targetTypeEnum = None
 
     def __init__(self, project, *args, **kwargs):
-        super(MemberTeamForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.project = project
 
     def clean_targetIdentifier(self):
@@ -40,7 +40,7 @@ class MemberTeamForm(forms.Form):
         return targetIdentifier
 
     def clean(self):
-        cleaned_data = super(MemberTeamForm, self).clean()
+        cleaned_data = super().clean()
         try:
             targetType = self.targetTypeEnum(cleaned_data.get("targetType"))
         except ValueError:
@@ -97,7 +97,7 @@ class NotifyEmailAction(EventAction):
     metrics_slug = "EmailAction"
 
     def __init__(self, *args, **kwargs):
-        super(NotifyEmailAction, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.form_fields = {"targetType": {"type": "mailAction", "choices": CHOICES}}
 
     def after(self, event, state):

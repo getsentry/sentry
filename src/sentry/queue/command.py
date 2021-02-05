@@ -17,14 +17,14 @@ class CeleryCommand(BaseCommand):
         broker = options.get("broker")
         if broker:
             self.set_broker(broker)
-        super(CeleryCommand, self).execute(*args, **options)
+        super().execute(*args, **options)
 
     def set_broker(self, broker):
         os.environ["CELERY_BROKER_URL"] = broker
 
     def run_from_argv(self, argv):
         self.handle_default_options(argv[2:])
-        return super(CeleryCommand, self).run_from_argv(argv)
+        return super().run_from_argv(argv)
 
     def handle_default_options(self, argv):
         acc = []

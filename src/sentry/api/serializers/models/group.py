@@ -617,7 +617,7 @@ class GroupSerializer(GroupSerializerBase):
         return attrs
 
 
-class GroupStatsMixin(object):
+class GroupStatsMixin:
     STATS_PERIOD_CHOICES = {
         "14d": StatsPeriod(14, timedelta(hours=24)),
         "24h": StatsPeriod(24, timedelta(hours=1)),
@@ -693,7 +693,7 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         matching_event_id=None,
         matching_event_environment=None,
     ):
-        super(StreamGroupSerializer, self).__init__(environment_func)
+        super().__init__(environment_func)
 
         if stats_period is not None:
             assert stats_period in self.STATS_PERIOD_CHOICES or stats_period == "auto"
@@ -720,7 +720,7 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         return stats
 
     def get_attrs(self, item_list, user):
-        attrs = super(StreamGroupSerializer, self).get_attrs(item_list, user)
+        attrs = super().get_attrs(item_list, user)
 
         if self.stats_period:
             stats = self.get_stats(item_list, user)
@@ -730,7 +730,7 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         return attrs
 
     def serialize(self, obj, attrs, user):
-        result = super(StreamGroupSerializer, self).serialize(obj, attrs, user)
+        result = super().serialize(obj, attrs, user)
 
         if self.stats_period:
             result["stats"] = {self.stats_period: attrs["stats"]}
@@ -746,11 +746,11 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
 
 class TagBasedStreamGroupSerializer(StreamGroupSerializer):
     def __init__(self, tags, **kwargs):
-        super(TagBasedStreamGroupSerializer, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.tags = tags
 
     def serialize(self, obj, attrs, user):
-        result = super(TagBasedStreamGroupSerializer, self).serialize(obj, attrs, user)
+        result = super().serialize(obj, attrs, user)
         result["tagLastSeen"] = self.tags[obj.id].last_seen
         result["tagFirstSeen"] = self.tags[obj.id].first_seen
         return result
@@ -758,7 +758,7 @@ class TagBasedStreamGroupSerializer(StreamGroupSerializer):
 
 class SharedGroupSerializer(GroupSerializer):
     def serialize(self, obj, attrs, user):
-        result = super(SharedGroupSerializer, self).serialize(obj, attrs, user)
+        result = super().serialize(obj, attrs, user)
         del result["annotations"]
         return result
 
@@ -793,7 +793,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         expand=None,
         has_inbox=False,
     ):
-        super(GroupSerializerSnuba, self).__init__(
+        super().__init__(
             collapse=collapse,
             expand=expand,
             has_inbox=has_inbox,
@@ -910,7 +910,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         expand=None,
         has_inbox=False,
     ):
-        super(StreamGroupSerializerSnuba, self).__init__(
+        super().__init__(
             environment_ids,
             start,
             end,
@@ -975,7 +975,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
     def get_attrs(self, item_list, user):
         if not self._collapse("base"):
-            attrs = super(StreamGroupSerializerSnuba, self).get_attrs(item_list, user)
+            attrs = super().get_attrs(item_list, user)
         else:
             seen_stats = self._get_seen_stats(item_list, user)
             if seen_stats:
@@ -1012,7 +1012,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
     def serialize(self, obj, attrs, user):
         if not self._collapse("base"):
-            result = super(StreamGroupSerializerSnuba, self).serialize(obj, attrs, user)
+            result = super().serialize(obj, attrs, user)
         else:
             result = {
                 "id": six.text_type(obj.id),

@@ -3,7 +3,7 @@ import six
 from sentry.plugins import providers
 
 
-class ProviderManager(object):
+class ProviderManager:
     type = None
 
     def __init__(self):
@@ -33,7 +33,7 @@ class IntegrationRepositoryProviderManager(ProviderManager):
     type = providers.IntegrationRepositoryProvider
 
 
-class BindingManager(object):
+class BindingManager:
     BINDINGS = {
         "repository.provider": RepositoryProviderManager,
         "integration-repository.provider": IntegrationRepositoryProviderManager,

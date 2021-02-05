@@ -34,7 +34,7 @@ class AuthException(SocialAuthBaseException):
 
     def __init__(self, backend, *args, **kwargs):
         self.backend = backend
-        super(AuthException, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 class AuthFailed(AuthException):
@@ -44,7 +44,7 @@ class AuthFailed(AuthException):
         if self.message == "access_denied":
             return ugettext("Authentication process was cancelled")
         else:
-            return ugettext("Authentication failed: %s") % super(AuthFailed, self).__str__()
+            return ugettext("Authentication failed: %s") % super().__str__()
 
 
 class AuthCanceled(AuthException):
@@ -59,14 +59,14 @@ class AuthUnknownError(AuthException):
 
     def __str__(self):
         err = "An unknown error happened while authenticating %s"
-        return ugettext(err) % super(AuthUnknownError, self).__str__()
+        return ugettext(err) % super().__str__()
 
 
 class AuthTokenError(AuthException):
     """Auth token error."""
 
     def __str__(self):
-        msg = super(AuthTokenError, self).__str__()
+        msg = super().__str__()
         return ugettext("Token error: %s") % msg
 
 
@@ -75,7 +75,7 @@ class AuthMissingParameter(AuthException):
 
     def __init__(self, backend, parameter, *args, **kwargs):
         self.parameter = parameter
-        super(AuthMissingParameter, self).__init__(backend, *args, **kwargs)
+        super().__init__(backend, *args, **kwargs)
 
     def __str__(self):
         return ugettext("Missing needed parameter %s") % self.parameter

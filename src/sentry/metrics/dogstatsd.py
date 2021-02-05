@@ -10,7 +10,7 @@ class DogStatsdMetricsBackend(MetricsBackend):
         # TODO(dcramer): it'd be nice if the initialize call wasn't a global
         self.tags = kwargs.pop("tags", None)
         initialize(**kwargs)
-        super(DogStatsdMetricsBackend, self).__init__(prefix=prefix)
+        super().__init__(prefix=prefix)
 
     def incr(self, key, instance=None, tags=None, amount=1, sample_rate=1):
         if tags is None:

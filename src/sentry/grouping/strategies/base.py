@@ -47,7 +47,7 @@ def lookup_strategy(strategy_id):
         raise LookupError("Unknown strategy %r" % strategy_id)
 
 
-class Strategy(object):
+class Strategy:
     """Baseclass for all strategies."""
 
     def __init__(self, id, name, interfaces, variants, score, func):
@@ -163,7 +163,7 @@ class Strategy(object):
         return rv
 
 
-class StrategyConfiguration(object):
+class StrategyConfiguration:
     id = None
     base = None
     config_class = None

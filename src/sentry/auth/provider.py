@@ -21,7 +21,7 @@ class MigratingIdentityId(namedtuple("MigratingIdentityId", ["id", "legacy_id"])
         return force_text(self.id)
 
 
-class Provider(object):
+class Provider:
     """
     A provider indicates how authenticate should happen for a given service,
     including its configuration and basic identity management.

@@ -28,7 +28,7 @@ def contexttype(cls):
     return cls
 
 
-class ContextType(object):
+class ContextType:
     indexed_fields = None
     type = None
 
@@ -171,5 +171,4 @@ class Contexts(Interface):
 
     def iter_tags(self):
         for inst in self.iter_contexts():
-            for tag in inst.iter_tags():
-                yield tag
+            yield from inst.iter_tags()

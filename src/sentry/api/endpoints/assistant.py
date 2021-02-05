@@ -30,7 +30,7 @@ class AssistantSerializer(serializers.Serializer):
         return value
 
     def validate(self, attrs):
-        attrs = super(AssistantSerializer, self).validate(attrs)
+        attrs = super().validate(attrs)
         guide = attrs.get("guide")
         guide_id = attrs.get("guide_id")
 

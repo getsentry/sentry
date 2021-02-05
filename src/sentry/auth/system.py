@@ -28,7 +28,7 @@ def get_system_token():
     return token
 
 
-class SystemToken(object):
+class SystemToken:
     """
     API token authenticating the system user.
 

@@ -119,7 +119,7 @@ class Endpoint(APIView):
 
     def handle_exception(self, request, exc):
         try:
-            response = super(Endpoint, self).handle_exception(exc)
+            response = super().handle_exception(exc)
         except Exception:
             import sys
             import traceback
@@ -165,7 +165,7 @@ class Endpoint(APIView):
         # keep track of these here and reassign them as needed.
         orig_auth = getattr(request, "auth", None)
         orig_user = getattr(request, "user", None)
-        rv = super(Endpoint, self).initialize_request(request, *args, **kwargs)
+        rv = super().initialize_request(request, *args, **kwargs)
         # If our request is being made via our internal API client, we need to
         # stitch back on auth and user information
         if getattr(request, "__from_api_client__", False):
@@ -339,7 +339,7 @@ class Endpoint(APIView):
         return response
 
 
-class EnvironmentMixin(object):
+class EnvironmentMixin:
     def _get_environment_func(self, request, organization_id):
         """\
         Creates a function that when called returns the ``Environment``
@@ -374,7 +374,7 @@ class EnvironmentMixin(object):
         return request._cached_environment
 
 
-class StatsMixin(object):
+class StatsMixin:
     def _parse_args(self, request, environment_id=None):
         try:
             resolution = request.GET.get("resolution")
@@ -429,7 +429,7 @@ class StatsMixin(object):
             raise ValueError(value)
 
 
-class ReleaseAnalyticsMixin(object):
+class ReleaseAnalyticsMixin:
     def track_set_commits_local(self, request, organization_id=None, project_ids=None):
         analytics.record(
             "release.set_commits_local",

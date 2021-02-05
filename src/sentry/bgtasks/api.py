@@ -19,7 +19,7 @@ def bgtask(roles=None, interval=60):
     return decorator
 
 
-class BgTask(object):
+class BgTask:
     def __init__(self, callback, roles=None, interval=60):
         self.callback = callback
         self.roles = roles or []

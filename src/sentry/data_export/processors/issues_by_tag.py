@@ -6,7 +6,7 @@ from sentry.models import EventUser, Group, get_group_with_redirect, Project
 from ..base import ExportError
 
 
-class IssuesByTagProcessor(object):
+class IssuesByTagProcessor:
     """
     Processor for exports of issues data based on a provided tag
     """

@@ -23,7 +23,7 @@ class RedmineOptionsForm(forms.Form):
     )
 
     def __init__(self, data=None, *args, **kwargs):
-        super(RedmineOptionsForm, self).__init__(data=data, *args, **kwargs)
+        super().__init__(data=data, *args, **kwargs)
 
         initial = kwargs.get("initial") or {}
         for key, value in self.data.items():

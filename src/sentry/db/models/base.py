@@ -42,7 +42,7 @@ class BaseModel(models.Model):
     update = update
 
     def __init__(self, *args, **kwargs):
-        super(BaseModel, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._update_tracked_data()
 
     def __getstate__(self):
@@ -59,7 +59,7 @@ class BaseModel(models.Model):
         return id(self)
 
     def __reduce__(self):
-        (model_unpickle, stuff, _) = super(BaseModel, self).__reduce__()
+        (model_unpickle, stuff, _) = super().__reduce__()
         return (model_unpickle, stuff, self.__getstate__())
 
     def __setstate__(self, state):

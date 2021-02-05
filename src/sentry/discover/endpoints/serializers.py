@@ -31,7 +31,7 @@ class DiscoverQuerySerializer(serializers.Serializer):
     turbo = serializers.BooleanField(required=False)
 
     def __init__(self, *args, **kwargs):
-        super(DiscoverQuerySerializer, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         data = kwargs["data"]
 
@@ -242,7 +242,7 @@ class KeyTransactionSerializer(serializers.Serializer):
     transaction = serializers.CharField(required=True, max_length=200)
 
     def validate(self, data):
-        data = super(KeyTransactionSerializer, self).validate(data)
+        data = super().validate(data)
         base_filter = self.context.copy()
         # Limit the number of key transactions
         if KeyTransaction.objects.filter(**base_filter).count() >= MAX_KEY_TRANSACTIONS:

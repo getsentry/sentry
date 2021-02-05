@@ -5,7 +5,7 @@ import types
 from sentry.utils.cache import memoize
 
 
-class Param(object):
+class Param:
     """
     Argument declarations for Mediators.
 

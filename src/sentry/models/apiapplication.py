@@ -24,7 +24,7 @@ def generate_token():
     return uuid4().hex + uuid4().hex
 
 
-class ApiApplicationStatus(object):
+class ApiApplicationStatus:
     active = 0
     inactive = 1
     pending_deletion = 2

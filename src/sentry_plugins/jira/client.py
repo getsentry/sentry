@@ -36,7 +36,7 @@ class JiraClient(ApiClient):
         self.base_url = instance_uri.rstrip("/")
         self.username = username
         self.password = password
-        super(JiraClient, self).__init__(verify_ssl=False)
+        super().__init__(verify_ssl=False)
 
     def request(self, method, path, data=None, params=None):
         if self.username and self.password:

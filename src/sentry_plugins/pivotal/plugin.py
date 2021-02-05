@@ -50,7 +50,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
     ]
 
     def get_group_urls(self):
-        return super(PivotalPlugin, self).get_group_urls() + [
+        return super().get_group_urls() + [
             url(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),

@@ -11,7 +11,7 @@ from ..base import ExportError
 logger = logging.getLogger(__name__)
 
 
-class DiscoverProcessor(object):
+class DiscoverProcessor:
     """
     Processor for exports of discover data based on a provided query
     """

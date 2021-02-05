@@ -14,7 +14,7 @@ class TwilioApiClient(ApiClient):
         self.auth_token = auth_token
         self.sms_from = sms_from
         self.sms_to = sms_to
-        super(TwilioApiClient, self).__init__()
+        super().__init__()
 
     def basic_auth(self, user, password):
         return b"Basic " + b64encode(force_bytes(user + ":" + password))

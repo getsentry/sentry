@@ -14,7 +14,7 @@ from sentry.db.models import (
 )
 
 
-class OnboardingTask(object):
+class OnboardingTask:
     FIRST_PROJECT = 1
     FIRST_EVENT = 2
     INVITE_MEMBER = 3
@@ -28,7 +28,7 @@ class OnboardingTask(object):
     FIRST_TRANSACTION = 11
 
 
-class OnboardingTaskStatus(object):
+class OnboardingTaskStatus:
     COMPLETE = 1
     PENDING = 2
     SKIPPED = 3

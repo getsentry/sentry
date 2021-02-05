@@ -1,4 +1,4 @@
-class ConsumerType(object):
+class ConsumerType:
     """
     Defines the types of ingestion consumers
     """

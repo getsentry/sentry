@@ -22,14 +22,14 @@ class ArrayField(models.Field):
         # corresponds to `NOT NULL`)
         kwargs["null"] = True
 
-        super(ArrayField, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def contribute_to_class(self, cls, name):
         """
         Add a descriptor for backwards compatibility
         with previous Django behavior.
         """
-        super(ArrayField, self).contribute_to_class(cls, name)
+        super().contribute_to_class(cls, name)
         setattr(cls, name, Creator(self))
 
     def db_type(self, connection):

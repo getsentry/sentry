@@ -49,7 +49,7 @@ class VercelWebhookEndpoint(Endpoint):
 
     @csrf_exempt
     def dispatch(self, request, *args, **kwargs):
-        return super(VercelWebhookEndpoint, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     # given the webhook payload and sentry_project_id, return
     # the payload we use for generating the release with the token

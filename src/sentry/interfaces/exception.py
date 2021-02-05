@@ -456,5 +456,4 @@ class Exception(Interface):
 
         mechanism = self.values[0].mechanism
         if mechanism:
-            for tag in mechanism.iter_tags():
-                yield tag
+            yield from mechanism.iter_tags()

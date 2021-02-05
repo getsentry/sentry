@@ -13,7 +13,7 @@ ERR_CACHE_MISISNG = "Cache not populated for instance id=%s"
 
 class GroupMetaManager(BaseManager):
     def __init__(self, *args, **kwargs):
-        super(GroupMetaManager, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.__local_cache = threading.local()
 
     def __getstate__(self):
@@ -37,7 +37,7 @@ class GroupMetaManager(BaseManager):
 
     def contribute_to_class(self, model, name):
         model.CacheNotPopulated = CacheNotPopulated
-        super(GroupMetaManager, self).contribute_to_class(model, name)
+        super().contribute_to_class(model, name)
         task_postrun.connect(self.clear_local_cache)
         request_finished.connect(self.clear_local_cache)
 

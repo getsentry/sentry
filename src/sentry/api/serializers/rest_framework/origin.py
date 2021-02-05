@@ -8,7 +8,7 @@ class OriginField(serializers.CharField):
     WHITELIST_ORIGINS = "*"
 
     def to_internal_value(self, data):
-        rv = super(OriginField, self).to_internal_value(data)
+        rv = super().to_internal_value(data)
         if not rv:
             return
         if not self.is_valid_origin(rv):

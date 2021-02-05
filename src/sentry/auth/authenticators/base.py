@@ -6,7 +6,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.utils.otp import generate_secret_key, TOTP
 
 
-class ActivationResult(object):
+class ActivationResult:
     type = None
 
 
@@ -24,7 +24,7 @@ class ActivationChallengeResult(ActivationResult):
         self.challenge = challenge
 
 
-class AuthenticatorInterface(object):
+class AuthenticatorInterface:
     type = -1
     interface_id = None
     name = None
@@ -128,7 +128,7 @@ class AuthenticatorInterface(object):
         return False
 
 
-class OtpMixin(object):
+class OtpMixin:
     def generate_new_config(self):
         return {"secret": generate_secret_key()}
 

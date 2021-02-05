@@ -20,7 +20,7 @@ class TrelloApiClient(ApiClient):
     def __init__(self, api_key, token=None, **kwargs):
         self.api_key = api_key
         self.token = token
-        super(TrelloApiClient, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def request(self, method="GET", path="", data=None, params=None, **kwargs):
         params = {} if params is None else params.copy()

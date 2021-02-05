@@ -9,7 +9,7 @@ from sentry.shared_integrations.exceptions import ApiError
 logger = logging.getLogger("sentry.integrations.bitbucket_server")
 
 
-class BitbucketServerAPIPath(object):
+class BitbucketServerAPIPath:
     """
     project is the short key of the project
     repo is the fully qualified slug
@@ -101,7 +101,7 @@ class BitbucketServer(ApiClient):
     integration_name = "bitbucket_server"
 
     def __init__(self, base_url, credentials, verify_ssl):
-        super(BitbucketServer, self).__init__(verify_ssl)
+        super().__init__(verify_ssl)
 
         self.base_url = base_url
         self.credentials = credentials

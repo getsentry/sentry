@@ -23,7 +23,7 @@ class VercelClient(ApiClient):
     DELETE_ENV_VAR_URL = "/v4/projects/%s/env/%s"
 
     def __init__(self, access_token, team_id=None):
-        super(VercelClient, self).__init__()
+        super().__init__()
         self.access_token = access_token
         self.team_id = team_id
 

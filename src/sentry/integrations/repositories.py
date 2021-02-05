@@ -4,7 +4,7 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry_sdk import configure_scope
 
 
-class RepositoryMixin(object):
+class RepositoryMixin:
     # whether or not integration has the ability to search through Repositories
     # dynamically given a search query
     repo_search = False

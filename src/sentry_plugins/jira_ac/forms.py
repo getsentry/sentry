@@ -7,5 +7,5 @@ class JiraConfigForm(forms.Form):
     )
 
     def __init__(self, organizations, *args, **kwargs):
-        super(JiraConfigForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.fields["organization"].choices = organizations

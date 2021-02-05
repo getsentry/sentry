@@ -101,7 +101,7 @@ class VstsIssueSync(IssueSyncMixin):
         kwargs["link_referrer"] = "vsts_integration"
         fields = []
         if group:
-            fields = super(VstsIssueSync, self).get_create_issue_config(group, user, **kwargs)
+            fields = super().get_create_issue_config(group, user, **kwargs)
             # Azure/VSTS has BOTH projects and repositories. A project can have many repositories.
             # Workitems (issues) are associated with the project not the repository.
         default_project, project_choices = self.get_project_choices(group, **kwargs)
@@ -136,7 +136,7 @@ class VstsIssueSync(IssueSyncMixin):
         ] + fields
 
     def get_link_issue_config(self, group, **kwargs):
-        fields = super(VstsIssueSync, self).get_link_issue_config(group, **kwargs)
+        fields = super().get_link_issue_config(group, **kwargs)
         org = group.organization
         autocomplete_url = reverse("sentry-extensions-vsts-search", args=[org.slug, self.model.id])
         for field in fields:

@@ -16,7 +16,7 @@ class MissingAttachmentChunks(Exception):
     pass
 
 
-class CachedAttachment(object):
+class CachedAttachment:
     def __init__(
         self,
         key=None,
@@ -97,7 +97,7 @@ class CachedAttachment(object):
         )
 
 
-class BaseAttachmentCache(object):
+class BaseAttachmentCache:
     def __init__(self, inner):
         self.inner = inner
 

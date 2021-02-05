@@ -92,7 +92,7 @@ def attach_state(project, groups, rules, event_counts, user_counts):
     return {"project": project, "groups": groups, "rules": rules}
 
 
-class Pipeline(object):
+class Pipeline:
     def __init__(self):
         self.operations = []
 

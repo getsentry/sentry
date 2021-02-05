@@ -80,7 +80,7 @@ class ServiceHook(Model):
             return
 
     def __init__(self, *args, **kwargs):
-        super(ServiceHook, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         if self.guid is None:
             self.guid = uuid4().hex
 

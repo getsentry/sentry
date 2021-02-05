@@ -13,7 +13,7 @@ TRIGGER_TASKS = set(
 )
 
 
-class SplitQueueRouter(object):
+class SplitQueueRouter:
     def __init__(self):
         queues = current_app.conf["CELERY_QUEUES"]
         self.counter_queues = itertools.cycle(

@@ -473,8 +473,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         pass
 
 
-@six.add_metaclass(PluginMount)
-class Plugin2(IPlugin2):
+class Plugin2(IPlugin2, metaclass=PluginMount):
     """
     A plugin should be treated as if it were a singleton. The owner does not
     control when or how the plugin gets instantiated, nor is it guaranteed that

@@ -42,7 +42,7 @@ class ActionTargetType(Enum):
     MEMBER = "Member"
 
 
-class MailAdapter(object):
+class MailAdapter:
     """
     This class contains generic logic for notifying users via Email.
     """

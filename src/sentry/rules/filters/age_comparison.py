@@ -6,7 +6,7 @@ from django.utils import timezone
 from sentry.rules.filters.base import EventFilter
 
 
-class AgeComparisonType(object):
+class AgeComparisonType:
     OLDER = "older"
     NEWER = "newer"
 

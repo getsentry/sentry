@@ -9,7 +9,7 @@ class GitLabClient(ApiClient):
     plugin_name = "gitlab"
 
     def __init__(self, url, token):
-        super(GitLabClient, self).__init__()
+        super().__init__()
         self.base_url = url
         self.token = token
 

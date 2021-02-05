@@ -2,7 +2,7 @@ from sentry import http
 from sentry.utils import json
 
 
-class RedmineClient(object):
+class RedmineClient:
     def __init__(self, host, key):
         self.host = host.rstrip("/")
         self.key = key

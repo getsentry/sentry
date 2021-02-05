@@ -1,4 +1,4 @@
-class PluginService(object):
+class PluginService:
     def __init__(self, obj):
         self.service = obj
 
@@ -17,7 +17,7 @@ class PluginService(object):
 
 class LegacyPluginService(PluginService):
     def __init__(self, obj):
-        super(LegacyPluginService, self).__init__(obj)
+        super().__init__(obj)
         self.service = obj
 
     @property
@@ -27,7 +27,7 @@ class LegacyPluginService(PluginService):
 
 class SentryAppService(PluginService):
     def __init__(self, obj):
-        super(SentryAppService, self).__init__(obj)
+        super().__init__(obj)
         self.service = obj
 
     @property

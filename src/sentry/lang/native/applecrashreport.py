@@ -11,7 +11,7 @@ from sentry.utils.compat import map
 REPORT_VERSION = "104"
 
 
-class AppleCrashReport(object):
+class AppleCrashReport:
     def __init__(
         self, threads=None, context=None, debug_images=None, symbolicated=False, exceptions=None
     ):

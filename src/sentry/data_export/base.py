@@ -18,7 +18,7 @@ class ExportStatus(six.text_type, Enum):
     Expired = "EXPIRED"  # The download has been deleted
 
 
-class ExportQueryType(object):
+class ExportQueryType:
     ISSUES_BY_TAG = 0
     DISCOVER = 1
     ISSUES_BY_TAG_STR = "Issues-by-Tag"

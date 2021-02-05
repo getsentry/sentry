@@ -14,7 +14,7 @@ from sentry.utils.cache import cache
 
 
 # TODO(dcramer): pull in enum library
-class RuleStatus(object):
+class RuleStatus:
     ACTIVE = 0
     INACTIVE = 1
     PENDING_DELETION = 2
@@ -70,13 +70,13 @@ class Rule(Model):
         return None
 
     def delete(self, *args, **kwargs):
-        rv = super(Rule, self).delete(*args, **kwargs)
+        rv = super().delete(*args, **kwargs)
         cache_key = "project:{}:rules".format(self.project_id)
         cache.delete(cache_key)
         return rv
 
     def save(self, *args, **kwargs):
-        rv = super(Rule, self).save(*args, **kwargs)
+        rv = super().save(*args, **kwargs)
         cache_key = "project:{}:rules".format(self.project_id)
         cache.delete(cache_key)
         return rv

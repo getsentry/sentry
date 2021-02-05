@@ -72,7 +72,7 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
     repo_search = True
 
     def __init__(self, *args, **kwargs):
-        super(GitlabIntegration, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.default_identity = None
 
     def get_group_id(self):

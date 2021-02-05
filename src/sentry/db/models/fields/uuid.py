@@ -56,7 +56,7 @@ class UUIDField(models.Field):
         kwargs["max_length"] = 32
 
         # Now pass the rest of the work to CharField.
-        super(UUIDField, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def db_type(self, connection):
         return "uuid"
@@ -96,10 +96,10 @@ class UUIDField(models.Field):
             return uuid_value
 
         # This is the standard case; just use the superclass logic.
-        return super(UUIDField, self).pre_save(instance, add)
+        return super().pre_save(instance, add)
 
     def contribute_to_class(self, cls, name):
-        super(UUIDField, self).contribute_to_class(cls, name)
+        super().contribute_to_class(cls, name)
         setattr(cls, name, Creator(self))
 
     def to_python(self, value):
@@ -118,7 +118,7 @@ class UUIDField(models.Field):
         return "%s:%s" % (self._auto_add.__module__, self._auto_add.__name__)
 
 
-class UUIDAdapter(object):
+class UUIDAdapter:
     def __init__(self, value):
         if not isinstance(value, UUID):
             raise TypeError("UUIDAdapter only understands UUID objects.")

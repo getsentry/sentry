@@ -1,4 +1,4 @@
-class SecurityHeadersMiddleware(object):
+class SecurityHeadersMiddleware:
     """
     Ensure that we have proper security headers set
     """

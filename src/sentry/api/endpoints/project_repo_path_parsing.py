@@ -34,7 +34,7 @@ class PathMappingSerializer(CamelSnakeSerializer):
     source_url = serializers.URLField()
 
     def __init__(self, *args, **kwargs):
-        super(PathMappingSerializer, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.integration = None
         self.repo = None
 

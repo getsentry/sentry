@@ -2,7 +2,7 @@ import mmh3
 from sentry.utils.compat import map
 
 
-class MinHashSignatureBuilder(object):
+class MinHashSignatureBuilder:
     def __init__(self, columns, rows):
         self.columns = columns
         self.rows = rows

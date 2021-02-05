@@ -26,7 +26,7 @@ class SmsInterface(OtpMixin, AuthenticatorInterface):
         return sms_available()
 
     def generate_new_config(self):
-        config = super(SmsInterface, self).generate_new_config()
+        config = super().generate_new_config()
         config["phone_number"] = None
         return config
 

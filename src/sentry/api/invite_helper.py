@@ -42,7 +42,7 @@ def get_invite_cookie(request):
     return invite_data
 
 
-class ApiInviteHelper(object):
+class ApiInviteHelper:
     @classmethod
     def from_cookie_or_email(cls, request, organization, email, instance=None, logger=None):
         """

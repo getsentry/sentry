@@ -10,4 +10,4 @@ class DefaultEventProcessingStore(BaseEventProcessingStore):
     """
 
     def __init__(self, **options):
-        super(DefaultEventProcessingStore, self).__init__(inner=default_cache, **options)
+        super().__init__(inner=default_cache, **options)

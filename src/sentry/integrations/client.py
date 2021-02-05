@@ -15,7 +15,7 @@ class ApiClient(BaseApiClient):
     integration_name = "undefined"
 
 
-class OAuth2RefreshMixin(object):
+class OAuth2RefreshMixin:
     def check_auth(self, *args, **kwargs):
         """
         Checks if auth is expired and if so refreshes it

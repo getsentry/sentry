@@ -11,7 +11,7 @@ from sentry.db.models import (
 )
 
 
-class TypesClass(object):
+class TypesClass:
     TYPES = []
 
     @classmethod

@@ -120,7 +120,7 @@ def add_unsubscribe_link(context):
 
 
 # TODO(dcramer): use https://github.com/disqus/django-mailviews
-class MailPreview(object):
+class MailPreview:
     def __init__(self, html_template, text_template, context=None, subject=None):
         self.html_template = html_template
         self.text_template = text_template
@@ -145,7 +145,7 @@ class MailPreview(object):
         )
 
 
-class ActivityMailPreview(object):
+class ActivityMailPreview:
     def __init__(self, request, activity):
         self.request = request
         self.email = emails.get(activity.type)(activity)

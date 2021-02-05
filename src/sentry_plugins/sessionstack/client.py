@@ -19,7 +19,7 @@ SESSION_URL_PATH = "/#/sessions/"
 MILLISECONDS_BEFORE_EVENT = 5000
 
 
-class SessionStackClient(object):
+class SessionStackClient:
     def __init__(self, account_email, api_token, website_id, **kwargs):
         self.website_id = website_id
 

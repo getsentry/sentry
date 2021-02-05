@@ -52,7 +52,7 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
     new_issue_form = RedmineNewIssueForm
 
     def __init__(self):
-        super(RedminePlugin, self).__init__()
+        super().__init__()
         self.client_errors = []
         self.fields = []
 
@@ -232,7 +232,7 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
         return self.fields
 
     def validate_config(self, project, config, actor):
-        super(RedminePlugin, self).validate_config(project, config, actor)
+        super().validate_config(project, config, actor)
         self.client_errors = []
 
         for field in self.fields:

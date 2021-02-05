@@ -69,6 +69,6 @@ class GroupEnvironmentWithStatsSerializer(EnvironmentSerializer):
         return attrs
 
     def serialize(self, obj, attrs, user):
-        result = super(GroupEnvironmentWithStatsSerializer, self).serialize(obj, attrs, user)
+        result = super().serialize(obj, attrs, user)
         result["stats"] = attrs["stats"]
         return result

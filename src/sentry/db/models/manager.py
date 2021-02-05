@@ -89,7 +89,7 @@ class BaseManager(Manager):
         self.cache_ttl = kwargs.pop("cache_ttl", 60 * 5)
         self._cache_version = kwargs.pop("cache_version", None)
         self.__local_cache = threading.local()
-        super(BaseManager, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     @staticmethod
     @contextmanager
@@ -260,7 +260,7 @@ class BaseManager(Manager):
         return getattr(instance, field.attname)
 
     def contribute_to_class(self, model, name):
-        super(BaseManager, self).contribute_to_class(model, name)
+        super().contribute_to_class(model, name)
         class_prepared.connect(self.__class_prepared, sender=model)
 
     def get_from_cache(self, **kwargs):
@@ -484,7 +484,7 @@ class OptionManager(BaseManager):
         self._option_cache.clear()
 
     def contribute_to_class(self, model, name):
-        super(OptionManager, self).contribute_to_class(model, name)
+        super().contribute_to_class(model, name)
         task_postrun.connect(self.clear_local_cache)
         request_finished.connect(self.clear_local_cache)
 

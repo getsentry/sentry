@@ -41,7 +41,7 @@ class IntegrationConfigSerializer(IntegrationSerializer):
         self.params = params or {}
 
     def serialize(self, obj, attrs, user, include_config=True):
-        data = super(IntegrationConfigSerializer, self).serialize(obj, attrs, user)
+        data = super().serialize(obj, attrs, user)
 
         if not include_config:
             return data
@@ -143,7 +143,7 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
         self.params = params
 
     def serialize(self, obj, attrs, user, organization_id=None):
-        data = super(IntegrationIssueConfigSerializer, self).serialize(obj, attrs, user)
+        data = super().serialize(obj, attrs, user)
         installation = obj.get_installation(organization_id)
 
         if self.action == "link":
@@ -195,6 +195,6 @@ class IntegrationIssueSerializer(IntegrationSerializer):
         }
 
     def serialize(self, obj, attrs, user):
-        data = super(IntegrationIssueSerializer, self).serialize(obj, attrs, user)
+        data = super().serialize(obj, attrs, user)
         data["externalIssues"] = attrs.get("external_issues", [])
         return data

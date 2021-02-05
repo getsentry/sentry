@@ -83,7 +83,7 @@ class MonitorStatus(ObjectStatus):
         )
 
 
-class MonitorType(object):
+class MonitorType:
     UNKNOWN = 0
     HEALTH_CHECK = 1
     HEARTBEAT = 2
@@ -103,13 +103,13 @@ class MonitorType(object):
         return dict(cls.as_choices())[value]
 
 
-class MonitorFailure(object):
+class MonitorFailure:
     UNKNOWN = "unknown"
     MISSED_CHECKIN = "missed_checkin"
     DURATION = "duration"
 
 
-class ScheduleType(object):
+class ScheduleType:
     UNKNOWN = 0
     CRONTAB = 1
     INTERVAL = 2

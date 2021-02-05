@@ -65,7 +65,7 @@ metadata = IntegrationMetadata(
 
 class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
     def __init__(self, *args, **kwargs):
-        super(AwsLambdaIntegration, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._client = None
 
     @property

@@ -43,7 +43,7 @@ class OrganizationUserPermission(UserPermission):
             return False
 
     def has_object_permission(self, request, view, user=None):
-        if super(OrganizationUserPermission, self).has_object_permission(request, view, user):
+        if super().has_object_permission(request, view, user):
             return True
         return self.has_org_permission(request, user)
 

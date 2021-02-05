@@ -74,7 +74,7 @@ def _password_validators_help_text_html(password_validators=None):
 password_validators_help_text_html = lazy(_password_validators_help_text_html, text_type)
 
 
-class MinimumLengthValidator(object):
+class MinimumLengthValidator:
     """
     Validate whether the password is of a minimum length.
     """
@@ -105,7 +105,7 @@ class MinimumLengthValidator(object):
         )
 
 
-class MaximumLengthValidator(object):
+class MaximumLengthValidator:
     """
     Validate whether the password is of a maximum length.
     """
@@ -136,7 +136,7 @@ class MaximumLengthValidator(object):
         )
 
 
-class NumericPasswordValidator(object):
+class NumericPasswordValidator:
     """
     Validate whether the password is alphanumeric.
     """

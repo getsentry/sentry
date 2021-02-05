@@ -3,7 +3,7 @@ import six
 import traceback
 
 
-class CompositeTraceback(object):
+class CompositeTraceback:
     def __init__(self, tb_list):
         assert isinstance(tb_list, (list, tuple))
         self.__tb_list = tb_list

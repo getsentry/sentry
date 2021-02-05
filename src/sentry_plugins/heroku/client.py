@@ -5,4 +5,4 @@ class HerokuApiClient(InternalApiClient):
     plugin_name = "heroku"
 
     def __init__(self):
-        super(HerokuApiClient, self).__init__()
+        super().__init__()

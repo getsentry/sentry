@@ -34,7 +34,7 @@ class RedisQuota(Quota):
         #  - true: `cluster` is a `RedisCluster`. It automatically dispatches to
         #    the correct node and can be used as a client directly.
 
-        super(RedisQuota, self).__init__(**options)
+        super().__init__(**options)
         self.namespace = "quota"
 
     def validate(self):

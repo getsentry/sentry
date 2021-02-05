@@ -176,7 +176,7 @@ class S3Boto3StorageFile(File):
     def read(self, *args, **kwargs):
         if "r" not in self._mode:
             raise AttributeError("File was not opened in read mode.")
-        return super(S3Boto3StorageFile, self).read(*args, **kwargs)
+        return super().read(*args, **kwargs)
 
     def write(self, content):
         if "w" not in self._mode:
@@ -195,7 +195,7 @@ class S3Boto3StorageFile(File):
             self._multipart = self.obj.initiate_multipart_upload(**parameters)
         if self.buffer_size <= self._buffer_file_size:
             self._flush_write_buffer()
-        return super(S3Boto3StorageFile, self).write(force_bytes(content))
+        return super().write(force_bytes(content))
 
     @property
     def _buffer_file_size(self):
@@ -654,4 +654,4 @@ class S3Boto3Storage(Storage):
         if self.file_overwrite:
             name = self._clean_name(name)
             return name
-        return super(S3Boto3Storage, self).get_available_name(name, max_length)
+        return super().get_available_name(name, max_length)

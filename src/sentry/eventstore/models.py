@@ -30,7 +30,7 @@ def ref_func(x):
     return x.project_id or x.project.id
 
 
-class Event(object):
+class Event:
     """
     Event backed by nodestore and Snuba.
     """
@@ -487,7 +487,7 @@ class EventSubjectTemplate(string.Template):
     idpattern = r"(tag:)?[_a-z][_a-z0-9]*"
 
 
-class EventSubjectTemplateData(object):
+class EventSubjectTemplateData:
     tag_aliases = {"release": "sentry:release", "dist": "sentry:dist", "user": "sentry:user"}
 
     def __init__(self, event):

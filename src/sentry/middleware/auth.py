@@ -35,7 +35,7 @@ def get_user(request):
     return request._cached_user
 
 
-class AuthenticationMiddleware(object):
+class AuthenticationMiddleware:
     def process_request(self, request):
         request.user_from_signed_request = False
 

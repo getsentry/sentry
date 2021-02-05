@@ -57,6 +57,6 @@ class DetailedAlertRuleTriggerSerializer(AlertRuleTriggerSerializer):
         return result
 
     def serialize(self, obj, attrs, user):
-        data = super(DetailedAlertRuleTriggerSerializer, self).serialize(obj, attrs, user)
+        data = super().serialize(obj, attrs, user)
         data["excludedProjects"] = sorted(attrs.get("excludedProjects", []))
         return data

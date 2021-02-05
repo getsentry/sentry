@@ -120,4 +120,4 @@ class GitHubClientMixin(ApiClient):
 class GitHubAppsClient(GitHubClientMixin):
     def __init__(self, integration):
         self.integration = integration
-        super(GitHubAppsClient, self).__init__()
+        super().__init__()

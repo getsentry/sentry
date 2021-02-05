@@ -41,7 +41,7 @@ def separate_resolved_actors(actors):
     return {"users": users, "teams": teams}
 
 
-class MentionsMixin(object):
+class MentionsMixin:
     def validate_mentions(self, mentions):
         if mentions and "projects" in self.context:
 

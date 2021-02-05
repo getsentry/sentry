@@ -15,4 +15,4 @@ class UserAvatarEndpoint(AvatarMixin, UserEndpoint):
         if user != request.user:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        return super(UserAvatarEndpoint, self).put(request, **kwargs)
+        return super().put(request, **kwargs)

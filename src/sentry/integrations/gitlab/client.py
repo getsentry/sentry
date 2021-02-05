@@ -9,7 +9,7 @@ from six.moves.urllib.parse import quote
 API_VERSION = "/api/v4"
 
 
-class GitLabApiClientPath(object):
+class GitLabApiClientPath:
     oauth_token = "/oauth/token"
     commit = "/projects/{project}/repository/commits/{sha}"
     commits = "/projects/{project}/repository/commits"
@@ -75,7 +75,7 @@ class GitLabApiClient(ApiClient):
         self.installation = installation
         verify_ssl = self.metadata["verify_ssl"]
         self.is_refreshing_token = False
-        super(GitLabApiClient, self).__init__(verify_ssl)
+        super().__init__(verify_ssl)
 
     @property
     def identity(self):

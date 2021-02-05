@@ -23,4 +23,4 @@ class AzureDevopsCreateTicketAction(TicketEventAction):
 
     @transaction_start("AzureDevopsCreateTicketAction.after")
     def after(self, event, state):
-        yield super(AzureDevopsCreateTicketAction, self).after(event, state)
+        yield super().after(event, state)

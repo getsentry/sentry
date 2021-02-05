@@ -32,7 +32,7 @@ BITBUCKET_IP_RANGES = (
 BITBUCKET_IPS = ["34.198.203.127", "34.198.178.64", "34.198.32.85"]
 
 
-class Webhook(object):
+class Webhook:
     def __call__(self, organization, event):
         raise NotImplementedError
 
@@ -116,7 +116,7 @@ class BitbucketWebhookEndpoint(View):
         if request.method != "POST":
             return HttpResponse(status=405)
 
-        return super(BitbucketWebhookEndpoint, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     def post(self, request, organization_id):
         try:

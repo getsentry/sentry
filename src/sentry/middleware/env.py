@@ -3,7 +3,7 @@ from django.core.signals import request_finished
 from sentry.app import env
 
 
-class SentryEnvMiddleware(object):
+class SentryEnvMiddleware:
     def process_request(self, request):
         # bind request to env
         env.request = request

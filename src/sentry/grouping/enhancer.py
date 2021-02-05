@@ -111,7 +111,7 @@ class InvalidEnhancerConfig(Exception):
     pass
 
 
-class Match(object):
+class Match:
     def __init__(self, key, pattern, negated=False):
         try:
             self.key = MATCHERS[key]
@@ -200,7 +200,7 @@ class Match(object):
         return cls(key, arg, negated)
 
 
-class Action(object):
+class Action:
     def apply_modifications_to_frame(self, frames, idx):
         pass
 
@@ -299,7 +299,7 @@ class VarAction(Action):
         state.set(self.var, self.value, rule)
 
 
-class StacktraceState(object):
+class StacktraceState:
     def __init__(self):
         self.vars = {"max-frames": 0, "min-frames": 0}
         self.setters = {}
@@ -324,7 +324,7 @@ class StacktraceState(object):
         return "%s by stack trace rule (%s)" % (hint, description)
 
 
-class Enhancements(object):
+class Enhancements:
     def __init__(self, rules, changelog=None, version=None, bases=None, id=None):
         self.id = id
         self.rules = rules
@@ -432,10 +432,8 @@ class Enhancements(object):
         for base in self.bases:
             base = ENHANCEMENT_BASES.get(base)
             if base:
-                for rule in base.iter_rules():
-                    yield rule
-        for rule in self.rules:
-            yield rule
+                yield from base.iter_rules()
+        yield from self.rules
 
     @classmethod
     def _from_config_structure(cls, data):
@@ -472,7 +470,7 @@ class Enhancements(object):
         return EnhancmentsVisitor(bases, id).visit(tree)
 
 
-class Rule(object):
+class Rule:
     def __init__(self, matchers, actions):
         self.matchers = matchers
         self.actions = actions

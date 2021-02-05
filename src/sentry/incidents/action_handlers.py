@@ -1,6 +1,5 @@
 import abc
 
-import six
 from django.core.urlresolvers import reverse
 from django.template.defaultfilters import pluralize
 
@@ -17,8 +16,7 @@ from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 
 
-@six.add_metaclass(abc.ABCMeta)
-class ActionHandler(object):
+class ActionHandler(metaclass=abc.ABCMeta):
     status_display = {TriggerStatus.ACTIVE: "Fired", TriggerStatus.RESOLVED: "Resolved"}
 
     def __init__(self, action, incident, project):

@@ -4,7 +4,7 @@ import six
 from sentry.utils.compat import map
 
 
-class Encoder(object):
+class Encoder:
     try:
         number_types = (int, long, float)  # noqa
     except NameError:

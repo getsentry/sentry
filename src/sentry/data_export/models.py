@@ -72,7 +72,7 @@ class ExportedData(Model):
 
     def delete(self, *args, **kwargs):
         self.delete_file()
-        super(ExportedData, self).delete(*args, **kwargs)
+        super().delete(*args, **kwargs)
 
     def finalize_upload(self, file, expiration=DEFAULT_EXPIRATION):
         self.delete_file()  # If a file is present, remove it

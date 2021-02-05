@@ -14,7 +14,7 @@ class PluginManager(InstanceManager):
         return sum(1 for i in self.all())
 
     def all(self, version=1):
-        for plugin in sorted(super(PluginManager, self).all(), key=lambda x: x.get_title()):
+        for plugin in sorted(super().all(), key=lambda x: x.get_title()):
             if not plugin.is_enabled():
                 continue
             if version is not None and plugin.__version__ != version:

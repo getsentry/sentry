@@ -1,7 +1,7 @@
 import six
 
 
-class ExperimentManager(object):
+class ExperimentManager:
     """
     Allows loading of experiment assignments (done in getsentry) on the frontend by
     including them in the serialized org details via the org serializer which is in sentry.

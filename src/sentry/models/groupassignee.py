@@ -228,7 +228,7 @@ class GroupAssignee(Model):
         assert not (self.user_id is not None and self.team_id is not None) and not (
             self.user_id is None and self.team_id is None
         ), "Must have Team or User, not both"
-        super(GroupAssignee, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def assigned_actor_id(self):
         if self.user:

@@ -20,7 +20,7 @@ class JiraCreateTicketAction(TicketEventAction):
     integration_key = "integration"
 
     def clean(self):
-        cleaned_data = super(JiraCreateTicketAction, self).clean()
+        cleaned_data = super().clean()
 
         integration = cleaned_data.get(self.integration_key)
         try:
@@ -53,4 +53,4 @@ class JiraCreateTicketAction(TicketEventAction):
     @transaction_start("JiraCreateTicketAction.after")
     def after(self, event, state):
         self.fix_data_for_issue()
-        yield super(JiraCreateTicketAction, self).after(event, state)
+        yield super().after(event, state)

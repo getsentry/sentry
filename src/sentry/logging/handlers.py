@@ -46,12 +46,12 @@ throwaways = frozenset(
 )
 
 
-class JSONRenderer(object):
+class JSONRenderer:
     def __call__(self, logger, name, event_dict):
         return _default_encoder(event_dict)
 
 
-class HumanRenderer(object):
+class HumanRenderer:
     def __call__(self, logger, name, event_dict):
         level = event_dict.pop("level")
         real_level = (

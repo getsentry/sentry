@@ -19,7 +19,7 @@ class ApiError(Exception):
         return "<ApiError: {}>".format(self)
 
 
-class ApiClient(object):
+class ApiClient:
     prefix = "/api/0"
 
     ApiError = ApiError
