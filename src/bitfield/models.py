@@ -10,7 +10,7 @@ from bitfield.types import Bit, BitHandler
 MAX_FLAG_COUNT = int(len(bin(BigIntegerField.MAX_BIGINT)) - 2)
 
 
-class BitFieldFlags(object):
+class BitFieldFlags:
     def __init__(self, flags):
         if len(flags) > MAX_FLAG_COUNT:
             raise ValueError("Too many flags")
@@ -52,7 +52,7 @@ class BitFieldFlags(object):
         return list(self.itervalues())  # NOQA
 
 
-class BitFieldCreator(object):
+class BitFieldCreator:
     """
     A placeholder class that provides a way to set the attribute on the model.
     Descriptor for BitFields.  Checks to make sure that all flags of the

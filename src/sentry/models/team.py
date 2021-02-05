@@ -87,7 +87,7 @@ class TeamManager(BaseManager):
 
 
 # TODO(dcramer): pull in enum library
-class TeamStatus(object):
+class TeamStatus:
     VISIBLE = 0
     PENDING_DELETION = 1
     DELETION_IN_PROGRESS = 2

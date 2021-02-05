@@ -115,7 +115,7 @@ def get_group_with_redirect(id_or_qualified_short_id, queryset=None, organizatio
 
 
 # TODO(dcramer): pull in enum library
-class GroupStatus(object):
+class GroupStatus:
     UNRESOLVED = 0
     RESOLVED = 1
     IGNORED = 2

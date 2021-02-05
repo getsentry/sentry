@@ -25,7 +25,7 @@ def _calculate_contributes(values):
     return False
 
 
-class GroupingComponent(object):
+class GroupingComponent:
     """A grouping component is a recursive structure that is flattened
     into components to make a hash for grouping purposes.
     """

@@ -52,7 +52,7 @@ def clean_bad_params(params):
     return params
 
 
-class CursorWrapper(object):
+class CursorWrapper:
     """
     A wrapper around the postgresql_psycopg2 backend which handles various events
     from cursors, such as auto reconnects and lazy time zone evaluation.

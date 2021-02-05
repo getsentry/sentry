@@ -12,7 +12,7 @@ from sentry.models import Repository, Integration
 from sentry.signals import repo_linked
 
 
-class IntegrationRepositoryProvider(object):
+class IntegrationRepositoryProvider:
     """
     Repository Provider for Integrations in the Sentry Repository.
     Does not include plugins.

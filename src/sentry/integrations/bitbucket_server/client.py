@@ -9,7 +9,7 @@ from sentry.shared_integrations.exceptions import ApiError
 logger = logging.getLogger("sentry.integrations.bitbucket_server")
 
 
-class BitbucketServerAPIPath(object):
+class BitbucketServerAPIPath:
     """
     project is the short key of the project
     repo is the fully qualified slug

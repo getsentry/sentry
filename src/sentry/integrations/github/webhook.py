@@ -30,7 +30,7 @@ from .repository import GitHubRepositoryProvider
 logger = logging.getLogger("sentry.webhooks")
 
 
-class Webhook(object):
+class Webhook:
     provider = "github"
 
     def _handle(self, integration, event, organization, repo):

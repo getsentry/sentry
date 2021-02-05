@@ -189,7 +189,7 @@ class ScoreClause(Func):
         return (sql, [])
 
 
-class EventManager(object):
+class EventManager:
     """
     Handles normalization in both the store endpoint and the save task. The
     intention is to swap this class out with a reimplementation in Rust.

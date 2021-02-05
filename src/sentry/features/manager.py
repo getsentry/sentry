@@ -9,7 +9,7 @@ from .base import Feature
 from .exceptions import FeatureNotRegistered
 
 
-class RegisteredFeatureManager(object):
+class RegisteredFeatureManager:
     """
     Feature functions that are built around the need to register feature
     handlers
@@ -206,7 +206,7 @@ class FeatureManager(RegisteredFeatureManager):
             return None
 
 
-class FeatureCheckBatch(object):
+class FeatureCheckBatch:
     """
     A batch of objects to be checked for a feature flag.
 

@@ -7,7 +7,7 @@ from sentry.web.helpers import render_to_response
 from sentry.web.frontend.base import BaseView, OrganizationView
 
 
-class ReactMixin(object):
+class ReactMixin:
     def handle_react(self, request):
         context = {"CSRF_COOKIE_NAME": settings.CSRF_COOKIE_NAME}
 

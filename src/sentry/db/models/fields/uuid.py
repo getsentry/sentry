@@ -118,7 +118,7 @@ class UUIDField(models.Field):
         return "%s:%s" % (self._auto_add.__module__, self._auto_add.__name__)
 
 
-class UUIDAdapter(object):
+class UUIDAdapter:
     def __init__(self, value):
         if not isinstance(value, UUID):
             raise TypeError("UUIDAdapter only understands UUID objects.")

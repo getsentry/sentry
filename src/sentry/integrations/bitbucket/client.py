@@ -12,7 +12,7 @@ from sentry.integrations.client import ApiClient
 BITBUCKET_KEY = "%s.bitbucket" % urlparse(absolute_uri()).hostname
 
 
-class BitbucketAPIPath(object):
+class BitbucketAPIPath:
     """
     All UUID's must be surrounded by curlybraces.
 

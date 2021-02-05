@@ -17,7 +17,7 @@ ISSUE_KEY_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*-\d+$")
 CUSTOMFIELD_PREFIX = "customfield_"
 
 
-class JiraCloud(object):
+class JiraCloud:
     """
     Contains the jira-cloud specifics that a JiraClient needs
     in order to communicate with jira

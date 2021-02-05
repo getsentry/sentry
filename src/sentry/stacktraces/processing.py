@@ -24,7 +24,7 @@ StacktraceInfo.__eq__ = lambda a, b: a is b
 StacktraceInfo.__ne__ = lambda a, b: a is not b
 
 
-class ProcessableFrame(object):
+class ProcessableFrame:
     def __init__(self, frame, idx, processor, stacktrace_info, processable_frames):
         self.frame = frame
         self.idx = idx
@@ -81,7 +81,7 @@ class ProcessableFrame(object):
         return rv
 
 
-class StacktraceProcessingTask(object):
+class StacktraceProcessingTask:
     def __init__(self, processable_stacktraces, processors):
         self.processable_stacktraces = processable_stacktraces
         self.processors = processors
@@ -103,7 +103,7 @@ class StacktraceProcessingTask(object):
                     yield frame
 
 
-class StacktraceProcessor(object):
+class StacktraceProcessor:
     def __init__(self, data, stacktrace_infos, project=None):
         self.data = data
         self.stacktrace_infos = stacktrace_infos

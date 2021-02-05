@@ -1,7 +1,7 @@
 from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
 
 
-class BaseVariant(object):
+class BaseVariant:
     # The type of the variant that is reported to the UI.
     type = None
 

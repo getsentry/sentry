@@ -2,7 +2,7 @@ from sentry import http
 from sentry.utils import json
 
 
-class TeamworkClient(object):
+class TeamworkClient:
     def __init__(self, base_url, token, timeout=5):
         self.base_url = base_url
         self._token = token

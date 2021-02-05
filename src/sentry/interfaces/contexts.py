@@ -28,7 +28,7 @@ def contexttype(cls):
     return cls
 
 
-class ContextType(object):
+class ContextType:
     indexed_fields = None
     type = None
 

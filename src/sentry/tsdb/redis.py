@@ -25,7 +25,7 @@ SketchParameters = namedtuple("SketchParameters", "depth width capacity")
 CountMinScript = SentryScript(None, resource_string("sentry", "scripts/tsdb/cmsketch.lua"))
 
 
-class SuppressionWrapper(object):
+class SuppressionWrapper:
     """\
     Wraps a context manager and prevents any exceptions raised either during
     the managed block or the exiting of the wrapped manager from propagating.

@@ -117,7 +117,7 @@ class JSONField(models.TextField):
         return self._get_val_from_obj(obj)
 
 
-class NoPrepareMixin(object):
+class NoPrepareMixin:
     def get_prep_lookup(self):
         return self.rhs
 
@@ -140,7 +140,7 @@ class JSONFieldInLookup(NoPrepareMixin, In):
         ]
 
 
-class ContainsLookupMixin(object):
+class ContainsLookupMixin:
     def get_prep_lookup(self):
         if isinstance(self.rhs, (list, tuple)):
             raise TypeError(

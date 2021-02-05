@@ -13,7 +13,7 @@ from sentry.utils.compat import filter
 logger = logging.getLogger("sentry.integrations.issues")
 
 
-class IssueBasicMixin(object):
+class IssueBasicMixin:
     def should_sync(self, attribute):
         return False
 

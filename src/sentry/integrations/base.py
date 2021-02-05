@@ -254,7 +254,7 @@ class IntegrationProvider(PipelineProvider):
         return feature in self.features
 
 
-class IntegrationInstallation(object):
+class IntegrationInstallation:
     """
     An IntegrationInstallation represents an installed integration and manages the
     core functionality of the integration.

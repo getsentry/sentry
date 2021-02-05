@@ -18,7 +18,7 @@ from sentry.api.client import ApiClient
 from .exceptions import ApiHostError, ApiTimeoutError, ApiError, UnsupportedResponseType
 
 
-class BaseApiResponse(object):
+class BaseApiResponse:
     text = ""
 
     def __init__(self, headers=None, status_code=None):
@@ -114,7 +114,7 @@ class SequenceApiResponse(list, BaseApiResponse):
         return self
 
 
-class TrackResponseMixin(object):
+class TrackResponseMixin:
     @cached_property
     def logger(self):
         return logging.getLogger(self.log_path)

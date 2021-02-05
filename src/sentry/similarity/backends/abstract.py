@@ -4,7 +4,7 @@ import six
 
 
 @six.add_metaclass(ABCMeta)
-class AbstractIndexBackend(object):
+class AbstractIndexBackend:
     @abstractmethod
     def classify(self, scope, items, limit=None, timestamp=None):
         pass

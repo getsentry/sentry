@@ -617,7 +617,7 @@ class GroupSerializer(GroupSerializerBase):
         return attrs
 
 
-class GroupStatsMixin(object):
+class GroupStatsMixin:
     STATS_PERIOD_CHOICES = {
         "14d": StatsPeriod(14, timedelta(hours=24)),
         "24h": StatsPeriod(24, timedelta(hours=1)),

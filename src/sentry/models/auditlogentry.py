@@ -16,7 +16,7 @@ from sentry.utils.strings import truncatechars
 MAX_ACTOR_LABEL_LENGTH = 64
 
 
-class AuditLogEntryEvent(object):
+class AuditLogEntryEvent:
     MEMBER_INVITE = 1
     MEMBER_ADD = 2
     MEMBER_ACCEPT = 3

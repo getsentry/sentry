@@ -28,7 +28,7 @@ _uuid4_re = re.compile(r"^[a-f0-9]{32}$")
 # TODO(dcramer): pull in enum library
 
 
-class ProjectKeyStatus(object):
+class ProjectKeyStatus:
     ACTIVE = 0
     INACTIVE = 1
 

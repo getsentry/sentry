@@ -8,7 +8,7 @@ AUTHORIZATION = "authorization_code"
 REFRESH = "refresh_token"
 
 
-class GrantTypes(object):
+class GrantTypes:
     AUTHORIZATION = AUTHORIZATION
     REFRESH = REFRESH
 

@@ -12,7 +12,7 @@ from sentry.db.models import (
 )
 
 
-class CheckInStatus(object):
+class CheckInStatus:
     UNKNOWN = 0
     OK = 1
     ERROR = 2

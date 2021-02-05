@@ -20,7 +20,7 @@ class SlackRequestError(Exception):
         self.status = status
 
 
-class SlackRequest(object):
+class SlackRequest:
     """
     Encapsulation of a request from Slack.
 

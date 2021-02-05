@@ -41,7 +41,7 @@ except ImportError:
             raise NotImplementedError("Missing SAML libraries")
 
     @add_metaclass(OneLogin_Saml2_ConstantsType)
-    class OneLogin_Saml2_Constants(object):
+    class OneLogin_Saml2_Constants:
         pass
 
 
@@ -208,7 +208,7 @@ class SAML2MetadataView(BaseView):
         return HttpResponse(content=metadata, content_type="text/xml")
 
 
-class Attributes(object):
+class Attributes:
     IDENTIFIER = "identifier"
     USER_EMAIL = "user_email"
     FIRST_NAME = "first_name"

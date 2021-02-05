@@ -12,7 +12,7 @@ class GitHubApiError(Exception):
         self.status = status
 
 
-class GitHubClient(object):
+class GitHubClient:
     def __init__(self, access_token):
         self.http = http.build_session()
         self.access_token = access_token

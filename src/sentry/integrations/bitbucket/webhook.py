@@ -44,7 +44,7 @@ def parse_raw_user_name(raw):
     return raw.split("<")[0].strip()
 
 
-class Webhook(object):
+class Webhook:
     def __call__(self, organization, event):
         raise NotImplementedError
 

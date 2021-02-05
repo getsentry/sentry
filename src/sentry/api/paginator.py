@@ -23,7 +23,7 @@ class BadPaginationError(Exception):
     pass
 
 
-class BasePaginator(object):
+class BasePaginator:
     def __init__(
         self, queryset, order_by=None, max_limit=MAX_LIMIT, on_results=None, post_query_filter=None
     ):
@@ -216,7 +216,7 @@ class DateTimePaginator(BasePaginator):
 # TODO(dcramer): previous cursors are too complex at the moment for many things
 # and are only useful for polling situations. The OffsetPaginator ignores them
 # entirely and uses standard paging
-class OffsetPaginator(object):
+class OffsetPaginator:
     def __init__(
         self, queryset, order_by=None, max_limit=MAX_LIMIT, max_offset=None, on_results=None
     ):
@@ -356,7 +356,7 @@ def reverse_bisect_left(a, x, lo=0, hi=None):
     return lo
 
 
-class SequencePaginator(object):
+class SequencePaginator:
     def __init__(self, data, reverse=False, max_limit=MAX_LIMIT, on_results=None):
         self.scores, self.values = (
             map(list, zip(*sorted(data, reverse=reverse))) if data else ([], [])
@@ -434,7 +434,7 @@ class SequencePaginator(object):
         )
 
 
-class GenericOffsetPaginator(object):
+class GenericOffsetPaginator:
     """
     A paginator for getting pages of results for a query using the OFFSET/LIMIT
     mechanism.
@@ -485,7 +485,7 @@ class GenericOffsetPaginator(object):
         # date for queries, this should stop drift from new incoming events.
 
 
-class CombinedQuerysetIntermediary(object):
+class CombinedQuerysetIntermediary:
     is_empty = False
 
     def __init__(self, queryset, order_by):
@@ -502,7 +502,7 @@ class CombinedQuerysetIntermediary(object):
             self.is_empty = True
 
 
-class CombinedQuerysetPaginator(object):
+class CombinedQuerysetPaginator:
     """This paginator can be used to paginate between multiple querysets.
     It needs to be passed a list of CombinedQuerysetIntermediary. Each CombinedQuerysetIntermediary must be populated with a queryset and an order_by key
         i.e. intermediaries = [
@@ -652,7 +652,7 @@ class CombinedQuerysetPaginator(object):
         )
 
 
-class ChainPaginator(object):
+class ChainPaginator:
     """
     Chain multiple datasources together and paginate them as one source.
     The datasources should be provided in the order they should be used.

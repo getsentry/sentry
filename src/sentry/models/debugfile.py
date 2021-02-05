@@ -268,7 +268,7 @@ def _analyze_progard_filename(filename):
         pass
 
 
-class DifMeta(object):
+class DifMeta:
     def __init__(self, file_format, arch, debug_id, path, code_id=None, name=None, data=None):
         self.file_format = file_format
         self.arch = arch
@@ -394,7 +394,7 @@ def create_files_from_dif_zip(fileobj, project):
         shutil.rmtree(scratchpad)
 
 
-class DIFCache(object):
+class DIFCache:
     @property
     def cache_path(self):
         return options.get("dsym.cache-path")

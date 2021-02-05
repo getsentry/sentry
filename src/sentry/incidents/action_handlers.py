@@ -18,7 +18,7 @@ from sentry.utils.http import absolute_uri
 
 
 @six.add_metaclass(abc.ABCMeta)
-class ActionHandler(object):
+class ActionHandler:
     status_display = {TriggerStatus.ACTIVE: "Fired", TriggerStatus.RESOLVED: "Resolved"}
 
     def __init__(self, action, incident, project):

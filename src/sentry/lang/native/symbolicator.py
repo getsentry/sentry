@@ -103,7 +103,7 @@ def _task_id_cache_key_for_event(project_id, event_id):
     return "symbolicator:{1}:{0}".format(project_id, event_id)
 
 
-class Symbolicator(object):
+class Symbolicator:
     def __init__(self, project, event_id):
         symbolicator_options = options.get("symbolicator.options")
         base_url = symbolicator_options["url"].rstrip("/")
@@ -428,7 +428,7 @@ def get_sources_for_project(project):
     return sources
 
 
-class SymbolicatorSession(object):
+class SymbolicatorSession:
     def __init__(
         self, url=None, sources=None, project_id=None, event_id=None, timeout=None, options=None
     ):

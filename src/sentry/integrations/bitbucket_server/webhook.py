@@ -18,7 +18,7 @@ logger = logging.getLogger("sentry.webhooks")
 PROVIDER_NAME = "integrations:bitbucket_server"
 
 
-class Webhook(object):
+class Webhook:
     def __call__(self, organization, integration_id, event):
         raise NotImplementedError
 

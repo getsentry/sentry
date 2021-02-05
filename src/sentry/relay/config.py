@@ -155,7 +155,7 @@ def get_project_config(project, full_config=True, project_keys=None):
     return ProjectConfig(project, **cfg)
 
 
-class _ConfigBase(object):
+class _ConfigBase:
     """
     Base class for configuration objects
 

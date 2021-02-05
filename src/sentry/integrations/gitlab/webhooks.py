@@ -19,7 +19,7 @@ logger = logging.getLogger("sentry.webhooks")
 PROVIDER_NAME = "integrations:gitlab"
 
 
-class Webhook(object):
+class Webhook:
     def __call__(self, integration, organization, event):
         raise NotImplementedError
 

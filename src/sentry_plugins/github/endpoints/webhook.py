@@ -40,7 +40,7 @@ def get_external_id(username):
     return "github:%s" % username
 
 
-class Webhook(object):
+class Webhook:
     def __call__(self, event, organization=None):
         raise NotImplementedError
 

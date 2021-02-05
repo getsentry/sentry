@@ -18,7 +18,7 @@ from sentry.utils.compat import filter
 
 
 # TODO(dcramer): pull in enum library
-class ApiKeyStatus(object):
+class ApiKeyStatus:
     ACTIVE = 0
     INACTIVE = 1
 

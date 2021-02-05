@@ -6,7 +6,7 @@ from sentry.db.models.utils import Creator
 __all__ = ("CITextField", "CICharField", "CIEmailField")
 
 
-class CIText(object):
+class CIText:
     def db_type(self, connection):
         return "citext"
 

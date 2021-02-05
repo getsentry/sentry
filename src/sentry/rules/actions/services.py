@@ -1,4 +1,4 @@
-class PluginService(object):
+class PluginService:
     def __init__(self, obj):
         self.service = obj
 

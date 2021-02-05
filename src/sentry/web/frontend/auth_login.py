@@ -24,7 +24,7 @@ ERR_NO_SSO = _("The organization does not exist or does not have Single Sign-On 
 # Stores callbacks that are called to get additional template context data before the login page
 # is rendered. Callbacks are called in any order. If an error is encountered in a callback it is
 # ignored. This works like HookStore in Javascript.
-class AdditionalContext(object):
+class AdditionalContext:
     def __init__(self):
         self._callbacks = set()
 

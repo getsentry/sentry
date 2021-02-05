@@ -22,7 +22,7 @@ _local_buffers = None
 _local_buffers_lock = threading.Lock()
 
 
-class PendingBuffer(object):
+class PendingBuffer:
     def __init__(self, size):
         assert size > 0
         self.buffer = [None] * size

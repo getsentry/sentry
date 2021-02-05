@@ -14,7 +14,7 @@ FIELD_MAP = {
 INVALID_ACCESS_TOKEN = "HTTP 400 (invalid_request): The access token is not valid"
 
 
-class VstsApiPath(object):
+class VstsApiPath:
     commit = "{instance}_apis/git/repositories/{repo_id}/commits/{commit_id}"
     commits = "{instance}_apis/git/repositories/{repo_id}/commits"
     commits_batch = "{instance}_apis/git/repositories/{repo_id}/commitsBatch"

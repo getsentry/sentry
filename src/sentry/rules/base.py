@@ -47,7 +47,7 @@ class RuleDescriptor(type):
 
 
 @six.add_metaclass(RuleDescriptor)
-class RuleBase(object):
+class RuleBase:
     label = None
     form_cls = None
 
@@ -87,7 +87,7 @@ class RuleBase(object):
         return CallbackFuture(callback=callback, key=key, kwargs=kwargs)
 
 
-class EventState(object):
+class EventState:
     def __init__(self, is_new, is_regression, is_new_group_environment, has_reappeared):
         self.is_new = is_new
         self.is_regression = is_regression

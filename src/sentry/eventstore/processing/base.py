@@ -7,7 +7,7 @@ def _get_unprocessed_key(key):
     return key + ":u"
 
 
-class BaseEventProcessingStore(object):
+class BaseEventProcessingStore:
     """
     Store for event blobs during processing
 

@@ -202,7 +202,7 @@ def assigned_or_suggested_filter(owner, projects, field_filter="id"):
     raise InvalidSearchQuery("Unsupported owner type.")
 
 
-class Condition(object):
+class Condition:
     """\
     Adds a single filter to a ``QuerySet`` object. Used with
     ``QuerySetBuilder``.
@@ -257,7 +257,7 @@ class ScalarCondition(Condition):
         return qs_method(**q_dict)
 
 
-class QuerySetBuilder(object):
+class QuerySetBuilder:
     def __init__(self, conditions):
         self.conditions = conditions
 

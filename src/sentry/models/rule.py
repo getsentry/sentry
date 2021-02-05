@@ -14,7 +14,7 @@ from sentry.utils.cache import cache
 
 
 # TODO(dcramer): pull in enum library
-class RuleStatus(object):
+class RuleStatus:
     ACTIVE = 0
     INACTIVE = 1
     PENDING_DELETION = 2

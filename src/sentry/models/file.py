@@ -34,7 +34,7 @@ MULTI_BLOB_UPLOAD_CONCURRENCY = 8
 MAX_FILE_SIZE = 2 ** 31  # 2GB is the maximum offset supported by fileblob
 
 
-class nooplogger(object):
+class nooplogger:
     debug = staticmethod(lambda *a, **kw: None)
     info = staticmethod(lambda *a, **kw: None)
     warning = staticmethod(lambda *a, **kw: None)
@@ -465,7 +465,7 @@ class FileBlobIndex(Model):
         unique_together = (("file", "blob", "offset"),)
 
 
-class ChunkedFileBlobIndexWrapper(object):
+class ChunkedFileBlobIndexWrapper:
     def __init__(self, indexes, mode=None, prefetch=False, prefetch_to=None, delete=True):
         # eager load from database incase its a queryset
         self._indexes = list(indexes)

@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.ui")
 
 
-class OrganizationMixin(object):
+class OrganizationMixin:
     # TODO(dcramer): move the implicit organization logic into its own class
     # as it's only used in a single location and over complicates the rest of
     # the code

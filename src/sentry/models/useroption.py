@@ -6,7 +6,7 @@ from sentry.db.models.fields import EncryptedPickledObjectField
 from sentry.db.models.manager import OptionManager
 
 
-class UserOptionValue(object):
+class UserOptionValue:
     # 'workflow:notifications'
     all_conversations = "0"
     participating_only = "1"

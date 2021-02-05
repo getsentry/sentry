@@ -339,7 +339,7 @@ class Endpoint(APIView):
         return response
 
 
-class EnvironmentMixin(object):
+class EnvironmentMixin:
     def _get_environment_func(self, request, organization_id):
         """\
         Creates a function that when called returns the ``Environment``
@@ -374,7 +374,7 @@ class EnvironmentMixin(object):
         return request._cached_environment
 
 
-class StatsMixin(object):
+class StatsMixin:
     def _parse_args(self, request, environment_id=None):
         try:
             resolution = request.GET.get("resolution")
@@ -429,7 +429,7 @@ class StatsMixin(object):
             raise ValueError(value)
 
 
-class ReleaseAnalyticsMixin(object):
+class ReleaseAnalyticsMixin:
     def track_set_commits_local(self, request, organization_id=None, project_ids=None):
         analytics.record(
             "release.set_commits_local",

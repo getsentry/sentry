@@ -7,7 +7,7 @@ from sentry.utils.query import bulk_delete_objects
 _leaf_re = re.compile(r"^(UserReport|Event|Group)(.+)")
 
 
-class BaseRelation(object):
+class BaseRelation:
     def __init__(self, params, task):
         self.task = task
         self.params = params
@@ -26,7 +26,7 @@ class ModelRelation(BaseRelation):
         super(ModelRelation, self).__init__(params=params, task=task)
 
 
-class BaseDeletionTask(object):
+class BaseDeletionTask:
     logger = logging.getLogger("sentry.deletions.async")
 
     DEFAULT_CHUNK_SIZE = 100

@@ -9,7 +9,7 @@ from six.moves.urllib.parse import quote
 API_VERSION = "/api/v4"
 
 
-class GitLabApiClientPath(object):
+class GitLabApiClientPath:
     oauth_token = "/oauth/token"
     commit = "/projects/{project}/repository/commits/{sha}"
     commits = "/projects/{project}/repository/commits"

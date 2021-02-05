@@ -86,7 +86,7 @@ class ReleaseFile(Model):
         return urls
 
 
-class ReleaseFileCache(object):
+class ReleaseFileCache:
     @property
     def cache_path(self):
         return options.get("releasefile.cache-path")

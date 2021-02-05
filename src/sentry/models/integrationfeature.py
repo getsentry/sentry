@@ -4,7 +4,7 @@ from django.utils import timezone
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model
 
 
-class Feature(object):
+class Feature:
     API = 0
     ISSUE_LINK = 1
     STACKTRACE_LINK = 2

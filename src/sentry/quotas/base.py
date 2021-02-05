@@ -19,7 +19,7 @@ class QuotaScope(IntEnum):
         return self.name.lower()
 
 
-class QuotaConfig(object):
+class QuotaConfig:
     """
     Abstract configuration for a quota.
 
@@ -134,7 +134,7 @@ class QuotaConfig(object):
         return prune_empty_keys(data)
 
 
-class RateLimit(object):
+class RateLimit:
     """
     Return value of ``quotas.is_rate_limited``.
     """

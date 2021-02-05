@@ -10,7 +10,7 @@ LEVEL_CHOICES = OrderedDict(
 )
 
 
-class MatchType(object):
+class MatchType:
     EQUAL = "eq"
     LESS_OR_EQUAL = "lte"
     GREATER_OR_EQUAL = "gte"

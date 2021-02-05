@@ -26,7 +26,7 @@ class AvatarSerializer(serializers.Serializer):
         return attrs
 
 
-class AvatarMixin(object):
+class AvatarMixin:
     object_type = None
     model = None
 
