@@ -8,10 +8,10 @@ from sentry.models import PlatformExternalIssue
 
 
 class SentryAppInstallationExternalIssueDetailsEndpoint(ExternalIssueBaseEndpoint):
-    def delete(self, request, installation, platform_external_issue):
+    def delete(self, request, installation, external_issue_id):
         try:
             platform_external_issue = PlatformExternalIssue.objects.get(
-                id=platform_external_issue,
+                id=external_issue_id,
             )
         except PlatformExternalIssue.DoesNotExist:
             return Response(status=404)

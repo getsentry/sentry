@@ -1236,7 +1236,7 @@ urlpatterns = [
         name="sentry-api-0-sentry-app-installation-external-issues",
     ),
     url(
-        r"^sentry-app-installations/(?P<uuid>[^\/]+)/external-issues/(?P<platform_external_issue_id>[^\/]+)/$",
+        r"^sentry-app-installations/(?P<uuid>[^\/]+)/external-issues/(?P<external_issue_id>[^\/]+)/$",
         SentryAppInstallationExternalIssueDetailsEndpoint.as_view(),
         name="sentry-api-0-sentry-app-installation-external-issue-details",
     ),

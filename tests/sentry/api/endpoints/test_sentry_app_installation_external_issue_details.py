@@ -5,7 +5,6 @@ from sentry.testutils import APITestCase
 
 class SentryAppInstallationExternalIssueDetailsEndpointTest(APITestCase):
     def setUp(self):
-        # self.superuser = self.create_user(email="a@example.com", is_superuser=True)
         self.user = self.create_user(email="boop@example.com")
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
@@ -23,40 +22,29 @@ class SentryAppInstallationExternalIssueDetailsEndpointTest(APITestCase):
         self.api_token = self.create_internal_integration_token(
             install=self.install, user=self.user
         )
-        # self.external_issue = self.create_platform_external_issue(
-        #     group=self.group,
-        #     service_type="sentry-app",
-        #     display_name="App#issue-1",
-        #     web_url="https://example.com/app/issues/1",
-        # )
-        self.create_url = reverse(
-            "sentry-api-0-sentry-app-installation-external-issues", args=[self.install.uuid]
+        self.external_issue = self.create_platform_external_issue(
+            group=self.group,
+            service_type="sentry-app",
+            display_name="App#issue-1",
+            web_url="https://example.com/app/issues/1",
         )
+        self.login_as(self.user)
 
     def test_deletes_external_issue(self):
-        data = {
-            "groupId": self.group.id,
-            "webUrl": "https://somerandom.io/project/issue-id",
-            "project": "ExternalProj",
-            "identifier": "issue-1",
-        }
-        self.client.post(
-            self.create_url, data=data, HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
-        )
-        external_issue = PlatformExternalIssue.objects.first()
-        self.login_as(self.user)
-        delete_url = reverse(
+        url = reverse(
             "sentry-api-0-sentry-app-installation-external-issue-details",
-            args=[self.install.uuid, external_issue.id],
+            args=[self.install.uuid, self.external_issue.id],
         )
-        response = self.client.delete(delete_url, format="json")
+        response = self.client.delete(url, format="json")
 
         assert response.status_code == 204, response.content
-        assert not PlatformExternalIssue.objects.filter(id=external_issue.id).exists()
+        assert not PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
 
-    # def test_handles_non_existing_external_issue(self):
-    # url = "/api/0/issues/{}/external-issues/{}/".format(self.group.id, 99999)
+    def test_handles_non_existing_external_issue(self):
+        url = reverse(
+            "sentry-api-0-sentry-app-installation-external-issue-details",
+            args=[self.install.uuid, 999999],
+        )
+        response = self.client.delete(url, format="json")
 
-    # response = self.client.delete(url, format="json")
-
-    # assert response.status_code == 404, response.content
+        assert response.status_code == 404, response.content
