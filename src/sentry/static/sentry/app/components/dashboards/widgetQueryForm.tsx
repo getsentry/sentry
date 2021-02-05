@@ -80,12 +80,13 @@ class WidgetQueryForm extends React.Component<Props> {
           {canRemove && (
             <Button
               data-test-id="remove-query"
-              size="zero"
-              borderless
+              size="small"
+              priority="danger"
               onClick={this.props.onRemove}
               icon={<IconDelete />}
-              title={t('Remove this query')}
-            />
+            >
+              {t('Remove Overlay')}
+            </Button>
           )}
         </QueryFieldWrapper>
         <Field
