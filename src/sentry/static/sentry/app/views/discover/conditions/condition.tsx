@@ -31,7 +31,7 @@ export default class ConditionRow extends React.Component<
     isOpen: false,
   };
 
-  selectRef = React.createRef<HTMLInputElement>();
+  selectRef = React.createRef<any>();
 
   focus() {
     if (this.selectRef.current) {

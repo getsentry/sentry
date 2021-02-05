@@ -1,5 +1,5 @@
 import React from 'react';
-import ReactSelect, {components, OptionProps} from 'react-select';
+import {components, OptionProps} from 'react-select';
 import styled from '@emotion/styled';
 
 import SelectControl from 'app/components/forms/selectControl';
@@ -7,8 +7,7 @@ import space from 'app/styles/space';
 import {MemberRole} from 'app/types';
 import theme from 'app/utils/theme';
 
-// TODO(ts) Add SelectControl types when it gets them.
-type Props = Omit<React.ComponentProps<typeof ReactSelect>, 'value'> & {
+type Props = React.ComponentProps<typeof SelectControl> & {
   roles: MemberRole[];
   disableUnallowed: boolean;
   value?: string;
