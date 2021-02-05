@@ -1,10 +1,8 @@
-// eslint-disable-next-line sentry/no-react-hooks
-import React, {useEffect} from 'react';
+import React from 'react';
 import LazyLoad from 'react-lazyload';
 import {DndContext} from '@dnd-kit/core';
 import {rectSwappingStrategy, SortableContext, useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
 
 import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
 import {loadOrganizationTags} from 'app/actionCreators/tags';
@@ -12,12 +10,12 @@ import {Client} from 'app/api';
 import {IconAdd} from 'app/icons';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
-import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
+import SortableWidget from './sortableWidget';
+import {WidgetWrapper} from './styles';
 import {DashboardDetails, Widget} from './types';
-import WidgetCard from './widgetCard';
 
 const ADD_WIDGET_BUTTON_DRAG_ID = 'add-widget-button';
 type Props = {
@@ -205,22 +203,6 @@ const WidgetContainer = styled('div')`
   }
 `;
 
-const WidgetWrapper = styled(motion.div)<{displayType: Widget['displayType']}>`
-  position: relative;
-  /* Min-width prevents grid items from stretching the grid */
-  min-width: 200px;
-  touch-action: manipulation;
-
-  ${p => {
-    switch (p.displayType) {
-      case 'big_number':
-        return 'grid-area: span 1 / span 1;';
-      default:
-        return 'grid-area: span 2 / span 2;';
-    }
-  }};
-`;
-
 const AddWidgetWrapper = styled('a')`
   width: 100%;
   height: 110px;
@@ -230,100 +212,6 @@ const AddWidgetWrapper = styled('a')`
   align-items: center;
   justify-content: center;
 `;
-
-type SortableWidgetProps = {
-  widget: Widget;
-  dragId: string;
-  isEditing: boolean;
-  isDragging: boolean;
-  onDelete: () => void;
-  onEdit: () => void;
-};
-
-function SortableWidget(props: SortableWidgetProps) {
-  const {widget, dragId, isDragging, isEditing, onDelete, onEdit} = props;
-
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    isDragging: currentWidgetDragging,
-  } = useSortable({
-    id: dragId,
-    transition: null,
-  });
-
-  useEffect(() => {
-    if (!currentWidgetDragging) {
-      return undefined;
-    }
-
-    document.body.style.cursor = 'grabbing';
-
-    return function cleanup() {
-      document.body.style.cursor = '';
-    };
-  }, [currentWidgetDragging]);
-
-  const initialStyles = {
-    x: 0,
-    y: 0,
-    scaleX: 1,
-    scaleY: 1,
-    boxShadow: 'none',
-    zIndex: 0,
-  };
-
-  return (
-    <WidgetWrapper
-      ref={setNodeRef}
-      displayType={widget.displayType}
-      layoutId={dragId}
-      animate={
-        transform
-          ? {
-              x: transform.x,
-              y: transform.y,
-              scaleX: transform?.scaleX && transform.scaleX <= 1 ? transform.scaleX : 1,
-              scaleY: transform?.scaleY && transform.scaleY <= 1 ? transform.scaleY : 1,
-              zIndex: currentWidgetDragging ? theme.zIndex.modal : 0,
-              boxShadow: currentWidgetDragging
-                ? '0 0 0 1px rgba(63, 63, 68, 0.05), 0px 15px 15px 0 rgba(34, 33, 81, 0.25)'
-                : 'none',
-            }
-          : initialStyles
-      }
-      transition={{
-        duration: !currentWidgetDragging ? 0.25 : 0,
-        easings: {
-          type: 'spring',
-        },
-        transform: {duration: 0},
-        scale: {
-          duration: 0.25,
-        },
-        zIndex: {
-          delay: currentWidgetDragging ? 0 : 0.25,
-        },
-      }}
-    >
-      <WidgetCard
-        widget={widget}
-        isEditing={isEditing}
-        onDelete={onDelete}
-        onEdit={onEdit}
-        isDragging={isDragging}
-        hideToolbar={isDragging}
-        currentWidgetDragging={currentWidgetDragging}
-        draggableProps={{
-          attributes,
-          listeners,
-        }}
-      />
-    </WidgetWrapper>
-  );
-}
 
 function AddWidget(props: {onClick: () => void}) {
   const {onClick} = props;
