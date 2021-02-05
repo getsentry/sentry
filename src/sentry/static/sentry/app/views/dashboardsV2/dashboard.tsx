@@ -147,6 +147,8 @@ class Dashboard extends React.Component<Props, State> {
       dashboard: {widgets},
     } = this.props;
 
+    const items = this.getWidgetIds();
+
     return (
       <DndContext
         onDragStart={({active}) => {
@@ -161,7 +163,6 @@ class Dashboard extends React.Component<Props, State> {
         }}
         onDragEnd={({over}) => {
           const {activeDragId} = this.state;
-          const items = this.getWidgetIds();
           const getIndex = items.indexOf.bind(items);
 
           const activeIndex = activeDragId ? getIndex(activeDragId) : -1;
@@ -181,7 +182,7 @@ class Dashboard extends React.Component<Props, State> {
         onDragCancel={this.resetDragState}
       >
         <WidgetContainer>
-          <SortableContext items={this.getWidgetIds()} strategy={rectSwappingStrategy}>
+          <SortableContext items={items} strategy={rectSwappingStrategy}>
             {widgets.map((widget, index) => this.renderWidget(widget, index))}
             {isEditing && <AddWidget onClick={this.handleStartAdd} />}
           </SortableContext>
