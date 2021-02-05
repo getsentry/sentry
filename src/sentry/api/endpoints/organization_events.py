@@ -131,7 +131,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
 
 class OrganizationEventsGeoEndpoint(OrganizationEventsV2EndpointBase):
     def has_feature(self, request, organization):
-        return features.has("organizations:dashboards-v2", organization, actor=request.user)
+        return features.has("organizations:dashboards-basic", organization, actor=request.user)
 
     def get(self, request, organization):
         if not self.has_feature(request, organization):

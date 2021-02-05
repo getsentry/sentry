@@ -11,7 +11,7 @@ class OrganizationEventsGeoEndpointTest(APITestCase, SnubaTestCase):
 
     def do_request(self, query, features=None):
         if features is None:
-            features = {"organizations:dashboards-v2": True}
+            features = {"organizations:dashboards-basic": True}
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-organization-events-geo",

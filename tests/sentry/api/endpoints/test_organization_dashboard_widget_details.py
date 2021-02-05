@@ -17,7 +17,8 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 {"name": "errors", "conditions": "event.type:error", "fields": ["count()"]}
             ],
         }
-        response = self.client.post(
+        response = self.do_request(
+            "post",
             self.url(),
             data=data,
         )
@@ -35,7 +36,8 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 {"name": "errors", "conditions": "event.type: tag:foo", "fields": ["count()"]}
             ],
         }
-        response = self.client.post(
+        response = self.do_request(
+            "post",
             self.url(),
             data=data,
         )
@@ -55,7 +57,8 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 {"name": "errors", "conditions": "event.type:error", "fields": ["p95(user)"]}
             ],
         }
-        response = self.client.post(
+        response = self.do_request(
+            "post",
             self.url(),
             data=data,
         )
@@ -71,7 +74,8 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 {"name": "errors", "conditions": "event.type:error", "fields": ["count()"]}
             ],
         }
-        response = self.client.post(
+        response = self.do_request(
+            "post",
             self.url(),
             data=data,
         )

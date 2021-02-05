@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.serializers.rest_framework import DashboardWidgetSerializer
 from sentry.api.endpoints.organization_dashboards import OrganizationDashboardsPermission
+from sentry import features
 
 
 class OrganizationDashboardWidgetDetailsEndpoint(OrganizationEndpoint):
@@ -17,6 +18,9 @@ class OrganizationDashboardWidgetDetailsEndpoint(OrganizationEndpoint):
         and has a high chance of success when the dashboard is
         saved.
         """
+        if not features.has("organizations:dashboards-edit", organization, actor=request.user):
+            return Response(status=404)
+
         serializer = DashboardWidgetSerializer(
             data=request.data, context={"organization": organization}
         )

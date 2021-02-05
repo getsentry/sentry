@@ -969,6 +969,16 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             "conditions": "has:geo.country_code",
         }
 
+    def do_request(self, method, url, data=None, features=None):
+        if features is None:
+            features = {
+                "organizations:dashboards-basic": True,
+                "organizations:dashboards-edit": True,
+            }
+        func = getattr(self.client, method)
+        with self.feature(features):
+            return func(url, data=data)
+
     def assert_widget_queries(self, widget_id, data):
         result_queries = DashboardWidgetQuery.objects.filter(widget_id=widget_id).order_by("order")
         for ds, expected_ds in zip(result_queries, data):
