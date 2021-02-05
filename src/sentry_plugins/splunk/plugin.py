@@ -301,9 +301,19 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
                 },
             )
 
-            if isinstance(exc, (ApiHostError, ApiTimeoutError, ApiError)):
+            if isinstance(
+                exc,
+                (
+                    ApiHostError,
+                    ApiTimeoutError,
+                ),
+            ):
                 # The above errors are already handled by the API client.
                 # Just log and return.
+                return False
+
+            if isinstance(exc, ApiError) and exc.status_code == 403:
+                # 403s are not errors or actionable for us do not re-raise
                 return False
 
             raise exc
