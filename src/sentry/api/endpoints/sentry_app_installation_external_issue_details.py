@@ -12,6 +12,8 @@ class SentryAppInstallationExternalIssueDetailsEndpoint(ExternalIssueBaseEndpoin
         try:
             platform_external_issue = PlatformExternalIssue.objects.get(
                 id=external_issue_id,
+                project__organization=installation.organization,
+                service_type=installation.sentry_app.slug,
             )
         except PlatformExternalIssue.DoesNotExist:
             return Response(status=404)
