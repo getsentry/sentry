@@ -13,10 +13,7 @@ export const Container = styled('div')`
 `;
 
 export const VersionContainer = styled('div')`
-  ${overflowEllipsis};
-  max-width: 100%;
-  width: auto;
-  display: inline-block;
+  display: flex;
 `;
 
 export const NumberContainer = styled('div')`
