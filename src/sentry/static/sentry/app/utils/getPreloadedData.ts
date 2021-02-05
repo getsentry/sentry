@@ -5,7 +5,12 @@ export function getPreloadedDataPromise(
   isInitialFetch?: boolean
 ) {
   const data = (window as any).__sentry_preload;
-  if (!isInitialFetch || !data || data.orgSlug.toLowerCase() !== slug.toLowerCase()) {
+  if (
+    !isInitialFetch ||
+    !data ||
+    data.orgSlug.toLowerCase() !== slug.toLowerCase() ||
+    !data[name].then
+  ) {
     return fallback();
   }
   return data[name].catch(fallback);

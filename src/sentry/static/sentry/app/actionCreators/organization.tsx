@@ -22,6 +22,8 @@ async function fetchOrg(
     'organization',
     slug,
     () =>
+      // This data should get preloaded in static/sentry/index.ejs
+      // If this url changes make sure to update the preload
       api.requestPromise(`/organizations/${slug}/`, {
         query: {detailed: detailed ? 1 : 0},
       }),
@@ -50,6 +52,8 @@ async function fetchProjectsAndTeams(
         'projects',
         slug,
         () =>
+          // This data should get preloaded in static/sentry/index.ejs
+          // If this url changes make sure to update the preload
           uncancelableApi.requestPromise(`/organizations/${slug}/projects/`, {
             query: {
               all_projects: 1,
@@ -61,6 +65,8 @@ async function fetchProjectsAndTeams(
       getPreloadedDataPromise(
         'teams',
         slug,
+        // This data should get preloaded in static/sentry/index.ejs
+        // If this url changes make sure to update the preload
         () => uncancelableApi.requestPromise(`/organizations/${slug}/teams/`),
         isInitialFetch
       ),
