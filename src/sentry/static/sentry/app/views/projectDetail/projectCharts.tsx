@@ -135,7 +135,7 @@ class ProjectCharts extends React.Component<Props, State> {
       },
       {
         value: DisplayModes.STABILITY,
-        label: t('Crash Free Rate'),
+        label: t('Crash Free Sessions'),
         disabled: this.otherActiveDisplayModes.includes(DisplayModes.STABILITY),
       },
     ];
@@ -241,6 +241,7 @@ class ProjectCharts extends React.Component<Props, State> {
               onTotalValuesChange={this.handleTotalValuesChange}
               colors={[theme.purple300, theme.purple200]}
               showDaily
+              disableReleases
             />
           )}
           {displayMode === DisplayModes.TRANSACTIONS && (
@@ -255,6 +256,7 @@ class ProjectCharts extends React.Component<Props, State> {
               onTotalValuesChange={this.handleTotalValuesChange}
               colors={[theme.gray200, theme.purple200]}
               showDaily
+              disableReleases
             />
           )}
           {displayMode === DisplayModes.STABILITY && (
