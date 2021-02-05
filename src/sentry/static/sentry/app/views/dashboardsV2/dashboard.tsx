@@ -134,7 +134,10 @@ class Dashboard extends React.Component<Props, State> {
   }
 
   render() {
-    const {isEditing, dashboard} = this.props;
+    const {
+      isEditing,
+      dashboard: {widgets},
+    } = this.props;
 
     return (
       <DndContext
@@ -158,7 +161,7 @@ class Dashboard extends React.Component<Props, State> {
           if (over?.id !== ADD_WIDGET_BUTTON_DRAG_ID) {
             const overIndex = getIndex(over.id);
             if (activeIndex !== overIndex) {
-              const newWidgets = [...this.props.dashboard.widgets];
+              const newWidgets = [...widgets];
               const removed = newWidgets.splice(activeIndex, 1);
               newWidgets.splice(overIndex, 0, removed[0]);
               this.props.onUpdate(newWidgets);
@@ -179,7 +182,7 @@ class Dashboard extends React.Component<Props, State> {
       >
         <WidgetContainer>
           <SortableContext items={this.getWidgetIds()} strategy={rectSwappingStrategy}>
-            {dashboard.widgets.map((widget, index) => this.renderWidget(widget, index))}
+            {widgets.map((widget, index) => this.renderWidget(widget, index))}
             {isEditing && <AddWidget onClick={this.handleStartAdd} />}
           </SortableContext>
         </WidgetContainer>
