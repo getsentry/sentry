@@ -1,3 +1,5 @@
+/* eslint-env node */
+
 module.exports = {
   dispatch: async ({github, context, fileChanges}) => {
     const DISPATCHES = [
@@ -8,7 +10,7 @@ module.exports = {
       {
         workflow: 'backend-test.yml',
         pathFilterName: 'backend_dependencies',
-      }
+      },
     ];
 
     console.log(fileChanges, context);
@@ -29,8 +31,8 @@ module.exports = {
           pull_request: '',
           skip: shouldSkip[pathFilterName],
           'sentry-sha': context.payload.pull_request.head.sha,
-        }
-      })
+        },
+      });
     });
-  }
-}
+  },
+};
