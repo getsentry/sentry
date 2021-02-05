@@ -316,4 +316,4 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
                 # 403s are not errors or actionable for us do not re-raise
                 return False
 
-            raise exc
+            raise
