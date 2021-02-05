@@ -10,7 +10,7 @@ type Props = {
    * Data to render, could be almost anything as the various event interfaces
    * support all sorts of data.
    */
-  data: undefined | null | Record<string, any> | any[];
+  data?: null | Record<string, any> | any[];
   /**
    * Whether or not the data should be rendered with ContextData
    */
