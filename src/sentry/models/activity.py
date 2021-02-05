@@ -90,7 +90,7 @@ class Activity(Model):
         return (version or "")[:64]
 
     def __init__(self, *args, **kwargs):
-        super(Activity, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         from sentry.models import Release
 
         # XXX(dcramer): fix for bad data
@@ -102,7 +102,7 @@ class Activity(Model):
     def save(self, *args, **kwargs):
         created = bool(not self.id)
 
-        super(Activity, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
         if not created:
             return
@@ -112,7 +112,7 @@ class Activity(Model):
             self.group.update(num_comments=F("num_comments") + 1)
 
     def delete(self, *args, **kwargs):
-        super(Activity, self).delete(*args, **kwargs)
+        super().delete(*args, **kwargs)
 
         # HACK: support Group.num_comments
         if self.type == Activity.NOTE:

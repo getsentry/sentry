@@ -41,7 +41,7 @@ class TeamworkTaskForm(NewIssueForm):
     create_issue_template = "sentry_teamwork/create_issue.html"
 
     def __init__(self, client, data=None, initial=None):
-        super(TeamworkTaskForm, self).__init__(data=data, initial=initial)
+        super().__init__(data=data, initial=initial)
 
         try:
             project_list = client.list_projects()
@@ -158,4 +158,4 @@ class TeamworkPlugin(CorePluginMixin, IssuePlugin):
             task_list = client.list_tasklists(project_id)
             return JSONResponse([{"id": i["id"], "text": i["name"]} for i in task_list])
 
-        return super(TeamworkPlugin, self).view(request, group, **kwargs)
+        return super().view(request, group, **kwargs)

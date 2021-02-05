@@ -97,7 +97,7 @@ def slugify_instance(inst, label, reserved=(), max_length=30, field_name="slug",
     # an IntegrityError from database, which is ok, and unlikely to happen
 
 
-class Creator(object):
+class Creator:
     """
     A descriptor that invokes `to_python` when attributes are set.
     This provides backwards compatibility for fields that used to use

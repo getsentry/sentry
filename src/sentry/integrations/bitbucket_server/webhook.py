@@ -18,7 +18,7 @@ logger = logging.getLogger("sentry.webhooks")
 PROVIDER_NAME = "integrations:bitbucket_server"
 
 
-class Webhook(object):
+class Webhook:
     def __call__(self, organization, integration_id, event):
         raise NotImplementedError
 
@@ -103,7 +103,7 @@ class BitbucketServerWebhookEndpoint(View):
         if request.method != "POST":
             return HttpResponse(status=405)
 
-        return super(BitbucketServerWebhookEndpoint, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     def post(self, request, organization_id, integration_id):
         try:

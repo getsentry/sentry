@@ -259,7 +259,12 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
             />
           )}
           <NumberField
-            label={t('Sampling Rate')}
+            label={
+              <React.Fragment>
+                {t('Sampling Rate')}
+                {' \u0025'}
+              </React.Fragment>
+            }
             help={t('this is a description')}
             name="sampleRate"
             onChange={value => {

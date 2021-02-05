@@ -2569,6 +2569,21 @@ class ResolveFieldListTest(unittest.TestCase):
                 "percentile_range_1",
             ]
         ]
+        # Test a non duration field
+        fields = [
+            "percentile_range(measurements.lcp, 0.5, greater, 2020-05-03T06:48:57) as avg_range_1"
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "quantileIf(0.50)",
+                [
+                    "measurements.lcp",
+                    ["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]],
+                ],
+                "avg_range_1",
+            ]
+        ]
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["percentile_range(transaction.duration, 0.5, greater, tomorrow)"]
@@ -2594,6 +2609,20 @@ class ResolveFieldListTest(unittest.TestCase):
             ]
         ]
 
+        # Test a non duration field
+        fields = ["avg_range(measurements.lcp, greater, 2020-05-03T06:48:57) as avg_range_1"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "avgIf",
+                [
+                    "measurements.lcp",
+                    ["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]],
+                ],
+                "avg_range_1",
+            ]
+        ]
+
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["avg_range(transaction.duration, greater, tomorrow)"]
             resolve_field_list(fields, eventstore.Filter())
@@ -2601,6 +2630,80 @@ class ResolveFieldListTest(unittest.TestCase):
 
         with pytest.raises(InvalidSearchQuery) as err:
             fields = ["avg_range(transaction.duration, lessOrEquals, today)"]
+            resolve_field_list(fields, eventstore.Filter())
+        assert "middle argument invalid: today is in the wrong format" in str(err)
+
+    def test_variance_range(self):
+        fields = [
+            "variance_range(transaction.duration, greater, 2020-05-03T06:48:57) as variance_range_1"
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "varSampIf",
+                [
+                    "transaction.duration",
+                    ["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]],
+                ],
+                "variance_range_1",
+            ]
+        ]
+
+        # Test a non duration field
+        fields = [
+            "variance_range(measurements.lcp, greater, 2020-05-03T06:48:57) as variance_range_1"
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "varSampIf",
+                [
+                    "measurements.lcp",
+                    ["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]],
+                ],
+                "variance_range_1",
+            ]
+        ]
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["variance_range(transaction.duration, greater, tomorrow)"]
+            resolve_field_list(fields, eventstore.Filter())
+        assert "middle argument invalid: tomorrow is in the wrong format" in str(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["variance_range(transaction.duration, lessOrEquals, today)"]
+            resolve_field_list(fields, eventstore.Filter())
+        assert "middle argument invalid: today is in the wrong format" in str(err)
+
+    def test_count_range(self):
+        fields = ["count_range(greater, 2020-05-03T06:48:57) as count_range_1"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]]],
+                "count_range_1",
+            ]
+        ]
+
+        # Test a non duration field
+        fields = ["count_range(greater, 2020-05-03T06:48:57) as count_range_1"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [["greater", [["toDateTime", ["'2020-05-03T06:48:57'"]], "timestamp"]]],
+                "count_range_1",
+            ]
+        ]
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["count_range(greater, tomorrow)"]
+            resolve_field_list(fields, eventstore.Filter())
+        assert "middle argument invalid: tomorrow is in the wrong format" in str(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["count_range(lessOrEquals, today)"]
             resolve_field_list(fields, eventstore.Filter())
         assert "middle argument invalid: today is in the wrong format" in str(err)
 

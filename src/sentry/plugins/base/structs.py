@@ -3,14 +3,14 @@ __all__ = ("Annotation", "Notification")
 import warnings
 
 
-class Annotation(object):
+class Annotation:
     def __init__(self, label, url=None, description=None):
         self.label = label
         self.url = url
         self.description = description
 
 
-class Notification(object):
+class Notification:
     def __init__(self, event, rule=None, rules=None):
         if rule and not rules:
             rules = [rule]

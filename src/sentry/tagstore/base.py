@@ -22,7 +22,7 @@ INTERNAL_TAG_KEYS = frozenset(("release", "dist", "user", "filename", "function"
 
 
 # TODO(dcramer): pull in enum library
-class TagKeyStatus(object):
+class TagKeyStatus:
     VISIBLE = 0
     PENDING_DELETION = 1
     DELETION_IN_PROGRESS = 2

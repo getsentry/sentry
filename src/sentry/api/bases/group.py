@@ -25,7 +25,7 @@ class GroupPermission(ProjectPermission):
     }
 
     def has_object_permission(self, request, view, group):
-        return super(GroupPermission, self).has_object_permission(request, view, group.project)
+        return super().has_object_permission(request, view, group.project)
 
 
 class GroupEndpoint(Endpoint):

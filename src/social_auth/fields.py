@@ -18,7 +18,7 @@ class JSONField(TextField):
         Add a descriptor for backwards compatibility
         with previous Django behavior.
         """
-        super(JSONField, self).contribute_to_class(cls, name)
+        super().contribute_to_class(cls, name)
         setattr(cls, name, Creator(self))
 
     def to_python(self, value):
@@ -40,7 +40,7 @@ class JSONField(TextField):
         """Check value is a valid JSON string, raise ValidationError on
         error."""
         if isinstance(value, six.string_types):
-            super(JSONField, self).validate(value, model_instance)
+            super().validate(value, model_instance)
             try:
                 json.loads(value)
             except Exception as e:

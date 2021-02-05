@@ -1,7 +1,6 @@
 import click
-import six
 import types
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 import threading
 
 from sentry.runner.decorators import configuration, log_options
@@ -195,7 +194,7 @@ def devserver(
             {
                 # Make sure uWSGI spawns an HTTP server for us as we don't
                 # have a proxy/load-balancer in front in dev mode.
-                "http": "%s:%s" % (host, port),
+                "http": f"{host}:{port}",
                 "protocol": "uwsgi",
                 # This is needed to prevent https://git.io/fj7Lw
                 "uwsgi-socket": None,
@@ -228,7 +227,7 @@ def devserver(
         daemons += [_get_daemon("ingest")]
 
     if needs_https and has_https:
-        https_port = six.text_type(parsed_url.port)
+        https_port = str(parsed_url.port)
         https_host = parsed_url.hostname
 
         # Determine a random port for the backend http server

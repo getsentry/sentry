@@ -208,7 +208,7 @@ class OnboardingTasksSerializer(Serializer):
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
     def get_attrs(self, item_list, user, **kwargs):
-        return super(DetailedOrganizationSerializer, self).get_attrs(item_list, user)
+        return super().get_attrs(item_list, user)
 
     def serialize(self, obj, attrs, user, access):
         from sentry import experiments
@@ -219,7 +219,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         experiment_assignments = experiments.all(org=obj, actor=user)
 
-        context = super(DetailedOrganizationSerializer, self).serialize(obj, attrs, user)
+        context = super().serialize(obj, attrs, user)
         max_rate = quotas.get_maximum_quota(obj)
         context["experiments"] = experiment_assignments
         context["quota"] = {
@@ -311,9 +311,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
 class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSerializer):
     def get_attrs(self, item_list, user, **kwargs):
-        return super(DetailedOrganizationSerializerWithProjectsAndTeams, self).get_attrs(
-            item_list, user
-        )
+        return super().get_attrs(item_list, user)
 
     def _project_list(self, organization, access):
         member_projects = list(access.projects)
@@ -347,9 +345,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         from sentry.api.serializers.models.project import ProjectSummarySerializer
         from sentry.api.serializers.models.team import TeamSerializer
 
-        context = super(DetailedOrganizationSerializerWithProjectsAndTeams, self).serialize(
-            obj, attrs, user, access
-        )
+        context = super().serialize(obj, attrs, user, access)
 
         team_list = self._team_list(obj, access)
         project_list = self._project_list(obj, access)

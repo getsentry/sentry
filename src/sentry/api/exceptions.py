@@ -34,7 +34,7 @@ class ProjectMoved(SentryAPIException):
     message = "Resource has been moved"
 
     def __init__(self, new_url, slug):
-        super(ProjectMoved, self).__init__(url=new_url, slug=slug)
+        super().__init__(url=new_url, slug=slug)
 
 
 class SsoRequired(SentryAPIException):
@@ -43,9 +43,7 @@ class SsoRequired(SentryAPIException):
     message = "Must login via SSO"
 
     def __init__(self, organization):
-        super(SsoRequired, self).__init__(
-            loginUrl=reverse("sentry-auth-organization", args=[organization.slug])
-        )
+        super().__init__(loginUrl=reverse("sentry-auth-organization", args=[organization.slug]))
 
 
 class SuperuserRequired(SentryAPIException):
@@ -60,7 +58,7 @@ class SudoRequired(SentryAPIException):
     message = "Account verification required."
 
     def __init__(self, user):
-        super(SudoRequired, self).__init__(username=user.username)
+        super().__init__(username=user.username)
 
 
 class TwoFactorRequired(SentryAPIException):

@@ -320,7 +320,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         received_timestamp,  # type: float
         skip_consume=False,
     ):
-        super(SnubaEventStream, self).insert(
+        super().insert(
             group,
             event,
             is_new,

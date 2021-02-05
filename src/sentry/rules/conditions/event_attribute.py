@@ -6,7 +6,7 @@ from django import forms
 from sentry.rules.conditions.base import EventCondition
 
 
-class MatchType(object):
+class MatchType:
     EQUAL = "eq"
     NOT_EQUAL = "ne"
     STARTS_WITH = "sw"

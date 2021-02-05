@@ -1,6 +1,5 @@
 __all__ = ["Feature", "with_feature"]
 
-import six
 import collections
 from contextlib import contextmanager
 from sentry.utils.compat.mock import patch
@@ -28,7 +27,7 @@ def Feature(names):
     >>> with Feature({'feature-1': True, 'feature-2': True}):
     >>>   # execute with both features enabled
     """
-    if isinstance(names, six.string_types):
+    if isinstance(names, str):
         names = {names: True}
 
     elif not isinstance(names, collections.Mapping):

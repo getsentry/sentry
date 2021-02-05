@@ -1,4 +1,3 @@
-import six
 import ipaddress
 from sentry.net import socket as net_socket
 
@@ -10,7 +9,7 @@ def override_blacklist(*ip_addresses):
         def wrapper(*args, **kwargs):
             disallowed_ips = frozenset(net_socket.DISALLOWED_IPS)
             net_socket.DISALLOWED_IPS = frozenset(
-                ipaddress.ip_network(six.text_type(ip)) for ip in ip_addresses
+                ipaddress.ip_network(str(ip)) for ip in ip_addresses
             )
             try:
                 func(*args, **kwargs)

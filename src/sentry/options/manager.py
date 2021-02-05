@@ -40,7 +40,7 @@ DEFAULT_KEY_TTL = 10
 DEFAULT_KEY_GRACE = 60
 
 
-class OptionsManager(object):
+class OptionsManager:
     """
     A backend for storing generic configuration within Sentry.
 

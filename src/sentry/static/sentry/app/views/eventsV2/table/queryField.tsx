@@ -407,7 +407,7 @@ class QueryField extends React.Component<Props> {
       ? Object.values(fieldOptions).filter(filterPrimaryOptions)
       : Object.values(fieldOptions);
 
-    const selectProps: React.ComponentProps<SelectControl> = {
+    const selectProps: React.ComponentProps<typeof SelectControl> = {
       name: 'field',
       options: Object.values(allFieldOptions),
       placeholder: t('(Required)'),

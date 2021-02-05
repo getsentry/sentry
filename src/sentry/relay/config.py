@@ -155,7 +155,7 @@ def get_project_config(project, full_config=True, project_keys=None):
     return ProjectConfig(project, **cfg)
 
 
-class _ConfigBase(object):
+class _ConfigBase:
     """
     Base class for configuration objects
 
@@ -269,7 +269,7 @@ class ProjectConfig(_ConfigBase):
     def __init__(self, project, **kwargs):
         object.__setattr__(self, "project", project)
 
-        super(ProjectConfig, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
 
 def _load_filter_settings(flt, project):

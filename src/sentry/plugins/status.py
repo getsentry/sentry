@@ -1,13 +1,13 @@
 __all__ = ["PluginStatusMixin"]
 
 
-class PluginStatus(object):
+class PluginStatus:
     BETA = "beta"
     STABLE = "stable"
     UNKNOWN = "unknown"
 
 
-class PluginStatusMixin(object):
+class PluginStatusMixin:
     status = PluginStatus.UNKNOWN
 
     @classmethod

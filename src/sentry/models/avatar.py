@@ -32,12 +32,12 @@ class AvatarBase(Model):
     def save(self, *args, **kwargs):
         if not self.ident:
             self.ident = uuid4().hex
-        return super(AvatarBase, self).save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
         if self.file:
             self.file.delete()
-        return super(AvatarBase, self).delete(*args, **kwargs)
+        return super().delete(*args, **kwargs)
 
     def get_cache_key(self, size):
         raise NotImplementedError

@@ -40,7 +40,7 @@ class ClubhousePlugin(CorePluginMixin, IssuePlugin2):
     issue_fields = frozenset(["id", "title", "url"])
 
     def get_group_urls(self):
-        return super(ClubhousePlugin, self).get_group_urls() + [
+        return super().get_group_urls() + [
             url(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),

@@ -209,7 +209,7 @@ class InstallationForm(forms.Form):
     )
 
     def __init__(self, *args, **kwargs):
-        super(InstallationForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.fields["verify_ssl"].initial = True
 
 

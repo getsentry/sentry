@@ -855,6 +855,10 @@ SENTRY_FEATURES = {
     "organizations:discover-query": True,
     # Enable Performance view
     "organizations:performance-view": False,
+    # Enable the quick trace view on event details and errors
+    "organizations:trace-view-quick": False,
+    # Enable the trace view summary
+    "organizations:trace-view-summary": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Lets organizations manage grouping configs
@@ -895,8 +899,12 @@ SENTRY_FEATURES = {
     "organizations:slack-allow-workspace": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
-    # Enable custom dashboards (dashboards 2)
+    # Deprecated flag for dashboards 2
     "organizations:dashboards-v2": False,
+    # Enable readonly dashboards (dashboards 2)
+    "organizations:dashboards-basic": False,
+    # Enable custom editable dashboards (dashboards 2)
+    "organizations:dashboards-edit": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Special feature flag primarily used on the sentry.io SAAS product for

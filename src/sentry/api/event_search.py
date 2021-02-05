@@ -338,7 +338,7 @@ class SearchVisitor(NodeVisitor):
     def __init__(self, allow_boolean=True, params=None):
         self.allow_boolean = allow_boolean
         self.params = params if params is not None else {}
-        super(SearchVisitor, self).__init__()
+        super().__init__()
 
     @cached_property
     def key_mappings_lookup(self):
@@ -354,8 +354,7 @@ class SearchVisitor(NodeVisitor):
             # Flatten each group in the list, since nodes can return multiple items
             for item in seq:
                 if isinstance(item, list):
-                    for sub in _flatten(item):
-                        yield sub
+                    yield from _flatten(item)
                 else:
                     yield item
 
@@ -1313,7 +1312,7 @@ def get_filter(query=None, params=None):
     return eventstore.Filter(**kwargs)
 
 
-class PseudoField(object):
+class PseudoField:
     def __init__(self, name, alias, expression=None, expression_fn=None, result_type=None):
         self.name = name
         self.alias = alias
@@ -1464,12 +1463,12 @@ class InvalidFunctionArgument(Exception):
     pass
 
 
-class ArgValue(object):
+class ArgValue:
     def __init__(self, arg):
         self.arg = arg
 
 
-class FunctionArg(object):
+class FunctionArg:
     def __init__(self, name):
         self.name = name
         self.has_default = False
@@ -1499,7 +1498,7 @@ class NullColumn(FunctionArg):
     """
 
     def __init__(self, name):
-        super(NullColumn, self).__init__(name)
+        super().__init__(name)
         self.has_default = True
 
     def get_default(self, params):
@@ -1511,7 +1510,7 @@ class NullColumn(FunctionArg):
 
 class CountColumn(FunctionArg):
     def __init__(self, name):
-        super(CountColumn, self).__init__(name)
+        super().__init__(name)
         self.has_default = True
 
     def get_default(self, params):
@@ -1538,7 +1537,7 @@ class CountColumn(FunctionArg):
 
 class StringArg(FunctionArg):
     def __init__(self, name, unquote=False, unescape_quotes=False):
-        super(StringArg, self).__init__(name)
+        super().__init__(name)
         self.unquote = unquote
         self.unescape_quotes = unescape_quotes
 
@@ -1590,7 +1589,7 @@ class ConditionArg(FunctionArg):
 
 class Column(FunctionArg):
     def __init__(self, name, allowed_columns=None):
-        super(Column, self).__init__(name)
+        super().__init__(name)
         # make sure to map the allowed columns to their snuba names
         self.allowed_columns = [SEARCH_MAP.get(col) for col in allowed_columns]
 
@@ -1605,10 +1604,10 @@ class Column(FunctionArg):
 
 class ColumnNoLookup(Column):
     def __init__(self, name, allowed_columns=None):
-        super(ColumnNoLookup, self).__init__(name, allowed_columns=allowed_columns)
+        super().__init__(name, allowed_columns=allowed_columns)
 
     def normalize(self, value, params):
-        super(ColumnNoLookup, self).normalize(value, params)
+        super().normalize(value, params)
         return value
 
 
@@ -1642,7 +1641,7 @@ class NumericColumn(FunctionArg):
 
 class NumericColumnNoLookup(NumericColumn):
     def __init__(self, name, allow_measurements_value=False):
-        super(NumericColumnNoLookup, self).__init__(name)
+        super().__init__(name)
         self.allow_measurements_value = allow_measurements_value
 
     def normalize(self, value, params):
@@ -1652,7 +1651,7 @@ class NumericColumnNoLookup(NumericColumn):
         if self.allow_measurements_value and value == "measurements_value":
             return ["arrayJoin", ["measurements_value"]]
 
-        super(NumericColumnNoLookup, self).normalize(value, params)
+        super().normalize(value, params)
         return value
 
 
@@ -1670,7 +1669,7 @@ class DurationColumn(FunctionArg):
 
 class DurationColumnNoLookup(DurationColumn):
     def normalize(self, value, params):
-        super(DurationColumnNoLookup, self).normalize(value, params)
+        super().normalize(value, params)
         return value
 
 
@@ -1683,7 +1682,7 @@ class StringArrayColumn(FunctionArg):
 
 class NumberRange(FunctionArg):
     def __init__(self, name, start, end):
-        super(NumberRange, self).__init__(name)
+        super().__init__(name)
         self.start = start
         self.end = end
 
@@ -1705,7 +1704,7 @@ class NumberRange(FunctionArg):
 
 class IntervalDefault(NumberRange):
     def __init__(self, name, start, end):
-        super(IntervalDefault, self).__init__(name, start, end)
+        super().__init__(name, start, end)
         self.has_default = True
 
     def get_default(self, params):
@@ -1726,7 +1725,7 @@ def with_default(default, argument):
     return argument
 
 
-class Function(object):
+class Function:
     def __init__(
         self,
         name,
@@ -2178,7 +2177,7 @@ FUNCTIONS = {
         Function(
             "percentile_range",
             required_args=[
-                DurationColumnNoLookup("column"),
+                NumericColumnNoLookup("column"),
                 NumberRange("percentile", 0, 1),
                 ConditionArg("condition"),
                 DateArg("middle"),
@@ -2214,7 +2213,7 @@ FUNCTIONS = {
         Function(
             "avg_range",
             required_args=[
-                DurationColumnNoLookup("column"),
+                NumericColumnNoLookup("column"),
                 ConditionArg("condition"),
                 DateArg("middle"),
             ],
@@ -2232,7 +2231,7 @@ FUNCTIONS = {
         Function(
             "variance_range",
             required_args=[
-                DurationColumnNoLookup("column"),
+                NumericColumnNoLookup("column"),
                 ConditionArg("condition"),
                 DateArg("middle"),
             ],

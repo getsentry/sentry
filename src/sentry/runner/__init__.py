@@ -14,7 +14,7 @@ datetime.datetime.strptime("", "")
 if sentry.__build__ is None:
     version_string = sentry.VERSION
 else:
-    version_string = "%s (%s)" % (sentry.VERSION, sentry.__build__[:12])
+    version_string = "{} ({})".format(sentry.VERSION, sentry.__build__[:12])
 
 
 @click.group(context_settings={"max_content_width": 150})

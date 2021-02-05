@@ -67,7 +67,7 @@ class UserReportWithGroupSerializer(UserReportSerializer):
                 )
             }
 
-        attrs = super(UserReportWithGroupSerializer, self).get_attrs(item_list, user)
+        attrs = super().get_attrs(item_list, user)
         for item in item_list:
             attrs[item].update(
                 {
@@ -79,6 +79,6 @@ class UserReportWithGroupSerializer(UserReportSerializer):
         return attrs
 
     def serialize(self, obj, attrs, user):
-        context = super(UserReportWithGroupSerializer, self).serialize(obj, attrs, user)
+        context = super().serialize(obj, attrs, user)
         context["issue"] = attrs["group"]
         return context
