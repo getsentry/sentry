@@ -1,6 +1,5 @@
 import logging
 import pickle
-import six
 
 from django.db.models import TextField
 

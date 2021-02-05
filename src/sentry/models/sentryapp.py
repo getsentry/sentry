@@ -1,4 +1,3 @@
-import six
 import uuid
 import itertools
 import hmac

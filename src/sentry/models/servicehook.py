@@ -1,5 +1,4 @@
 import hmac
-import six
 
 from django.db import models
 from django.utils import timezone

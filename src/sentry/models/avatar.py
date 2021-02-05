@@ -1,5 +1,3 @@
-import six
-
 from django.utils.encoding import force_bytes
 from django.db import models, transaction
 from PIL import Image

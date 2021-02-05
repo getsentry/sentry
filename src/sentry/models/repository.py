@@ -83,7 +83,6 @@ def on_delete(instance, actor=None, **kwargs):
 
     # TODO(lb): I'm assuming that this is used by integrations... is it?
     def handle_exception(e):
-        import six
         from sentry.exceptions import InvalidIdentity, PluginError
         from sentry.shared_integrations.exceptions import IntegrationError
 

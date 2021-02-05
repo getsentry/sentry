@@ -1,4 +1,3 @@
-from six import string_types, binary_type
 import psycopg2 as Database
 
 # Some of these imports are unused, but they are inherited from other engines

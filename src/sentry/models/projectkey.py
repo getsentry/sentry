@@ -1,5 +1,4 @@
 import petname
-import six
 import re
 
 from bitfield import BitField

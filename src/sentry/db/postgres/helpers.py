@@ -1,5 +1,4 @@
 import psycopg2
-import six
 
 from django.db.utils import DatabaseError, InterfaceError
 

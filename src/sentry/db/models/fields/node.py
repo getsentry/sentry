@@ -2,7 +2,6 @@ from base64 import b64encode
 import collections
 import logging
 import pickle
-import six
 from uuid import uuid4
 
 from django.db.models.signals import post_delete

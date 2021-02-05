@@ -5,7 +5,6 @@ __all__ = (
     "EncryptedTextField",
 )
 
-import six
 
 from django.db.models import CharField, TextField
 from picklefield.fields import PickledObjectField, dbsafe_decode, PickledObject, _ObjectWrapper

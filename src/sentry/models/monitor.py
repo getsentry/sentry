@@ -1,5 +1,4 @@
 import pytz
-import six
 
 from croniter import croniter
 from datetime import datetime, timedelta

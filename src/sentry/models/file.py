@@ -1,5 +1,4 @@
 import os
-import six
 import mmap
 import tempfile
 import time

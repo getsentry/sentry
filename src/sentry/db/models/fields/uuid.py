@@ -1,5 +1,4 @@
 import importlib
-import six
 
 from sentry.db.models.utils import Creator
 

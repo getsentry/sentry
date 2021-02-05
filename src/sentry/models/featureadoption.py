@@ -1,6 +1,5 @@
 import logging
 
-import six
 from django.db import models, IntegrityError, transaction
 from django.utils import timezone
 
