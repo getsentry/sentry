@@ -1,10 +1,15 @@
 import styled from '@emotion/styled';
 
+import {SectionHeading} from 'app/components/charts/styles';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import space from 'app/styles/space';
 
 export const SidebarSection = styled('section')`
   margin-bottom: ${space(2)};
+
+  ${SectionHeading} {
+    line-height: 1;
+  }
 `;
 
 export const SectionHeadingWrapper = styled('div')`
