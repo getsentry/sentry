@@ -1,7 +1,7 @@
 from django.utils.encoding import force_bytes
 from django.db import models, transaction
+from io import BytesIO
 from PIL import Image
-from six import BytesIO
 from uuid import uuid4
 
 from sentry.db.models import FlexibleForeignKey, Model

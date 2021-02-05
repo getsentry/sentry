@@ -1,10 +1,11 @@
+from functools import reduce
 import itertools
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Model, Q
 from django.db.models.expressions import CombinedExpression
 from django.db.models.signals import post_save
-from six.moves import reduce
+
 
 from .utils import resolve_combined_expression
 

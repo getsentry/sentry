@@ -7,7 +7,7 @@ def can_reconnect(exc):
     if isinstance(exc, (psycopg2.InterfaceError, InterfaceError)):
         return True
     # elif isinstance(exc, psycopg2.OperationalError):
-    #     exc_msg = six.text_type(exc)
+    #     exc_msg = str(exc)
     #     if "can't fetch default_isolation_level" in exc_msg:
     #         return True
     #     elif "can't set datestyle to ISO" in exc_msg:

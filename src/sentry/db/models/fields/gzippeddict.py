@@ -40,7 +40,7 @@ class GzippedDictField(TextField):
         if not value and self.null:
             # save ourselves some storage
             return None
-        # enforce six.text_type strings to guarantee consistency
+        # enforce strings to guarantee consistency
         if isinstance(value, bytes):
             value = str(value)
         # db values need to be in unicode
