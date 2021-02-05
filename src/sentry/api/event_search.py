@@ -202,7 +202,7 @@ SEARCH_MAP = {
 SEARCH_MAP.update(**DATASETS[Dataset.Events])
 SEARCH_MAP.update(**DATASETS[Dataset.Discover])
 
-no_conversion = set(["start", "end"])
+no_conversion = {"start", "end"}
 
 PROJECT_NAME_ALIAS = "project.name"
 PROJECT_ALIAS = "project"
@@ -300,38 +300,34 @@ class SearchVisitor(NodeVisitor):
     # A list of mappers that map source keys to a target name. Format is
     # <target_name>: [<list of source names>],
     key_mappings = {}
-    duration_keys = set(["transaction.duration"])
-    percentage_keys = set(["percentage"])
-    numeric_keys = set(
-        [
-            "project_id",
-            "project.id",
-            "issue.id",
-            "stack.colno",
-            "stack.lineno",
-            "stack.stack_level",
-            "transaction.duration",
-            "apdex",
-            "p75",
-            "p95",
-            "p99",
-            "failure_rate",
-            "user_misery",
-        ]
-    )
-    date_keys = set(
-        [
-            "start",
-            "end",
-            "first_seen",
-            "last_seen",
-            "time",
-            "timestamp",
-            "transaction.start_time",
-            "transaction.end_time",
-        ]
-    )
-    boolean_keys = set(["error.handled", "error.unhandled", "stack.in_app", KEY_TRANSACTION_ALIAS])
+    duration_keys = {"transaction.duration"}
+    percentage_keys = {"percentage"}
+    numeric_keys = {
+        "project_id",
+        "project.id",
+        "issue.id",
+        "stack.colno",
+        "stack.lineno",
+        "stack.stack_level",
+        "transaction.duration",
+        "apdex",
+        "p75",
+        "p95",
+        "p99",
+        "failure_rate",
+        "user_misery",
+    }
+    date_keys = {
+        "start",
+        "end",
+        "first_seen",
+        "last_seen",
+        "time",
+        "timestamp",
+        "transaction.start_time",
+        "transaction.end_time",
+    }
+    boolean_keys = {"error.handled", "error.unhandled", "stack.in_app", KEY_TRANSACTION_ALIAS}
 
     unwrapped_exceptions = (InvalidSearchQuery,)
 

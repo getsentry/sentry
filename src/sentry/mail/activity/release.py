@@ -66,7 +66,7 @@ class ReleaseActivityEmail(ActivityEmail):
                 ).values_list("id", "name")
             }
 
-            self.email_list = set([c.author.email for c in self.commit_list if c.author])
+            self.email_list = {c.author.email for c in self.commit_list if c.author}
             if self.email_list:
                 users = {
                     ue.email: ue.user

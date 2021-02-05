@@ -307,7 +307,7 @@ def post_process_group(
                 logger.exception("Failed to process suspect commits")
 
             if features.has("projects:servicehooks", project=event.project):
-                allowed_events = set(["event.created"])
+                allowed_events = {"event.created"}
                 if has_alert:
                     allowed_events.add("event.alert")
 

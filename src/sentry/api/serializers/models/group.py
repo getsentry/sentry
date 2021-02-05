@@ -301,7 +301,7 @@ class GroupSerializerBase(Serializer):
             release_resolutions = {}
             commit_resolutions = {}
 
-        actor_ids = set(r[-1] for r in six.itervalues(release_resolutions))
+        actor_ids = {r[-1] for r in six.itervalues(release_resolutions)}
         actor_ids.update(r.actor_id for r in six.itervalues(ignore_items))
         if actor_ids:
             users = list(User.objects.filter(id__in=actor_ids, is_active=True))
@@ -319,7 +319,7 @@ class GroupSerializerBase(Serializer):
 
         annotations_by_group_id = defaultdict(list)
 
-        organization_id_list = list(set(item.project.organization_id for item in item_list))
+        organization_id_list = list({item.project.organization_id for item in item_list})
         # if no groups, then we can't proceed but this seems to be a valid use case
         if not item_list:
             return {}
@@ -828,7 +828,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
     def _execute_seen_stats_query(
         self, item_list, start=None, end=None, conditions=None, environment_ids=None
     ):
-        project_ids = list(set([item.project_id for item in item_list]))
+        project_ids = list({item.project_id for item in item_list})
         group_ids = [item.id for item in item_list]
         aggregations = [
             ["count()", "", "times_seen"],

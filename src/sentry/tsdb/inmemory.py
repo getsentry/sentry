@@ -22,7 +22,7 @@ class InMemoryTSDB(BaseTSDB):
     def incr(self, model, key, timestamp=None, count=1, environment_id=None):
         self.validate_arguments([model], [environment_id])
 
-        environment_ids = set([environment_id, None])
+        environment_ids = {environment_id, None}
 
         if timestamp is None:
             timestamp = timezone.now()
@@ -92,7 +92,7 @@ class InMemoryTSDB(BaseTSDB):
     def record(self, model, key, values, timestamp=None, environment_id=None):
         self.validate_arguments([model], [environment_id])
 
-        environment_ids = set([environment_id, None])
+        environment_ids = {environment_id, None}
 
         if timestamp is None:
             timestamp = timezone.now()
@@ -198,7 +198,7 @@ class InMemoryTSDB(BaseTSDB):
         self.frequencies = defaultdict(lambda: defaultdict(lambda: defaultdict(Counter)))
 
     def record_frequency_multi(self, requests, timestamp=None, environment_id=None):
-        environment_ids = set([environment_id, None])
+        environment_ids = {environment_id, None}
 
         self.validate_arguments([model for model, request in requests], [environment_id])
 

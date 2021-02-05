@@ -302,7 +302,7 @@ class ProjectWithOrganizationSerializer(ProjectSerializer):
     def get_attrs(self, item_list, user):
         attrs = super().get_attrs(item_list, user)
 
-        orgs = {d["id"]: d for d in serialize(list(set(i.organization for i in item_list)), user)}
+        orgs = {d["id"]: d for d in serialize(list({i.organization for i in item_list}), user)}
         for item in item_list:
             attrs[item]["organization"] = orgs[six.text_type(item.organization_id)]
         return attrs
@@ -599,7 +599,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         for option in queryset.iterator():
             options_by_project[option.project_id][option.key] = option.value
 
-        orgs = {d["id"]: d for d in serialize(list(set(i.organization for i in item_list)), user)}
+        orgs = {d["id"]: d for d in serialize(list({i.organization for i in item_list}), user)}
 
         latest_release_list = bulk_fetch_project_latest_releases(item_list)
         latest_releases = {

@@ -609,20 +609,18 @@ class S3Boto3Storage(Storage):
         # from v2 and v4 signatures, regardless of the actual signature version used.
         split_url = urlparse.urlsplit(url)
         qs = urlparse.parse_qsl(split_url.query, keep_blank_values=True)
-        blacklist = set(
-            [
-                "x-amz-algorithm",
-                "x-amz-credential",
-                "x-amz-date",
-                "x-amz-expires",
-                "x-amz-signedheaders",
-                "x-amz-signature",
-                "x-amz-security-token",
-                "awsaccesskeyid",
-                "expires",
-                "signature",
-            ]
-        )
+        blacklist = {
+            "x-amz-algorithm",
+            "x-amz-credential",
+            "x-amz-date",
+            "x-amz-expires",
+            "x-amz-signedheaders",
+            "x-amz-signature",
+            "x-amz-security-token",
+            "awsaccesskeyid",
+            "expires",
+            "signature",
+        }
         filtered_qs = ((key, val) for key, val in qs if key.lower() not in blacklist)
         # Note: Parameters that did not have a value in the original query string will have
         # an '=' sign appended to it, e.g ?foo&bar becomes ?foo=&bar=

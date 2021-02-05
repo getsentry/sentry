@@ -47,7 +47,7 @@ class Migration(migrations.Migration):
                 ),
                 migrations.AlterUniqueTogether(
                     name="platformexternalissue",
-                    unique_together=set([("group", "service_type")]),
+                    unique_together={("group", "service_type")},
                 ),
             ]
         )

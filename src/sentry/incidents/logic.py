@@ -845,7 +845,7 @@ def update_alert_rule(
                 AlertRuleExcludedProjects.objects.bulk_create(new_exclusions)
 
                 new_projects = Project.objects.filter(organization=alert_rule.organization).exclude(
-                    id__in=set([sub.project_id for sub in existing_subs]) | excluded_project_ids
+                    id__in={sub.project_id for sub in existing_subs} | excluded_project_ids
                 )
                 # If we're subscribed to any of the excluded projects then we want to
                 # remove those subscriptions
@@ -1116,9 +1116,9 @@ def get_subscriptions_from_alert_rule(alert_rule, projects):
     """
     excluded_subscriptions = alert_rule.snuba_query.subscriptions.filter(project__in=projects)
     if len(excluded_subscriptions) != len(projects):
-        invalid_slugs = set([p.slug for p in projects]) - set(
-            [s.project.slug for s in excluded_subscriptions]
-        )
+        invalid_slugs = {p.slug for p in projects} - {
+            s.project.slug for s in excluded_subscriptions
+        }
         raise ProjectsNotAssociatedWithAlertRuleError(invalid_slugs)
     return excluded_subscriptions
 

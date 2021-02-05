@@ -1410,7 +1410,7 @@ def _materialize_event_metrics(jobs):
 @metrics.wraps("event_manager.save_transaction_events")
 def save_transaction_events(jobs, projects):
     with metrics.timer("event_manager.save_transactions.collect_organization_ids"):
-        organization_ids = set(project.organization_id for project in six.itervalues(projects))
+        organization_ids = {project.organization_id for project in six.itervalues(projects)}
 
     with metrics.timer("event_manager.save_transactions.fetch_organizations"):
         organizations = {

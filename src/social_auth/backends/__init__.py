@@ -441,7 +441,7 @@ class BaseOAuth1(OAuthAuth):
             if not isinstance(unauthed_token, dict):
                 token = parse_qs(unauthed_token)
             if token.get("oauth_token") == self.data.get("oauth_token"):
-                unauthed_tokens = list(set(unauthed_tokens) - set([unauthed_token]))
+                unauthed_tokens = list(set(unauthed_tokens) - {unauthed_token})
                 self.request.session[name] = unauthed_tokens
                 self.request.session.modified = True
                 break

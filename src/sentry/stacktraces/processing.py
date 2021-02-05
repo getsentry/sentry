@@ -183,10 +183,10 @@ def find_stacktraces_in_data(data, include_raw=False, with_exceptions=False):
         if not is_exception and (not stacktrace or not get_path(stacktrace, "frames", filter=True)):
             return
 
-        platforms = set(
+        platforms = {
             frame.get("platform") or data.get("platform")
             for frame in get_path(stacktrace, "frames", filter=True, default=())
-        )
+        }
         rv.append(
             StacktraceInfo(
                 stacktrace=stacktrace,
