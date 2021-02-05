@@ -155,7 +155,7 @@ class Dashboard extends React.Component<Props, State> {
 
           const activeIndex = activeDragId ? getIndex(activeDragId) : -1;
 
-          if (over && over.id !== ADD_WIDGET_BUTTON_DRAG_ID) {
+          if (over?.id !== ADD_WIDGET_BUTTON_DRAG_ID) {
             const overIndex = getIndex(over.id);
             if (activeIndex !== overIndex) {
               const newWidgets = [...this.props.dashboard.widgets];
