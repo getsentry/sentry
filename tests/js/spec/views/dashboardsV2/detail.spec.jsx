@@ -9,7 +9,7 @@ import DashboardDetail from 'app/views/dashboardsV2/detail';
 
 describe('Dashboards > Detail', function () {
   const organization = TestStubs.Organization({
-    features: ['global-views', 'dashboards-v2', 'discover-query'],
+    features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
     projects: [TestStubs.Project()],
   });
 
@@ -121,6 +121,35 @@ describe('Dashboards > Detail', function () {
           pathname: '/organizations/org-slug/dashboards/8/',
         })
       );
+    });
+
+    it('disables buttons based on features', async function () {
+      wrapper = mountWithTheme(
+        <DashboardDetail
+          organization={{
+            ...initialData.organization,
+            features: ['dashboards-basic', 'discover-basic'],
+          }}
+          params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      // Edit should be disabled
+      const editProps = wrapper
+        .find('Controls Button[data-test-id="dashboard-edit"]')
+        .props();
+      expect(editProps.disabled).toBe(true);
+
+      // Create should be disabled
+      const createProps = wrapper
+        .find('Controls Button[data-test-id="dashboard-create"]')
+        .props();
+      expect(createProps.disabled).toBe(true);
     });
   });
 
