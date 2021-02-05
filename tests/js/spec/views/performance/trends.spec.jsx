@@ -7,9 +7,9 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import ProjectsStore from 'app/stores/projectsStore';
 import PerformanceLanding from 'app/views/performance/landing';
 import {
-  CONFIDENCE_LEVELS,
   DEFAULT_MAX_DURATION,
   TRENDS_FUNCTIONS,
+  TRENDS_PARAMETERS,
 } from 'app/views/performance/trends/utils';
 
 const trendsViewQuery = {
@@ -26,7 +26,7 @@ jest.mock('moment', () => {
 function selectTrendFunction(wrapper, field) {
   const menu = wrapper.find('TrendsDropdown DropdownMenu');
   expect(menu).toHaveLength(2);
-  menu.find('DropdownButton').at(1).simulate('click');
+  menu.find('DropdownButton').first().simulate('click');
 
   const option = menu.find(`DropdownItem[data-test-id="${field}"] span`);
   expect(option).toHaveLength(1);
@@ -35,10 +35,10 @@ function selectTrendFunction(wrapper, field) {
   wrapper.update();
 }
 
-function selectConfidenceLevel(wrapper, label) {
+function selectTrendParameter(wrapper, label) {
   const menu = wrapper.find('TrendsDropdown DropdownMenu');
   expect(menu).toHaveLength(2);
-  menu.find('DropdownButton').first().simulate('click');
+  menu.find('DropdownButton').at(1).simulate('click');
 
   const option = menu.find(`DropdownItem[data-test-id="${label}"] span`);
   expect(option).toHaveLength(1);
@@ -225,7 +225,8 @@ describe('Performance > Trends', function () {
         query: expect.objectContaining({
           project: 1,
           display: 'trend',
-          trendDisplay: 'p50()',
+          trendFunction: 'p50',
+          trendColumn: 'transaction.duration',
         }),
       })
     );
@@ -396,7 +397,7 @@ describe('Performance > Trends', function () {
     }
   }, 10000);
 
-  it('choosing a confidence level changes location', async function () {
+  it('choosing a parameter changes location', async function () {
     const projects = [TestStubs.Project()];
     const data = initializeData(projects, {project: ['-1']});
     const wrapper = mountWithTheme(
@@ -410,15 +411,15 @@ describe('Performance > Trends', function () {
     await tick();
     wrapper.update();
 
-    for (const confidenceLevel of CONFIDENCE_LEVELS) {
-      selectConfidenceLevel(wrapper, confidenceLevel.label);
+    for (const parameter of TRENDS_PARAMETERS) {
+      selectTrendParameter(wrapper, parameter.label);
 
       await tick();
       wrapper.update();
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         query: expect.objectContaining({
-          confidenceLevel: confidenceLevel.label,
+          trendParameter: parameter.label,
         }),
       });
     }
@@ -465,7 +466,7 @@ describe('Performance > Trends', function () {
         expect.anything(),
         expect.objectContaining({
           query: expect.objectContaining({
-            trendFunction: trendFunction.field,
+            trendFunction: `${trendFunction.field}(transaction.duration)`,
             sort,
             query: expect.stringContaining('trend_percentage():>0%'),
             interval: '30m',
@@ -481,7 +482,7 @@ describe('Performance > Trends', function () {
         expect.anything(),
         expect.objectContaining({
           query: expect.objectContaining({
-            trendFunction: trendFunction.field,
+            trendFunction: `${trendFunction.field}(transaction.duration)`,
             sort: '-' + sort,
             query: expect.stringContaining('trend_percentage():>0%'),
             interval: '30m',

@@ -2177,7 +2177,7 @@ FUNCTIONS = {
         Function(
             "percentile_range",
             required_args=[
-                DurationColumnNoLookup("column"),
+                NumericColumnNoLookup("column"),
                 NumberRange("percentile", 0, 1),
                 ConditionArg("condition"),
                 DateArg("middle"),
@@ -2213,7 +2213,7 @@ FUNCTIONS = {
         Function(
             "avg_range",
             required_args=[
-                DurationColumnNoLookup("column"),
+                NumericColumnNoLookup("column"),
                 ConditionArg("condition"),
                 DateArg("middle"),
             ],
@@ -2231,7 +2231,7 @@ FUNCTIONS = {
         Function(
             "variance_range",
             required_args=[
-                DurationColumnNoLookup("column"),
+                NumericColumnNoLookup("column"),
                 ConditionArg("condition"),
                 DateArg("middle"),
             ],
