@@ -14,7 +14,7 @@ class SentryAppInstallationExternalIssueDetailsEndpointTest(APITestCase):
             name="testin",
             organization=self.org,
             webhook_url="https://example.com",
-            scopes=["event:write", "event:admin"],
+            scopes=["event:admin"],
         )
         self.install = self.create_sentry_app_installation(
             organization=self.org, slug=self.sentry_app.slug, user=self.user
