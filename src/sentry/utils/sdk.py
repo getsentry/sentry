@@ -189,7 +189,7 @@ def configure_sdk():
             # Temporarily also capture counts for one specific transaction to check ingested amount
             if (
                 transaction
-                and transaction.get("name") == "/api/0/organizations/{{organization_slug}}/issues/"
+                and transaction.get("transaction") == "/api/0/organizations/{organization_slug}/issues/"
             ):
                 metrics.incr("internal.captured.events.envelopes.issues")
 
