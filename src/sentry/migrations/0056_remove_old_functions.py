@@ -9,7 +9,7 @@ from django.db.models import Q
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 
-FIELDS_TO_CHANGE = set(["orderby", "fields", "yAxis", "query"])
+FIELDS_TO_CHANGE = {"orderby", "fields", "yAxis", "query"}
 FUNCTION_CHANGE = {
     "p75": "p75()",
     "p95": "p95()",

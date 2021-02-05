@@ -262,9 +262,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 # projects that the user is a member of. This gives us a better
                 # chance of returning the correct result, even if the wrong
                 # project is selected.
-                direct_hit_projects = set(project_ids) | set(
-                    [project.id for project in request.access.projects]
-                )
+                direct_hit_projects = set(project_ids) | {
+                    project.id for project in request.access.projects
+                }
                 groups = list(Group.objects.filter_by_event_id(direct_hit_projects, event_id))
                 if len(groups) == 1:
                     response = Response(

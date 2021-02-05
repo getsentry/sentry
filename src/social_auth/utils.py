@@ -136,7 +136,7 @@ def parse_qs(value):
 
 
 def drop_lists(value):
-    return dict((key, val[0]) for key, val in six.iteritems(value))
+    return {key: val[0] for key, val in six.iteritems(value)}
 
 
 if __name__ == "__main__":

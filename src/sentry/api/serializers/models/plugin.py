@@ -62,7 +62,7 @@ class PluginSerializer(Serializer):
         if obj.description:
             d["description"] = six.text_type(obj.description)
 
-        d["features"] = list(set(f.featureGate.value for f in obj.feature_descriptions))
+        d["features"] = list({f.featureGate.value for f in obj.feature_descriptions})
 
         d["featureDescriptions"] = [
             {

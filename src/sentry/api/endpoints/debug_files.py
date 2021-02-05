@@ -39,7 +39,7 @@ from sentry.constants import DEBUG_FILES_ROLE_DEFAULT
 
 logger = logging.getLogger("sentry.api")
 ERR_FILE_EXISTS = "A file matching this debug identifier already exists"
-DIF_MIMETYPES = dict((v, k) for k, v in KNOWN_DIF_FORMATS.items())
+DIF_MIMETYPES = {v: k for k, v in KNOWN_DIF_FORMATS.items()}
 _release_suffix = re.compile(r"^(.*)\s+\(([^)]+)\)\s*$")
 
 

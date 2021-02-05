@@ -23,11 +23,11 @@ def consolidate_events(raw_events):
     Consolidate a list of raw event types ('issue.created', etc) into a list of
     rolled up events ('issue', etc).
     """
-    return set(
+    return {
         name
         for (name, rolled_up_events) in six.iteritems(EVENT_EXPANSION)
         if any(set(raw_events) & set(rolled_up_events))
-    )
+    }
 
 
 class Creator(Mediator):

@@ -88,8 +88,8 @@ class DiscoverQuerySerializer(serializers.Serializer):
         return [self.get_condition(condition) for condition in value]
 
     def validate_aggregations(self, value):
-        valid_functions = set(["count()", "uniq", "avg", "sum"])
-        requested_functions = set(agg[0] for agg in value)
+        valid_functions = {"count()", "uniq", "avg", "sum"}
+        requested_functions = {agg[0] for agg in value}
 
         if not requested_functions.issubset(valid_functions):
             invalid_functions = ", ".join(requested_functions - valid_functions)
@@ -163,8 +163,8 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
     display = serializers.CharField(required=False, allow_null=True)
 
     disallowed_fields = {
-        1: set(["environment", "query", "yAxis", "display"]),
-        2: set(["groupby", "rollup", "aggregations", "conditions", "limit"]),
+        1: {"environment", "query", "yAxis", "display"},
+        2: {"groupby", "rollup", "aggregations", "conditions", "limit"},
     }
 
     def validate_projects(self, projects):
