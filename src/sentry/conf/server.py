@@ -900,7 +900,7 @@ SENTRY_FEATURES = {
     # Enable readonly dashboards (dashboards 2)
     "organizations:dashboards-basic": False,
     # Enable custom editable dashboards (dashboards 2)
-    "organizations:dashboards-full": False,
+    "organizations:dashboards-edit": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Special feature flag primarily used on the sentry.io SAAS product for
