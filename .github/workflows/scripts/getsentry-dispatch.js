@@ -14,8 +14,8 @@ module.exports = {
     console.log(fileChanges, context);
 
     const shouldSkip = {
-      frontend: fileChanges.frontend != 'true',
-      backend_dependencies: fileChanges.backend_dependencies != 'true',
+      frontend: fileChanges.frontend !== 'true',
+      backend_dependencies: fileChanges.backend_dependencies !== 'true',
     };
 
     DISPATCHES.forEach(({workflow, pathFilterName}) => {
@@ -25,8 +25,10 @@ module.exports = {
         workflow_id: workflow,
         ref: 'build/ci/add-backend-dependencies-test', // TODO: this needs to be 'master'
         inputs: {
+          branch: '',
+          pull_request: '',
           skip: shouldSkip[pathFilterName],
-          'sentry-sha': '${{ github.event.pull_request.head.sha }}',
+          'sentry-sha': context.payload.pull_request.head.sha,
         }
       })
     });
