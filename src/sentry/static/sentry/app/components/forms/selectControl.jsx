@@ -160,6 +160,7 @@ const SelectControl = props => {
       border: '1px solid #c2e0ff',
       display: 'flex',
       marginRight: '4px',
+      marginTop: '2px',
     }),
     multiValueLabel: provided => ({
       ...provided,
