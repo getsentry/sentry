@@ -2,7 +2,6 @@ import logging
 import warnings
 from collections import defaultdict
 
-import six
 from bitfield import BitField
 from django.conf import settings
 from django.db import IntegrityError, models, transaction

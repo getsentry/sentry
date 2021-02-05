@@ -1,5 +1,3 @@
-import six
-
 from bitfield import BitField
 from datetime import timedelta
 from django.db import models
