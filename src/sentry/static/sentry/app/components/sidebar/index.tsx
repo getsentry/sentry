@@ -410,7 +410,6 @@ class Sidebar extends React.Component<Props, State> {
               label={t('Alerts')}
               to={alertsPath}
               id="alerts"
-              isNew
             />
           );
         }}
