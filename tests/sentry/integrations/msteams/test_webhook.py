@@ -2,7 +2,7 @@ import jwt
 import responses
 
 from copy import deepcopy
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from sentry.models import Integration, Identity, IdentityProvider
 from sentry.testutils import APITestCase
@@ -29,7 +29,7 @@ kid = "Su-pdZys9LJGhDVgah3UjfPouuc"
 
 class MsTeamsWebhookTest(APITestCase):
     def setUp(self):
-        super(MsTeamsWebhookTest, self).setUp()
+        super().setUp()
 
         responses.add(
             responses.GET,

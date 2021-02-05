@@ -1,6 +1,7 @@
 import React from 'react';
 import {InjectedRouter} from 'react-router/lib/Router';
 import {withTheme} from 'emotion-theming';
+import isEqual from 'lodash/isEqual';
 
 import {Client} from 'app/api';
 import ChartZoom, {ZoomRenderProps} from 'app/components/charts/chartZoom';
@@ -13,7 +14,7 @@ import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization} from 'app/types';
-import {Series} from 'app/types/echarts';
+import {EChartEventHandler, Series} from 'app/types/echarts';
 import getDynamicText from 'app/utils/getDynamicText';
 import {Theme} from 'app/utils/theme';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -93,7 +94,7 @@ function ProjectStabilityChart({
                           <TransparentLoadingMask visible={reloading} />
 
                           <HeaderTitleLegend>
-                            {t('Stability')}
+                            {t('Crash Free Rate')}
                             <QuestionTooltip
                               size="sm"
                               position="top"
@@ -125,7 +126,7 @@ function ProjectStabilityChart({
             )}
           </ChartZoom>
         ),
-        fixed: t('Stability Chart'),
+        fixed: t('Crash Free Rate Chart'),
       })}
     </React.Fragment>
   );
@@ -140,8 +141,26 @@ type ChartProps = {
   previousTimeSeries?: Series[];
 };
 
-class Chart extends React.Component<ChartProps> {
-  shouldComponentUpdate(nextProps: ChartProps) {
+type ChartState = {
+  seriesSelection: Record<string, boolean>;
+  forceUpdate: boolean;
+};
+
+class Chart extends React.Component<ChartProps, ChartState> {
+  state: ChartState = {
+    seriesSelection: {},
+    forceUpdate: false,
+  };
+
+  shouldComponentUpdate(nextProps: ChartProps, nextState: ChartState) {
+    if (nextState.forceUpdate) {
+      return true;
+    }
+
+    if (!isEqual(this.state.seriesSelection, nextState.seriesSelection)) {
+      return true;
+    }
+
     if (
       nextProps.releaseSeries !== this.props.releaseSeries &&
       !nextProps.reloading &&
@@ -154,11 +173,34 @@ class Chart extends React.Component<ChartProps> {
       return true;
     }
 
+    if (nextProps.timeSeries !== this.props.timeSeries) {
+      return true;
+    }
+
     return false;
   }
 
+  // inspired by app/components/charts/eventsChart.tsx@handleLegendSelectChanged
+  handleLegendSelectChanged: EChartEventHandler<{
+    name: string;
+    selected: Record<string, boolean>;
+    type: 'legendselectchanged';
+  }> = ({selected}) => {
+    const seriesSelection = Object.keys(selected).reduce((state, key) => {
+      state[key] = selected[key];
+      return state;
+    }, {});
+
+    // we have to force an update here otherwise ECharts will
+    // update its internal state and disable the series
+    this.setState({seriesSelection, forceUpdate: true}, () =>
+      this.setState({forceUpdate: false})
+    );
+  };
+
   get legend() {
     const {theme} = this.props;
+    const {seriesSelection} = this.state;
 
     return {
       right: 10,
@@ -174,6 +216,8 @@ class Chart extends React.Component<ChartProps> {
         fontSize: 11,
         fontFamily: theme.text.family,
       },
+      data: [t('This Period'), t('Previous Period'), t('Releases')],
+      selected: seriesSelection,
     };
   }
 
@@ -214,6 +258,7 @@ class Chart extends React.Component<ChartProps> {
           Array.isArray(releaseSeries) ? [...timeSeries, ...releaseSeries] : timeSeries
         }
         previousPeriod={previousTimeSeries}
+        onLegendSelectChanged={this.handleLegendSelectChanged}
       />
     );
   }

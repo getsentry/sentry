@@ -1,7 +1,7 @@
 import six
 
 
-class EventError(object):
+class EventError:
     # Generic
     UNKNOWN_ERROR = "unknown_error"
 

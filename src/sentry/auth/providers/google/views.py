@@ -14,7 +14,7 @@ class FetchUser(AuthView):
     def __init__(self, domains, version, *args, **kwargs):
         self.domains = domains
         self.version = version
-        super(FetchUser, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def dispatch(self, request, helper):
         data = helper.fetch_state("data")

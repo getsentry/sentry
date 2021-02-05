@@ -1,5 +1,5 @@
 import responses
-from six.moves.urllib.parse import parse_qs
+from urllib.parse import parse_qs
 
 from sentry.testutils import TestCase
 from sentry.models import OrganizationMember

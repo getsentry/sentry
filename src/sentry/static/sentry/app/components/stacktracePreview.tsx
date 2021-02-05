@@ -139,7 +139,7 @@ class StacktracePreview extends React.Component<Props, State> {
           <StacktraceContent
             data={stacktrace}
             expandFirstFrame={false}
-            includeSystemFrames={stacktrace.frames.every(frame => !frame.inApp)}
+            includeSystemFrames={(stacktrace.frames ?? []).every(frame => !frame.inApp)}
             platform={(event.platform ?? 'other') as PlatformType}
             newestFirst={isStacktraceNewestFirst()}
             event={event}

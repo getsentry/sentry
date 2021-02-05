@@ -36,7 +36,7 @@ const ExceptionStacktraceContent = ({
 
   if (
     stackView === STACK_VIEW.APP &&
-    stacktrace.frames.filter(frame => frame.inApp).length === 0 &&
+    (stacktrace.frames ?? []).filter(frame => frame.inApp).length === 0 &&
     !chainedException
   ) {
     return (
@@ -68,7 +68,7 @@ const ExceptionStacktraceContent = ({
       expandFirstFrame={expandFirstFrame}
       includeSystemFrames={
         stackView === STACK_VIEW.FULL ||
-        (chainedException && stacktrace.frames.every(frame => !frame.inApp))
+        (chainedException && (stacktrace.frames ?? []).every(frame => !frame.inApp))
       }
       platform={platform}
       newestFirst={newestFirst}

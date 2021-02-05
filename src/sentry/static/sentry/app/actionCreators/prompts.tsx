@@ -20,7 +20,7 @@ type PromptsUpdateParams = {
  * Update the status of a prompt
  */
 export function promptsUpdate(api: Client, params: PromptsUpdateParams) {
-  return api.requestPromise('/promptsactivity/', {
+  return api.requestPromise('/prompts-activity/', {
     method: 'PUT',
     data: {
       organization_id: params.organizationId,
@@ -63,7 +63,9 @@ export async function promptsCheck(api: Client, params: PromptCheckParams) {
     ...(params.projectId === undefined ? {} : {project_id: params.projectId}),
   };
 
-  const response: PromptResponse = await api.requestPromise('/promptsactivity/', {query});
+  const response: PromptResponse = await api.requestPromise('/prompts-activity/', {
+    query,
+  });
   const data = response?.data;
 
   if (!data) {

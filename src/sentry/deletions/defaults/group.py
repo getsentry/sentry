@@ -48,7 +48,7 @@ class EventDataDeletionTask(BaseDeletionTask):
         self.group_id = group_id
         self.project_id = project_id
         self.last_event = None
-        super(EventDataDeletionTask, self).__init__(manager, **kwargs)
+        super().__init__(manager, **kwargs)
 
     def chunk(self):
         conditions = []
@@ -123,7 +123,7 @@ class GroupDeletionTask(ModelDeletionTask):
         if not self.skip_models or similarity not in self.skip_models:
             similarity.delete(None, instance)
 
-        return super(GroupDeletionTask, self).delete_instance(instance)
+        return super().delete_instance(instance)
 
     def mark_deletion_in_progress(self, instance_list):
         from sentry.models import Group, GroupStatus

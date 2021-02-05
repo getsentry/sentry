@@ -69,7 +69,7 @@ class EventUser(Model):
         ), "No identifying value found for user"
         if not self.hash:
             self.set_hash()
-        super(EventUser, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def set_hash(self):
         self.hash = self.build_hash()

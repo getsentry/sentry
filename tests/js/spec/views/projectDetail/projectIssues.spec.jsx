@@ -11,12 +11,12 @@ describe('ProjectDetail > ProjectIssues', function () {
 
   beforeEach(function () {
     endpointMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/?limit=5&query=is%3Aunresolved`,
+      url: `/organizations/${organization.slug}/issues/?limit=5&query=is%3Aunresolved&sort=freq&statsPeriod=14d`,
       body: [TestStubs.Group(), TestStubs.Group({id: '2'})],
     });
 
     filteredEndpointMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/?environment=staging&limit=5&query=is%3Aunresolved&statsPeriod=7d`,
+      url: `/organizations/${organization.slug}/issues/?environment=staging&limit=5&query=is%3Aunresolved&sort=freq&statsPeriod=7d`,
       body: [TestStubs.Group(), TestStubs.Group({id: '2'})],
     });
 
@@ -51,6 +51,8 @@ describe('ProjectDetail > ProjectIssues', function () {
       query: {
         limit: 5,
         query: 'is:unresolved',
+        sort: 'freq',
+        statsPeriod: '14d',
       },
     });
   });
@@ -76,6 +78,7 @@ describe('ProjectDetail > ProjectIssues', function () {
         environment: 'staging',
         statsPeriod: '7d',
         query: 'is:unresolved',
+        sort: 'freq',
       },
     });
   });

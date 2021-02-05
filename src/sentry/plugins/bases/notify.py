@@ -21,7 +21,7 @@ class BaseNotificationUserOptionsForm(forms.Form):
     def __init__(self, plugin, user, *args, **kwargs):
         self.plugin = plugin
         self.user = user
-        super(BaseNotificationUserOptionsForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def get_title(self):
         return self.plugin.get_conf_title()
@@ -127,7 +127,7 @@ class NotificationPlugin(Plugin):
         if not (
             hasattr(self, "notify_digest") and digests.enabled(project)
         ) and self.__is_rate_limited(group, event):
-            logger = logging.getLogger("sentry.plugins.{0}".format(self.get_conf_key()))
+            logger = logging.getLogger("sentry.plugins.{}".format(self.get_conf_key()))
             logger.info("notification.rate_limited", extra={"project_id": project.id})
             return False
 

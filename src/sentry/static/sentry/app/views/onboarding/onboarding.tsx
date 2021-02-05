@@ -317,7 +317,7 @@ const Back = styled(({className, animate, ...props}) => (
     transition={testableTransition()}
     variants={{
       initial: {opacity: 0},
-      visible: {opacity: 1, transition: {delay: 1}},
+      visible: {opacity: 1, transition: testableTransition({delay: 1})},
       hidden: {opacity: 0},
     }}
   >

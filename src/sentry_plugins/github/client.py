@@ -35,7 +35,7 @@ class GitHubClient(GitHubClientMixin, AuthApiClient):
     def __init__(self, url=None, auth=None):
         if url is not None:
             self.base_url = url.rstrip("/")
-        super(GitHubClient, self).__init__(auth=auth)
+        super().__init__(auth=auth)
 
     def request_no_auth(self, method, path, data=None, params=None):
         if params is None:
@@ -82,7 +82,7 @@ class GitHubAppsClient(GitHubClientMixin, ApiClient):
         self.integration = integration
         self.token = None
         self.expires_at = None
-        super(GitHubAppsClient, self).__init__()
+        super().__init__()
 
     def get_token(self):
         if not self.token or self.expires_at < datetime.datetime.utcnow():

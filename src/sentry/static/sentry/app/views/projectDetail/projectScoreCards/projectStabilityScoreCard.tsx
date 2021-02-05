@@ -1,10 +1,12 @@
 import React from 'react';
+import round from 'lodash/round';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import {getDiffInMinutes} from 'app/components/charts/utils';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import ScoreCard from 'app/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import {IconArrow} from 'app/icons';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization, SessionApiResponse} from 'app/types';
 import {defined, percent} from 'app/utils';
@@ -122,7 +124,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
   }
 
   get cardTitle() {
-    return t('Stability Score');
+    return t('Crash Free Sessions');
   }
 
   get cardHelp() {
@@ -144,7 +146,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
       return undefined;
     }
 
-    return this.score - previousScore;
+    return round(this.score - previousScore, 3);
   }
 
   get trendStatus(): React.ComponentProps<typeof ScoreCard>['trendStatus'] {
@@ -216,9 +218,16 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
       return null;
     }
 
-    return `${this.trend >= 0 ? '+' : '-'}${formatAbbreviatedNumber(
-      Math.abs(this.trend)
-    )}\u0025`;
+    return (
+      <div>
+        {this.trend >= 0 ? (
+          <IconArrow direction="up" size="xs" />
+        ) : (
+          <IconArrow direction="down" size="xs" />
+        )}
+        {formatAbbreviatedNumber(Math.abs(this.trend))}
+      </div>
+    );
   }
 
   renderBody() {

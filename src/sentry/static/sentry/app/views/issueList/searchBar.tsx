@@ -145,8 +145,12 @@ class IssueListSearchBar extends React.Component<Props, State> {
 }
 
 const SmartSearchBarNoLeftCorners = styled(SmartSearchBar)<{isInbox?: boolean}>`
-  border-radius: ${p =>
-    p.isInbox ? null : `0 ${p.theme.borderRadius} ${p.theme.borderRadius} 0`};
+  ${p =>
+    !p.isInbox &&
+    `
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+    `}
 
   flex-grow: 1;
 `;

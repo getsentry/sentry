@@ -43,7 +43,7 @@ ALERT_RULE_BASE_TRIGGER_STAT_KEY = "%s:trigger:%s:%s"
 ALERT_RULE_TRIGGER_STAT_KEYS = ("alert_triggered", "resolve_triggered")
 
 
-class SubscriptionProcessor(object):
+class SubscriptionProcessor:
     """
     Class for processing subscription updates for an alert rule. Accepts a subscription
     and then can process one or more updates via `process_update`. Keeps track of how

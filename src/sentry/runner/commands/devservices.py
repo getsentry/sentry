@@ -2,7 +2,6 @@ import time
 import signal
 import os
 import click
-from six import text_type
 
 from sentry.utils.compat import map
 
@@ -43,7 +42,7 @@ def get_or_create(client, thing, name):
     try:
         return getattr(client, thing + "s").get(name)
     except NotFound:
-        click.secho("> Creating '%s' %s" % (name, thing), err=True, fg="yellow")
+        click.secho(f"> Creating '{name}' {thing}", err=True, fg="yellow")
         return getattr(client, thing + "s").create(name)
 
 
@@ -74,9 +73,7 @@ def wait_for_healthcheck(low_level_client, container_name, healthcheck_options):
         time.sleep(delay)
 
     raise click.ClickException(
-        "Timed out waiting for {container_name}: healthcheck status {health_status}".format(
-            container_name=container_name, health_status=health_status
-        )
+        f"Timed out waiting for {container_name}: healthcheck status {health_status}"
     )
 
 
@@ -129,7 +126,7 @@ def attach(ctx, project, fast, service):
 
     containers = _prepare_containers(project, silent=True)
     if service not in containers:
-        raise click.ClickException("Service `{}` is not known or not enabled.".format(service))
+        raise click.ClickException(f"Service `{service}` is not known or not enabled.")
 
     container = _start_service(
         ctx.obj["client"],
@@ -143,9 +140,9 @@ def attach(ctx, project, fast, service):
 
     def exit_handler(*_):
         try:
-            click.echo("Stopping {}".format(service))
+            click.echo(f"Stopping {service}")
             container.stop()
-            click.echo("Removing {}".format(service))
+            click.echo(f"Removing {service}")
             container.remove()
         except KeyboardInterrupt:
             pass
@@ -183,7 +180,7 @@ def up(ctx, services, project, exclude, fast):
         for service in services:
             if service not in containers:
                 click.secho(
-                    "Service `{}` is not known or not enabled.\n".format(service),
+                    f"Service `{service}` is not known or not enabled.\n",
                     err=True,
                     fg="red",
                 )
@@ -197,9 +194,7 @@ def up(ctx, services, project, exclude, fast):
 
     for service in exclude:
         if service not in containers:
-            click.secho(
-                "Service `{}` is not known or not enabled.\n".format(service), err=True, fg="red"
-            )
+            click.secho(f"Service `{service}` is not known or not enabled.\n", err=True, fg="red")
             click.secho(
                 "Services that are available:\n" + "\n".join(containers.keys()) + "\n", err=True
             )
@@ -232,9 +227,7 @@ def _prepare_containers(project, silent=False):
         test_fn = options.pop("only_if", None)
         if test_fn and not test_fn(settings, sentry_options):
             if not silent:
-                click.secho(
-                    "! Skipping {} due to only_if condition".format(name), err=True, fg="cyan"
-                )
+                click.secho(f"! Skipping {name} due to only_if condition", err=True, fg="cyan")
             continue
 
         options["network"] = project
@@ -294,7 +287,7 @@ def _start_service(
 
     listening = ""
     if options["ports"]:
-        listening = "(listening: %s)" % ", ".join(map(text_type, options["ports"].values()))
+        listening = "(listening: %s)" % ", ".join(map(str, options["ports"].values()))
 
     # If a service is associated with the devserver, then do not run the created container.
     # This was mainly added since it was not desirable for nginx to occupy port 8000 on the
@@ -335,7 +328,7 @@ def _start_service(
 
         if should_reuse_container:
             click.secho(
-                "> Starting EXISTING container '%s' %s" % (container.name, listening),
+                f"> Starting EXISTING container '{container.name}' {listening}",
                 err=True,
                 fg="yellow",
             )
@@ -354,7 +347,7 @@ def _start_service(
 
     click.secho("> Creating container '%s'" % options["name"], err=True, fg="yellow")
     container = client.containers.create(**options)
-    click.secho("> Starting container '%s' %s" % (container.name, listening), err=True, fg="yellow")
+    click.secho(f"> Starting container '{container.name}' {listening}", err=True, fg="yellow")
     container.start()
     healthcheck_options = options.get("healthcheck")
     if healthcheck_options:
@@ -411,7 +404,7 @@ def rm(ctx, project, services):
             # XXX: This code is also fairly duplicated in here at this point, so dedupe in the future.
             if service not in containers:
                 click.secho(
-                    "Service `{}` is not known or not enabled.\n".format(service),
+                    f"Service `{service}` is not known or not enabled.\n",
                     err=True,
                     fg="red",
                 )

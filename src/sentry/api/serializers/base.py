@@ -51,7 +51,7 @@ def register(type):
     return wrapped
 
 
-class Serializer(object):
+class Serializer:
     def __call__(self, obj, attrs, user, **kwargs):
         if obj is None:
             return

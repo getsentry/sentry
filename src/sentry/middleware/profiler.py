@@ -23,7 +23,7 @@ group_prefix_re = [
 ]
 
 
-class ProfileMiddleware(object):
+class ProfileMiddleware:
     """
     Displays hotshot profiling for any view.
     http://yoursite.com/yourview/?prof

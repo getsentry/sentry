@@ -22,7 +22,7 @@ class AbsoluteUriTest(unittest.TestCase):
         assert absolute_uri() == options.get("system.url-prefix")
 
     def test_with_path(self):
-        assert absolute_uri("/foo/bar") == "%s/foo/bar" % (options.get("system.url-prefix"),)
+        assert absolute_uri("/foo/bar") == "{}/foo/bar".format(options.get("system.url-prefix"))
 
 
 class SameDomainTestCase(unittest.TestCase):

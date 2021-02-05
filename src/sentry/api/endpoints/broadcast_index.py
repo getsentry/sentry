@@ -36,9 +36,7 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
 
     def convert_args(self, request, organization_slug=None, *args, **kwargs):
         if organization_slug:
-            args, kwargs = super(BroadcastIndexEndpoint, self).convert_args(
-                request, organization_slug
-            )
+            args, kwargs = super().convert_args(request, organization_slug)
 
         return (args, kwargs)
 

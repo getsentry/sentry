@@ -60,7 +60,7 @@ class BitbucketBackend(OAuthBackend):
 
         instance must be a UserSocialAuth instance.
         """
-        token = super(BitbucketBackend, cls).tokens(instance)
+        token = super().tokens(instance)
         if token and "access_token" in token:
             token = dict(tok.split("=") for tok in token["access_token"].split("&"))
         return token

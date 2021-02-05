@@ -15,7 +15,7 @@ plugins.register(ExamplePlugin)
 
 class MigratorTest(TestCase):
     def setUp(self):
-        super(MigratorTest, self).setUp()
+        super().setUp()
 
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)

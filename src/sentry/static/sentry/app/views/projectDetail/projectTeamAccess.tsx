@@ -11,6 +11,8 @@ import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 
+import {SidebarSection} from './styles';
+
 type Props = {
   organization: Organization;
   project?: Project | null;
@@ -62,17 +64,16 @@ function ProjectTeamAccess({organization, project}: Props) {
   }
 
   return (
-    <Section>
+    <StyledSidebarSection>
       <SectionHeading>{t('Team Access')}</SectionHeading>
 
       <div>{renderInnerBody()}</div>
-    </Section>
+    </StyledSidebarSection>
   );
 }
 
-const Section = styled('section')`
+const StyledSidebarSection = styled(SidebarSection)`
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-bottom: ${space(2)};
 `;
 
 const StyledLink = styled(Link)`

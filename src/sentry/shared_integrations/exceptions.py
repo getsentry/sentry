@@ -30,7 +30,7 @@ class ApiError(Exception):
                 self.json = None
         else:
             self.json = None
-        super(ApiError, self).__init__(text[:1024])
+        super().__init__(text[:1024])
 
     @classmethod
     def from_response(cls, response, url=None):
@@ -87,13 +87,9 @@ class DuplicateDisplayNameError(IntegrationError):
     pass
 
 
-class DeprecatedIntegrationError(IntegrationError):
-    pass
-
-
 class IntegrationFormError(IntegrationError):
     def __init__(self, field_errors):
-        super(IntegrationFormError, self).__init__("Invalid integration action")
+        super().__init__("Invalid integration action")
         self.field_errors = field_errors
 
 
@@ -106,4 +102,4 @@ class ClientError(RequestException):
 
     def __init__(self, status_code, url, response=None):
         http_error_msg = "%s Client Error: for url: %s" % (status_code, url)
-        super(ClientError, self).__init__(http_error_msg, response=response)
+        super().__init__(http_error_msg, response=response)

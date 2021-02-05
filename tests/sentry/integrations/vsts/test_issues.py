@@ -1,6 +1,5 @@
 import responses
 import pytest
-import six
 
 from exam import fixture
 from django.test import RequestFactory
@@ -70,17 +69,13 @@ class VstsIssueBase(TestCase):
     def mock_categories(self, project):
         responses.add(
             responses.GET,
-            "https://fabrikam-fiber-inc.visualstudio.com/{}/_apis/wit/workitemtypecategories".format(
-                project
-            ),
+            f"https://fabrikam-fiber-inc.visualstudio.com/{project}/_apis/wit/workitemtypecategories",
             json={
                 "value": [
                     {
                         "workItemTypes": [
                             {
-                                "url": "https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Bug".format(
-                                    project
-                                ),
+                                "url": f"https://fabrikam-fiber-inc.visualstudio.com/{project}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Bug",
                                 "name": "Bug",
                             }
                         ],
@@ -88,15 +83,11 @@ class VstsIssueBase(TestCase):
                     {
                         "workItemTypes": [
                             {
-                                "url": "https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Bug".format(
-                                    project
-                                ),
+                                "url": f"https://fabrikam-fiber-inc.visualstudio.com/{project}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Bug",
                                 "name": "Issue Bug",
                             },
                             {
-                                "url": "https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Some-Thing.GIssue".format(
-                                    project
-                                ),
+                                "url": f"https://fabrikam-fiber-inc.visualstudio.com/{project}/wit/workItemTypeCategories/Some-Thing.GIssue",
                                 "name": "G Issue",
                             },
                         ],
@@ -104,9 +95,7 @@ class VstsIssueBase(TestCase):
                     {
                         "workItemTypes": [
                             {
-                                "url": "https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Task".format(
-                                    project
-                                ),
+                                "url": f"https://fabrikam-fiber-inc.visualstudio.com/{project}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.Task",
                                 "name": "Task",
                             }
                         ],
@@ -114,9 +103,7 @@ class VstsIssueBase(TestCase):
                     {
                         "workItemTypes": [
                             {
-                                "url": "https://fabrikam-fiber-inc.visualstudio.com/{}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.UserStory".format(
-                                    project
-                                ),
+                                "url": f"https://fabrikam-fiber-inc.visualstudio.com/{project}/wit/workItemTypeCategories/Microsoft.VSTS.WorkItemTypes.UserStory",
                                 "name": "User Story",
                             }
                         ],
@@ -419,7 +406,7 @@ class VstsIssueSyncTest(VstsIssueBase):
 
 class VstsIssueFormTest(VstsIssueBase):
     def setUp(self):
-        super(VstsIssueFormTest, self).setUp()
+        super().setUp()
         responses.add(
             responses.GET,
             "https://fabrikam-fiber-inc.visualstudio.com/_apis/projects",
@@ -442,7 +429,7 @@ class VstsIssueFormTest(VstsIssueBase):
 
     def update_issue_defaults(self, defaults):
         self.integration.org_integration.config = {
-            "project_issue_defaults": {six.text_type(self.group.project_id): defaults}
+            "project_issue_defaults": {str(self.group.project_id): defaults}
         }
         self.integration.org_integration.save()
 

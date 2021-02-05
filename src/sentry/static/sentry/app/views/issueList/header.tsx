@@ -7,14 +7,16 @@ import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import * as Layout from 'app/components/layouts/thirds';
 import QueryCount from 'app/components/queryCount';
+import Tooltip from 'app/components/tooltip';
 import {IconPause, IconPlay} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withProjects from 'app/utils/withProjects';
 
 import SavedSearchTab from './savedSearchTab';
-import {getTabs, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
+import {getTabs, isForReviewQuery, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
 
 type Props = {
   organization: Organization;
@@ -51,6 +53,17 @@ function IssueListHeader({
   // Remove cursor and page when switching tabs
   const {cursor: _, page: __, ...queryParms} = router?.location?.query ?? {};
 
+  function trackTabClick(tabQuery: string) {
+    // Clicking on inbox tab and currently another tab is active
+    if (isForReviewQuery(tabQuery) && !isForReviewQuery(query)) {
+      trackAnalyticsEvent({
+        eventKey: 'inbox_tab.clicked',
+        eventName: 'Clicked Inbox Tab',
+        organization_id: organization.id,
+      });
+    }
+  }
+
   return (
     <React.Fragment>
       <BorderlessHeader>
@@ -80,35 +93,49 @@ function IssueListHeader({
       </BorderlessHeader>
       <TabLayoutHeader>
         <Layout.HeaderNavTabs underlined>
-          {visibleTabs.map(([tabQuery, {name: queryName}]) => (
-            <li key={tabQuery} className={query === tabQuery ? 'active' : ''}>
-              <Link
-                to={{
-                  query: {...queryParms, query: tabQuery},
-                  pathname: `/organizations/${organization.slug}/issues/`,
-                }}
-              >
-                <GuideAnchor
-                  target={queryName === 'For Review' ? 'inbox_guide_tab' : 'none'}
-                  disabled={queryName !== 'For Review'}
-                  to={{
-                    query: {...router?.location?.query, query: tabQuery},
-                    pathname: `/organizations/${organization.slug}/issues/`,
-                    step: 1,
-                  }}
-                >
-                  {queryName}{' '}
-                  {queryCounts[tabQuery] && (
-                    <StyledQueryCount
-                      isTag
-                      count={queryCounts[tabQuery].count}
-                      max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
-                    />
-                  )}
-                </GuideAnchor>
-              </Link>
-            </li>
-          ))}
+          {visibleTabs.map(
+            ([tabQuery, {name: queryName, tooltipTitle, tooltipHoverable}]) => {
+              const inboxGuideStepOne = queryName === 'For Review' && query !== tabQuery;
+              const inboxGuideStepTwo = queryName === 'For Review' && query === tabQuery;
+              const to = {
+                query: {...queryParms, query: tabQuery},
+                pathname: `/organizations/${organization.slug}/issues/`,
+              };
+
+              return (
+                <li key={tabQuery} className={query === tabQuery ? 'active' : ''}>
+                  <Link to={to} onClick={() => trackTabClick(tabQuery)}>
+                    <GuideAnchor
+                      target={inboxGuideStepOne ? 'inbox_guide_tab' : 'none'}
+                      disabled={!inboxGuideStepOne}
+                      to={to}
+                    >
+                      <GuideAnchor
+                        target={inboxGuideStepTwo ? 'for_review_guide_tab' : 'none'}
+                        disabled={!inboxGuideStepTwo}
+                      >
+                        <Tooltip
+                          title={tooltipTitle}
+                          position="bottom"
+                          isHoverable={tooltipHoverable}
+                          delay={1000}
+                        >
+                          {queryName}{' '}
+                          {queryCounts[tabQuery] && (
+                            <StyledQueryCount
+                              isTag
+                              count={queryCounts[tabQuery].count}
+                              max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
+                            />
+                          )}
+                        </Tooltip>
+                      </GuideAnchor>
+                    </GuideAnchor>
+                  </Link>
+                </li>
+              );
+            }
+          )}
           <SavedSearchTab
             organization={organization}
             query={query}

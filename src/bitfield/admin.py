@@ -15,9 +15,7 @@ class BitFieldListFilter(FieldListFilter):
         self.lookup_val = int(request.GET.get(self.lookup_kwarg, 0))
         self.flags = field.flags
         self.labels = field.labels
-        super(BitFieldListFilter, self).__init__(
-            field, request, params, model, model_admin, field_path
-        )
+        super().__init__(field, request, params, model, model_admin, field_path)
 
     def queryset(self, request, queryset):
         _filter = dict((p, bitor(F(p), v)) for p, v in six.iteritems(self.used_parameters))

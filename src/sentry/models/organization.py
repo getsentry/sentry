@@ -153,7 +153,7 @@ class Organization(Model):
 
         return cls.objects.filter(status=OrganizationStatus.ACTIVE)[0]
 
-    def __unicode__(self):
+    def __str__(self):
         return "%s (%s)" % (self.name, self.slug)
 
     def save(self, *args, **kwargs):
@@ -161,14 +161,14 @@ class Organization(Model):
             lock = locks.get("slug:organization", duration=5)
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, self.name, reserved=RESERVED_ORGANIZATION_SLUGS)
-            super(Organization, self).save(*args, **kwargs)
+            super().save(*args, **kwargs)
         else:
-            super(Organization, self).save(*args, **kwargs)
+            super().save(*args, **kwargs)
 
     def delete(self):
         if self.is_default:
             raise Exception("You cannot delete the the default organization.")
-        return super(Organization, self).delete()
+        return super().delete()
 
     @cached_property
     def is_default(self):

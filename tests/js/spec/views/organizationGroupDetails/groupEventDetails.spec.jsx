@@ -65,7 +65,7 @@ describe('groupEventDetails', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: '/promptsactivity/',
+      url: '/prompts-activity/',
       body: promptsActivity,
     });
 

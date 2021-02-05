@@ -11,7 +11,7 @@ from sentry.web.helpers import render_to_response
 from sentry import analytics
 
 
-class PipelineProvider(object):
+class PipelineProvider:
     """
     A class implementing the PipelineProvider interface provides the pipeline
     views that the Pipeline will traverse through.
@@ -104,7 +104,7 @@ class NestedPipelineView(PipelineView):
         return nested_pipeline.current_step()
 
 
-class Pipeline(object):
+class Pipeline:
     """
     Pipeline provides a mechanism to guide the user through a request
     'pipeline', where each view may be completed by calling the ``next_step``

@@ -28,7 +28,7 @@ _uuid4_re = re.compile(r"^[a-f0-9]{32}$")
 # TODO(dcramer): pull in enum library
 
 
-class ProjectKeyStatus(object):
+class ProjectKeyStatus:
     ACTIVE = 0
     INACTIVE = 1
 
@@ -100,7 +100,7 @@ class ProjectKey(Model):
 
     __repr__ = sane_repr("project_id", "public_key")
 
-    def __unicode__(self):
+    def __str__(self):
         return six.text_type(self.public_key)
 
     @classmethod
@@ -151,7 +151,7 @@ class ProjectKey(Model):
             self.secret_key = ProjectKey.generate_api_key()
         if not self.label:
             self.label = petname.Generate(2, " ", letters=10).title()
-        super(ProjectKey, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def get_dsn(self, domain=None, secure=True, public=False):
         urlparts = urlparse(self.get_endpoint(public=public))

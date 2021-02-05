@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 
 
 def md5(*bits):
-    return _md5(b":".join((force_bytes(bit, errors="replace") for bit in bits)))
+    return _md5(b":".join(force_bytes(bit, errors="replace") for bit in bits))
 
 
 class JiraClient(ApiClient):
@@ -36,7 +36,7 @@ class JiraClient(ApiClient):
         self.base_url = instance_uri.rstrip("/")
         self.username = username
         self.password = password
-        super(JiraClient, self).__init__(verify_ssl=False)
+        super().__init__(verify_ssl=False)
 
     def request(self, method, path, data=None, params=None):
         if self.username and self.password:

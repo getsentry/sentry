@@ -15,7 +15,7 @@ import DateTime from 'app/components/dateTime';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Authenticator} from 'app/types';
+import {Authenticator, AuthenticatorDevice} from 'app/types';
 import AsyncView from 'app/views/asyncView';
 import RecoveryCodes from 'app/views/settings/account/accountSecurity/components/recoveryCodes';
 import RemoveConfirm from 'app/views/settings/account/accountSecurity/components/removeConfirm';
@@ -64,7 +64,7 @@ class AccountSecurityDetails extends AsyncView<Props, State> {
     return [['authenticator', `${ENDPOINT}${authId}/`]];
   }
 
-  handleRemove = async (device?: Authenticator['devices'][0]) => {
+  handleRemove = async (device?: AuthenticatorDevice) => {
     const {authenticator} = this.state;
 
     if (!authenticator || !authenticator.authId) {

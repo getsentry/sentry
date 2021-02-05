@@ -6,7 +6,7 @@ from sentry.testutils import TestCase
 
 class RenamePendingDeleteTest(TestCase):
     def setUp(self):
-        super(RenamePendingDeleteTest, self).setUp()
+        super().setUp()
         self.repository = Repository.objects.create(
             organization_id=self.organization.id,
             name="example/name",

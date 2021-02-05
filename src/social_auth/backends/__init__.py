@@ -64,7 +64,7 @@ PIPELINE = setting(
 logger = logging.getLogger("social_auth")
 
 
-class SocialAuthBackend(object):
+class SocialAuthBackend:
     """A django.contrib.auth backend that authenticates the user based on
     a authentication provider response"""
 
@@ -240,7 +240,7 @@ class OAuthBackend(SocialAuthBackend):
         return data
 
 
-class BaseAuth(object):
+class BaseAuth:
     """Base authentication class, new authenticators should subclass
     and implement needed methods.
 
@@ -371,7 +371,7 @@ class OAuthAuth(BaseAuth):
 
     def __init__(self, request, redirect):
         """Init method"""
-        super(OAuthAuth, self).__init__(request, redirect)
+        super().__init__(request, redirect)
         self.redirect_uri = self.build_absolute_uri(self.redirect)
 
     @classmethod

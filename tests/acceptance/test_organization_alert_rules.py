@@ -8,9 +8,9 @@ FEATURE_NAME = ["organizations:incidents"]
 
 class OrganizationAlertRulesListTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationAlertRulesListTest, self).setUp()
+        super().setUp()
         self.login_as(self.user)
-        self.path = "/organizations/{}/alerts/rules/".format(self.organization.slug)
+        self.path = f"/organizations/{self.organization.slug}/alerts/rules/"
 
     def test_empty_alert_rules(self):
         with self.feature(FEATURE_NAME):

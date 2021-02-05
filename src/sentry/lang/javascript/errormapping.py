@@ -30,7 +30,7 @@ def is_expired(ts):
     return ts > (time.time() - SOFT_TIMEOUT - random.random() * SOFT_TIMEOUT_FUZZINESS)
 
 
-class Processor(object):
+class Processor:
     def __init__(self, vendor, mapping_url, regex, func):
         self.vendor = vendor
         self.mapping_url = mapping_url
