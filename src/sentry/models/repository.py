@@ -69,11 +69,11 @@ class Repository(Model, PendingDeletionMixin):
         # as it is pending deletion, this is added to display the fields
         # correctly to the user.
         self.config["pending_deletion_name"] = self.name
-        super(Repository, self).rename_on_pending_deletion(fields, ["config"])
+        super().rename_on_pending_deletion(fields, ["config"])
 
     def reset_pending_deletion_field_names(self):
         del self.config["pending_deletion_name"]
-        super(Repository, self).reset_pending_deletion_field_names(["config"])
+        super().reset_pending_deletion_field_names(["config"])
 
 
 def on_delete(instance, actor=None, **kwargs):

@@ -131,12 +131,12 @@ class User(BaseModel, AbstractBaseUser):
         avatar = self.avatar.first()
         if avatar:
             avatar.delete()
-        return super(User, self).delete()
+        return super().delete()
 
     def save(self, *args, **kwargs):
         if not self.username:
             self.username = self.email
-        return super(User, self).save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     def has_perm(self, perm_name):
         warnings.warn("User.has_perm is deprecated", DeprecationWarning)
@@ -299,7 +299,7 @@ class User(BaseModel, AbstractBaseUser):
         AuthIdentity.objects.filter(user=from_user).update(user=to_user)
 
     def set_password(self, raw_password):
-        super(User, self).set_password(raw_password)
+        super().set_password(raw_password)
         self.last_password_change = timezone.now()
         self.is_password_expired = False
 
@@ -333,6 +333,7 @@ class User(BaseModel, AbstractBaseUser):
 
 # HACK(dcramer): last_login needs nullable for Django 1.8
 User._meta.get_field("last_login").null = True
+
 
 # When a user logs out, we want to always log them out of all
 # sessions and refresh their nonce.

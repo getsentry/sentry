@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import dateutil.parser
 import hashlib
 import hmac
@@ -42,7 +40,7 @@ def get_external_id(username):
     return "github:%s" % username
 
 
-class Webhook(object):
+class Webhook:
     def __call__(self, event, organization=None):
         raise NotImplementedError
 
@@ -364,7 +362,7 @@ class GithubWebhookBase(View):
         if request.method != "POST":
             return HttpResponse(status=405)
 
-        return super(GithubWebhookBase, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     def get_logging_data(self, organization):
         pass
@@ -455,7 +453,7 @@ class GithubIntegrationsWebhookEndpoint(GithubWebhookBase):
         if request.method != "POST":
             return HttpResponse(status=405)
 
-        return super(GithubIntegrationsWebhookEndpoint, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     def get_secret(self, organization):
         return options.get("github.integration-hook-secret")

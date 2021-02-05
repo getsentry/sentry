@@ -300,22 +300,22 @@ class ProjectSerializer(Serializer):
 
 class ProjectWithOrganizationSerializer(ProjectSerializer):
     def get_attrs(self, item_list, user):
-        attrs = super(ProjectWithOrganizationSerializer, self).get_attrs(item_list, user)
+        attrs = super().get_attrs(item_list, user)
 
-        orgs = {d["id"]: d for d in serialize(list(set(i.organization for i in item_list)), user)}
+        orgs = {d["id"]: d for d in serialize(list({i.organization for i in item_list}), user)}
         for item in item_list:
             attrs[item]["organization"] = orgs[six.text_type(item.organization_id)]
         return attrs
 
     def serialize(self, obj, attrs, user):
-        data = super(ProjectWithOrganizationSerializer, self).serialize(obj, attrs, user)
+        data = super().serialize(obj, attrs, user)
         data["organization"] = attrs["organization"]
         return data
 
 
 class ProjectWithTeamSerializer(ProjectSerializer):
     def get_attrs(self, item_list, user):
-        attrs = super(ProjectWithTeamSerializer, self).get_attrs(item_list, user)
+        attrs = super().get_attrs(item_list, user)
 
         project_teams = list(
             ProjectTeam.objects.filter(project__in=item_list).select_related("team")
@@ -339,7 +339,7 @@ class ProjectWithTeamSerializer(ProjectSerializer):
         return attrs
 
     def serialize(self, obj, attrs, user):
-        data = super(ProjectWithTeamSerializer, self).serialize(obj, attrs, user)
+        data = super().serialize(obj, attrs, user)
         # TODO(jess): remove this when this is deprecated
         try:
             data["team"] = attrs["teams"][0]
@@ -411,7 +411,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         return deploys_by_project
 
     def get_attrs(self, item_list, user):
-        attrs = super(ProjectSummarySerializer, self).get_attrs(item_list, user)
+        attrs = super().get_attrs(item_list, user)
 
         projects_with_user_reports = set(
             UserReport.objects.filter(project_id__in=[item.id for item in item_list]).values_list(
@@ -570,6 +570,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:grouping_enhancements_base",
             "sentry:fingerprinting_rules",
             "sentry:relay_pii_config",
+            "sentry:dynamic_sampling",
             "feedback:branding",
             "digests:mail:minimum_delay",
             "digests:mail:maximum_delay",
@@ -579,7 +580,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
     )
 
     def get_attrs(self, item_list, user):
-        attrs = super(DetailedProjectSerializer, self).get_attrs(item_list, user)
+        attrs = super().get_attrs(item_list, user)
 
         project_ids = [i.id for i in item_list]
 
@@ -598,7 +599,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         for option in queryset.iterator():
             options_by_project[option.project_id][option.key] = option.value
 
-        orgs = {d["id"]: d for d in serialize(list(set(i.organization for i in item_list)), user)}
+        orgs = {d["id"]: d for d in serialize(list({i.organization for i in item_list}), user)}
 
         latest_release_list = bulk_fetch_project_latest_releases(item_list)
         latest_releases = {
@@ -628,7 +629,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 key, epoch=attrs["options"].get("sentry:option-epoch")
             )
 
-        data = super(DetailedProjectSerializer, self).serialize(obj, attrs, user)
+        data = super().serialize(obj, attrs, user)
         data.update(
             {
                 "latestRelease": attrs["latest_release"],
@@ -700,6 +701,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
                 "builtinSymbolSources": get_value_with_default("sentry:builtin_symbol_sources"),
                 "symbolSources": attrs["options"].get("sentry:symbol_sources"),
+                "dynamicSampling": get_value_with_default("sentry:dynamic_sampling"),
             }
         )
         return data

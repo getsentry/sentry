@@ -16,7 +16,7 @@ from sentry.utils.safe import safe_execute
 RuleFuture = namedtuple("RuleFuture", ["rule", "kwargs"])
 
 
-class RuleProcessor(object):
+class RuleProcessor:
     logger = logging.getLogger("sentry.rules")
 
     def __init__(self, event, is_new, is_regression, is_new_group_environment, has_reappeared):

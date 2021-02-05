@@ -1,6 +1,5 @@
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import space from 'app/styles/space';
 
@@ -41,11 +40,5 @@ const PanelHeader = styled('div')<Props>`
   position: relative;
   ${getPadding};
 `;
-
-PanelHeader.propTypes = {
-  disablePadding: PropTypes.bool,
-  hasButtons: PropTypes.bool,
-  lightText: PropTypes.bool,
-};
 
 export default PanelHeader;

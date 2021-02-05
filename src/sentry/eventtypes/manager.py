@@ -1,7 +1,7 @@
 import six
 
 
-class EventTypeManager(object):
+class EventTypeManager:
     def __init__(self):
         self.__values = []
         self.__lookup = {}

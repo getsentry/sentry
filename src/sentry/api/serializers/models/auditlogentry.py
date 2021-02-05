@@ -22,8 +22,8 @@ class AuditLogEntrySerializer(Serializer):
         users = {
             d["id"]: d
             for d in serialize(
-                set(i.actor for i in item_list if i.actor_id)
-                | set(i.target_user for i in item_list if i.target_user_id),
+                {i.actor for i in item_list if i.actor_id}
+                | {i.target_user for i in item_list if i.target_user_id},
                 user,
             )
         }

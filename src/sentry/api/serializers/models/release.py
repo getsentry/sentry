@@ -150,7 +150,7 @@ class ReleaseSerializer(Serializer):
             authors = []
 
         if authors:
-            org_ids = set(item.organization_id for item in item_list)
+            org_ids = {item.organization_id for item in item_list}
             if len(org_ids) != 1:
                 users_by_author = {}
             else:
@@ -160,7 +160,7 @@ class ReleaseSerializer(Serializer):
         else:
             users_by_author = {}
 
-        commit_ids = set((o.last_commit_id for o in item_list if o.last_commit_id))
+        commit_ids = {o.last_commit_id for o in item_list if o.last_commit_id}
         if commit_ids:
             commit_list = list(Commit.objects.filter(id__in=commit_ids).select_related("author"))
             commits = {c.id: d for c, d in zip(commit_list, serialize(commit_list, user))}
@@ -196,7 +196,7 @@ class ReleaseSerializer(Serializer):
             ...
         }
         """
-        deploy_ids = set((o.last_deploy_id for o in item_list if o.last_deploy_id))
+        deploy_ids = {o.last_deploy_id for o in item_list if o.last_deploy_id}
         if deploy_ids:
             deploy_list = list(Deploy.objects.filter(id__in=deploy_ids))
             deploys = {d.id: c for d, c in zip(deploy_list, serialize(deploy_list, user))}
@@ -306,6 +306,9 @@ class ReleaseSerializer(Serializer):
         health_stat = kwargs.get("health_stat", None)
         health_stats_period = kwargs.get("health_stats_period")
         summary_stats_period = kwargs.get("summary_stats_period")
+        no_snuba = kwargs.get("no_snuba")
+        if with_health_data and no_snuba:
+            raise TypeError("health data requires snuba")
 
         if environments is None:
             first_seen, last_seen, issue_counts_by_release = self.__get_release_data_no_environment(
@@ -318,9 +321,7 @@ class ReleaseSerializer(Serializer):
                 issue_counts_by_release,
             ) = self.__get_release_data_with_environments(project, item_list, environments)
 
-        owners = {
-            d["id"]: d for d in serialize(set(i.owner for i in item_list if i.owner_id), user)
-        }
+        owners = {d["id"]: d for d in serialize({i.owner for i in item_list if i.owner_id}, user)}
 
         release_metadata_attrs = self._get_commit_metadata(item_list, user)
         deploy_metadata_attrs = self._get_deploy_metadata(item_list, user)
@@ -337,7 +338,7 @@ class ReleaseSerializer(Serializer):
         )
 
         platforms = ProjectPlatform.objects.filter(
-            project_id__in=set(x["project__id"] for x in project_releases)
+            project_id__in={x["project__id"] for x in project_releases}
         ).values_list("project_id", "platform")
         platforms_by_project = defaultdict(list)
         for project_id, platform in platforms:
@@ -354,9 +355,12 @@ class ReleaseSerializer(Serializer):
             has_health_data = None
         else:
             health_data = None
-            has_health_data = check_has_health_data(
-                [(pr["project__id"], pr["release__version"]) for pr in project_releases]
-            )
+            if no_snuba:
+                has_health_data = {}
+            else:
+                has_health_data = check_has_health_data(
+                    [(pr["project__id"], pr["release__version"]) for pr in project_releases]
+                )
 
         for pr in project_releases:
             pr_rv = {

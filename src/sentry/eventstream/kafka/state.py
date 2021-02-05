@@ -42,7 +42,7 @@ class SynchronizedPartitionState:
     UNKNOWN = "UNKNOWN"
 
 
-class SynchronizedPartitionStateManager(object):
+class SynchronizedPartitionStateManager:
     """
     This class implements a state machine that can be used to track the
     consumption progress of a Kafka partition (the "local" consumer) relative

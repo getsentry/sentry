@@ -6,12 +6,12 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 
 class OrganizationEventsGeoEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationEventsGeoEndpointTest, self).setUp()
+        super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
 
     def do_request(self, query, features=None):
         if features is None:
-            features = {"organizations:dashboards-v2": True}
+            features = {"organizations:dashboards-basic": True}
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-organization-events-geo",

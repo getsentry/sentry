@@ -7,10 +7,12 @@ import Collapsible from 'app/components/collapsible';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
+import {IconOpen} from 'app/icons';
 import {t, tn} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+
+import {SectionHeadingLink, SectionHeadingWrapper, SidebarSection} from './styles';
 
 type Props = {
   organization: Organization;
@@ -18,18 +20,22 @@ type Props = {
 };
 
 function ProjectTeamAccess({organization, project}: Props) {
+  const hasEditPermissions = organization.access.includes('project:write');
+  const settingsLink = `/settings/${organization.slug}/projects/${project?.slug}/teams/`;
+
   function renderInnerBody() {
     if (!project) {
       return <Placeholder height="23px" />;
     }
 
     if (project.teams.length === 0) {
-      const hasPermission = organization.access.includes('project:write');
       return (
         <Button
-          to={`/settings/${organization.slug}/projects/${project.slug}/teams/`}
-          disabled={!hasPermission}
-          title={hasPermission ? undefined : t('You do not have permission to do this')}
+          to={settingsLink}
+          disabled={!hasEditPermissions}
+          title={
+            hasEditPermissions ? undefined : t('You do not have permission to do this')
+          }
           priority="primary"
           size="small"
         >
@@ -63,22 +69,21 @@ function ProjectTeamAccess({organization, project}: Props) {
   }
 
   return (
-    <Section>
-      <SectionHeading>{t('Team Access')}</SectionHeading>
+    <StyledSidebarSection>
+      <SectionHeadingWrapper>
+        <SectionHeading>{t('Team Access')}</SectionHeading>
+        <SectionHeadingLink to={settingsLink}>
+          <IconOpen />
+        </SectionHeadingLink>
+      </SectionHeadingWrapper>
 
       <div>{renderInnerBody()}</div>
-    </Section>
+    </StyledSidebarSection>
   );
 }
 
-ProjectTeamAccess.propTypes = {
-  organization: SentryTypes.Organization.isRequired,
-  project: SentryTypes.Project,
-};
-
-const Section = styled('section')`
+const StyledSidebarSection = styled(SidebarSection)`
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-bottom: ${space(2)};
 `;
 
 const StyledLink = styled(Link)`

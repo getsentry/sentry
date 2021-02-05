@@ -18,8 +18,12 @@ import {TransactionsListOption} from 'app/views/releases/detail/overview';
 import {YAxis} from 'app/views/releases/detail/overview/chart/releaseChartControls';
 
 import {ChartContainer} from '../styles';
-import {TrendFunctionField} from '../trends/types';
-import {TRENDS_FUNCTIONS} from '../trends/utils';
+import {TrendColumnField, TrendFunctionField} from '../trends/types';
+import {
+  generateTrendFunctionAsString,
+  TRENDS_FUNCTIONS,
+  TRENDS_PARAMETERS,
+} from '../trends/utils';
 
 import DurationChart from './durationChart';
 import DurationPercentileChart from './durationPercentileChart';
@@ -38,15 +42,23 @@ export enum DisplayModes {
 const DISPLAY_OPTIONS: SelectValue<string>[] = [
   {value: DisplayModes.DURATION, label: t('Duration Breakdown')},
   {value: DisplayModes.DURATION_PERCENTILE, label: t('Duration Percentiles')},
-  {value: DisplayModes.LATENCY, label: t('Latency Distribution')},
+  {value: DisplayModes.LATENCY, label: t('Duration Distribution')},
   {value: DisplayModes.TREND, label: t('Trends')},
   {value: DisplayModes.VITALS, label: t('Web Vitals')},
 ];
 
-const TREND_OPTIONS: SelectValue<string>[] = TRENDS_FUNCTIONS.map(({field, label}) => ({
-  value: field,
-  label,
-}));
+const TREND_FUNCTIONS_OPTIONS: SelectValue<string>[] = TRENDS_FUNCTIONS.map(
+  ({field, label}) => ({
+    value: field,
+    label,
+  })
+);
+const TREND_PARAMETERS_OPTIONS: SelectValue<string>[] = TRENDS_PARAMETERS.map(
+  ({column, label}) => ({
+    value: column,
+    label,
+  })
+);
 
 type Props = {
   organization: OrganizationSummary;
@@ -68,19 +80,38 @@ class TransactionSummaryCharts extends React.Component<Props> {
     const {location} = this.props;
     browserHistory.push({
       pathname: location.pathname,
-      query: {...location.query, trendDisplay: value},
+      query: {...location.query, trendFunction: value},
+    });
+  };
+
+  handleTrendColumnChange = (value: string) => {
+    const {location} = this.props;
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {...location.query, trendColumn: value},
     });
   };
 
   render() {
     const {totalValues, eventView, organization, location} = this.props;
     let display = decodeScalar(location.query.display, DisplayModes.DURATION);
-    let trendDisplay = decodeScalar(location.query.trendDisplay, TrendFunctionField.P50);
+    let trendFunction = decodeScalar(
+      location.query.trendFunction,
+      TREND_FUNCTIONS_OPTIONS[0].value
+    ) as TrendFunctionField;
+    let trendColumn = decodeScalar(
+      location.query.trendColumn,
+      TREND_PARAMETERS_OPTIONS[0].value
+    );
+
     if (!Object.values(DisplayModes).includes(display as DisplayModes)) {
       display = DisplayModes.DURATION;
     }
-    if (!Object.values(TrendFunctionField).includes(trendDisplay as TrendFunctionField)) {
-      trendDisplay = TrendFunctionField.P50;
+    if (!Object.values(TrendFunctionField).includes(trendFunction)) {
+      trendFunction = TrendFunctionField.P50;
+    }
+    if (!Object.values(TrendColumnField).includes(trendColumn as TrendColumnField)) {
+      trendColumn = TrendColumnField.DURATION;
     }
 
     const releaseQueryExtra = {
@@ -134,7 +165,7 @@ class TransactionSummaryCharts extends React.Component<Props> {
           )}
           {display === DisplayModes.TREND && (
             <TrendChart
-              trendDisplay={trendDisplay}
+              trendDisplay={generateTrendFunctionAsString(trendFunction, trendColumn)}
               organization={organization}
               query={eventView.query}
               queryExtra={releaseQueryExtra}
@@ -168,9 +199,17 @@ class TransactionSummaryCharts extends React.Component<Props> {
             {display === DisplayModes.TREND && (
               <OptionSelector
                 title={t('Trend')}
-                selected={trendDisplay}
-                options={TREND_OPTIONS}
+                selected={trendFunction}
+                options={TREND_FUNCTIONS_OPTIONS}
                 onChange={this.handleTrendDisplayChange}
+              />
+            )}
+            {display === DisplayModes.TREND && (
+              <OptionSelector
+                title={t('Parameter')}
+                selected={trendColumn}
+                options={TREND_PARAMETERS_OPTIONS}
+                onChange={this.handleTrendColumnChange}
               />
             )}
             <OptionSelector

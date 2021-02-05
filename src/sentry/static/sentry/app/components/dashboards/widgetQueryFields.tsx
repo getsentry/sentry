@@ -50,7 +50,7 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
     event.preventDefault();
 
     const newFields = [...fields];
-    newFields.splice(fieldIndex, fieldIndex + 1);
+    newFields.splice(fieldIndex, 1);
     onChange(newFields);
   }
 
@@ -85,7 +85,9 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
     );
   }
 
-  const showAddOverlay = !(displayType === 'world_map' && fields.length === 1);
+  const showAddOverlay = !(
+    ['world_map', 'big_number'].includes(displayType) && fields.length === 1
+  );
 
   return (
     <Field

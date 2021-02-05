@@ -2,10 +2,10 @@ import redis
 import logging
 
 from threading import Thread
-from six.moves.queue import Queue, Full
+from queue import Queue, Full
 
 
-class QueuedPublisherService(object):
+class QueuedPublisherService:
     """
     A publisher that queues items locally and publishes them to a
     remote pubsub service on a background thread.
@@ -53,7 +53,7 @@ class QueuedPublisherService(object):
             return
 
 
-class RedisPublisher(object):
+class RedisPublisher:
     def __init__(self, connection):
         self.rds = None if connection is None else redis.StrictRedis(**connection)
 
@@ -62,7 +62,7 @@ class RedisPublisher(object):
             self.rds.publish(channel, value)
 
 
-class KafkaPublisher(object):
+class KafkaPublisher:
     def __init__(self, connection, asynchronous=True):
         from confluent_kafka import Producer
 

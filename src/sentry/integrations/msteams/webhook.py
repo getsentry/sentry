@@ -142,7 +142,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
     @csrf_exempt
     def dispatch(self, request, *args, **kwargs):
-        return super(MsTeamsWebhookEndpoint, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     @transaction_start("MsTeamsWebhookEndpoint")
     def post(self, request):

@@ -2,7 +2,6 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import PropTypes from 'prop-types';
 
 import Alert from 'app/components/alert';
 import DetailedError from 'app/components/errors/detailedError';
@@ -35,12 +34,6 @@ function getExclamation() {
 }
 
 class ErrorBoundary extends React.Component<Props, State> {
-  static propTypes = {
-    mini: PropTypes.bool,
-    message: PropTypes.node,
-    customComponent: PropTypes.node,
-  };
-
   static defaultProps: DefaultProps = {
     mini: false,
   };

@@ -202,7 +202,7 @@ SEARCH_MAP = {
 SEARCH_MAP.update(**DATASETS[Dataset.Events])
 SEARCH_MAP.update(**DATASETS[Dataset.Discover])
 
-no_conversion = set(["start", "end"])
+no_conversion = {"start", "end"}
 
 PROJECT_NAME_ALIAS = "project.name"
 PROJECT_ALIAS = "project"
@@ -300,45 +300,41 @@ class SearchVisitor(NodeVisitor):
     # A list of mappers that map source keys to a target name. Format is
     # <target_name>: [<list of source names>],
     key_mappings = {}
-    duration_keys = set(["transaction.duration"])
-    percentage_keys = set(["percentage"])
-    numeric_keys = set(
-        [
-            "project_id",
-            "project.id",
-            "issue.id",
-            "stack.colno",
-            "stack.lineno",
-            "stack.stack_level",
-            "transaction.duration",
-            "apdex",
-            "p75",
-            "p95",
-            "p99",
-            "failure_rate",
-            "user_misery",
-        ]
-    )
-    date_keys = set(
-        [
-            "start",
-            "end",
-            "first_seen",
-            "last_seen",
-            "time",
-            "timestamp",
-            "transaction.start_time",
-            "transaction.end_time",
-        ]
-    )
-    boolean_keys = set(["error.handled", "error.unhandled", "stack.in_app", KEY_TRANSACTION_ALIAS])
+    duration_keys = {"transaction.duration"}
+    percentage_keys = {"percentage"}
+    numeric_keys = {
+        "project_id",
+        "project.id",
+        "issue.id",
+        "stack.colno",
+        "stack.lineno",
+        "stack.stack_level",
+        "transaction.duration",
+        "apdex",
+        "p75",
+        "p95",
+        "p99",
+        "failure_rate",
+        "user_misery",
+    }
+    date_keys = {
+        "start",
+        "end",
+        "first_seen",
+        "last_seen",
+        "time",
+        "timestamp",
+        "transaction.start_time",
+        "transaction.end_time",
+    }
+    boolean_keys = {"error.handled", "error.unhandled", "stack.in_app", KEY_TRANSACTION_ALIAS}
 
     unwrapped_exceptions = (InvalidSearchQuery,)
 
     def __init__(self, allow_boolean=True, params=None):
         self.allow_boolean = allow_boolean
         self.params = params if params is not None else {}
-        super(SearchVisitor, self).__init__()
+        super().__init__()
 
     @cached_property
     def key_mappings_lookup(self):
@@ -354,8 +350,7 @@ class SearchVisitor(NodeVisitor):
             # Flatten each group in the list, since nodes can return multiple items
             for item in seq:
                 if isinstance(item, list):
-                    for sub in _flatten(item):
-                        yield sub
+                    yield from _flatten(item)
                 else:
                     yield item
 
@@ -638,11 +633,11 @@ class SearchVisitor(NodeVisitor):
         # If a date or numeric key gets down to the basic filter, then it means
         # that the value wasn't in a valid format, so raise here.
         if search_key.name in self.date_keys:
-            raise InvalidSearchQuery("Invalid format for date field")
+            raise InvalidSearchQuery(f"{search_key.name}: Invalid format for date field")
         if search_key.name in self.boolean_keys:
-            raise InvalidSearchQuery("Invalid format for boolean field")
+            raise InvalidSearchQuery(f"{search_key.name}: Invalid format for boolean field")
         if self.is_numeric_key(search_key.name):
-            raise InvalidSearchQuery("Invalid format for numeric field")
+            raise InvalidSearchQuery(f"{search_key.name}: Invalid format for numeric field")
 
         return SearchFilter(search_key, operator, search_value)
 
@@ -653,7 +648,7 @@ class SearchVisitor(NodeVisitor):
         # if it matched search value instead, it's not a valid key
         if isinstance(search_key, SearchValue):
             raise InvalidSearchQuery(
-                'Invalid format for "has" search: {}'.format(search_key.raw_value)
+                'Invalid format for "has" search: was expecting a field or tag instead'
             )
 
         operator = "=" if self.is_negated(negation) else "!="
@@ -817,6 +812,9 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
             # message. Strip off here
             value = search_filter.value.value[1:-1]
             return [["match", ["message", "'(?i){}'".format(value)]], search_filter.operator, 1]
+        elif value == "":
+            operator = "=" if search_filter.operator == "=" else "!="
+            return [["equals", ["message", "{}".format(value)]], operator, 1]
         else:
             # https://clickhouse.yandex/docs/en/query_language/functions/string_search_functions/#position-haystack-needle
             # positionCaseInsensitive returns 0 if not found and an index of 1 or more if found
@@ -995,14 +993,19 @@ def format_search_filter(term, params):
         # A blank term value means that this is a has filter
         group_ids = to_list(value)
     elif name == ISSUE_ALIAS:
-        if value != "" and params and "organization_id" in params:
+        operator = term.operator
+        if value == "unknown":
+            # `unknown` is a special value for when there is no issue associated with the event
+            operator = "=" if term.operator == "=" else "!="
+            value = ""
+        elif value != "" and params and "organization_id" in params:
             try:
                 group = Group.objects.by_qualified_short_id(params["organization_id"], value)
             except Exception:
                 raise InvalidSearchQuery("Invalid value '{}' for 'issue:' filter".format(value))
             else:
                 value = group.id
-        term = SearchFilter(SearchKey("issue.id"), term.operator, SearchValue(value))
+        term = SearchFilter(SearchKey("issue.id"), operator, SearchValue(value))
         converted_filter = convert_search_filter_to_snuba_query(term)
         conditions.append(converted_filter)
     elif name == RELEASE_ALIAS and params and value == "latest":
@@ -1305,7 +1308,7 @@ def get_filter(query=None, params=None):
     return eventstore.Filter(**kwargs)
 
 
-class PseudoField(object):
+class PseudoField:
     def __init__(self, name, alias, expression=None, expression_fn=None, result_type=None):
         self.name = name
         self.alias = alias
@@ -1444,7 +1447,7 @@ VALID_FIELD_PATTERN = re.compile(r"^[a-zA-Z0-9_.:-]*$")
 
 # The regex for alias here is to match any word, but exclude anything that is only digits
 # eg. 123 doesn't match, but test_123 will match
-ALIAS_REGEX = "(\w+)?(?!\d+)\w+"
+ALIAS_REGEX = r"(\w+)?(?!\d+)\w+"
 
 ALIAS_PATTERN = re.compile(r"{}$".format(ALIAS_REGEX))
 FUNCTION_PATTERN = re.compile(
@@ -1456,12 +1459,12 @@ class InvalidFunctionArgument(Exception):
     pass
 
 
-class ArgValue(object):
+class ArgValue:
     def __init__(self, arg):
         self.arg = arg
 
 
-class FunctionArg(object):
+class FunctionArg:
     def __init__(self, name):
         self.name = name
         self.has_default = False
@@ -1491,7 +1494,7 @@ class NullColumn(FunctionArg):
     """
 
     def __init__(self, name):
-        super(NullColumn, self).__init__(name)
+        super().__init__(name)
         self.has_default = True
 
     def get_default(self, params):
@@ -1503,7 +1506,7 @@ class NullColumn(FunctionArg):
 
 class CountColumn(FunctionArg):
     def __init__(self, name):
-        super(CountColumn, self).__init__(name)
+        super().__init__(name)
         self.has_default = True
 
     def get_default(self, params):
@@ -1530,7 +1533,7 @@ class CountColumn(FunctionArg):
 
 class StringArg(FunctionArg):
     def __init__(self, name, unquote=False, unescape_quotes=False):
-        super(StringArg, self).__init__(name)
+        super().__init__(name)
         self.unquote = unquote
         self.unescape_quotes = unescape_quotes
 
@@ -1582,7 +1585,7 @@ class ConditionArg(FunctionArg):
 
 class Column(FunctionArg):
     def __init__(self, name, allowed_columns=None):
-        super(Column, self).__init__(name)
+        super().__init__(name)
         # make sure to map the allowed columns to their snuba names
         self.allowed_columns = [SEARCH_MAP.get(col) for col in allowed_columns]
 
@@ -1597,10 +1600,10 @@ class Column(FunctionArg):
 
 class ColumnNoLookup(Column):
     def __init__(self, name, allowed_columns=None):
-        super(ColumnNoLookup, self).__init__(name, allowed_columns=allowed_columns)
+        super().__init__(name, allowed_columns=allowed_columns)
 
     def normalize(self, value, params):
-        super(ColumnNoLookup, self).normalize(value, params)
+        super().normalize(value, params)
         return value
 
 
@@ -1634,7 +1637,7 @@ class NumericColumn(FunctionArg):
 
 class NumericColumnNoLookup(NumericColumn):
     def __init__(self, name, allow_measurements_value=False):
-        super(NumericColumnNoLookup, self).__init__(name)
+        super().__init__(name)
         self.allow_measurements_value = allow_measurements_value
 
     def normalize(self, value, params):
@@ -1644,7 +1647,7 @@ class NumericColumnNoLookup(NumericColumn):
         if self.allow_measurements_value and value == "measurements_value":
             return ["arrayJoin", ["measurements_value"]]
 
-        super(NumericColumnNoLookup, self).normalize(value, params)
+        super().normalize(value, params)
         return value
 
 
@@ -1662,7 +1665,7 @@ class DurationColumn(FunctionArg):
 
 class DurationColumnNoLookup(DurationColumn):
     def normalize(self, value, params):
-        super(DurationColumnNoLookup, self).normalize(value, params)
+        super().normalize(value, params)
         return value
 
 
@@ -1675,7 +1678,7 @@ class StringArrayColumn(FunctionArg):
 
 class NumberRange(FunctionArg):
     def __init__(self, name, start, end):
-        super(NumberRange, self).__init__(name)
+        super().__init__(name)
         self.start = start
         self.end = end
 
@@ -1697,7 +1700,7 @@ class NumberRange(FunctionArg):
 
 class IntervalDefault(NumberRange):
     def __init__(self, name, start, end):
-        super(IntervalDefault, self).__init__(name, start, end)
+        super().__init__(name, start, end)
         self.has_default = True
 
     def get_default(self, params):
@@ -1718,7 +1721,7 @@ def with_default(default, argument):
     return argument
 
 
-class Function(object):
+class Function:
     def __init__(
         self,
         name,
@@ -2170,7 +2173,7 @@ FUNCTIONS = {
         Function(
             "percentile_range",
             required_args=[
-                DurationColumnNoLookup("column"),
+                NumericColumnNoLookup("column"),
                 NumberRange("percentile", 0, 1),
                 ConditionArg("condition"),
                 DateArg("middle"),
@@ -2206,7 +2209,7 @@ FUNCTIONS = {
         Function(
             "avg_range",
             required_args=[
-                DurationColumnNoLookup("column"),
+                NumericColumnNoLookup("column"),
                 ConditionArg("condition"),
                 DateArg("middle"),
             ],
@@ -2224,7 +2227,7 @@ FUNCTIONS = {
         Function(
             "variance_range",
             required_args=[
-                DurationColumnNoLookup("column"),
+                NumericColumnNoLookup("column"),
                 ConditionArg("condition"),
                 DateArg("middle"),
             ],
@@ -2365,7 +2368,7 @@ def get_function_alias(field):
 
 
 def get_function_alias_with_columns(function_name, columns):
-    columns = re.sub("[^\w]", "_", "_".join(columns))
+    columns = re.sub(r"[^\w]", "_", "_".join(columns))
     return "{}_{}".format(function_name, columns).rstrip("_")
 
 

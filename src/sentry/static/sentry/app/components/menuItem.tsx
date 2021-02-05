@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
-import PropTypes from 'prop-types';
 
 import Link from 'app/components/links/link';
 import space from 'app/styles/space';
@@ -56,21 +55,6 @@ type MenuItemProps = {
 type Props = MenuItemProps & Omit<React.HTMLProps<HTMLLIElement>, keyof MenuItemProps>;
 
 class MenuItem extends React.Component<Props> {
-  static propTypes = {
-    header: PropTypes.bool,
-    divider: PropTypes.bool,
-    title: PropTypes.string,
-    disabled: PropTypes.bool,
-    onSelect: PropTypes.func,
-    eventKey: PropTypes.any,
-    isActive: PropTypes.bool,
-    noAnchor: PropTypes.bool,
-    to: PropTypes.string,
-    href: PropTypes.string,
-    query: PropTypes.object,
-    className: PropTypes.string,
-  };
-
   handleClick = (e: React.MouseEvent): void => {
     const {onSelect, disabled, eventKey} = this.props;
     if (disabled) {

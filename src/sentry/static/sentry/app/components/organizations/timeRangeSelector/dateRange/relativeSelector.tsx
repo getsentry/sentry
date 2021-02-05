@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
 
@@ -24,11 +23,5 @@ const RelativeSelector = ({onClick, selected, relativePeriods}: Props) => (
     ))}
   </React.Fragment>
 );
-
-RelativeSelector.propTypes = {
-  onClick: PropTypes.func,
-  selected: PropTypes.string,
-  relativePeriods: PropTypes.object,
-};
 
 export default RelativeSelector;

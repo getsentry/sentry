@@ -7,7 +7,7 @@ from sentry.testutils.helpers.datetime import before_now
 
 class DiscoverSavedQueryBase(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(DiscoverSavedQueryBase, self).setUp()
+        super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
         self.projects = [
@@ -29,7 +29,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
     feature_name = "organizations:discover"
 
     def setUp(self):
-        super(DiscoverSavedQueriesTest, self).setUp()
+        super().setUp()
         self.url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
 
     def test_get(self):
@@ -89,7 +89,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
             model = DiscoverSavedQuery.objects.create(
                 organization=self.org,
                 created_by=self.user,
-                name="My query {}".format(i),
+                name=f"My query {i}",
                 query=query,
                 version=1,
             )
@@ -256,7 +256,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
     feature_name = "organizations:discover-query"
 
     def setUp(self):
-        super(DiscoverSavedQueriesVersion2Test, self).setUp()
+        super().setUp()
         self.url = reverse("sentry-api-0-discover-saved-queries", args=[self.org.slug])
 
     def test_post_invalid_conditions(self):
@@ -363,7 +363,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
                     "projects": [],
                     "fields": ["title", "count()"],
                     "range": "24h",
-                    "query": "project:{}".format(project.slug),
+                    "query": f"project:{project.slug}",
                     "version": 2,
                 },
             )
@@ -419,7 +419,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
                     "projects": [project.id],
                     "fields": ["title", "count()"],
                     "range": "24h",
-                    "query": "project:{}".format(project.slug),
+                    "query": f"project:{project.slug}",
                     "version": 2,
                 },
             )
@@ -435,7 +435,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
                     "projects": [project.id, project2.id],
                     "fields": ["title", "count()"],
                     "range": "24h",
-                    "query": "project:{} project:{}".format(project.slug, project2.slug),
+                    "query": f"project:{project.slug} project:{project2.slug}",
                     "version": 2,
                 },
             )
@@ -452,7 +452,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
                     "projects": [-1],
                     "fields": ["title", "count()"],
                     "range": "24h",
-                    "query": "project:{} project:{}".format(project.slug, project2.slug),
+                    "query": f"project:{project.slug} project:{project2.slug}",
                     "version": 2,
                 },
             )

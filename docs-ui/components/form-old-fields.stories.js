@@ -1,35 +1,24 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 
-import {Form as LegacyForm, PasswordField, BooleanField} from 'app/components/forms';
+import {BooleanField, Form as LegacyForm, PasswordField} from 'app/components/forms';
 
 export default {
   title: 'Core/Forms/Old/Fields',
 };
 
-export const _PasswordField = withInfo({
-  text: 'Password input',
-  propTablesExclude: [LegacyForm],
-})(() => (
+export const _PasswordField = () => (
   <LegacyForm>
     <PasswordField hasSavedValue name="password" label="password" />
   </LegacyForm>
-));
+);
 
-_PasswordField.story = {
-  name: 'PasswordField',
-};
+_PasswordField.storyName = 'PasswordField';
 
-export const _BooleanField = withInfo({
-  text: 'Boolean field (i.e. checkbox)',
-  propTablesExclude: [LegacyForm],
-})(() => (
+export const _BooleanField = () => (
   <LegacyForm>
     <BooleanField name="field" />
     <BooleanField name="disabled-field" disabled disabledReason="This is off." />
   </LegacyForm>
-));
+);
 
-_BooleanField.story = {
-  name: 'BooleanField',
-};
+_BooleanField.storyName = 'BooleanField';

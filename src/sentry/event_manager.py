@@ -169,7 +169,7 @@ class ScoreClause(Func):
         # times_seen is likely an F-object that needs the value extracted
         if hasattr(self.times_seen, "rhs"):
             self.times_seen = self.times_seen.rhs.value
-        super(ScoreClause, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def __int__(self):
         # Calculate the score manually when coercing to an int.
@@ -189,7 +189,7 @@ class ScoreClause(Func):
         return (sql, [])
 
 
-class EventManager(object):
+class EventManager:
     """
     Handles normalization in both the store endpoint and the save task. The
     intention is to swap this class out with a reimplementation in Rust.
@@ -521,7 +521,6 @@ def _pull_out_data(jobs, projects):
         data = job["data"]
 
         # Pull the toplevel data we're interested in
-        job["culprit"] = get_culprit(data)
 
         transaction_name = data.get("transaction")
         if transaction_name:
@@ -656,7 +655,12 @@ def _materialize_metadata_many(jobs):
         # picks up the data right from the snuba topic.  For most usage
         # however the data is dynamically overridden by Event.title and
         # Event.location (See Event.as_dict)
+        #
+        # We also need to ensure the culprit is accurately reflected at
+        # the point of metadata materialization as we need to ensure that
+        # processing happens before.
         data = job["data"]
+        job["culprit"] = get_culprit(data)
         job["materialized_metadata"] = metadata = materialize_metadata(data)
         data.update(metadata)
         data["culprit"] = job["culprit"]
@@ -1406,7 +1410,7 @@ def _materialize_event_metrics(jobs):
 @metrics.wraps("event_manager.save_transaction_events")
 def save_transaction_events(jobs, projects):
     with metrics.timer("event_manager.save_transactions.collect_organization_ids"):
-        organization_ids = set(project.organization_id for project in six.itervalues(projects))
+        organization_ids = {project.organization_id for project in six.itervalues(projects)}
 
     with metrics.timer("event_manager.save_transactions.fetch_organizations"):
         organizations = {

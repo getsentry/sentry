@@ -101,16 +101,61 @@ export default function getGuidesContent(): GuidesContent {
       ],
     },
     {
-      guide: 'dynamic_counts',
-      requiredTargets: ['dynamic_counts'],
+      guide: 'inbox_guide',
+      carryAssistantForward: true,
+      requiredTargets: ['inbox_guide_tab'],
+      dateThreshold: new Date(2021, 1, 26),
       steps: [
         {
-          title: t('These counts have changed'),
-          target: 'dynamic_counts',
+          target: 'inbox_guide_tab',
+          description: t(`We’ve made some changes to help you focus on what’s new.`),
+          dismissText: t(`Later`),
+          nextText: t(`Take a Look`),
+          hasNextGuide: true,
+        },
+      ],
+    },
+    {
+      guide: 'for_review_guide',
+      requiredTargets: [
+        'for_review_guide_tab',
+        'inbox_guide_reason',
+        'inbox_guide_issue',
+      ],
+      steps: [
+        {
+          target: 'for_review_guide_tab',
           description: t(
-            `These numbers and the bar chart now respect the time selected and any search
-            filters you've applied. You can hover to see the totals.`
+            `This is a list of Unresolved issues that are new or reopened in the last 7 days.`
           ),
+          cantDismiss: true,
+        },
+        {
+          target: 'inbox_guide_reason',
+          description: t(`These labels explain why an issue needs review.`),
+          cantDismiss: true,
+        },
+        {
+          target: 'inbox_guide_review',
+          description: t(
+            `Mark Reviewed removes the issue from this list and also removes the label.`
+          ),
+          nextText: t(`When does this end?`),
+          cantDismiss: true,
+        },
+        {
+          target: 'inbox_guide_ignore',
+          description: t(`Resolving or ignoring an issue also marks it reviewed.`),
+          nextText: t(`Seriously, there's more?`),
+          cantDismiss: true,
+        },
+        {
+          target: 'inbox_guide_issue',
+          description: t(
+            `Everything is automatically reviewed after seven days, preventing
+            issues from piling up and you from losing your damn mind.`
+          ),
+          nextText: t(`Make It Stop Already`),
         },
       ],
     },

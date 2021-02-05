@@ -130,6 +130,14 @@ def get_project_config(project, full_config=True, project_keys=None):
             "organizationId": project.organization_id,
             "projectId": project.id,  # XXX: Unused by Relay, required by Python store
         }
+    allow_dynamic_sampling = features.has(
+        "organizations:filters-and-sampling",
+        project.organization,
+    )
+    if allow_dynamic_sampling:
+        dynamic_sampling = project.get_option("sentry:dynamic_sampling")
+        if dynamic_sampling is not None:
+            cfg["config"]["dynamicSampling"] = dynamic_sampling
 
     if not full_config:
         # This is all we need for external Relay processors
@@ -147,7 +155,7 @@ def get_project_config(project, full_config=True, project_keys=None):
     return ProjectConfig(project, **cfg)
 
 
-class _ConfigBase(object):
+class _ConfigBase:
     """
     Base class for configuration objects
 
@@ -250,7 +258,7 @@ class _ConfigBase(object):
             return "Content Error:{}".format(e)
 
     def __repr__(self):
-        return "({0}){1}".format(self.__class__.__name__, self)
+        return "({}){}".format(self.__class__.__name__, self)
 
 
 class ProjectConfig(_ConfigBase):
@@ -261,7 +269,7 @@ class ProjectConfig(_ConfigBase):
     def __init__(self, project, **kwargs):
         object.__setattr__(self, "project", project)
 
-        super(ProjectConfig, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
 
 def _load_filter_settings(flt, project):
@@ -291,7 +299,7 @@ def _filter_option_to_config_setting(flt, setting):
     """
     if setting is None:
         raise ValueError(
-            "Could not find filter state for filter {0}."
+            "Could not find filter state for filter {}."
             " You need to register default filter state in projectoptions.defaults.".format(flt.id)
         )
 

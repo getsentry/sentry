@@ -3,7 +3,6 @@ import React from 'react';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import {PageContent} from 'app/styles/organization';
 import {Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
@@ -13,10 +12,6 @@ type Props = {
 };
 
 class DiscoverContainer extends React.Component<Props> {
-  static propTypes = {
-    organization: SentryTypes.Organization.isRequired,
-  };
-
   renderNoAccess() {
     return (
       <PageContent>

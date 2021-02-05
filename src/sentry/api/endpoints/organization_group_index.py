@@ -1,13 +1,17 @@
 import functools
 import six
+from datetime import datetime, timedelta
+from typing import List, Mapping, Optional, Sequence
 
 from django.conf import settings
-
+from django.utils import timezone
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases import OrganizationEventsEndpointBase, OrganizationEventPermission
+from sentry.constants import ALLOWED_FUTURE_DELTA
+from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.group_index import (
     build_query_params_from_request,
     calculate_stats_period,
@@ -17,20 +21,118 @@ from sentry.api.helpers.group_index import (
     update_groups,
     ValidationError,
 )
+from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
 from sentry.api.utils import get_date_range_from_params, InvalidParams
-from sentry.models import Group, GroupStatus
-from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
+from sentry.models import Environment, Group, GroupEnvironment, GroupInbox, GroupStatus, Project
+from sentry.search.snuba.backend import (
+    assigned_or_suggested_filter,
+    EventsDatasetSnubaSearchBackend,
+)
+from sentry.search.snuba.executors import (
+    get_search_filter,
+    InvalidSearchQuery,
+    PostgresSnubaQueryExecutor,
+)
 from sentry.snuba import discover
-from sentry.utils.validators import normalize_event_id
 from sentry.utils.compat import map
+from sentry.utils.cursors import Cursor, CursorResult
+
+from sentry.utils.validators import normalize_event_id
 
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 
 
 search = EventsDatasetSnubaSearchBackend(**settings.SENTRY_SEARCH_OPTIONS)
+
+
+allowed_inbox_search_terms = frozenset(["date", "status", "for_review", "assigned_or_suggested"])
+
+
+def inbox_search(
+    projects: Sequence[Project],
+    environments: Optional[Sequence[Environment]] = None,
+    limit: int = 100,
+    cursor: Optional[Cursor] = None,
+    count_hits: bool = False,
+    search_filters: Optional[Sequence[SearchFilter]] = None,
+    date_from: Optional[datetime] = None,
+    date_to: Optional[datetime] = None,
+    max_hits: Optional[int] = None,
+) -> CursorResult:
+    now: datetime = timezone.now()
+    end: Optional[datetime] = None
+    end_params: List[datetime] = [
+        _f for _f in [date_to, get_search_filter(search_filters, "date", "<")] if _f
+    ]
+    if end_params:
+        end = min(end_params)
+
+    end = end if end else now + ALLOWED_FUTURE_DELTA
+
+    # We only want to search back a week at most, since that's the oldest inbox rows
+    # can be.
+    earliest_date = now - timedelta(days=7)
+    start_params = [date_from, earliest_date, get_search_filter(search_filters, "date", ">")]
+    start = max([_f for _f in start_params if _f])
+    end = max([earliest_date, end])
+
+    if start >= end:
+        return PostgresSnubaQueryExecutor.empty_result
+
+    # Make sure search terms are valid
+    invalid_search_terms = [
+        str(sf) for sf in search_filters if sf.key.name not in allowed_inbox_search_terms
+    ]
+    if invalid_search_terms:
+        raise InvalidSearchQuery(f"Invalid search terms for 'inbox' search: {invalid_search_terms}")
+
+    # Make sure this is an inbox search
+    if not get_search_filter(search_filters, "for_review", "="):
+        raise InvalidSearchQuery("Sort key 'inbox' only supported for inbox search")
+
+    if get_search_filter(search_filters, "status", "=") != GroupStatus.UNRESOLVED:
+        raise InvalidSearchQuery("Inbox search only works for 'unresolved' status")
+
+    # We just filter on `GroupInbox.date_added` here, and don't filter by date
+    # on the group. This keeps the query simpler and faster in some edge cases,
+    # and date_added is a good enough proxy when we're using this sort.
+    qs = GroupInbox.objects.filter(
+        date_added__gte=start,
+        date_added__lte=end,
+        project__in=projects,
+    )
+
+    if environments is not None:
+        environment_ids: List[int] = [environment.id for environment in environments]
+        qs = qs.filter(
+            group_id__in=GroupEnvironment.objects.filter(environment_id__in=environment_ids)
+            .values_list("group_id", flat=True)
+            .distinct()
+        )
+
+    owner_search = get_search_filter(search_filters, "owner", "=")
+    if owner_search:
+        qs = qs.filter(
+            assigned_or_suggested_filter(owner_search, projects, field_filter="group_id")
+        )
+
+    paginator = DateTimePaginator(qs.order_by("date_added"), "-date_added")
+    results = paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
+
+    # We want to return groups from the endpoint, but have the cursor be related to the
+    # GroupInbox rows. So we paginate on the GroupInbox results queryset, then fetch
+    # the group_ids out and use them to get the actual groups.
+    group_qs = Group.objects.filter(
+        id__in=[r.group_id for r in results.results],
+        project__in=projects,
+        status=GroupStatus.UNRESOLVED,
+    )
+    groups: Mapping[int, Group] = {g.id: g for g in group_qs}
+    results.results = [groups[r.group_id] for r in results.results if r.group_id in groups]
+    return results
 
 
 class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
@@ -57,7 +159,11 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             query_kwargs.update(extra_query_kwargs)
 
         query_kwargs["environments"] = environments if environments else None
-        result = search.query(**query_kwargs)
+        if query_kwargs["sort_by"] == "inbox":
+            query_kwargs.pop("sort_by")
+            result = inbox_search(**query_kwargs)
+        else:
+            result = search.query(**query_kwargs)
         return result, query_kwargs
 
     @rate_limit_endpoint(limit=10, window=1)
@@ -113,9 +219,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         expand = request.GET.getlist("expand", [])
         collapse = request.GET.getlist("collapse", [])
         has_inbox = features.has("organizations:inbox", organization, actor=request.user)
-        has_workflow_owners = features.has(
-            "organizations:workflow-owners", organization=organization, actor=request.user
-        )
         if stats_period not in (None, "", "24h", "14d", "auto"):
             return Response({"detail": ERR_INVALID_STATS_PERIOD}, status=400)
         stats_period, stats_period_start, stats_period_end = calculate_stats_period(
@@ -133,7 +236,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             expand=expand,
             collapse=collapse,
             has_inbox=has_inbox,
-            has_workflow_owners=has_workflow_owners,
         )
 
         projects = self.get_projects(request, organization)
@@ -160,9 +262,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 # projects that the user is a member of. This gives us a better
                 # chance of returning the correct result, even if the wrong
                 # project is selected.
-                direct_hit_projects = set(project_ids) | set(
-                    [project.id for project in request.access.projects]
-                )
+                direct_hit_projects = set(project_ids) | {
+                    project.id for project in request.access.projects
+                }
                 groups = list(Group.objects.filter_by_event_id(direct_hit_projects, event_id))
                 if len(groups) == 1:
                     response = Response(

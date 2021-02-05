@@ -12,7 +12,7 @@ class VictorOpsClient(ApiClient):
 
         if routing_key:
             self.routing_key = routing_key
-        super(VictorOpsClient, self).__init__()
+        super().__init__()
 
     def build_url(self, path):
         # http://victorops.force.com/knowledgebase/articles/Integration/Alert-Ingestion-API-Documentation/

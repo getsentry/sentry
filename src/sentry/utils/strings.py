@@ -1,7 +1,6 @@
 import base64
 import codecs
 import re
-import six
 import string
 import zlib
 
@@ -103,9 +102,7 @@ def soft_break(value, length, process=lambda chunk: chunk):
     zero-width spaces after common delimeters, as well as soft-hyphenating long
     identifiers.
     """
-    delimiters = re.compile(
-        six.text_type(r"([{}]+)").format("".join(map(re.escape, ",.$:/+@!?()<>[]{}")))
-    )
+    delimiters = re.compile(r"([{}]+)".format("".join(map(re.escape, ",.$:/+@!?()<>[]{}"))))
 
     def soft_break_delimiter(match):
         results = []
@@ -120,17 +117,17 @@ def soft_break(value, length, process=lambda chunk: chunk):
 
         return "".join(results).rstrip("\u200b")
 
-    return re.sub(six.text_type(r"\S{{{},}}").format(length), soft_break_delimiter, value)
+    return re.sub(fr"\S{{{length},}}", soft_break_delimiter, value)
 
 
 def to_unicode(value):
     try:
-        value = six.text_type(force_text(value))
+        value = str(force_text(value))
     except (UnicodeEncodeError, UnicodeDecodeError):
         value = "(Error decoding value)"
     except Exception:  # in some cases we get a different exception
         try:
-            value = six.text_type(repr(type(value)))
+            value = str(repr(type(value)))
         except Exception:
             value = "(Error decoding value)"
     return value
@@ -143,15 +140,13 @@ def split_camelcase(word):
     if sum(len(x) for x in pieces) != len(word):
         yield word
     else:
-        for piece in pieces:
-            yield piece
+        yield from pieces
 
 
 def split_any_wordlike(value, handle_camelcase=False):
     for word in _word_sep_re.split(value):
         if handle_camelcase:
-            for chunk in split_camelcase(word):
-                yield chunk
+            yield from split_camelcase(word)
         else:
             yield word
 
@@ -171,7 +166,7 @@ valid_dot_atom_characters = frozenset(string.ascii_letters + string.digits + ".!
 def is_valid_dot_atom(value):
     """Validate an input string as an RFC 2822 dot-atom-text value."""
     return (
-        isinstance(value, six.string_types)  # must be a string type
+        isinstance(value, str)  # must be a string type
         and not value[0] == "."
         and not value[-1] == "."  # cannot start or end with a dot
         and set(value).issubset(valid_dot_atom_characters)
@@ -236,9 +231,9 @@ def oxfordize_list(strings):
     elif len(strings) == 1:
         return strings[0]
     elif len(strings) == 2:
-        return "%s and %s" % (strings[0], strings[1])
+        return "{} and {}".format(strings[0], strings[1])
     else:
-        return "%s, and %s" % (", ".join(strings[:-1]), strings[-1])
+        return "{}, and {}".format(", ".join(strings[:-1]), strings[-1])
 
 
 def to_single_line_str(original_str):

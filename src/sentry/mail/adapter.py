@@ -42,7 +42,7 @@ class ActionTargetType(Enum):
     MEMBER = "Member"
 
 
-class MailAdapter(object):
+class MailAdapter:
     """
     This class contains generic logic for notifying users via Email.
     """
@@ -221,7 +221,7 @@ class MailAdapter(object):
 
     def disabled_users_from_project(self, project):
         alert_settings = project.get_member_alert_settings(self.alert_option_key)
-        disabled_users = set(user for user, setting in alert_settings.items() if setting == 0)
+        disabled_users = {user for user, setting in alert_settings.items() if setting == 0}
         return disabled_users
 
     def get_send_to_team(self, project, target_identifier):
@@ -254,8 +254,8 @@ class MailAdapter(object):
                 .get()
             )
         except User.DoesNotExist:
-            return set([])
-        return set([user.id])
+            return set()
+        return {user.id}
 
     def get_send_to_all_in_project(self, project):
         cache_key = "mail:send_to:{}".format(project.pk)

@@ -10,7 +10,7 @@ import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
 import TimeSince from 'app/components/timeSince';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {IconCheckmark, IconFire, IconWarning} from 'app/icons';
+import {IconCheckmark, IconFire, IconOpen, IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -20,6 +20,7 @@ import {Theme} from 'app/utils/theme';
 import {Incident, IncidentStatus} from '../alerts/types';
 
 import MissingAlertsButtons from './missingFeatureButtons/missingAlertsButtons';
+import {SectionHeadingLink, SectionHeadingWrapper, SidebarSection} from './styles';
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
@@ -98,10 +99,26 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
     this.setState({hasAlertRule: alertRules.length > 0, loading: false});
   }
 
+  get alertsLink() {
+    const {organization} = this.props;
+
+    // as this is a link to latest alerts, we want to only preserve project and environment
+    return {
+      pathname: `/organizations/${organization.slug}/alerts/`,
+      query: {
+        statsPeriod: undefined,
+        start: undefined,
+        end: undefined,
+        utc: undefined,
+      },
+    };
+  }
+
   renderAlertRow = (alert: Incident) => {
     const {organization, theme} = this.props;
-    const isResolved = alert.status === IncidentStatus.CLOSED;
-    const isWarning = alert.status === IncidentStatus.WARNING;
+    const {status, id, identifier, title, dateClosed, dateStarted} = alert;
+    const isResolved = status === IncidentStatus.CLOSED;
+    const isWarning = status === IncidentStatus.WARNING;
 
     const color = isResolved
       ? theme.green300
@@ -112,8 +129,8 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
 
     return (
       <AlertRowLink
-        to={`/organizations/${organization.slug}/alerts/${alert.identifier}/`}
-        key={alert.id}
+        to={`/organizations/${organization.slug}/alerts/${identifier}/`}
+        key={id}
       >
         <AlertBadge color={color} icon={Icon}>
           <AlertIconWrapper>
@@ -121,11 +138,13 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
           </AlertIconWrapper>
         </AlertBadge>
         <AlertDetails>
-          <AlertTitle>{alert.title}</AlertTitle>
+          <AlertTitle>{title}</AlertTitle>
           <AlertDate color={color}>
             {isResolved
-              ? tct('Resolved [date]', {date: <TimeSince date={alert.dateClosed!} />})
-              : tct('Triggered [date]', {date: <TimeSince date={alert.dateStarted} />})}
+              ? tct('Resolved [date]', {
+                  date: dateClosed ? <TimeSince date={dateClosed} /> : null,
+                })
+              : tct('Triggered [date]', {date: <TimeSince date={dateStarted} />})}
           </AlertDate>
         </AlertDetails>
       </AlertRowLink>
@@ -166,17 +185,19 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
 
   renderBody() {
     return (
-      <Section>
-        <SectionHeading>{t('Latest Alerts')}</SectionHeading>
+      <SidebarSection>
+        <SectionHeadingWrapper>
+          <SectionHeading>{t('Latest Alerts')}</SectionHeading>
+          <SectionHeadingLink to={this.alertsLink}>
+            <IconOpen />
+          </SectionHeadingLink>
+        </SectionHeadingWrapper>
+
         <div>{this.renderInnerBody()}</div>
-      </Section>
+      </SidebarSection>
     );
   }
 }
-
-const Section = styled('section')`
-  margin-bottom: ${space(2)};
-`;
 
 const AlertRowLink = styled(Link)`
   display: flex;

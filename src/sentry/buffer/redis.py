@@ -1,5 +1,6 @@
 import six
 
+import pickle
 import threading
 from time import time
 
@@ -12,7 +13,7 @@ from sentry.buffer import Buffer
 from sentry.exceptions import InvalidConfiguration
 from sentry.tasks.process_buffer import process_incr, process_pending
 from sentry.utils import json, metrics
-from sentry.utils.compat import pickle, crc32
+from sentry.utils.compat import crc32
 from sentry.utils.hashlib import md5_text
 from sentry.utils.imports import import_string
 from sentry.utils.redis import get_cluster_from_options
@@ -21,7 +22,7 @@ _local_buffers = None
 _local_buffers_lock = threading.Lock()
 
 
-class PendingBuffer(object):
+class PendingBuffer:
     def __init__(self, size):
         assert size > 0
         self.buffer = [None] * size
@@ -307,6 +308,6 @@ class RedisBuffer(Buffer):
                 elif k == "s":
                     signal_only = bool(int(v))  # Should be 1 if set
 
-            super(RedisBuffer, self).process(model, incr_values, filters, extra_values, signal_only)
+            super().process(model, incr_values, filters, extra_values, signal_only)
         finally:
             client.delete(lock_key)

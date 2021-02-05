@@ -14,10 +14,8 @@ import HookStore from 'app/stores/hookStore';
 import {
   AppOrProviderOrPlugin,
   DocumentIntegration,
-  Integration,
   IntegrationFeature,
   IntegrationInstallationStatus,
-  IntegrationProvider,
   IntegrationType,
   Organization,
   PluginWithProjectList,
@@ -62,10 +60,10 @@ export type SingleIntegrationEvent = {
     | 'integrations.plugin_add_to_project_clicked'
     | 'integrations.upgrade_plan_modal_opened'
     | 'integrations.resolve_now_clicked'
-    | 'integrations.reauth_start'
-    | 'integrations.reauth_complete'
     | 'integrations.request_install'
-    | 'integrations.code_mappings_viewed';
+    | 'integrations.code_mappings_viewed'
+    | 'integrations.cloudformation_link_clicked'
+    | 'integrations.switch_manual_sdk_setup';
   eventName:
     | 'Integrations: Install Modal Opened' //TODO: remove
     | 'Integrations: Installation Start'
@@ -81,10 +79,10 @@ export type SingleIntegrationEvent = {
     | 'Integrations: Plugin Add to Project Clicked'
     | 'Integrations: Upgrade Plan Modal Opened'
     | 'Integrations: Resolve Now Clicked'
-    | 'Integrations: Reauth Start'
-    | 'Integrations: Reauth Complete'
     | 'Integrations: Request Install'
-    | 'Integrations: Code Mappings Viewed';
+    | 'Integrations: Code Mappings Viewed'
+    | 'Integrations: CloudFormation Link Clicked'
+    | 'Integrations: Switch Manual SDK Setup';
   integration: string; //the slug
   integration_type: IntegrationType;
   already_installed?: boolean;
@@ -151,6 +149,14 @@ type IntegrationStacktraceLinkEvent = {
   error_reason?: 'file_not_found' | 'stack_root_mismatch';
 };
 
+type IntegrationInstalltionInputValueChangeEvent = {
+  eventKey: 'integrations.installation_input_value_changed';
+  eventName: 'Integrations: Installation Input Value Changed';
+  integration: string; //the slug
+  integration_type: IntegrationType;
+  field_name: string;
+};
+
 type IntegrationsEventParams = (
   | MultipleIntegrationsEvent
   | SingleIntegrationEvent
@@ -159,6 +165,7 @@ type IntegrationsEventParams = (
   | IntegrationStacktraceLinkEvent
   | IntegrationServerlessFunctionsViewed
   | IntegrationServerlessFunctionAction
+  | IntegrationInstalltionInputValueChangeEvent
 ) & {
   view?:
     | 'external_install'
@@ -167,7 +174,9 @@ type IntegrationsEventParams = (
     | 'integrations_directory'
     | 'integrations_directory_integration_detail'
     | 'stacktrace_issue_details'
-    | 'integration_configuration_detail';
+    | 'integration_configuration_detail'
+    | 'onboarding'
+    | 'project_creation';
   project_id?: string;
 } & Parameters<Hooks['analytics:track-event']>[0];
 
@@ -355,15 +364,6 @@ export function isDocumentIntegration(
   return integration.hasOwnProperty('docUrl');
 }
 
-export function isSlackWorkspaceApp(integration: Integration) {
-  return integration.configData.installationType === 'workspace_app';
-}
-
-//returns the text in the alert asking the user to re-authenticate a first-party integration
-export function getReauthAlertText(provider: IntegrationProvider) {
-  return provider.metadata.aspects?.reauthentication_alert?.alertText;
-}
-
 export const convertIntegrationTypeToSnakeCase = (
   type: 'plugin' | 'firstParty' | 'sentryApp' | 'documentIntegration'
 ) => {
@@ -406,4 +406,10 @@ export const getIntegrationIcon = (integrationType?: string, size?: string) => {
     default:
       return <IconGeneric size={iconSize} />;
   }
+};
+
+//used for project creation and onboarding
+//determines what integration maps to what project platform
+export const platfromToIntegrationMap = {
+  'node-awslambda': 'aws_lambda',
 };

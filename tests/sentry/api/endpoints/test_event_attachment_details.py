@@ -1,11 +1,11 @@
-import six
+from io import BytesIO
 
 from sentry.models import EventAttachment, File
 from sentry.testutils import APITestCase, PermissionTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 
 
-class CreateAttachmentMixin(object):
+class CreateAttachmentMixin:
     def create_attachment(self):
         self.project = self.create_project()
         self.release = self.create_release(self.project, self.user)
@@ -20,7 +20,7 @@ class CreateAttachmentMixin(object):
         )
 
         self.file = File.objects.create(name="hello.png", type="image/png; foo=bar")
-        self.file.putfile(six.BytesIO(b"File contents here"))
+        self.file.putfile(BytesIO(b"File contents here"))
 
         self.attachment = EventAttachment.objects.create(
             event_id=self.event.event_id,
@@ -39,41 +39,35 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         self.login_as(user=self.user)
 
         self.create_attachment()
-        path = "/api/0/projects/{}/{}/events/{}/attachments/{}/".format(
-            self.organization.slug, self.project.slug, self.event.event_id, self.attachment.id
-        )
+        path = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{self.attachment.id}/"
 
         with self.feature("organizations:event-attachments"):
             response = self.client.get(path)
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == six.text_type(self.attachment.id)
+        assert response.data["id"] == str(self.attachment.id)
         assert response.data["mimetype"] == self.attachment.mimetype
 
     def test_download(self):
         self.login_as(user=self.user)
 
         self.create_attachment()
-        path = "/api/0/projects/{}/{}/events/{}/attachments/{}/?download".format(
-            self.organization.slug, self.project.slug, self.event.event_id, self.attachment.id
-        )
+        path = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{self.attachment.id}/?download"
 
         with self.feature("organizations:event-attachments"):
             response = self.client.get(path)
 
         assert response.status_code == 200, response.content
         assert response.get("Content-Disposition") == 'attachment; filename="hello.png"'
-        assert response.get("Content-Length") == six.text_type(self.file.size)
+        assert response.get("Content-Length") == str(self.file.size)
         assert response.get("Content-Type") == "application/octet-stream"
-        assert b"File contents here" == six.BytesIO(b"".join(response.streaming_content)).getvalue()
+        assert b"File contents here" == BytesIO(b"".join(response.streaming_content)).getvalue()
 
     def test_delete(self):
         self.login_as(user=self.user)
 
         self.create_attachment()
-        path = "/api/0/projects/{}/{}/events/{}/attachments/{}/".format(
-            self.organization.slug, self.project.slug, self.event.event_id, self.attachment.id
-        )
+        path = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{self.attachment.id}/"
 
         with self.feature("organizations:event-attachments"):
             response = self.client.delete(path)
@@ -84,11 +78,9 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
 
 class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentMixin):
     def setUp(self):
-        super(EventAttachmentDetailsPermissionTest, self).setUp()
+        super().setUp()
         self.create_attachment()
-        self.path = "/api/0/projects/{}/{}/events/{}/attachments/{}/?download".format(
-            self.organization.slug, self.project.slug, self.event.event_id, self.attachment.id
-        )
+        self.path = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{self.attachment.id}/?download"
 
     def test_member_can_access_by_default(self):
         with self.feature("organizations:event-attachments"):

@@ -15,8 +15,7 @@ class BufferMount(type):
         return new_cls
 
 
-@six.add_metaclass(BufferMount)
-class Buffer(Service):
+class Buffer(Service, metaclass=BufferMount):
     """
     Buffers act as temporary stores for counters. The default implementation is just a passthru and
     does not actually buffer anything.
@@ -60,7 +59,7 @@ class Buffer(Service):
         created = False
 
         if not signal_only:
-            update_kwargs = dict((c, F(c) + v) for c, v in six.iteritems(columns))
+            update_kwargs = {c: F(c) + v for c, v in six.iteritems(columns)}
 
             if extra:
                 update_kwargs.update(extra)

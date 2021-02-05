@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 """
 Testsuite of backend-independent nodestore tests. Add your backend to the
 `ns` fixture to have it tested.
@@ -35,7 +33,7 @@ def test_get_multi(ns):
     ns.set(nodes[1][0], nodes[1][1])
 
     result = ns.get_multi([nodes[0][0], nodes[1][0]])
-    assert result == dict((n[0], n[1]) for n in nodes)
+    assert result == {n[0]: n[1] for n in nodes}
 
 
 def test_set(ns):

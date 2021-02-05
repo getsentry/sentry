@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 # 10 minutes is assumed to be a reasonable value here.
 CONVERSION_ERROR_TTL = 60 * 10
 
-DIF_MIMETYPES = dict((v, k) for k, v in KNOWN_DIF_FORMATS.items())
+DIF_MIMETYPES = {v: k for k, v in KNOWN_DIF_FORMATS.items()}
 
 _proguard_file_re = re.compile(r"/proguard/(?:mapping-)?(.*?)\.txt$")
 
@@ -157,7 +157,7 @@ class ProjectDebugFile(Model):
         return frozenset((self.data or {}).get("features", []))
 
     def delete(self, *args, **kwargs):
-        super(ProjectDebugFile, self).delete(*args, **kwargs)
+        super().delete(*args, **kwargs)
         self.file.delete()
 
 
@@ -268,7 +268,7 @@ def _analyze_progard_filename(filename):
         pass
 
 
-class DifMeta(object):
+class DifMeta:
     def __init__(self, file_format, arch, debug_id, path, code_id=None, name=None, data=None):
         self.file_format = file_format
         self.arch = arch
@@ -394,7 +394,7 @@ def create_files_from_dif_zip(fileobj, project):
         shutil.rmtree(scratchpad)
 
 
-class DIFCache(object):
+class DIFCache:
     @property
     def cache_path(self):
         return options.get("dsym.cache-path")

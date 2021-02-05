@@ -9,7 +9,7 @@ class ApiTokenSerializer(Serializer):
     def get_attrs(self, item_list, user):
         apps = {
             d["id"]: d
-            for d in serialize(set(i.application for i in item_list if i.application_id), user)
+            for d in serialize({i.application for i in item_list if i.application_id}, user)
         }
 
         attrs = {}

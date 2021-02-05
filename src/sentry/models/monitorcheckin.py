@@ -12,7 +12,7 @@ from sentry.db.models import (
 )
 
 
-class CheckInStatus(object):
+class CheckInStatus:
     UNKNOWN = 0
     OK = 1
     ERROR = 2
@@ -55,7 +55,7 @@ class MonitorCheckIn(Model):
             self.date_added = timezone.now()
         if not self.date_updated:
             self.date_updated = self.date_added
-        return super(MonitorCheckIn, self).save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     # XXX(dcramer): BaseModel is trying to automatically set date_updated which is not
     # what we want to happen, so kill it here

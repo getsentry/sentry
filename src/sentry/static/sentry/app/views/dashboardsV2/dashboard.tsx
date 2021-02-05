@@ -34,6 +34,7 @@ type State = {
   isDragging: boolean;
   draggingIndex: undefined | number;
   draggingTargetIndex: undefined | number;
+  draggingOverWidget: Widget | undefined;
   top: undefined | number;
   left: undefined | number;
   ghostLeftOffset: number;
@@ -60,6 +61,7 @@ class Dashboard extends React.Component<Props, State> {
   state: State = {
     draggingIndex: undefined,
     draggingTargetIndex: undefined,
+    draggingOverWidget: undefined,
     isDragging: false,
     top: undefined,
     left: undefined,
@@ -234,13 +236,16 @@ class Dashboard extends React.Component<Props, State> {
       ghostDOM.style.top = `${getPointerPosition(event, 'pageY') - ghostTopOffset}px`;
     }
 
+    const widgets = this.shallowCloneWidgets();
+
     this.setState({
       isDragging: true,
       draggingIndex: index,
       draggingTargetIndex: index,
+      draggingOverWidget: widgets[index],
       top: getPointerPosition(event, 'pageY'),
       left: getPointerPosition(event, 'pageX'),
-      widgets: this.shallowCloneWidgets(),
+      widgets,
       ghostLeftOffset,
       ghostTopOffset,
     });
@@ -291,12 +296,30 @@ class Dashboard extends React.Component<Props, State> {
       return topStart <= top && top <= topEnd && leftStart <= left && left <= leftEnd;
     });
 
+    const previousDraggingOverWidget = this.state.draggingOverWidget;
+
+    if (targetIndex < 0 && previousDraggingOverWidget) {
+      this.setState({draggingOverWidget: undefined});
+    }
+
     if (targetIndex >= 0 && targetIndex !== draggingTargetIndex) {
       const nextWidgets = this.shallowCloneWidgets();
-      const removed = nextWidgets.splice(draggingIndex, 1);
-      nextWidgets.splice(targetIndex, 0, removed[0]);
+      const currentDraggedWidget = nextWidgets.splice(draggingIndex, 1)[0];
+      nextWidgets.splice(targetIndex, 0, currentDraggedWidget);
 
-      this.setState({draggingTargetIndex: targetIndex, widgets: nextWidgets});
+      // Widgets may be re-ordered as the ghost is being dragged over another widget.
+      // In this case, we cancel the additional widget re-order to prevent shuffling cycles.
+      const draggingOverWidget =
+        targetIndex >= 0 ? this.state.widgets[targetIndex] : undefined;
+      if (draggingOverWidget?.id === previousDraggingOverWidget?.id) {
+        return;
+      }
+
+      this.setState({
+        draggingTargetIndex: targetIndex,
+        draggingOverWidget,
+        widgets: nextWidgets,
+      });
     }
   };
 
@@ -339,6 +362,7 @@ class Dashboard extends React.Component<Props, State> {
       top: undefined,
       draggingIndex: undefined,
       draggingTargetIndex: undefined,
+      draggingOverWidget: undefined,
       ghostTopOffset: 0,
       ghostLeftOffset: 0,
       widgets: undefined,
@@ -350,7 +374,7 @@ class Dashboard extends React.Component<Props, State> {
 
     return (
       <LazyLoad key={`${widget.id ?? index}`} once height={240} offset={100}>
-        <WidgetWrapper data-component="widget-wrapper">
+        <WidgetWrapper data-component="widget-wrapper" displayType={widget.displayType}>
           <WidgetCard
             widget={widget}
             isEditing={isEditing}
@@ -398,7 +422,7 @@ class Dashboard extends React.Component<Props, State> {
       <WidgetContainer>
         {widgets.map((widget, i) => this.renderWidget(widget, i))}
         {isEditing && (
-          <WidgetWrapper key="add">
+          <WidgetWrapper key="add" displayType="big_number">
             <AddWidgetWrapper
               key="add"
               data-test-id="widget-add"
@@ -418,7 +442,8 @@ export default withApi(withGlobalSelection(Dashboard));
 
 const WidgetContainer = styled('div')`
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-flow: row dense;
   grid-gap: ${space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
@@ -426,16 +451,24 @@ const WidgetContainer = styled('div')`
   }
 `;
 
-const WidgetWrapper = styled('div')`
+const WidgetWrapper = styled('div')<{displayType: Widget['displayType']}>`
   position: relative;
   /* Min-width prevents grid items from stretching the grid */
   min-width: 200px;
+
+  ${p => {
+    switch (p.displayType) {
+      case 'big_number':
+        return 'grid-area: span 1 / span 1;';
+      default:
+        return 'grid-area: span 2 / span 2;';
+    }
+  }};
 `;
 
 const AddWidgetWrapper = styled('a')`
   width: 100%;
-  height: 100%;
-  min-height: 200px;
+  height: 110px;
   border: 2px dashed ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   display: flex;

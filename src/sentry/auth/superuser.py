@@ -59,7 +59,7 @@ def is_active_superuser(request):
     return su.is_active
 
 
-class Superuser(object):
+class Superuser:
     allowed_ips = [ipaddress.ip_network(six.text_type(v), strict=False) for v in ALLOWED_IPS]
 
     org_id = ORG_ID

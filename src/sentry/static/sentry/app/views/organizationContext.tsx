@@ -4,7 +4,6 @@ import {RouteComponentProps} from 'react-router';
 import {PlainRoute} from 'react-router/lib/Route';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import PropTypes from 'prop-types';
 
 import {openSudo} from 'app/actionCreators/modal';
 import {fetchOrganizationDetails} from 'app/actionCreators/organization';
@@ -157,16 +156,6 @@ class OrganizationContext extends React.Component<Props, State> {
       (!detailed || (detailed && organization.projects && organization.teams))
     );
   }
-
-  static propTypes = {
-    api: PropTypes.object,
-    routes: PropTypes.arrayOf(PropTypes.object),
-    includeSidebar: PropTypes.bool,
-    useLastOrganization: PropTypes.bool,
-    organizationsLoading: PropTypes.bool,
-    organizations: PropTypes.arrayOf(SentryTypes.Organization),
-    detailed: PropTypes.bool,
-  } as any;
 
   static childContextTypes = {
     organization: SentryTypes.Organization,

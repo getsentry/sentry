@@ -7,7 +7,7 @@ from django.utils import timezone
 from sentry.utils.compat import zip
 
 
-class BulkDeleteQuery(object):
+class BulkDeleteQuery:
     def __init__(self, model, project_id=None, dtfield=None, days=None, order_by=None):
         self.model = model
         self.project_id = int(project_id) if project_id else None
@@ -25,7 +25,6 @@ class BulkDeleteQuery(object):
                 "{} < '{}'::timestamptz".format(
                     quote_name(self.dtfield),
                     (timezone.now() - timedelta(days=self.days)).isoformat(),
-                    self.days,
                 )
             )
         if self.project_id:

@@ -1,6 +1,5 @@
 import abc
 import logging
-import six
 import time
 
 from confluent_kafka import (
@@ -35,9 +34,7 @@ def wait_for_topics(admin_client, topics, timeout=10):
         while True:
             if time.time() > start + timeout:
                 raise RuntimeError(
-                    "Timeout when waiting for Kafka topic '%s' to become available, last error: %s".format(
-                        topic, last_error
-                    )
+                    f"Timeout when waiting for Kafka topic '{topic}' to become available, last error: {last_error}"
                 )
 
             result = admin_client.list_topics(topic=topic)
@@ -60,8 +57,7 @@ def wait_for_topics(admin_client, topics, timeout=10):
                 )
 
 
-@six.add_metaclass(abc.ABCMeta)
-class AbstractBatchWorker(object):
+class AbstractBatchWorker(metaclass=abc.ABCMeta):
     """The `BatchingKafkaConsumer` requires an instance of this class to
     handle user provided work such as processing raw messages and flushing
     processed batches to a custom backend."""
@@ -99,7 +95,7 @@ class AbstractBatchWorker(object):
         pass
 
 
-class BatchingKafkaConsumer(object):
+class BatchingKafkaConsumer:
     """The `BatchingKafkaConsumer` is an abstraction over most Kafka consumer's main event
     loops. For this reason it uses inversion of control: the user provides an implementation
     for the `AbstractBatchWorker` and then the `BatchingKafkaConsumer` handles the rest.
@@ -306,8 +302,8 @@ class BatchingKafkaConsumer(object):
                     key=msg.key(),
                     value=msg.value(),
                     headers={
-                        "partition": six.text_type(msg.partition()) if msg.partition() else None,
-                        "offset": six.text_type(msg.offset()) if msg.offset() else None,
+                        "partition": str(msg.partition()) if msg.partition() else None,
+                        "offset": str(msg.offset()) if msg.offset() else None,
                         "topic": msg.topic(),
                     },
                     on_delivery=self._commit_message_delivery_callback,
@@ -443,9 +439,7 @@ class BatchingKafkaConsumer(object):
 
                 self.producer.produce(
                     self.commit_log_topic,
-                    key="{}:{}:{}".format(item.topic, item.partition, self.group_id).encode(
-                        "utf-8"
-                    ),
-                    value="{}".format(item.offset).encode("utf-8"),
+                    key=f"{item.topic}:{item.partition}:{self.group_id}".encode("utf-8"),
+                    value=f"{item.offset}".encode("utf-8"),
                     on_delivery=self._commit_message_delivery_callback,
                 )

@@ -51,7 +51,7 @@ const InviteRowControl = ({
         deprecatedSelectControl
         data-test-id="select-emails"
         disabled={disabled}
-        placeholder={t('Enter one or more email')}
+        placeholder={t('Enter one or more emails')}
         value={emails}
         options={emails.map(value => ({
           value,
@@ -77,7 +77,6 @@ const InviteRowControl = ({
     </div>
     <div>
       <RoleSelectControl
-        deprecatedSelectControl
         data-test-id="select-role"
         disabled={disabled}
         value={role}
@@ -88,7 +87,6 @@ const InviteRowControl = ({
     </div>
     <div>
       <SelectControl
-        deprecatedSelectControl
         data-test-id="select-teams"
         disabled={disabled}
         placeholder={t('Add to teams...')}

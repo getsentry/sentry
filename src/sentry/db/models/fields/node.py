@@ -1,6 +1,7 @@
 from base64 import b64encode
 import collections
 import logging
+import pickle
 import six
 from uuid import uuid4
 
@@ -8,7 +9,6 @@ from django.db.models.signals import post_delete
 
 from sentry import nodestore
 from sentry.utils.cache import memoize
-from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress, compress
 from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
 from sentry.db.models.utils import Creator
@@ -167,10 +167,10 @@ class NodeField(GzippedDictField):
         self.ref_version = kwargs.pop("ref_version", None)
         self.wrapper = kwargs.pop("wrapper", None)
         self.id_func = kwargs.pop("id_func", lambda: b64encode(uuid4().bytes))
-        super(NodeField, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def contribute_to_class(self, cls, name):
-        super(NodeField, self).contribute_to_class(cls, name)
+        super().contribute_to_class(cls, name)
         setattr(cls, name, Creator(self))
         post_delete.connect(self.on_delete, sender=self.model, weak=False)
 

@@ -7,7 +7,7 @@ class ClubhouseClient(ApiClient):
 
     def __init__(self, token):
         self.token = token
-        super(ClubhouseClient, self).__init__()
+        super().__init__()
 
     def request(self, method, path, data=None, params=None):
         params = {"token": self.token}

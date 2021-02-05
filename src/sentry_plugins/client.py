@@ -17,7 +17,7 @@ class AuthApiClient(ApiClient):
 
     def __init__(self, auth=None, *args, **kwargs):
         self.auth = auth
-        super(AuthApiClient, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def has_auth(self):
         return self.auth and "access_token" in self.auth.tokens

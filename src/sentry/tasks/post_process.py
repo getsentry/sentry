@@ -1,5 +1,4 @@
 import logging
-import sentry_sdk
 
 from sentry import features
 from sentry.app import locks
@@ -81,15 +80,11 @@ def handle_owner_assignment(project, group, event):
     from sentry.models import GroupAssignee, ProjectOwnership
 
     with metrics.timer("post_process.handle_owner_assignment"):
-        owners_ingestion = features.has("organizations:workflow-owners", event.project.organization)
-
         # Is the issue already assigned to a team or user?
         key = "assignee_exists:1:%s" % group.id
         owners_exists = cache.get(key)
         if owners_exists is None:
-            owners_exists = group.assignee_set.exists() and (
-                not owners_ingestion or group.groupowner_set.exists()
-            )
+            owners_exists = group.assignee_set.exists() or group.groupowner_set.exists()
             # Cache for an hour if it's assigned. We don't need to move that fast.
             cache.set(key, owners_exists, 3600 if owners_exists else 60)
         if owners_exists:
@@ -101,7 +96,7 @@ def handle_owner_assignment(project, group, event):
         if auto_assignment and owners:
             GroupAssignee.objects.assign(group, owners[0])
 
-        if owners and owners_ingestion:
+        if owners:
             try:
                 handle_group_owners(project, group, owners)
             except Exception:
@@ -267,10 +262,7 @@ def post_process_group(
             # objects back and forth isn't super efficient
             for callback, futures in rp.apply():
                 has_alert = True
-                with sentry_sdk.start_transaction(
-                    op="post_process_group", name="rule_processor_apply", sampled=True
-                ):
-                    safe_execute(callback, event, futures, _with_transaction=False)
+                safe_execute(callback, event, futures, _with_transaction=False)
 
             try:
                 lock = locks.get(
@@ -286,10 +278,7 @@ def post_process_group(
                         ).exists()
                         cache.set(has_commit_key, org_has_commit, 3600)
 
-                    if org_has_commit and features.has(
-                        "organizations:workflow-owners",
-                        event.project.organization,
-                    ):
+                    if org_has_commit:
                         group_cache_key = "w-o-i:g-{}".format(event.group_id)
                         if cache.get(group_cache_key):
                             metrics.incr(
@@ -314,7 +303,7 @@ def post_process_group(
                 logger.exception("Failed to process suspect commits")
 
             if features.has("projects:servicehooks", project=event.project):
-                allowed_events = set(["event.created"])
+                allowed_events = {"event.created"}
                 if has_alert:
                     allowed_events.add("event.alert")
 

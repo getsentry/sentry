@@ -146,7 +146,7 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
         option = self.get_option(name, project)
         if not option:
             return None
-        return set(tag.strip().lower() for tag in option.split(","))
+        return {tag.strip().lower() for tag in option.split(",")}
 
     def notify(self, notification, raise_exception=False):
         event = notification.event

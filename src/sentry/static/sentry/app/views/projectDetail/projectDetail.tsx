@@ -7,6 +7,7 @@ import Breadcrumbs from 'app/components/breadcrumbs';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import CreateAlertButton from 'app/components/createAlertButton';
+import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
 import IdBadge from 'app/components/idBadge';
 import * as Layout from 'app/components/layouts/thirds';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
@@ -96,7 +97,12 @@ class ProjectDetail extends AsyncView<Props, State> {
               <Layout.HeaderActions>
                 <ButtonBar gap={1}>
                   <Button
-                    to={`/organizations/${params.orgId}/issues/?project=${params.projectId}`}
+                    to={
+                      // if we are still fetching project, we can use project slug to build issue stream url and let the redirect handle it
+                      project?.id
+                        ? `/organizations/${params.orgId}/issues/?project=${project.id}`
+                        : `/${params.orgId}/${params.projectId}`
+                    }
                   >
                     {t('View All Issues')}
                   </Button>
@@ -114,6 +120,7 @@ class ProjectDetail extends AsyncView<Props, State> {
             </Layout.Header>
 
             <Layout.Body>
+              <StyledSdkUpdatesAlert />
               <Layout.Main>
                 <ProjectScoreCards organization={organization} />
                 {[0, 1].map(id => (
@@ -159,5 +166,13 @@ class ProjectDetail extends AsyncView<Props, State> {
 const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
+
+const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
+  margin-bottom: 0;
+`;
+
+StyledSdkUpdatesAlert.defaultProps = {
+  Wrapper: p => <Layout.Main fullWidth {...p} />,
+};
 
 export default ProjectDetail;

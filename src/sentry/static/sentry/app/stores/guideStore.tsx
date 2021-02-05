@@ -11,7 +11,7 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 
 const guidesContent: GuidesContent = getGuidesContent();
 
-type GuideStoreState = {
+export type GuideStoreState = {
   /**
    * All tooltip guides
    */
@@ -72,6 +72,7 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
     this.listenTo(GuideActions.fetchSucceeded, this.onFetchSucceeded);
     this.listenTo(GuideActions.closeGuide, this.onCloseGuide);
     this.listenTo(GuideActions.nextStep, this.onNextStep);
+    this.listenTo(GuideActions.toStep, this.onToStep);
     this.listenTo(GuideActions.registerAnchor, this.onRegisterAnchor);
     this.listenTo(GuideActions.unregisterAnchor, this.onUnregisterAnchor);
     this.listenTo(OrganizationsActions.setActive, this.onSetActiveOrganization);
@@ -127,6 +128,11 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
 
   onNextStep() {
     this.state.currentStep += 1;
+    this.trigger(this.state);
+  },
+
+  onToStep(step: number) {
+    this.state.currentStep = step;
     this.trigger(this.state);
   },
 
@@ -188,13 +194,18 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
     const userDateJoined = new Date(user?.dateJoined);
 
     if (!forceShow) {
-      guideOptions = guideOptions.filter(({guide, seen}) =>
-        seen
-          ? false
-          : user?.isSuperuser || guide === 'dynamic_counts'
-          ? true
-          : userDateJoined > assistantThreshold
-      );
+      guideOptions = guideOptions.filter(({seen, dateThreshold}) => {
+        if (seen) {
+          return false;
+        } else if (user?.isSuperuser) {
+          return true;
+        } else if (dateThreshold) {
+          // Don't show the guide to users who've joined after the date threshold
+          return userDateJoined > dateThreshold;
+        } else {
+          return userDateJoined > assistantThreshold;
+        }
+      });
     }
 
     const nextGuide =
@@ -208,8 +219,13 @@ const guideStoreConfig: Reflux.StoreDefinition & GuideStoreInterface = {
         : null;
 
     this.updatePrevGuide(nextGuide);
+    this.state.currentStep =
+      this.state.currentGuide &&
+      nextGuide &&
+      this.state.currentGuide.guide === nextGuide.guide
+        ? this.state.currentStep
+        : 0;
     this.state.currentGuide = nextGuide;
-    this.state.currentStep = 0;
     this.trigger(this.state);
   },
 };

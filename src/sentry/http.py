@@ -50,7 +50,7 @@ class BadSource(Exception):
         if data is None:
             data = {}
         data.setdefault("type", self.error_type)
-        super(BadSource, self).__init__(data["type"])
+        super().__init__(data["type"])
         self.data = data
 
 

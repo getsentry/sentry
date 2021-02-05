@@ -107,7 +107,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
             tags = {}
 
         if environments:
-            env_names = set(env.name for env in environments)
+            env_names = {env.name for env in environments}
             if "environment" in tags:
                 # If a single environment was passed as part of the query, then
                 # we'll just search for that individual environment in this

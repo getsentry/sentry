@@ -39,7 +39,7 @@ class GitHubIssueBasic(IssueBasicMixin):
 
     def get_create_issue_config(self, group, user, **kwargs):
         kwargs["link_referrer"] = "github_integration"
-        fields = super(GitHubIssueBasic, self).get_create_issue_config(group, user, **kwargs)
+        fields = super().get_create_issue_config(group, user, **kwargs)
         default_repo, repo_choices = self.get_repository_choices(group, **kwargs)
 
         assignees = self.get_allowed_assignees(default_repo) if default_repo else []

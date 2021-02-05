@@ -47,11 +47,11 @@ class CamelSnakeSerializer(Serializer):
     def __init__(self, instance=None, data=empty, **kwargs):
         if data is not empty:
             data = convert_dict_key_case(data, camel_to_snake_case)
-        return super(CamelSnakeSerializer, self).__init__(instance=instance, data=data, **kwargs)
+        return super().__init__(instance=instance, data=data, **kwargs)
 
     @property
     def errors(self):
-        errors = super(CamelSnakeSerializer, self).errors
+        errors = super().errors
         return convert_dict_key_case(errors, snake_to_camel_case)
 
 
@@ -65,11 +65,9 @@ class CamelSnakeModelSerializer(ModelSerializer):
     def __init__(self, instance=None, data=empty, **kwargs):
         if data is not empty:
             data = convert_dict_key_case(data, camel_to_snake_case)
-        return super(CamelSnakeModelSerializer, self).__init__(
-            instance=instance, data=data, **kwargs
-        )
+        return super().__init__(instance=instance, data=data, **kwargs)
 
     @property
     def errors(self):
-        errors = super(CamelSnakeModelSerializer, self).errors
+        errors = super().errors
         return convert_dict_key_case(errors, snake_to_camel_case)

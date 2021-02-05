@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 import * as qs from 'query-string';
 
 import {addErrorMessage, addLoadingMessage} from 'app/actionCreators/indicator';
@@ -7,7 +8,9 @@ import ExternalLink from 'app/components/links/externalLink';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import {t} from 'app/locale';
+import {Organization} from 'app/types';
 import {uniqueId} from 'app/utils/guid';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import TextField from 'app/views/settings/components/forms/textField';
 
@@ -35,6 +38,7 @@ type Props = {
   stackName: string;
   regionList: string[];
   initialStepNumber: number;
+  organization: Organization;
   accountNumber?: string;
   region?: string;
   error?: string;
@@ -122,6 +126,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
   };
 
   handleChangeArn = (accountNumber: string) => {
+    this.debouncedTrackValueChanged('accountNumber');
     // reset the error if we ever get a valid account number
     if (testAccountNumber(accountNumber)) {
       this.setState({accountNumberError: ''});
@@ -130,10 +135,12 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
   };
 
   hanldeChangeRegion = (region: string) => {
+    this.debouncedTrackValueChanged('region');
     this.setState({region});
   };
 
   handleChangeExternalId = (awsExternalId: string) => {
+    this.debouncedTrackValueChanged('awsExternalId');
     awsExternalId = awsExternalId.trim();
     window.localStorage.setItem(ID_NAME, awsExternalId);
     this.setState({awsExternalId});
@@ -143,6 +150,32 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
     const {accountNumber, region, awsExternalId} = this.state;
     return !!region && testAccountNumber(accountNumber || '') && !!awsExternalId;
   }
+
+  //debounce so we don't send a request on every input change
+  debouncedTrackValueChanged = debounce((fieldName: string) => {
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.installation_input_value_changed',
+        eventName: 'Integrations: Installation Input Value Changed',
+        integration: 'aws_lambda',
+        integration_type: 'first_party',
+        field_name: fieldName,
+      },
+      this.props.organization
+    );
+  }, 200);
+
+  trackOpenCloudFormation = () => {
+    trackIntegrationEvent(
+      {
+        eventKey: 'integrations.cloudformation_link_clicked',
+        eventName: 'Integrations: CloudFormation Link Clicked',
+        integration: 'aws_lambda',
+        integration_type: 'first_party',
+      },
+      this.props.organization
+    );
+  };
 
   render = () => {
     const {initialStepNumber} = this.props;
@@ -155,12 +188,14 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
     } = this.state;
     return (
       <React.Fragment>
-        <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/" />
+        <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws-lambda/" />
         <StyledList symbol="colored-numeric" initialCounterValue={initialStepNumber}>
           <ListItem>
-            <h4>{t("Add Sentry's CloudFormation to your AWS")}</h4>
-            <ExternalLink href={this.cloudformationUrl}>
-              {t('Create Cloudformation Stack')}
+            <ExternalLink
+              onClick={this.trackOpenCloudFormation}
+              href={this.cloudformationUrl}
+            >
+              <h3>{t("Add Sentry's CloudFormation to your AWS")}</h3>
             </ExternalLink>
             <p>{t('After the stack has been created, continue to the next step')}</p>
           </ListItem>
@@ -220,5 +255,5 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
 }
 
 const StyledList = styled(List)`
-  margin: 100px 50px 50px 50px;
+  padding: 100px 50px 50px 50px;
 `;

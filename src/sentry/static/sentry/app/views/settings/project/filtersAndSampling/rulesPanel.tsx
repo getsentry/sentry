@@ -6,26 +6,21 @@ import ButtonBar from 'app/components/buttonBar';
 import {Panel, PanelFooter} from 'app/components/panels';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {DynamicSamplingRule} from 'app/types/dynamicSampling';
 
 import Rules from './rules';
+import {DYNAMIC_SAMPLING_DOC_LINK} from './utils';
 
-type Props = {
-  rules: Array<DynamicSamplingRule>;
-  onEditRule: (rule: DynamicSamplingRule) => () => void;
-  onDeleteRule: (rule: DynamicSamplingRule) => () => void;
+type Props = React.ComponentProps<typeof Rules> & {
   onAddRule: () => void;
-  disabled: boolean;
-  platformDocLink?: string;
 };
 
 function RulesPanel({
   rules,
-  platformDocLink,
   onAddRule,
   onEditRule,
   onDeleteRule,
   disabled,
+  onUpdateRules,
 }: Props) {
   return (
     <Panel>
@@ -34,14 +29,13 @@ function RulesPanel({
         onEditRule={onEditRule}
         onDeleteRule={onDeleteRule}
         disabled={disabled}
+        onUpdateRules={onUpdateRules}
       />
       <StyledPanelFooter>
         <ButtonBar gap={1}>
-          {platformDocLink && (
-            <Button href={platformDocLink} external>
-              {t('Read the docs')}
-            </Button>
-          )}
+          <Button href={DYNAMIC_SAMPLING_DOC_LINK} external>
+            {t('Read the docs')}
+          </Button>
           <Button priority="primary" onClick={onAddRule} disabled={disabled}>
             {t('Add rule')}
           </Button>

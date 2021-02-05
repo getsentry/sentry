@@ -82,7 +82,7 @@ class JiraUIWidgetView(BaseJiraWidgetView):
 
 class JiraConfigView(BaseJiraWidgetView):
     def get_context(self):
-        context = super(JiraConfigView, self).get_context()
+        context = super().get_context()
         context["body_class"] = "aui-page-focused aui-page-size-medium"
         return context
 
@@ -177,7 +177,7 @@ class JiraDescriptorView(View):
 class JiraInstalledCallback(View):
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
-        return super(JiraInstalledCallback, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     @method_decorator(csrf_exempt)
     @transaction_start("JiraInstalledCallback.post")

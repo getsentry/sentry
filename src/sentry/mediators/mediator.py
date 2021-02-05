@@ -11,7 +11,7 @@ from sentry.utils.functional import compact
 from .param import Param
 
 
-class Mediator(object):
+class Mediator:
     """
     Objects that encapsulate domain logic.
 
@@ -203,9 +203,7 @@ class Mediator(object):
     def _params(self):
         # These will be named ``_<name>`` on the class, so remove the ``_`` so
         # that it matches the name we'll be invoking on the Mediator instance.
-        return dict(
-            (k[1:], v) for k, v in six.iteritems(self.__class__.__dict__) if isinstance(v, Param)
-        )
+        return {k[1:]: v for k, v in six.iteritems(self.__class__.__dict__) if isinstance(v, Param)}
 
     @memoize
     def _logging_name(self):

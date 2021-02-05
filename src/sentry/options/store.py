@@ -27,7 +27,7 @@ def _make_cache_value(key, value):
     return (value, now + key.ttl, now + key.ttl + key.grace)
 
 
-class OptionsStore(object):
+class OptionsStore:
     """
     Abstraction for the Option storage logic that should be driven
     by the OptionsManager.

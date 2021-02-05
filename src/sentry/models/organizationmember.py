@@ -136,7 +136,7 @@ class OrganizationMember(Model):
         assert self.user_id or self.email, "Must set user or email"
         if self.token and not self.token_expires_at:
             self.refresh_expires_at()
-        super(OrganizationMember, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def set_user(self, user):
         self.user = user

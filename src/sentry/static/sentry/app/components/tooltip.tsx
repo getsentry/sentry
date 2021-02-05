@@ -5,7 +5,6 @@ import styled, {SerializedStyles} from '@emotion/styled';
 import {AnimatePresence, motion, MotionStyle} from 'framer-motion';
 import memoize from 'lodash/memoize';
 import * as PopperJS from 'popper.js';
-import PropTypes from 'prop-types';
 
 import {IS_ACCEPTANCE_TEST} from 'app/constants';
 import {domId} from 'app/utils/domId';
@@ -104,31 +103,6 @@ function computeOriginFromArrow(
 }
 
 class Tooltip extends React.Component<Props, State> {
-  static propTypes = {
-    disabled: PropTypes.bool,
-    title: PropTypes.oneOfType([PropTypes.string, PropTypes.element]),
-    position: PropTypes.oneOf([
-      'bottom',
-      'top',
-      'left',
-      'right',
-      'bottom-start',
-      'bottom-end',
-      'top-start',
-      'top-end',
-      'left-start',
-      'left-end',
-      'right-start',
-      'right-end',
-      'auto',
-    ]),
-    popperStyle: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
-    containerDisplayMode: PropTypes.string,
-    delay: PropTypes.number,
-    isHoverable: PropTypes.bool,
-    skipWrapper: PropTypes.bool,
-  };
-
   static defaultProps: DefaultProps = {
     position: 'top',
     containerDisplayMode: 'inline-block',

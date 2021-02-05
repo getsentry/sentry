@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import hashlib
 import hmac
 import logging
@@ -97,7 +95,7 @@ class GitHubEnterpriseWebhookBase(View):
         if request.method != "POST":
             return HttpResponse(status=405)
 
-        return super(GitHubEnterpriseWebhookBase, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     def get_logging_data(self):
         pass
@@ -176,7 +174,7 @@ class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
         if request.method != "POST":
             return HttpResponse(status=405)
 
-        return super(GitHubEnterpriseWebhookEndpoint, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     @method_decorator(csrf_exempt)
     def post(self, request):

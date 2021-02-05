@@ -1,7 +1,6 @@
 import logging
 import six
 
-from sentry.utils.compat import implements_to_string
 from sentry.lang.native.utils import image_name, is_minidump_event
 from sentry.models import EventError
 from sentry.reprocessing import report_processing_issue
@@ -27,7 +26,6 @@ USER_FIXABLE_ERRORS = (
 logger = logging.getLogger(__name__)
 
 
-@implements_to_string
 class SymbolicationFailed(Exception):
     message = None
 
