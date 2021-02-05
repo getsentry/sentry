@@ -72,6 +72,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterUniqueTogether(
             name="repositoryprojectpathconfig",
-            unique_together=set([("project", "stack_root")]),
+            unique_together={("project", "stack_root")},
         ),
     ]

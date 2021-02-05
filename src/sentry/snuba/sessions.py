@@ -19,7 +19,7 @@ def _get_conditions_and_filter_keys(project_releases, environments):
     conditions = [["release", "IN", list(x[1] for x in project_releases)]]
     if environments is not None:
         conditions.append(["environment", "IN", environments])
-    filter_keys = {"project_id": list(set(x[0] for x in project_releases))}
+    filter_keys = {"project_id": list({x[0] for x in project_releases})}
     return conditions, filter_keys
 
 
@@ -65,8 +65,8 @@ def get_oldest_health_data_for_releases(project_releases):
 
 def check_has_health_data(project_releases):
     conditions = [["release", "IN", list(x[1] for x in project_releases)]]
-    filter_keys = {"project_id": list(set(x[0] for x in project_releases))}
-    return set(
+    filter_keys = {"project_id": list({x[0] for x in project_releases})}
+    return {
         (x["project_id"], x["release"])
         for x in raw_query(
             dataset=Dataset.Sessions,
@@ -77,7 +77,7 @@ def check_has_health_data(project_releases):
             referrer="sessions.health-data-check",
             filter_keys=filter_keys,
         )["data"]
-    )
+    }
 
 
 def get_project_releases_by_stability(

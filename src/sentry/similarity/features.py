@@ -215,7 +215,7 @@ class FeatureSet:
         for source in sources:
             scopes.setdefault(self.__get_scope(source.project), set()).add(source)
 
-        unsafe_scopes = set(scopes.keys()) - set([self.__get_scope(destination.project)])
+        unsafe_scopes = set(scopes.keys()) - {self.__get_scope(destination.project)}
         if unsafe_scopes and not allow_unsafe:
             raise ValueError(
                 "all groups must belong to same project if unsafe merges are not allowed"

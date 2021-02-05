@@ -366,10 +366,10 @@ class S3Boto3Storage(Storage):
         Get the locally cached files for the bucket.
         """
         if self.preload_metadata and not self._entries:
-            self._entries = dict(
-                (self._decode_name(entry.key), entry)
+            self._entries = {
+                self._decode_name(entry.key): entry
                 for entry in self.bucket.objects.filter(Prefix=self.location)
-            )
+            }
         return self._entries
 
     def _get_access_keys(self):
@@ -609,20 +609,18 @@ class S3Boto3Storage(Storage):
         # from v2 and v4 signatures, regardless of the actual signature version used.
         split_url = urlparse.urlsplit(url)
         qs = urlparse.parse_qsl(split_url.query, keep_blank_values=True)
-        blacklist = set(
-            [
-                "x-amz-algorithm",
-                "x-amz-credential",
-                "x-amz-date",
-                "x-amz-expires",
-                "x-amz-signedheaders",
-                "x-amz-signature",
-                "x-amz-security-token",
-                "awsaccesskeyid",
-                "expires",
-                "signature",
-            ]
-        )
+        blacklist = {
+            "x-amz-algorithm",
+            "x-amz-credential",
+            "x-amz-date",
+            "x-amz-expires",
+            "x-amz-signedheaders",
+            "x-amz-signature",
+            "x-amz-security-token",
+            "awsaccesskeyid",
+            "expires",
+            "signature",
+        }
         filtered_qs = ((key, val) for key, val in qs if key.lower() not in blacklist)
         # Note: Parameters that did not have a value in the original query string will have
         # an '=' sign appended to it, e.g ?foo&bar becomes ?foo=&bar=

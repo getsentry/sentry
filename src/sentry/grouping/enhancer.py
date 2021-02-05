@@ -65,7 +65,7 @@ _        = space*
 
 
 FAMILIES = {"native": "N", "javascript": "J", "all": "a"}
-REVERSE_FAMILIES = dict((v, k) for k, v in six.iteritems(FAMILIES))
+REVERSE_FAMILIES = {v: k for k, v in six.iteritems(FAMILIES)}
 
 VERSION = 1
 MATCH_KEYS = {
@@ -76,7 +76,7 @@ MATCH_KEYS = {
     "package": "P",
     "app": "a",
 }
-SHORT_MATCH_KEYS = dict((v, k) for k, v in six.iteritems(MATCH_KEYS))
+SHORT_MATCH_KEYS = {v: k for k, v in six.iteritems(MATCH_KEYS)}
 
 ACTIONS = ["group", "app"]
 ACTION_FLAGS = {
@@ -87,7 +87,7 @@ ACTION_FLAGS = {
     (False, "up"): 4,
     (False, "down"): 5,
 }
-REVERSE_ACTION_FLAGS = dict((v, k) for k, v in six.iteritems(ACTION_FLAGS))
+REVERSE_ACTION_FLAGS = {v: k for k, v in six.iteritems(ACTION_FLAGS)}
 
 
 MATCHERS = {

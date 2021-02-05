@@ -651,7 +651,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         fields = self.get_new_issue_fields(None, group, event, **kwargs)
 
         post_data = {}
-        included_fields = set(["priority", "issuetype", "title", "description", "project"])
+        included_fields = {"priority", "issuetype", "title", "description", "project"}
         for field in fields:
             name = field["name"]
             if name in included_fields:

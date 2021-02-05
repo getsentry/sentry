@@ -255,7 +255,7 @@ class IssueBasicMixin:
     def get_annotations_for_group_list(self, group_list):
         group_links = GroupLink.objects.filter(
             group_id__in=[group.id for group in group_list],
-            project_id__in=list(set(group.project.id for group in group_list)),
+            project_id__in=list({group.project.id for group in group_list}),
             linked_type=GroupLink.LinkedType.issue,
             relationship=GroupLink.Relationship.references,
         )

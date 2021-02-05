@@ -152,7 +152,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         with start_span(op="relay_fetch_orgs"):
             # Preload all organizations and their options to prevent repeated
             # database access when computing the project configuration.
-            org_ids = set(project.organization_id for project in six.itervalues(projects))
+            org_ids = {project.organization_id for project in six.itervalues(projects)}
             if org_ids:
                 with metrics.timer("relay_project_configs.fetching_orgs.duration"):
                     orgs = Organization.objects.get_many_from_cache(org_ids)

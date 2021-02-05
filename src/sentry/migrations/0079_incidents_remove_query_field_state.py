@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.SeparateDatabaseAndState(
             state_operations=[
-                migrations.AlterUniqueTogether(name="incidentgroup", unique_together=set([])),
+                migrations.AlterUniqueTogether(name="incidentgroup", unique_together=set()),
                 migrations.RemoveField(model_name="incidentgroup", name="group"),
                 migrations.RemoveField(model_name="incidentgroup", name="incident"),
                 migrations.RemoveField(model_name="incident", name="aggregation"),

@@ -920,7 +920,7 @@ class SnubaTagStorage(TagStorage):
             referrer="tagstore.get_group_event_filter",
         )
 
-        event_id_set = set(row["event_id"] for row in result["data"])
+        event_id_set = {row["event_id"] for row in result["data"]}
 
         if not event_id_set:
             return None

@@ -4120,21 +4120,22 @@ class Migration(migrations.Migration):
             options={"db_table": "sentry_widgetdatasource"},
         ),
         migrations.AlterUniqueTogether(
-            name="tagvalue", unique_together=set([("project_id", "key", "value")])
+            name="tagvalue", unique_together={("project_id", "key", "value")}
         ),
         migrations.AlterIndexTogether(
-            name="tagvalue", index_together=set([("project_id", "key", "last_seen")])
+            name="tagvalue", index_together={("project_id", "key", "last_seen")}
         ),
-        migrations.AlterUniqueTogether(name="tagkey", unique_together=set([("project_id", "key")])),
+        migrations.AlterUniqueTogether(name="tagkey", unique_together={("project_id", "key")}),
         migrations.AlterUniqueTogether(
             name="scheduleddeletion",
-            unique_together=set([("app_label", "model_name", "object_id")]),
+            unique_together={("app_label", "model_name", "object_id")},
         ),
         migrations.AlterUniqueTogether(
             name="repository",
-            unique_together=set(
-                [("organization_id", "provider", "external_id"), ("organization_id", "name")]
-            ),
+            unique_together={
+                ("organization_id", "provider", "external_id"),
+                ("organization_id", "name"),
+            },
         ),
         migrations.AddField(
             model_name="release",
@@ -4149,7 +4150,7 @@ class Migration(migrations.Migration):
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(to="sentry.Team"),
         ),
         migrations.AlterUniqueTogether(
-            name="projectplatform", unique_together=set([("project_id", "platform")])
+            name="projectplatform", unique_together={("project_id", "platform")}
         ),
         migrations.AddField(
             model_name="projectcficachefile",
@@ -4180,7 +4181,7 @@ class Migration(migrations.Migration):
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(to="sentry.Project"),
         ),
         migrations.AlterUniqueTogether(
-            name="platformexternalissue", unique_together=set([("group_id", "service_type")])
+            name="platformexternalissue", unique_together={("group_id", "service_type")}
         ),
         migrations.AddField(
             model_name="organizationmemberteam",
@@ -4237,15 +4238,13 @@ class Migration(migrations.Migration):
             name="monitor",
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(to="sentry.Monitor"),
         ),
-        migrations.AlterIndexTogether(
-            name="monitor", index_together=set([("type", "next_checkin")])
-        ),
+        migrations.AlterIndexTogether(name="monitor", index_together={("type", "next_checkin")}),
         migrations.AlterUniqueTogether(
-            name="latestrelease", unique_together=set([("repository_id", "environment_id")])
+            name="latestrelease", unique_together={("repository_id", "environment_id")}
         ),
         migrations.AlterUniqueTogether(
             name="integrationexternalproject",
-            unique_together=set([("organization_integration_id", "external_id")]),
+            unique_together={("organization_integration_id", "external_id")},
         ),
         migrations.AddField(
             model_name="integration",
@@ -4266,7 +4265,7 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.AlterUniqueTogether(
-            name="identityprovider", unique_together=set([("type", "external_id")])
+            name="identityprovider", unique_together={("type", "external_id")}
         ),
         migrations.AddField(
             model_name="identity",
@@ -4288,13 +4287,13 @@ class Migration(migrations.Migration):
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(to="sentry.Project"),
         ),
         migrations.AlterUniqueTogether(
-            name="grouptagvalue", unique_together=set([("group_id", "key", "value")])
+            name="grouptagvalue", unique_together={("group_id", "key", "value")}
         ),
         migrations.AlterIndexTogether(
-            name="grouptagvalue", index_together=set([("project_id", "key", "value", "last_seen")])
+            name="grouptagvalue", index_together={("project_id", "key", "value", "last_seen")}
         ),
         migrations.AlterUniqueTogether(
-            name="grouptagkey", unique_together=set([("project_id", "group_id", "key")])
+            name="grouptagkey", unique_together={("project_id", "group_id", "key")}
         ),
         migrations.AddField(
             model_name="groupsubscription",
@@ -4350,10 +4349,10 @@ class Migration(migrations.Migration):
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(to="sentry.Release"),
         ),
         migrations.AlterUniqueTogether(
-            name="grouprelease", unique_together=set([("group_id", "release_id", "environment")])
+            name="grouprelease", unique_together={("group_id", "release_id", "environment")}
         ),
         migrations.AlterUniqueTogether(
-            name="grouplink", unique_together=set([("group_id", "linked_type", "linked_id")])
+            name="grouplink", unique_together={("group_id", "linked_type", "linked_id")}
         ),
         migrations.AddField(
             model_name="grouphash",
@@ -4387,7 +4386,7 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.AlterUniqueTogether(
-            name="groupcommitresolution", unique_together=set([("group_id", "commit_id")])
+            name="groupcommitresolution", unique_together={("group_id", "commit_id")}
         ),
         migrations.AddField(
             model_name="groupbookmark",
@@ -4462,22 +4461,24 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterUniqueTogether(
             name="externalissue",
-            unique_together=set([("organization_id", "integration_id", "key")]),
+            unique_together={("organization_id", "integration_id", "key")},
         ),
         migrations.AlterUniqueTogether(
-            name="eventuser", unique_together=set([("project_id", "hash"), ("project_id", "ident")])
+            name="eventuser", unique_together={("project_id", "hash"), ("project_id", "ident")}
         ),
         migrations.AlterIndexTogether(
             name="eventuser",
-            index_together=set(
-                [("project_id", "username"), ("project_id", "ip_address"), ("project_id", "email")]
-            ),
+            index_together={
+                ("project_id", "username"),
+                ("project_id", "ip_address"),
+                ("project_id", "email"),
+            },
         ),
         migrations.AlterUniqueTogether(
-            name="eventtag", unique_together=set([("event_id", "key_id", "value_id")])
+            name="eventtag", unique_together={("event_id", "key_id", "value_id")}
         ),
         migrations.AlterIndexTogether(
-            name="eventtag", index_together=set([("group_id", "key_id", "value_id")])
+            name="eventtag", index_together={("group_id", "key_id", "value_id")}
         ),
         migrations.AddField(
             model_name="eventprocessingissue",
@@ -4492,17 +4493,15 @@ class Migration(migrations.Migration):
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(to="sentry.RawEvent"),
         ),
         migrations.AlterUniqueTogether(
-            name="eventmapping", unique_together=set([("project_id", "event_id")])
+            name="eventmapping", unique_together={("project_id", "event_id")}
         ),
         migrations.AddField(
             model_name="eventattachment",
             name="file",
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(to="sentry.File"),
         ),
-        migrations.AlterUniqueTogether(
-            name="event", unique_together=set([("project_id", "event_id")])
-        ),
-        migrations.AlterIndexTogether(name="event", index_together=set([("group_id", "datetime")])),
+        migrations.AlterUniqueTogether(name="event", unique_together={("project_id", "event_id")}),
+        migrations.AlterIndexTogether(name="event", index_together={("group_id", "datetime")}),
         migrations.AddField(
             model_name="environmentproject",
             name="project",
@@ -4554,7 +4553,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterUniqueTogether(
             name="commitauthor",
-            unique_together=set([("organization_id", "email"), ("organization_id", "external_id")]),
+            unique_together={("organization_id", "email"), ("organization_id", "external_id")},
         ),
         migrations.AddField(
             model_name="commit",
@@ -4626,237 +4625,208 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.AlterUniqueTogether(
-            name="widgetdatasource", unique_together=set([("widget", "name"), ("widget", "order")])
+            name="widgetdatasource", unique_together={("widget", "name"), ("widget", "order")}
         ),
         migrations.AlterUniqueTogether(
-            name="widget", unique_together=set([("dashboard", "title"), ("dashboard", "order")])
+            name="widget", unique_together={("dashboard", "title"), ("dashboard", "order")}
         ),
         migrations.AlterUniqueTogether(
-            name="userreport", unique_together=set([("project", "event_id")])
+            name="userreport", unique_together={("project", "event_id")}
         ),
         migrations.AlterIndexTogether(
             name="userreport",
-            index_together=set([("project", "date_added"), ("project", "event_id")]),
+            index_together={("project", "date_added"), ("project", "event_id")},
         ),
         migrations.AlterUniqueTogether(
-            name="userpermission", unique_together=set([("user", "permission")])
+            name="userpermission", unique_together={("user", "permission")}
         ),
         migrations.AlterUniqueTogether(
             name="useroption",
-            unique_together=set([("user", "project", "key"), ("user", "organization", "key")]),
+            unique_together={("user", "project", "key"), ("user", "organization", "key")},
+        ),
+        migrations.AlterUniqueTogether(name="userip", unique_together={("user", "ip_address")}),
+        migrations.AlterUniqueTogether(name="useremail", unique_together={("user", "email")}),
+        migrations.AlterUniqueTogether(name="team", unique_together={("organization", "slug")}),
+        migrations.AlterUniqueTogether(
+            name="servicehookproject", unique_together={("service_hook", "project_id")}
         ),
         migrations.AlterUniqueTogether(
-            name="userip", unique_together=set([("user", "ip_address")])
-        ),
-        migrations.AlterUniqueTogether(name="useremail", unique_together=set([("user", "email")])),
-        migrations.AlterUniqueTogether(
-            name="team", unique_together=set([("organization", "slug")])
-        ),
-        migrations.AlterUniqueTogether(
-            name="servicehookproject", unique_together=set([("service_hook", "project_id")])
-        ),
-        migrations.AlterUniqueTogether(
-            name="savedsearchuserdefault", unique_together=set([("project", "user")])
+            name="savedsearchuserdefault", unique_together={("project", "user")}
         ),
         migrations.AlterUniqueTogether(
             name="savedsearch",
-            unique_together=set([("organization", "owner", "type"), ("project", "name")]),
+            unique_together={("organization", "owner", "type"), ("project", "name")},
         ),
         migrations.AlterUniqueTogether(
-            name="reprocessingreport", unique_together=set([("project", "event_id")])
+            name="reprocessingreport", unique_together={("project", "event_id")}
         ),
         migrations.AlterUniqueTogether(
             name="releaseprojectenvironment",
-            unique_together=set([("project", "release", "environment")]),
+            unique_together={("project", "release", "environment")},
         ),
         migrations.AlterUniqueTogether(
-            name="releaseproject", unique_together=set([("project", "release")])
+            name="releaseproject", unique_together={("project", "release")}
         ),
         migrations.AlterUniqueTogether(
-            name="releaseheadcommit", unique_together=set([("repository_id", "release")])
+            name="releaseheadcommit", unique_together={("repository_id", "release")}
         ),
-        migrations.AlterUniqueTogether(
-            name="releasefile", unique_together=set([("release", "ident")])
-        ),
-        migrations.AlterIndexTogether(
-            name="releasefile", index_together=set([("release", "name")])
-        ),
+        migrations.AlterUniqueTogether(name="releasefile", unique_together={("release", "ident")}),
+        migrations.AlterIndexTogether(name="releasefile", index_together={("release", "name")}),
         migrations.AlterUniqueTogether(
             name="releaseenvironment",
-            unique_together=set([("organization", "release", "environment")]),
+            unique_together={("organization", "release", "environment")},
         ),
         migrations.AlterUniqueTogether(
-            name="releasecommit", unique_together=set([("release", "commit"), ("release", "order")])
+            name="releasecommit", unique_together={("release", "commit"), ("release", "order")}
         ),
         migrations.AlterUniqueTogether(
-            name="release", unique_together=set([("organization", "version")])
+            name="release", unique_together={("organization", "version")}
         ),
         migrations.AlterUniqueTogether(
             name="recentsearch",
-            unique_together=set([("user", "organization", "type", "query_hash")]),
+            unique_together={("user", "organization", "type", "query_hash")},
+        ),
+        migrations.AlterUniqueTogether(name="rawevent", unique_together={("project", "event_id")}),
+        migrations.AlterUniqueTogether(
+            name="pullrequestcommit", unique_together={("pull_request", "commit")}
         ),
         migrations.AlterUniqueTogether(
-            name="rawevent", unique_together=set([("project", "event_id")])
-        ),
-        migrations.AlterUniqueTogether(
-            name="pullrequestcommit", unique_together=set([("pull_request", "commit")])
-        ),
-        migrations.AlterUniqueTogether(
-            name="pullrequest", unique_together=set([("repository_id", "key")])
+            name="pullrequest", unique_together={("repository_id", "key")}
         ),
         migrations.AlterIndexTogether(
             name="pullrequest",
-            index_together=set(
-                [("repository_id", "date_added"), ("organization_id", "merge_commit_sha")]
-            ),
+            index_together={
+                ("repository_id", "date_added"),
+                ("organization_id", "merge_commit_sha"),
+            },
         ),
         migrations.AlterUniqueTogether(
             name="promptsactivity",
-            unique_together=set([("user", "feature", "organization_id", "project_id")]),
+            unique_together={("user", "feature", "organization_id", "project_id")},
+        ),
+        migrations.AlterUniqueTogether(name="projectteam", unique_together={("project", "team")}),
+        migrations.AlterUniqueTogether(
+            name="projectsymcachefile", unique_together={("project", "debug_file")}
         ),
         migrations.AlterUniqueTogether(
-            name="projectteam", unique_together=set([("project", "team")])
+            name="projectredirect", unique_together={("organization", "redirect_slug")}
         ),
+        migrations.AlterUniqueTogether(name="projectoption", unique_together={("project", "key")}),
         migrations.AlterUniqueTogether(
-            name="projectsymcachefile", unique_together=set([("project", "debug_file")])
-        ),
-        migrations.AlterUniqueTogether(
-            name="projectredirect", unique_together=set([("organization", "redirect_slug")])
-        ),
-        migrations.AlterUniqueTogether(
-            name="projectoption", unique_together=set([("project", "key")])
-        ),
-        migrations.AlterUniqueTogether(
-            name="projectintegration", unique_together=set([("project", "integration")])
+            name="projectintegration", unique_together={("project", "integration")}
         ),
         migrations.AlterIndexTogether(
             name="projectdebugfile",
-            index_together=set([("project", "code_id"), ("project", "debug_id")]),
+            index_together={("project", "code_id"), ("project", "debug_id")},
         ),
         migrations.AlterUniqueTogether(
-            name="projectcficachefile", unique_together=set([("project", "debug_file")])
+            name="projectcficachefile", unique_together={("project", "debug_file")}
         ),
         migrations.AlterUniqueTogether(
-            name="projectbookmark", unique_together=set([("project", "user")])
+            name="projectbookmark", unique_together={("project", "user")}
+        ),
+        migrations.AlterUniqueTogether(name="project", unique_together={("organization", "slug")}),
+        migrations.AlterUniqueTogether(
+            name="processingissue", unique_together={("project", "checksum", "type")}
         ),
         migrations.AlterUniqueTogether(
-            name="project", unique_together=set([("organization", "slug")])
+            name="organizationoption", unique_together={("organization", "key")}
         ),
         migrations.AlterUniqueTogether(
-            name="processingissue", unique_together=set([("project", "checksum", "type")])
+            name="organizationonboardingtask", unique_together={("organization", "task")}
         ),
         migrations.AlterUniqueTogether(
-            name="organizationoption", unique_together=set([("organization", "key")])
-        ),
-        migrations.AlterUniqueTogether(
-            name="organizationonboardingtask", unique_together=set([("organization", "task")])
-        ),
-        migrations.AlterUniqueTogether(
-            name="organizationmemberteam", unique_together=set([("team", "organizationmember")])
+            name="organizationmemberteam", unique_together={("team", "organizationmember")}
         ),
         migrations.AlterUniqueTogether(
             name="organizationmember",
-            unique_together=set([("organization", "user"), ("organization", "email")]),
+            unique_together={("organization", "user"), ("organization", "email")},
         ),
         migrations.AlterUniqueTogether(
-            name="organizationintegration", unique_together=set([("organization", "integration")])
+            name="organizationintegration", unique_together={("organization", "integration")}
         ),
         migrations.AlterUniqueTogether(
-            name="organizationaccessrequest", unique_together=set([("team", "member")])
+            name="organizationaccessrequest", unique_together={("team", "member")}
         ),
         migrations.AlterUniqueTogether(
-            name="integration", unique_together=set([("provider", "external_id")])
+            name="integration", unique_together={("provider", "external_id")}
         ),
         migrations.AlterUniqueTogether(
-            name="identity", unique_together=set([("idp", "external_id"), ("idp", "user")])
+            name="identity", unique_together={("idp", "external_id"), ("idp", "user")}
         ),
         migrations.AlterUniqueTogether(
-            name="groupsubscription", unique_together=set([("group", "user")])
+            name="groupsubscription", unique_together={("group", "user")}
         ),
-        migrations.AlterUniqueTogether(name="groupseen", unique_together=set([("user", "group")])),
+        migrations.AlterUniqueTogether(name="groupseen", unique_together={("user", "group")}),
+        migrations.AlterUniqueTogether(name="grouprulestatus", unique_together={("rule", "group")}),
+        migrations.AlterUniqueTogether(name="groupmeta", unique_together={("group", "key")}),
+        migrations.AlterUniqueTogether(name="grouphash", unique_together={("project", "hash")}),
         migrations.AlterUniqueTogether(
-            name="grouprulestatus", unique_together=set([("rule", "group")])
-        ),
-        migrations.AlterUniqueTogether(name="groupmeta", unique_together=set([("group", "key")])),
-        migrations.AlterUniqueTogether(
-            name="grouphash", unique_together=set([("project", "hash")])
-        ),
-        migrations.AlterUniqueTogether(
-            name="groupenvironment", unique_together=set([("group", "environment")])
+            name="groupenvironment", unique_together={("group", "environment")}
         ),
         migrations.AlterIndexTogether(
-            name="groupenvironment", index_together=set([("environment", "first_release")])
+            name="groupenvironment", index_together={("environment", "first_release")}
         ),
         migrations.AlterUniqueTogether(
-            name="groupemailthread", unique_together=set([("email", "msgid"), ("email", "group")])
+            name="groupemailthread", unique_together={("email", "msgid"), ("email", "group")}
         ),
         migrations.AlterUniqueTogether(
-            name="groupbookmark", unique_together=set([("project", "user", "group")])
+            name="groupbookmark", unique_together={("project", "user", "group")}
+        ),
+        migrations.AlterUniqueTogether(name="group", unique_together={("project", "short_id")}),
+        migrations.AlterIndexTogether(name="group", index_together={("project", "first_release")}),
+        migrations.AlterUniqueTogether(
+            name="fileblobowner", unique_together={("blob", "organization")}
         ),
         migrations.AlterUniqueTogether(
-            name="group", unique_together=set([("project", "short_id")])
+            name="fileblobindex", unique_together={("file", "blob", "offset")}
+        ),
+        migrations.AlterUniqueTogether(
+            name="featureadoption", unique_together={("organization", "feature_id")}
+        ),
+        migrations.AlterUniqueTogether(
+            name="eventprocessingissue", unique_together={("raw_event", "processing_issue")}
+        ),
+        migrations.AlterUniqueTogether(
+            name="eventattachment", unique_together={("project_id", "event_id", "file")}
         ),
         migrations.AlterIndexTogether(
-            name="group", index_together=set([("project", "first_release")])
+            name="eventattachment", index_together={("project_id", "date_added")}
         ),
         migrations.AlterUniqueTogether(
-            name="fileblobowner", unique_together=set([("blob", "organization")])
+            name="environmentproject", unique_together={("project", "environment")}
         ),
         migrations.AlterUniqueTogether(
-            name="fileblobindex", unique_together=set([("file", "blob", "offset")])
+            name="environment", unique_together={("organization_id", "name")}
         ),
-        migrations.AlterUniqueTogether(
-            name="featureadoption", unique_together=set([("organization", "feature_id")])
-        ),
-        migrations.AlterUniqueTogether(
-            name="eventprocessingissue", unique_together=set([("raw_event", "processing_issue")])
-        ),
-        migrations.AlterUniqueTogether(
-            name="eventattachment", unique_together=set([("project_id", "event_id", "file")])
-        ),
-        migrations.AlterIndexTogether(
-            name="eventattachment", index_together=set([("project_id", "date_added")])
-        ),
-        migrations.AlterUniqueTogether(
-            name="environmentproject", unique_together=set([("project", "environment")])
-        ),
-        migrations.AlterUniqueTogether(
-            name="environment", unique_together=set([("organization_id", "name")])
-        ),
-        migrations.AlterUniqueTogether(
-            name="distribution", unique_together=set([("release", "name")])
-        ),
+        migrations.AlterUniqueTogether(name="distribution", unique_together={("release", "name")}),
         migrations.AlterUniqueTogether(
             name="discoversavedqueryproject",
-            unique_together=set([("project", "discover_saved_query")]),
+            unique_together={("project", "discover_saved_query")},
         ),
         migrations.AlterUniqueTogether(
-            name="dashboard", unique_together=set([("organization", "title")])
+            name="dashboard", unique_together={("organization", "title")}
         ),
         migrations.AlterUniqueTogether(
-            name="commitfilechange", unique_together=set([("commit", "filename")])
+            name="commitfilechange", unique_together={("commit", "filename")}
         ),
-        migrations.AlterUniqueTogether(
-            name="commit", unique_together=set([("repository_id", "key")])
-        ),
+        migrations.AlterUniqueTogether(name="commit", unique_together={("repository_id", "key")}),
         migrations.AlterIndexTogether(
-            name="commit", index_together=set([("repository_id", "date_added")])
+            name="commit", index_together={("repository_id", "date_added")}
         ),
         migrations.AlterUniqueTogether(
-            name="broadcastseen", unique_together=set([("broadcast", "user")])
+            name="broadcastseen", unique_together={("broadcast", "user")}
         ),
         migrations.AlterUniqueTogether(
             name="authidentity",
-            unique_together=set([("auth_provider", "ident"), ("auth_provider", "user")]),
+            unique_together={("auth_provider", "ident"), ("auth_provider", "user")},
+        ),
+        migrations.AlterUniqueTogether(name="authenticator", unique_together={("user", "type")}),
+        migrations.AlterUniqueTogether(
+            name="assistantactivity", unique_together={("user", "guide_id")}
         ),
         migrations.AlterUniqueTogether(
-            name="authenticator", unique_together=set([("user", "type")])
-        ),
-        migrations.AlterUniqueTogether(
-            name="assistantactivity", unique_together=set([("user", "guide_id")])
-        ),
-        migrations.AlterUniqueTogether(
-            name="apiauthorization", unique_together=set([("user", "application")])
+            name="apiauthorization", unique_together={("user", "application")}
         ),
         # XXX(dcramer): these are manually generated and ported from South
         migrations.RunSQL(

@@ -40,9 +40,10 @@ class Migration(migrations.Migration):
             state_operations=[
                 migrations.AlterIndexTogether(
                     name="eventattachment",
-                    index_together=set(
-                        [("project_id", "date_added", "file"), ("project_id", "date_added")]
-                    ),
+                    index_together={
+                        ("project_id", "date_added", "file"),
+                        ("project_id", "date_added"),
+                    },
                 ),
             ],
         )

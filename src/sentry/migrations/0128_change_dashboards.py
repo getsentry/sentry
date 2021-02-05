@@ -94,10 +94,10 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterUniqueTogether(
             name="dashboardwidgetquery",
-            unique_together=set([("widget", "order"), ("widget", "name")]),
+            unique_together={("widget", "order"), ("widget", "name")},
         ),
         migrations.AlterUniqueTogether(
             name="dashboardwidget",
-            unique_together=set([("dashboard", "title"), ("dashboard", "order")]),
+            unique_together={("dashboard", "title"), ("dashboard", "order")},
         ),
     ]

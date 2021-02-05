@@ -23,6 +23,6 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AlterUniqueTogether(
             name="pagerdutyservice",
-            unique_together=set([]),
+            unique_together=set(),
         ),
     ]

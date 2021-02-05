@@ -22,7 +22,7 @@ class TeamGroupsTrendingEndpoint(TeamEndpoint, EnvironmentMixin):
 
         project_list = Project.objects.get_for_user(user=request.user, team=team)
 
-        project_dict = dict((p.id, p) for p in project_list)
+        project_dict = {p.id: p for p in project_list}
 
         cutoff = timedelta(minutes=minutes)
         cutoff_dt = timezone.now() - cutoff

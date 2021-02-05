@@ -239,22 +239,20 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
     logger = logging.getLogger("sentry.search.postgressnuba")
     dependency_aggregations = {"priority": ["last_seen", "times_seen"]}
-    postgres_only_fields = set(
-        [
-            "query",
-            "status",
-            "for_review",
-            "assigned_or_suggested",
-            "bookmarked_by",
-            "assigned_to",
-            "unassigned",
-            "linked",
-            "subscribed_by",
-            "active_at",
-            "first_release",
-            "first_seen",
-        ]
-    )
+    postgres_only_fields = {
+        "query",
+        "status",
+        "for_review",
+        "assigned_or_suggested",
+        "bookmarked_by",
+        "assigned_to",
+        "unassigned",
+        "linked",
+        "subscribed_by",
+        "active_at",
+        "first_release",
+        "first_seen",
+    }
     sort_strategies = {
         "date": "last_seen",
         "freq": "times_seen",

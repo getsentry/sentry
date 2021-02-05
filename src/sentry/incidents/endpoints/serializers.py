@@ -60,10 +60,11 @@ action_target_type_to_string = {
 }
 string_to_action_target_type = {v: k for (k, v) in action_target_type_to_string.items()}
 dataset_valid_event_types = {
-    QueryDatasets.EVENTS: set(
-        [SnubaQueryEventType.EventType.ERROR, SnubaQueryEventType.EventType.DEFAULT]
-    ),
-    QueryDatasets.TRANSACTIONS: set([SnubaQueryEventType.EventType.TRANSACTION]),
+    QueryDatasets.EVENTS: {
+        SnubaQueryEventType.EventType.ERROR,
+        SnubaQueryEventType.EventType.DEFAULT,
+    },
+    QueryDatasets.TRANSACTIONS: {SnubaQueryEventType.EventType.TRANSACTION},
 }
 
 # TODO(davidenwang): eventually we should pass some form of these to the event_search parser to raise an error

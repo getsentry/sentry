@@ -12,7 +12,7 @@ WRITE = 1
 
 
 def single_model_argument(callargs):
-    return set([callargs["model"]])
+    return {callargs["model"]}
 
 
 def multiple_model_argument(callargs):

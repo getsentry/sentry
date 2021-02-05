@@ -22,7 +22,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         Fetches alert rules and legacy rules for an organization
         """
         project_ids = self.get_requested_project_ids(request) or None
-        if project_ids == set([-1]):  # All projects for org:
+        if project_ids == {-1}:  # All projects for org:
             project_ids = Project.objects.filter(organization=organization).values_list(
                 "id", flat=True
             )

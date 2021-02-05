@@ -66,6 +66,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterUniqueTogether(
             name="querysubscriptionenvironment",
-            unique_together=set([("query_subscription", "environment")]),
+            unique_together={("query_subscription", "environment")},
         ),
     ]

@@ -222,9 +222,7 @@ class RedisTSDB(BaseTSDB):
         if default_timestamp is None:
             default_timestamp = timezone.now()
 
-        for (cluster, durable), environment_ids in self.get_cluster_groups(
-            set([None, environment_id])
-        ):
+        for (cluster, durable), environment_ids in self.get_cluster_groups({None, environment_id}):
             manager = cluster.map()
             if not durable:
                 manager = SuppressionWrapper(manager)
@@ -392,9 +390,7 @@ class RedisTSDB(BaseTSDB):
 
         ts = int(to_timestamp(timestamp))  # ``timestamp`` is not actually a timestamp :(
 
-        for (cluster, durable), environment_ids in self.get_cluster_groups(
-            set([None, environment_id])
-        ):
+        for (cluster, durable), environment_ids in self.get_cluster_groups({None, environment_id}):
             manager = cluster.fanout()
             if not durable:
                 manager = SuppressionWrapper(manager)
@@ -660,9 +656,7 @@ class RedisTSDB(BaseTSDB):
 
         ts = int(to_timestamp(timestamp))  # ``timestamp`` is not actually a timestamp :(
 
-        for (cluster, durable), environment_ids in self.get_cluster_groups(
-            set([None, environment_id])
-        ):
+        for (cluster, durable), environment_ids in self.get_cluster_groups({None, environment_id}):
             commands = {}
 
             for model, request in requests:

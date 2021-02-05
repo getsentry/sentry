@@ -336,7 +336,7 @@ def assemble_file(task, org_or_project, name, checksum, chunks, file_type):
 
     # Sanity check.  In case not all blobs exist at this point we have a
     # race condition.
-    if set(x[1] for x in file_blobs) != set(chunks):
+    if {x[1] for x in file_blobs} != set(chunks):
         set_assemble_status(
             task,
             org_or_project.id,

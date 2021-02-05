@@ -72,7 +72,7 @@ def get_access_requests(item_list, user):
 class TeamSerializer(Serializer):
     def get_attrs(self, item_list, user):
         request = env.request
-        org_ids = set([t.organization_id for t in item_list])
+        org_ids = {t.organization_id for t in item_list}
 
         org_roles = get_org_roles(org_ids, user)
 

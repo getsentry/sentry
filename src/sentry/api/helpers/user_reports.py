@@ -2,7 +2,7 @@ from sentry.models import Group, GroupStatus
 
 
 def user_reports_filter_to_unresolved(user_reports):
-    group_ids = set([ur.group_id for ur in user_reports if ur.group_id])
+    group_ids = {ur.group_id for ur in user_reports if ur.group_id}
     unresolved_group_ids = set()
     if group_ids:
         unresolved_group_ids = set(

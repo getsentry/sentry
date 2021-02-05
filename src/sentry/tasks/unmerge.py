@@ -213,12 +213,12 @@ def migrate_events(
         destination = Group.objects.get(id=destination_id)
         destination.update(**get_group_backfill_attributes(caches, destination, events))
 
-    event_id_set = set(event.event_id for event in events)
+    event_id_set = {event.event_id for event in events}
 
     for event in events:
         event.group = destination
 
-    event_id_set = set(event.event_id for event in events)
+    event_id_set = {event.event_id for event in events}
 
     UserReport.objects.filter(project_id=project.id, event_id__in=event_id_set).update(
         group_id=destination_id

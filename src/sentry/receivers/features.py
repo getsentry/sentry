@@ -116,7 +116,7 @@ def record_event_processed(project, event, **kwargs):
         feature_slugs.append("user_tracking")
 
     # Custom Tags
-    if set(tag[0] for tag in event.tags) - DEFAULT_TAGS:
+    if {tag[0] for tag in event.tags} - DEFAULT_TAGS:
         feature_slugs.append("custom_tags")
 
     # Sourcemaps

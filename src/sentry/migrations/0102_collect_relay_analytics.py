@@ -56,6 +56,6 @@ class Migration(migrations.Migration):
             field=models.DateTimeField(default=None, null=True),
         ),
         migrations.AlterUniqueTogether(
-            name="relayusage", unique_together=set([("relay_id", "version")])
+            name="relayusage", unique_together={("relay_id", "version")}
         ),
     ]

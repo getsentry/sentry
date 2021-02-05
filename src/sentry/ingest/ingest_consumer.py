@@ -268,9 +268,7 @@ def get_ingest_consumer(consumer_types, once=False, **options):
 
     The events should have already been processed (normalized... ) upstream (by Relay).
     """
-    topic_names = set(
-        ConsumerType.get_topic_name(consumer_type) for consumer_type in consumer_types
-    )
+    topic_names = {ConsumerType.get_topic_name(consumer_type) for consumer_type in consumer_types}
     return create_batching_kafka_consumer(
         topic_names=topic_names, worker=IngestConsumerWorker(), **options
     )

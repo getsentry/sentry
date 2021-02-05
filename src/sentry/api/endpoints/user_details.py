@@ -204,7 +204,7 @@ class UserDetailsEndpoint(UserEndpoint):
         for org in org_list:
             org_results.append({"organization": org, "single_owner": org.has_single_owner()})
 
-        avail_org_slugs = set([o["organization"].slug for o in org_results])
+        avail_org_slugs = {o["organization"].slug for o in org_results}
         orgs_to_remove = set(serializer.validated_data.get("organizations")).intersection(
             avail_org_slugs
         )

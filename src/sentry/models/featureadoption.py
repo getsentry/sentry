@@ -160,7 +160,7 @@ class FeatureAdoptionManager(BaseManager):
         features = []
 
         try:
-            feature_ids = set([manager.get_by_slug(slug).id for slug in feature_slugs])
+            feature_ids = {manager.get_by_slug(slug).id for slug in feature_slugs}
         except UnknownFeature as e:
             logger.exception(e)
             return False

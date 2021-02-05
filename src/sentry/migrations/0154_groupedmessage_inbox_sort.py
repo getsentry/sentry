@@ -31,6 +31,6 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AlterIndexTogether(
             name="groupinbox",
-            index_together=set([("project", "date_added")]),
+            index_together={("project", "date_added")},
         ),
     ]

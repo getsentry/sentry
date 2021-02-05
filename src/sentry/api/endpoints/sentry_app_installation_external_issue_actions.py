@@ -10,7 +10,7 @@ class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBas
     def post(self, request, installation):
         data = request.data.copy()
 
-        if not set(["groupId", "action", "uri"]).issubset(data.keys()):
+        if not {"groupId", "action", "uri"}.issubset(data.keys()):
             return Response(status=400)
 
         group_id = data.get("groupId")

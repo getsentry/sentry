@@ -198,7 +198,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         has_issues = "issue" in fields
         if has_issues:  # Look up the short ID and return that in the results
             if has_issues:
-                issue_ids = set(row.get("issue.id") for row in results)
+                issue_ids = {row.get("issue.id") for row in results}
                 issues = Group.issues_mapping(issue_ids, project_ids, organization)
             for result in results:
                 if has_issues and "issue.id" in result:

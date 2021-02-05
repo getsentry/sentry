@@ -118,7 +118,7 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
             parent_ids = set(self.get_org_ids(user))
 
         try:
-            ids_to_update = set([int(i) for i in request.data.keys()])
+            ids_to_update = {int(i) for i in request.data.keys()}
         except ValueError:
             return Response(
                 {"detail": "Invalid id value provided. Id values should be integers."},

@@ -37,7 +37,7 @@ class FrameEncodingError(ValueError):
 def get_frame_attributes(frame):
     attributes = {}
 
-    if frame.function in set(["<lambda>", None]):
+    if frame.function in {"<lambda>", None}:
         if frame.context_line is None:
             raise FrameEncodingError(
                 "Cannot create a signature for frame without a `context_line` value."

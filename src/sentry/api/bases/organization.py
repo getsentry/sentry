@@ -241,7 +241,7 @@ class OrganizationEndpoint(Endpoint):
                     func = request.access.has_project_membership
                 projects = [p for p in qs if func(p)]
 
-        project_ids = set(p.id for p in projects)
+        project_ids = {p.id for p in projects}
 
         if requested_projects and project_ids != requested_projects:
             raise PermissionDenied

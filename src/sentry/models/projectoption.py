@@ -10,9 +10,9 @@ from sentry.tasks.relay import schedule_update_config_cache
 
 class ProjectOptionManager(OptionManager):
     def get_value_bulk(self, instances, key):
-        instance_map = dict((i.id, i) for i in instances)
+        instance_map = {i.id: i for i in instances}
         queryset = self.filter(project__in=instances, key=key)
-        result = dict((i, None) for i in instances)
+        result = {i: None for i in instances}
         for obj in queryset:
             result[instance_map[obj.project_id]] = obj.value
         return result
@@ -58,7 +58,7 @@ class ProjectOptionManager(OptionManager):
                 project_id=project_id, generate=True, update_reason=update_reason
             )
         cache_key = self._make_key(project_id)
-        result = dict((i.key, i.value) for i in self.filter(project=project_id))
+        result = {i.key: i.value for i in self.filter(project=project_id)}
         cache.set(cache_key, result)
         self._option_cache[cache_key] = result
         return result

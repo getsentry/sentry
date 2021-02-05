@@ -14,7 +14,7 @@ class ActivitySerializer(Serializer):
 
     def get_attrs(self, item_list, user):
         # TODO(dcramer); assert on relations
-        users = {d["id"]: d for d in serialize(set(i.user for i in item_list if i.user_id), user)}
+        users = {d["id"]: d for d in serialize({i.user for i in item_list if i.user_id}, user)}
 
         commit_ids = {
             i.data["commit"] for i in item_list if i.type == Activity.SET_RESOLVED_IN_COMMIT
@@ -51,12 +51,8 @@ class ActivitySerializer(Serializer):
         groups = apply_values(
             functools.partial(serialize, user=user),
             Group.objects.in_bulk(
-                set(
-                    i.data["source_id"] for i in item_list if i.type == Activity.UNMERGE_DESTINATION
-                )
-                | set(
-                    i.data["destination_id"] for i in item_list if i.type == Activity.UNMERGE_SOURCE
-                )
+                {i.data["source_id"] for i in item_list if i.type == Activity.UNMERGE_DESTINATION}
+                | {i.data["destination_id"] for i in item_list if i.type == Activity.UNMERGE_SOURCE}
             ),
         )
 
@@ -111,13 +107,13 @@ class OrganizationActivitySerializer(ActivitySerializer):
         groups = {
             d["id"]: d
             for d in serialize(
-                set([i.group for i in item_list if i.group_id]),
+                {i.group for i in item_list if i.group_id},
                 user,
                 GroupSerializer(environment_func=self.environment_func),
             )
         }
 
-        projects = {d["id"]: d for d in serialize(set(i.project for i in item_list), user)}
+        projects = {d["id"]: d for d in serialize({i.project for i in item_list}, user)}
 
         for item in item_list:
             attrs[item]["issue"] = groups[six.text_type(item.group_id)] if item.group_id else None

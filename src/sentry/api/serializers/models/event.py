@@ -13,7 +13,7 @@ from sentry.utils.compat import zip
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path
 
-CRASH_FILE_TYPES = set(["event.minidump"])
+CRASH_FILE_TYPES = {"event.minidump"}
 
 
 def get_crash_files(events):

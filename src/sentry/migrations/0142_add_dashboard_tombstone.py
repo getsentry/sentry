@@ -54,6 +54,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterUniqueTogether(
             name="dashboardtombstone",
-            unique_together=set([("organization", "slug")]),
+            unique_together={("organization", "slug")},
         ),
     ]

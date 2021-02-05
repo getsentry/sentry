@@ -14,7 +14,7 @@ class IncidentActivitySerializer(Serializer):
         attach_foreignkey(item_list, IncidentActivity.user)
         user_serializer = UserSerializer()
         serialized_users = serialize(
-            set(item.user for item in item_list if item.user_id),
+            {item.user for item in item_list if item.user_id},
             user=user,
             serializer=user_serializer,
         )
