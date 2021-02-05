@@ -3,9 +3,11 @@ import pytz
 from datetime import datetime
 from django.utils import timezone
 
+from sentry.models import GroupInboxReason, AssistantActivity
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format, before_now
 from tests.acceptance.page_objects.issue_list import IssueListPage
+from sentry.models.groupinbox import add_group_to_inbox
 
 from sentry.utils.compat.mock import patch
 
@@ -105,3 +107,49 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             resolved_groups = self.page.find_resolved_issues()
 
             assert len(resolved_groups) == 2
+
+    @patch("django.utils.timezone.now")
+    def test_inbox_results(self, mock_now):
+        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+        event_a = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "inbox event a",
+                "timestamp": iso_format(event_time),
+                "fingerprint": ["group-test-inbox-results-a"],
+            },
+            project_id=self.project.id,
+        )
+        add_group_to_inbox(event_a.group, GroupInboxReason.NEW)
+        event_b = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "another inbox event",
+                "timestamp": iso_format(event_time),
+                "fingerprint": ["group-test-inbox-results-b"],
+            },
+            project_id=self.project.id,
+        )
+        add_group_to_inbox(event_b.group, GroupInboxReason.NEW)
+        # Disable for_review_guide
+        AssistantActivity.objects.create(user=self.user, guide_id=9, viewed_ts=timezone.now())
+
+        with self.feature("organizations:inbox"):
+            self.page.visit_issue_list(
+                self.org.slug, query="?query=is%3Aunresolved+is%3Afor_review"
+            )
+            self.page.wait_for_stream()
+            self.browser.snapshot("organization issues inbox results")
+
+            groups = self.browser.elements('[data-test-id="event-issue-header"]')
+            assert len(groups) == 2
+
+            self.page.select_issue(1)
+            self.page.mark_reviewed_issues()
+            self.page.visit_issue_list(
+                self.org.slug, query="?query=is%3Aunresolved+is%3Afor_review"
+            )
+            self.page.wait_for_stream()
+
+            groups = self.browser.elements('[data-test-id="event-issue-header"]')
+            assert len(groups) == 1
