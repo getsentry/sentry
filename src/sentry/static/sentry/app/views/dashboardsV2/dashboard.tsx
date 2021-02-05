@@ -133,6 +133,13 @@ class Dashboard extends React.Component<Props, State> {
     );
   }
 
+  resetDragState() {
+    this.setState({
+      isDragging: false,
+      activeDragId: undefined,
+    });
+  }
+
   render() {
     const {
       isEditing,
@@ -169,17 +176,9 @@ class Dashboard extends React.Component<Props, State> {
             }
           }
 
-          this.setState({
-            isDragging: false,
-            activeDragId: undefined,
-          });
+          this.resetDragState();
         }}
-        onDragCancel={() => {
-          this.setState({
-            isDragging: false,
-            activeDragId: undefined,
-          });
-        }}
+        onDragCancel={this.resetDragState}
       >
         <WidgetContainer>
           <SortableContext items={this.getWidgetIds()} strategy={rectSwappingStrategy}>
