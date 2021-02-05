@@ -24,12 +24,10 @@ import {
   SentryAppStatus,
 } from 'app/types';
 import {Hooks} from 'app/types/hooks';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
 import {uniqueId} from 'app/utils/guid';
 
 const INTEGRATIONS_ANALYTICS_SESSION_KEY = 'INTEGRATION_ANALYTICS_SESSION' as const;
-
-const FEATURES_TO_INCLUDE_IN_ANALYTICS = ['slack-migration'];
 
 export const startAnalyticsSession = () => {
   const sessionId = uniqueId();
@@ -157,7 +155,7 @@ type IntegrationInstalltionInputValueChangeEvent = {
   field_name: string;
 };
 
-type IntegrationsEventParams = (
+export type IntegrationsEventParams = (
   | MultipleIntegrationsEvent
   | SingleIntegrationEvent
   | IntegrationSearchEvent
@@ -180,87 +178,22 @@ type IntegrationsEventParams = (
   project_id?: string;
 } & Parameters<Hooks['analytics:track-event']>[0];
 
-const hasAnalyticsDebug = () =>
-  window.localStorage.getItem('DEBUG_INTEGRATION_ANALYTICS') === '1';
-
-/**
- * Tracks an event for ecosystem analytics
- * Must be tied to an organization
- * Uses the current session ID or generates a new one if startSession == true
- */
-export const trackIntegrationEvent = (
-  analyticsParams: IntegrationsEventParams,
-  org?: Organization, //we should pass in org whenever we can but not every place guarantees this
-  options?: {startSession: boolean}
-) => {
-  const {startSession} = options || {};
-  let sessionId = startSession ? startAnalyticsSession() : getAnalyticsSessionId();
-
-  //we should always have a session id but if we don't, we should generate one
-  if (hasAnalyticsDebug() && !sessionId) {
-    // eslint-disable-next-line no-console
-    console.warn(`analytics_session_id absent from event ${analyticsParams.eventName}`);
-    sessionId = startAnalyticsSession();
-  }
-
-  let features = {};
-  if (org) {
-    features = Object.fromEntries(
-      FEATURES_TO_INCLUDE_IN_ANALYTICS.map(f => [
-        `feature-${f}`,
-        org.features.includes(f),
-      ])
-    );
-  }
-
-  let custom_referrer: string | undefined;
-
-  try {
-    //pull the referrer from the query parameter of the page
-    const {referrer} = qs.parse(window.location.search) || {};
-    if (typeof referrer === 'string') {
-      // Amplitude has its own referrer which inteferes with our custom referrer
-      custom_referrer = referrer;
-    }
-  } catch {
-    // ignore if this fails to parse
-    // this can happen if we have an invalid query string
-    // e.g. unencoded "%"
-  }
-
-  const params = {
-    analytics_session_id: sessionId,
-    organization_id: org?.id,
-    role: org?.role,
-    custom_referrer,
-    ...features,
-    ...analyticsParams,
-  };
-
-  //add the integration_status to the type of params so TS doesn't complain about what we do below
-  const fullParams: typeof params & {
-    integration_status?: SentryAppStatus;
-  } = params;
-
+const mapIntegrationParams = analyticsParams => {
   //Reload expects integration_status even though it's not relevant for non-sentry apps
   //Passing in a dummy value of published in those cases
+  const fullParams = {...analyticsParams};
   if (analyticsParams.integration && analyticsParams.integration_type !== 'sentry_app') {
     fullParams.integration_status = 'published';
   }
+  return fullParams;
+};
 
-  //TODO(steve): remove once we pass in org always
-  if (hasAnalyticsDebug() && !org) {
-    // eslint-disable-next-line no-console
-    console.warn(`Organization absent from event ${analyticsParams.eventName}`);
-  }
-
-  //could put this into a debug method or for the main trackAnalyticsEvent event
-  if (hasAnalyticsDebug()) {
-    // eslint-disable-next-line no-console
-    console.log('trackIntegrationEvent', fullParams);
-  }
-
-  return trackAnalyticsEvent(fullParams);
+export const trackIntegrationEvent = (
+  params: IntegrationsEventParams,
+  org?: Organization,
+  options?: Parameters<typeof trackAdvancedAnalyticsEvent>[2]
+) => {
+  return trackAdvancedAnalyticsEvent(params, org, options, mapIntegrationParams);
 };
 
 /**
