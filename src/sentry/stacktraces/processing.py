@@ -187,6 +187,7 @@ def find_stacktraces_in_data(data, include_raw=False, with_exceptions=False):
             frame.get("platform") or data.get("platform")
             for frame in get_path(stacktrace, "frames", filter=True, default=())
         )
+
         rv.append(
             StacktraceInfo(
                 stacktrace=stacktrace,
