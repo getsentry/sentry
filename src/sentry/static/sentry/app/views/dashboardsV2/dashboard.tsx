@@ -136,6 +136,7 @@ class Dashboard extends React.Component<Props, State> {
   render() {
     const {
       isEditing,
+      onUpdate,
       dashboard: {widgets},
     } = this.props;
 
@@ -164,7 +165,7 @@ class Dashboard extends React.Component<Props, State> {
               const newWidgets = [...widgets];
               const removed = newWidgets.splice(activeIndex, 1);
               newWidgets.splice(overIndex, 0, removed[0]);
-              this.props.onUpdate(newWidgets);
+              onUpdate(newWidgets);
             }
           }
 
