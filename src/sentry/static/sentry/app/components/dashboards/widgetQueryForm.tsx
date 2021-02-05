@@ -160,6 +160,8 @@ class WidgetQueryForm extends React.Component<Props> {
 
 const QueryWrapper = styled('div')`
   padding-bottom: ${space(2)};
+  margin-bottom: ${space(2)};
+  border-bottom: 1px solid #e2dee6;
 `;
 
 export default WidgetQueryForm;
