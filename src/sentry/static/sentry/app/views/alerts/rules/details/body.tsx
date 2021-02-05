@@ -29,6 +29,7 @@ import {
   TimePeriod,
   TimeWindow,
 } from 'app/views/settings/incidentRules/types';
+import {extractEventTypeFilterFromRule} from 'app/views/settings/incidentRules/utils/getEventTypeFilter';
 
 import {Incident} from '../../types';
 import {DATA_SOURCE_LABELS, getIncidentRuleMetricPreset} from '../../utils';
@@ -198,6 +199,27 @@ export default class DetailsBody extends React.Component<Props> {
     );
   }
 
+  renderLoading() {
+    return (
+      <Layout.Body>
+        <Layout.Main>
+          <Placeholder height="38px" />
+          <ChartPanel>
+            <PanelBody withPadding>
+              <Placeholder height="200px" />
+            </PanelBody>
+          </ChartPanel>
+        </Layout.Main>
+        <Layout.Side>
+          <SidebarHeading>
+            <span>{t('Alert Rule')}</span>
+          </SidebarHeading>
+          {this.renderRuleDetails()}
+        </Layout.Side>
+      </Layout.Body>
+    );
+  }
+
   render() {
     const {
       api,
@@ -206,16 +228,22 @@ export default class DetailsBody extends React.Component<Props> {
       organization,
       params: {orgId},
     } = this.props;
-    const {query, environment, aggregate, projects: projectSlugs} = rule ?? {};
+
+    if (!rule) {
+      return this.renderLoading();
+    }
+
+    const {query, environment, aggregate, projects: projectSlugs} = rule;
     const timePeriod = this.getTimePeriod();
+    const queryWithTypeFilter = `${query} ${extractEventTypeFilterFromRule(rule)}`.trim();
 
     return (
       <Projects orgId={orgId} slugs={projectSlugs}>
         {({initiallyLoaded, projects}) => {
-          return initiallyLoaded && rule ? (
+          return initiallyLoaded ? (
             <Layout.Body>
               <Layout.Main>
-                <StyledDropdownControl
+                <DropdownControl
                   buttonProps={{prefix: t('Display')}}
                   label={timePeriod.label}
                 >
@@ -228,7 +256,7 @@ export default class DetailsBody extends React.Component<Props> {
                       {label}
                     </DropdownItem>
                   ))}
-                </StyledDropdownControl>
+                </DropdownControl>
                 <ChartPanel>
                   <PanelBody withPadding>
                     <ChartHeader>
@@ -237,7 +265,7 @@ export default class DetailsBody extends React.Component<Props> {
                     <EventsRequest
                       api={api}
                       organization={organization}
-                      query={query}
+                      query={queryWithTypeFilter}
                       environment={environment ? [environment] : undefined}
                       project={(projects as Project[]).map(project => Number(project.id))}
                       // TODO(davidenwang): allow interval to be changed for larger time periods
@@ -269,7 +297,7 @@ export default class DetailsBody extends React.Component<Props> {
                         )}
                         start={timePeriod.start}
                         end={timePeriod.end}
-                        filter={DATASET_EVENT_TYPE_FILTERS[rule.dataset]}
+                        filter={queryWithTypeFilter}
                       />
                     )}
                   </ActivityWrapper>
@@ -333,11 +361,8 @@ const SidebarHeading = styled(SectionHeading)`
   justify-content: space-between;
 `;
 
-const ChartPanel = styled(Panel)``;
-
-const StyledDropdownControl = styled(DropdownControl)`
-  margin-bottom: ${space(2)};
-  margin-right: ${space(1)};
+const ChartPanel = styled(Panel)`
+  margin-top: ${space(2)};
 `;
 
 const ChartHeader = styled('header')`
