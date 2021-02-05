@@ -1,7 +1,12 @@
 import React from 'react';
 import LazyLoad from 'react-lazyload';
 import {DndContext} from '@dnd-kit/core';
-import {rectSwappingStrategy, SortableContext, useSortable} from '@dnd-kit/sortable';
+import {
+  arrayMove,
+  rectSwappingStrategy,
+  SortableContext,
+  useSortable,
+} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
 import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
@@ -168,10 +173,7 @@ class Dashboard extends React.Component<Props, State> {
           if (over && over.id !== ADD_WIDGET_BUTTON_DRAG_ID) {
             const overIndex = getIndex(over.id);
             if (activeIndex !== overIndex) {
-              const newWidgets = [...widgets];
-              const removed = newWidgets.splice(activeIndex, 1);
-              newWidgets.splice(overIndex, 0, removed[0]);
-              onUpdate(newWidgets);
+              onUpdate(arrayMove(widgets, activeIndex, overIndex));
             }
           }
 
