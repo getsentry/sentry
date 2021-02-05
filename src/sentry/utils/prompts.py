@@ -2,6 +2,7 @@ DEFAULT_PROMPTS = {
     "releases": {"required_fields": ["organization_id", "project_id"]},
     "suspect_commits": {"required_fields": ["organization_id", "project_id"]},
     "alert_stream": {"required_fields": ["organization_id"]},
+    "sdk_updates": {"required_fields": ["organization_id"]},
 }
 
 

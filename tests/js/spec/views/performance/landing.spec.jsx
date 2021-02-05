@@ -90,6 +90,14 @@ describe('Performance > Landing', function () {
       method: 'POST',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sdk-updates/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      body: {},
+    });
     MockApiClient.addMockResponse(
       {
         url: '/organizations/org-slug/eventsv2/',
