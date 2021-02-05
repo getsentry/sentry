@@ -59,6 +59,9 @@ default_manager.add("organizations:related-events", OrganizationFeature)  # NOQA
 default_manager.add("organizations:alert-filters", OrganizationFeature)  # NOQA
 default_manager.add("organizations:custom-symbol-sources", OrganizationFeature)  # NOQA
 default_manager.add("organizations:data-forwarding", OrganizationFeature)  # NOQA
+default_manager.add("organizations:dashboards-v2", OrganizationFeature)  # NOQA
+default_manager.add("organizations:dashboards-basic", OrganizationFeature)  # NOQA
+default_manager.add("organizations:dashboards-edit", OrganizationFeature)  # NOQA
 default_manager.add("organizations:discover", OrganizationFeature)  # NOQA
 default_manager.add("organizations:discover-basic", OrganizationFeature)  # NOQA
 default_manager.add("organizations:discover-query", OrganizationFeature)  # NOQA
@@ -115,7 +118,6 @@ default_manager.add("organizations:inbox-owners-query", OrganizationFeature)  # 
 default_manager.add("organizations:alert-details-redesign", OrganizationFeature)  # NOQA
 default_manager.add("organizations:invite-members-rate-limits", OrganizationFeature)  # NOQA
 default_manager.add("organizations:issue-list-trend-sort", OrganizationFeature)  # NOQA
-default_manager.add("organizations:dashboards-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-landing-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-vitals-overview", OrganizationFeature)  # NOQA
 
