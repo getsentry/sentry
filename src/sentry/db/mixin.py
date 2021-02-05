@@ -85,7 +85,7 @@ class PendingDeletionMixin:
 
         fields_to_save = []
 
-        for field_name, field_value in six.iteritems(option.value):
+        for field_name, field_value in option.value.items():
             if field_name in ("id", "model"):
                 continue
             fields_to_save.append(field_name)

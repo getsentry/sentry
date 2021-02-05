@@ -253,7 +253,7 @@ class Project(Model, PendingDeletionMixin):
         from sentry.models import UserOption
 
         alert_settings = self.get_member_alert_settings(user_option)
-        disabled = {u for u, v in six.iteritems(alert_settings) if v == 0}
+        disabled = {u for u, v in alert_settings.items() if v == 0}
 
         member_set = set(self.member_set.exclude(user__in=disabled).values_list("user", flat=True))
 
@@ -437,7 +437,7 @@ class Project(Model, PendingDeletionMixin):
                         setting.save()
 
                 options = ProjectOption.objects.get_all_values(project=project)
-                for key, value in six.iteritems(options):
+                for key, value in options.items():
                     self.update_option(key, value)
 
         except IntegrityError as e:

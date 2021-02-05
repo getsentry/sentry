@@ -38,7 +38,7 @@ class OrganizationStatus(IntEnum):
     @classmethod
     def as_choices(cls):
         result = []
-        for name, member in six.iteritems(cls.__members__):
+        for name, member in cls.__members__.items():
             # an alias
             if name != member.name:
                 continue

@@ -98,7 +98,7 @@ class ApiKey(Model):
     def get_scopes(self):
         if self.scope_list:
             return self.scope_list
-        return [k for k, v in six.iteritems(self.scopes) if v]
+        return [k for k, v in self.scopes.items() if v]
 
     def has_scope(self, scope):
         return scope in self.get_scopes()

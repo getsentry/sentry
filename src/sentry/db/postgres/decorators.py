@@ -66,7 +66,7 @@ def capture_transaction_exceptions(func):
             if exc_info is None:
                 raise
             new_exc = TransactionAborted(sys.exc_info(), exc_info)
-            six.reraise(new_exc.__class__, new_exc, exc_info[2])
+            raise new_exc.with_traceback(exc_info[2])
 
         conn._last_exception = sys.exc_info()
         raise
@@ -94,6 +94,6 @@ def less_shitty_error_messages(func):
         except Exception as e:
             exc_info = sys.exc_info()
             msg = "{}\nSQL: {}".format(repr(e), sql)
-            six.reraise(exc_info[0], exc_info[0](msg), exc_info[2])
+            raise exc_info[0](msg).with_traceback(exc_info[2])
 
     return inner

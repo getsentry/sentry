@@ -80,7 +80,7 @@ class ProjectDebugFileManager(BaseManager):
             difs_by_id.setdefault(dif.debug_id, []).append(dif)
 
         rv = {}
-        for debug_id, group in six.iteritems(difs_by_id):
+        for debug_id, group in difs_by_id.items():
             with_features = [dif for dif in group if "features" in (dif.data or ())]
 
             # In case we've never computed features for any of these files, we
@@ -410,7 +410,7 @@ class DIFCache:
         difs = ProjectDebugFile.objects.find_by_debug_ids(project, debug_ids, features)
 
         rv = {}
-        for debug_id, dif in six.iteritems(difs):
+        for debug_id, dif in difs.items():
             dif_path = os.path.join(self.get_project_path(project), debug_id)
             try:
                 os.stat(dif_path)

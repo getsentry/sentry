@@ -108,7 +108,7 @@ class EventError:
 
     @property
     def data(self):
-        return {k: v for k, v in six.iteritems(self._data) if k != "type"}
+        return {k: v for k, v in self._data.items() if k != "type"}
 
     @property
     def message(self):

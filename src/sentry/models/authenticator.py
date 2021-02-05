@@ -46,7 +46,7 @@ class AuthenticatorManager(BaseManager):
             rvm = dict(AUTHENTICATOR_INTERFACES)
             for iface in ifaces:
                 rvm.pop(iface.interface_id, None)
-            for iface_cls in six.itervalues(rvm):
+            for iface_cls in rvm.values():
                 if iface_cls.is_available:
                     ifaces.append(iface_cls())
 

@@ -46,7 +46,7 @@ def __prep_key(model, key):
 
 def make_key(model, prefix, kwargs):
     kwargs_bits = []
-    for k, v in sorted(six.iteritems(kwargs)):
+    for k, v in sorted(kwargs.items()):
         k = __prep_key(model, k)
         v = smart_text(__prep_value(model, k, v))
         kwargs_bits.append("%s=%s" % (k, v))
@@ -272,7 +272,7 @@ class BaseManager(Manager):
         if not self.cache_fields or len(kwargs) > 1:
             raise ValueError("We cannot cache this query. Just hit the database.")
 
-        key, value = next(six.iteritems(kwargs))
+        key, value = next(iter(kwargs.items()))
         pk_name = self.model._meta.pk.name
         if key == "pk":
             key = pk_name
