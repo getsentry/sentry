@@ -1,6 +1,5 @@
 from abc import ABCMeta, abstractmethod
 import functools
-import six
 from datetime import timedelta
 
 from django.db.models import Q
@@ -270,8 +269,7 @@ class QuerySetBuilder:
         return queryset
 
 
-@six.add_metaclass(ABCMeta)
-class SnubaSearchBackendBase(SearchBackend):
+class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
     def query(
         self,
         projects,

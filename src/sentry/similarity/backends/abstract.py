@@ -1,10 +1,7 @@
 from abc import ABCMeta, abstractmethod
 
-import six
 
-
-@six.add_metaclass(ABCMeta)
-class AbstractIndexBackend:
+class AbstractIndexBackend(metaclass=ABCMeta):
     @abstractmethod
     def classify(self, scope, items, limit=None, timestamp=None):
         pass

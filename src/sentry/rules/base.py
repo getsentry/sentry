@@ -29,7 +29,6 @@ by the rule's logic. Each rule condition may be associated with a form.
 """
 
 import logging
-import six
 
 from collections import namedtuple
 
@@ -46,8 +45,7 @@ class RuleDescriptor(type):
         return new_cls
 
 
-@six.add_metaclass(RuleDescriptor)
-class RuleBase:
+class RuleBase(metaclass=RuleDescriptor):
     label = None
     form_cls = None
 
