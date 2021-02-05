@@ -7,6 +7,7 @@ on:
   # only running workflows from the main branch. Prefer to use `pull_request` when possible.
   #
   # See https://github.com/getsentry/sentry/pull/21600 for more details
+  # TODO: this needs to be pull_request_target
   pull_request:
 
 jobs:
@@ -57,7 +58,7 @@ jobs:
                 owner: 'getsentry',
                 repo: 'getsentry',
                 workflow_id: workflow,
-                ref: 'master',
+                ref: 'build/ci/add-backend-dependencies-test', // TODO: this needs to be 'master'
                 inputs: {
                   skip: shouldSkip[pathFilterName],
                   'sentry-sha': '${{ github.event.pull_request.head.sha }}',
