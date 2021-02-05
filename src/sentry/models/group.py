@@ -348,7 +348,7 @@ class Group(Model):
         self.score = type(self).calculate_score(
             times_seen=self.times_seen, last_seen=self.last_seen
         )
-        super(Group, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def get_absolute_url(self, params=None, event_id=None):
         # Built manually in preference to django.core.urlresolvers.reverse,

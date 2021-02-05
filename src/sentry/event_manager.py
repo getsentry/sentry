@@ -169,7 +169,7 @@ class ScoreClause(Func):
         # times_seen is likely an F-object that needs the value extracted
         if hasattr(self.times_seen, "rhs"):
             self.times_seen = self.times_seen.rhs.value
-        super(ScoreClause, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def __int__(self):
         # Calculate the score manually when coercing to an int.

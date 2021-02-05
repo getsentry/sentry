@@ -210,7 +210,7 @@ class AuditLogEntry(Model):
                 self.actor_label = self.actor_key.key
         # trim label to the max length
         self.actor_label = self.actor_label[:MAX_ACTOR_LABEL_LENGTH]
-        super(AuditLogEntry, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def get_actor_name(self):
         if self.actor:

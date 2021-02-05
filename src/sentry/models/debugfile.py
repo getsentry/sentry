@@ -157,7 +157,7 @@ class ProjectDebugFile(Model):
         return frozenset((self.data or {}).get("features", []))
 
     def delete(self, *args, **kwargs):
-        super(ProjectDebugFile, self).delete(*args, **kwargs)
+        super().delete(*args, **kwargs)
         self.file.delete()
 
 

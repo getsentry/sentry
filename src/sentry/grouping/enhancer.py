@@ -432,10 +432,8 @@ class Enhancements:
         for base in self.bases:
             base = ENHANCEMENT_BASES.get(base)
             if base:
-                for rule in base.iter_rules():
-                    yield rule
-        for rule in self.rules:
-            yield rule
+                yield from base.iter_rules()
+        yield from self.rules
 
     @classmethod
     def _from_config_structure(cls, data):

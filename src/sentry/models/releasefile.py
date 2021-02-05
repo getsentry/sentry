@@ -43,7 +43,7 @@ class ReleaseFile(Model):
         if not self.ident and self.name:
             dist = self.dist_id and self.dist.name or None
             self.ident = type(self).get_ident(self.name, dist)
-        return super(ReleaseFile, self).save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     def update(self, *args, **kwargs):
         # If our name is changing, we must also change the ident
@@ -52,7 +52,7 @@ class ReleaseFile(Model):
             kwargs["ident"] = self.ident = type(self).get_ident(
                 kwargs["name"], dist and dist.name or dist
             )
-        return super(ReleaseFile, self).update(*args, **kwargs)
+        return super().update(*args, **kwargs)
 
     @classmethod
     def get_ident(cls, name, dist=None):

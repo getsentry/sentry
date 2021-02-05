@@ -75,7 +75,7 @@ class GitLabApiClient(ApiClient):
         self.installation = installation
         verify_ssl = self.metadata["verify_ssl"]
         self.is_refreshing_token = False
-        super(GitLabApiClient, self).__init__(verify_ssl)
+        super().__init__(verify_ssl)
 
     @property
     def identity(self):

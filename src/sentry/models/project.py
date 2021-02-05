@@ -142,9 +142,9 @@ class Project(Model, PendingDeletionMixin):
                     reserved=RESERVED_PROJECT_SLUGS,
                     max_length=50,
                 )
-            super(Project, self).save(*args, **kwargs)
+            super().save(*args, **kwargs)
         else:
-            super(Project, self).save(*args, **kwargs)
+            super().save(*args, **kwargs)
         self.update_rev_for_option()
 
     def get_absolute_url(self, params=None):

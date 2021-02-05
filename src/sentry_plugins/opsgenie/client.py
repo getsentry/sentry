@@ -10,7 +10,7 @@ class OpsGenieApiClient(ApiClient):
         self.api_key = api_key
         self.alert_url = alert_url
         self.recipients = recipients
-        super(OpsGenieApiClient, self).__init__()
+        super().__init__()
 
     def build_url(self, _path):
         return self.alert_url

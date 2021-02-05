@@ -222,7 +222,7 @@ class AuthLoginView(BaseView):
     @never_cache
     @transaction.atomic
     def handle(self, request, *args, **kwargs):
-        return super(AuthLoginView, self).handle(request, *args, **kwargs)
+        return super().handle(request, *args, **kwargs)
 
     # XXX(dcramer): OAuth provider hooks this view
     def get(self, request, **kwargs):

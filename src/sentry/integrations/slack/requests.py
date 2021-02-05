@@ -164,7 +164,7 @@ class SlackEventRequest(SlackRequest):
         else:
             # Non-Challenge requests need to validate everything plus the data
             # about the event.
-            super(SlackEventRequest, self).validate()
+            super().validate()
             self._validate_event()
 
     def is_challenge(self):
@@ -197,7 +197,7 @@ class SlackActionRequest(SlackRequest):
     """
 
     def __init__(self, request):
-        super(SlackActionRequest, self).__init__(request)
+        super().__init__(request)
         self._callback_data = None
 
     @property
@@ -224,7 +224,7 @@ class SlackActionRequest(SlackRequest):
         requests (nested in a ``payload`` attribute), so there's extra
         validation needed.
         """
-        super(SlackActionRequest, self)._validate_data()
+        super()._validate_data()
 
         if "payload" not in self.request.data:
             raise SlackRequestError(status=400)

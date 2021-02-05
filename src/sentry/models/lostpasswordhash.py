@@ -26,7 +26,7 @@ class LostPasswordHash(Model):
     def save(self, *args, **kwargs):
         if not self.hash:
             self.set_hash()
-        super(LostPasswordHash, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def set_hash(self):
         from django.utils.crypto import get_random_string

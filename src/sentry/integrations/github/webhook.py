@@ -395,7 +395,7 @@ class GitHubWebhookBase(View):
         if request.method != "POST":
             return HttpResponse(status=405)
 
-        return super(GitHubWebhookBase, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     def get_logging_data(self):
         pass
@@ -459,7 +459,7 @@ class GitHubIntegrationsWebhookEndpoint(GitHubWebhookBase):
         if request.method != "POST":
             return HttpResponse(status=405)
 
-        return super(GitHubIntegrationsWebhookEndpoint, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     def get_secret(self):
         return options.get("github-app.webhook-secret")

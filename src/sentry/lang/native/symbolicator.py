@@ -405,8 +405,7 @@ def get_sources_for_project(project):
             other_source = settings.SENTRY_BUILTIN_SOURCES.get(key)
             if other_source:
                 if other_source.get("type") == "alias":
-                    for item in resolve_alias(other_source):
-                        yield item
+                    yield from resolve_alias(other_source)
                 else:
                     yield other_source
 

@@ -13,7 +13,7 @@ class AvatarSerializer(serializers.Serializer):
     )
 
     def validate(self, attrs):
-        attrs = super(AvatarSerializer, self).validate(attrs)
+        attrs = super().validate(attrs)
         if attrs.get("avatar_type") == "upload":
             model_type = self.context["type"]
             has_existing_file = model_type.objects.filter(

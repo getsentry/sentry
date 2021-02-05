@@ -263,7 +263,7 @@ class FileBlob(Model):
         with TimedRetryPolicy(UPLOAD_RETRY_TIME, metric_instance="lock.fileblob.delete")(
             lock.acquire
         ):
-            super(FileBlob, self).delete(*args, **kwargs)
+            super().delete(*args, **kwargs)
         if self.path:
             self.deletefile(commit=False)
 
@@ -441,7 +441,7 @@ class File(Model):
 
     def delete(self, *args, **kwargs):
         blob_ids = [blob.id for blob in self.blobs.all()]
-        super(File, self).delete(*args, **kwargs)
+        super().delete(*args, **kwargs)
 
         # Wait to delete blobs. This helps prevent
         # races around frequently used blobs in debug images and release files.

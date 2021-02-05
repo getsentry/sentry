@@ -371,7 +371,7 @@ class OAuthAuth(BaseAuth):
 
     def __init__(self, request, redirect):
         """Init method"""
-        super(OAuthAuth, self).__init__(request, redirect)
+        super().__init__(request, redirect)
         self.redirect_uri = self.build_absolute_uri(self.redirect)
 
     @classmethod

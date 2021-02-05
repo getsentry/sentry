@@ -21,7 +21,7 @@ class BaseNotificationUserOptionsForm(forms.Form):
     def __init__(self, plugin, user, *args, **kwargs):
         self.plugin = plugin
         self.user = user
-        super(BaseNotificationUserOptionsForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def get_title(self):
         return self.plugin.get_conf_title()

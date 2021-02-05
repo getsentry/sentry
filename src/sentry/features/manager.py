@@ -96,7 +96,7 @@ class RegisteredFeatureManager:
 # TODO: Change RegisteredFeatureManager back to object once it can be removed
 class FeatureManager(RegisteredFeatureManager):
     def __init__(self):
-        super(FeatureManager, self).__init__()
+        super().__init__()
         self._feature_registry = {}
         self._entity_handler = None
 

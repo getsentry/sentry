@@ -13,7 +13,7 @@ logger = logging.getLogger("sentry.accounts")
 
 class InvalidEmailResponse(Response):
     def __init__(self):
-        super(InvalidEmailResponse, self).__init__(
+        super().__init__(
             {"detail": "Invalid email", "email": "Invalid email"},
             status=status.HTTP_400_BAD_REQUEST,
         )

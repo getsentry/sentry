@@ -291,7 +291,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         self.model.save()
 
     def get_link_issue_config(self, group, **kwargs):
-        fields = super(JiraIntegration, self).get_link_issue_config(group, **kwargs)
+        fields = super().get_link_issue_config(group, **kwargs)
         org = group.organization
         autocomplete_url = reverse("sentry-extensions-jira-search", args=[org.slug, self.model.id])
         for field in fields:
@@ -580,7 +580,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         fields = []
         defaults = {}
         if group:
-            fields = super(JiraIntegration, self).get_create_issue_config(group, user, **kwargs)
+            fields = super().get_create_issue_config(group, user, **kwargs)
             defaults = self.get_defaults(group.project, user)
 
         project_id = params.get("project", defaults.get("project"))

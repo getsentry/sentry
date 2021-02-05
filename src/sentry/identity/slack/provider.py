@@ -53,7 +53,7 @@ class SlackIdentityProvider(OAuth2Provider):
         # TODO(epurkhiser): This flow isn't actually used right now in sentry.
         # In slack-bot world we would need to make an API call to the 'me'
         # endpoint to get their user ID here.
-        return super(SlackIdentityProvider, self).get_oauth_data(self, payload)
+        return super().get_oauth_data(self, payload)
 
     def build_identity(self, data):
         data = data["data"]
@@ -81,14 +81,14 @@ class SlackOAuth2LoginView(OAuth2LoginView):
     def __init__(
         self, authorize_url=None, client_id=None, scope=None, user_scope=None, *args, **kwargs
     ):
-        super(SlackOAuth2LoginView, self).__init__(
+        super().__init__(
             authorize_url=authorize_url, client_id=client_id, scope=scope, *args, **kwargs
         )
         if user_scope is not None:
             self.user_scope = user_scope
 
     def get_authorize_params(self, state, redirect_uri):
-        data = super(SlackOAuth2LoginView, self).get_authorize_params(state, redirect_uri)
+        data = super().get_authorize_params(state, redirect_uri)
 
         # XXX(meredith): Bot apps must be added manually to channels, and link unfurling
         # only works for channels the bot is a part of, so in order to expand the usage

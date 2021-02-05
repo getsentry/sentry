@@ -173,7 +173,7 @@ class UnixHTTPConnection(HTTPConnection):
         # So we fake this by sending along `localhost` by default as
         # other libraries do.
         self.socket_path = host
-        super(UnixHTTPConnection, self).__init__(host="localhost", **kwargs)
+        super().__init__(host="localhost", **kwargs)
 
     def _new_conn(self):
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)

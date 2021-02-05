@@ -36,7 +36,7 @@ class TaggedEventForm(forms.Form):
     value = forms.CharField(widget=forms.TextInput(), required=False)
 
     def clean(self):
-        super(TaggedEventForm, self).clean()
+        super().clean()
 
         match = self.cleaned_data.get("match")
         value = self.cleaned_data.get("value")

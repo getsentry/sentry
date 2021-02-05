@@ -43,7 +43,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
     integration_name = "vsts"
 
     def __init__(self, identity, oauth_redirect_url, *args, **kwargs):
-        super(VstsApiClient, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.identity = identity
         self.oauth_redirect_url = oauth_redirect_url
         if "access_token" not in self.identity.data:

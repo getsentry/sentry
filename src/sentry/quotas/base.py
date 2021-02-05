@@ -169,12 +169,12 @@ class RateLimit:
 
 class NotRateLimited(RateLimit):
     def __init__(self, **kwargs):
-        super(NotRateLimited, self).__init__(False, **kwargs)
+        super().__init__(False, **kwargs)
 
 
 class RateLimited(RateLimit):
     def __init__(self, **kwargs):
-        super(RateLimited, self).__init__(True, **kwargs)
+        super().__init__(True, **kwargs)
 
 
 def _limit_from_settings(x):

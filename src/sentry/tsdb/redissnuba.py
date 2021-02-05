@@ -123,4 +123,4 @@ class RedisSnubaTSDB(BaseTSDB):
             "redis": RedisTSDB(**options.pop("redis", {})),
             "snuba": SnubaTSDB(**options.pop("snuba", {})),
         }
-        super(RedisSnubaTSDB, self).__init__(**options)
+        super().__init__(**options)

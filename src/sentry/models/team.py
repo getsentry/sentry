@@ -130,9 +130,9 @@ class Team(Model):
             lock = locks.get("slug:team", duration=5)
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, self.name, organization=self.organization)
-            super(Team, self).save(*args, **kwargs)
+            super().save(*args, **kwargs)
         else:
-            super(Team, self).save(*args, **kwargs)
+            super().save(*args, **kwargs)
 
     @property
     def member_set(self):

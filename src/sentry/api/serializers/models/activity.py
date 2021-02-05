@@ -106,7 +106,7 @@ class OrganizationActivitySerializer(ActivitySerializer):
         from sentry.api.serializers import GroupSerializer
 
         # TODO(dcramer); assert on relations
-        attrs = super(OrganizationActivitySerializer, self).get_attrs(item_list, user)
+        attrs = super().get_attrs(item_list, user)
 
         groups = {
             d["id"]: d
@@ -125,7 +125,7 @@ class OrganizationActivitySerializer(ActivitySerializer):
         return attrs
 
     def serialize(self, obj, attrs, user):
-        context = super(OrganizationActivitySerializer, self).serialize(obj, attrs, user)
+        context = super().serialize(obj, attrs, user)
         context["issue"] = attrs["issue"]
         context["project"] = attrs["project"]
         return context

@@ -80,7 +80,7 @@ class ApiKey(Model):
     def save(self, *args, **kwargs):
         if not self.key:
             self.key = ApiKey.generate_api_key()
-        super(ApiKey, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def get_allowed_origins(self):
         if not self.allowed_origins:

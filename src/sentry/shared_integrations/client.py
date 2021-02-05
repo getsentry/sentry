@@ -85,13 +85,13 @@ class BaseApiResponse:
 class TextApiResponse(BaseApiResponse):
     def __init__(self, text, *args, **kwargs):
         self.text = text
-        super(TextApiResponse, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 class XmlApiResponse(BaseApiResponse):
     def __init__(self, text, *args, **kwargs):
         self.xml = BeautifulSoup(text, "xml")
-        super(XmlApiResponse, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 class MappingApiResponse(dict, BaseApiResponse):

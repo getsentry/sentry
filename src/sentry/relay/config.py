@@ -269,7 +269,7 @@ class ProjectConfig(_ConfigBase):
     def __init__(self, project, **kwargs):
         object.__setattr__(self, "project", project)
 
-        super(ProjectConfig, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
 
 def _load_filter_settings(flt, project):

@@ -8,7 +8,7 @@ from .constants import API_DOMAIN
 
 class GitHubApiError(Exception):
     def __init__(self, message="", status=0):
-        super(GitHubApiError, self).__init__(message)
+        super().__init__(message)
         self.status = status
 
 

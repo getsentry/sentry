@@ -31,7 +31,7 @@ from sentry.utils.compat import zip
 
 class ReleaseActivityEmail(ActivityEmail):
     def __init__(self, activity):
-        super(ReleaseActivityEmail, self).__init__(activity)
+        super().__init__(activity)
         self.organization = self.project.organization
         self.user_id_team_lookup = None
         self.email_list = {}

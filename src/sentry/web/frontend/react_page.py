@@ -30,7 +30,7 @@ class ReactPageView(OrganizationView, ReactMixin):
             return self.handle_react(request)
 
         # For normal users, let parent class handle (e.g. redirect to login page)
-        return super(ReactPageView, self).handle_auth_required(request, *args, **kwargs)
+        return super().handle_auth_required(request, *args, **kwargs)
 
     def handle(self, request, organization, **kwargs):
         if "project_id" in kwargs and request.GET.get("onboarding"):

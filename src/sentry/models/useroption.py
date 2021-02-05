@@ -29,7 +29,7 @@ class UserOptionManager(OptionManager):
         else:
             metakey = "%s:user" % (user.pk)
 
-        return super(UserOptionManager, self)._make_key(metakey)
+        return super()._make_key(metakey)
 
     def get_value(self, user, key, default=None, **kwargs):
         project = kwargs.get("project")

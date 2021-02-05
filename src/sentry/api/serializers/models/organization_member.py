@@ -40,7 +40,7 @@ class OrganizationMemberSerializer(Serializer):
 
 class OrganizationMemberWithTeamsSerializer(OrganizationMemberSerializer):
     def get_attrs(self, item_list, user):
-        attrs = super(OrganizationMemberWithTeamsSerializer, self).get_attrs(item_list, user)
+        attrs = super().get_attrs(item_list, user)
 
         member_team_map = list(
             OrganizationMemberTeam.objects.filter(
@@ -68,7 +68,7 @@ class OrganizationMemberWithTeamsSerializer(OrganizationMemberSerializer):
         return attrs
 
     def serialize(self, obj, attrs, user):
-        d = super(OrganizationMemberWithTeamsSerializer, self).serialize(obj, attrs, user)
+        d = super().serialize(obj, attrs, user)
 
         d["teams"] = attrs.get("teams", [])
 
@@ -78,10 +78,10 @@ class OrganizationMemberWithTeamsSerializer(OrganizationMemberSerializer):
 class OrganizationMemberWithProjectsSerializer(OrganizationMemberSerializer):
     def __init__(self, *args, **kwargs):
         self.project_ids = set(kwargs.pop("project_ids", []))
-        super(OrganizationMemberWithProjectsSerializer, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def get_attrs(self, item_list, user):
-        attrs = super(OrganizationMemberWithProjectsSerializer, self).get_attrs(item_list, user)
+        attrs = super().get_attrs(item_list, user)
         # Note: For this to be efficient, call
         # `.prefetch_related(
         #       'teams',
@@ -109,6 +109,6 @@ class OrganizationMemberWithProjectsSerializer(OrganizationMemberSerializer):
         return attrs
 
     def serialize(self, obj, attrs, user):
-        d = super(OrganizationMemberWithProjectsSerializer, self).serialize(obj, attrs, user)
+        d = super().serialize(obj, attrs, user)
         d["projects"] = attrs.get("projects", [])
         return d

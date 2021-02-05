@@ -113,7 +113,7 @@ class RedisTSDB(BaseTSDB):
         self.prefix = prefix
         self.vnodes = vnodes
         self.enable_frequency_sketches = options.pop("enable_frequency_sketches", False)
-        super(RedisTSDB, self).__init__(**options)
+        super().__init__(**options)
 
     def validate(self):
         logger.debug("Validating Redis version...")

@@ -119,7 +119,7 @@ class Endpoint(APIView):
 
     def handle_exception(self, request, exc):
         try:
-            response = super(Endpoint, self).handle_exception(exc)
+            response = super().handle_exception(exc)
         except Exception:
             import sys
             import traceback
@@ -165,7 +165,7 @@ class Endpoint(APIView):
         # keep track of these here and reassign them as needed.
         orig_auth = getattr(request, "auth", None)
         orig_user = getattr(request, "user", None)
-        rv = super(Endpoint, self).initialize_request(request, *args, **kwargs)
+        rv = super().initialize_request(request, *args, **kwargs)
         # If our request is being made via our internal API client, we need to
         # stitch back on auth and user information
         if getattr(request, "__from_api_client__", False):

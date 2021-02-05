@@ -164,8 +164,7 @@ class SaltedComponentVariant(ComponentVariant):
         return hash_from_values(final_values)
 
     def encode_for_similarity(self):
-        for x in ComponentVariant.encode_for_similarity(self):
-            yield x
+        yield from ComponentVariant.encode_for_similarity(self)
 
         for value in self.values:
             if not is_default_fingerprint_var(value):
