@@ -38,7 +38,7 @@ class Command(BaseCommand):
         except OSError:
             pass
 
-        collected = super(Command, self).collect()
+        collected = super().collect()
         paths = sorted(set(chain(*itemgetter(*collected.keys())(collected))))
         abs_paths = map(self.storage.path, paths)
         version = get_bundle_version(zip(paths, abs_paths))

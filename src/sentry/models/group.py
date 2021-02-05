@@ -115,7 +115,7 @@ def get_group_with_redirect(id_or_qualified_short_id, queryset=None, organizatio
 
 
 # TODO(dcramer): pull in enum library
-class GroupStatus(object):
+class GroupStatus:
     UNRESOLVED = 0
     RESOLVED = 1
     IGNORED = 2
@@ -329,7 +329,7 @@ class Group(Model):
 
     __repr__ = sane_repr("project_id")
 
-    def __unicode__(self):
+    def __str__(self):
         return "(%s) %s" % (self.times_seen, self.error())
 
     def save(self, *args, **kwargs):
@@ -348,7 +348,7 @@ class Group(Model):
         self.score = type(self).calculate_score(
             times_seen=self.times_seen, last_seen=self.last_seen
         )
-        super(Group, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def get_absolute_url(self, params=None, event_id=None):
         # Built manually in preference to django.core.urlresolvers.reverse,

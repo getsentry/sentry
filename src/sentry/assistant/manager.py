@@ -1,7 +1,7 @@
 import six
 
 
-class AssistantManager(object):
+class AssistantManager:
     def __init__(self):
         self._guides = {}
 

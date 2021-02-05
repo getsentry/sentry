@@ -26,6 +26,7 @@ from sentry.models.sentryapp import VALID_EVENTS, track_response_code
 from sentry.shared_integrations.exceptions import (
     ApiHostError,
     ApiTimeoutError,
+    ClientError,
     IgnorableSentryAppError,
 )
 from sentry.tasks.base import instrumented_task, retry
@@ -45,7 +46,7 @@ TASK_OPTIONS = {
 
 RETRY_OPTIONS = {
     "on": (RequestException, ApiHostError, ApiTimeoutError),
-    "ignore": (IgnorableSentryAppError,),
+    "ignore": (IgnorableSentryAppError, ClientError),
 }
 
 # We call some models by a different name, publicly, than their class name.
@@ -194,12 +195,6 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
             send_webhooks(installation, event, data=data)
 
         metrics.incr("resource_change.processed", sample_rate=1.0, tags={"change_event": event})
-
-
-@instrumented_task("sentry.tasks.process_resource_change", **TASK_OPTIONS)
-@retry(**RETRY_OPTIONS)
-def process_resource_change(action, sender, instance_id, *args, **kwargs):
-    _process_resource_change(action, sender, instance_id, *args, **kwargs)
 
 
 @instrumented_task("sentry.tasks.process_resource_change_bound", bind=True, **TASK_OPTIONS)
@@ -385,6 +380,9 @@ def send_and_save_webhook_request(sentry_app, app_platform_event, url=None):
 
         elif resp.status_code == 504:
             raise ApiTimeoutError.from_request(resp.request)
+
+        if 400 <= resp.status_code < 500:
+            raise ClientError(resp.status_code, url, response=resp)
 
         resp.raise_for_status()
 

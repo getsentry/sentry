@@ -59,6 +59,9 @@ default_manager.add("organizations:related-events", OrganizationFeature)  # NOQA
 default_manager.add("organizations:alert-filters", OrganizationFeature)  # NOQA
 default_manager.add("organizations:custom-symbol-sources", OrganizationFeature)  # NOQA
 default_manager.add("organizations:data-forwarding", OrganizationFeature)  # NOQA
+default_manager.add("organizations:dashboards-v2", OrganizationFeature)  # NOQA
+default_manager.add("organizations:dashboards-basic", OrganizationFeature)  # NOQA
+default_manager.add("organizations:dashboards-edit", OrganizationFeature)  # NOQA
 default_manager.add("organizations:discover", OrganizationFeature)  # NOQA
 default_manager.add("organizations:discover-basic", OrganizationFeature)  # NOQA
 default_manager.add("organizations:discover-query", OrganizationFeature)  # NOQA
@@ -90,6 +93,8 @@ default_manager.add("organizations:onboarding", OrganizationFeature)  # NOQA
 default_manager.add("organizations:org-saved-searches", OrganizationFeature)  # NOQA
 default_manager.add("organizations:org-subdomains", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-view", OrganizationFeature)  # NOQA
+default_manager.add("organizations:trace-view-quick", OrganizationFeature)  # NOQA
+default_manager.add("organizations:trace-view-summary", OrganizationFeature)  # NOQA
 default_manager.add("organizations:project-detail", OrganizationFeature)  # NOQA
 default_manager.add("organizations:relay", OrganizationFeature)  # NOQA
 default_manager.add("organizations:releases-top-charts", OrganizationFeature)  # NOQA
@@ -105,18 +110,16 @@ default_manager.add("organizations:sso-migration", OrganizationFeature)  # NOQA
 default_manager.add("organizations:stacktrace-hover-preview", OrganizationFeature)  # NOQA
 default_manager.add("organizations:symbol-sources", OrganizationFeature)  # NOQA
 default_manager.add("organizations:transaction-comparison", OrganizationFeature)  # NOQA
+default_manager.add("organizations:unhandled-issue-flag", OrganizationFeature)  # NOQA
 default_manager.add("organizations:usage-stats-graph", OrganizationFeature)  # NOQA
 default_manager.add("organizations:inbox", OrganizationFeature)  # NOQA
 default_manager.add("organizations:inbox-tab-default", OrganizationFeature)  # NOQA
 default_manager.add("organizations:inbox-owners-query", OrganizationFeature)  # NOQA
 default_manager.add("organizations:alert-details-redesign", OrganizationFeature)  # NOQA
-default_manager.add("organizations:unhandled-issue-flag", OrganizationFeature)  # NOQA
 default_manager.add("organizations:invite-members-rate-limits", OrganizationFeature)  # NOQA
 default_manager.add("organizations:issue-list-trend-sort", OrganizationFeature)  # NOQA
-default_manager.add("organizations:dashboards-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-landing-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-vitals-overview", OrganizationFeature)  # NOQA
-default_manager.add("organizations:workflow-owners", OrganizationFeature)  # NOQA
 
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.

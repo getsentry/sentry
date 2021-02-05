@@ -18,7 +18,7 @@ from sentry.utils.compat import filter
 
 
 # TODO(dcramer): pull in enum library
-class ApiKeyStatus(object):
+class ApiKeyStatus:
     ACTIVE = 0
     INACTIVE = 1
 
@@ -66,7 +66,7 @@ class ApiKey(Model):
 
     __repr__ = sane_repr("organization_id", "key")
 
-    def __unicode__(self):
+    def __str__(self):
         return six.text_type(self.key)
 
     @classmethod
@@ -80,7 +80,7 @@ class ApiKey(Model):
     def save(self, *args, **kwargs):
         if not self.key:
             self.key = ApiKey.generate_api_key()
-        super(ApiKey, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def get_allowed_origins(self):
         if not self.allowed_origins:

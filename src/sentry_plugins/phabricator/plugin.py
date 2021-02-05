@@ -99,9 +99,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
         ]
 
     def get_new_issue_fields(self, request, group, event, **kwargs):
-        fields = super(PhabricatorPlugin, self).get_new_issue_fields(
-            request, group, event, **kwargs
-        )
+        fields = super().get_new_issue_fields(request, group, event, **kwargs)
         return fields + [
             {
                 "name": "tags",
@@ -148,7 +146,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
         ]
 
     def get_group_urls(self):
-        return super(PhabricatorPlugin, self).get_group_urls() + [
+        return super().get_group_urls() + [
             url(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),

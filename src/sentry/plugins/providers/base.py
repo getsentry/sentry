@@ -9,7 +9,7 @@ from sentry.models import Integration, OrganizationIntegration
 from sentry.exceptions import InvalidIdentity, PluginError
 
 
-class ProviderMixin(object):
+class ProviderMixin:
     auth_provider = None
     logger = None
 

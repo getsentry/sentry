@@ -65,7 +65,7 @@ metadata = IntegrationMetadata(
 
 class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
     def __init__(self, *args, **kwargs):
-        super(AwsLambdaIntegration, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._client = None
 
     @property
@@ -193,8 +193,13 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
             account = org_client.describe_account(AccountId=account_number)["Account"]
             account_name = account["Name"]
             integration_name = f"{account_name} {region}"
-        except org_client.exceptions.AccessDeniedException:
+        except (
+            org_client.exceptions.AccessDeniedException,
+            org_client.exceptions.AWSOrganizationsNotInUseException,
+        ):
             # if the customer won't let us access the org name, use the account number instead
+            # we can also get a different error for on-prem users setting up the integration
+            # on an account that doesn't have an organization
             integration_name = f"{account_number} {region}"
 
         external_id = "{}-{}".format(account_number, region)
@@ -247,6 +252,7 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
         curr_step = 0 if pipeline.fetch_state("skipped_project_select") else 1
 
         def render_response(error=None):
+            serialized_organization = serialize(pipeline.organization, request.user)
             template_url = options.get("aws-lambda.cloudformation-url")
             context = {
                 "baseCloudformationUrl": "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review",
@@ -257,6 +263,7 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
                 "region": pipeline.fetch_state("region"),
                 "error": error,
                 "initialStepNumber": curr_step,
+                "organization": serialized_organization,
             }
             return self.render_react_view(request, "awsLambdaCloudformation", context)
 

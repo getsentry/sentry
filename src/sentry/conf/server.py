@@ -608,7 +608,7 @@ CELERY_ROUTES = ("sentry.queue.routers.SplitQueueRouter",)
 def create_partitioned_queues(name):
     exchange = Exchange(name, type="direct")
     for num in range(1):
-        CELERY_QUEUES.append(Queue("{0}-{1}".format(name, num), exchange=exchange))
+        CELERY_QUEUES.append(Queue("{}-{}".format(name, num), exchange=exchange))
 
 
 create_partitioned_queues("counters")
@@ -839,10 +839,10 @@ SENTRY_FEATURES = {
     "organizations:discover": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
+    # Enable inline preview of attachments.
+    "organizations:event-attachments-viewer": True,
     # Enable Filters & Sampling in the org settings
     "organizations:filters-and-sampling": False,
-    # Enable inline preview of attachments.
-    "organizations:event-attachments-viewer": False,
     # Allow organizations to configure built-in symbol sources.
     "organizations:symbol-sources": True,
     # Allow organizations to configure custom external symbol sources.
@@ -855,6 +855,10 @@ SENTRY_FEATURES = {
     "organizations:discover-query": True,
     # Enable Performance view
     "organizations:performance-view": False,
+    # Enable the quick trace view on event details and errors
+    "organizations:trace-view-quick": False,
+    # Enable the trace view summary
+    "organizations:trace-view-summary": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Lets organizations manage grouping configs
@@ -895,8 +899,12 @@ SENTRY_FEATURES = {
     "organizations:slack-allow-workspace": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
-    # Enable custom dashboards (dashboards 2)
+    # Deprecated flag for dashboards 2
     "organizations:dashboards-v2": False,
+    # Enable readonly dashboards (dashboards 2)
+    "organizations:dashboards-basic": False,
+    # Enable custom editable dashboards (dashboards 2)
+    "organizations:dashboards-edit": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Special feature flag primarily used on the sentry.io SAAS product for
@@ -941,6 +949,8 @@ SENTRY_FEATURES = {
     "organizations:stacktrace-hover-preview": False,
     # Enable transaction comparison view for performance.
     "organizations:transaction-comparison": False,
+    # Return unhandled information on the issue level
+    "organizations:unhandled-issue-flag": True,
     # Enable graph for subscription quota for errors, transactions and
     # attachments
     "organizations:usage-stats-graph": False,
@@ -948,16 +958,12 @@ SENTRY_FEATURES = {
     "organizations:inbox": False,
     # Set default tab to inbox
     "organizations:inbox-tab-default": False,
-    # Add `owner:me_or_none` to inbox tab query
+    # Add `assigned_or_suggested:me_or_none` to inbox tab query
     "organizations:inbox-owners-query": False,
     # Enable the new alert details ux design
     "organizations:alert-details-redesign": False,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": False,
-    # Return unhandled information on the issue level
-    "organizations:unhandled-issue-flag": False,
-    # Enable "owner"/"suggested assignee" features.
-    "organizations:workflow-owners": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.

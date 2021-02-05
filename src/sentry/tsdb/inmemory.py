@@ -16,7 +16,7 @@ class InMemoryTSDB(BaseTSDB):
     """
 
     def __init__(self, *args, **kwargs):
-        super(InMemoryTSDB, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.flush()
 
     def incr(self, model, key, timestamp=None, count=1, environment_id=None):

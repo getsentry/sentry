@@ -1,5 +1,3 @@
-import six
-
 from datetime import datetime
 from django.utils import timezone
 
@@ -56,7 +54,7 @@ class OrganizationMemberUnreleasedCommitsTest(APITestCase):
             project=project, repo=repo, date_added=datetime(2015, 1, 3, tzinfo=timezone.utc)
         )
 
-        path = "/api/0/organizations/{}/members/me/unreleased-commits/".format(org.slug)
+        path = f"/api/0/organizations/{org.slug}/members/me/unreleased-commits/"
 
         self.login_as(user)
 
@@ -67,4 +65,4 @@ class OrganizationMemberUnreleasedCommitsTest(APITestCase):
         assert resp.data["commits"][0]["id"] == unreleased_commit2.key
         assert resp.data["commits"][1]["id"] == unreleased_commit.key
         assert len(resp.data["repositories"]) == 1
-        assert six.text_type(repo.id) in resp.data["repositories"]
+        assert str(repo.id) in resp.data["repositories"]

@@ -1,6 +1,5 @@
 import six
 import os
-import io
 import re
 
 from sentry.utils.safe import get_path
@@ -18,7 +17,7 @@ def populate_target_locale_lookup_table():
         if not os.path.isfile(fn):
             continue
 
-        with io.open(fn, encoding="utf-8") as f:
+        with open(fn, encoding="utf-8") as f:
             for line in f:
                 key, translation = line.split(",", 1)
                 translation = translation.strip()
@@ -28,7 +27,7 @@ def populate_target_locale_lookup_table():
                 else:
                     translation_regexp = re.escape(translation)
                     translation_regexp = translation_regexp.replace(
-                        "\%s", r"(?P<format_string_data>[a-zA-Z0-9-_\$]+)"
+                        r"\%s", r"(?P<format_string_data>[a-zA-Z0-9-_\$]+)"
                     )
                     # Some errors are substrings of more detailed ones, so we need exact match
                     translation_regexp = re.compile("^" + translation_regexp + "$")

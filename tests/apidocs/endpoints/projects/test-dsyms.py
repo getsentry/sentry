@@ -1,8 +1,5 @@
-# -*- coding: utf-8 -*-
-
-
 import zipfile
-from six import BytesIO
+from io import BytesIO
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.urlresolvers import reverse

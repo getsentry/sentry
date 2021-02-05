@@ -43,7 +43,7 @@ ALERT_RULE_BASE_TRIGGER_STAT_KEY = "%s:trigger:%s:%s"
 ALERT_RULE_TRIGGER_STAT_KEYS = ("alert_triggered", "resolve_triggered")
 
 
-class SubscriptionProcessor(object):
+class SubscriptionProcessor:
     """
     Class for processing subscription updates for an alert rule. Accepts a subscription
     and then can process one or more updates via `process_update`. Keeps track of how
@@ -354,7 +354,6 @@ class SubscriptionProcessor(object):
         # All triggers will all be for the same incident and status, so doesn't matter which we grabbed
         method = "fire" if incident_trigger.status == TriggerStatus.ACTIVE.value else "resolve"
 
-        # TODO: can just pass trigger and get incident from trigger in handle_trigger_action
         for action in actions:
             transaction.on_commit(
                 handle_trigger_action.s(

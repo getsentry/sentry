@@ -7,22 +7,25 @@ import space from 'app/styles/space';
 import {Event} from 'app/types/event';
 
 type Props = {
-  event: Event;
+  sdk: Event['sdk'];
   suggestion: NonNullable<Event['sdkUpdates']>[0];
+  shortStyle?: boolean;
 };
 
-function getSuggestion({event, suggestion}: Props) {
+function getSdkUpdateSuggestion({sdk, suggestion, shortStyle = false}: Props) {
   const getTitleData = () => {
     switch (suggestion.type) {
       case 'updateSdk':
         return {
           href: suggestion?.sdkUrl,
-          content: event?.sdk
-            ? t(
-                'update your SDK from version %s to version %s',
-                event.sdk.version,
-                suggestion.newSdkVersion
-              )
+          content: sdk
+            ? shortStyle
+              ? t('update to version %s', suggestion.newSdkVersion)
+              : t(
+                  'update your SDK from version %s to version %s',
+                  sdk.version,
+                  suggestion.newSdkVersion
+                )
             : t('update your SDK version'),
         };
       case 'changeSdk':
@@ -58,7 +61,7 @@ function getSuggestion({event, suggestion}: Props) {
     return <ExternalLink href={href}>{content}</ExternalLink>;
   };
 
-  const title = getTitle();
+  const title = <React.Fragment>{getTitle()}</React.Fragment>;
 
   if (!suggestion.enables.length) {
     return title;
@@ -66,7 +69,10 @@ function getSuggestion({event, suggestion}: Props) {
 
   const alertContent = suggestion.enables
     .map((subSuggestion, index) => {
-      const subSuggestionContent = getSuggestion({suggestion: subSuggestion, event});
+      const subSuggestionContent = getSdkUpdateSuggestion({
+        suggestion: subSuggestion,
+        sdk,
+      });
       if (!subSuggestionContent) {
         return null;
       }
@@ -84,7 +90,7 @@ function getSuggestion({event, suggestion}: Props) {
   });
 }
 
-export default getSuggestion;
+export default getSdkUpdateSuggestion;
 
 const AlertUl = styled('ul')`
   margin-top: ${space(1)};

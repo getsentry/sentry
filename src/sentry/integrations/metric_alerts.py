@@ -18,14 +18,13 @@ def incident_attachment_info(incident, metric_value=None, action=None, method=No
     alert_rule = incident.alert_rule
 
     if action and method:
-        # Get status from trigger if available
-        trigger = action.alert_rule_trigger
+        # Get status from trigger
         incident_status = (
             IncidentStatus.CLOSED
             if method == "resolve"
             else (
                 IncidentStatus.CRITICAL
-                if trigger.label == CRITICAL_TRIGGER_LABEL
+                if action.alert_rule_trigger.label == CRITICAL_TRIGGER_LABEL
                 else IncidentStatus.WARNING
             )
         )

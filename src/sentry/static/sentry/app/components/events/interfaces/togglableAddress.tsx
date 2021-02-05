@@ -6,7 +6,6 @@ import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'app/components/stacktracePreview
 import Tooltip from 'app/components/tooltip';
 import {IconFilter} from 'app/icons';
 import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Theme} from 'app/utils/theme';
 
@@ -128,8 +127,8 @@ const getAddresstextBorderBottom = (
 const Address = styled('span')<Partial<Props> & {canBeConverted: boolean}>`
   padding-left: ${p => (p.canBeConverted ? null : '18px')};
   border-bottom: ${getAddresstextBorderBottom};
-  ${overflowEllipsis};
   max-width: 93px;
+  white-space: pre-wrap;
 `;
 
 const Wrapper = styled('span')`

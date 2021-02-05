@@ -1,5 +1,3 @@
-import six
-
 from base64 import b64encode, b64decode
 from collections import OrderedDict
 from django.conf import settings
@@ -10,18 +8,14 @@ MARKER = "\xef\xbb\xbf"
 _marker_length = len(MARKER)
 
 
-class EncryptionManager(object):
+class EncryptionManager:
     def __init__(self, schemes=()):
         for key, value in schemes:
-            if not isinstance(key, six.string_types):
-                raise ValueError(
-                    "Encryption scheme type must be a string. Value was: {!r}".format(value)
-                )
+            if not isinstance(key, str):
+                raise ValueError(f"Encryption scheme type must be a string. Value was: {value!r}")
             if not hasattr(value, "encrypt") or not hasattr(value, "decrypt"):
                 raise ValueError(
-                    "Encryption scheme value must have 'encrypt' and 'decrypt' callables. Value was: {!r}".format(
-                        value
-                    )
+                    f"Encryption scheme value must have 'encrypt' and 'decrypt' callables. Value was: {value!r}"
                 )
         self.schemes = OrderedDict(schemes)
         if not schemes:
@@ -57,7 +51,7 @@ class EncryptionManager(object):
         try:
             scheme = self.schemes[enc_method]
         except KeyError:
-            raise ValueError("Unknown encryption scheme: {!r}".format(enc_method))
+            raise ValueError(f"Unknown encryption scheme: {enc_method!r}")
         return force_text(scheme.decrypt(enc_data))
 
 

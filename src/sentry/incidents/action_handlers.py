@@ -1,6 +1,5 @@
 import abc
 
-import six
 from django.core.urlresolvers import reverse
 from django.template.defaultfilters import pluralize
 
@@ -17,8 +16,7 @@ from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 
 
-@six.add_metaclass(abc.ABCMeta)
-class ActionHandler(object):
+class ActionHandler(metaclass=abc.ABCMeta):
     status_display = {TriggerStatus.ACTIVE: "Fired", TriggerStatus.RESOLVED: "Resolved"}
 
     def __init__(self, action, incident, project):
@@ -71,7 +69,6 @@ class EmailActionHandler(ActionHandler):
         #     emails = [target]
         return targets
 
-    # TODO: Refactor this class structure so that this doesn't need trigger/metric_value
     def fire(self, metric_value):
         self.email_users(TriggerStatus.ACTIVE)
 
@@ -122,7 +119,7 @@ class MsTeamsActionHandler(DefaultActionHandler):
     def send_alert(self, metric_value, method):
         from sentry.integrations.msteams.utils import send_incident_alert_notification
 
-        send_incident_alert_notification(self.action, self.incident, metric_value)
+        send_incident_alert_notification(self.action, self.incident, metric_value, method)
 
 
 @AlertRuleTriggerAction.register_type(
@@ -135,7 +132,7 @@ class PagerDutyActionHandler(DefaultActionHandler):
     def send_alert(self, metric_value, method):
         from sentry.integrations.pagerduty.utils import send_incident_alert_notification
 
-        send_incident_alert_notification(self.action, self.incident, metric_value)
+        send_incident_alert_notification(self.action, self.incident, metric_value, method)
 
 
 @AlertRuleTriggerAction.register_type(
@@ -147,7 +144,7 @@ class SentryAppActionHandler(DefaultActionHandler):
     def send_alert(self, metric_value, method):
         from sentry.rules.actions.notify_event_service import send_incident_alert_notification
 
-        send_incident_alert_notification(self.action, self.incident, metric_value)
+        send_incident_alert_notification(self.action, self.incident, metric_value, method)
 
 
 def format_duration(minutes):

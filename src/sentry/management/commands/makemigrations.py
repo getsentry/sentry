@@ -1,4 +1,3 @@
-import io
 import os
 
 import six
@@ -30,7 +29,7 @@ class Command(makemigrations.Command):
                 "For example, `-n backfill_my_new_table`"
             )
             return
-        super(Command, self).handle(*app_labels, **options)
+        super().handle(*app_labels, **options)
         loader = MigrationLoader(None, ignore_no_migrations=True)
 
         latest_migration_by_app = {}
@@ -51,7 +50,7 @@ class Command(makemigrations.Command):
             for app_label, name in sorted(latest_migration_by_app.items())
         )
 
-        with io.open(
+        with open(
             os.path.join(settings.MIGRATIONS_LOCKFILE_PATH, "migrations_lockfile.txt"), "w"
         ) as f:
             f.write(template % result)

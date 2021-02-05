@@ -67,7 +67,7 @@ class IntegrationMetadata(IntegrationMetadata):
             return "integrations-{}".format(f)
 
     def _asdict(self):
-        metadata = super(IntegrationMetadata, self)._asdict()
+        metadata = super()._asdict()
         metadata["features"] = [
             {
                 "description": f.description.strip(),
@@ -254,7 +254,7 @@ class IntegrationProvider(PipelineProvider):
         return feature in self.features
 
 
-class IntegrationInstallation(object):
+class IntegrationInstallation:
     """
     An IntegrationInstallation represents an installed integration and manages the
     core functionality of the integration.

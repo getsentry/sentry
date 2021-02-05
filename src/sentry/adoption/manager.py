@@ -9,7 +9,7 @@ class UnknownFeature(KeyError):
     pass
 
 
-class AdoptionManager(object):
+class AdoptionManager:
     def __init__(self):
         self._id_registry = {}
         self._slug_registry = {}

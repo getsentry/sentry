@@ -1,4 +1,3 @@
-import six
 import re
 
 from django.core.urlresolvers import reverse
@@ -57,7 +56,7 @@ class GetSentryAppsTest(SentryAppsTest):
         self.login_as(user=self.superuser, superuser=True)
 
         response = self.client.get(self.url, format="json")
-        response_uuids = set(o["uuid"] for o in response.data)
+        response_uuids = {o["uuid"] for o in response.data}
 
         assert response.status_code == 200
         assert self.published_app.uuid in response_uuids
@@ -97,7 +96,7 @@ class GetSentryAppsTest(SentryAppsTest):
 
     def test_users_filter_on_internal_apps(self):
         self.login_as(user=self.user)
-        url = "{}?status=internal".format(self.url)
+        url = f"{self.url}?status=internal"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
@@ -122,7 +121,7 @@ class GetSentryAppsTest(SentryAppsTest):
             "featureData": [],
         } in json.loads(response.content)
 
-        response_uuids = set(o["uuid"] for o in response.data)
+        response_uuids = {o["uuid"] for o in response.data}
         assert self.published_app.uuid not in response_uuids
         assert self.unpublished_app.uuid not in response_uuids
         assert self.unowned_unpublished_app.uuid not in response_uuids
@@ -134,7 +133,7 @@ class GetSentryAppsTest(SentryAppsTest):
         internal_app = self.create_internal_integration(name="Internal Nosee", organization=new_org)
 
         self.login_as(user=self.superuser, superuser=True)
-        url = "{}?status=internal".format(self.url)
+        url = f"{self.url}?status=internal"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
@@ -159,7 +158,7 @@ class GetSentryAppsTest(SentryAppsTest):
             "featureData": [],
         } in json.loads(response.content)
 
-        response_uuids = set(o["uuid"] for o in response.data)
+        response_uuids = {o["uuid"] for o in response.data}
         assert internal_app.uuid in response_uuids
         assert self.published_app.uuid not in response_uuids
         assert self.unpublished_app.uuid not in response_uuids
@@ -167,7 +166,7 @@ class GetSentryAppsTest(SentryAppsTest):
 
     def test_superuser_filter_on_published(self):
         self.login_as(user=self.superuser, superuser=True)
-        url = "{}?status=published".format(self.url)
+        url = f"{self.url}?status=published"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
@@ -197,24 +196,24 @@ class GetSentryAppsTest(SentryAppsTest):
             ],
         } in json.loads(response.content)
 
-        response_uuids = set(o["uuid"] for o in response.data)
+        response_uuids = {o["uuid"] for o in response.data}
         assert self.unpublished_app.uuid not in response_uuids
         assert self.unowned_unpublished_app.uuid not in response_uuids
 
     def test_superuser_filter_on_unpublished(self):
         self.login_as(user=self.superuser, superuser=True)
-        url = "{}?status=unpublished".format(self.url)
+        url = f"{self.url}?status=unpublished"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
-        response_uuids = set(o["uuid"] for o in response.data)
+        response_uuids = {o["uuid"] for o in response.data}
         assert self.unpublished_app.uuid in response_uuids
         assert self.unowned_unpublished_app.uuid in response_uuids
         assert self.published_app.uuid not in response_uuids
 
     def test_user_filter_on_unpublished(self):
         self.login_as(user=self.user)
-        url = "{}?status=unpublished".format(self.url)
+        url = f"{self.url}?status=unpublished"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
@@ -244,17 +243,17 @@ class GetSentryAppsTest(SentryAppsTest):
             ],
         } in json.loads(response.content)
 
-        response_uuids = set(o["uuid"] for o in response.data)
+        response_uuids = {o["uuid"] for o in response.data}
         assert self.published_app.uuid not in response_uuids
         assert self.unowned_unpublished_app.uuid not in response_uuids
 
     def test_user_filter_on_published(self):
         self.login_as(user=self.user)
-        url = "{}?status=published".format(self.url)
+        url = f"{self.url}?status=published"
         response = self.client.get(url, format="json")
 
         assert response.status_code == 200
-        response_uuids = set(o["uuid"] for o in response.data)
+        response_uuids = {o["uuid"] for o in response.data}
         assert self.published_app.uuid in response_uuids
         assert self.unpublished_app not in response_uuids
         assert self.unowned_unpublished_app.uuid not in response_uuids
@@ -267,7 +266,7 @@ class GetSentryAppsTest(SentryAppsTest):
             name="Boo Far", organization=self.org, scopes=("project:write",)
         )
         self.login_as(user=user)
-        url = "{}?status=unpublished".format(self.url)
+        url = f"{self.url}?status=unpublished"
         response = self.client.get(url, format="json")
         assert {
             "name": sentry_app.name,
@@ -335,7 +334,7 @@ class PostSentryAppsTest(SentryAppsTest):
         }
 
         assert response.status_code == 201, response.content
-        assert six.viewitems(expected) <= six.viewitems(json.loads(response.content))
+        assert expected.items() <= json.loads(response.content).items()
 
     def test_non_unique_app_slug_fails(self):
         self.login_as(user=self.user)
@@ -535,7 +534,7 @@ class PostSentryAppsTest(SentryAppsTest):
         }
 
         assert response.status_code == 201, response.content
-        assert six.viewitems(expected) <= six.viewitems(json.loads(response.content))
+        assert expected.items() <= json.loads(response.content).items()
 
     def test_cannot_create_with_error_created_hook_without_flag(self):
         self.login_as(user=self.user)
@@ -731,7 +730,7 @@ class PostSentryAppsTest(SentryAppsTest):
     def _post_with_token(self, token, **kwargs):
         body = self._default_body()
         body.update(**kwargs)
-        authorization = "Bearer {}".format(token.token)
+        authorization = f"Bearer {token.token}"
         return self.client.post(
             self.url,
             body,

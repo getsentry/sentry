@@ -1,7 +1,5 @@
 import React from 'react';
-// eslint import checks can't find types in the flow code.
-// eslint-disable-next-line import/named
-import {components, OptionProps} from 'react-select';
+import ReactSelect, {components, OptionProps} from 'react-select';
 import styled from '@emotion/styled';
 
 import SelectControl from 'app/components/forms/selectControl';
@@ -21,11 +19,12 @@ class SelectField extends React.Component<Props> {
     }
 
     if (this.selectRef.current?.select?.inputRef) {
+      // @ts-ignore The react-select types have inputRef as any.
       this.selectRef.current.select.inputRef.autocomplete = 'off';
     }
   }
 
-  selectRef = React.createRef<typeof SelectControl>();
+  selectRef = React.createRef<ReactSelect>();
 
   render() {
     return (

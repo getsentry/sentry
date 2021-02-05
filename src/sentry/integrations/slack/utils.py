@@ -6,7 +6,7 @@ from django.core.cache import cache
 from django.http import Http404
 from six.moves.urllib.parse import urlparse, urlencode, parse_qs
 
-from sentry import tagstore, features
+from sentry import tagstore
 from sentry.api.fields.actor import Actor
 from sentry.constants import ObjectStatus
 from sentry.utils import json
@@ -29,7 +29,6 @@ from sentry.models import (
 from sentry.shared_integrations.exceptions import (
     ApiError,
     DuplicateDisplayNameError,
-    DeprecatedIntegrationError,
 )
 from sentry.integrations.metric_alerts import incident_attachment_info
 
@@ -174,23 +173,6 @@ def build_rule_url(rule, group, project):
     project_slug = project.slug
     rule_url = "/organizations/{}/alerts/rules/{}/{}/".format(org_slug, project_slug, rule.id)
     return absolute_uri(rule_url)
-
-
-def build_upgrade_notice_attachment(group):
-    org_slug = group.organization.slug
-    url = absolute_uri(
-        "/settings/{}/integrations/slack/?tab=configurations&referrer=slack".format(org_slug)
-    )
-
-    return {
-        "title": "Deprecation Notice",
-        "text": (
-            "This alert is coming from a deprecated version of the Sentry-Slack integration. "
-            "Your Slack integration, along with any data associated with it, will be *permanently deleted on January 14, 2021* "
-            "if you do not transition to the new supported Slack integration. "
-            "Click <{}|here> to complete the process.".format(url)
-        ),
-    }
 
 
 def build_group_attachment(
@@ -339,7 +321,7 @@ def build_incident_attachment(action, incident, metric_value=None, method=None):
     :return:
     """
 
-    data = incident_attachment_info(incident, metric_value, action, method)
+    data = incident_attachment_info(incident, metric_value, action=action, method=method)
 
     colors = {
         "Resolved": RESOLVED_COLOR,
@@ -364,11 +346,6 @@ def build_incident_attachment(action, incident, metric_value=None, method=None):
 
 # Different list types in slack that we'll use to resolve a channel name. Format is
 # (<list_name>, <result_name>, <prefix>).
-LEGACY_LIST_TYPES = [
-    ("channels", "channels", CHANNEL_PREFIX),
-    ("groups", "groups", CHANNEL_PREFIX),
-    ("users", "members", MEMBER_PREFIX),
-]
 LIST_TYPES = [("conversations", "channels", CHANNEL_PREFIX), ("users", "members", MEMBER_PREFIX)]
 
 
@@ -418,29 +395,16 @@ def get_channel_id_with_timeout(integration, name, timeout):
 
     token_payload = {"token": integration.metadata["access_token"]}
 
-    # Look for channel ID
-    payload = dict(token_payload, **{"exclude_archived": False, "exclude_members": True})
+    payload = dict(
+        token_payload,
+        **{
+            "exclude_archived": False,
+            "exclude_members": True,
+            "types": "public_channel,private_channel",
+        },
+    )
 
-    # workspace tokens are the only tokens that don't works with the conversations.list endpoint,
-    # once eveyone is migrated we can remove this check and usages of channels.list
-
-    # XXX(meredith): Prevent anyone from creating new rules or editing existing rules that
-    # have workspace app integrations. Force them to either remove slack action or re-install
-    # their integration.
-    integration_type = get_integration_type(integration)
-    if integration_type == "workspace_app" and not any(
-        [
-            features.has("organizations:slack-allow-workspace", org)
-            for org in integration.organizations.all()
-        ]
-    ):
-        raise DeprecatedIntegrationError
-
-    if integration_type == "workspace_app":
-        list_types = LEGACY_LIST_TYPES
-    else:
-        list_types = LIST_TYPES
-        payload = dict(payload, **{"types": "public_channel,private_channel"})
+    list_types = LIST_TYPES
 
     time_to_quit = time.time() + timeout
 
@@ -509,11 +473,6 @@ def send_incident_alert_notification(action, incident, metric_value, method):
         "channel": channel,
         "attachments": json.dumps([attachment]),
     }
-
-    if get_integration_type(integration) == "workspace_app" and not features.has(
-        "organizations:slack-allow-workspace", incident.organization
-    ):
-        return
 
     client = SlackClient()
     try:

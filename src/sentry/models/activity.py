@@ -39,6 +39,7 @@ class Activity(Model):
     UNMERGE_DESTINATION = 20
     SET_RESOLVED_IN_PULL_REQUEST = 21
     REPROCESS = 22
+    MARK_REVIEWED = 23
 
     TYPE = (
         # (TYPE, verb-slug)
@@ -65,6 +66,7 @@ class Activity(Model):
         (UNMERGE_DESTINATION, "unmerge_destination"),
         # The user has reprocessed the group, so events may have moved to new groups
         (REPROCESS, "reprocess"),
+        (MARK_REVIEWED, "mark_reviewed"),
     )
 
     project = FlexibleForeignKey("sentry.Project")
@@ -88,7 +90,7 @@ class Activity(Model):
         return (version or "")[:64]
 
     def __init__(self, *args, **kwargs):
-        super(Activity, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         from sentry.models import Release
 
         # XXX(dcramer): fix for bad data
@@ -100,7 +102,7 @@ class Activity(Model):
     def save(self, *args, **kwargs):
         created = bool(not self.id)
 
-        super(Activity, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
         if not created:
             return
@@ -110,7 +112,7 @@ class Activity(Model):
             self.group.update(num_comments=F("num_comments") + 1)
 
     def delete(self, *args, **kwargs):
-        super(Activity, self).delete(*args, **kwargs)
+        super().delete(*args, **kwargs)
 
         # HACK: support Group.num_comments
         if self.type == Activity.NOTE:

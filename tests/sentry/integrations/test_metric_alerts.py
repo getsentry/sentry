@@ -26,7 +26,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         metric_value = 123
         data = incident_attachment_info(action, incident, metric_value)
 
-        assert data["title"] == "Resolved: {}".format(alert_rule.name)
+        assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"
         assert data["text"] == "123 events in the last 10 minutes\nFilter: level:error"
         assert data["ts"] == date_started
@@ -67,7 +67,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         incident_trigger.update(date_modified=now)
 
         # Test the trigger "firing"
-        data = incident_attachment_info(action, incident, method="fire")
+        data = incident_attachment_info(incident, action=action, method="fire")
         assert data["title"] == "Critical: {}".format(
             alert_rule.name
         )  # Pulls from trigger, not incident
@@ -81,7 +81,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         )
 
         # Test the trigger "resolving"
-        data = incident_attachment_info(action, incident, method="resolve")
+        data = incident_attachment_info(incident, action=action, method="resolve")
         assert data["title"] == "Resolved: {}".format(alert_rule.name)
         assert data["status"] == "Resolved"
         assert data["text"] == "4 events in the last 10 minutes\nFilter: level:error"
@@ -93,8 +93,8 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         )
 
         # No trigger passed, uses incident as fallback
-        data = incident_attachment_info(action, incident)
-        assert data["title"] == "Resolved: {}".format(alert_rule.name)
+        data = incident_attachment_info(incident, action=action)
+        assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"
         assert data["text"] == "4 events in the last 10 minutes\nFilter: level:error"
         assert data["ts"] == date_started

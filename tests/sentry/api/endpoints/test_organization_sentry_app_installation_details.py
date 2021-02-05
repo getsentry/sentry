@@ -85,7 +85,7 @@ class DeleteSentryAppInstallationDetailsTest(SentryAppInstallationDetailsTest):
 
 class MarkInstalledSentryAppInstallationsTest(SentryAppInstallationDetailsTest):
     def setUp(self):
-        super(MarkInstalledSentryAppInstallationsTest, self).setUp()
+        super().setUp()
         self.token = GrantExchanger.run(
             install=self.installation,
             code=self.installation.api_grant.code,
@@ -101,7 +101,7 @@ class MarkInstalledSentryAppInstallationsTest(SentryAppInstallationDetailsTest):
         response = self.client.put(
             self.url,
             data={"status": "installed"},
-            HTTP_AUTHORIZATION="Bearer {}".format(self.token.token),
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
             format="json",
         )
         assert response.status_code == 200
@@ -121,7 +121,7 @@ class MarkInstalledSentryAppInstallationsTest(SentryAppInstallationDetailsTest):
         response = self.client.put(
             self.url,
             data={"status": "pending"},
-            HTTP_AUTHORIZATION="Bearer {}".format(self.token.token),
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
             format="json",
         )
         assert response.status_code == 400
@@ -143,7 +143,7 @@ class MarkInstalledSentryAppInstallationsTest(SentryAppInstallationDetailsTest):
         response = self.client.put(
             self.url,
             data={"status": "installed"},
-            HTTP_AUTHORIZATION="Bearer {}".format(self.token.token),
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
             format="json",
         )
         assert response.status_code == 403

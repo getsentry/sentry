@@ -1,10 +1,10 @@
 import logging
+import pickle
 import six
 
 from django.db.models import TextField
 
 from sentry.db.models.utils import Creator
-from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress, compress
 
 __all__ = ("GzippedDictField",)
@@ -23,7 +23,7 @@ class GzippedDictField(TextField):
         Add a descriptor for backwards compatibility
         with previous Django behavior.
         """
-        super(GzippedDictField, self).contribute_to_class(cls, name)
+        super().contribute_to_class(cls, name)
         setattr(cls, name, Creator(self))
 
     def to_python(self, value):

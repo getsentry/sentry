@@ -128,7 +128,7 @@ class GetFramePathsTestCase(unittest.TestCase):
 
 class GetCommitFileChangesTestCase(CommitTestCase):
     def setUp(self):
-        super(GetCommitFileChangesTestCase, self).setUp()
+        super().setUp()
         file_change_1 = self.create_commitfilechange(filename="hello/app.py", type="A")
         file_change_2 = self.create_commitfilechange(filename="hello/templates/app.html", type="A")
         file_change_3 = self.create_commitfilechange(filename="hello/app.py", type="M")
@@ -215,7 +215,7 @@ class GetPreviousReleasesTestCase(TestCase):
 
 class GetEventFileCommitters(CommitTestCase):
     def setUp(self):
-        super(GetEventFileCommitters, self).setUp()
+        super().setUp()
         self.release = self.create_release(project=self.project, version="v12")
         self.group = self.create_group(
             project=self.project, message="Kaboom!", first_release=self.release
@@ -448,7 +448,7 @@ class GetEventFileCommitters(CommitTestCase):
 
 class DedupeCommits(CommitTestCase):
     def setUp(self):
-        super(DedupeCommits, self).setUp()
+        super().setUp()
 
     def test_dedupe_with_same_commit(self):
         commit = self.create_commit().__dict__

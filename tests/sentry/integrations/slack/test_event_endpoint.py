@@ -1,5 +1,5 @@
 import responses
-from six.moves.urllib.parse import parse_qsl
+from urllib.parse import parse_qsl
 
 from sentry import options
 from sentry.utils import json
@@ -70,7 +70,7 @@ MESSAGE_IM_BOT_EVENT = """{
 
 class BaseEventTest(APITestCase):
     def setUp(self):
-        super(BaseEventTest, self).setUp()
+        super().setUp()
         self.user = self.create_user(is_superuser=False)
         self.org = self.create_organization(owner=None)
         self.integration = Integration.objects.create(
@@ -166,16 +166,11 @@ class LinkSharedEventTest(BaseEventTest):
         assert resp.status_code == 200, resp.content
         data = dict(parse_qsl(responses.calls[0].request.body))
         unfurls = json.loads(data["unfurls"])
-        issue_url = "http://testserver/organizations/%s/issues/%s/bar/" % (self.org.slug, group1.id)
-        incident_url = "http://testserver/organizations/%s/incidents/%s/" % (
-            self.org.slug,
-            incident.identifier,
+        issue_url = f"http://testserver/organizations/{self.org.slug}/issues/{group1.id}/bar/"
+        incident_url = (
+            f"http://testserver/organizations/{self.org.slug}/incidents/{incident.identifier}/"
         )
-        event_url = "http://testserver/organizations/%s/issues/%s/events/%s/" % (
-            self.org.slug,
-            group3.id,
-            event.event_id,
-        )
+        event_url = f"http://testserver/organizations/{self.org.slug}/issues/{group3.id}/events/{event.event_id}/"
 
         assert unfurls == {
             issue_url: build_group_attachment(group1),

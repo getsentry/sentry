@@ -1,9 +1,8 @@
 import collections
-import six
 from sentry.utils.compat import map
 
 
-class Meta(object):
+class Meta:
     """
     A lazy view to detached validation and normalization meta data. It allows to
     safely traverse the meta tree and create a deep path lazily. Use ``enter``
@@ -26,7 +25,7 @@ class Meta(object):
         Enters into sub meta data at the specified path. This always returns a
         new ``Meta`` object, regardless whether the path already exists.
         """
-        return Meta(self._meta, path=self._path + map(six.text_type, path))
+        return Meta(self._meta, path=self._path + map(str, path))
 
     @property
     def path(self):
@@ -100,10 +99,7 @@ class Meta(object):
          - ``type`` is the error constant also used in EventError
          - ``data`` a dictionary of additional error infos
         """
-        return (
-            ([err, {}] if isinstance(err, six.string_types) else err)
-            for err in self.get().get("err") or ()
-        )
+        return (([err, {}] if isinstance(err, str) else err) for err in self.get().get("err") or ())
 
     def get_event_errors(self):
         """
@@ -146,7 +142,7 @@ class Meta(object):
         if "err" not in meta or meta["err"] is None:
             meta["err"] = []
 
-        error = six.text_type(error)
+        error = str(error)
         if isinstance(data, collections.Mapping):
             error = [error, dict(data)]
         meta["err"].append(error)

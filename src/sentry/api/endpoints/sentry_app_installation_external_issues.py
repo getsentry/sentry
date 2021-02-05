@@ -1,45 +1,42 @@
+from rest_framework import serializers
 from rest_framework.response import Response
+from sentry.api.serializers.rest_framework import URLField
 
-from sentry.api.bases import SentryAppInstallationBaseEndpoint
+from sentry.api.bases import (
+    SentryAppInstallationExternalIssueBaseEndpoint as ExternalIssueBaseEndpoint,
+)
 from sentry.api.serializers import serialize
-from sentry.mediators.external_issues import IssueLinkCreator
+from sentry.mediators.external_issues import Creator
 from sentry.models import Group, Project
 
 
-class SentryAppInstallationExternalIssuesEndpoint(SentryAppInstallationBaseEndpoint):
+class PlatformExternalIssueSerializer(serializers.Serializer):
+    webUrl = URLField()
+    project = serializers.CharField()
+    identifier = serializers.CharField()
+
+
+class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
     def post(self, request, installation):
-        data = request.data.copy()
-
-        if not set(["groupId", "action", "uri"]).issubset(data.keys()):
-            return Response(status=400)
-
-        group_id = data.get("groupId")
-        del data["groupId"]
+        data = request.data
 
         try:
             group = Group.objects.get(
-                id=group_id,
+                id=data.get("groupId"),
                 project_id__in=Project.objects.filter(organization_id=installation.organization_id),
             )
         except Group.DoesNotExist:
             return Response(status=404)
 
-        action = data["action"]
-        del data["action"]
-
-        uri = data.get("uri")
-        del data["uri"]
-
-        try:
-            external_issue = IssueLinkCreator.run(
+        serializer = PlatformExternalIssueSerializer(data=request.data)
+        if serializer.is_valid():
+            external_issue = Creator.run(
                 install=installation,
                 group=group,
-                action=action,
-                fields=data,
-                uri=uri,
-                user=request.user,
+                web_url=data["webUrl"],
+                project=data["project"],
+                identifier=data["identifier"],
             )
-        except Exception:
-            return Response({"error": "Error communicating with Sentry App service"}, status=400)
+            return Response(serialize(external_issue))
 
-        return Response(serialize(external_issue))
+        return Response(serializer.errors, status=400)

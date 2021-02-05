@@ -22,7 +22,7 @@ INTERNAL_TAG_KEYS = frozenset(("release", "dist", "user", "filename", "function"
 
 
 # TODO(dcramer): pull in enum library
-class TagKeyStatus(object):
+class TagKeyStatus:
     VISIBLE = 0
     PENDING_DELETION = 1
     DELETION_IN_PROGRESS = 2
@@ -92,7 +92,7 @@ class TagStorage(Service):
     def prefix_reserved_key(self, key):
         # XXX(dcramer): kill sentry prefix for internal reserved tags
         if self.is_reserved_key(key):
-            return "sentry:{0}".format(key)
+            return "sentry:{}".format(key)
         else:
             return key
 

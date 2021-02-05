@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 A number of generic default fixtures to use with tests.
 
@@ -6,7 +5,6 @@ All model-related fixtures defined here require the database, and should imply a
 including ``db`` fixture in the function resolution scope.
 """
 
-import io
 import os
 import re
 import sys
@@ -16,7 +14,6 @@ import sentry
 
 import pytest
 import requests
-import six
 
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
@@ -299,10 +296,10 @@ def insta_snapshot(request, log):
             name = name.strip("/")
 
             if subname is not None:
-                name += "_{}".format(subname)
+                name += f"_{subname}"
 
             reference_file = os.path.join(
-                os.path.dirname(six.text_type(request.node.fspath)),
+                os.path.dirname(str(request.node.fspath)),
                 "snapshots",
                 os.path.splitext(os.path.basename(request.node.parent.name))[0],
                 name + ".pysnap",
@@ -312,18 +309,18 @@ def insta_snapshot(request, log):
                 "subname only works if you don't provide your own entire reference_file"
             )
 
-        if not isinstance(output, six.string_types):
+        if not isinstance(output, str):
             output = yaml.dump(
                 output, indent=2, default_flow_style=False, Dumper=ReadableYamlDumper
             )
 
         try:
-            with io.open(reference_file, "rt", encoding="utf-8") as f:
+            with open(reference_file, encoding="utf-8") as f:
                 match = _yaml_snap_re.match(f.read())
                 if match is None:
-                    raise IOError()
+                    raise OSError()
                 _header, refval = match.groups()
-        except IOError:
+        except OSError:
             refval = ""
 
         refval = refval.rstrip()
@@ -332,7 +329,7 @@ def insta_snapshot(request, log):
         if _snapshot_writeback is not None and refval != output:
             if not os.path.isdir(os.path.dirname(reference_file)):
                 os.makedirs(os.path.dirname(reference_file))
-            source = os.path.realpath(six.text_type(request.node.fspath))
+            source = os.path.realpath(str(request.node.fspath))
             if source.startswith(_test_base + os.path.sep):
                 source = source[len(_test_base) + 1 :]
             if _snapshot_writeback == "new":

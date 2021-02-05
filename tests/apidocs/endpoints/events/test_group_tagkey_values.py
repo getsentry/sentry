@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from django.test.client import RequestFactory
 
 from tests.apidocs.util import APIDocsTestCase
@@ -13,7 +10,7 @@ class GroupTagKeyValuesDocs(APIDocsTestCase):
 
         self.login_as(user=self.user)
 
-        self.url = "/api/0/issues/{}/tags/{}/values/".format(event.group_id, key)
+        self.url = f"/api/0/issues/{event.group_id}/tags/{key}/values/"
 
     def test_get(self):
         response = self.client.get(self.url)

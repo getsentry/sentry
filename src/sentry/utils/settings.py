@@ -1,5 +1,4 @@
 import inspect
-import six
 import sys
 
 from sentry.utils.imports import import_string
@@ -25,16 +24,14 @@ def reraise_as(new_exception_or_type):
     e_type, e_value, e_traceback = sys.exc_info()
 
     if inspect.isclass(new_exception_or_type):
-        new_type = new_exception_or_type
         new_exception = new_exception_or_type()
     else:
-        new_type = type(new_exception_or_type)
         new_exception = new_exception_or_type
 
     new_exception.__cause__ = e_value
 
     try:
-        six.reraise(new_type, new_exception, e_traceback)
+        raise new_exception.with_traceback(e_traceback)
     finally:
         del e_traceback
 
@@ -57,7 +54,7 @@ def validate_dependency(settings, dependency_type, dependency, package):
     try:
         import_string(package)
     except ImportError:
-        msg = ConfigurationError.get_error_message("%s %s" % (dependency_type, dependency), package)
+        msg = ConfigurationError.get_error_message(f"{dependency_type} {dependency}", package)
         reraise_as(ConfigurationError(msg))
 
 

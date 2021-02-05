@@ -53,7 +53,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
     ]
 
     def get_group_urls(self):
-        _patterns = super(JiraPlugin, self).get_group_urls()
+        _patterns = super().get_group_urls()
         _patterns.append(
             url(
                 r"^autocomplete",
@@ -141,7 +141,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         return issue_type_meta
 
     def get_new_issue_fields(self, request, group, event, **kwargs):
-        fields = super(JiraPlugin, self).get_new_issue_fields(request, group, event, **kwargs)
+        fields = super().get_new_issue_fields(request, group, event, **kwargs)
 
         jira_project_key = self.get_option("default_project", group.project)
 
@@ -182,7 +182,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         # make sure default issue type is actually
         # one that is allowed for project
         if issue_type:
-            if not any((c for c in issue_type_choices if c[0] == issue_type)):
+            if not any(c for c in issue_type_choices if c[0] == issue_type):
                 issue_type = issue_type_meta["id"]
 
         fields = (
@@ -395,7 +395,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
     def message_from_error(self, exc):
         if isinstance(exc, ApiUnauthorized):
             return "Unauthorized: either your username and password were invalid or you do not have access"
-        return super(JiraPlugin, self).message_from_error(exc)
+        return super().message_from_error(exc)
 
     def error_message_from_json(self, data):
         message = ""
@@ -495,7 +495,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         return [(y["id"], y["name"] if "name" in y else y["value"]) for y in x] if x else []
 
     def validate_config_field(self, project, name, value, actor=None):
-        value = super(JiraPlugin, self).validate_config_field(project, name, value, actor)
+        value = super().validate_config_field(project, name, value, actor)
         # Don't make people update password every time
         if name == "password":
             value = value or self.get_option("password", project)

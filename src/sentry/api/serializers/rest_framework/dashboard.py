@@ -5,6 +5,7 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.event_search import (
     resolve_field_list,
     get_filter,
+    get_function_alias,
     InvalidSearchQuery,
 )
 from sentry.models import (
@@ -45,32 +46,47 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
     fields = serializers.ListField(child=serializers.CharField(), required=False)
     name = serializers.CharField(required=False, allow_blank=True)
     conditions = serializers.CharField(required=False, allow_blank=True)
+    orderby = serializers.CharField(required=False, allow_blank=True)
 
     required_for_create = {"fields", "conditions"}
 
     validate_id = validate_id
 
-    def validate_fields(self, fields):
-        snuba_filter = get_filter("")
-        try:
-            resolve_field_list(fields, snuba_filter)
-            return fields
-        except InvalidSearchQuery as err:
-            raise serializers.ValidationError("Invalid fields: {}".format(err))
-
-    def validate_conditions(self, conditions):
-        try:
-            get_filter(conditions)
-        except InvalidSearchQuery as err:
-            raise serializers.ValidationError("Invalid conditions: {}".format(err))
-        return conditions
-
     def validate(self, data):
         if not data.get("id"):
             keys = set(data.keys())
-            if keys.intersection(self.required_for_create) != self.required_for_create:
-                raise serializers.ValidationError("The fields and conditions fields are required")
+            if self.required_for_create - keys:
+                raise serializers.ValidationError(
+                    {
+                        "fields": "fields are required during creation.",
+                        "conditions": "conditions are required during creation.",
+                    }
+                )
+
+        # Validate the query that would be created when run.
+        conditions = self._get_attr(data, "conditions", "")
+        fields = self._get_attr(data, "fields", [])
+        orderby = self._get_attr(data, "orderby", "")
+        try:
+            snuba_filter = get_filter(conditions)
+        except InvalidSearchQuery as err:
+            raise serializers.ValidationError({"conditions": f"Invalid conditions: {err}"})
+
+        if orderby:
+            snuba_filter.orderby = get_function_alias(orderby)
+        try:
+            resolve_field_list(fields, snuba_filter)
+        except InvalidSearchQuery as err:
+            raise serializers.ValidationError({"fields": f"Invalid fields: {err}"})
         return data
+
+    def _get_attr(self, data, attr, empty_value=None):
+        value = data.get(attr)
+        if value is not None:
+            return value
+        if self.instance:
+            return getattr(self.instance, attr)
+        return empty_value
 
 
 class DashboardWidgetSerializer(CamelSnakeSerializer):
@@ -201,6 +217,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
                     fields=query["fields"],
                     conditions=query["conditions"],
                     name=query.get("name", ""),
+                    orderby=query.get("orderby", ""),
                     order=i,
                 )
             )
@@ -238,6 +255,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
                         fields=query_data["fields"],
                         conditions=query_data["conditions"],
                         name=query_data.get("name", ""),
+                        orderby=query_data.get("orderby", ""),
                         order=next_order + i,
                     )
                 )
@@ -249,6 +267,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         query.name = data.get("name", query.name)
         query.fields = data.get("fields", query.fields)
         query.conditions = data.get("conditions", query.conditions)
+        query.orderby = data.get("orderby", query.orderby)
         query.order = order
         query.save()
 

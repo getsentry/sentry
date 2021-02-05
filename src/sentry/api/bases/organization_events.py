@@ -41,7 +41,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params"):
             if len(request.GET.getlist("field")) > MAX_FIELDS:
                 raise ParseError(
-                    detail="You can view up to {0} fields at a time. Please delete some and try again.".format(
+                    detail="You can view up to {} fields at a time. Please delete some and try again.".format(
                         MAX_FIELDS
                     )
                 )
@@ -156,7 +156,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         # The base API function only uses the last query parameter, but this endpoint
         # needs all the parameters, particularly for the "field" query param.
         querystring = "&".join(
-            "{0}={1}".format(urlquote(query[0]), urlquote(value))
+            "{}={}".format(urlquote(query[0]), urlquote(value))
             for query in request.GET.lists()
             if query[0] != "cursor"
             for value in query[1]
@@ -164,7 +164,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         base_url = absolute_uri(urlquote(request.path))
         if querystring:
-            base_url = "{0}?{1}".format(base_url, querystring)
+            base_url = "{}?{}".format(base_url, querystring)
         else:
             base_url = base_url + "?"
 

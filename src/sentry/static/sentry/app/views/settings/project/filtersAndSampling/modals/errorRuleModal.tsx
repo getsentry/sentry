@@ -1,3 +1,5 @@
+import isEqual from 'lodash/isEqual';
+
 import {t} from 'app/locale';
 import {
   DynamicSamplingConditionOperator,
@@ -7,6 +9,7 @@ import {
 } from 'app/types/dynamicSampling';
 
 import Form from './form';
+import {Transaction} from './utils';
 
 type Props = Form['props'];
 
@@ -40,7 +43,7 @@ class ErrorRuleModal extends Form<Props, State> {
     return [
       [DynamicSamplingInnerName.EVENT_RELEASE, t('Releases')],
       [DynamicSamplingInnerName.EVENT_ENVIRONMENT, t('Environments')],
-      [DynamicSamplingInnerName.EVENT_USER_SEGMENT, t('Users')],
+      [DynamicSamplingInnerName.EVENT_USER, t('Users')],
     ];
   }
 
@@ -56,25 +59,36 @@ class ErrorRuleModal extends Form<Props, State> {
     }));
   };
 
-  handleSubmit = async () => {
-    const {sampleRate, conditions} = this.state;
+  handleSubmit = () => {
+    const {sampleRate, conditions, transaction} = this.state;
 
     if (!sampleRate) {
       return;
     }
 
+    const {rule, errorRules, transactionRules} = this.props;
+
     const newRule: DynamicSamplingRule = {
       type: DynamicSamplingRuleType.ERROR,
       condition: {
         op: DynamicSamplingConditionOperator.AND,
-        inner: conditions.map(this.getNewCondition),
+        inner:
+          transaction === Transaction.ALL ? [] : conditions.map(this.getNewCondition),
       },
-      sampleRate,
+      sampleRate: sampleRate / 100,
     };
 
-    const {onSubmit, closeModal} = this.props;
-    onSubmit(newRule);
-    closeModal();
+    const newRules = rule
+      ? [
+          ...errorRules.map(errorRule =>
+            isEqual(errorRule, rule) ? newRule : errorRule
+          ),
+          ...transactionRules,
+        ]
+      : [...errorRules, newRule, ...transactionRules];
+
+    const currentRuleIndex = newRules.findIndex(newR => newR === newRule);
+    this.submitRules(newRules, currentRuleIndex);
   };
 }
 

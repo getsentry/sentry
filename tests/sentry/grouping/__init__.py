@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from django.utils.functional import cached_property
 
 import os
@@ -20,7 +17,7 @@ from sentry.grouping.api import apply_server_fingerprinting
 _grouping_fixture_path = os.path.join(os.path.dirname(__file__), "grouping_inputs")
 
 
-class GroupingInput(object):
+class GroupingInput:
     def __init__(self, filename):
         self.filename = filename
 
@@ -69,7 +66,7 @@ def with_grouping_input(name):
 _fingerprint_fixture_path = os.path.join(os.path.dirname(__file__), "fingerprint_inputs")
 
 
-class FingerprintInput(object):
+class FingerprintInput:
     def __init__(self, filename):
         self.filename = filename
 

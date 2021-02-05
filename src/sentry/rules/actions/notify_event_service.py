@@ -89,7 +89,7 @@ class NotifyEventServiceForm(forms.Form):
     def __init__(self, *args, **kwargs):
         service_choices = [(s.slug, s.title) for s in kwargs.pop("services")]
 
-        super(NotifyEventServiceForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.fields["service"].choices = service_choices
         self.fields["service"].widget.choices = self.fields["service"].choices
@@ -101,7 +101,7 @@ class NotifyEventServiceAction(EventAction):
     prompt = "Send a notification via an integration"
 
     def __init__(self, *args, **kwargs):
-        super(NotifyEventServiceAction, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.form_fields = {
             "service": {
                 "type": "choice",

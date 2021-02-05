@@ -4,7 +4,7 @@ from uuid import uuid4
 from sentry.utils import json
 
 
-class AppPlatformEvent(object):
+class AppPlatformEvent:
     """
     This data structure encapsulates the payload sent to a SentryApp's webhook.
     """

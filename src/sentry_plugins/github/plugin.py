@@ -88,7 +88,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
     ]
 
     def get_group_urls(self):
-        return super(GitHubPlugin, self).get_group_urls() + [
+        return super().get_group_urls() + [
             url(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
@@ -102,7 +102,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
         return bool(self.get_option("repo", project))
 
     def get_new_issue_fields(self, request, group, event, **kwargs):
-        fields = super(GitHubPlugin, self).get_new_issue_fields(request, group, event, **kwargs)
+        fields = super().get_new_issue_fields(request, group, event, **kwargs)
         return (
             [
                 {
@@ -511,7 +511,7 @@ class GitHubAppsRepositoryProvider(GitHubRepositoryProvider):
         if not repo.config.get("webhook_id") and repo.integration_id is not None:
             return
 
-        return super(GitHubAppsRepositoryProvider, self).delete_repository(repo, actor=actor)
+        return super().delete_repository(repo, actor=actor)
 
     def compare_commits(self, repo, start_sha, end_sha, actor=None):
         integration_id = repo.integration_id

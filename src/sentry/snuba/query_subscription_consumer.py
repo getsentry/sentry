@@ -39,7 +39,7 @@ class InvalidSchemaError(InvalidMessageError):
     pass
 
 
-class QuerySubscriptionConsumer(object):
+class QuerySubscriptionConsumer:
     """
     A Kafka consumer that processes query subscription update messages. Each message has
     a related subscription id and the latest values related to the subscribed query.
@@ -266,7 +266,7 @@ class QuerySubscriptionConsumer(object):
                 )
                 return
 
-            logger.info(
+            logger.debug(
                 "query-subscription-consumer.handle_message",
                 extra={
                     "timestamp": contents["timestamp"],

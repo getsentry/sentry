@@ -5,7 +5,6 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {saveOnBlurUndoMessage} from 'app/actionCreators/indicator';
 import OrganizationSettingsForm from 'app/views/settings/organizationGeneralSettings/organizationSettingsForm';
 
-jest.mock('jquery');
 jest.mock('app/actionCreators/indicator');
 
 describe('OrganizationSettingsForm', function () {

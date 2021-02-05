@@ -6,7 +6,7 @@ from django.utils import timezone
 from .base import Newsletter
 
 
-class NewsletterSubscription(object):
+class NewsletterSubscription:
     def __init__(
         self,
         user,
