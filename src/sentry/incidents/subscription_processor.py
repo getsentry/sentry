@@ -350,10 +350,9 @@ class SubscriptionProcessor:
             )
         )
         # Grab the trigger from first action, since they were already sorted by severity when deduped
-        incident_trigger = actions[0].alert_rule_trigger
-        # All triggers will all be for the same incident and status, so doesn't matter which we grabbed
-        method = "fire" if incident_trigger.status == TriggerStatus.ACTIVE.value else "resolve"
-
+        # All triggers will all be for the same incident and status, so doesn't matter which we grab
+        incident_trigger = incident_triggers[0]
+        method = "fire" if incident_triggers[0].status == TriggerStatus.ACTIVE.value else "resolve"
         for action in actions:
             transaction.on_commit(
                 handle_trigger_action.s(

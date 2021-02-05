@@ -24,7 +24,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
         metric_value = 123
-        data = incident_attachment_info(action, incident, metric_value)
+        data = incident_attachment_info(incident, metric_value, action)
 
         assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"

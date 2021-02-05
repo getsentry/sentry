@@ -12,7 +12,6 @@ QUERY_AGGREGATION_DISPLAY = {
 }
 
 
-# TODO(Chris F.): Fix all the places that call this function so that they pass "method" and "action".
 def incident_attachment_info(incident, metric_value=None, action=None, method=None):
     logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
     alert_rule = incident.alert_rule
