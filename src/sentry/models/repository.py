@@ -88,7 +88,7 @@ def on_delete(instance, actor=None, **kwargs):
         from sentry.shared_integrations.exceptions import IntegrationError
 
         if isinstance(e, (IntegrationError, PluginError, InvalidIdentity)):
-            error = six.text_type(e)
+            error = str(e)
         else:
             error = "An unknown error occurred"
         if actor is not None:

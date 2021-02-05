@@ -27,7 +27,7 @@ class UUIDField(models.Field):
 
         # If the `auto_add` arguments is specified as a string
         # parse out and import the callable.
-        if isinstance(auto_add, six.text_type):
+        if isinstance(auto_add, str):
             module_name, member = auto_add.split(":")
             module = importlib.import_module(module_name)
             auto_add = getattr(module, member)

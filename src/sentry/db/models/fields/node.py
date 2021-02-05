@@ -186,7 +186,7 @@ class NodeField(GzippedDictField):
         # If value is a string, we assume this is a value we've loaded from the
         # database, it should be decompressed/unpickled, and we should end up
         # with a dict.
-        if value and isinstance(value, six.string_types):
+        if value and isinstance(value, str):
             try:
                 value = pickle.loads(decompress(value))
             except Exception as e:

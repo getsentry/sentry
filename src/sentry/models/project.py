@@ -157,9 +157,7 @@ class Project(Model, PendingDeletionMixin):
 
     def is_internal_project(self):
         for value in (settings.SENTRY_FRONTEND_PROJECT, settings.SENTRY_PROJECT):
-            if six.text_type(self.id) == six.text_type(value) or six.text_type(
-                self.slug
-            ) == six.text_type(value):
+            if str(self.id) == str(value) or str(self.slug) == str(value):
                 return True
         return False
 
@@ -446,7 +444,7 @@ class Project(Model, PendingDeletionMixin):
             logging.exception(
                 "Error occurred during copy project settings.",
                 extra={
-                    "error": six.text_type(e),
+                    "error": str(e),
                     "project_to": self.id,
                     "project_from": project_id,
                 },

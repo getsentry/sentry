@@ -88,7 +88,7 @@ class BaseModel(models.Model):
                     v = self.__get_field_value(f)
                 except AttributeError as e:
                     # this case can come up from pickling
-                    logging.exception(six.text_type(e))
+                    logging.exception(str(e))
                 else:
                     if isinstance(v, BitHandler):
                         v = copy(v)

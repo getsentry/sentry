@@ -85,7 +85,7 @@ class ServiceHook(Model):
             self.guid = uuid4().hex
 
     def __str__(self):
-        return six.text_type(self.guid)
+        return str(self.guid)
 
     def build_signature(self, body):
         return hmac.new(

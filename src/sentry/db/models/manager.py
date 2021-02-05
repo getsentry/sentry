@@ -34,7 +34,7 @@ def __prep_value(model, key, value):
     if isinstance(value, Model):
         value = value.pk
     else:
-        value = six.text_type(value)
+        value = str(value)
     return value
 
 

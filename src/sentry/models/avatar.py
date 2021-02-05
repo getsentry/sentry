@@ -71,7 +71,7 @@ class AvatarBase(Model):
                 photo = File.objects.create(name=filename, type=cls.FILE_TYPE)
                 # XXX: Avatar may come in as a string instance in python2
                 # if it's not wrapped in BytesIO.
-                if isinstance(avatar, six.string_types):
+                if isinstance(avatar, str):
                     avatar = BytesIO(force_bytes(avatar))
                 photo.putfile(avatar)
         else:
