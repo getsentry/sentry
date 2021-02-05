@@ -1,5 +1,4 @@
 import logging
-import six
 
 from collections import defaultdict
 
@@ -167,7 +166,7 @@ class GroupAssigneeManager(BaseManager):
                 type=Activity.ASSIGNED,
                 user=acting_user,
                 data={
-                    "assignee": six.text_type(assigned_to.id),
+                    "assignee": str(assigned_to.id),
                     "assigneeEmail": getattr(assigned_to, "email", None),
                     "assigneeType": assignee_type,
                 },

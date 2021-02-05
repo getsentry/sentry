@@ -2,7 +2,6 @@ import logging
 import warnings
 from collections import defaultdict
 
-import six
 from bitfield import BitField
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
@@ -157,9 +156,7 @@ class Project(Model, PendingDeletionMixin):
 
     def is_internal_project(self):
         for value in (settings.SENTRY_FRONTEND_PROJECT, settings.SENTRY_PROJECT):
-            if six.text_type(self.id) == six.text_type(value) or six.text_type(
-                self.slug
-            ) == six.text_type(value):
+            if str(self.id) == str(value) or str(self.slug) == str(value):
                 return True
         return False
 
@@ -255,7 +252,7 @@ class Project(Model, PendingDeletionMixin):
         from sentry.models import UserOption
 
         alert_settings = self.get_member_alert_settings(user_option)
-        disabled = {u for u, v in six.iteritems(alert_settings) if v == 0}
+        disabled = {u for u, v in alert_settings.items() if v == 0}
 
         member_set = set(self.member_set.exclude(user__in=disabled).values_list("user", flat=True))
 
@@ -439,14 +436,14 @@ class Project(Model, PendingDeletionMixin):
                         setting.save()
 
                 options = ProjectOption.objects.get_all_values(project=project)
-                for key, value in six.iteritems(options):
+                for key, value in options.items():
                     self.update_option(key, value)
 
         except IntegrityError as e:
             logging.exception(
                 "Error occurred during copy project settings.",
                 extra={
-                    "error": six.text_type(e),
+                    "error": str(e),
                     "project_to": self.id,
                     "project_from": project_id,
                 },

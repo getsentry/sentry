@@ -1,6 +1,5 @@
 import logging
 import re
-import six
 import sentry_sdk
 import itertools
 
@@ -537,7 +536,7 @@ class Release(Model):
                     if not created:
                         commit_data = {
                             key: value
-                            for key, value in six.iteritems(commit_data)
+                            for key, value in commit_data.items()
                             if getattr(commit, key) != value
                         }
                         if commit_data:
@@ -581,7 +580,7 @@ class Release(Model):
                 self.update(
                     commit_count=len(commit_list),
                     authors=[
-                        six.text_type(a_id)
+                        str(a_id)
                         for a_id in ReleaseCommit.objects.filter(
                             release=self, commit__author_id__isnull=False
                         )
@@ -593,7 +592,7 @@ class Release(Model):
                 metrics.timing("release.set_commits.duration", time() - start)
 
         # fill any missing ReleaseHeadCommit entries
-        for repo_id, commit_id in six.iteritems(head_commit_by_repo):
+        for repo_id, commit_id in head_commit_by_repo.items():
             try:
                 with transaction.atomic():
                     ReleaseHeadCommit.objects.create(

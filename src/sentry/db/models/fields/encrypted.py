@@ -5,7 +5,6 @@ __all__ = (
     "EncryptedTextField",
 )
 
-import six
 
 from django.db.models import CharField, TextField
 from picklefield.fields import PickledObjectField, dbsafe_decode, PickledObject, _ObjectWrapper
@@ -28,7 +27,7 @@ class EncryptedCharField(CharField):
         return encrypt(value)
 
     def to_python(self, value):
-        if value is not None and isinstance(value, six.string_types):
+        if value is not None and isinstance(value, str):
             value = decrypt(value)
         return super().to_python(value)
 
@@ -39,20 +38,20 @@ class EncryptedJsonField(JSONField):
         return encrypt(value)
 
     def to_python(self, value):
-        if value is not None and isinstance(value, six.string_types):
+        if value is not None and isinstance(value, str):
             value = decrypt(value)
         return super().to_python(value)
 
 
 class EncryptedPickledObjectField(PickledObjectField):
     def get_db_prep_value(self, value, *args, **kwargs):
-        if isinstance(value, six.binary_type):
+        if isinstance(value, bytes):
             value = value.decode("utf-8")
         value = super().get_db_prep_value(value, *args, **kwargs)
         return encrypt(value)
 
     def to_python(self, value):
-        if value is not None and isinstance(value, six.string_types):
+        if value is not None and isinstance(value, str):
             value = decrypt(value)
 
         # The following below is a copypaste of PickledObjectField.to_python of
@@ -88,6 +87,6 @@ class EncryptedTextField(TextField):
         return encrypt(value)
 
     def to_python(self, value):
-        if value is not None and isinstance(value, six.string_types):
+        if value is not None and isinstance(value, str):
             value = decrypt(value)
         return super().to_python(value)

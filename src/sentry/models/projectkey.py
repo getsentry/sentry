@@ -1,5 +1,4 @@
 import petname
-import six
 import re
 
 from bitfield import BitField
@@ -10,7 +9,7 @@ from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 from sentry import options, features
 from sentry.db.models import (
@@ -101,7 +100,7 @@ class ProjectKey(Model):
     __repr__ = sane_repr("project_id", "public_key")
 
     def __str__(self):
-        return six.text_type(self.public_key)
+        return str(self.public_key)
 
     @classmethod
     def generate_api_key(cls):

@@ -1,5 +1,3 @@
-import six
-
 from bitfield import BitField
 from datetime import timedelta
 from django.conf import settings
@@ -12,7 +10,7 @@ from enum import Enum
 from hashlib import md5
 from structlog import get_logger
 from uuid import uuid4
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from sentry import roles
 from sentry.constants import EVENTS_MEMBER_ADMIN_DEFAULT, ALERTS_MEMBER_WRITE_DEFAULT
@@ -90,7 +88,7 @@ class OrganizationMember(Model):
         settings.AUTH_USER_MODEL, null=True, blank=True, related_name="sentry_orgmember_set"
     )
     email = models.EmailField(null=True, blank=True, max_length=75)
-    role = models.CharField(max_length=32, default=six.text_type(roles.get_default().id))
+    role = models.CharField(max_length=32, default=str(roles.get_default().id))
     flags = BitField(
         flags=(("sso:linked", "sso:linked"), ("sso:invalid", "sso:invalid")), default=0
     )
@@ -195,7 +193,7 @@ class OrganizationMember(Model):
     @property
     def legacy_token(self):
         checksum = md5()
-        checksum.update(six.text_type(self.organization_id).encode("utf-8"))
+        checksum.update(str(self.organization_id).encode("utf-8"))
         checksum.update(self.get_email().encode("utf-8"))
         checksum.update(force_bytes(settings.SECRET_KEY))
         return checksum.hexdigest()
