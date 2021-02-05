@@ -325,7 +325,7 @@ type PickerProps = ControlProps & {
    */
   async?: boolean;
   /**
-   * Enable 'create' mode which allows values to be created inline
+   * Enable 'create' mode which allows values to be created inline.
    */
   creatable?: boolean;
   /**
