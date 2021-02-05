@@ -219,6 +219,15 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     });
   };
 
+  handleAddOverlay = () => {
+    this.setState(prevState => {
+      const newState = cloneDeep(prevState);
+      newState.queries.push(cloneDeep(newQuery));
+
+      return newState;
+    });
+  };
+
   render() {
     const {
       Footer,
@@ -321,6 +330,15 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               );
             }}
           </Measurements>
+          <AddOverlayButton
+            size="small"
+            onClick={(event: React.MouseEvent) => {
+              event.preventDefault();
+              this.handleAddOverlay();
+            }}
+          >
+            {t('Add Overlay')}
+          </AddOverlayButton>
           <WidgetCard
             api={api}
             organization={organization}
@@ -368,6 +386,10 @@ const DoubleFieldWrapper = styled('div')`
   grid-template-columns: repeat(2, 1fr);
   grid-column-gap: ${space(1)};
   width: 100%;
+`;
+
+const AddOverlayButton = styled(Button)`
+  margin-bottom: ${space(2)};
 `;
 
 export default withApi(withGlobalSelection(withTags(AddDashboardWidgetModal)));
