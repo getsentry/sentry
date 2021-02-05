@@ -3,37 +3,35 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 from django.db import migrations
 
 # SearchVisitor.numeric_keys + SearchVisitor.date_keys
-OPERATOR_KEYS = set(
-    [
-        "project_id",
-        "project.id",
-        "issue.id",
-        "device.battery_level",
-        "device.charging",
-        "device.online",
-        "device.simulator",
-        "error.handled",
-        "stack.colno",
-        "stack.in_app",
-        "stack.lineno",
-        "stack.stack_level",
-        "transaction.duration",
-        "apdex",
-        "impact",
-        "p75",
-        "p95",
-        "p99",
-        "error_rate",
-        "start",
-        "end",
-        "first_seen",
-        "last_seen",
-        "time",
-        "timestamp",
-        "transaction.start_time",
-        "transaction.end_time",
-    ]
-)
+OPERATOR_KEYS = {
+    "project_id",
+    "project.id",
+    "issue.id",
+    "device.battery_level",
+    "device.charging",
+    "device.online",
+    "device.simulator",
+    "error.handled",
+    "stack.colno",
+    "stack.in_app",
+    "stack.lineno",
+    "stack.stack_level",
+    "transaction.duration",
+    "apdex",
+    "impact",
+    "p75",
+    "p95",
+    "p99",
+    "error_rate",
+    "start",
+    "end",
+    "first_seen",
+    "last_seen",
+    "time",
+    "timestamp",
+    "transaction.start_time",
+    "transaction.end_time",
+}
 
 
 # Aggregates are now fields

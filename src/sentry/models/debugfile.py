@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 # 10 minutes is assumed to be a reasonable value here.
 CONVERSION_ERROR_TTL = 60 * 10
 
-DIF_MIMETYPES = dict((v, k) for k, v in KNOWN_DIF_FORMATS.items())
+DIF_MIMETYPES = {v: k for k, v in KNOWN_DIF_FORMATS.items()}
 
 _proguard_file_re = re.compile(r"/proguard/(?:mapping-)?(.*?)\.txt$")
 

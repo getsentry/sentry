@@ -60,6 +60,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterUniqueTogether(
             name="exporteddatablob",
-            unique_together=set([("data_export", "blob", "offset")]),
+            unique_together={("data_export", "blob", "offset")},
         ),
     ]

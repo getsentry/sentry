@@ -250,7 +250,7 @@ class GroupManager(BaseManager):
             referrer="Group.filter_by_event_id",
         )
 
-        group_ids = set([evt.group_id for evt in data])
+        group_ids = {evt.group_id for evt in data}
 
         return Group.objects.filter(id__in=group_ids)
 
