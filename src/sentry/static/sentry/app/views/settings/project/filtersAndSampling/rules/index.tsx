@@ -62,7 +62,7 @@ class Rules extends React.PureComponent<Props, State> {
   }
 
   render() {
-    const {onEditRule, disabled, onDeleteRule} = this.props;
+    const {onEditRule, onDeleteRule, disabled} = this.props;
     const {rules} = this.state;
 
     return (
@@ -74,28 +74,13 @@ class Rules extends React.PureComponent<Props, State> {
         <DraggableList
           items={rules.map(rule => rule.id)}
           onUpdateItems={this.handleUpdateRules}
-          renderItem={({
-            value,
-            listeners,
-            attributes,
-            forwardRef,
-            transform,
-            transition,
-            style: grabStyle,
-          }) => {
+          disabled={disabled}
+          renderItem={({value, listeners, attributes, style: grabStyle}) => {
             const currentRule = rules.find(rule => rule.id === value);
 
             if (!currentRule) {
               return null;
             }
-
-            const style = {
-              transition,
-              '--translate-x': transform ? `${Math.round(transform.x)}px` : undefined,
-              '--translate-y': transform ? `${Math.round(transform.y)}px` : undefined,
-              '--scale-x': transform?.scaleX ? `${transform.scaleX}` : undefined,
-              '--scale-y': transform?.scaleY ? `${transform.scaleY}` : undefined,
-            } as React.CSSProperties;
 
             const {id: _id, ...rule} = currentRule;
 
@@ -105,9 +90,7 @@ class Rules extends React.PureComponent<Props, State> {
                 onEditRule={onEditRule(rule)}
                 onDeleteRule={onDeleteRule(rule)}
                 disabled={disabled}
-                rootStyle={style}
                 grabStyle={grabStyle}
-                forwardRef={forwardRef as React.Ref<HTMLDivElement> | undefined}
                 listeners={listeners}
                 grabAttributes={attributes}
               />
