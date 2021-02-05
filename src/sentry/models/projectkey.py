@@ -9,7 +9,7 @@ from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 from sentry import options, features
 from sentry.db.models import (

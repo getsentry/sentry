@@ -10,7 +10,7 @@ from enum import Enum
 from hashlib import md5
 from structlog import get_logger
 from uuid import uuid4
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from sentry import roles
 from sentry.constants import EVENTS_MEMBER_ADMIN_DEFAULT, ALERTS_MEMBER_WRITE_DEFAULT
