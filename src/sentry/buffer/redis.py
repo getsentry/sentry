@@ -22,7 +22,7 @@ _local_buffers = None
 _local_buffers_lock = threading.Lock()
 
 
-class PendingBuffer(object):
+class PendingBuffer:
     def __init__(self, size):
         assert size > 0
         self.buffer = [None] * size
@@ -308,6 +308,6 @@ class RedisBuffer(Buffer):
                 elif k == "s":
                     signal_only = bool(int(v))  # Should be 1 if set
 
-            super(RedisBuffer, self).process(model, incr_values, filters, extra_values, signal_only)
+            super().process(model, incr_values, filters, extra_values, signal_only)
         finally:
             client.delete(lock_key)

@@ -15,8 +15,7 @@ class BufferMount(type):
         return new_cls
 
 
-@six.add_metaclass(BufferMount)
-class Buffer(Service):
+class Buffer(Service, metaclass=BufferMount):
     """
     Buffers act as temporary stores for counters. The default implementation is just a passthru and
     does not actually buffer anything.

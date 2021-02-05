@@ -126,7 +126,7 @@ def get_latest_offset(consumer, topic, partition):
     return high
 
 
-class SynchronizedConsumer(object):
+class SynchronizedConsumer:
     """
     This class implements the framework for a consumer that is intended to only
     consume messages that have already been consumed and committed by members

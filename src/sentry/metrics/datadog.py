@@ -17,7 +17,7 @@ class DatadogMetricsBackend(MetricsBackend):
         else:
             self.host = get_hostname()
         initialize(**kwargs)
-        super(DatadogMetricsBackend, self).__init__(prefix=prefix)
+        super().__init__(prefix=prefix)
 
     def __del__(self):
         try:

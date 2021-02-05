@@ -61,7 +61,7 @@ class SentryTask(Task):
 
 class SentryRequest(Request):
     def __init__(self, message, **kwargs):
-        super(SentryRequest, self).__init__(message, **kwargs)
+        super().__init__(message, **kwargs)
         self._request_dict["headers"] = message.headers
 
 

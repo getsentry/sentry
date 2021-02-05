@@ -1,4 +1,3 @@
-import six
 from hashlib import md5 as _md5
 from hashlib import sha1 as _sha1
 
@@ -26,20 +25,20 @@ def hash_value(h, value):
         h.update(b"\x01")
     elif value is False:
         h.update(b"\x02")
-    elif isinstance(value, six.integer_types):
-        h.update(b"\x03" + six.text_type(value).encode("ascii") + b"\x00")
+    elif isinstance(value, int):
+        h.update(b"\x03" + str(value).encode("ascii") + b"\x00")
     elif isinstance(value, (tuple, list)):
-        h.update(b"\x04" + six.text_type(len(value)).encode("utf-8"))
+        h.update(b"\x04" + str(len(value)).encode("utf-8"))
         for item in value:
             hash_value(h, item)
     elif isinstance(value, dict):
-        h.update(b"\x05" + six.text_type(len(value)).encode("utf-8"))
-        for k, v in six.iteritems(value):
+        h.update(b"\x05" + str(len(value)).encode("utf-8"))
+        for k, v in value.items():
             hash_value(h, k)
             hash_value(h, v)
     elif isinstance(value, bytes):
         h.update(b"\x06" + value + b"\x00")
-    elif isinstance(value, six.text_type):
+    elif isinstance(value, str):
         h.update(b"\x07" + value.encode("utf-8") + b"\x00")
     else:
         raise TypeError("Invalid hash value")

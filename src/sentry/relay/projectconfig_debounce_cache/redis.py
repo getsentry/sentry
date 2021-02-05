@@ -19,7 +19,7 @@ class RedisProjectConfigDebounceCache(ProjectConfigDebounceCache):
         self.is_redis_cluster, self.cluster, options = get_dynamic_cluster_from_options(
             "SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS", options
         )
-        super(RedisProjectConfigDebounceCache, self).__init__(**options)
+        super().__init__(**options)
 
     def validate(self):
         validate_dynamic_cluster(self.is_redis_cluster, self.cluster)

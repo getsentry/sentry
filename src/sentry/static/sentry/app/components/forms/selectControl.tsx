@@ -85,6 +85,7 @@ function SelectControl(props: ControlProps) {
     padding: '4px',
     alignItems: 'center',
     cursor: 'pointer',
+    color: theme.subText,
   });
 
   const defaultStyles: StylesConfig = {

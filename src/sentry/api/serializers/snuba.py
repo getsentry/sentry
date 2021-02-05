@@ -156,7 +156,7 @@ def zerofill(data, start, end, rollup):
     return rv
 
 
-class SnubaLookup(object):
+class SnubaLookup:
     """
     A SnubaLookup consists of all of the attributes needed to facilitate making
     a query for a column in Snuba. This covers which columns are selected, the extra conditions
@@ -244,7 +244,7 @@ for _tag in ("transaction", "os", "os.name", "browser", "browser.name", "device"
     SnubaLookup(_tag, "tags[%s]" % _tag)
 
 
-class BaseSnubaSerializer(object):
+class BaseSnubaSerializer:
     def __init__(self, organization, lookup, user):
         self.organization = organization
         self.lookup = lookup

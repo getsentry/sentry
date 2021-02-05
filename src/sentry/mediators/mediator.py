@@ -11,7 +11,7 @@ from sentry.utils.functional import compact
 from .param import Param
 
 
-class Mediator(object):
+class Mediator:
     """
     Objects that encapsulate domain logic.
 

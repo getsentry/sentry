@@ -38,7 +38,7 @@ class AuthenticatorInterfaceSerializer(Serializer):
 @register(SmsInterface)
 class SmsInterfaceSerializer(AuthenticatorInterfaceSerializer):
     def serialize(self, obj, attrs, user):
-        data = super(SmsInterfaceSerializer, self).serialize(obj, attrs, user)
+        data = super().serialize(obj, attrs, user)
         data["phone"] = obj.phone_number
         return data
 

@@ -86,7 +86,7 @@ describe('TransactionsList', function () {
           },
         },
         {
-          predicate: (_, opts) => opts && opts.query && opts.query.sort === 'transaction',
+          predicate: (_, opts) => opts?.query?.sort === 'transaction',
         }
       );
       MockApiClient.addMockResponse(
@@ -101,7 +101,7 @@ describe('TransactionsList', function () {
           },
         },
         {
-          predicate: (_, opts) => opts && opts.query && opts.query.sort === '-count',
+          predicate: (_, opts) => opts?.query?.sort === '-count',
         }
       );
       MockApiClient.addMockResponse({

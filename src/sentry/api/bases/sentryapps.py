@@ -95,7 +95,7 @@ class SentryAppsPermission(SentryPermission):
 class IntegrationPlatformEndpoint(Endpoint):
     def dispatch(self, request, *args, **kwargs):
         add_request_metric_tags(request, integration_platform=True)
-        return super(IntegrationPlatformEndpoint, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
 
 class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
@@ -311,7 +311,7 @@ class SentryAppInstallationPermission(SentryPermission):
             and request.method == "PUT"
         ):
             return True
-        return super(SentryAppInstallationPermission, self).has_permission(request, *args, **kwargs)
+        return super().has_permission(request, *args, **kwargs)
 
     def has_object_permission(self, request, view, installation):
         if not hasattr(request, "user") or not request.user:
@@ -348,6 +348,17 @@ class SentryAppInstallationBaseEndpoint(IntegrationPlatformEndpoint):
 
         kwargs["installation"] = installation
         return (args, kwargs)
+
+
+class SentryAppInstallationExternalIssuePermission(SentryAppInstallationPermission):
+    scope_map = {
+        "POST": ("event:read", "event:write", "event:admin"),
+        "DELETE": ("event:admin"),
+    }
+
+
+class SentryAppInstallationExternalIssueBaseEndpoint(SentryAppInstallationBaseEndpoint):
+    permission_classes = (SentryAppInstallationExternalIssuePermission,)
 
 
 class SentryAppAuthorizationsPermission(SentryPermission):

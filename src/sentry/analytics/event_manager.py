@@ -1,7 +1,7 @@
 __all__ = ("default_manager", "EventManager")
 
 
-class EventManager(object):
+class EventManager:
     def __init__(self):
         self._event_types = {}
 

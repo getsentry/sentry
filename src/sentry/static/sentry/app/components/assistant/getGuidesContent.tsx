@@ -102,6 +102,7 @@ export default function getGuidesContent(): GuidesContent {
     },
     {
       guide: 'inbox_guide',
+      carryAssistantForward: true,
       requiredTargets: ['inbox_guide_tab'],
       dateThreshold: new Date(2021, 1, 26),
       steps: [

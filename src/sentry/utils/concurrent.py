@@ -2,13 +2,10 @@ import logging
 import threading
 import collections
 import functools
-
-from six.moves.queue import Full, PriorityQueue
+from queue import Full, PriorityQueue
 from concurrent.futures import Future
 from concurrent.futures._base import RUNNING, FINISHED
 from time import time
-
-from six.moves import xrange
 
 
 logger = logging.getLogger(__name__)
@@ -47,7 +44,7 @@ class PriorityTask(collections.namedtuple("PriorityTask", "priority item")):
 class TimedFuture(Future):
     def __init__(self, *args, **kwargs):
         self.__timing = [None, None]  # [started, finished/cancelled]
-        super(TimedFuture, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def get_timing(self):
         """\
@@ -74,7 +71,7 @@ class TimedFuture(Future):
         return tuple(self.__timing)
 
     def set_running_or_notify_cancel(self, *args, **kwargs):
-        result = super(TimedFuture, self).set_running_or_notify_cancel(*args, **kwargs)
+        result = super().set_running_or_notify_cancel(*args, **kwargs)
         # This method can only be called once (the second invocation will raise
         # a ``RuntimeError``) so if we've gotten this far we can be reasonably
         # confident that the start time hasn't been set.
@@ -92,22 +89,22 @@ class TimedFuture(Future):
             # future was cancelled.
             if self._state not in [RUNNING, FINISHED] and self.__timing[1] is None:
                 self.__timing[1] = time()
-            return super(TimedFuture, self).cancel(*args, **kwargs)
+            return super().cancel(*args, **kwargs)
 
     def set_result(self, *args, **kwargs):
         with self._condition:
             # This method always overwrites the result, so we always overwrite
             # the timing, even if another timing was already recorded.
             self.__timing[1] = time()
-            return super(TimedFuture, self).set_result(*args, **kwargs)
+            return super().set_result(*args, **kwargs)
 
     def set_exception(self, *args, **kwargs):
         with self._condition:
             self.__timing[1] = time()
-            return super(TimedFuture, self).set_exception(*args, **kwargs)
+            return super().set_exception(*args, **kwargs)
 
 
-class Executor(object):
+class Executor:
     """
     This class provides an API for executing tasks in different contexts
     (immediately, or asynchronously.)
@@ -171,7 +168,7 @@ class ThreadedExecutor(Executor):
 
     def __init__(self, worker_count=1, maxsize=0):
         self.__worker_count = worker_count
-        self.__workers = set([])
+        self.__workers = set()
         self.__started = False
         self.__queue = PriorityQueue(maxsize)
         self.__lock = threading.Lock()
@@ -195,7 +192,7 @@ class ThreadedExecutor(Executor):
             if self.__started:
                 return
 
-            for i in xrange(self.__worker_count):
+            for i in range(self.__worker_count):
                 t = threading.Thread(target=self.__worker)
                 t.daemon = True
                 t.start()
@@ -227,7 +224,7 @@ class ThreadedExecutor(Executor):
         return future
 
 
-class FutureSet(object):
+class FutureSet:
     """\
     Coordinates a set of ``Future`` objects (either from
     ``concurrent.futures``, or otherwise API compatible), and allows for

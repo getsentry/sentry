@@ -298,22 +298,24 @@ class RuleNode extends React.Component<Props> {
     formData: {[key: string]: string},
     fetchedFieldOptionsCache: Record<string, Choices>
   ): void => {
-    const {data, index, onPropertyChange} = this.props;
-    for (const [name, value] of Object.entries(formData)) {
-      onPropertyChange(index, name, value);
-    }
+    const {index, onPropertyChange} = this.props;
 
     // We only know the choices after the form loads.
-    for (const [name, choices] of Object.entries(fetchedFieldOptionsCache)) {
-      // If a value was actually selected.
-      if (name in formData) {
-        const dynamicFormFieldsCopy = data.dynamic_form_fields as any;
+    formData.dynamic_form_fields = ((formData.dynamic_form_fields as any) || []).map(
+      field => {
         // Overwrite the choices because the user's pick is in this list.
-        if (dynamicFormFieldsCopy?.hasOwnProperty(name)) {
-          dynamicFormFieldsCopy[name].choices = choices;
-          onPropertyChange(index, 'dynamic_form_fields', dynamicFormFieldsCopy);
+        if (
+          field.name in formData &&
+          fetchedFieldOptionsCache?.hasOwnProperty(field.name)
+        ) {
+          field.choices = fetchedFieldOptionsCache[field.name];
         }
+        return field;
       }
+    );
+
+    for (const [name, value] of Object.entries(formData)) {
+      onPropertyChange(index, name, value);
     }
   };
 

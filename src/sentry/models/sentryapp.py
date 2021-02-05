@@ -170,7 +170,7 @@ class SentryApp(ParanoidModel, HasApiScopes):
 
     def save(self, *args, **kwargs):
         self.date_updated = timezone.now()
-        return super(SentryApp, self).save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     def is_installed_on(self, organization):
         return SentryAppInstallation.objects.filter(

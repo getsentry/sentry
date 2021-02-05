@@ -24,7 +24,6 @@ import os
 import os.path
 import pytest
 import requests
-import six
 import time
 import inspect
 from uuid import uuid4
@@ -50,7 +49,7 @@ from exam import before, fixture, Exam
 from sentry.utils.compat.mock import patch
 from pkg_resources import iter_entry_points
 from rest_framework.test import APITestCase as BaseAPITestCase
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from sentry import auth
 from sentry import eventstore
@@ -155,7 +154,7 @@ class BaseTestCase(Fixtures, Exam):
 
     def save_cookie(self, name, value, **params):
         self.client.cookies[name] = value
-        self.client.cookies[name].update({k.replace("_", "-"): v for k, v in six.iteritems(params)})
+        self.client.cookies[name].update({k.replace("_", "-"): v for k, v in params.items()})
 
     def make_request(self, user=None, auth=None, method=None):
         request = HttpRequest()
@@ -200,7 +199,7 @@ class BaseTestCase(Fixtures, Exam):
 
         # TODO(dcramer): ideally this would get abstracted
         if organization_ids:
-            request.session[SSO_SESSION_KEY] = ",".join(six.text_type(o) for o in organization_ids)
+            request.session[SSO_SESSION_KEY] = ",".join(str(o) for o in organization_ids)
 
         # logging in implicitly binds superuser, but for test cases we
         # want that action to be explicit to avoid accidentally testing
@@ -232,14 +231,14 @@ class BaseTestCase(Fixtures, Exam):
             return fp.read()
 
     def _pre_setup(self):
-        super(BaseTestCase, self)._pre_setup()
+        super()._pre_setup()
 
         cache.clear()
         ProjectOption.objects.clear_local_cache()
         GroupMeta.objects.clear_local_cache()
 
     def _post_teardown(self):
-        super(BaseTestCase, self)._post_teardown()
+        super()._post_teardown()
 
     def options(self, options):
         """
@@ -281,10 +280,10 @@ class _AssertQueriesContext(CaptureQueriesContext):
         self.test_case = test_case
         self.queries = queries
         self.debug = debug
-        super(_AssertQueriesContext, self).__init__(connection)
+        super().__init__(connection)
 
     def __exit__(self, exc_type, exc_value, traceback):
-        super(_AssertQueriesContext, self).__exit__(exc_type, exc_value, traceback)
+        super().__exit__(exc_type, exc_value, traceback)
         if exc_type is not None:
             return
 
@@ -344,7 +343,7 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
         # this here.
         if "qs_params" in params:
             query_string = urlencode(params.pop("qs_params"), doseq=True)
-            url = "{}?{}".format(url, query_string)
+            url = f"{url}?{query_string}"
 
         method = params.pop("method", self.method)
 
@@ -415,7 +414,7 @@ class AuthProviderTestCase(TestCase):
     provider_name = "dummy"
 
     def setUp(self):
-        super(AuthProviderTestCase, self).setUp()
+        super().setUp()
         # TestCase automatically sets up dummy provider
         if self.provider_name != "dummy" or self.provider != DummyProvider:
             auth.register(self.provider_name, self.provider)
@@ -455,7 +454,7 @@ class RuleTestCase(TestCase):
 
 class PermissionTestCase(TestCase):
     def setUp(self):
-        super(PermissionTestCase, self).setUp()
+        super().setUp()
         self.owner = self.create_user(is_superuser=False)
         self.organization = self.create_organization(
             owner=self.owner, flags=0  # disable default allow_joinleave access
@@ -541,7 +540,7 @@ class PluginTestCase(TestCase):
     plugin = None
 
     def setUp(self):
-        super(PluginTestCase, self).setUp()
+        super().setUp()
 
         # Old plugins, plugin is a class, new plugins, it's an instance
         # New plugins don't need to be registered
@@ -559,7 +558,7 @@ class PluginTestCase(TestCase):
                     "Found app in entry_points, but wrong class. Got %r, expected %r"
                     % (ep_path, path)
                 )
-        self.fail("Missing app from entry_points: %r" % (name,))
+        self.fail(f"Missing app from entry_points: {name!r}")
 
     def assertPluginInstalled(self, name, plugin):
         path = type(plugin).__module__ + ":" + type(plugin).__name__
@@ -572,7 +571,7 @@ class PluginTestCase(TestCase):
                     "Found plugin in entry_points, but wrong class. Got %r, expected %r"
                     % (ep_path, path)
                 )
-        self.fail("Missing plugin from entry_points: %r" % (name,))
+        self.fail(f"Missing plugin from entry_points: {name!r}")
 
 
 class CliTestCase(TestCase):
@@ -595,7 +594,7 @@ class AcceptanceTestCase(TransactionTestCase):
         )
         patcher.start()
         self.addCleanup(patcher.stop)
-        super(AcceptanceTestCase, self).setUp()
+        super().setUp()
 
     def save_cookie(self, name, value, **params):
         self.browser.save_cookie(name=name, value=value, **params)
@@ -609,7 +608,7 @@ class AcceptanceTestCase(TransactionTestCase):
     def dismiss_assistant(self, which=None):
         if which is None:
             which = ("issue", "issue_stream")
-        if isinstance(which, six.string_types):
+        if isinstance(which, str):
             which = [which]
 
         for item in which:
@@ -627,7 +626,7 @@ class IntegrationTestCase(TestCase):
     def setUp(self):
         from sentry.integrations.pipeline import IntegrationPipeline
 
-        super(IntegrationTestCase, self).setUp()
+        super().setUp()
 
         self.organization = self.create_organization(name="foo", owner=self.user)
         self.login_as(self.user)
@@ -645,7 +644,7 @@ class IntegrationTestCase(TestCase):
         self.setup_path = reverse(
             "sentry-extension-setup", kwargs={"provider_id": self.provider.key}
         )
-        self.configure_path = "/extensions/{}/configure/".format(self.provider.key)
+        self.configure_path = f"/extensions/{self.provider.key}/configure/"
 
         self.pipeline.initialize()
         self.save_session()
@@ -664,7 +663,7 @@ class SnubaTestCase(BaseTestCase):
     """
 
     def setUp(self):
-        super(SnubaTestCase, self).setUp()
+        super().setUp()
         self.init_snuba()
 
     @pytest.fixture(autouse=True)
@@ -701,9 +700,7 @@ class SnubaTestCase(BaseTestCase):
             attempt += 1
             time.sleep(0.05)
         if attempt == attempts:
-            assert False, "Could not ensure event was persisted within {} attempt(s)".format(
-                attempt
-            )
+            assert False, f"Could not ensure event was persisted within {attempt} attempt(s)"
 
     def store_session(self, session):
         assert (
@@ -819,7 +816,7 @@ class BaseIncidentsTest(SnubaTestCase):
 @requires_snuba
 class OutcomesSnubaTest(TestCase):
     def setUp(self):
-        super(OutcomesSnubaTest, self).setUp()
+        super().setUp()
         assert requests.post(settings.SENTRY_SNUBA + "/tests/outcomes/drop").status_code == 200
 
     def __format(self, org_id, project_id, outcome, timestamp, key_id):
@@ -847,7 +844,7 @@ class OutcomesSnubaTest(TestCase):
 
 class IntegrationRepositoryTestCase(APITestCase):
     def setUp(self):
-        super(IntegrationRepositoryTestCase, self).setUp()
+        super().setUp()
         self.login_as(self.user)
 
     def add_create_repository_responses(self, repository_config):
@@ -912,7 +909,7 @@ class ReleaseCommitPatchTest(APITestCase):
 
 class SetRefsTestCase(APITestCase):
     def setUp(self):
-        super(SetRefsTestCase, self).setUp()
+        super().setUp()
         self.user = self.create_user(is_staff=False, is_superuser=False)
         self.org = self.create_organization()
 
@@ -951,7 +948,7 @@ class SetRefsTestCase(APITestCase):
 
 class OrganizationDashboardWidgetTestCase(APITestCase):
     def setUp(self):
-        super(OrganizationDashboardWidgetTestCase, self).setUp()
+        super().setUp()
         self.login_as(self.user)
         self.dashboard = Dashboard.objects.create(
             title="Dashboard 1", created_by=self.user, organization=self.organization
@@ -1000,7 +997,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
 
     def assert_serialized_widget_query(self, data, widget_data_source):
         if "id" in data:
-            assert data["id"] == six.text_type(widget_data_source.id)
+            assert data["id"] == str(widget_data_source.id)
         if "name" in data:
             assert data["name"] == widget_data_source.name
         if "fields" in data:
@@ -1015,7 +1012,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
 
     def assert_serialized_widget(self, data, expected_widget):
         if "id" in data:
-            assert data["id"] == six.text_type(expected_widget.id)
+            assert data["id"] == str(expected_widget.id)
         if "title" in data:
             assert data["title"] == expected_widget.title
         if "interval" in data:

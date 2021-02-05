@@ -1,4 +1,3 @@
-import six
 from django.conf import settings
 
 SUPPORTED_KAFKA_CONFIGURATION = (
@@ -64,12 +63,8 @@ def _get_kafka_cluster_options(
         # check key validity
         for configuration_key in options:
             if configuration_key not in SUPPORTED_KAFKA_CONFIGURATION:
-                raise ValueError(
-                    "The `{configuration_key}` configuration key is not supported.".format(
-                        configuration_key=configuration_key
-                    )
-                )
-    if not isinstance(options["bootstrap.servers"], six.string_types):
+                raise ValueError(f"The `{configuration_key}` configuration key is not supported.")
+    if not isinstance(options["bootstrap.servers"], str):
         raise ValueError("bootstrap.servers must be a comma separated string")
     if override_params:
         options.update(override_params)

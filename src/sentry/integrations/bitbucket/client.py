@@ -12,7 +12,7 @@ from sentry.integrations.client import ApiClient
 BITBUCKET_KEY = "%s.bitbucket" % urlparse(absolute_uri()).hostname
 
 
-class BitbucketAPIPath(object):
+class BitbucketAPIPath:
     """
     All UUID's must be surrounded by curlybraces.
 
@@ -45,7 +45,7 @@ class BitbucketApiClient(ApiClient):
 
     def __init__(self, base_url, shared_secret, subject, *args, **kwargs):
         # subject is probably the clientKey
-        super(BitbucketApiClient, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.base_url = base_url
         self.shared_secret = shared_secret
         self.subject = subject

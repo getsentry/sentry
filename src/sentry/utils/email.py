@@ -1,6 +1,5 @@
 import logging
 import os
-import six
 import subprocess
 import tempfile
 import time
@@ -62,7 +61,7 @@ class _CaseInsensitiveSigner(Signer):
     """
 
     def signature(self, value):
-        sig = super(_CaseInsensitiveSigner, self).signature(value)
+        sig = super().signature(value)
         return sig.lower()
 
     def unsign(self, signed_value):
@@ -91,7 +90,7 @@ def email_to_group_id(address):
 
 
 def group_id_to_email(group_id):
-    signed_data = signer.sign(six.text_type(group_id))
+    signed_data = signer.sign(str(group_id))
     return "@".join(
         (
             signed_data.replace(":", "+"),
@@ -125,7 +124,7 @@ def make_msgid(domain):
     utcdate = time.strftime("%Y%m%d%H%M%S", time.gmtime(timeval))
     pid = os.getpid()
     randint = randrange(100000)
-    msgid = "<%s.%s.%s@%s>" % (utcdate, pid, randint, domain)
+    msgid = f"<{utcdate}.{pid}.{randint}@{domain}>"
     return msgid
 
 
@@ -148,7 +147,7 @@ def create_fake_email(unique_id, namespace):
 
     For example: c74e5b75-e037-4e75-ad27-1a0d21a6b203@cloudfoundry.sentry-fake
     """
-    return "{}@{}{}".format(unique_id, namespace, FAKE_EMAIL_TLD)
+    return f"{unique_id}@{namespace}{FAKE_EMAIL_TLD}"
 
 
 def is_fake_email(email):
@@ -183,7 +182,7 @@ def get_email_addresses(user_ids, project=None):
     return results
 
 
-class ListResolver(object):
+class ListResolver:
     """
     Manages the generation of RFC 2919 compliant list-id strings from varying
     objects types.
@@ -220,13 +219,13 @@ class ListResolver(object):
             handler = self.__type_handlers[type(instance)]
         except KeyError:
             raise self.UnregisteredTypeError(
-                "Cannot generate mailing list identifier for {!r}".format(instance)
+                f"Cannot generate mailing list identifier for {instance!r}"
             )
 
-        label = ".".join(map(six.text_type, handler(instance)))
+        label = ".".join(map(str, handler(instance)))
         assert is_valid_dot_atom(label)
 
-        return "<{}.{}>".format(label, self.__namespace)
+        return f"<{label}.{self.__namespace}>"
 
 
 default_list_type_handlers = {
@@ -240,7 +239,7 @@ make_listid_from_instance = ListResolver(
 )
 
 
-class MessageBuilder(object):
+class MessageBuilder:
     def __init__(
         self,
         subject,
@@ -279,9 +278,9 @@ class MessageBuilder(object):
             try:
                 headers["List-Id"] = make_listid_from_instance(reference)
             except ListResolver.UnregisteredTypeError as error:
-                logger.debug(six.text_type(error))
+                logger.debug(str(error))
             except AssertionError as error:
-                logger.warning(six.text_type(error))
+                logger.warning(str(error))
 
     def __render_html_body(self):
         html_body = None
@@ -383,7 +382,7 @@ class MessageBuilder(object):
         fmt = options.get("system.logging-format")
         messages = self.get_built_messages(to, cc=cc, bcc=bcc)
         extra = {"message_type": self.type}
-        loggable = [v for k, v in six.iteritems(self.context) if hasattr(v, "id")]
+        loggable = [v for k, v in self.context.items() if hasattr(v, "id")]
         for context in loggable:
             extra["%s_id" % type(context).__name__.lower()] = context.id
 
@@ -474,7 +473,7 @@ class PreviewBackend(BaseEmailBackend):
 
     def send_messages(self, email_messages):
         for message in email_messages:
-            content = six.binary_type(message.message())
+            content = bytes(message.message())
             preview = tempfile.NamedTemporaryFile(
                 delete=False, prefix="sentry-email-preview-", suffix=".eml"
             )

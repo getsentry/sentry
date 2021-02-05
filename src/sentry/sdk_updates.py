@@ -10,7 +10,7 @@ from sentry.utils.compat import zip
 logger = logging.getLogger(__name__)
 
 
-class SdkSetupState(object):
+class SdkSetupState:
     def __init__(self, sdk_name, sdk_version, modules, integrations):
         self.sdk_name = sdk_name
         self.sdk_version = sdk_version
@@ -42,14 +42,14 @@ class SdkSetupState(object):
         )
 
 
-class SdkIndexState(object):
+class SdkIndexState:
     def __init__(self, sdk_versions=None, deprecated_sdks=None, sdk_supported_modules=None):
         self.sdk_versions = sdk_versions or get_sdk_versions()
         self.deprecated_sdks = deprecated_sdks or settings.DEPRECATED_SDKS
         self.sdk_supported_modules = sdk_supported_modules or SDK_SUPPORTED_MODULES
 
 
-class Suggestion(object):
+class Suggestion:
     def to_json(self):
         raise NotImplementedError()
 

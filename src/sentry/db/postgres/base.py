@@ -52,7 +52,7 @@ def clean_bad_params(params):
     return params
 
 
-class CursorWrapper(object):
+class CursorWrapper:
     """
     A wrapper around the postgresql_psycopg2 backend which handles various events
     from cursors, such as auto reconnects and lazy time zone evaluation.
@@ -85,16 +85,16 @@ class CursorWrapper(object):
 
 class DatabaseWrapper(DatabaseWrapper):
     def __init__(self, *args, **kwargs):
-        super(DatabaseWrapper, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.ops = DatabaseOperations(self)
 
     @auto_reconnect_connection
     def _set_isolation_level(self, level):
-        return super(DatabaseWrapper, self)._set_isolation_level(level)
+        return super()._set_isolation_level(level)
 
     @auto_reconnect_connection
     def _cursor(self, *args, **kwargs):
-        return super(DatabaseWrapper, self)._cursor()
+        return super()._cursor()
 
     # We're overriding this internal method that's present in Django 1.11+, because
     # things were shuffled around since 1.10 resulting in not constructing a django CursorWrapper
@@ -102,7 +102,7 @@ class DatabaseWrapper(DatabaseWrapper):
     # not the other way around since then we'll lose things like __enter__ due to the way this
     # wrapper is working (getattr on self.cursor).
     def _prepare_cursor(self, cursor):
-        cursor = super(DatabaseWrapper, self)._prepare_cursor(CursorWrapper(self, cursor))
+        cursor = super()._prepare_cursor(CursorWrapper(self, cursor))
         return cursor
 
     def close(self, reconnect=False):
