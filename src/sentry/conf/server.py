@@ -895,8 +895,12 @@ SENTRY_FEATURES = {
     "organizations:slack-allow-workspace": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
-    # Enable custom dashboards (dashboards 2)
+    # Deprecated flag for dashboards 2
     "organizations:dashboards-v2": False,
+    # Enable readonly dashboards (dashboards 2)
+    "organizations:dashboards-basic": False,
+    # Enable custom editable dashboards (dashboards 2)
+    "organizations:dashboards-full": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Special feature flag primarily used on the sentry.io SAAS product for
