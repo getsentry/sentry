@@ -174,11 +174,11 @@ class Release(Model):
 
     @classmethod
     def get_cache_key(cls, organization_id, version):
-        return "release:3:%s:%s" % (organization_id, md5_text(version).hexdigest())
+        return "release:3:{}:{}".format(organization_id, md5_text(version).hexdigest())
 
     @classmethod
     def get_lock_key(cls, organization_id, release_id):
-        return "releasecommits:{}:{}".format(organization_id, release_id)
+        return f"releasecommits:{organization_id}:{release_id}"
 
     @classmethod
     def get(cls, project, version):
@@ -218,7 +218,7 @@ class Release(Model):
         if release in (None, -1):
             # TODO(dcramer): if the cache result is -1 we could attempt a
             # default create here instead of default get
-            project_version = ("%s-%s" % (project.slug, version))[:DB_VERSION_LENGTH]
+            project_version = (f"{project.slug}-{version}")[:DB_VERSION_LENGTH]
             releases = list(
                 cls.objects.filter(
                     organization_id=project.organization_id,
@@ -483,9 +483,7 @@ class Release(Model):
                 head_commit_by_repo = {}
                 latest_commit = None
                 for idx, data in enumerate(commit_list):
-                    repo_name = data.get("repository") or "organization-{}".format(
-                        self.organization_id
-                    )
+                    repo_name = data.get("repository") or f"organization-{self.organization_id}"
                     if repo_name not in repos:
                         repos[repo_name] = repo = Repository.objects.get_or_create(
                             organization_id=self.organization_id, name=repo_name

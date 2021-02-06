@@ -247,7 +247,7 @@ class OrganizationMember(Model):
         }
 
         msg = MessageBuilder(
-            subject="Action Required for %s" % (self.organization.name,),
+            subject=f"Action Required for {self.organization.name}",
             template="sentry/emails/auth-link-identity.txt",
             html_template="sentry/emails/auth-link-identity.html",
             type="organization.auth_link",
@@ -283,7 +283,7 @@ class OrganizationMember(Model):
             context["set_password_url"] = password_hash.get_absolute_url(mode="set_password")
 
         msg = MessageBuilder(
-            subject="Action Required for %s" % (self.organization.name,),
+            subject=f"Action Required for {self.organization.name}",
             template="sentry/emails/auth-sso-disabled.txt",
             html_template="sentry/emails/auth-sso-disabled.html",
             type="organization.auth_sso_disabled",
