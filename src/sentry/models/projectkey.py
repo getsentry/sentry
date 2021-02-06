@@ -191,25 +191,19 @@ class ProjectKey(Model):
     def csp_endpoint(self):
         endpoint = self.get_endpoint()
 
-        return "{}/api/{}/csp-report/?sentry_key={}".format(
-            endpoint, self.project_id, self.public_key
-        )
+        return f"{endpoint}/api/{self.project_id}/csp-report/?sentry_key={self.public_key}"
 
     @property
     def security_endpoint(self):
         endpoint = self.get_endpoint()
 
-        return "{}/api/{}/security/?sentry_key={}".format(
-            endpoint, self.project_id, self.public_key
-        )
+        return f"{endpoint}/api/{self.project_id}/security/?sentry_key={self.public_key}"
 
     @property
     def minidump_endpoint(self):
         endpoint = self.get_endpoint()
 
-        return "{}/api/{}/minidump/?sentry_key={}".format(
-            endpoint, self.project_id, self.public_key
-        )
+        return f"{endpoint}/api/{self.project_id}/minidump/?sentry_key={self.public_key}"
 
     @property
     def unreal_endpoint(self):
