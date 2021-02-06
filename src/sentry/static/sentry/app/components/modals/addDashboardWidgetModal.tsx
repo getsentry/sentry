@@ -228,6 +228,10 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     });
   };
 
+  canAddOverlay() {
+    return ['line', 'area', 'stacked_area', 'bar'].includes(this.state.displayType);
+  }
+
   render() {
     const {
       Footer,
@@ -330,15 +334,17 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               );
             }}
           </Measurements>
-          <AddOverlayButton
-            size="small"
-            onClick={(event: React.MouseEvent) => {
-              event.preventDefault();
-              this.handleAddOverlay();
-            }}
-          >
-            {t('Add Overlay')}
-          </AddOverlayButton>
+          {this.canAddOverlay() && (
+            <AddOverlayButton
+              size="small"
+              onClick={(event: React.MouseEvent) => {
+                event.preventDefault();
+                this.handleAddOverlay();
+              }}
+            >
+              {t('Add Overlay')}
+            </AddOverlayButton>
+          )}
           <WidgetCard
             api={api}
             organization={organization}
