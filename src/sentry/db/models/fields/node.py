@@ -83,8 +83,8 @@ class NodeData(collections.MutableMapping):
     def __repr__(self):
         cls_name = type(self).__name__
         if self._node_data:
-            return "<%s: id=%s data=%r>" % (cls_name, self.id, repr(self._node_data))
-        return "<%s: id=%s>" % (cls_name, self.id)
+            return "<{}: id={} data={!r}>".format(cls_name, self.id, repr(self._node_data))
+        return f"<{cls_name}: id={self.id}>"
 
     def get_ref(self, instance):
         if not self.ref_func:
@@ -117,7 +117,7 @@ class NodeData(collections.MutableMapping):
         ref_version = data.pop("_ref_version", None)
         if ref_version == self.ref_version and ref is not None and self.ref != ref:
             raise NodeIntegrityFailure(
-                "Node reference for %s is invalid: %s != %s" % (self.id, ref, self.ref)
+                f"Node reference for {self.id} is invalid: {ref} != {self.ref}"
             )
         if self.wrapper is not None:
             data = self.wrapper(data)

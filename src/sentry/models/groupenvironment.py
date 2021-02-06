@@ -31,7 +31,7 @@ class GroupEnvironment(Model):
 
     @classmethod
     def _get_cache_key(self, group_id, environment_id):
-        return "groupenv:1:{}:{}".format(group_id, environment_id)
+        return f"groupenv:1:{group_id}:{environment_id}"
 
     @classmethod
     def get_or_create(cls, group_id, environment_id, defaults=None):

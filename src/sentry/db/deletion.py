@@ -28,7 +28,7 @@ class BulkDeleteQuery:
                 )
             )
         if self.project_id:
-            where.append("project_id = {}".format(self.project_id))
+            where.append(f"project_id = {self.project_id}")
 
         if where:
             where_clause = "where {}".format(" and ".join(where))

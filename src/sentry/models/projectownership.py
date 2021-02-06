@@ -39,7 +39,7 @@ class ProjectOwnership(Model):
 
     @classmethod
     def get_cache_key(self, project_id):
-        return "projectownership_project_id:1:{}".format(project_id)
+        return f"projectownership_project_id:1:{project_id}"
 
     @classmethod
     def get_ownership_cached(cls, project_id):

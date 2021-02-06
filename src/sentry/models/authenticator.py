@@ -148,7 +148,4 @@ class Authenticator(BaseModel):
             self.save()
 
     def __repr__(self):
-        return "<Authenticator user=%r interface=%r>" % (
-            self.user.email,
-            self.interface.interface_id,
-        )
+        return f"<Authenticator user={self.user.email!r} interface={self.interface.interface_id!r}>"

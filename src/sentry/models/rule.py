@@ -50,7 +50,7 @@ class Rule(Model):
 
     @classmethod
     def get_for_project(cls, project_id):
-        cache_key = "project:{}:rules".format(project_id)
+        cache_key = f"project:{project_id}:rules"
         rules_list = cache.get(cache_key)
         if rules_list is None:
             rules_list = list(cls.objects.filter(project=project_id, status=RuleStatus.ACTIVE))
@@ -71,13 +71,13 @@ class Rule(Model):
 
     def delete(self, *args, **kwargs):
         rv = super().delete(*args, **kwargs)
-        cache_key = "project:{}:rules".format(self.project_id)
+        cache_key = f"project:{self.project_id}:rules"
         cache.delete(cache_key)
         return rv
 
     def save(self, *args, **kwargs):
         rv = super().save(*args, **kwargs)
-        cache_key = "project:{}:rules".format(self.project_id)
+        cache_key = f"project:{self.project_id}:rules"
         cache.delete(cache_key)
         return rv
 

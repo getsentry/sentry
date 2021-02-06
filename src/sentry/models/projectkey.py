@@ -156,7 +156,7 @@ class ProjectKey(Model):
         urlparts = urlparse(self.get_endpoint(public=public))
 
         if not public:
-            key = "%s:%s" % (self.public_key, self.secret_key)
+            key = f"{self.public_key}:{self.secret_key}"
         else:
             key = self.public_key
 
@@ -164,7 +164,7 @@ class ProjectKey(Model):
         if not urlparts.netloc or not urlparts.scheme:
             return ""
 
-        return "%s://%s@%s/%s" % (
+        return "{}://{}@{}/{}".format(
             urlparts.scheme,
             key,
             urlparts.netloc + urlparts.path,
@@ -191,31 +191,31 @@ class ProjectKey(Model):
     def csp_endpoint(self):
         endpoint = self.get_endpoint()
 
-        return "%s/api/%s/csp-report/?sentry_key=%s" % (endpoint, self.project_id, self.public_key)
+        return f"{endpoint}/api/{self.project_id}/csp-report/?sentry_key={self.public_key}"
 
     @property
     def security_endpoint(self):
         endpoint = self.get_endpoint()
 
-        return "%s/api/%s/security/?sentry_key=%s" % (endpoint, self.project_id, self.public_key)
+        return f"{endpoint}/api/{self.project_id}/security/?sentry_key={self.public_key}"
 
     @property
     def minidump_endpoint(self):
         endpoint = self.get_endpoint()
 
-        return "%s/api/%s/minidump/?sentry_key=%s" % (endpoint, self.project_id, self.public_key)
+        return f"{endpoint}/api/{self.project_id}/minidump/?sentry_key={self.public_key}"
 
     @property
     def unreal_endpoint(self):
-        return "%s/api/%s/unreal/%s/" % (self.get_endpoint(), self.project_id, self.public_key)
+        return f"{self.get_endpoint()}/api/{self.project_id}/unreal/{self.public_key}/"
 
     @property
     def js_sdk_loader_cdn_url(self):
         if settings.JS_SDK_LOADER_CDN_URL:
-            return "%s%s.min.js" % (settings.JS_SDK_LOADER_CDN_URL, self.public_key)
+            return f"{settings.JS_SDK_LOADER_CDN_URL}{self.public_key}.min.js"
         else:
             endpoint = self.get_endpoint()
-            return "%s%s" % (
+            return "{}{}".format(
                 endpoint,
                 reverse("sentry-js-sdk-loader", args=[self.public_key, ".min"]),
             )
@@ -232,7 +232,7 @@ class ProjectKey(Model):
         if features.has("organizations:org-subdomains", self.project.organization):
             urlparts = urlparse(endpoint)
             if urlparts.scheme and urlparts.netloc:
-                endpoint = "%s://%s.%s%s" % (
+                endpoint = "{}://{}.{}{}".format(
                     urlparts.scheme,
                     settings.SENTRY_ORG_SUBDOMAIN_TEMPLATE.format(
                         organization_id=self.project.organization_id

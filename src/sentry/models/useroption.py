@@ -23,9 +23,9 @@ option_scope_error = "this is not a supported use case, scope to project OR orga
 class UserOptionManager(OptionManager):
     def _make_key(self, user, project=None, organization=None):
         if project:
-            metakey = "%s:%s:project" % (user.pk, project.id)
+            metakey = f"{user.pk}:{project.id}:project"
         elif organization:
-            metakey = "%s:%s:organization" % (user.pk, organization.id)
+            metakey = f"{user.pk}:{organization.id}:organization"
         else:
             metakey = "%s:user" % (user.pk)
 
