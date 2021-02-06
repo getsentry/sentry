@@ -40,6 +40,10 @@ class DefaultActionHandler(ActionHandler):
     def resolve(self, metric_value):
         self.send_alert(metric_value, "resolve")
 
+    @abc.abstractmethod
+    def send_alert(self, metric_value):
+        pass
+
 
 @AlertRuleTriggerAction.register_type(
     "email",
