@@ -115,8 +115,8 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
               borderless
               onClick={event => handleRemove(event, i)}
               icon={<IconDelete />}
-              title={t('Remove this Y-axis')}
-              label={t('Remove this Y-axis')}
+              title={t('Remove this Y-Axis')}
+              label={t('Remove this Y-Axis')}
             />
           )}
         </QueryFieldWrapper>
@@ -124,7 +124,7 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
       <div>
         {showAddYAxisButton && (
           <Button size="small" onClick={handleAdd} icon={<IconAdd isCircled />}>
-            {t('Add Y-axis')}
+            {t('Add Y-Axis')}
           </Button>
         )}
       </div>
