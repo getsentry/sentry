@@ -153,7 +153,7 @@ class Organization(Model):
         return cls.objects.filter(status=OrganizationStatus.ACTIVE)[0]
 
     def __str__(self):
-        return "%s (%s)" % (self.name, self.slug)
+        return "{} ({})".format(self.name, self.slug)
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -405,7 +405,7 @@ class Organization(Model):
         }
 
         MessageBuilder(
-            subject="%sOrganization Queued for Deletion" % (options.get("mail.subject-prefix"),),
+            subject="{}Organization Queued for Deletion".format(options.get("mail.subject-prefix")),
             template="sentry/emails/org_delete_confirm.txt",
             html_template="sentry/emails/org_delete_confirm.html",
             type="org.confirm_delete",

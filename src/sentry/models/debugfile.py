@@ -194,7 +194,7 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
     elif meta.file_format == "breakpad":
         object_name = meta.name[:-4] if meta.name.endswith(".sym") else meta.name
     else:
-        raise TypeError("unknown dif type %r" % (meta.file_format,))
+        raise TypeError("unknown dif type {!r}".format(meta.file_format))
 
     if file is not None:
         checksum = file.checksum

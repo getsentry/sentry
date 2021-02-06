@@ -23,4 +23,4 @@ class ProjectAvatar(AvatarBase):
         db_table = "sentry_projectavatar"
 
     def get_cache_key(self, size):
-        return "project_avatar:%s:%s" % (self.project_id, size)
+        return "project_avatar:{}:{}".format(self.project_id, size)

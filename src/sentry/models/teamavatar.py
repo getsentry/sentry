@@ -23,4 +23,4 @@ class TeamAvatar(AvatarBase):
         db_table = "sentry_teamavatar"
 
     def get_cache_key(self, size):
-        return "team_avatar:%s:%s" % (self.team_id, size)
+        return "team_avatar:{}:{}".format(self.team_id, size)

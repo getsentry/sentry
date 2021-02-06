@@ -17,7 +17,7 @@ class PendingDeletionMixin:
     _rename_fields_on_pending_delete = frozenset()
 
     def build_pending_deletion_key(self):
-        return "pending-delete:%s:%s" % (self.__class__.__name__, self.id)
+        return "pending-delete:{}:{}".format(self.__class__.__name__, self.id)
 
     def rename_on_pending_deletion(self, fields=None, extra_fields_to_save=None):
         """

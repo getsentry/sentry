@@ -32,7 +32,7 @@ class PlatformExternalIssue(Model):
         # group annotations by group id
         annotations_by_group_id = defaultdict(list)
         for ei in external_issues:
-            annotation = '<a href="%s">%s</a>' % (ei.web_url, ei.display_name)
+            annotation = '<a href="{}">{}</a>'.format(ei.web_url, ei.display_name)
             annotations_by_group_id[ei.group_id].append(annotation)
 
         return annotations_by_group_id

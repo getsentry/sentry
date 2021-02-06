@@ -53,7 +53,7 @@ class Environment(Model):
 
     @classmethod
     def get_cache_key(cls, organization_id, name):
-        return "env:2:%s:%s" % (organization_id, md5_text(name).hexdigest())
+        return "env:2:{}:{}".format(organization_id, md5_text(name).hexdigest())
 
     @classmethod
     def get_name_or_default(cls, name):
@@ -94,7 +94,7 @@ class Environment(Model):
             return env
 
     def add_project(self, project, is_hidden=None):
-        cache_key = "envproj:c:%s:%s" % (self.id, project.id)
+        cache_key = "envproj:c:{}:{}".format(self.id, project.id)
 
         if cache.get(cache_key) is None:
             try:

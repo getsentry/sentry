@@ -53,7 +53,7 @@ class OnboardingTaskStatus:
 
 class OrganizationOnboardingTaskManager(BaseManager):
     def record(self, organization_id, task, **kwargs):
-        cache_key = "organizationonboardingtask:%s:%s" % (organization_id, task)
+        cache_key = "organizationonboardingtask:{}:{}".format(organization_id, task)
         if cache.get(cache_key) is None:
             try:
                 with transaction.atomic():

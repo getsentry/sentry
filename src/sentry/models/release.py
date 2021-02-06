@@ -174,7 +174,7 @@ class Release(Model):
 
     @classmethod
     def get_cache_key(cls, organization_id, version):
-        return "release:3:%s:%s" % (organization_id, md5_text(version).hexdigest())
+        return "release:3:{}:{}".format(organization_id, md5_text(version).hexdigest())
 
     @classmethod
     def get_lock_key(cls, organization_id, release_id):
@@ -218,7 +218,7 @@ class Release(Model):
         if release in (None, -1):
             # TODO(dcramer): if the cache result is -1 we could attempt a
             # default create here instead of default get
-            project_version = ("%s-%s" % (project.slug, version))[:DB_VERSION_LENGTH]
+            project_version = ("{}-{}".format(project.slug, version))[:DB_VERSION_LENGTH]
             releases = list(
                 cls.objects.filter(
                     organization_id=project.organization_id,

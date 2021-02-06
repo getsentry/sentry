@@ -23,4 +23,4 @@ class SentryAppAvatar(AvatarBase):
         db_table = "sentry_sentryappavatar"
 
     def get_cache_key(self, size):
-        return "sentry_app_avatar:%s:%s" % (self.sentry_app_id, size)
+        return "sentry_app_avatar:{}:{}".format(self.sentry_app_id, size)
