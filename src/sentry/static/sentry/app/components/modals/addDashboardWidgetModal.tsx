@@ -215,6 +215,11 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       const newState = cloneDeep(prevState);
       newState.queries.splice(index, index + 1);
 
+      // If there is only one query, then its name will not be visible.
+      if (newState.queries.length === 1) {
+        newState.queries[0].name = '';
+      }
+
       return newState;
     });
   };
