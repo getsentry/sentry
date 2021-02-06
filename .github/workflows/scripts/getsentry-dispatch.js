@@ -25,7 +25,7 @@ module.exports = {
         workflow_id: workflow,
         ref: 'build/ci/add-backend-dependencies-test', // TODO: this needs to be 'master'
         inputs: {
-          pull_request_number: context.payload.pull_request.number,
+          pull_request_number: `${context.payload.pull_request.number}`, // needs to be string
           skip: `${shouldSkip[pathFilterName]}`, // even though this is a boolean, it must be cast to a string
           'sentry-sha': context.payload.pull_request.head.sha,
         },
