@@ -24,13 +24,13 @@ from sentry.utils.safe import safe_execute
 logger = logging.getLogger("sentry.integrations.sentry_app")
 
 
-def build_incident_attachment(action, incident, metric_value=None):
+def build_incident_attachment(action, incident, metric_value=None, method=None):
     from sentry.api.serializers.rest_framework.base import (
         camel_to_snake_case,
         convert_dict_key_case,
     )
 
-    data = incident_attachment_info(incident, metric_value, action=action)
+    data = incident_attachment_info(incident, metric_value, action=action, method=method)
     return {
         "metric_alert": convert_dict_key_case(
             serialize(incident, serializer=IncidentSerializer()), camel_to_snake_case
@@ -41,7 +41,7 @@ def build_incident_attachment(action, incident, metric_value=None):
     }
 
 
-def send_incident_alert_notification(action, incident, metric_value=None):
+def send_incident_alert_notification(action, incident, metric_value=None, method=None):
     """
     When a metric alert is triggered, send incident data to the SentryApp's webhook.
     :param action: The triggered `AlertRuleTriggerAction`.
@@ -78,7 +78,7 @@ def send_incident_alert_notification(action, incident, metric_value=None):
             resource="metric_alert",
             action=INCIDENT_STATUS[IncidentStatus(incident.status)].lower(),
             install=install,
-            data=build_incident_attachment(incident, metric_value),
+            data=build_incident_attachment(action, incident, metric_value, method),
         ),
     )
 

@@ -467,7 +467,7 @@ def send_incident_alert_notification(action, incident, metric_value, method):
         return
 
     channel = action.target_identifier
-    attachment = build_incident_attachment(incident, metric_value, action, method)
+    attachment = build_incident_attachment(action, incident, metric_value, method)
     payload = {
         "token": integration.metadata["access_token"],
         "channel": channel,
