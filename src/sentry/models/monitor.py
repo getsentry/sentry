@@ -191,7 +191,7 @@ class Monitor(Model):
 
         event_manager = EventManager(
             {
-                "logentry": {"message": "Monitor failure: {} ({})".format(self.name, reason)},
+                "logentry": {"message": f"Monitor failure: {self.name} ({reason})"},
                 "contexts": {"monitor": get_monitor_context(self)},
                 "fingerprint": ["monitor", str(self.guid), reason],
             },

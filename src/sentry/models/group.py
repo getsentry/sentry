@@ -326,7 +326,7 @@ class Group(Model):
     __repr__ = sane_repr("project_id")
 
     def __str__(self):
-        return "({}) {}".format(self.times_seen, self.error())
+        return f"({self.times_seen}) {self.error()}"
 
     def save(self, *args, **kwargs):
         if not self.last_seen:
@@ -349,7 +349,7 @@ class Group(Model):
     def get_absolute_url(self, params=None, event_id=None):
         # Built manually in preference to django.core.urlresolvers.reverse,
         # because reverse has a measured performance impact.
-        event_path = "events/{}/".format(event_id) if event_id else ""
+        event_path = f"events/{event_id}/" if event_id else ""
         url = "organizations/{org}/issues/{id}/{event_path}{params}".format(
             org=urlquote(self.organization.slug),
             id=self.id,
@@ -498,7 +498,7 @@ class Group(Model):
         return ""
 
     def get_email_subject(self):
-        return "{} - {}".format(self.qualified_short_id, self.title)
+        return f"{self.qualified_short_id} - {self.title}"
 
     def count_users_seen(self):
         return tagstore.get_groups_user_counts(

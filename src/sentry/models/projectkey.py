@@ -156,7 +156,7 @@ class ProjectKey(Model):
         urlparts = urlparse(self.get_endpoint(public=public))
 
         if not public:
-            key = "{}:{}".format(self.public_key, self.secret_key)
+            key = f"{self.public_key}:{self.secret_key}"
         else:
             key = self.public_key
 
@@ -213,12 +213,12 @@ class ProjectKey(Model):
 
     @property
     def unreal_endpoint(self):
-        return "{}/api/{}/unreal/{}/".format(self.get_endpoint(), self.project_id, self.public_key)
+        return f"{self.get_endpoint()}/api/{self.project_id}/unreal/{self.public_key}/"
 
     @property
     def js_sdk_loader_cdn_url(self):
         if settings.JS_SDK_LOADER_CDN_URL:
-            return "{}{}.min.js".format(settings.JS_SDK_LOADER_CDN_URL, self.public_key)
+            return f"{settings.JS_SDK_LOADER_CDN_URL}{self.public_key}.min.js"
         else:
             endpoint = self.get_endpoint()
             return "{}{}".format(

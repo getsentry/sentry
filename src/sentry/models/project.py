@@ -123,7 +123,7 @@ class Project(Model, PendingDeletionMixin):
     _rename_fields_on_pending_delete = frozenset(["slug"])
 
     def __str__(self):
-        return "{} ({})".format(self.name, self.slug)
+        return f"{self.name} ({self.slug})"
 
     def next_short_id(self):
         from sentry.models import Counter
@@ -147,7 +147,7 @@ class Project(Model, PendingDeletionMixin):
         self.update_rev_for_option()
 
     def get_absolute_url(self, params=None):
-        url = "/organizations/{}/issues/".format(self.organization.slug)
+        url = f"/organizations/{self.organization.slug}/issues/"
         params = {} if params is None else params
         params["project"] = self.id
         if params:

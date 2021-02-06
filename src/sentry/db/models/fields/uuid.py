@@ -114,7 +114,7 @@ class UUIDField(models.Field):
         """
         if isinstance(self._auto_add, bool):
             return self._auto_add
-        return "{}:{}".format(self._auto_add.__module__, self._auto_add.__name__)
+        return f"{self._auto_add.__module__}:{self._auto_add.__name__}"
 
 
 class UUIDAdapter:

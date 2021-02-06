@@ -150,7 +150,7 @@ def __model_class_prepared(sender, **kwargs):
         return
 
     if not hasattr(sender, "__core__"):
-        raise ValueError("{!r} model has not defined __core__".format(sender))
+        raise ValueError(f"{sender!r} model has not defined __core__")
 
 
 signals.pre_save.connect(__model_pre_save)

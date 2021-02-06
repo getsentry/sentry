@@ -153,7 +153,7 @@ class Organization(Model):
         return cls.objects.filter(status=OrganizationStatus.ACTIVE)[0]
 
     def __str__(self):
-        return "{} ({})".format(self.name, self.slug)
+        return f"{self.name} ({self.slug})"
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -334,7 +334,7 @@ class Organization(Model):
                             instance.update(**params)
                     except IntegrityError:
                         logger.info(
-                            "{}.migrate-skipped".format(model_name),
+                            f"{model_name}.migrate-skipped",
                             extra={
                                 "from_organization_id": from_org.id,
                                 "to_organization_id": to_org.id,
@@ -342,7 +342,7 @@ class Organization(Model):
                         )
                     else:
                         logger.info(
-                            "{}.migrate".format(model_name),
+                            f"{model_name}.migrate",
                             extra={
                                 "instance_id": instance.id,
                                 "from_organization_id": from_org.id,
@@ -351,7 +351,7 @@ class Organization(Model):
                         )
             else:
                 logger.info(
-                    "{}.migrate".format(model_name),
+                    f"{model_name}.migrate",
                     extra={"from_organization_id": from_org.id, "to_organization_id": to_org.id},
                 )
 

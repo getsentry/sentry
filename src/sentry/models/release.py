@@ -178,7 +178,7 @@ class Release(Model):
 
     @classmethod
     def get_lock_key(cls, organization_id, release_id):
-        return "releasecommits:{}:{}".format(organization_id, release_id)
+        return f"releasecommits:{organization_id}:{release_id}"
 
     @classmethod
     def get(cls, project, version):
@@ -218,7 +218,7 @@ class Release(Model):
         if release in (None, -1):
             # TODO(dcramer): if the cache result is -1 we could attempt a
             # default create here instead of default get
-            project_version = ("{}-{}".format(project.slug, version))[:DB_VERSION_LENGTH]
+            project_version = (f"{project.slug}-{version}")[:DB_VERSION_LENGTH]
             releases = list(
                 cls.objects.filter(
                     organization_id=project.organization_id,

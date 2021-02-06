@@ -66,7 +66,7 @@ def add_group_to_inbox(group, reason, reason_details=None):
     try:
         jsonschema.validate(reason_details, INBOX_REASON_DETAILS)
     except jsonschema.ValidationError:
-        logging.error("GroupInbox invalid jsonschema: {}".format(reason_details))
+        logging.error(f"GroupInbox invalid jsonschema: {reason_details}")
         reason_details = None
 
     group_inbox, created = GroupInbox.objects.get_or_create(

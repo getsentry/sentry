@@ -94,7 +94,7 @@ class Environment(Model):
             return env
 
     def add_project(self, project, is_hidden=None):
-        cache_key = "envproj:c:{}:{}".format(self.id, project.id)
+        cache_key = f"envproj:c:{self.id}:{project.id}"
 
         if cache.get(cache_key) is None:
             try:

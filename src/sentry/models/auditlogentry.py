@@ -223,7 +223,7 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.MEMBER_ADD:
             if self.target_user == self.actor:
                 return "joined the organization"
-            return "added member {}".format(self.target_user.get_display_name())
+            return f"added member {self.target_user.get_display_name()}"
         elif self.event == AuditLogEntryEvent.MEMBER_ACCEPT:
             return "accepted the membership invite"
         elif self.event == AuditLogEntryEvent.MEMBER_REMOVE:
@@ -261,7 +261,7 @@ class AuditLogEntry(Model):
             return "created the organization"
         elif self.event == AuditLogEntryEvent.ORG_EDIT:
             return "edited the organization setting: " + (
-                ", ".join("{} {}".format(k, v) for k, v in self.data.items())
+                ", ".join(f"{k} {v}" for k, v in self.data.items())
             )
         elif self.event == AuditLogEntryEvent.ORG_REMOVE:
             return "removed the organization"
@@ -279,7 +279,7 @@ class AuditLogEntry(Model):
             return "created project {}".format(self.data["slug"])
         elif self.event == AuditLogEntryEvent.PROJECT_EDIT:
             return "edited project settings " + (
-                " ".join([" in {} to {}".format(key, value) for (key, value) in self.data.items()])
+                " ".join([f" in {key} to {value}" for (key, value) in self.data.items()])
             )
         elif self.event == AuditLogEntryEvent.PROJECT_REMOVE:
             return "removed project {}".format(self.data["slug"])
@@ -297,12 +297,12 @@ class AuditLogEntry(Model):
                 or isinstance(filter_name, set)
                 or isinstance(filter_name, bool)
             ):
-                message = "{} project filter legacy-browsers".format(verb)
+                message = f"{verb} project filter legacy-browsers"
                 if isinstance(filter_name, set):
                     message += ": {}".format(", ".join(filter_name))
                 return message
             else:
-                return "{} project filter {}".format(verb, filter_name)
+                return f"{verb} project filter {filter_name}"
 
         elif self.event == AuditLogEntryEvent.TAGKEY_REMOVE:
             return "removed tags matching {} = *".format(self.data["key"])
@@ -323,9 +323,7 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.SSO_DISABLE:
             return "disabled sso ({})".format(self.data["provider"])
         elif self.event == AuditLogEntryEvent.SSO_EDIT:
-            return "edited sso settings: " + (
-                ", ".join("{} {}".format(k, v) for k, v in self.data.items())
-            )
+            return "edited sso settings: " + (", ".join(f"{k} {v}" for k, v in self.data.items()))
         elif self.event == AuditLogEntryEvent.SSO_IDENTITY_LINK:
             return "linked their account to a new identity"
 

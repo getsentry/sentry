@@ -123,7 +123,7 @@ class Team(Model):
     __repr__ = sane_repr("name", "slug")
 
     def __str__(self):
-        return "{} ({})".format(self.name, self.slug)
+        return f"{self.name} ({self.slug})"
 
     def save(self, *args, **kwargs):
         if not self.slug:

@@ -48,7 +48,7 @@ def make_key(model, prefix, kwargs):
     for k, v in sorted(kwargs.items()):
         k = __prep_key(model, k)
         v = smart_text(__prep_value(model, k, v))
-        kwargs_bits.append("{}={}".format(k, v))
+        kwargs_bits.append(f"{k}={v}")
     kwargs_bits = ":".join(kwargs_bits)
 
     return "{}:{}:{}".format(prefix, model.__name__, md5_text(kwargs_bits).hexdigest())
@@ -489,4 +489,4 @@ class OptionManager(BaseManager):
 
     def _make_key(self, instance_id):
         assert instance_id
-        return "{}:{}".format(self.model._meta.db_table, instance_id)
+        return f"{self.model._meta.db_table}:{instance_id}"
