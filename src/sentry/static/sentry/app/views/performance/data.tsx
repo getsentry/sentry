@@ -83,6 +83,7 @@ export function getAxisOptions(organization: LightWeightOrganization): TooltipOp
 
 export type AxisOption = TooltipOption & {
   field: string;
+  label: string;
   isDistribution?: boolean;
   isLeftDefault?: boolean;
   isRightDefault?: boolean;
