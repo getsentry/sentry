@@ -13,7 +13,6 @@ export type ItemProps = {
   transition?: string;
   forwardRef?: React.Ref<HTMLElement>;
   attributes?: UseDraggableArguments['attributes'];
-  style?: React.CSSProperties;
   wrapperStyle?: React.CSSProperties;
   innerWrapperStyle?: React.CSSProperties;
   renderItem(args: {
@@ -23,7 +22,6 @@ export type ItemProps = {
     transform: ItemProps['transform'];
     transition: ItemProps['transition'];
     value: ItemProps['value'];
-    style?: React.CSSProperties;
     index?: number;
     attributes?: UseDraggableArguments['attributes'];
   }): React.ReactElement | null;
@@ -40,7 +38,6 @@ function Item({
   forwardRef,
   attributes,
   renderItem,
-  style,
   wrapperStyle,
   innerWrapperStyle,
 }: ItemProps) {
@@ -63,7 +60,6 @@ function Item({
           dragging: Boolean(dragging),
           sorting: Boolean(sorting),
           listeners,
-          style,
           transform,
           transition,
           value,
@@ -92,10 +88,7 @@ const Wrapper = styled('div')`
 `;
 
 const InnerWrapper = styled('div')`
-  position: relative;
   background-color: ${p => p.theme.white};
-  -webkit-tap-highlight-color: transparent;
-  transition: box-shadow 200ms cubic-bezier(0.18, 0.67, 0.6, 1.22);
 
   animation: pop 200ms cubic-bezier(0.18, 0.67, 0.6, 1.22);
   box-shadow: var(--box-shadow-picked-up);

@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
+import partition from 'lodash/partition';
 
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
 import ExternalLink from 'app/components/links/externalLink';
@@ -194,14 +195,22 @@ class TransactionRuleModal extends Form<Props, State> {
       sampleRate: sampleRate / 100,
     };
 
-    const newRules = rule
-      ? [
-          ...errorRules,
-          ...transactionRules.map(transactionRule =>
-            isEqual(transactionRule, rule) ? newRule : transactionRule
-          ),
-        ]
-      : [...errorRules, ...transactionRules, newRule];
+    const newTransactionRules = rule
+      ? transactionRules.map(transactionRule =>
+          isEqual(transactionRule, rule) ? newRule : transactionRule
+        )
+      : [...transactionRules, newRule];
+
+    const [transactionTraceRules, individualTransactionRules] = partition(
+      newTransactionRules,
+      transactionRule => transactionRule.type === DynamicSamplingRuleType.TRACE
+    );
+
+    const newRules = [
+      ...errorRules,
+      ...transactionTraceRules,
+      ...individualTransactionRules,
+    ];
 
     const currentRuleIndex = newRules.findIndex(newR => newR === newRule);
     this.submitRules(newRules, currentRuleIndex);

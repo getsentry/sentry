@@ -1,14 +1,9 @@
-import overflowEllipsis from 'app/styles/overflowEllipsis';
 import {Theme} from 'app/utils/theme';
 
 export const layout = (theme: Theme) => `
 > * {
-  ${overflowEllipsis};
   :nth-child(-n + 5):nth-child(5n - 1) {
     text-align: center;
-  }
-  :nth-child(5n) {
-    overflow: visible;
   }
   @media (max-width: ${theme.breakpoints[0]}) {
     :nth-child(5n - 4),

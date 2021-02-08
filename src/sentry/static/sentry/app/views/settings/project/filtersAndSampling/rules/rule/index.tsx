@@ -15,73 +15,117 @@ import Type from './type';
 
 type Props = {
   rule: DynamicSamplingRule;
+  disabled: boolean;
+  dragging: boolean;
+  sorting: boolean;
+  listeners: DraggableSyntheticListeners;
   onEditRule: () => void;
   onDeleteRule: () => void;
-  disabled: boolean;
-  listeners: DraggableSyntheticListeners;
   grabAttributes?: UseDraggableArguments['attributes'];
-  grabStyle?: React.CSSProperties;
 };
 
-function Rule({
-  rule,
-  onEditRule,
-  onDeleteRule,
-  disabled,
-  listeners,
-  grabAttributes,
-  grabStyle,
-}: Props) {
-  const {type, condition, sampleRate} = rule;
+type State = {
+  isMenuActionsOpen: boolean;
+};
 
-  return (
-    <Columns>
-      <Column>
-        <IconGrabbableWrapper
-          {...listeners}
-          disabled={disabled}
-          style={grabStyle}
-          {...grabAttributes}
-        >
-          <IconGrabbable />
-        </IconGrabbableWrapper>
-      </Column>
-      <Column>
-        <Type type={type} />
-      </Column>
-      <Column>
-        <Conditions condition={condition} />
-      </Column>
-      <CenteredColumn>
-        <SampleRate sampleRate={sampleRate} />
-      </CenteredColumn>
-      <Column>
-        <Actions
-          onEditRule={onEditRule}
-          onDeleteRule={onDeleteRule}
-          disabled={disabled}
-        />
-      </Column>
-    </Columns>
-  );
+class Rule extends React.Component<Props, State> {
+  state: State = {
+    isMenuActionsOpen: false,
+  };
+
+  componentDidMount() {
+    this.checkMenuActionsVisibility();
+  }
+
+  componentDidUpdate() {
+    this.checkMenuActionsVisibility();
+  }
+
+  checkMenuActionsVisibility() {
+    const {dragging, sorting} = this.props;
+    const {isMenuActionsOpen} = this.state;
+    if ((dragging || sorting) && isMenuActionsOpen) {
+      this.setState({isMenuActionsOpen: false});
+    }
+  }
+
+  handleChangeMenuAction = () => {
+    const isMenuActionsOpen = !this.state.isMenuActionsOpen;
+
+    this.setState({
+      isMenuActionsOpen,
+    });
+  };
+
+  render() {
+    const {
+      rule,
+      onEditRule,
+      onDeleteRule,
+      disabled,
+      listeners,
+      grabAttributes,
+    } = this.props;
+
+    const {type, condition, sampleRate} = rule;
+    const {isMenuActionsOpen} = this.state;
+
+    return (
+      <Columns>
+        <GrabColumn>
+          <IconGrabbableWrapper {...listeners} disabled={disabled} {...grabAttributes}>
+            <IconGrabbable />
+          </IconGrabbableWrapper>
+        </GrabColumn>
+        <Column>
+          <Type type={type} />
+        </Column>
+        <Column>
+          <Conditions condition={condition} />
+        </Column>
+        <CenteredColumn>
+          <SampleRate sampleRate={sampleRate} />
+        </CenteredColumn>
+        <Column>
+          <Actions
+            onEditRule={onEditRule}
+            onDeleteRule={onDeleteRule}
+            disabled={disabled}
+            onOpenMenuActions={this.handleChangeMenuAction}
+            isMenuActionsOpen={isMenuActionsOpen}
+          />
+        </Column>
+      </Columns>
+    );
+  }
 }
 
 export default Rule;
 
 const Columns = styled('div')`
-  cursor: default;
   display: grid;
   align-items: center;
-  :not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
-  }
   ${p => layout(p.theme)}
+  > * {
+    overflow: visible;
+    :nth-child(5n) {
+      justify-content: flex-end;
+    }
+  }
 `;
 
 const Column = styled('div')`
   display: flex;
   align-items: center;
   padding: ${space(2)};
+  cursor: default;
+`;
+
+const GrabColumn = styled(Column)`
+  cursor: inherit;
+  [role='button'] {
+    cursor: grab;
+  }
 `;
 
 const CenteredColumn = styled(Column)`
@@ -90,7 +134,11 @@ const CenteredColumn = styled(Column)`
 `;
 
 const IconGrabbableWrapper = styled('div')<{disabled: boolean}>`
-  ${p => p.disabled && `color: ${p.theme.disabled}`};
-  cursor: ${p => (p.disabled ? 'not-allowed' : 'grab')};
+  ${p =>
+    p.disabled &&
+    `
+    color: ${p.theme.disabled};
+    cursor: not-allowed;
+  `};
   outline: none;
 `;
