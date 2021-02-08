@@ -1,6 +1,5 @@
 import datetime
 import logging
-import six
 import sentry
 
 from contextlib import contextmanager

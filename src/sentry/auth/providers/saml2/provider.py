@@ -9,7 +9,6 @@ from django.http import HttpResponse, HttpResponseServerError
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
-from six import iteritems
 from six.moves.urllib.parse import urlparse
 
 from sentry import options

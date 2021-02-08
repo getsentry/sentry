@@ -2,7 +2,6 @@ from sentry.utils.compat import map
 
 __all__ = ("Attribute", "Event", "Map")
 
-import six
 from uuid import uuid1
 from base64 import b64encode
 
@@ -60,9 +59,7 @@ class Map(Attribute):
             data[attr.name] = attr.extract(nv)
 
         if items:
-            raise ValueError(
-                "Unknown attributes: {}".format(", ".join(map(str, items.keys())))
-            )
+            raise ValueError("Unknown attributes: {}".format(", ".join(map(str, items.keys()))))
 
         return data
 

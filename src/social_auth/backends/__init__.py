@@ -12,7 +12,6 @@ enabled.
 
 import logging
 import requests
-import six
 import threading
 
 from requests_oauthlib import OAuth1
@@ -285,9 +284,7 @@ class BaseAuth:
         args = args[:] + tuple(map(ctype_to_model, session_data["args"]))
 
         kwargs = kwargs.copy()
-        saved_kwargs = {
-            key: ctype_to_model(val) for key, val in session_data["kwargs"].items()
-        }
+        saved_kwargs = {key: ctype_to_model(val) for key, val in session_data["kwargs"].items()}
         saved_kwargs.update((key, val) for key, val in kwargs.items())
         return (session_data["next"], args, saved_kwargs)
 

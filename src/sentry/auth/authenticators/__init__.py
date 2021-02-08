@@ -1,5 +1,3 @@
-import six
-
 from .base import AuthenticatorInterface  # NOQA
 from .sms import SmsInterface
 from .recovery_code import RecoveryCodeInterface
