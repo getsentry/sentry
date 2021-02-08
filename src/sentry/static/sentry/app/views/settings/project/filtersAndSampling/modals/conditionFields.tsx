@@ -39,16 +39,15 @@ function ConditionFields({
   onChange,
 }: Props) {
   return (
-    <React.Fragment>
+    <Wrapper>
       {conditions.map(({match, category}, index) => {
-        const displayDescription = index === 0;
         const showLegacyBrowsers = category === DynamicSamplingInnerName.LEGACY_BROWSERS;
         return (
           <FieldsWrapper key={index}>
             <Fields>
               <SelectField
-                label={displayDescription ? t('Category') : undefined}
-                help={displayDescription ? t('This is a description') : undefined}
+                label={t('Category')}
+                help={t('This is a description')}
                 name={`category-${index}`}
                 value={category}
                 onChange={value => onChange(index, 'category', value)}
@@ -60,8 +59,8 @@ function ConditionFields({
                 stacked
               />
               <StyledField
-                label={displayDescription ? t('Match Conditions') : undefined}
-                help={displayDescription ? t('This is a description') : undefined}
+                label={t('Match Conditions')}
+                help={t('This is a description')}
                 inline={false}
                 hideControlState
                 showHelpInTooltip
@@ -80,6 +79,7 @@ function ConditionFields({
                   onChange={value => onChange(index, 'match', value)}
                   disabled={showLegacyBrowsers}
                   inline={false}
+                  maxRows={undefined}
                   autosize
                   hideControlState
                   stacked
@@ -108,26 +108,59 @@ function ConditionFields({
       <StyledButton icon={<IconAdd isCircled />} onClick={onAdd} size="small">
         {t('Add Condition')}
       </StyledButton>
-    </React.Fragment>
+    </Wrapper>
   );
 }
 
 export default ConditionFields;
 
+const IconDeleteWrapper = styled('div')`
+  height: 40px;
+  margin-top: 24px;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    display: flex;
+  }
+`;
+
 const FieldsWrapper = styled('div')`
   display: grid;
-  grid-template-columns: 1fr max-content;
-  align-items: center;
+  grid-template-columns: 1fr;
   grid-gap: ${space(2)};
   margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: 1fr max-content;
+  }
 `;
 
 const Fields = styled('div')`
   display: grid;
-  align-items: flex-end;
-  border: 1px solid ${p => p.theme.gray200};
-  padding: ${space(2)};
-  border-radius: ${p => p.theme.borderRadius};
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: 1fr 1fr;
+    grid-gap: ${space(2)};
+  }
+`;
+
+const Wrapper = styled('div')`
+  > * :not(:first-child) {
+    label {
+      display: none;
+    }
+    ${IconDeleteWrapper} {
+      margin-top: 0;
+    }
+
+    ${Fields} {
+      @media (max-width: ${p => p.theme.breakpoints[0]}) {
+        border-top: 1px solid ${p => p.theme.border};
+        padding-top: ${space(2)};
+      }
+    }
+  }
 `;
 
 const StyledField = styled(Field)`
@@ -140,18 +173,6 @@ const StyledTextareaField = styled(TextareaField)`
 
 const StyledButton = styled(Button)`
   margin-bottom: ${space(2)};
-`;
-
-const IconDeleteWrapper = styled('div')`
-  height: 40px;
-  align-items: center;
-  margin-bottom: ${space(2)};
-  cursor: pointer;
-  display: none;
-
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    display: flex;
-  }
 `;
 
 const ButtonDeleteWrapper = styled('div')`

@@ -4,6 +4,7 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import {inputStyles} from 'app/styles/input';
+import space from 'app/styles/space';
 
 type InputProps = Omit<Parameters<typeof inputStyles>[0], 'theme'>;
 type Props = React.TextareaHTMLAttributes<HTMLTextAreaElement> &
@@ -40,8 +41,8 @@ const propFilter = (p: string) =>
 
 const TextArea = styled(TextAreaControl, {shouldForwardProp: propFilter})`
   ${inputStyles};
+  padding: ${space(1)};
   line-height: 1.3em;
-  ${p => p.autosize && 'height: auto'};
 `;
 
 export default TextArea;

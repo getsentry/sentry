@@ -73,9 +73,17 @@ class Rule extends React.Component<Props, State> {
     return (
       <Columns>
         <GrabColumn>
-          <IconGrabbableWrapper {...listeners} disabled={disabled} {...grabAttributes}>
-            <IconGrabbable />
-          </IconGrabbableWrapper>
+          <Tooltip
+            title={
+              disabled
+                ? t('You do not have permission to reorder dynamic sampling rules.')
+                : undefined
+            }
+          >
+            <IconGrabbableWrapper {...listeners} disabled={disabled} {...grabAttributes}>
+              <IconGrabbable />
+            </IconGrabbableWrapper>
+          </Tooltip>
         </GrabColumn>
         <Column>
           <Type type={type} />
