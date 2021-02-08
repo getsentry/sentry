@@ -37,8 +37,7 @@ jobs:
         with:
           github-token: ${{ steps.getsentry.outputs.token }}
           script: |
-            const {dispatch} = require(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/getsentry-dispatch`);
-            dispatch({
+            require(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/getsentry-dispatch`).dispatch({
               github,
               context,
               fileChanges: ${{ toJson(steps.changes.outputs) }}
