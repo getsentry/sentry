@@ -38,7 +38,7 @@ repos:
     rev: v0.7.1.1
     hooks:
       - id: shellcheck
-        files: 'scripts/'
+        exclude: 'src/sentry/templates/sentry/reprocessing-script.sh'
         types: [shell]
 -   repo: git://github.com/pre-commit/pre-commit-hooks
     rev: v3.4.0
