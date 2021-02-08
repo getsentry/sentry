@@ -22,7 +22,6 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Set environment variables & others
-        if: ${{ runner.os == 'macOS' }}
         shell: bash
         run: |
           echo "PYENV_ROOT=$HOME/.pyenv" >> $GITHUB_ENV
@@ -30,7 +29,6 @@ jobs:
           echo "PATH=$HOME/.pyenv/shims:$HOME/.volta/bin:$PATH" >> $GITHUB_ENV
 
       - name: Install prerequisites
-        if: ${{ runner.os == 'macOS' }}
         # Depending on the host watchman will not install (read: intermittent issue),
         # thus, we mark this as continue-on-error
         continue-on-error: true
