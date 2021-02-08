@@ -225,7 +225,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
         ) : (
           <IconArrow direction="down" size="xs" />
         )}
-        {formatAbbreviatedNumber(Math.abs(this.trend))}
+        {`${formatAbbreviatedNumber(Math.abs(this.trend))}\u0025`}
       </div>
     );
   }
