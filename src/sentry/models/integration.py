@@ -84,6 +84,7 @@ class ExternalTeam(DefaultFieldsModel):
             (ExternalProviders.GITLAB, "gitlab"),
         ),
     )
+    # external_id => the Github/Gitlab team name. Column name is vague to be reused for more external team identities.
     external_id = models.TextField()
 
     class Meta:
@@ -102,6 +103,7 @@ class ExternalUser(DefaultFieldsModel):
             (ExternalProviders.GITLAB, "gitlab"),
         ),
     )
+    # external_id => the Github/Gitlab username. Column name is vague to be reused for more external user identities.
     external_id = models.TextField()
 
     class Meta:
