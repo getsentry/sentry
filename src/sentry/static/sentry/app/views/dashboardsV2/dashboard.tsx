@@ -125,12 +125,6 @@ class Dashboard extends React.Component<Props> {
     );
   }
 
-  resetDragState() {
-    this.setState({
-      isDragging: false,
-    });
-  }
-
   render() {
     const {
       isEditing,
@@ -154,10 +148,7 @@ class Dashboard extends React.Component<Props> {
               onUpdate(arrayMove(widgets, activeIndex, overIndex));
             }
           }
-
-          this.resetDragState();
         }}
-        onDragCancel={this.resetDragState}
       >
         <WidgetContainer>
           <SortableContext items={items} strategy={rectSwappingStrategy}>
