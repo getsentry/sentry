@@ -192,7 +192,6 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   renderList() {
     const {loading, incidentList, incidentListPageLinks, hasAlertRule} = this.state;
     const {
-      organization,
       params: {orgId},
     } = this.props;
 
@@ -238,7 +237,6 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                           projects={projects as Project[]}
                           incident={incident}
                           orgId={orgId}
-                          organization={organization}
                           filteredStatus={status}
                         />
                       ))
