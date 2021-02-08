@@ -15,16 +15,6 @@
 // - Transitions
 // - User Select
 
-// Backface visibility
-// Prevent browsers from flickering when using CSS 3D transforms.
-// Default value is `visible`, but can be changed to `hidden`
-
-.backface-visibility(@visibility) {
-  -webkit-backface-visibility: @visibility;
-  -moz-backface-visibility: @visibility;
-  backface-visibility: @visibility;
-}
-
 // Drop shadows
 //
 // Note: Deprecated `.box-shadow()` as of v3.1.0 since all of Bootstrap's
@@ -50,16 +40,6 @@
   -webkit-column-gap: @column-gap;
   -moz-column-gap: @column-gap;
   column-gap: @column-gap;
-}
-
-// Optional hyphenation
-.hyphens(@mode: auto) {
-  -webkit-hyphens: @mode;
-  -moz-hyphens: @mode;
-  -ms-hyphens: @mode; // IE10+
-  -o-hyphens: @mode;
-  hyphens: @mode;
-  word-wrap: break-word;
 }
 
 // Placeholder text
