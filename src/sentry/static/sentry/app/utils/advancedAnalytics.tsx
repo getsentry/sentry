@@ -8,7 +8,7 @@ import {
   getEventNameMap as getIntegrationEventMap,
 } from 'app/utils/integrationUtil';
 
-const ANALYTICS_SESSION = 'ANALYTICS_SESSION' as const;
+const ANALYTICS_SESSION = 'ANALYTICS_SESSION';
 
 export const startAnalyticsSession = () => {
   const sessionId = uniqueId();
