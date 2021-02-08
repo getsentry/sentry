@@ -124,36 +124,4 @@
     ); // IE9 and down, gets no color-stop at all for proper fallback
     background-repeat: no-repeat;
   }
-  .striped(@color: rgba(255, 255, 255, 0.15); @angle: 45deg) {
-    background-image: -webkit-linear-gradient(
-      @angle,
-      @color 25%,
-      transparent 25%,
-      transparent 50%,
-      @color 50%,
-      @color 75%,
-      transparent 75%,
-      transparent
-    );
-    background-image: -o-linear-gradient(
-      @angle,
-      @color 25%,
-      transparent 25%,
-      transparent 50%,
-      @color 50%,
-      @color 75%,
-      transparent 75%,
-      transparent
-    );
-    background-image: linear-gradient(
-      @angle,
-      @color 25%,
-      transparent 25%,
-      transparent 50%,
-      @color 50%,
-      @color 75%,
-      transparent 75%,
-      transparent
-    );
-  }
 }
