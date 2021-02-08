@@ -7,6 +7,7 @@
         "ms-python.python",
         "dbaeumer.vscode-eslint",
         "lextudio.restructuredtext",
-        "ziyasal.vscode-open-in-github"
+        "ziyasal.vscode-open-in-github",
+        "timonwong.shellcheck"
     ]
 }
