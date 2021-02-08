@@ -57,17 +57,15 @@ class WidgetCard extends React.Component<Props> {
   }
 
   renderToolbar() {
-    if (!this.props.isEditing) {
+    const {onEdit, onDelete, draggableProps, hideToolbar, isEditing} = this.props;
+
+    if (!isEditing) {
       return null;
     }
 
-    const {onEdit, onDelete, draggableProps} = this.props;
-
     return (
       <ToolbarPanel>
-        <IconContainer
-          style={{visibility: this.props.hideToolbar ? 'hidden' : 'visible'}}
-        >
+        <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
           <IconClick>
             <StyledIconGrabbable
               color="gray500"
