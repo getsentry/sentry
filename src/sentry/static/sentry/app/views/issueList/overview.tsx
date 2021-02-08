@@ -271,6 +271,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
   private _poller: any;
   private _lastRequest: any;
+  private _lastStatsRequest: any;
   private _streamManager = new StreamManager(GroupStore);
 
   getQuery(): string {
@@ -372,7 +373,7 @@ class IssueListOverview extends React.Component<Props, State> {
     );
   }
 
-  fetchStats = async (groups: string[]) => {
+  fetchStats = (groups: string[]) => {
     // If we have no groups to fetch, just skip stats
     if (!groups.length) {
       return;
@@ -385,17 +386,26 @@ class IssueListOverview extends React.Component<Props, State> {
     if (!requestParams.statsPeriod && !requestParams.start) {
       requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
     }
-    try {
-      const response = await this.props.api.requestPromise(this.getGroupStatsEndpoint(), {
-        method: 'GET',
-        data: qs.stringify(requestParams),
-      });
-      GroupActions.populateStats(groups, response);
-    } catch (e) {
-      this.setState({
-        error: parseApiError(e),
-      });
-    }
+
+    this._lastStatsRequest = this.props.api.request(this.getGroupStatsEndpoint(), {
+      method: 'GET',
+      data: qs.stringify(requestParams),
+      success: data => {
+        if (!data) {
+          return;
+        }
+
+        GroupActions.populateStats(groups, data);
+      },
+      error: err => {
+        this.setState({
+          error: parseApiError(err),
+        });
+      },
+      complete: () => {
+        this._lastStatsRequest = null;
+      },
+    });
   };
 
   fetchCounts = async (currentQueryCount: number, fetchAllCounts: boolean) => {
@@ -512,6 +522,9 @@ class IssueListOverview extends React.Component<Props, State> {
 
     if (this._lastRequest) {
       this._lastRequest.cancel();
+    }
+    if (this._lastStatsRequest) {
+      this._lastStatsRequest.cancel();
     }
 
     this._poller.disable();
