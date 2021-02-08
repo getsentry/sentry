@@ -86,7 +86,7 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMix
                     raise ResourceDoesNotExist
 
         if stat_model is None:
-            raise ValueError("Invalid group: %s, stat: %s" % (group, stat))
+            raise ValueError("Invalid group: {}, stat: {}".format(group, stat))
         data = tsdb.get_range(
             model=stat_model, keys=keys, **self._parse_args(request, **query_kwargs)
         )

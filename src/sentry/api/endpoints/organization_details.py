@@ -170,15 +170,15 @@ class OrganizationSerializer(serializers.Serializer):
         # just preventing new bad values.
         if len(value) < 3:
             raise serializers.ValidationError(
-                'This slug "%s" is too short. Minimum of 3 characters.' % (value,)
+                'This slug "{}" is too short. Minimum of 3 characters.'.format(value)
             )
         if value in RESERVED_ORGANIZATION_SLUGS:
             raise serializers.ValidationError(
-                'This slug "%s" is reserved and not allowed.' % (value,)
+                'This slug "{}" is reserved and not allowed.'.format(value)
             )
         qs = Organization.objects.filter(slug=value).exclude(id=self.context["organization"].id)
         if qs.exists():
-            raise serializers.ValidationError('The slug "%s" is already in use.' % (value,))
+            raise serializers.ValidationError('The slug "{}" is already in use.'.format(value))
         return value
 
     def validate_relayPiiConfig(self, value):

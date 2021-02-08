@@ -25,7 +25,7 @@ class TeamSerializer(serializers.ModelSerializer):
             id=self.instance.id
         )
         if qs.exists():
-            raise serializers.ValidationError('The slug "%s" is already in use.' % (value,))
+            raise serializers.ValidationError('The slug "{}" is already in use.'.format(value))
         return value
 
 

@@ -210,7 +210,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     def validate_slug(self, slug):
         if slug in RESERVED_PROJECT_SLUGS:
             raise serializers.ValidationError(
-                'The slug "%s" is reserved and not allowed.' % (slug,)
+                'The slug "{}" is reserved and not allowed.'.format(slug)
             )
         project = self.context["project"]
         other = (

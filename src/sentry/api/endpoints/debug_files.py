@@ -84,7 +84,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
     def download(self, debug_file_id, project):
         rate_limited = ratelimits.is_limited(
             project=project,
-            key="rl:DSymFilesEndpoint:download:%s:%s" % (debug_file_id, project.id),
+            key="rl:DSymFilesEndpoint:download:{}:{}".format(debug_file_id, project.id),
             limit=10,
         )
         if rate_limited:
@@ -105,7 +105,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
                 iter(lambda: fp.read(4096), b""), content_type="application/octet-stream"
             )
             response["Content-Length"] = debug_file.file.size
-            response["Content-Disposition"] = 'attachment; filename="%s%s"' % (
+            response["Content-Disposition"] = 'attachment; filename="{}{}"'.format(
                 posixpath.basename(debug_file.debug_id),
                 debug_file.file_extension,
             )
