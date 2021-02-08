@@ -15,7 +15,7 @@ import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import {Project} from 'app/types';
 import getDynamicText from 'app/utils/getDynamicText';
 import theme from 'app/utils/theme';
 
@@ -31,7 +31,6 @@ type Props = {
   projectsLoaded: boolean;
   orgId: string;
   filteredStatus: 'open' | 'closed';
-  organization: Organization;
 } & AsyncComponent['props'];
 
 type State = {
@@ -95,23 +94,13 @@ class AlertListRow extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {
-      incident,
-      orgId,
-      organization,
-      projectsLoaded,
-      projects,
-      filteredStatus,
-    } = this.props;
+    const {incident, orgId, projectsLoaded, projects, filteredStatus} = this.props;
     const {error, stats} = this.state;
     const started = moment(incident.dateStarted);
     const duration = moment
       .duration(moment(incident.dateClosed || new Date()).diff(started))
       .as('seconds');
     const slug = incident.projects[0];
-    const incidentLink = organization.features.includes('alert-details-redesign')
-      ? `/organizations/${orgId}/alerts/rules/details/${incident.alertRule.id}/`
-      : `/organizations/${orgId}/alerts/${incident.identifier}/`;
 
     return (
       <ErrorBoundary>
@@ -120,7 +109,11 @@ class AlertListRow extends AsyncComponent<Props, State> {
             <TitleAndSparkLine status={filteredStatus}>
               <Title>
                 {this.renderStatusIndicator()}
-                <IncidentLink to={incidentLink}>Alert #{incident.id}</IncidentLink>
+                <IncidentLink
+                  to={`/organizations/${orgId}/alerts/${incident.identifier}/`}
+                >
+                  Alert #{incident.id}
+                </IncidentLink>
                 {incident.title}
               </Title>
 
