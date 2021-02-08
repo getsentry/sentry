@@ -1,6 +1,5 @@
 __all__ = ("Analytics",)
 
-import six
 
 from sentry.analytics.event import Event
 from sentry.utils.services import Service

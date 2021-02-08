@@ -12,7 +12,6 @@ In Sentry a user must achieve the following to be treated as a superuser:
 
 import ipaddress
 import logging
-import six
 
 from datetime import datetime, timedelta
 from django.conf import settings

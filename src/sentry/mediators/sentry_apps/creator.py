@@ -1,5 +1,3 @@
-import six
-
 from collections import Iterable
 from django.db import IntegrityError, transaction
 from rest_framework.serializers import ValidationError

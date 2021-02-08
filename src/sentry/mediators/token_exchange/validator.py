@@ -1,5 +1,3 @@
-import six
-
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators import Mediator, Param
 from sentry.models import ApiApplication, SentryApp

@@ -1,5 +1,4 @@
 import logging
-import six
 
 from django.contrib.auth.models import update_last_login
 from django.contrib.auth.signals import user_logged_in

@@ -1,6 +1,5 @@
 import time
 import re
-import six
 
 from datetime import datetime, timedelta
 from django.conf import settings

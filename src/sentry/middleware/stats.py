@@ -1,5 +1,4 @@
 import inspect
-import six
 import time
 
 from django.http import Http404

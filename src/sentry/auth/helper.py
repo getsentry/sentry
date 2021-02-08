@@ -2,7 +2,6 @@ import logging
 
 from uuid import uuid4
 
-import six
 from django.conf import settings
 from django.contrib import messages
 from django.core.urlresolvers import reverse
