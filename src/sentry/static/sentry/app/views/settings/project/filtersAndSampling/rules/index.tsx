@@ -73,7 +73,7 @@ class Rules extends React.PureComponent<Props, State> {
       rules[overIndex].type === DynamicSamplingRuleType.TRACE
     ) {
       addErrorMessage(
-        t('Individual transactionsrules cannot be above Transaction traces rules')
+        t('Individual transactions rules cannot be above Transaction traces rules')
       );
       return;
     }
