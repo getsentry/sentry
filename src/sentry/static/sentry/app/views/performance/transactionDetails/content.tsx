@@ -7,9 +7,9 @@ import Button from 'app/components/button';
 import NotFound from 'app/components/errors/notFound';
 import {BorderlessEventEntries} from 'app/components/events/eventEntries';
 import EventMetadata from 'app/components/events/eventMetadata';
+import EventVitals from 'app/components/events/eventVitals';
 import * as SpanEntryContext from 'app/components/events/interfaces/spans/context';
 import OpsBreakdown from 'app/components/events/opsBreakdown';
-import RealUserMonitoring from 'app/components/events/realUserMonitoring';
 import RootSpanStatus from 'app/components/events/rootSpanStatus';
 import * as Layout from 'app/components/layouts/thirds';
 import LoadingError from 'app/components/loadingError';
@@ -26,7 +26,7 @@ import Breadcrumb from 'app/views/performance/breadcrumb';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 import {getTransactionDetailsUrl} from '../utils';
 
-import EventMeta from './eventMeta';
+import EventMetas from './eventMetas';
 
 type Props = {
   organization: Organization;
@@ -140,7 +140,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
         <Layout.Body>
           <Layout.Main fullWidth={!showSidebar}>
             {hasQuickTraceView && (
-              <EventMeta
+              <EventMetas
                 event={event}
                 organization={organization}
                 projectId={this.projectId}
@@ -182,7 +182,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               />
               <RootSpanStatus event={event} />
               <OpsBreakdown event={event} />
-              <RealUserMonitoring event={event} showSectionHeader />
+              <EventVitals event={event} showSectionHeader />
               <TagsTable event={event} query={query} generateUrl={this.generateTagUrl} />
             </Layout.Side>
           )}

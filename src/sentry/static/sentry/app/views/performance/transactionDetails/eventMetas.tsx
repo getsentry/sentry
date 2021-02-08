@@ -20,7 +20,7 @@ type Props = {
   projectId: string;
 };
 
-function EventMeta({event, organization, projectId}: Props) {
+function EventMetas({event, organization, projectId}: Props) {
   if (!isTransaction(event)) {
     return null;
   }
@@ -51,19 +51,23 @@ function EventMeta({event, organization, projectId}: Props) {
     <MetaDatasContainer>
       <MetaData
         headingText={t('Event ID')}
-        tooltipText={t('zxcv')}
+        tooltipText={t('The unique ID assigned to this transaction.')}
         bodyText={getShortEventId(event.eventID)}
         subtext={projectBadge}
       />
       <MetaData
         headingText={t('Total Duration')}
-        tooltipText={t('zxcv')}
+        tooltipText={t(
+          'The total time elapsed between the start and end of this transaction.'
+        )}
         bodyText={getDuration(event.endTimestamp - event.startTimestamp, 2, true)}
         subtext={timestamp}
       />
       <MetaData
         headingText={t('Status')}
-        tooltipText={t('zxcv')}
+        tooltipText={t(
+          'The status of this transaction indicating if it succeeded or otherwise.'
+        )}
         bodyText={event.contexts?.trace?.status ?? '\u2014'}
         subtext={httpStatus}
       />
@@ -139,4 +143,4 @@ const SectionSubtext = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-export default EventMeta;
+export default EventMetas;
