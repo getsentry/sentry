@@ -92,6 +92,24 @@ class ExternalTeam(DefaultFieldsModel):
         unique_together = (("team", "provider", "external_id"),)
 
 
+class ExternalUser(DefaultFieldsModel):
+    __core__ = False
+
+    user = FlexibleForeignKey("sentry.User")
+    provider = BoundedPositiveIntegerField(
+        choices=(
+            (ExternalProviders.GITHUB, "github"),
+            (ExternalProviders.GITLAB, "gitlab"),
+        ),
+    )
+    external_id = models.TextField()
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_externaluser"
+        unique_together = (("user", "provider", "external_id"),)
+
+
 class OrganizationIntegration(DefaultFieldsModel):
     __core__ = False
 
