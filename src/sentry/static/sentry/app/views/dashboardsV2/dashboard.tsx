@@ -37,12 +37,10 @@ type Props = {
 
 type State = {
   isDragging: boolean;
-  activeDragId?: string;
 };
 
 class Dashboard extends React.Component<Props, State> {
   state: State = {
-    activeDragId: undefined,
     isDragging: false,
   };
 
@@ -139,7 +137,6 @@ class Dashboard extends React.Component<Props, State> {
   resetDragState() {
     this.setState({
       isDragging: false,
-      activeDragId: undefined,
     });
   }
 
@@ -161,11 +158,10 @@ class Dashboard extends React.Component<Props, State> {
 
           this.setState({
             isDragging: true,
-            activeDragId: active.id,
           });
         }}
-        onDragEnd={({over}) => {
-          const {activeDragId} = this.state;
+        onDragEnd={({over, active}) => {
+          const activeDragId = active.id;
           const getIndex = items.indexOf.bind(items);
 
           const activeIndex = activeDragId ? getIndex(activeDragId) : -1;
