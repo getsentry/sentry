@@ -26,6 +26,8 @@ import Breadcrumb from 'app/views/performance/breadcrumb';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 import {getTransactionDetailsUrl} from '../utils';
 
+import EventMeta from './eventMeta';
+
 type Props = {
   organization: Organization;
   location: Location;
@@ -112,6 +114,9 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const transactionName = event.title;
     const query = decodeScalar(location.query.query, '');
 
+    const hasQuickTraceView = organization.features.includes('trace-view-quick');
+    const showSidebar = !hasQuickTraceView && isSidebarVisible;
+
     return (
       <React.Fragment>
         <Layout.Header>
@@ -125,13 +130,22 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
             <Layout.Title data-test-id="event-header">{event.title}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
-            <Button onClick={this.toggleSidebar}>
-              {isSidebarVisible ? 'Hide Details' : 'Show Details'}
-            </Button>
+            {hasQuickTraceView && (
+              <Button onClick={this.toggleSidebar}>
+                {showSidebar ? 'Hide Details' : 'Show Details'}
+              </Button>
+            )}
           </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>
-          <Layout.Main fullWidth={!isSidebarVisible}>
+          <Layout.Main fullWidth={!showSidebar}>
+            {hasQuickTraceView && (
+              <EventMeta
+                event={event}
+                organization={organization}
+                projectId={this.projectId}
+              />
+            )}
             <Projects orgId={organization.slug} slugs={[this.projectId]}>
               {({projects}) => (
                 <SpanEntryContext.Provider
@@ -152,13 +166,14 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                     project={projects[0] as Project}
                     showExampleCommit={false}
                     showTagSummary={false}
+                    showEventVitals={hasQuickTraceView}
                     location={location}
                   />
                 </SpanEntryContext.Provider>
               )}
             </Projects>
           </Layout.Main>
-          {isSidebarVisible && (
+          {showSidebar && (
             <Layout.Side>
               <EventMetadata
                 event={event}
@@ -167,7 +182,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               />
               <RootSpanStatus event={event} />
               <OpsBreakdown event={event} />
-              <RealUserMonitoring event={event} />
+              <RealUserMonitoring event={event} showSectionHeader />
               <TagsTable event={event} query={query} generateUrl={this.generateTagUrl} />
             </Layout.Side>
           )}

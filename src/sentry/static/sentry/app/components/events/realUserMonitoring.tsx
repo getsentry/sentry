@@ -17,114 +17,112 @@ import {
 
 type Props = {
   event: Event;
+  showSectionHeader?: boolean;
 };
 
-class RealUserMonitoring extends React.Component<Props> {
-  hasMeasurements() {
-    const {event} = this.props;
-
-    if (!event.measurements) {
-      return false;
-    }
-
-    return Object.keys(event.measurements).length > 0;
+function isOutdatedSdk(event: Event): boolean {
+  if (!event.sdk?.version) {
+    return false;
   }
 
-  renderMeasurements() {
-    const {event} = this.props;
+  const sdkVersion = event.sdk.version;
+  return (
+    sdkVersion.startsWith('5.26.') ||
+    sdkVersion.startsWith('5.27.0') ||
+    sdkVersion.startsWith('5.27.1') ||
+    sdkVersion.startsWith('5.27.2')
+  );
+}
 
-    if (!event.measurements) {
-      return null;
-    }
+export default function EventVitals({event, showSectionHeader = true}: Props) {
+  const measurementNames = Object.keys(event.measurements ?? {})
+    .filter(name => {
+      // ignore marker measurements
+      return !name.startsWith('mark.');
+    })
+    .sort();
 
-    const measurementNames = Object.keys(event.measurements)
-      .filter(name => {
-        // ignore marker measurements
-        return !name.startsWith('mark.');
-      })
-      .sort();
-
-    return measurementNames.map(name => {
-      const value = event.measurements![name].value;
-
-      const record = Object.values(WEB_VITAL_DETAILS).find(vital => vital.slug === name);
-
-      const failedThreshold = record ? value >= record.failureThreshold : false;
-
-      const currentValue = formattedValue(record, value);
-      const thresholdValue = formattedValue(record, record?.failureThreshold ?? 0);
-
-      if (!LONG_WEB_VITAL_NAMES.hasOwnProperty(name)) {
-        return null;
-      }
-
-      return (
-        <div key={name}>
-          <StyledPanel failedThreshold={failedThreshold}>
-            <Name>{LONG_WEB_VITAL_NAMES[name] ?? name}</Name>
-            <ValueRow>
-              {failedThreshold ? (
-                <FireIconContainer size="sm">
-                  <Tooltip
-                    title={t('Fails threshold at %s.', thresholdValue)}
-                    position="top"
-                    containerDisplayMode="inline-block"
-                  >
-                    <IconFire size="sm" />
-                  </Tooltip>
-                </FireIconContainer>
-              ) : null}
-              <Value failedThreshold={failedThreshold}>{currentValue}</Value>
-            </ValueRow>
-          </StyledPanel>
-        </div>
-      );
-    });
+  if (measurementNames.length === 0) {
+    return null;
   }
 
-  isOutdatedSdk() {
-    const {event} = this.props;
+  const component = (
+    <Measurements>
+      {measurementNames.map(name => (
+        <EventVital key={name} event={event} name={name} />
+      ))}
+    </Measurements>
+  );
 
-    if (!event.sdk?.version) {
-      return false;
-    }
-
-    const sdkVersion = event.sdk.version;
-    return (
-      sdkVersion.startsWith('5.26.') ||
-      sdkVersion.startsWith('5.27.0') ||
-      sdkVersion.startsWith('5.27.1') ||
-      sdkVersion.startsWith('5.27.2')
-    );
+  if (showSectionHeader) {
+    return component;
   }
 
-  render() {
-    if (!this.hasMeasurements()) {
-      return null;
-    }
+  return (
+    <Container>
+      <SectionHeading>
+        {t('Web Vitals')}
+        {isOutdatedSdk(event) && (
+          <WarningIconContainer size="sm">
+            <Tooltip
+              title={t(
+                'These vitals were collected using an outdated SDK version and may not be accurate. To ensure accurate web vitals in new transaction events, please update your SDK to the latest version.'
+              )}
+              position="top"
+              containerDisplayMode="inline-block"
+            >
+              <IconWarning size="sm" />
+            </Tooltip>
+          </WarningIconContainer>
+        )}
+      </SectionHeading>
+      {component}
+    </Container>
+  );
+}
 
-    return (
-      <Container>
-        <SectionHeading>
-          {t('Web Vitals')}
-          {this.isOutdatedSdk() && (
-            <WarningIconContainer size="sm">
+type EventVitalProps = Props & {
+  name: string;
+};
+
+function EventVital({event, name}: EventVitalProps) {
+  const value = event.measurements?.[name].value ?? null;
+  if (value === null) {
+    return null;
+  }
+
+  const record = Object.values(WEB_VITAL_DETAILS).find(vital => vital.slug === name);
+
+  const failedThreshold = record ? value >= record.failureThreshold : false;
+
+  const currentValue = formattedValue(record, value);
+  const thresholdValue = formattedValue(record, record?.failureThreshold ?? 0);
+
+  if (!LONG_WEB_VITAL_NAMES.hasOwnProperty(name)) {
+    return null;
+  }
+
+  return (
+    <EventVitalContainer>
+      <StyledPanel failedThreshold={failedThreshold}>
+        <Name>{LONG_WEB_VITAL_NAMES[name] ?? name}</Name>
+        <ValueRow>
+          {failedThreshold ? (
+            <FireIconContainer size="sm">
               <Tooltip
-                title={t(
-                  'These vitals were collected using an outdated SDK version and may not be accurate. To ensure accurate web vitals in new transaction events, please update your SDK to the latest version.'
-                )}
+                title={t('Fails threshold at %s.', thresholdValue)}
                 position="top"
                 containerDisplayMode="inline-block"
               >
-                <IconWarning size="sm" />
+                <IconFire size="sm" />
               </Tooltip>
-            </WarningIconContainer>
-          )}
-        </SectionHeading>
-        <Measurements>{this.renderMeasurements()}</Measurements>
-      </Container>
-    );
-  }
+            </FireIconContainer>
+          ) : null}
+          <Value failedThreshold={failedThreshold}>{currentValue}</Value>
+        </ValueRow>
+      </StyledPanel>
+    </EventVitalContainer>
+  );
 }
 
 const Measurements = styled('div')`
@@ -171,4 +169,4 @@ const Value = styled('span')<{failedThreshold: boolean}>`
   ${p => p.failedThreshold && `color: ${p.theme.red300};`}
 `;
 
-export default RealUserMonitoring;
+export const EventVitalContainer = styled('div')``;
