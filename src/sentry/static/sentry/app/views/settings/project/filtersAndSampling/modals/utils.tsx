@@ -10,8 +10,22 @@ export const modalCss = css`
 
   @media (min-width: ${theme.breakpoints[0]}) {
     .modal-dialog {
-      width: 35%;
-      margin-left: -17.5%;
+      width: 70%;
+      margin-left: -35%;
+    }
+  }
+
+  @media (min-width: ${theme.breakpoints[1]}) {
+    .modal-dialog {
+      width: 55%;
+      margin-left: -27.5%;
+    }
+  }
+
+  @media (min-width: ${theme.breakpoints[4]}) {
+    .modal-dialog {
+      width: 30%;
+      margin-left: -15%;
     }
   }
 `;

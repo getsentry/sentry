@@ -36,7 +36,16 @@ function RulesPanel({
           <Button href={DYNAMIC_SAMPLING_DOC_LINK} external>
             {t('Read the docs')}
           </Button>
-          <Button priority="primary" onClick={onAddRule} disabled={disabled}>
+          <Button
+            priority="primary"
+            onClick={onAddRule}
+            disabled={disabled}
+            title={
+              disabled
+                ? t('You do not have permission to add dynamic sampling rules.')
+                : undefined
+            }
+          >
             {t('Add rule')}
           </Button>
         </ButtonBar>
