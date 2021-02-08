@@ -12,6 +12,17 @@ from sentry.snuba import discover
 logger = logging.getLogger(__name__)
 
 
+def serialize_event(event, parent, is_root=False):
+    return {
+        "event_id": event["id"],
+        "span_id": event["trace.span"],
+        "transaction": event["transaction"],
+        "project_id": event["project_id"],
+        "parent_event_id": parent,
+        "is_root": is_root,
+    }
+
+
 class OrganizationEventsTraceLightEndpoint(OrganizationEventsEndpointBase):
     def has_feature(self, organization, request):
         return features.has(
@@ -81,16 +92,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsEndpointBase):
 
     def serialize(self, result, root, event_id=None):
         parent_map = {item["trace.parent_span"]: item for item in result}
-        trace_results = [
-            {
-                "event_id": root["id"],
-                "span_id": root["trace.span"],
-                "transaction": root["transaction"],
-                "project_id": root["project_id"],
-                "parent_event_id": None,
-                "is_root": True,
-            }
-        ]
+        trace_results = [serialize_event(root, None, True)]
 
         snuba_event = next((item for item in result if item["id"] == event_id), None)
         if snuba_event is None:
@@ -109,31 +111,15 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsEndpointBase):
                 None,
             )
 
+            # For the light response, the parent will be unknown unless we're a direct descendent of the root
             trace_results.append(
-                {
-                    "event_id": snuba_event["id"],
-                    "span_id": snuba_event["trace.span"],
-                    "transaction": snuba_event["transaction"],
-                    "project_id": snuba_event["project_id"],
-                    # For the light response, the parent will be unknown unless we're a direct descendent of the root
-                    "parent_event_id": root["id"] if root_span is not None else None,
-                    "is_root": False,
-                }
+                serialize_event(snuba_event, root["id"] if root_span is not None else None)
             )
 
         event = eventstore.get_event_by_id(snuba_event["project_id"], event_id)
         for span in event.data.get("spans", []):
             if span["span_id"] in parent_map:
                 child_event = parent_map[span["span_id"]]
-                trace_results.append(
-                    {
-                        "event_id": child_event["id"],
-                        "span_id": span["span_id"],
-                        "transaction": child_event["transaction"],
-                        "project_id": child_event["project_id"],
-                        "parent_event_id": event_id,
-                        "is_root": False,
-                    }
-                )
+                trace_results.append(serialize_event(child_event, event_id))
 
         return trace_results
