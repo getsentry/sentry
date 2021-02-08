@@ -35,11 +35,11 @@ type Props = ReactRouter.WithRouterProps & {
   selection: GlobalSelection;
   onDelete: () => void;
   onEdit: () => void;
-  renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   isSorting: boolean;
   currentWidgetDragging: boolean;
   hideToolbar?: boolean;
   draggableProps?: DraggableProps;
+  renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
 };
 
 class WidgetCard extends React.Component<Props> {
