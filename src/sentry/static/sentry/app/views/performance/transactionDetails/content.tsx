@@ -130,7 +130,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
             <Layout.Title data-test-id="event-header">{event.title}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
-            {hasQuickTraceView && (
+            {!hasQuickTraceView && (
               <Button onClick={this.toggleSidebar}>
                 {showSidebar ? 'Hide Details' : 'Show Details'}
               </Button>
