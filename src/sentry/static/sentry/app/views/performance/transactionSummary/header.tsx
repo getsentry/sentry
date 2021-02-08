@@ -5,7 +5,6 @@ import {Location} from 'history';
 import Feature from 'app/components/acl/feature';
 import ButtonBar from 'app/components/buttonBar';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
-import FeatureBadge from 'app/components/featureBadge';
 import * as Layout from 'app/components/layouts/thirds';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
@@ -156,7 +155,6 @@ class TransactionHeader extends React.Component<Props> {
                 onClick={this.trackVitalsTabClick}
               >
                 {t('Web Vitals')}
-                <FeatureBadge type="new" />
               </ListLink>
             )}
           </StyledNavTabs>
