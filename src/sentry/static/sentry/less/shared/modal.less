@@ -31,7 +31,7 @@
   // When fading in the modal, animate it to slide down
   &.fade .modal-dialog {
     transform: translate(0, -25%);
-    .transition-transform(~'0.3s ease-out');
+    transition: transform 0.3s ease-out;
   }
   &.in .modal-dialog {
     transform: translate(0, 0);
@@ -188,7 +188,7 @@
     right: 24px;
     z-index: 100;
     color: lighten(@gray, 20);
-    .transition(color 0.1s linear);
+    transition: color 0.1s linear;
 
     &:hover {
       color: @gray;
@@ -263,7 +263,7 @@
 
     li {
       a {
-        .transition(none);
+        transition: none;
         &:hover {
           color: #fff;
           background: @purple;
