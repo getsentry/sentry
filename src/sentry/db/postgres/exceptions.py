@@ -1,5 +1,4 @@
 import psycopg2
-import six
 import traceback
 
 
@@ -26,7 +25,7 @@ class CompositeTraceback:
         return self.__curframe.tb_lineno
 
     def tb_next(self):
-        six.next(self.__iterator)
+        next(self.__iterator)
         return self
 
 
@@ -39,7 +38,7 @@ class TransactionAborted(psycopg2.DatabaseError):
         return "\n".join(traceback.format_exception(self.__class__, self, self.get_traceback()))
 
     def __str__(self):
-        return "(%s) %s" % (self.cur_exc_info[0].__name__, self.cur_exc_info[1])
+        return "({}) {}".format(self.cur_exc_info[0].__name__, self.cur_exc_info[1])
 
     def get_traceback(self):
         return CompositeTraceback([self.exc_info[2], self.cur_exc_info[2]])

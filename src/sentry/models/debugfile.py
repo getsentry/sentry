@@ -1,6 +1,5 @@
 import re
 import os
-import six
 import uuid
 import errno
 import shutil
@@ -26,7 +25,7 @@ logger = logging.getLogger(__name__)
 # 10 minutes is assumed to be a reasonable value here.
 CONVERSION_ERROR_TTL = 60 * 10
 
-DIF_MIMETYPES = dict((v, k) for k, v in KNOWN_DIF_FORMATS.items())
+DIF_MIMETYPES = {v: k for k, v in KNOWN_DIF_FORMATS.items()}
 
 _proguard_file_re = re.compile(r"/proguard/(?:mapping-)?(.*?)\.txt$")
 
@@ -80,7 +79,7 @@ class ProjectDebugFileManager(BaseManager):
             difs_by_id.setdefault(dif.debug_id, []).append(dif)
 
         rv = {}
-        for debug_id, group in six.iteritems(difs_by_id):
+        for debug_id, group in difs_by_id.items():
             with_features = [dif for dif in group if "features" in (dif.data or ())]
 
             # In case we've never computed features for any of these files, we
@@ -195,7 +194,7 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
     elif meta.file_format == "breakpad":
         object_name = meta.name[:-4] if meta.name.endswith(".sym") else meta.name
     else:
-        raise TypeError("unknown dif type %r" % (meta.file_format,))
+        raise TypeError(f"unknown dif type {meta.file_format!r}")
 
     if file is not None:
         checksum = file.checksum
@@ -263,7 +262,7 @@ def _analyze_progard_filename(filename):
     ident = match.group(1)
 
     try:
-        return six.text_type(uuid.UUID(ident))
+        return str(uuid.UUID(ident))
     except Exception:
         pass
 
@@ -400,17 +399,17 @@ class DIFCache:
         return options.get("dsym.cache-path")
 
     def get_project_path(self, project):
-        return os.path.join(self.cache_path, six.text_type(project.id))
+        return os.path.join(self.cache_path, str(project.id))
 
     def fetch_difs(self, project, debug_ids, features=None):
         """Given some ids returns an id to path mapping for where the
         debug symbol files are on the FS.
         """
-        debug_ids = [six.text_type(debug_id).lower() for debug_id in debug_ids]
+        debug_ids = [str(debug_id).lower() for debug_id in debug_ids]
         difs = ProjectDebugFile.objects.find_by_debug_ids(project, debug_ids, features)
 
         rv = {}
-        for debug_id, dif in six.iteritems(difs):
+        for debug_id, dif in difs.items():
             dif_path = os.path.join(self.get_project_path(project), debug_id)
             try:
                 os.stat(dif_path)

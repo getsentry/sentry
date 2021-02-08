@@ -1,5 +1,4 @@
 import importlib
-import six
 
 from sentry.db.models.utils import Creator
 
@@ -27,7 +26,7 @@ class UUIDField(models.Field):
 
         # If the `auto_add` arguments is specified as a string
         # parse out and import the callable.
-        if isinstance(auto_add, six.text_type):
+        if isinstance(auto_add, str):
             module_name, member = auto_add.split(":")
             module = importlib.import_module(module_name)
             auto_add = getattr(module, member)
@@ -115,7 +114,7 @@ class UUIDField(models.Field):
         """
         if isinstance(self._auto_add, bool):
             return self._auto_add
-        return "%s:%s" % (self._auto_add.__module__, self._auto_add.__name__)
+        return f"{self._auto_add.__module__}:{self._auto_add.__name__}"
 
 
 class UUIDAdapter:

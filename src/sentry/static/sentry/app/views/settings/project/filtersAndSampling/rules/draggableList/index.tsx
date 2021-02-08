@@ -6,17 +6,33 @@ import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/
 import Item, {ItemProps} from './item';
 import SortableItem, {SortableItemProps} from './sortableItem';
 
-type Props = Pick<ItemProps, 'renderItem' | 'innerWrapperStyle' | 'wrapperStyle'> &
-  Pick<SortableItemProps, 'disabled'> & {
-    items: Array<string>;
-    onUpdateItems: (items: Array<string>) => void;
-  };
+export type UpdateItemsProps = {
+  activeIndex: string;
+  overIndex: string;
+  reorderedItems: Array<string>;
+};
+
+type DefaultProps = Pick<
+  SortableItemProps,
+  'disabled' | 'wrapperStyle' | 'innerWrapperStyle'
+>;
+
+type Props = Pick<ItemProps, 'renderItem'> & {
+  items: Array<string>;
+  onUpdateItems: (props: UpdateItemsProps) => void;
+} & DefaultProps;
 
 type State = {
   activeId?: string;
 };
 
 class DraggableList extends React.Component<Props, State> {
+  static defaultProps: DefaultProps = {
+    disabled: false,
+    wrapperStyle: () => ({}),
+    innerWrapperStyle: () => ({}),
+  };
+
   state: State = {};
 
   handleChangeActive = (activeId: State['activeId']) => {
@@ -29,9 +45,9 @@ class DraggableList extends React.Component<Props, State> {
       items,
       onUpdateItems,
       renderItem,
+      disabled,
       wrapperStyle,
       innerWrapperStyle,
-      disabled,
     } = this.props;
 
     const getIndex = items.indexOf.bind(items);
@@ -52,17 +68,22 @@ class DraggableList extends React.Component<Props, State> {
           if (over) {
             const overIndex = getIndex(over.id);
             if (activeIndex !== overIndex) {
-              onUpdateItems(arrayMove(items, activeIndex, overIndex));
+              onUpdateItems({
+                activeIndex,
+                overIndex,
+                reorderedItems: arrayMove(items, activeIndex, overIndex),
+              });
             }
           }
         }}
         onDragCancel={() => this.handleChangeActive(undefined)}
       >
         <SortableContext items={items} strategy={verticalListSortingStrategy}>
-          {items.map(item => (
+          {items.map((item, index) => (
             <SortableItem
               key={item}
               id={item}
+              index={index}
               renderItem={renderItem}
               disabled={disabled}
               wrapperStyle={wrapperStyle}
@@ -76,9 +97,20 @@ class DraggableList extends React.Component<Props, State> {
               <Item
                 value={items[activeIndex]}
                 renderItem={renderItem}
-                wrapperStyle={wrapperStyle}
-                innerWrapperStyle={innerWrapperStyle}
-                style={{cursor: disabled ? undefined : 'grabbing'}}
+                wrapperStyle={wrapperStyle({
+                  id: items[activeIndex],
+                  index: activeIndex,
+                  isDragging: true,
+                  isSorting: false,
+                })}
+                innerWrapperStyle={innerWrapperStyle({
+                  id: items[activeIndex],
+                  index: activeIndex,
+                  isSorting: activeId !== null,
+                  isDragging: true,
+                  overIndex: -1,
+                  isDragOverlay: true,
+                })}
               />
             ) : null}
           </DragOverlay>,
