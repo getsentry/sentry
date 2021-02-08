@@ -55,30 +55,30 @@ export default function EventVitals({event, showSectionHeader = true}: Props) {
   );
 
   if (showSectionHeader) {
-    return component;
+    return (
+      <Container>
+        <SectionHeading>
+          {t('Web Vitals')}
+          {isOutdatedSdk(event) && (
+            <WarningIconContainer size="sm">
+              <Tooltip
+                title={t(
+                  'These vitals were collected using an outdated SDK version and may not be accurate. To ensure accurate web vitals in new transaction events, please update your SDK to the latest version.'
+                )}
+                position="top"
+                containerDisplayMode="inline-block"
+              >
+                <IconWarning size="sm" />
+              </Tooltip>
+            </WarningIconContainer>
+          )}
+        </SectionHeading>
+        {component}
+      </Container>
+    );
   }
 
-  return (
-    <Container>
-      <SectionHeading>
-        {t('Web Vitals')}
-        {isOutdatedSdk(event) && (
-          <WarningIconContainer size="sm">
-            <Tooltip
-              title={t(
-                'These vitals were collected using an outdated SDK version and may not be accurate. To ensure accurate web vitals in new transaction events, please update your SDK to the latest version.'
-              )}
-              position="top"
-              containerDisplayMode="inline-block"
-            >
-              <IconWarning size="sm" />
-            </Tooltip>
-          </WarningIconContainer>
-        )}
-      </SectionHeading>
-      {component}
-    </Container>
-  );
+  return component;
 }
 
 type EventVitalProps = Props & {
