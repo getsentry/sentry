@@ -78,50 +78,6 @@
   -o-transform: skewX(@x) skewY(@y);
   transform: skewX(@x) skewY(@y);
 }
-.translate(@x; @y) {
-  -webkit-transform: translate(@x, @y);
-  -ms-transform: translate(@x, @y); // IE9 only
-  -o-transform: translate(@x, @y);
-  transform: translate(@x, @y);
-}
-.translate3d(@x; @y; @z) {
-  -webkit-transform: translate3d(@x, @y, @z);
-  transform: translate3d(@x, @y, @z);
-}
-.rotate(@degrees) {
-  -webkit-transform: rotate(@degrees);
-  -ms-transform: rotate(@degrees); // IE9 only
-  -o-transform: rotate(@degrees);
-  transform: rotate(@degrees);
-}
-.rotateX(@degrees) {
-  -webkit-transform: rotateX(@degrees);
-  -ms-transform: rotateX(@degrees); // IE9 only
-  -o-transform: rotateX(@degrees);
-  transform: rotateX(@degrees);
-}
-.rotateY(@degrees) {
-  -webkit-transform: rotateY(@degrees);
-  -ms-transform: rotateY(@degrees); // IE9 only
-  -o-transform: rotateY(@degrees);
-  transform: rotateY(@degrees);
-}
-.perspective(@perspective) {
-  -webkit-perspective: @perspective;
-  -moz-perspective: @perspective;
-  perspective: @perspective;
-}
-.perspective-origin(@perspective) {
-  -webkit-perspective-origin: @perspective;
-  -moz-perspective-origin: @perspective;
-  perspective-origin: @perspective;
-}
-.transform-origin(@origin) {
-  -webkit-transform-origin: @origin;
-  -moz-transform-origin: @origin;
-  -ms-transform-origin: @origin; // IE9 only
-  transform-origin: @origin;
-}
 
 // Transitions
 
