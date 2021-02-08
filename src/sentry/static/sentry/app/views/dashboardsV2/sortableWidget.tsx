@@ -12,13 +12,12 @@ type Props = {
   widget: Widget;
   dragId: string;
   isEditing: boolean;
-  isDragging: boolean;
   onDelete: () => void;
   onEdit: () => void;
 };
 
 function SortableWidget(props: Props) {
-  const {widget, dragId, isDragging, isEditing, onDelete, onEdit} = props;
+  const {widget, dragId, isEditing, onDelete, onEdit} = props;
 
   const {
     attributes,
@@ -26,6 +25,7 @@ function SortableWidget(props: Props) {
     setNodeRef,
     transform,
     isDragging: currentWidgetDragging,
+    isSorting,
   } = useSortable({
     id: dragId,
     transition: null,
@@ -85,8 +85,8 @@ function SortableWidget(props: Props) {
         isEditing={isEditing}
         onDelete={onDelete}
         onEdit={onEdit}
-        isDragging={isDragging}
-        hideToolbar={isDragging}
+        isSorting={isSorting}
+        hideToolbar={isSorting}
         currentWidgetDragging={currentWidgetDragging}
         draggableProps={{
           attributes,

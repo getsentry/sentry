@@ -334,7 +334,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                 <PanelAlert type="error">{errorMessage}</PanelAlert>
               )
             }
-            isDragging={false}
+            isSorting={false}
             currentWidgetDragging={false}
           />
         </Body>

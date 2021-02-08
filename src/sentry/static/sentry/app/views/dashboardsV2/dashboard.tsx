@@ -35,15 +35,7 @@ type Props = {
   onUpdate: (widgets: Widget[]) => void;
 };
 
-type State = {
-  isDragging: boolean;
-};
-
-class Dashboard extends React.Component<Props, State> {
-  state: State = {
-    isDragging: false,
-  };
-
+class Dashboard extends React.Component<Props> {
   componentDidMount() {
     const {isEditing} = this.props;
     // Load organization tags when in edit mode.
@@ -126,7 +118,6 @@ class Dashboard extends React.Component<Props, State> {
           widget={widget}
           dragId={dragId}
           isEditing={isEditing}
-          isDragging={this.state.isDragging}
           onDelete={this.handleDeleteWidget(index)}
           onEdit={this.handleEditWidget(widget, index)}
         />
@@ -151,15 +142,6 @@ class Dashboard extends React.Component<Props, State> {
 
     return (
       <DndContext
-        onDragStart={({active}) => {
-          if (!active) {
-            return;
-          }
-
-          this.setState({
-            isDragging: true,
-          });
-        }}
         onDragEnd={({over, active}) => {
           const activeDragId = active.id;
           const getIndex = items.indexOf.bind(items);

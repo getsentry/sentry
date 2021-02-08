@@ -36,7 +36,7 @@ type Props = ReactRouter.WithRouterProps & {
   onDelete: () => void;
   onEdit: () => void;
   renderErrorMessage?: (errorMessage: string | undefined) => React.ReactNode;
-  isDragging: boolean;
+  isSorting: boolean;
   currentWidgetDragging: boolean;
   hideToolbar?: boolean;
   draggableProps?: DraggableProps;
@@ -48,7 +48,7 @@ class WidgetCard extends React.Component<Props> {
       !isEqual(nextProps.widget, this.props.widget) ||
       !isSelectionEqual(nextProps.selection, this.props.selection) ||
       this.props.isEditing !== nextProps.isEditing ||
-      this.props.isDragging !== nextProps.isDragging ||
+      this.props.isSorting !== nextProps.isSorting ||
       this.props.hideToolbar !== nextProps.hideToolbar
     ) {
       return true;
