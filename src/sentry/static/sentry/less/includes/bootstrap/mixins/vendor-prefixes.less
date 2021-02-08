@@ -5,7 +5,6 @@
 // All vendor mixins are deprecated as of v3.2.0 due to the introduction of
 // Autoprefixer in our Gruntfile. They have been removed in v4.
 
-// - Animations
 // - Backface visibility
 // - Box shadow
 // - Box sizing
@@ -15,41 +14,6 @@
 // - Transformations
 // - Transitions
 // - User Select
-
-// Animations
-.animation(@animation) {
-  -webkit-animation: @animation;
-  -o-animation: @animation;
-  animation: @animation;
-}
-.animation-name(@name) {
-  -webkit-animation-name: @name;
-  animation-name: @name;
-}
-.animation-duration(@duration) {
-  -webkit-animation-duration: @duration;
-  animation-duration: @duration;
-}
-.animation-timing-function(@timing-function) {
-  -webkit-animation-timing-function: @timing-function;
-  animation-timing-function: @timing-function;
-}
-.animation-delay(@delay) {
-  -webkit-animation-delay: @delay;
-  animation-delay: @delay;
-}
-.animation-iteration-count(@iteration-count) {
-  -webkit-animation-iteration-count: @iteration-count;
-  animation-iteration-count: @iteration-count;
-}
-.animation-direction(@direction) {
-  -webkit-animation-direction: @direction;
-  animation-direction: @direction;
-}
-.animation-fill-mode(@fill-mode) {
-  -webkit-animation-fill-mode: @fill-mode;
-  animation-fill-mode: @fill-mode;
-}
 
 // Backface visibility
 // Prevent browsers from flickering when using CSS 3D transforms.
