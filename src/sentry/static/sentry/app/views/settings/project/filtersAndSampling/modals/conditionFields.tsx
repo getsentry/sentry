@@ -83,7 +83,11 @@ function ConditionFields({
                   hideControlState
                   stacked
                 />
-                <FieldHelp>{t('You can include multiple values by putting each value on a separate line')}</FieldHelp>
+                <FieldHelp>
+                  {t(
+                    'You can include multiple values by putting each value on a separate line'
+                  )}
+                </FieldHelp>
               </StyledField>
               <ButtonDeleteWrapper>
                 <Button onClick={onDelete(index)} size="small">
