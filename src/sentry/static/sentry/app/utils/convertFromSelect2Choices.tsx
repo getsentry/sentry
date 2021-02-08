@@ -18,7 +18,7 @@ const convertFromSelect2Choices = (choices: Input): SelectValue<any>[] | null =>
   if (isStringList(choices)) {
     return choices.map(choice => ({value: choice, label: choice}));
   }
-  return choices.map(choice => ({value: choice[0], label: String(choice[1])}));
+  return choices.map(choice => ({value: choice[0], label: choice[1]}));
 };
 
 export default convertFromSelect2Choices;

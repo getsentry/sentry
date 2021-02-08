@@ -1,5 +1,3 @@
-import {SelectValue} from 'app/types';
-
 export type Aggregation = [string, string | null, string];
 
 export type Condition = [string, string | null, string | number | boolean | null];
@@ -50,7 +48,9 @@ export type Column = {
   isTag?: boolean;
 };
 
-export type ReactSelectOption = SelectValue<string> & {
+export type ReactSelectOption = {
+  label: string;
+  value: string;
   isTag?: boolean;
 };
 
