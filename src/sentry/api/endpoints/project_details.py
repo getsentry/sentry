@@ -250,7 +250,9 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             )
         project = self.context["project"]
         other = (
-            Project.objects.filter(slug=slug, organization=project.organization).exclude(id=project.id).first()
+            Project.objects.filter(slug=slug, organization=project.organization)
+            .exclude(id=project.id)
+            .first()
         )
         if other is not None:
             raise serializers.ValidationError(
