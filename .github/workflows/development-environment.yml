@@ -26,6 +26,7 @@ jobs:
         shell: bash
         run: |
           echo "HOMEBREW_CACHE=`brew --cache`" >> $GITHUB_ENV
+          echo "PYENV_ROOT=$HOME/.pyenv" >> $GITHUB_ENV
           echo "VOLTA_HOME=$HOME/.volta" >> $GITHUB_ENV
           echo "PATH=$HOME/.pyenv/shims:$HOME/.volta/bin:$PATH" >> $GITHUB_ENV
 
