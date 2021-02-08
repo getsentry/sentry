@@ -35,6 +35,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
         projectSlug={project.slug}
         location={router.location}
         projectId={project.slug}
+        isProjectStabilized
       />
     );
 
@@ -66,6 +67,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
         projectSlug={project.slug}
         location={router.location}
         projectId={project.slug}
+        isProjectStabilized
       />
     );
 
@@ -95,6 +97,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
           projectSlug={project.slug}
           location={router.location}
           projectId={project.slug}
+          isProjectStabilized
         />
       </React.Fragment>
     );
@@ -127,6 +130,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
           query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
         }}
         projectId={project.slug}
+        isProjectStabilized
       />
     );
 

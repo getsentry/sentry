@@ -34,6 +34,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
         organization={organization}
         projectSlug={project.slug}
         location={router.location}
+        isProjectStabilized
       />
     );
 
@@ -82,6 +83,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
         organization={organization}
         projectSlug={project.slug}
         location={router.location}
+        isProjectStabilized
       />
     );
 
@@ -113,6 +115,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
         organization={organization}
         projectSlug={project.slug}
         location={router.location}
+        isProjectStabilized
       />
     );
 
@@ -142,6 +145,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
           query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
         }}
         projectId={project.slug}
+        isProjectStabilized
       />
     );
 
@@ -168,6 +172,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
         organization={organization}
         projectSlug={project.slug}
         location={router.location}
+        isProjectStabilized
       />
     );
 

@@ -27,6 +27,7 @@ type Props = AsyncComponent['props'] & {
   projectSlug: string;
   location: Location;
   projectId?: string;
+  isProjectStabilized: boolean;
 };
 
 type State = {
@@ -36,10 +37,13 @@ type State = {
 
 class ProjectLatestReleases extends AsyncComponent<Props, State> {
   shouldComponentUpdate(nextProps: Props, nextState: State) {
+    const {location, isProjectStabilized} = this.props;
     // TODO(project-detail): we temporarily removed refetching based on timeselector
     if (
       this.state !== nextState ||
-      this.props.location.query.environment !== nextProps.location.query.environment
+      location.query.environment !== nextProps.location.query.environment ||
+      location.query.project !== nextProps.location.query.project ||
+      isProjectStabilized !== nextProps.isProjectStabilized
     ) {
       return true;
     }
@@ -47,8 +51,24 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
     return false;
   }
 
+  componentDidUpdate(prevProps: Props) {
+    const {location, isProjectStabilized} = this.props;
+
+    if (
+      prevProps.location.query.environment !== location.query.environment ||
+      prevProps.location.query.project !== location.query.project ||
+      prevProps.isProjectStabilized !== isProjectStabilized
+    ) {
+      this.remountComponent();
+    }
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {location, organization, projectSlug} = this.props;
+    const {location, organization, projectSlug, isProjectStabilized} = this.props;
+
+    if (!isProjectStabilized) {
+      return [];
+    }
 
     const query = {
       ...pick(location.query, Object.values(URL_PARAM)),
@@ -66,7 +86,11 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
    */
   async onLoadAllEndpointsSuccess() {
     const {releases} = this.state;
-    const {organization, projectId} = this.props;
+    const {organization, projectId, isProjectStabilized} = this.props;
+
+    if (!isProjectStabilized) {
+      return;
+    }
 
     if ((releases ?? []).length !== 0 || !projectId) {
       this.setState({hasOlderReleases: true});
@@ -129,11 +153,12 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
   };
 
   renderInnerBody() {
-    const {organization, projectId} = this.props;
+    const {organization, projectId, isProjectStabilized} = this.props;
     const {loading, releases, hasOlderReleases} = this.state;
     const checkingForOlderReleases =
       !(releases ?? []).length && hasOlderReleases === undefined;
-    const showLoadingIndicator = loading || checkingForOlderReleases;
+    const showLoadingIndicator =
+      loading || checkingForOlderReleases || !isProjectStabilized;
 
     if (showLoadingIndicator) {
       return <Placeholder height="160px" />;

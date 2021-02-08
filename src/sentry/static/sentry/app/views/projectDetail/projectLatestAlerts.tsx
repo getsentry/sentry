@@ -27,6 +27,7 @@ type Props = AsyncComponent['props'] & {
   projectSlug: string;
   location: Location;
   theme: Theme;
+  isProjectStabilized: boolean;
 };
 
 type State = {
@@ -37,10 +38,13 @@ type State = {
 
 class ProjectLatestAlerts extends AsyncComponent<Props, State> {
   shouldComponentUpdate(nextProps: Props, nextState: State) {
+    const {location, isProjectStabilized} = this.props;
     // TODO(project-detail): we temporarily removed refetching based on timeselector
     if (
       this.state !== nextState ||
-      this.props.location.query.environment !== nextProps.location.query.environment
+      location.query.environment !== nextProps.location.query.environment ||
+      location.query.project !== nextProps.location.query.project ||
+      isProjectStabilized !== nextProps.isProjectStabilized
     ) {
       return true;
     }
@@ -48,8 +52,24 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
     return false;
   }
 
+  componentDidUpdate(prevProps: Props) {
+    const {location, isProjectStabilized} = this.props;
+
+    if (
+      prevProps.location.query.environment !== location.query.environment ||
+      prevProps.location.query.project !== location.query.project ||
+      prevProps.isProjectStabilized !== isProjectStabilized
+    ) {
+      this.remountComponent();
+    }
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {location, organization} = this.props;
+    const {location, organization, isProjectStabilized} = this.props;
+
+    if (!isProjectStabilized) {
+      return [];
+    }
 
     const query = {
       ...pick(location.query, Object.values(URL_PARAM)),
@@ -76,7 +96,11 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
    */
   async onLoadAllEndpointsSuccess() {
     const {unresolvedAlerts, resolvedAlerts} = this.state;
-    const {location, organization} = this.props;
+    const {location, organization, isProjectStabilized} = this.props;
+
+    if (!isProjectStabilized) {
+      return;
+    }
 
     if ([...(unresolvedAlerts ?? []), ...(resolvedAlerts ?? [])].length !== 0) {
       this.setState({hasAlertRule: true});
@@ -152,7 +176,7 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
   };
 
   renderInnerBody() {
-    const {organization, projectSlug} = this.props;
+    const {organization, projectSlug, isProjectStabilized} = this.props;
     const {loading, unresolvedAlerts, resolvedAlerts, hasAlertRule} = this.state;
     const alertsUnresolvedAndResolved = [
       ...(unresolvedAlerts ?? []),
@@ -160,7 +184,7 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
     ];
     const checkingForAlertRules =
       alertsUnresolvedAndResolved.length === 0 && hasAlertRule === undefined;
-    const showLoadingIndicator = loading || checkingForAlertRules;
+    const showLoadingIndicator = loading || checkingForAlertRules || !isProjectStabilized;
 
     if (showLoadingIndicator) {
       return <Placeholder height="172px" />;

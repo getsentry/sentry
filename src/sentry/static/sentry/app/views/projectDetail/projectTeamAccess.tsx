@@ -15,7 +15,7 @@ import {SidebarSection} from './styles';
 
 type Props = {
   organization: Organization;
-  project?: Project | null;
+  project?: Project;
 };
 
 function ProjectTeamAccess({organization, project}: Props) {
