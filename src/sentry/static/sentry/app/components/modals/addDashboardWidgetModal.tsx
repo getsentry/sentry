@@ -184,7 +184,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
           };
         });
 
-        if (value === 'world_map') {
+        if (['world_map', 'big_number'].includes(value)) {
           // For world map chart, cap fields of the queries to only one field.
           newQueries = newQueries.map(query => {
             return {
