@@ -79,7 +79,6 @@ function ConditionFields({
                   onChange={value => onChange(index, 'match', value)}
                   disabled={showLegacyBrowsers}
                   inline={false}
-                  maxRows={undefined}
                   autosize
                   hideControlState
                   stacked
