@@ -1,6 +1,6 @@
 from django.utils.encoding import force_str
 
-from six.moves.urllib.parse import urlparse, urlencode, urlunparse
+from urllib.parse import urlparse, urlencode, urlunparse
 from sentry.mediators import Mediator, Param
 from sentry.mediators.external_requests import SelectRequester
 

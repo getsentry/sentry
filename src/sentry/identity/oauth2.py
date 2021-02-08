@@ -1,7 +1,7 @@
 __all__ = ["OAuth2Provider", "OAuth2CallbackView", "OAuth2LoginView"]
 
 import logging
-from six.moves.urllib.parse import parse_qsl, urlencode
+from urllib.parse import parse_qsl, urlencode
 from uuid import uuid4
 from time import time
 from requests.exceptions import SSLError

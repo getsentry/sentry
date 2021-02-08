@@ -1,4 +1,3 @@
-import six
 import pytz
 
 from datetime import datetime
@@ -18,8 +17,8 @@ class GrantExchanger(Mediator):
     """
 
     install = Param("sentry.models.SentryAppInstallation")
-    code = Param(six.string_types)
-    client_id = Param(six.string_types)
+    code = Param((str,))
+    client_id = Param((str,))
     user = Param("sentry.models.User")
 
     def call(self):

@@ -12,15 +12,14 @@ enabled.
 
 import logging
 import requests
-import six
 import threading
 
 from requests_oauthlib import OAuth1
 from django.contrib.auth import authenticate
 from django.utils.crypto import get_random_string, constant_time_compare
-from six.moves.urllib.error import HTTPError
-from six.moves.urllib.request import Request
-from six.moves.urllib.parse import urlencode
+from urllib.error import HTTPError
+from urllib.request import Request
+from urllib.parse import urlencode
 from social_auth.models import UserSocialAuth
 from social_auth.utils import (
     setting,
@@ -216,7 +215,7 @@ class OAuthBackend(SocialAuthBackend):
         names = (cls.EXTRA_DATA or []) + setting(name + "_EXTRA_DATA", [])
 
         for entry in names:
-            if isinstance(entry, six.string_types):
+            if isinstance(entry, str):
                 entry = (entry,)
 
             try:
@@ -275,7 +274,7 @@ class BaseAuth:
             "next": next_idx,
             "backend": self.AUTH_BACKEND.name,
             "args": tuple(map(model_to_ctype, args)),
-            "kwargs": {key: model_to_ctype(val) for key, val in six.iteritems(kwargs)},
+            "kwargs": {key: model_to_ctype(val) for key, val in kwargs.items()},
         }
 
     def from_session_dict(self, session_data, *args, **kwargs):
@@ -285,10 +284,8 @@ class BaseAuth:
         args = args[:] + tuple(map(ctype_to_model, session_data["args"]))
 
         kwargs = kwargs.copy()
-        saved_kwargs = {
-            key: ctype_to_model(val) for key, val in six.iteritems(session_data["kwargs"])
-        }
-        saved_kwargs.update((key, val) for key, val in six.iteritems(kwargs))
+        saved_kwargs = {key: ctype_to_model(val) for key, val in session_data["kwargs"].items()}
+        saved_kwargs.update((key, val) for key, val in kwargs.items())
         return (session_data["next"], args, saved_kwargs)
 
     def continue_pipeline(self, *args, **kwargs):
@@ -312,7 +309,7 @@ class BaseAuth:
         """
         backend_name = self.AUTH_BACKEND.name.upper().replace("-", "_")
         extra_arguments = setting(backend_name + "_AUTH_EXTRA_ARGUMENTS", {})
-        for key, value in six.iteritems(extra_arguments):
+        for key, value in extra_arguments.items():
             if key in self.data:
                 extra_arguments[key] = self.data[key]
             elif value:

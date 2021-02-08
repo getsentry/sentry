@@ -2,7 +2,6 @@ from sentry.utils.compat import map
 
 __all__ = ("Attribute", "Event", "Map")
 
-import six
 from uuid import uuid1
 from base64 import b64encode
 
@@ -13,7 +12,7 @@ from sentry.utils.dates import to_timestamp
 
 
 class Attribute:
-    def __init__(self, name, type=six.text_type, required=True):
+    def __init__(self, name, type=str, required=True):
         self.name = name
         self.type = type
         self.required = required
@@ -60,9 +59,7 @@ class Map(Attribute):
             data[attr.name] = attr.extract(nv)
 
         if items:
-            raise ValueError(
-                "Unknown attributes: {}".format(", ".join(map(six.text_type, six.iterkeys(items))))
-            )
+            raise ValueError("Unknown attributes: {}".format(", ".join(map(str, items.keys()))))
 
         return data
 
@@ -92,7 +89,7 @@ class Event:
             data[attr.name] = attr.extract(nv)
 
         if items:
-            raise ValueError("Unknown attributes: {}".format(", ".join(six.iterkeys(items))))
+            raise ValueError("Unknown attributes: {}".format(", ".join(items.keys())))
 
         self.data = data
 
