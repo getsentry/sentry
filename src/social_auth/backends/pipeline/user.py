@@ -87,7 +87,7 @@ def django_orm_maxlength_truncate(backend, details, user=None, is_new=False, *ar
         return
     out = {}
     names = get_all_field_names(user)
-    for name, value in six.iteritems(details):
+    for name, value in details.items():
         if name in names and not _ignore_field(name, is_new):
             max_length = user._meta.get_field(name).max_length
             try:
@@ -106,7 +106,7 @@ def update_user_details(backend, details, response, user=None, is_new=False, *ar
 
     changed = False  # flag to track changes
 
-    for name, value in six.iteritems(details):
+    for name, value in details.items():
         # do not update username, it was already generated, do not update
         # configured fields if user already existed
         if not _ignore_field(name, is_new):

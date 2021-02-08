@@ -61,7 +61,7 @@ class Map(Attribute):
 
         if items:
             raise ValueError(
-                "Unknown attributes: {}".format(", ".join(map(str, six.iterkeys(items))))
+                "Unknown attributes: {}".format(", ".join(map(str, items.keys())))
             )
 
         return data
@@ -92,7 +92,7 @@ class Event:
             data[attr.name] = attr.extract(nv)
 
         if items:
-            raise ValueError("Unknown attributes: {}".format(", ".join(six.iterkeys(items))))
+            raise ValueError("Unknown attributes: {}".format(", ".join(items.keys())))
 
         self.data = data
 

@@ -25,7 +25,7 @@ def consolidate_events(raw_events):
     """
     return {
         name
-        for (name, rolled_up_events) in six.iteritems(EVENT_EXPANSION)
+        for (name, rolled_up_events) in EVENT_EXPANSION.items()
         if any(set(raw_events) & set(rolled_up_events))
     }
 

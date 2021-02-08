@@ -106,7 +106,7 @@ class IssueLinkRequester(Mediator):
     @memoize
     def body(self):
         body = {"fields": {}}
-        for name, value in six.iteritems(self.fields):
+        for name, value in self.fields.items():
             body["fields"][name] = value
 
         body["issueId"] = self.group.id

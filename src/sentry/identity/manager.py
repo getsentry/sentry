@@ -13,7 +13,7 @@ class IdentityManager:
         return iter(self.all())
 
     def all(self):
-        for key in six.iterkeys(self.__values):
+        for key in self.__values.keys():
             provider = self.get(key)
             if provider.is_configured():
                 yield provider

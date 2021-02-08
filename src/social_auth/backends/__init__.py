@@ -275,7 +275,7 @@ class BaseAuth:
             "next": next_idx,
             "backend": self.AUTH_BACKEND.name,
             "args": tuple(map(model_to_ctype, args)),
-            "kwargs": {key: model_to_ctype(val) for key, val in six.iteritems(kwargs)},
+            "kwargs": {key: model_to_ctype(val) for key, val in kwargs.items()},
         }
 
     def from_session_dict(self, session_data, *args, **kwargs):
@@ -286,9 +286,9 @@ class BaseAuth:
 
         kwargs = kwargs.copy()
         saved_kwargs = {
-            key: ctype_to_model(val) for key, val in six.iteritems(session_data["kwargs"])
+            key: ctype_to_model(val) for key, val in session_data["kwargs"].items()
         }
-        saved_kwargs.update((key, val) for key, val in six.iteritems(kwargs))
+        saved_kwargs.update((key, val) for key, val in kwargs.items())
         return (session_data["next"], args, saved_kwargs)
 
     def continue_pipeline(self, *args, **kwargs):
@@ -312,7 +312,7 @@ class BaseAuth:
         """
         backend_name = self.AUTH_BACKEND.name.upper().replace("-", "_")
         extra_arguments = setting(backend_name + "_AUTH_EXTRA_ARGUMENTS", {})
-        for key, value in six.iteritems(extra_arguments):
+        for key, value in extra_arguments.items():
             if key in self.data:
                 extra_arguments[key] = self.data[key]
             elif value:

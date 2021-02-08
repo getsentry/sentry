@@ -53,18 +53,14 @@ class AuthenticatorInterface:
         """If the interface has an activation method that needs to be
         called this returns `True`.
         """
-        return self.activate.__func__ is not six.get_unbound_function(
-            AuthenticatorInterface.activate
-        )
+        return self.activate.__func__ is not AuthenticatorInterface.activate
 
     @property
     def can_validate_otp(self):
         """If the interface is able to validate OTP codes then this returns
         `True`.
         """
-        return self.validate_otp.__func__ is not six.get_unbound_function(
-            AuthenticatorInterface.validate_otp
-        )
+        return self.validate_otp.__func__ is not AuthenticatorInterface.validate_otp
 
     @property
     def config(self):
