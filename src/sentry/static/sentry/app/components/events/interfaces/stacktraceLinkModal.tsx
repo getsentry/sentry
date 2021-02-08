@@ -41,9 +41,8 @@ class StacktraceLinkModal extends React.Component<Props, State> {
 
   onManualSetup(provider: string) {
     trackIntegrationEvent(
+      'integrations.stacktrace_manual_option_clicked',
       {
-        eventKey: 'integrations.stacktrace_manual_option_clicked',
-        eventName: 'Integrations: Stacktrace Manual Option Clicked',
         view: 'stacktrace_issue_details',
         setup_type: 'manual',
         provider,
@@ -56,9 +55,8 @@ class StacktraceLinkModal extends React.Component<Props, State> {
     const {sourceCodeInput} = this.state;
     const {api, closeModal, filename, onSubmit, organization, project} = this.props;
     trackIntegrationEvent(
+      'integrations.stacktrace_submit_config',
       {
-        eventKey: 'integrations.stacktrace_submit_config',
-        eventName: 'Integrations: Stacktrace Submit Config',
         setup_type: 'automatic',
         view: 'stacktrace_issue_details',
       },
@@ -83,9 +81,8 @@ class StacktraceLinkModal extends React.Component<Props, State> {
 
       addSuccessMessage(t('Stack trace configuration saved.'));
       trackIntegrationEvent(
+        'integrations.stacktrace_complete_setup',
         {
-          eventKey: 'integrations.stacktrace_complete_setup',
-          eventName: 'Integrations: Stacktrace Complete Setup',
           setup_type: 'automatic',
           provider: configData.config?.provider.key,
           view: 'stacktrace_issue_details',

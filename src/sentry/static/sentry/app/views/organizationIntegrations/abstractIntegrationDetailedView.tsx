@@ -19,12 +19,12 @@ import {
   IntegrationInstallationStatus,
   IntegrationType,
   Organization,
-  SentryAppStatus,
 } from 'app/types';
 import {
+  AnalyticsKey,
+  EventParameters,
   getCategories,
   getIntegrationFeatureGate,
-  SingleIntegrationEvent,
   trackIntegrationEvent,
 } from 'app/utils/integrationUtil';
 import marked, {singleLineRenderer} from 'app/utils/marked';
@@ -62,9 +62,7 @@ class AbstractIntegrationDetailedView<
   }
 
   onLoadAllEndpointsSuccess() {
-    this.trackIntegrationEvent({
-      eventKey: 'integrations.integration_viewed',
-      eventName: 'Integrations: Integration Viewed',
+    this.trackIntegrationEvent('integrations.integration_viewed', {
       integration_tab: this.state.tab,
     });
   }
@@ -133,9 +131,7 @@ class AbstractIntegrationDetailedView<
   }
 
   onTabChange = (value: Tab) => {
-    this.trackIntegrationEvent({
-      eventKey: 'integrations.integration_tab_clicked',
-      eventName: 'Integrations: Integration Tab Clicked',
+    this.trackIntegrationEvent('integrations.integration_tab_clicked', {
       integration_tab: value,
     });
     this.setState({tab: value});
@@ -191,29 +187,20 @@ class AbstractIntegrationDetailedView<
   }
 
   //Wrapper around trackIntegrationEvent that automatically provides many fields and the org
-  trackIntegrationEvent = (
-    options: Pick<
-      SingleIntegrationEvent,
-      'eventKey' | 'eventName' | 'integration_tab'
-    > & {
-      integration_status?: SentryAppStatus;
-      project_id?: string;
-    }
+  trackIntegrationEvent = <T extends AnalyticsKey>(
+    eventKey: AnalyticsKey,
+    options?: Partial<EventParameters[T]>
   ) => {
+    options = options || {};
     //If we use this intermediate type we get type checking on the things we care about
-    const params: Omit<
-      Parameters<typeof trackIntegrationEvent>[0],
-      'integrations_installed'
-    > = {
+    const params = {
       view: 'integrations_directory_integration_detail',
       integration: this.integrationSlug,
       integration_type: this.integrationType,
       already_installed: this.installationStatus !== 'Not Installed', //pending counts as installed here
       ...options,
     };
-    //type cast here so TS won't complain
-    const typeCasted = params as Parameters<typeof trackIntegrationEvent>[0];
-    trackIntegrationEvent(typeCasted, this.props.organization);
+    trackIntegrationEvent(eventKey, params, this.props.organization);
   };
 
   //Returns the props as needed by the hooks integrations:feature-gates

@@ -42,129 +42,8 @@ export const clearAnalyticsSession = () => {
 export const getAnalyticsSessionId = () =>
   window.sessionStorage.getItem(INTEGRATIONS_ANALYTICS_SESSION_KEY);
 
-export type SingleIntegrationEvent = {
-  eventKey:
-    | 'integrations.install_modal_opened' //TODO: remove
-    | 'integrations.installation_start'
-    | 'integrations.installation_complete'
-    | 'integrations.integration_viewed' //for the integration overview
-    | 'integrations.details_viewed' //for an individual configuration
-    | 'integrations.uninstall_clicked'
-    | 'integrations.uninstall_completed'
-    | 'integrations.enabled'
-    | 'integrations.disabled'
-    | 'integrations.config_saved'
-    | 'integrations.integration_tab_clicked'
-    | 'integrations.plugin_add_to_project_clicked'
-    | 'integrations.upgrade_plan_modal_opened'
-    | 'integrations.resolve_now_clicked'
-    | 'integrations.request_install'
-    | 'integrations.code_mappings_viewed'
-    | 'integrations.cloudformation_link_clicked'
-    | 'integrations.switch_manual_sdk_setup';
-  eventName:
-    | 'Integrations: Install Modal Opened' //TODO: remove
-    | 'Integrations: Installation Start'
-    | 'Integrations: Installation Complete'
-    | 'Integrations: Integration Viewed'
-    | 'Integrations: Details Viewed'
-    | 'Integrations: Uninstall Clicked'
-    | 'Integrations: Uninstall Completed'
-    | 'Integrations: Enabled'
-    | 'Integrations: Disabled'
-    | 'Integrations: Integration Tab Clicked'
-    | 'Integrations: Config Saved'
-    | 'Integrations: Plugin Add to Project Clicked'
-    | 'Integrations: Upgrade Plan Modal Opened'
-    | 'Integrations: Resolve Now Clicked'
-    | 'Integrations: Request Install'
-    | 'Integrations: Code Mappings Viewed'
-    | 'Integrations: CloudFormation Link Clicked'
-    | 'Integrations: Switch Manual SDK Setup';
-  integration: string; //the slug
-  integration_type: IntegrationType;
-  already_installed?: boolean;
-  integration_tab?: 'configurations' | 'overview';
-  plan?: string;
-  //include the status since people might do weird things testing unpublished integrations
-  integration_status?: SentryAppStatus;
-};
-
-type MultipleIntegrationsEvent = {
-  eventKey: 'integrations.index_viewed';
-  eventName: 'Integrations: Index Page Viewed';
-  integrations_installed: number;
-};
-
-type IntegrationSearchEvent = {
-  eventKey: 'integrations.directory_item_searched';
-  eventName: 'Integrations: Directory Item Searched';
-  search_term: string;
-  num_results: number;
-};
-
-type IntegrationCategorySelectEvent = {
-  eventKey: 'integrations.directory_category_selected';
-  eventName: 'Integrations: Directory Category Selected';
-  category: string;
-};
-
-type IntegrationServerlessFunctionsViewed = {
-  eventKey: 'integrations.serverless_functions_viewed';
-  eventName: 'Integrations: Serverless Functions Viewed';
-  num_functions: number;
-  integration: string; //the slug
-  integration_type: IntegrationType;
-};
-
-type IntegrationServerlessFunctionAction = {
-  eventKey: 'integrations.serverless_function_action';
-  eventName: 'Integrations: Serverless Function Action';
-  action: 'enable' | 'disable' | 'updateVersion';
-  integration: string; //the slug
-  integration_type: IntegrationType;
-};
-
-type IntegrationStacktraceLinkEvent = {
-  eventKey:
-    | 'integrations.stacktrace_start_setup'
-    | 'integrations.stacktrace_submit_config'
-    | 'integrations.stacktrace_complete_setup'
-    | 'integrations.stacktrace_manual_option_clicked'
-    | 'integrations.stacktrace_link_clicked'
-    | 'integrations.reconfigure_stacktrace_setup'
-    | 'integrations.stacktrace_docs_clicked';
-  eventName:
-    | 'Integrations: Stacktrace Start Setup'
-    | 'Integrations: Stacktrace Submit Config'
-    | 'Integrations: Stacktrace Complete Setup'
-    | 'Integrations: Stacktrace Manual Option Clicked'
-    | 'Integrations: Stacktrace Link Clicked'
-    | 'Integrations: Reconfigure Stacktrace Setup'
-    | 'Integrations: Stacktrace Docs Clicked';
-  provider?: string;
-  setup_type?: 'automatic' | 'manual';
-  error_reason?: 'file_not_found' | 'stack_root_mismatch';
-};
-
-type IntegrationInstalltionInputValueChangeEvent = {
-  eventKey: 'integrations.installation_input_value_changed';
-  eventName: 'Integrations: Installation Input Value Changed';
-  integration: string; //the slug
-  integration_type: IntegrationType;
-  field_name: string;
-};
-
-export type IntegrationsEventParams = (
-  | MultipleIntegrationsEvent
-  | SingleIntegrationEvent
-  | IntegrationSearchEvent
-  | IntegrationCategorySelectEvent
-  | IntegrationStacktraceLinkEvent
-  | IntegrationServerlessFunctionsViewed
-  | IntegrationServerlessFunctionAction
-  | IntegrationInstalltionInputValueChangeEvent
-) & {
+//define the various event paylaods
+type View = {
   view?:
     | 'external_install'
     | 'legacy_integrations'
@@ -175,8 +54,127 @@ export type IntegrationsEventParams = (
     | 'integration_configuration_detail'
     | 'onboarding'
     | 'project_creation';
-  project_id?: string;
-} & Parameters<Hooks['analytics:track-event']>[0];
+};
+
+type SingleIntegrationEventParams = {
+  integration: string; //the slug
+  integration_type: IntegrationType;
+  already_installed?: boolean;
+  plan?: string;
+  //include the status since people might do weird things testing unpublished integrations
+  integration_status?: SentryAppStatus;
+  integration_tab?: 'configurations' | 'overview';
+} & View;
+
+type MultipleIntegrationsEventParams = {
+  integrations_installed: number;
+} & View;
+
+type IntegrationSearchEventParams = {
+  search_term: string;
+  num_results: number;
+} & View;
+
+type IntegrationCategorySelectEventParams = {
+  category: string;
+} & View;
+
+type IntegrationStacktraceLinkEventParams = {
+  provider?: string;
+  platform?: string;
+  setup_type?: 'automatic' | 'manual';
+  error_reason?: 'file_not_found' | 'stack_root_mismatch';
+} & View;
+
+type IntegrationServerlessFunctionsViewedParams = {
+  num_functions: number;
+} & SingleIntegrationEventParams;
+
+type IntegrationServerlessFunctionActionParams = {
+  action: 'enable' | 'disable' | 'updateVersion';
+} & SingleIntegrationEventParams;
+
+type IntegrationInstalltionInputValueChangeEventParams = {
+  field_name: string;
+} & SingleIntegrationEventParams;
+
+//define the event key to payload mappings
+export type EventParameters = {
+  'integrations.install_modal_opened': SingleIntegrationEventParams;
+  'integrations.integration_viewed': SingleIntegrationEventParams;
+  'integrations.installation_start': SingleIntegrationEventParams;
+  'integrations.installation_complete': SingleIntegrationEventParams;
+  'integrations.uninstall_clicked': SingleIntegrationEventParams;
+  'integrations.uninstall_completed': SingleIntegrationEventParams;
+  'integrations.enabled': SingleIntegrationEventParams;
+  'integrations.disabled': SingleIntegrationEventParams;
+  'integrations.config_saved': SingleIntegrationEventParams;
+  'integrations.integration_tab_clicked': SingleIntegrationEventParams;
+  'integrations.plugin_add_to_project_clicked': SingleIntegrationEventParams;
+  'integrations.resolve_now_clicked': SingleIntegrationEventParams;
+  'integrations.request_install': SingleIntegrationEventParams;
+  'integrations.code_mappings_viewed': SingleIntegrationEventParams;
+  'integrations.details_viewed': SingleIntegrationEventParams; //for an individual configuration
+  'integrations.index_viewed': MultipleIntegrationsEventParams;
+  'integrations.directory_item_searched': IntegrationSearchEventParams;
+  'integrations.directory_category_selected': IntegrationCategorySelectEventParams;
+  'integrations.stacktrace_start_setup': IntegrationStacktraceLinkEventParams;
+  'integrations.stacktrace_submit_config': IntegrationStacktraceLinkEventParams;
+  'integrations.stacktrace_complete_setup': IntegrationStacktraceLinkEventParams;
+  'integrations.stacktrace_manual_option_clicked': IntegrationStacktraceLinkEventParams;
+  'integrations.stacktrace_link_clicked': IntegrationStacktraceLinkEventParams;
+  'integrations.reconfigure_stacktrace_setup': IntegrationStacktraceLinkEventParams;
+  'integrations.stacktrace_docs_clicked': IntegrationStacktraceLinkEventParams;
+  'integrations.serverless_functions_viewed': IntegrationServerlessFunctionsViewedParams;
+  'integrations.installation_input_value_changed': IntegrationInstalltionInputValueChangeEventParams;
+  'integrations.serverless_function_action': IntegrationServerlessFunctionActionParams;
+  'integrations.cloudformation_link_clicked': SingleIntegrationEventParams;
+  'integrations.switch_manual_sdk_setup': SingleIntegrationEventParams;
+};
+
+export type AnalyticsKey = keyof EventParameters;
+
+//define the event key to event name mappings
+const eventNameMap: Record<AnalyticsKey, string> = {
+  'integrations.install_modal_opened': 'Integrations: Install Modal Opened',
+  'integrations.integration_viewed': 'Integrations: Integration Viewed',
+  'integrations.installation_start': 'Integrations: Installation Start',
+  'integrations.installation_complete': 'Integrations: Installation Complete',
+  'integrations.uninstall_clicked': 'Integrations: Uninstall Clicked',
+  'integrations.uninstall_completed': 'Integrations: Uninstall Completed',
+  'integrations.enabled': 'Integrations: Enabled',
+  'integrations.disabled': 'Integrations: Disabled',
+  'integrations.config_saved': 'Integrations: Config Saved',
+  'integrations.integration_tab_clicked': 'Integrations: Integration Tab Clicked',
+  'integrations.plugin_add_to_project_clicked':
+    'Integrations: Plugin Add to Project Clicked',
+  'integrations.resolve_now_clicked': 'Integrations: Resolve Now Clicked',
+  'integrations.request_install': 'Integrations: Request Install',
+  'integrations.code_mappings_viewed': 'Integrations: Code Mappings Viewed',
+  'integrations.details_viewed': 'Integrations: Details Viewed',
+  'integrations.index_viewed': 'Integrations: Index Page Viewed',
+  'integrations.directory_item_searched': 'Integrations: Directory Item Searched',
+  'integrations.directory_category_selected': 'Integrations: Directory Category Selected',
+  'integrations.stacktrace_start_setup': 'Integrations: Stacktrace Start Setup',
+  'integrations.stacktrace_submit_config': 'Integrations: Stacktrace Submit Config',
+  'integrations.stacktrace_complete_setup': 'Integrations: Stacktrace Complete Setup',
+  'integrations.stacktrace_manual_option_clicked':
+    'Integrations: Stacktrace Manual Option Clicked',
+  'integrations.stacktrace_link_clicked': 'Integrations: Stacktrace Link Clicked',
+  'integrations.reconfigure_stacktrace_setup':
+    'Integrations: Reconfigure Stacktrace Setup',
+  'integrations.stacktrace_docs_clicked': 'Integrations: Stacktrace Docs Clicked',
+
+  'integrations.serverless_functions_viewed': 'Integrations: Serverless Functions Viewed',
+  'integrations.installation_input_value_changed':
+    'Integrations: Installation Input Value Changed',
+  'integrations.serverless_function_action': 'Integrations: Serverless Function Action',
+  'integrations.cloudformation_link_clicked': 'Integrations: CloudFormation Link Clicked',
+  'integrations.switch_manual_sdk_setup': 'Integrations: Switch Manual SDK Setup',
+};
+
+//hook to lazyily generate eventNameMap
+export const getEventNameMap = () => eventNameMap;
 
 const mapIntegrationParams = analyticsParams => {
   //Reload expects integration_status even though it's not relevant for non-sentry apps
@@ -188,13 +186,20 @@ const mapIntegrationParams = analyticsParams => {
   return fullParams;
 };
 
-export const trackIntegrationEvent = (
-  params: IntegrationsEventParams,
+export function trackIntegrationEvent<T extends AnalyticsKey>(
+  eventKey: T,
+  analyticsParams: EventParameters[T],
   org?: Organization,
-  options?: Parameters<typeof trackAdvancedAnalyticsEvent>[2]
-) => {
-  return trackAdvancedAnalyticsEvent(params, org, options, mapIntegrationParams);
-};
+  options?: Parameters<typeof trackAdvancedAnalyticsEvent>[3]
+) {
+  return trackAdvancedAnalyticsEvent(
+    eventKey,
+    analyticsParams,
+    org,
+    options,
+    mapIntegrationParams
+  );
+}
 
 /**
  * In sentry.io the features list supports rendering plan details. If the hook
