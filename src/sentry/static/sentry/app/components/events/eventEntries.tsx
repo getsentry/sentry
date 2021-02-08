@@ -14,7 +14,6 @@ import EventDataSection from 'app/components/events/eventDataSection';
 import EventExtraData from 'app/components/events/eventExtraData/eventExtraData';
 import EventSdk from 'app/components/events/eventSdk';
 import EventTags from 'app/components/events/eventTags/eventTags';
-import EventVitals, {EventVitalContainer} from 'app/components/events/eventVitals';
 import EventGroupingInfo from 'app/components/events/groupingInfo';
 import EventPackageData from 'app/components/events/packageData';
 import RRWebIntegration from 'app/components/events/rrwebIntegration';
@@ -36,7 +35,6 @@ const defaultProps = {
   isShare: false,
   showExampleCommit: false,
   showTagSummary: true,
-  showEventVitals: false,
 };
 
 type Props = {
@@ -131,7 +129,6 @@ class EventEntries extends React.Component<Props> {
       event,
       showExampleCommit,
       showTagSummary,
-      showEventVitals,
       location,
     } = this.props;
 
@@ -191,29 +188,6 @@ class EventEntries extends React.Component<Props> {
           />
         )}
         {this.renderEntries()}
-        {showEventVitals && event && (
-          <EventVitalsAndTagsContainer>
-            {!objectIsEmpty(event.measurements) && (
-              <EventVitalsSection title="Web Vitals" type="vitals">
-                <div>
-                  <EventVitals event={event} />
-                </div>
-              </EventVitalsSection>
-            )}
-            <EventDataSection title="Tags" type="tags">
-              <div>
-                <EventTags
-                  event={event}
-                  orgId={organization.slug}
-                  projectId={project.slug}
-                  location={location}
-                  hasQueryFeature={hasQueryFeature}
-                  showSectionHeader={false}
-                />
-              </div>
-            </EventDataSection>
-          </EventVitalsAndTagsContainer>
-        )}
         {hasContext && <EventContexts group={group} event={event} />}
         {event && !objectIsEmpty(event.context) && <EventExtraData event={event} />}
         {event && !objectIsEmpty(event.packages) && <EventPackageData event={event} />}
@@ -283,45 +257,6 @@ const StyledEventUserFeedback = styled(EventUserFeedback)<StyledEventUserFeedbac
   border: 0;
   ${p => (p.includeBorder ? `border-top: 1px solid ${p.theme.innerBorder};` : '')}
   margin: 0;
-`;
-
-const EventVitalsAndTagsContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    flex-direction: row;
-  }
-
-  & ${/* sc-selector */ DataSection}, & ${/* sc-selector */ DataSection}:first-child {
-    padding: ${space(3)} 0;
-    border-top: 1px solid ${p => p.theme.innerBorder};
-  }
-
-  & ${/* sc-selector */ DataSection}:first-child {
-    width: 100%;
-
-    @media (min-width: ${p => p.theme.breakpoints[1]}) {
-      width: auto;
-    }
-  }
-
-  & ${/* sc-selector */ EventVitalContainer} {
-    width: auto;
-
-    @media (min-width: ${p => p.theme.breakpoints[1]}) {
-      width: 240px;
-    }
-  }
-`;
-
-const EventVitalsSection = styled(EventDataSection)`
-  padding-right: ${space(0)} !important;
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    padding-right: ${space(4)} !important;
-  }
 `;
 
 // TODO(ts): any required due to our use of SharedViewOrganization

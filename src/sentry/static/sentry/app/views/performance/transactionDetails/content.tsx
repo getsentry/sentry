@@ -115,7 +115,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const query = decodeScalar(location.query.query, '');
 
     const hasQuickTraceView = organization.features.includes('trace-view-quick');
-    const showSidebar = !hasQuickTraceView && isSidebarVisible;
 
     return (
       <React.Fragment>
@@ -130,15 +129,13 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
             <Layout.Title data-test-id="event-header">{event.title}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
-            {!hasQuickTraceView && (
-              <Button onClick={this.toggleSidebar}>
-                {showSidebar ? 'Hide Details' : 'Show Details'}
-              </Button>
-            )}
+            <Button onClick={this.toggleSidebar}>
+              {isSidebarVisible ? 'Hide Details' : 'Show Details'}
+            </Button>
           </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>
-          <Layout.Main fullWidth={!showSidebar}>
+          <Layout.Main fullWidth={!isSidebarVisible}>
             {hasQuickTraceView && (
               <EventMetas
                 event={event}
@@ -166,21 +163,24 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                     project={projects[0] as Project}
                     showExampleCommit={false}
                     showTagSummary={false}
-                    showEventVitals={hasQuickTraceView}
                     location={location}
                   />
                 </SpanEntryContext.Provider>
               )}
             </Projects>
           </Layout.Main>
-          {showSidebar && (
+          {isSidebarVisible && (
             <Layout.Side>
-              <EventMetadata
-                event={event}
-                organization={organization}
-                projectId={this.projectId}
-              />
-              <RootSpanStatus event={event} />
+              {!hasQuickTraceView && (
+                <React.Fragment>
+                  <EventMetadata
+                    event={event}
+                    organization={organization}
+                    projectId={this.projectId}
+                  />
+                  <RootSpanStatus event={event} />
+                </React.Fragment>
+              )}
               <OpsBreakdown event={event} />
               <EventVitals event={event} showSectionHeader />
               <TagsTable event={event} query={query} generateUrl={this.generateTagUrl} />
