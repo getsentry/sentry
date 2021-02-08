@@ -1,7 +1,10 @@
 import React from 'react';
-import {DraggableSyntheticListeners, UseDraggableArguments} from '@dnd-kit/core';
+import {DraggableSyntheticListeners} from '@dnd-kit/core';
+import {useSortable} from '@dnd-kit/sortable';
 import {Transform} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
+
+type UseSortableOutputProps = ReturnType<typeof useSortable>;
 
 export type ItemProps = {
   value: React.ReactNode;
@@ -12,7 +15,7 @@ export type ItemProps = {
   sorting?: boolean;
   transition?: string;
   forwardRef?: React.Ref<HTMLElement>;
-  attributes?: UseDraggableArguments['attributes'];
+  attributes?: UseSortableOutputProps['attributes'];
   wrapperStyle?: React.CSSProperties;
   innerWrapperStyle?: React.CSSProperties;
   renderItem(args: {
@@ -23,7 +26,7 @@ export type ItemProps = {
     transition: ItemProps['transition'];
     value: ItemProps['value'];
     index?: number;
-    attributes?: UseDraggableArguments['attributes'];
+    attributes?: UseSortableOutputProps['attributes'];
   }): React.ReactElement | null;
 };
 
