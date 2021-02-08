@@ -1,5 +1,3 @@
-import six
-
 from django.db import transaction
 from django.db.models import Q, F
 from rest_framework import serializers

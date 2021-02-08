@@ -1,5 +1,3 @@
-import six
-
 from django.http import HttpResponse
 
 from sentry import eventstore

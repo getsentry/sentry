@@ -1,5 +1,4 @@
 from rest_framework.response import Response
-import six
 
 from django.conf import settings
 from sentry.api.base import Endpoint

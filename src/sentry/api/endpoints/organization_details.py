@@ -1,5 +1,4 @@
 import logging
-import six
 
 from datetime import datetime
 

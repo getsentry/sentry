@@ -1,5 +1,3 @@
-import six
-
 from rest_framework import serializers
 
 from sentry import features

@@ -1,5 +1,3 @@
-import six
-
 from copy import deepcopy
 
 from django.db import IntegrityError

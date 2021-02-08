@@ -1,5 +1,4 @@
 import re
-import six
 import jsonschema
 import logging
 import posixpath

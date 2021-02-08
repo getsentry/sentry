@@ -1,5 +1,3 @@
-import six
-
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
