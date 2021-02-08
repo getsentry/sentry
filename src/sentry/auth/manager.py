@@ -11,7 +11,7 @@ class ProviderManager:
         self.__values = {}
 
     def __iter__(self):
-        return self.__values.items()
+        yield from self.__values.items()
 
     def get(self, key, **kwargs):
         try:
