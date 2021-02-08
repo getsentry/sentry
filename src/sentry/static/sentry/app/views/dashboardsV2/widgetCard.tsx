@@ -24,6 +24,8 @@ import {Widget} from './types';
 import WidgetCardChart from './widgetCardChart';
 import WidgetQueries from './widgetQueries';
 
+type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
+
 type Props = ReactRouter.WithRouterProps & {
   api: Client;
   organization: Organization;
@@ -37,10 +39,7 @@ type Props = ReactRouter.WithRouterProps & {
   isDragging: boolean;
   currentWidgetDragging: boolean;
   hideToolbar?: boolean;
-  draggableProps?: {
-    attributes: ReturnType<typeof useSortable>['attributes'];
-    listeners: ReturnType<typeof useSortable>['listeners'];
-  };
+  draggableProps?: DraggableProps;
 };
 
 class WidgetCard extends React.Component<Props> {
