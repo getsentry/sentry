@@ -226,8 +226,16 @@ output {
   // Customize the `:focus` state to imitate native WebKit styles.
   .form-control-focus();
 
-  // Placeholder
-  .placeholder();
+  &::-moz-placeholder {
+    color: @input-color-placeholder;
+    opacity: 1;
+  }
+  &:-ms-input-placeholder {
+    color: @input-color-placeholder;
+  }
+  &::-webkit-input-placeholder {
+    color: @input-color-placeholder;
+  }
 
   // Unstyle the caret on `<select>`s in IE10+.
   &::-ms-expand {
@@ -674,7 +682,16 @@ output {
     color: @gray-dark;
   }
 
-  .placeholder(@gray-light);
+  &::-moz-placeholder {
+    color: @gray-light;
+    opacity: 1;
+  }
+  &:-ms-input-placeholder {
+    color: @gray-light;
+  }
+  &::-webkit-input-placeholder {
+    color: @gray-light;
+  }
 
   &:focus {
     border-color: darken(@gray-lighter, 4);
