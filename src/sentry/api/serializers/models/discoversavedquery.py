@@ -1,4 +1,3 @@
-import six
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.user import UserSerializer
 from sentry.constants import ALL_ACCESS_PROJECTS

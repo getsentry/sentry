@@ -1,4 +1,3 @@
-import six
 from rest_framework import serializers
 
 from sentry_relay.auth import PublicKey

@@ -1,5 +1,4 @@
 import logging
-import six
 
 from io import BytesIO
 from gzip import GzipFile

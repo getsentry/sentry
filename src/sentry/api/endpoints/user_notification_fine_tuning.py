@@ -1,5 +1,3 @@
-import six
-
 from django.db import transaction
 from rest_framework import status
 from rest_framework.response import Response

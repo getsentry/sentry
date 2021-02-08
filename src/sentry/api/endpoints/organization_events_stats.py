@@ -1,5 +1,4 @@
 import sentry_sdk
-import six
 
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError

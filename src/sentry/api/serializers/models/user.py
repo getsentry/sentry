@@ -1,5 +1,3 @@
-import six
-
 from collections import defaultdict
 from django.conf import settings
 

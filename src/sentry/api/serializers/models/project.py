@@ -1,5 +1,3 @@
-import six
-
 from collections import defaultdict
 from datetime import timedelta
 from django.db import connection

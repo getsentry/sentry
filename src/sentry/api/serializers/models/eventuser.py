@@ -1,5 +1,3 @@
-import six
-
 from sentry.api.serializers import Serializer, register
 from sentry.models import EventUser
 from sentry.utils.avatar import get_gravatar_url

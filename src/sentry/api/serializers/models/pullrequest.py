@@ -1,5 +1,3 @@
-import six
-
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import PullRequest, Repository, CommitAuthor
 from sentry.api.serializers.models.release import get_users_for_authors

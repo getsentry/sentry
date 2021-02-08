@@ -1,5 +1,3 @@
-import six
-
 from sentry.api.serializers import register, Serializer
 from sentry.incidents.models import AlertRuleTriggerAction
 

@@ -1,6 +1,3 @@
-import six
-
-
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.constants import LOG_LEVELS
 from sentry.models import GroupTombstone, User

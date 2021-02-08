@@ -1,5 +1,3 @@
-import six
-
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint

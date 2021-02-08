@@ -1,5 +1,4 @@
 import functools
-import six
 from collections import defaultdict
 
 from rest_framework.response import Response

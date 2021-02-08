@@ -1,5 +1,3 @@
-import six
-
 from sentry.api.serializers import Serializer, register
 from sentry.models import Environment, Rule, RuleActivity, RuleActivityType
 from sentry.utils.compat import filter
