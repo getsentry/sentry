@@ -1,5 +1,4 @@
 import logging
-import six
 
 from rest_framework.response import Response
 from social_auth.backends import get_backend
@@ -39,7 +38,7 @@ class UserSocialIdentityDetailsEndpoint(UserEndpoint):
             import sys
 
             exc_tb = sys.exc_info()[2]
-            six.reraise(Exception, exc, exc_tb)
+            raise exc.with_traceback(exc_tb)
             del exc_tb
 
         # XXX(dcramer): we experienced an issue where the identity still existed,

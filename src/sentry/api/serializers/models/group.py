@@ -3,7 +3,6 @@ import itertools
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-import six
 import pytz
 import logging
 
@@ -75,7 +74,7 @@ logger = logging.getLogger(__name__)
 
 
 def merge_list_dictionaries(dict1, dict2):
-    for key, val in six.iteritems(dict2):
+    for key, val in dict2.items():
         dict1.setdefault(key, []).extend(val)
 
 
@@ -286,7 +285,7 @@ class GroupSerializerBase(Serializer):
                     where=[
                         "sentry_grouplink.linked_id = sentry_commit.id",
                         "sentry_grouplink.group_id IN ({})".format(
-                            ", ".join(six.text_type(i.id) for i in resolved_item_list)
+                            ", ".join(str(i.id) for i in resolved_item_list)
                         ),
                         "sentry_grouplink.linked_type = %s",
                         "sentry_grouplink.relationship = %s",
@@ -301,8 +300,8 @@ class GroupSerializerBase(Serializer):
             release_resolutions = {}
             commit_resolutions = {}
 
-        actor_ids = {r[-1] for r in six.itervalues(release_resolutions)}
-        actor_ids.update(r.actor_id for r in six.itervalues(ignore_items))
+        actor_ids = {r[-1] for r in release_resolutions.values()}
+        actor_ids.update(r.actor_id for r in ignore_items.values())
         if actor_ids:
             users = list(User.objects.filter(id__in=actor_ids, is_active=True))
             actors = {u.id: d for u, d in zip(users, serialize(users, user))}
@@ -523,7 +522,7 @@ class GroupSerializerBase(Serializer):
         is_subscribed, subscription_details = self._get_subscription(attrs)
         share_id = attrs["share_id"]
         group_dict = {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "shareId": share_id,
             "shortId": obj.qualified_short_id,
             "title": obj.title,
@@ -536,7 +535,7 @@ class GroupSerializerBase(Serializer):
             "isPublic": share_id is not None,
             "platform": obj.platform,
             "project": {
-                "id": six.text_type(obj.project.id),
+                "id": str(obj.project.id),
                 "name": obj.project.name,
                 "slug": obj.project.slug,
                 "platform": obj.project.platform,
@@ -561,7 +560,7 @@ class GroupSerializerBase(Serializer):
 
     def _convert_seen_stats(self, stats):
         return {
-            "count": six.text_type(stats["times_seen"]),
+            "count": str(stats["times_seen"]),
             "userCount": stats["user_count"],
             "firstSeen": stats["first_seen"],
             "lastSeen": stats["last_seen"],
@@ -851,7 +850,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         )
         seen_data = {
             issue["group_id"]: fix_tag_value_data(
-                dict(filter(lambda key: key[0] != "group_id", six.iteritems(issue)))
+                dict(filter(lambda key: key[0] != "group_id", issue.items()))
             )
             for issue in result["data"]
         }
@@ -1015,7 +1014,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             result = super().serialize(obj, attrs, user)
         else:
             result = {
-                "id": six.text_type(obj.id),
+                "id": str(obj.id),
             }
             if "times_seen" in attrs:
                 result.update(self._convert_seen_stats(attrs))

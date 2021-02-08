@@ -3,7 +3,6 @@ from collections import namedtuple, defaultdict
 from copy import deepcopy
 from datetime import datetime
 
-import six
 from django.utils.functional import cached_property
 from parsimonious.expressions import Optional
 from parsimonious.exceptions import IncompleteParseError, ParseError
@@ -247,7 +246,7 @@ class ParenExpression(namedtuple("ParenExpression", "children")):
 
 class SearchFilter(namedtuple("SearchFilter", "key operator value")):
     def __str__(self):
-        return "".join(map(six.text_type, (self.key.name, self.operator, self.value.raw_value)))
+        return "".join(map(str, (self.key.name, self.operator, self.value.raw_value)))
 
     @cached_property
     def is_negation(self):
@@ -276,7 +275,7 @@ class SearchKey(namedtuple("SearchKey", "name")):
 
 class AggregateFilter(namedtuple("AggregateFilter", "key operator value")):
     def __str__(self):
-        return "".join(map(six.text_type, (self.key.name, self.operator, self.value.raw_value)))
+        return "".join(map(str, (self.key.name, self.operator, self.value.raw_value)))
 
 
 class AggregateKey(namedtuple("AggregateKey", "name")):
@@ -291,7 +290,7 @@ class SearchValue(namedtuple("SearchValue", "raw_value")):
         return self.raw_value
 
     def is_wildcard(self):
-        if not isinstance(self.raw_value, six.string_types):
+        if not isinstance(self.raw_value, str):
             return False
         return bool(WILDCARD_CHARS.search(self.raw_value))
 
@@ -488,7 +487,7 @@ class SearchVisitor(NodeVisitor):
         except ValueError:
             raise InvalidSearchQuery("Invalid aggregate query condition: {}".format(search_key))
         except InvalidQuery as exc:
-            raise InvalidSearchQuery(six.text_type(exc))
+            raise InvalidSearchQuery(str(exc))
         return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
 
     def visit_aggregate_date_filter(self, node, children):
@@ -500,7 +499,7 @@ class SearchVisitor(NodeVisitor):
             try:
                 search_value = parse_datetime_string(search_value)
             except InvalidQuery as exc:
-                raise InvalidSearchQuery(six.text_type(exc))
+                raise InvalidSearchQuery(str(exc))
             return AggregateFilter(search_key, operator, SearchValue(search_value))
         else:
             search_value = operator + search_value if operator != "=" else search_value
@@ -514,7 +513,7 @@ class SearchVisitor(NodeVisitor):
             try:
                 from_val, to_val = parse_datetime_range(search_value.text)
             except InvalidQuery as exc:
-                raise InvalidSearchQuery(six.text_type(exc))
+                raise InvalidSearchQuery(str(exc))
 
             if from_val is not None:
                 operator = ">="
@@ -535,7 +534,7 @@ class SearchVisitor(NodeVisitor):
             try:
                 search_value = parse_datetime_string(search_value)
             except InvalidQuery as exc:
-                raise InvalidSearchQuery(six.text_type(exc))
+                raise InvalidSearchQuery(str(exc))
             return SearchFilter(search_key, operator, SearchValue(search_value))
         else:
             search_value = operator + search_value if operator != "=" else search_value
@@ -549,7 +548,7 @@ class SearchVisitor(NodeVisitor):
             try:
                 search_value = parse_duration(*search_value.match.groups())
             except InvalidQuery as exc:
-                raise InvalidSearchQuery(six.text_type(exc))
+                raise InvalidSearchQuery(str(exc))
             return SearchFilter(search_key, operator, SearchValue(search_value))
         else:
             search_value = operator + search_value.text if operator != "=" else search_value.text
@@ -561,7 +560,7 @@ class SearchVisitor(NodeVisitor):
             try:
                 from_val, to_val = parse_datetime_range(value.text)
             except InvalidQuery as exc:
-                raise InvalidSearchQuery(six.text_type(exc))
+                raise InvalidSearchQuery(str(exc))
 
             # TODO: Handle negations
             if from_val is not None:
@@ -587,7 +586,7 @@ class SearchVisitor(NodeVisitor):
         try:
             from_val, to_val = parse_datetime_value(date_value)
         except InvalidQuery as exc:
-            raise InvalidSearchQuery(six.text_type(exc))
+            raise InvalidSearchQuery(str(exc))
 
         # TODO: Handle negations here. This is tricky because these will be
         # separate filters, and to negate this range we need (< val or >= val).
@@ -1814,7 +1813,7 @@ class Function:
                 raise InvalidSearchQuery("{}: invalid arguments: {}".format(field, e))
 
             # Hacky, but we expect column arguments to be strings so easiest to convert it back
-            columns.append(six.text_type(default) if default else default)
+            columns.append(str(default) if default else default)
 
         return columns
 
@@ -2378,7 +2377,7 @@ def format_column_arguments(column_args, arguments):
             if isinstance(column_args[i][0], ArgValue):
                 column_args[i][0] = arguments[column_args[i][0].arg]
             format_column_arguments(column_args[i][1], arguments)
-        elif isinstance(column_args[i], six.string_types):
+        elif isinstance(column_args[i], str):
             column_args[i] = column_args[i].format(**arguments)
         elif isinstance(column_args[i], ArgValue):
             column_args[i] = arguments[column_args[i].arg]
@@ -2579,7 +2578,7 @@ def get_aggregate_alias(match):
 
 
 def resolve_field(field, params=None, functions_acl=None):
-    if not isinstance(field, six.string_types):
+    if not isinstance(field, str):
         raise InvalidSearchQuery("Field names must be strings")
 
     match = is_function(field)
@@ -2634,7 +2633,7 @@ def resolve_field_list(
             fields.append("project.id")
 
     for field in fields:
-        if isinstance(field, six.string_types) and field.strip() == "":
+        if isinstance(field, str) and field.strip() == "":
             continue
         function = resolve_field(field, snuba_filter.params, functions_acl)
         if function.column is not None and function.column not in columns:

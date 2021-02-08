@@ -1,5 +1,3 @@
-import six
-
 from rest_framework.response import Response
 
 from sentry import roles
@@ -179,7 +177,7 @@ class ProjectEndpoint(Endpoint):
         try:
             start, end = get_date_range_from_params(request.GET, optional=date_filter_optional)
         except InvalidParams as e:
-            raise ProjectEventsError(six.text_type(e))
+            raise ProjectEventsError(str(e))
 
         environments = [env.name for env in get_environments(request, project.organization)]
         params = {"start": start, "end": end, "project_id": [project.id]}
