@@ -31,7 +31,7 @@ class TestIssueLinkCreator(TestCase):
             method=responses.POST,
             url="https://example.com/link-issue",
             json={
-                "project": "ProjectName",
+                "project": "Projectname",
                 "webUrl": "https://example.com/project/issue-id",
                 "identifier": "issue-1",
             },
@@ -53,7 +53,7 @@ class TestIssueLinkCreator(TestCase):
         assert external_issue.group_id == self.group.id
         assert external_issue.project_id == self.group.project.id
         assert external_issue.web_url == "https://example.com/project/issue-id"
-        assert external_issue.display_name == "ProjectName#issue-1"
+        assert external_issue.display_name == "Projectname#issue-1"
 
     def test_invalid_action(self):
         with self.assertRaises(APIUnauthorized):

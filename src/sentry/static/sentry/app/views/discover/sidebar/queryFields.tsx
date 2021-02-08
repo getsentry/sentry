@@ -1,4 +1,5 @@
 import React from 'react';
+import {components as selectComponents} from 'react-select';
 import styled from '@emotion/styled';
 
 import Badge from 'app/components/badge';
@@ -49,12 +50,18 @@ export default class QueryFields extends React.Component<QueryFieldsProps> {
     return <PlaceholderText>{text}</PlaceholderText>;
   };
 
-  optionRenderer = ({label, isTag}: ReactSelectOption) => (
-    <Option>
-      {label}
-      {isTag && <Badge text="tag" />}
-    </Option>
-  );
+  optionRenderer = ({
+    label,
+    data,
+    ...props
+  }: React.ComponentProps<typeof selectComponents.Option>) => {
+    return (
+      <selectComponents.Option label={label} data={data} {...props}>
+        {label}
+        {data.isTag && <Badge text="tag" />}
+      </selectComponents.Option>
+    );
+  };
 
   render() {
     const {
@@ -104,12 +111,13 @@ export default class QueryFields extends React.Component<QueryFieldsProps> {
             {t('Summarize')}
           </SidebarLabel>
           <SelectControl
-            deprecatedSelectControl
             name="fields"
             multiple
             placeholder={this.getSummarizePlaceholder()}
             options={fieldOptions}
-            optionRenderer={this.optionRenderer}
+            components={{
+              Option: this.optionRenderer,
+            }}
             value={currentQuery.fields}
             onChange={(val: ReactSelectOption[]) =>
               onUpdateField(
@@ -119,6 +127,15 @@ export default class QueryFields extends React.Component<QueryFieldsProps> {
             }
             clearable
             disabled={isLoading}
+            styles={{
+              option(provided: React.CSSProperties) {
+                return {
+                  ...provided,
+                  display: 'flex',
+                  alignItems: 'center',
+                };
+              },
+            }}
           />
         </Fieldset>
         <Fieldset>
@@ -173,9 +190,4 @@ export default class QueryFields extends React.Component<QueryFieldsProps> {
 
 const StyledIconChevron = styled(IconChevron)`
   justify-content: flex-end;
-`;
-
-const Option = styled('div')`
-  display: flex;
-  align-items: center;
 `;

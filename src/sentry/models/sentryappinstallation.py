@@ -1,4 +1,3 @@
-import six
 import uuid
 
 from django.db import models
@@ -10,7 +9,7 @@ from sentry.models import Project, DefaultFieldsModel
 
 
 def default_uuid():
-    return six.text_type(uuid.uuid4())
+    return str(uuid.uuid4())
 
 
 # connects a sentry app installation to an organization and a provider
@@ -133,7 +132,7 @@ class SentryAppInstallation(ParanoidModel):
 
     def save(self, *args, **kwargs):
         self.date_updated = timezone.now()
-        return super(SentryAppInstallation, self).save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     @classmethod
     def get_installed_for_org(cls, organization_id):

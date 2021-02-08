@@ -46,12 +46,12 @@ throwaways = frozenset(
 )
 
 
-class JSONRenderer(object):
+class JSONRenderer:
     def __call__(self, logger, name, event_dict):
         return _default_encoder(event_dict)
 
 
-class HumanRenderer(object):
+class HumanRenderer:
     def __call__(self, logger, name, event_dict):
         level = event_dict.pop("level")
         real_level = (
@@ -115,7 +115,7 @@ class MessageContainsFilter(logging.Filter):
         return any(c in message for c in self.contains)
 
 
-whitespace_re = re.compile("\s+")
+whitespace_re = re.compile(r"\s+")
 metrics_badchars_re = re.compile("[^a-z0-9_.]")
 
 

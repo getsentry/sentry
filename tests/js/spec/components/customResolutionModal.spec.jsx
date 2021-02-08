@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {selectByValue} from 'sentry-test/select-new';
 
 import CustomResolutionModal from 'app/components/customResolutionModal';
 
@@ -29,7 +30,6 @@ describe('CustomResolutionModal', function () {
     );
 
     expect(releasesMock).toHaveBeenCalled();
-
     await tick();
     wrapper.update();
 
@@ -40,16 +40,8 @@ describe('CustomResolutionModal', function () {
       }),
     ]);
 
-    wrapper.find('input[id="version"]').simulate('change', {target: {value: '1.2.0'}});
-
-    await tick();
-    wrapper.update();
-
-    wrapper.find('input[id="version"]').simulate('keyDown', {keyCode: 13});
-
-    expect(wrapper.find('SelectControl').prop('value')).toEqual({
-      value: 'sentry-android-shop@1.2.0',
-      label: expect.anything(),
+    selectByValue(wrapper, 'sentry-android-shop@1.2.0', {
+      selector: 'SelectAsyncControl[name="version"]',
     });
 
     wrapper.find('form').simulate('submit');

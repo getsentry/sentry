@@ -1,5 +1,4 @@
 import logging
-import sentry_sdk
 
 from sentry import features
 from sentry.app import locks
@@ -263,10 +262,7 @@ def post_process_group(
             # objects back and forth isn't super efficient
             for callback, futures in rp.apply():
                 has_alert = True
-                with sentry_sdk.start_transaction(
-                    op="post_process_group", name="rule_processor_apply", sampled=True
-                ):
-                    safe_execute(callback, event, futures, _with_transaction=False)
+                safe_execute(callback, event, futures, _with_transaction=False)
 
             try:
                 lock = locks.get(
@@ -307,7 +303,7 @@ def post_process_group(
                 logger.exception("Failed to process suspect commits")
 
             if features.has("projects:servicehooks", project=event.project):
-                allowed_events = set(["event.created"])
+                allowed_events = {"event.created"}
                 if has_alert:
                     allowed_events.add("event.alert")
 

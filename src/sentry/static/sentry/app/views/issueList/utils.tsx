@@ -60,7 +60,7 @@ export function getTabs(organization: Organization) {
         analyticsName: 'needs_review',
         count: true,
         enabled: !organization.features.includes('inbox-owners-query'),
-        tooltipTitle: t(`New and reopened issues. You can review, ignore, or resolve
+        tooltipTitle: t(`New and reopened issues that you can review, ignore, or resolve
         to move them out of this list. After seven days these issues are
         automatically marked as reviewed.`),
       },
@@ -124,3 +124,13 @@ type QueryCount = {
 };
 
 export type QueryCounts = Partial<Record<Query, QueryCount>>;
+
+export enum IssueSortOptions {
+  DATE = 'date',
+  NEW = 'new',
+  PRIORITY = 'priority',
+  FREQ = 'freq',
+  USER = 'user',
+  TREND = 'trend',
+  INBOX = 'inbox',
+}

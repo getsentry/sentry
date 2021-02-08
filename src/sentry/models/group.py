@@ -6,7 +6,6 @@ from collections import namedtuple
 from enum import Enum
 from datetime import timedelta
 
-import six
 from django.db import models
 from django.utils import timezone
 from django.utils.http import urlencode, urlquote
@@ -76,8 +75,7 @@ def get_group_with_redirect(id_or_qualified_short_id, queryset=None, organizatio
         getter = queryset.get
 
     if not (
-        isinstance(id_or_qualified_short_id, six.integer_types)  # noqa
-        or id_or_qualified_short_id.isdigit()
+        isinstance(id_or_qualified_short_id, int) or id_or_qualified_short_id.isdigit()  # noqa
     ):  # NOQA
         short_id = parse_short_id(id_or_qualified_short_id)
         if not short_id or not organization:
@@ -115,7 +113,7 @@ def get_group_with_redirect(id_or_qualified_short_id, queryset=None, organizatio
 
 
 # TODO(dcramer): pull in enum library
-class GroupStatus(object):
+class GroupStatus:
     UNRESOLVED = 0
     RESOLVED = 1
     IGNORED = 2
@@ -215,9 +213,7 @@ class GroupManager(BaseManager):
 
         # TODO(jess): this method maybe isn't even used?
         except HashDiscarded as e:
-            logger.info(
-                "discarded.hash", extra={"project_id": project, "description": six.text_type(e)}
-            )
+            logger.info("discarded.hash", extra={"project_id": project, "description": str(e)})
 
     def from_event_id(self, project, event_id):
         """
@@ -250,7 +246,7 @@ class GroupManager(BaseManager):
             referrer="Group.filter_by_event_id",
         )
 
-        group_ids = set([evt.group_id for evt in data])
+        group_ids = {evt.group_id for evt in data}
 
         return Group.objects.filter(id__in=group_ids)
 
@@ -278,10 +274,10 @@ class Group(Model):
 
     project = FlexibleForeignKey("sentry.Project")
     logger = models.CharField(
-        max_length=64, blank=True, default=six.text_type(DEFAULT_LOGGER_NAME), db_index=True
+        max_length=64, blank=True, default=str(DEFAULT_LOGGER_NAME), db_index=True
     )
     level = BoundedPositiveIntegerField(
-        choices=[(key, six.text_type(val)) for key, val in sorted(LOG_LEVELS.items())],
+        choices=[(key, str(val)) for key, val in sorted(LOG_LEVELS.items())],
         default=logging.ERROR,
         blank=True,
         db_index=True,
@@ -329,8 +325,8 @@ class Group(Model):
 
     __repr__ = sane_repr("project_id")
 
-    def __unicode__(self):
-        return "(%s) %s" % (self.times_seen, self.error())
+    def __str__(self):
+        return f"({self.times_seen}) {self.error()}"
 
     def save(self, *args, **kwargs):
         if not self.last_seen:
@@ -348,12 +344,12 @@ class Group(Model):
         self.score = type(self).calculate_score(
             times_seen=self.times_seen, last_seen=self.last_seen
         )
-        super(Group, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def get_absolute_url(self, params=None, event_id=None):
         # Built manually in preference to django.core.urlresolvers.reverse,
         # because reverse has a measured performance impact.
-        event_path = "events/{}/".format(event_id) if event_id else ""
+        event_path = f"events/{event_id}/" if event_id else ""
         url = "organizations/{org}/issues/{id}/{event_path}{params}".format(
             org=urlquote(self.organization.slug),
             id=self.id,
@@ -365,7 +361,7 @@ class Group(Model):
     @property
     def qualified_short_id(self):
         if self.short_id is not None:
-            return "%s-%s" % (self.project.slug.upper(), base32_encode(self.short_id))
+            return "{}-{}".format(self.project.slug.upper(), base32_encode(self.short_id))
 
     def is_over_resolve_age(self):
         resolve_age = self.project.get_option("sentry:resolve_age", None)
@@ -502,7 +498,7 @@ class Group(Model):
         return ""
 
     def get_email_subject(self):
-        return "{} - {}".format(self.qualified_short_id, self.title)
+        return f"{self.qualified_short_id} - {self.title}"
 
     def count_users_seen(self):
         return tagstore.get_groups_user_counts(

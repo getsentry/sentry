@@ -17,7 +17,7 @@ ISSUE_KEY_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*-\d+$")
 CUSTOMFIELD_PREFIX = "customfield_"
 
 
-class JiraCloud(object):
+class JiraCloud:
     """
     Contains the jira-cloud specifics that a JiraClient needs
     in order to communicate with jira
@@ -103,7 +103,7 @@ class JiraApiClient(ApiClient):
         # We only support one API version for Jira, but server/cloud require different
         # authentication mechanisms and caching.
         self.jira_style = jira_style
-        super(JiraApiClient, self).__init__(verify_ssl, logging_context)
+        super().__init__(verify_ssl, logging_context)
 
     def get_cache_prefix(self):
         return self.jira_style.cache_prefix

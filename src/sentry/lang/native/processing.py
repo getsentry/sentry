@@ -314,9 +314,7 @@ def get_frames_for_symbolication(frames, data, modules):
             idx = None
 
             if modules_by_debug_id is None:
-                modules_by_debug_id = dict(
-                    (x.get("debug_id"), idx) for idx, x in enumerate(modules)
-                )
+                modules_by_debug_id = {x.get("debug_id"): idx for idx, x in enumerate(modules)}
             try:
                 idx = modules_by_debug_id.get(normalize_debug_id(arg))
             except ParseDebugIdError:

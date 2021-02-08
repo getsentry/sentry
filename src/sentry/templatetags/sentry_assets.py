@@ -62,7 +62,7 @@ def locale_js_include(context):
         nonce = ' nonce="{}"'.format(request.csp_nonce)
 
     href = get_asset_url("sentry", "dist/locale/" + lang_code + ".js")
-    return mark_safe('<script src="{0}"{1}{2}></script>'.format(href, crossorigin(), nonce))
+    return mark_safe('<script src="{}"{}{}></script>'.format(href, crossorigin(), nonce))
 
 
 @register.tag

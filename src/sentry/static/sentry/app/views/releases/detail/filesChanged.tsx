@@ -49,7 +49,7 @@ class FilesChanged extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints = (): ReturnType<AsyncView['getEndpoints']> => {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {params, activeRepository, location} = this.props;
     const {orgId, release} = params;
     const query = getQuery({location, activeRepository});
@@ -61,7 +61,7 @@ class FilesChanged extends AsyncView<Props, State> {
         {query},
       ],
     ];
-  };
+  }
 
   renderContent() {
     const {fileList, fileListPageLinks} = this.state;

@@ -19,7 +19,7 @@ class QuotaScope(IntEnum):
         return self.name.lower()
 
 
-class QuotaConfig(object):
+class QuotaConfig:
     """
     Abstract configuration for a quota.
 
@@ -134,7 +134,7 @@ class QuotaConfig(object):
         return prune_empty_keys(data)
 
 
-class RateLimit(object):
+class RateLimit:
     """
     Return value of ``quotas.is_rate_limited``.
     """
@@ -169,12 +169,12 @@ class RateLimit(object):
 
 class NotRateLimited(RateLimit):
     def __init__(self, **kwargs):
-        super(NotRateLimited, self).__init__(False, **kwargs)
+        super().__init__(False, **kwargs)
 
 
 class RateLimited(RateLimit):
     def __init__(self, **kwargs):
-        super(RateLimited, self).__init__(True, **kwargs)
+        super().__init__(True, **kwargs)
 
 
 def _limit_from_settings(x):

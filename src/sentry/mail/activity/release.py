@@ -31,7 +31,7 @@ from sentry.utils.compat import zip
 
 class ReleaseActivityEmail(ActivityEmail):
     def __init__(self, activity):
-        super(ReleaseActivityEmail, self).__init__(activity)
+        super().__init__(activity)
         self.organization = self.project.organization
         self.user_id_team_lookup = None
         self.email_list = {}
@@ -66,7 +66,7 @@ class ReleaseActivityEmail(ActivityEmail):
                 ).values_list("id", "name")
             }
 
-            self.email_list = set([c.author.email for c in self.commit_list if c.author])
+            self.email_list = {c.author.email for c in self.commit_list if c.author}
             if self.email_list:
                 users = {
                     ue.email: ue.user

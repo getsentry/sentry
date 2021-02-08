@@ -20,7 +20,7 @@ class PagerDutyNotifyServiceForm(forms.Form):
         integrations = [(i.id, i.name) for i in kwargs.pop("integrations")]
         services = kwargs.pop("services")
 
-        super(PagerDutyNotifyServiceForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         if integrations:
             self.fields["account"].initial = integrations[0][0]
 
@@ -34,7 +34,7 @@ class PagerDutyNotifyServiceForm(forms.Form):
         self.fields["service"].widget.choices = self.fields["service"].choices
 
     def clean(self):
-        cleaned_data = super(PagerDutyNotifyServiceForm, self).clean()
+        cleaned_data = super().clean()
 
         integration_id = cleaned_data.get("account")
         service_id = cleaned_data.get("service")
@@ -68,7 +68,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
     integration_key = "account"
 
     def __init__(self, *args, **kwargs):
-        super(PagerDutyNotifyServiceAction, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.form_fields = {
             "account": {
                 "type": "choice",

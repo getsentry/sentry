@@ -291,7 +291,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         self.model.save()
 
     def get_link_issue_config(self, group, **kwargs):
-        fields = super(JiraIntegration, self).get_link_issue_config(group, **kwargs)
+        fields = super().get_link_issue_config(group, **kwargs)
         org = group.organization
         autocomplete_url = reverse("sentry-extensions-jira-search", args=[org.slug, self.model.id])
         for field in fields:
@@ -337,12 +337,16 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         )
 
     def get_issue(self, issue_id, **kwargs):
+        """
+        Jira installation's implementation of IssueSyncMixin's `get_issue`.
+        """
         client = self.get_client()
         issue = client.get_issue(issue_id)
+        fields = issue.get("fields", {})
         return {
             "key": issue_id,
-            "title": issue["fields"]["summary"],
-            "description": issue["fields"].get("description"),
+            "title": fields.get("summary"),
+            "description": fields.get("description"),
         }
 
     def create_comment(self, issue_id, user_id, group_note):
@@ -576,7 +580,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         fields = []
         defaults = {}
         if group:
-            fields = super(JiraIntegration, self).get_create_issue_config(group, user, **kwargs)
+            fields = super().get_create_issue_config(group, user, **kwargs)
             defaults = self.get_defaults(group.project, user)
 
         project_id = params.get("project", defaults.get("project"))
@@ -612,7 +616,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         # make sure default issue type is actually
         # one that is allowed for project
         if issue_type:
-            if not any((c for c in issue_type_choices if c[0] == issue_type)):
+            if not any(c for c in issue_type_choices if c[0] == issue_type):
                 issue_type = issue_type_meta["id"]
 
         fields = (
@@ -818,13 +822,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         if not issue_key:
             raise IntegrationError("There was an error creating the issue.")
 
-        issue = client.get_issue(issue_key)
-
-        return {
-            "title": issue["fields"]["summary"],
-            "description": issue["fields"]["description"],
-            "key": issue_key,
-        }
+        # Immediately fetch and return the created issue.
+        return self.get_issue(issue_key)
 
     def sync_assignee_outbound(self, external_issue, user, assign=True, **kwargs):
         """

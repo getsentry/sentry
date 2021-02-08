@@ -1,5 +1,9 @@
 import React from 'react';
-import ReactSelect, {components as selectComponents} from 'react-select';
+import ReactSelect, {
+  components as selectComponents,
+  mergeStyles,
+  StylesConfig,
+} from 'react-select';
 import Async from 'react-select/async';
 import AsyncCreatable from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
@@ -7,54 +11,66 @@ import {withTheme} from 'emotion-theming';
 
 import {IconChevron, IconClose} from 'app/icons';
 import space from 'app/styles/space';
+import {Choices} from 'app/types';
 import convertFromSelect2Choices from 'app/utils/convertFromSelect2Choices';
+import {Theme} from 'app/utils/theme';
 
 import SelectControlLegacy from './selectControlLegacy';
 
-const ClearIndicator = props => (
+const ClearIndicator = (
+  props: React.ComponentProps<typeof selectComponents.ClearIndicator>
+) => (
   <selectComponents.ClearIndicator {...props}>
     <IconClose size="10px" />
   </selectComponents.ClearIndicator>
 );
 
-const DropdownIndicator = props => (
+const DropdownIndicator = (
+  props: React.ComponentProps<typeof selectComponents.DropdownIndicator>
+) => (
   <selectComponents.DropdownIndicator {...props}>
     <IconChevron direction="down" size="14px" />
   </selectComponents.DropdownIndicator>
 );
 
-const MultiValueRemove = props => (
+const MultiValueRemove = (
+  props: React.ComponentProps<typeof selectComponents.MultiValueRemove>
+) => (
   <selectComponents.MultiValueRemove {...props}>
     <IconClose size="8px" />
   </selectComponents.MultiValueRemove>
 );
 
-/**
- * Applies one set of styles onto the other while maintaining the same function
- * interface that is used by react-styled.
- * @param {*} newStyles the styles to apply on top of base
- * @param {*} baseStyles the style to override
- */
-const combineStyles = (newStyles, baseStyles) => {
-  return Object.keys(newStyles || {}).reduce((computedStyles, key) => {
-    const styleFunc = (provided, state) =>
-      newStyles[key](
-        computedStyles[key] === undefined
-          ? provided
-          : computedStyles[key](provided, state),
-        state
-      );
-    return {...computedStyles, [key]: styleFunc};
-  }, baseStyles);
+type ControlProps = React.ComponentProps<typeof ReactSelect> & {
+  theme: Theme;
+  /**
+   * Ref forwarded into ReactSelect component.
+   * The any is inherited from react-select.
+   */
+  forwardedRef: React.Ref<ReactSelect>;
+  /**
+   * Set to true to prefix selected values with content
+   */
+  inFieldLabel?: string;
+  /**
+   * Backwards compatible shim to work with select2 style choice type.
+   */
+  choices?: Choices | ((props: ControlProps) => Choices);
+  /**
+   * Use react-select v2. Deprecated, don't make more of this.
+   */
+  deprecatedSelectControl?: boolean;
 };
 
-const SelectControl = props => {
+type LegacyProps = React.ComponentProps<typeof SelectControlLegacy>;
+
+function SelectControl(props: ControlProps) {
   // TODO(epurkhiser): We should remove all SelectControls (and SelectFields,
   // SelectAsyncFields, etc) that are using this prop, before we can remove the
   // v1 react-select component.
   if (props.deprecatedSelectControl) {
     const {deprecatedSelectControl: _, ...legacyProps} = props;
-    return <SelectControlLegacy {...legacyProps} />;
+    return <SelectControlLegacy {...((legacyProps as unknown) as LegacyProps)} />;
   }
 
   const {theme} = props;
@@ -64,24 +80,28 @@ const SelectControl = props => {
 
   // Unfortunately we cannot use emotions `css` helper here, since react-select
   // *requires* object styles, which the css helper cannot produce.
-
-  const indicatorStyles = ({padding: _padding, ...provided}) => ({
+  const indicatorStyles = ({padding: _padding, ...provided}: React.CSSProperties) => ({
     ...provided,
     padding: '4px',
     alignItems: 'center',
     cursor: 'pointer',
+    color: theme.subText,
   });
 
-  const defaultStyles = {
-    control: (_, state) => ({
+  const defaultStyles: StylesConfig = {
+    control: (_, state: any) => ({
       height: '100%',
       fontSize: '15px',
-      color: theme.formText,
       display: 'flex',
-      background: theme.background,
-      border: `1px solid ${theme.border}`,
+      // @ts-ignore Ignore merge errors as only defining the property once
+      // makes code harder to understand.
+      ...{
+        color: theme.formText,
+        background: theme.background,
+        border: `1px solid ${theme.border}`,
+        boxShadow: `inset ${theme.dropShadowLight}`,
+      },
       borderRadius: theme.borderRadius,
-      boxShadow: `inset ${theme.dropShadowLight}`,
       transition: 'border 0.1s linear',
       alignItems: 'center',
       minHeight: '40px',
@@ -108,7 +128,7 @@ const SelectControl = props => {
       }),
     }),
 
-    menu: provided => ({
+    menu: (provided: React.CSSProperties) => ({
       ...provided,
       zIndex: theme.zIndex.dropdown,
       marginTop: '-1px',
@@ -118,7 +138,7 @@ const SelectControl = props => {
       borderTop: `1px solid ${theme.border}`,
       boxShadow: theme.dropShadowLight,
     }),
-    option: (provided, state) => ({
+    option: (provided: React.CSSProperties, state: any) => ({
       ...provided,
       lineHeight: '1.5',
       fontSize: theme.fontSizeMedium,
@@ -137,31 +157,31 @@ const SelectControl = props => {
         backgroundColor: theme.active,
       },
     }),
-    valueContainer: provided => ({
+    valueContainer: (provided: React.CSSProperties) => ({
       ...provided,
       alignItems: 'center',
     }),
-    input: provided => ({
+    input: (provided: React.CSSProperties) => ({
       ...provided,
       color: theme.formText,
     }),
-    singleValue: provided => ({
+    singleValue: (provided: React.CSSProperties) => ({
       ...provided,
       color: theme.formText,
     }),
-    placeholder: provided => ({
+    placeholder: (provided: React.CSSProperties) => ({
       ...provided,
       color: theme.formPlaceholder,
     }),
-    multiValue: () => ({
+    multiValue: (provided: React.CSSProperties) => ({
+      ...provided,
       color: '#007eff',
       backgroundColor: '#ebf5ff',
       borderRadius: '2px',
       border: '1px solid #c2e0ff',
       display: 'flex',
-      marginRight: '4px',
     }),
-    multiValueLabel: provided => ({
+    multiValueLabel: (provided: React.CSSProperties) => ({
       ...provided,
       color: '#007eff',
       padding: '0',
@@ -191,22 +211,22 @@ const SelectControl = props => {
     clearIndicator: indicatorStyles,
     dropdownIndicator: indicatorStyles,
     loadingIndicator: indicatorStyles,
-    groupHeading: provided => ({
+    groupHeading: (provided: React.CSSProperties) => ({
       ...provided,
       lineHeight: '1.5',
-      fontWeight: '600',
+      fontWeight: 600,
       backgroundColor: theme.backgroundSecondary,
       color: theme.textColor,
       marginBottom: 0,
       padding: `${space(1)} ${space(1.5)}`,
     }),
-    group: provided => ({
+    group: (provided: React.CSSProperties) => ({
       ...provided,
       padding: 0,
     }),
   };
 
-  const getFieldLabelStyle = label => ({
+  const getFieldLabelStyle = (label?: string) => ({
     ':before': {
       content: `"${label}"`,
       color: theme.gray300,
@@ -251,22 +271,25 @@ const SelectControl = props => {
 
   // Override the default style with in-field labels if they are provided
   const inFieldLabelStyles = {
-    singleValue: base => ({
+    singleValue: (base: React.CSSProperties) => ({
       ...base,
       ...getFieldLabelStyle(inFieldLabel),
     }),
-    placeholder: base => ({
+    placeholder: (base: React.CSSProperties) => ({
       ...base,
       ...getFieldLabelStyle(inFieldLabel),
     }),
   };
   const labelOrDefaultStyles = inFieldLabel
-    ? combineStyles(inFieldLabelStyles, defaultStyles)
+    ? mergeStyles(inFieldLabelStyles, defaultStyles)
     : defaultStyles;
+
   // Allow the provided `styles` prop to override default styles using the same
   // function interface provided by react-styled. This ensures the `provided`
   // styles include our overridden default styles
-  const mappedStyles = combineStyles(styles, labelOrDefaultStyles);
+  const mappedStyles = styles
+    ? mergeStyles(styles, labelOrDefaultStyles)
+    : labelOrDefaultStyles;
 
   const replacedComponents = {
     ClearIndicator,
@@ -291,14 +314,30 @@ const SelectControl = props => {
       {...rest}
     />
   );
-};
+}
 SelectControl.propTypes = SelectControlLegacy.propTypes;
 
 const SelectControlWithTheme = withTheme(SelectControl);
 
-const SelectPicker = ({async, creatable, forwardedRef, ...props}) => {
+type PickerProps = ControlProps & {
+  /**
+   * Enable async option loading.
+   */
+  async?: boolean;
+  /**
+   * Enable 'create' mode which allows values to be created inline.
+   */
+  creatable?: boolean;
+  /**
+   * Enable 'clearable' which allows values to be removed.
+   */
+  clearable?: boolean;
+};
+
+function SelectPicker({async, creatable, forwardedRef, ...props}: PickerProps) {
   // Pick the right component to use
-  let Component;
+  // Using any here as react-select types also use any
+  let Component: React.ComponentType<any> | undefined;
   if (async && creatable) {
     Component = AsyncCreatable;
   } else if (async && !creatable) {
@@ -310,16 +349,16 @@ const SelectPicker = ({async, creatable, forwardedRef, ...props}) => {
   }
 
   return <Component ref={forwardedRef} {...props} />;
-};
+}
 
 SelectPicker.propTypes = SelectControl.propTypes;
 
-const forwardRef = (props, ref) => (
-  <SelectControlWithTheme forwardedRef={ref} {...props} />
-);
-forwardRef.displayName = 'RefForwardedSelectControl';
-
-const RefForwardedSelectControl = React.forwardRef(forwardRef);
+const RefForwardedSelectControl = React.forwardRef(function RefForwardedSelectControl(
+  props: ControlProps,
+  ref: React.Ref<ReactSelect>
+) {
+  return <SelectControlWithTheme forwardedRef={ref} {...props} />;
+});
 
 // TODO(ts): Needed because <SelectField> uses this
 RefForwardedSelectControl.propTypes = SelectControl.propTypes;

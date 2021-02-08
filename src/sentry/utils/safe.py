@@ -1,6 +1,5 @@
 import collections
 import logging
-import six
 
 from django.conf import settings
 from django.db import transaction
@@ -28,9 +27,9 @@ def safe_execute(func, *args, **kwargs):
         else:
             cls = func.__class__
 
-        func_name = getattr(func, "__name__", six.text_type(func))
+        func_name = getattr(func, "__name__", str(func))
         cls_name = cls.__name__
-        logger = logging.getLogger("sentry.safe.%s" % (cls_name.lower(),))
+        logger = logging.getLogger(f"sentry.safe.{cls_name.lower()}")
 
         if expected_errors and isinstance(e, expected_errors):
             logger.info("%s.process_error_ignored", func_name, extra={"exception": e})
@@ -62,7 +61,7 @@ def trim(
     }
 
     if _depth > max_depth:
-        if not isinstance(value, six.string_types):
+        if not isinstance(value, str):
             value = json.dumps(value)
         return trim(value, _size=_size, max_size=max_size)
 
@@ -89,7 +88,7 @@ def trim(
         if isinstance(value, tuple):
             result = tuple(result)
 
-    elif isinstance(value, six.string_types):
+    elif isinstance(value, str):
         result = truncatechars(value, max_size - _size)
 
     else:

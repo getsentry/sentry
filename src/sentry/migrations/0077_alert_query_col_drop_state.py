@@ -26,9 +26,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.SeparateDatabaseAndState(
             state_operations=[
-                migrations.AlterUniqueTogether(
-                    name="alertruleenvironment", unique_together=set([])
-                ),
+                migrations.AlterUniqueTogether(name="alertruleenvironment", unique_together=set()),
                 migrations.RemoveField(model_name="alertruleenvironment", name="alert_rule"),
                 migrations.RemoveField(model_name="alertruleenvironment", name="environment"),
                 migrations.RemoveField(model_name="alertrulequerysubscription", name="alert_rule"),
@@ -36,7 +34,7 @@ class Migration(migrations.Migration):
                     model_name="alertrulequerysubscription", name="query_subscription"
                 ),
                 migrations.AlterUniqueTogether(
-                    name="querysubscriptionenvironment", unique_together=set([])
+                    name="querysubscriptionenvironment", unique_together=set()
                 ),
                 migrations.RemoveField(
                     model_name="querysubscriptionenvironment", name="environment"

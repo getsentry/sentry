@@ -1,4 +1,3 @@
-import io
 import os
 import six
 import zlib
@@ -14,7 +13,6 @@ from sentry.stacktraces.functions import set_in_app
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.utils import get_rule_bool
-from sentry.utils.compat import implements_to_string
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
 from sentry.utils.compat import zip
@@ -67,7 +65,7 @@ _        = space*
 
 
 FAMILIES = {"native": "N", "javascript": "J", "all": "a"}
-REVERSE_FAMILIES = dict((v, k) for k, v in six.iteritems(FAMILIES))
+REVERSE_FAMILIES = {v: k for k, v in six.iteritems(FAMILIES)}
 
 VERSION = 1
 MATCH_KEYS = {
@@ -78,7 +76,7 @@ MATCH_KEYS = {
     "package": "P",
     "app": "a",
 }
-SHORT_MATCH_KEYS = dict((v, k) for k, v in six.iteritems(MATCH_KEYS))
+SHORT_MATCH_KEYS = {v: k for k, v in six.iteritems(MATCH_KEYS)}
 
 ACTIONS = ["group", "app"]
 ACTION_FLAGS = {
@@ -89,7 +87,7 @@ ACTION_FLAGS = {
     (False, "up"): 4,
     (False, "down"): 5,
 }
-REVERSE_ACTION_FLAGS = dict((v, k) for k, v in six.iteritems(ACTION_FLAGS))
+REVERSE_ACTION_FLAGS = {v: k for k, v in six.iteritems(ACTION_FLAGS)}
 
 
 MATCHERS = {
@@ -113,7 +111,7 @@ class InvalidEnhancerConfig(Exception):
     pass
 
 
-class Match(object):
+class Match:
     def __init__(self, key, pattern, negated=False):
         try:
             self.key = MATCHERS[key]
@@ -202,7 +200,7 @@ class Match(object):
         return cls(key, arg, negated)
 
 
-class Action(object):
+class Action:
     def apply_modifications_to_frame(self, frames, idx):
         pass
 
@@ -220,7 +218,6 @@ class Action(object):
         return FlagAction(ACTIONS[val & 0xF], flag, range)
 
 
-@implements_to_string
 class FlagAction(Action):
     def __init__(self, key, flag, range):
         self.key = key
@@ -285,7 +282,6 @@ class FlagAction(Action):
                 )
 
 
-@implements_to_string
 class VarAction(Action):
     range = None
 
@@ -303,7 +299,7 @@ class VarAction(Action):
         state.set(self.var, self.value, rule)
 
 
-class StacktraceState(object):
+class StacktraceState:
     def __init__(self):
         self.vars = {"max-frames": 0, "min-frames": 0}
         self.setters = {}
@@ -328,7 +324,7 @@ class StacktraceState(object):
         return "%s by stack trace rule (%s)" % (hint, description)
 
 
-class Enhancements(object):
+class Enhancements:
     def __init__(self, rules, changelog=None, version=None, bases=None, id=None):
         self.id = id
         self.rules = rules
@@ -436,10 +432,8 @@ class Enhancements(object):
         for base in self.bases:
             base = ENHANCEMENT_BASES.get(base)
             if base:
-                for rule in base.iter_rules():
-                    yield rule
-        for rule in self.rules:
-            yield rule
+                yield from base.iter_rules()
+        yield from self.rules
 
     @classmethod
     def _from_config_structure(cls, data):
@@ -476,7 +470,7 @@ class Enhancements(object):
         return EnhancmentsVisitor(bases, id).visit(tree)
 
 
-class Rule(object):
+class Rule:
     def __init__(self, matchers, actions):
         self.matchers = matchers
         self.actions = actions
@@ -623,7 +617,7 @@ def _load_configs():
     base = os.path.join(os.path.abspath(os.path.dirname(__file__)), "enhancement-configs")
     for fn in os.listdir(base):
         if fn.endswith(".txt"):
-            with io.open(os.path.join(base, fn), "rt", encoding="utf-8") as f:
+            with open(os.path.join(base, fn), encoding="utf-8") as f:
                 # We cannot use `:` in filenames on Windows but we already have ids with
                 # `:` in their names hence this trickery.
                 fn = fn.replace("@", ":")

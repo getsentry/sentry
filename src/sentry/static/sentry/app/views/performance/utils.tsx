@@ -57,9 +57,16 @@ export function addRoutePerformanceContext(selection: GlobalSelection) {
     selection.datetime.start,
     selection.datetime.end
   );
-  const seconds = Math.floor(days * 86400);
+  const oneDay = 86400;
+  const seconds = Math.floor(days * oneDay);
 
   transaction?.setTag('query.period', seconds.toString());
+  let groupedPeriod = '>30d';
+  if (seconds <= oneDay) groupedPeriod = '<=1d';
+  else if (seconds <= oneDay * 7) groupedPeriod = '<=7d';
+  else if (seconds <= oneDay * 14) groupedPeriod = '<=14d';
+  else if (seconds <= oneDay * 30) groupedPeriod = '<=30d';
+  transaction?.setTag('query.period.grouped', groupedPeriod);
 }
 
 export function getTransactionName(location: Location): string | undefined {

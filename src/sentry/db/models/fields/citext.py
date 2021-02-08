@@ -6,26 +6,26 @@ from sentry.db.models.utils import Creator
 __all__ = ("CITextField", "CICharField", "CIEmailField")
 
 
-class CIText(object):
+class CIText:
     def db_type(self, connection):
         return "citext"
 
 
 class CITextField(CIText, models.TextField):
     def contribute_to_class(self, cls, name):
-        super(CITextField, self).contribute_to_class(cls, name)
+        super().contribute_to_class(cls, name)
         setattr(cls, name, Creator(self))
 
 
 class CICharField(CIText, models.CharField):
     def contribute_to_class(self, cls, name):
-        super(CICharField, self).contribute_to_class(cls, name)
+        super().contribute_to_class(cls, name)
         setattr(cls, name, Creator(self))
 
 
 class CIEmailField(CIText, models.EmailField):
     def contribute_to_class(self, cls, name):
-        super(CIEmailField, self).contribute_to_class(cls, name)
+        super().contribute_to_class(cls, name)
         setattr(cls, name, Creator(self))
 
 

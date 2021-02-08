@@ -66,7 +66,7 @@ class Migration(migrations.Migration):
             ],
             state_operations=[
                 migrations.AlterUniqueTogether(
-                    name="alertrule", unique_together=set([("organization", "name", "status")])
+                    name="alertrule", unique_together={("organization", "name", "status")}
                 )
             ],
         ),

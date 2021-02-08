@@ -629,17 +629,22 @@ class GroupListTest(APITestCase, SnubaTestCase):
             ag.update(status=GroupStatus.RESOLVED, resolved_at=before_now(seconds=5))
             GroupAssignee.objects.assign(ag, self.user)
 
-        patched_params_update.side_effect = [
-            (self.organization.id, {"project": [self.project.id]}),
-            (self.organization.id, {"project": [self.project.id]}),
-            (self.organization.id, {"project": [self.project.id]}),
-            (self.organization.id, {"project": [self.project.id]}),
-            (self.organization.id, {"project": [self.project.id], "orderby": ["-last_seen"]}),
-            (self.organization.id, {"project": [self.project.id]}),
-            (self.organization.id, {"project": [self.project.id]}),
-            (self.organization.id, {"project": [self.project.id]}),
-            (self.organization.id, {"project": [self.project.id]}),
-        ]
+        # This side_effect is meant to override the `calculate_hits` snuba query specifically.
+        # If this test is failing it's because the -last_seen override is being applied to
+        # different snuba query.
+        def _my_patched_params(query_params, **kwargs):
+            if query_params.aggregations == [
+                ["uniq", "group_id", "total"],
+                ["multiply(toUInt64(max(timestamp)), 1000)", "", "last_seen"],
+            ]:
+                return (
+                    self.organization.id,
+                    {"project": [self.project.id], "orderby": ["-last_seen"]},
+                )
+            else:
+                return (self.organization.id, {"project": [self.project.id]})
+
+        patched_params_update.side_effect = _my_patched_params
 
         response = self.get_response(limit=1, query=f"assigned:{self.user.email}")
         assert len(response.data) == 1
@@ -1247,7 +1252,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def test_has_unhandled_flag_bug(self):
         # There was a bug where we tried to access attributes on seen_stats if this feature is active
         # but seen_stats could be null when we collapse stats.
-        with self.feature(["organizations:unhandled-issue-flag", "organizations:inbox"]):
+        with self.feature(["organizations:inbox"]):
             self.test_collapse_stats()
 
     def test_collapse_stats_group_snooze_bug(self):

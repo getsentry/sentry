@@ -3,7 +3,7 @@ import six
 from collections import defaultdict
 
 
-class RuleRegistry(object):
+class RuleRegistry:
     def __init__(self):
         self._rules = defaultdict(list)
         self._map = {}

@@ -7,14 +7,13 @@ import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
 import Confirm from 'app/components/confirm';
 import Tooltip from 'app/components/tooltip';
-import {IconDelete, IconFlag, IconSettings, IconWarning} from 'app/icons';
+import {IconDelete, IconFlag, IconSettings} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Integration, IntegrationProvider, ObjectStatus, Organization} from 'app/types';
 import {SingleIntegrationEvent} from 'app/utils/integrationUtil';
 import theme from 'app/utils/theme';
 
-import AddIntegrationButton from './addIntegrationButton';
 import IntegrationItem from './integrationItem';
 
 export type Props = {
@@ -23,19 +22,13 @@ export type Props = {
   integration: Integration;
   onRemove: (integration: Integration) => void;
   onDisable: (integration: Integration) => void;
-  onReAuthIntegration: (integration: Integration) => void;
   trackIntegrationEvent: (
     options: Pick<SingleIntegrationEvent, 'eventKey' | 'eventName'>
   ) => void; //analytics callback
   className?: string;
-  showReauthMessage: boolean;
 };
 
 export default class InstalledIntegration extends React.Component<Props> {
-  handleReAuthIntegration = (integration: Integration) => {
-    this.props.onReAuthIntegration(integration);
-  };
-
   handleUninstallClick = () => {
     this.props.trackIntegrationEvent({
       eventKey: 'integrations.uninstall_clicked',
@@ -106,13 +99,7 @@ export default class InstalledIntegration extends React.Component<Props> {
   }
 
   render() {
-    const {
-      className,
-      integration,
-      provider,
-      organization,
-      showReauthMessage,
-    } = this.props;
+    const {className, integration, provider, organization} = this.props;
 
     const removeConfirmProps =
       integration.status === 'active' && integration.provider.canDisable
@@ -127,26 +114,6 @@ export default class InstalledIntegration extends React.Component<Props> {
               <IntegrationItem integration={integration} />
             </IntegrationItemBox>
             <div>
-              {showReauthMessage && (
-                <Tooltip
-                  disabled={hasAccess}
-                  title={t(
-                    'You must be an organization owner, manager or admin to upgrade'
-                  )}
-                >
-                  <AddIntegrationButton
-                    disabled={!hasAccess}
-                    provider={provider}
-                    onAddIntegration={this.handleReAuthIntegration}
-                    integrationId={integration.id}
-                    priority="primary"
-                    size="small"
-                    buttonText={t('Upgrade Now')}
-                    organization={organization}
-                    icon={<IconWarning size="sm" />}
-                  />
-                </Tooltip>
-              )}
               <Tooltip
                 disabled={hasAccess}
                 position="left"

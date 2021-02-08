@@ -1,12 +1,11 @@
 import cProfile
+from io import StringIO
 import re
 import pstats
-import six
 import sys
 
 from django.conf import settings
 from django.http import HttpResponse
-from six import StringIO
 
 from sentry.auth.superuser import is_active_superuser
 
@@ -19,7 +18,7 @@ group_prefix_re = [
 ]
 
 
-class ProfileMiddleware(object):
+class ProfileMiddleware:
     def can(self, request):
         if "prof" not in request.GET:
             return False
@@ -43,13 +42,15 @@ class ProfileMiddleware(object):
                 return name[0]
 
     def get_summary(self, results_dict, total):
-        results = [(item[1], item[0]) for item in six.iteritems(results_dict)]
+        results = [(item[1], item[0]) for item in results_dict.items()]
         results.sort(reverse=True)
         results = results[:40]
 
         res = "      tottime\n"
         for item in results:
-            res += "%4.1f%% %7.3f %s\n" % (100 * item[0] / total if total else 0, item[0], item[1])
+            res += "{:4.1f}% {:7.3f} {}\n".format(
+                100 * item[0] / total if total else 0, item[0], item[1]
+            )
 
         return res
 
@@ -72,12 +73,12 @@ class ProfileMiddleware(object):
         oldstats = stats.stats
         stats.stats = newstats = {}
         max_name_len = 0
-        for func, (cc, nc, tt, ct, callers) in six.iteritems(oldstats):
+        for func, (cc, nc, tt, ct, callers) in oldstats.items():
             newfunc = func_strip_path(func)
             if len(func_std_string(newfunc)) > max_name_len:
                 max_name_len = len(func_std_string(newfunc))
             newcallers = {}
-            for func2, caller in six.iteritems(callers):
+            for func2, caller in callers.items():
                 newcallers[func_strip_path(func2)] = caller
 
             if newfunc in newstats:

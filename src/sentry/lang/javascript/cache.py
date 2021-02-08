@@ -10,7 +10,7 @@ def is_utf8(codec):
     return name in ("utf-8", "ascii")
 
 
-class SourceCache(object):
+class SourceCache:
     def __init__(self):
         self._cache = {}
         self._errors = {}
@@ -59,7 +59,7 @@ class SourceCache(object):
         self._errors[url].append(error)
 
 
-class SourceMapCache(object):
+class SourceMapCache:
     """
     Stores mappings between
 

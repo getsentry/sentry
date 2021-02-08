@@ -1,3 +1,5 @@
+# 2021-02-08 - The CI checks the hash of this file to determine if to create a new
+# cache or not. If you want to force a new cache simply change the date on the line above
 brew 'pyenv'
 
 # required for pyenv's python-build

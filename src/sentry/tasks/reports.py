@@ -370,7 +370,7 @@ Report, prepare_project_report, merge_reports = build(
 )
 
 
-class ReportBackend(object):
+class ReportBackend:
     def build(self, timestamp, duration, project):
         return prepare_project_report(_to_interval(timestamp, duration), project)
 
@@ -560,7 +560,7 @@ def user_subscribed_to_organization_reports(user, organization):
     )
 
 
-class Skipped(object):
+class Skipped:
     NotSubscribed = object()
     NoProjects = object()
     NoReports = object()

@@ -2,7 +2,6 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 
 import logging
 import time
-import six
 import sentry_sdk
 from datetime import datetime, timedelta
 from hashlib import md5
@@ -44,8 +43,7 @@ def get_search_filter(search_filters, name, operator):
     return found_val
 
 
-@six.add_metaclass(ABCMeta)
-class AbstractQueryExecutor:
+class AbstractQueryExecutor(metaclass=ABCMeta):
     """This class serves as a template for Query Executors.
     We subclass it in order to implement query methods (we use it to implement two classes: joined Postgres+Snuba queries, and Snuba only queries)
     It's used to keep the query logic out of the actual search backend,
@@ -241,22 +239,20 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
     logger = logging.getLogger("sentry.search.postgressnuba")
     dependency_aggregations = {"priority": ["last_seen", "times_seen"]}
-    postgres_only_fields = set(
-        [
-            "query",
-            "status",
-            "for_review",
-            "assigned_or_suggested",
-            "bookmarked_by",
-            "assigned_to",
-            "unassigned",
-            "linked",
-            "subscribed_by",
-            "active_at",
-            "first_release",
-            "first_seen",
-        ]
-    )
+    postgres_only_fields = {
+        "query",
+        "status",
+        "for_review",
+        "assigned_or_suggested",
+        "bookmarked_by",
+        "assigned_to",
+        "unassigned",
+        "linked",
+        "subscribed_by",
+        "active_at",
+        "first_release",
+        "first_seen",
+    }
     sort_strategies = {
         "date": "last_seen",
         "freq": "times_seen",
