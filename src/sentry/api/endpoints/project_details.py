@@ -75,7 +75,7 @@ class DynamicSamplingConditionSerializer(serializers.Serializer):
             inner = data.get("inner")
             if inner is None:
                 raise serializers.ValidationError(
-                    "Missing inner field from  rule condition '{}' ".format(op)
+                    f"Missing inner field from  rule condition '{op}' "
                 )
             if op == "not":
                 self.validate(inner)
@@ -85,9 +85,7 @@ class DynamicSamplingConditionSerializer(serializers.Serializer):
         elif op == "eq":
             for key in data.keys():
                 if key not in ["op", "name", "value", "ignoreCase"]:
-                    raise serializers.ValidationError(
-                        "Invalid filed {} for eq condition".format(key)
-                    )
+                    raise serializers.ValidationError(f"Invalid filed {key} for eq condition")
             name = data.get("name")
             if type(name) not in (str,):
                 raise serializers.ValidationError(
@@ -103,9 +101,7 @@ class DynamicSamplingConditionSerializer(serializers.Serializer):
         elif op == "glob":
             for key in data.keys():
                 if key not in ["op", "name", "value", "ignoreCase"]:
-                    raise serializers.ValidationError(
-                        "Invalid filed {} for eq condition".format(key)
-                    )
+                    raise serializers.ValidationError(f"Invalid filed {key} for eq condition")
             name = data.get("name")
             if type(name) not in (str,):
                 raise serializers.ValidationError(
@@ -114,9 +110,7 @@ class DynamicSamplingConditionSerializer(serializers.Serializer):
             if data.get("value") is None:
                 raise serializers.ValidationError("Missing field 'value'")
         else:
-            raise serializers.ValidationError(
-                "Invalid dynamic rule condition operator:'{}'".format(op)
-            )
+            raise serializers.ValidationError(f"Invalid dynamic rule condition operator:'{op}'")
 
         return data
 
@@ -209,9 +203,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
 
     def validate_slug(self, slug):
         if slug in RESERVED_PROJECT_SLUGS:
-            raise serializers.ValidationError(
-                'The slug "{}" is reserved and not allowed.'.format(slug)
-            )
+            raise serializers.ValidationError(f'The slug "{slug}" is reserved and not allowed.')
         project = self.context["project"]
         other = (
             Project.objects.filter(slug=slug, organization=project.organization)
@@ -653,22 +645,22 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "sentry:blacklisted_ips",
                     clean_newline_inputs(options["filters:blacklisted_ips"]),
                 )
-            if "filters:{}".format(FilterTypes.RELEASES) in options:
+            if f"filters:{FilterTypes.RELEASES}" in options:
                 if features.has("projects:custom-inbound-filters", project, actor=request.user):
                     project.update_option(
-                        "sentry:{}".format(FilterTypes.RELEASES),
-                        clean_newline_inputs(options["filters:{}".format(FilterTypes.RELEASES)]),
+                        f"sentry:{FilterTypes.RELEASES}",
+                        clean_newline_inputs(options[f"filters:{FilterTypes.RELEASES}"]),
                     )
                 else:
                     return Response(
                         {"detail": ["You do not have that feature enabled"]}, status=400
                     )
-            if "filters:{}".format(FilterTypes.ERROR_MESSAGES) in options:
+            if f"filters:{FilterTypes.ERROR_MESSAGES}" in options:
                 if features.has("projects:custom-inbound-filters", project, actor=request.user):
                     project.update_option(
-                        "sentry:{}".format(FilterTypes.ERROR_MESSAGES),
+                        f"sentry:{FilterTypes.ERROR_MESSAGES}",
                         clean_newline_inputs(
-                            options["filters:{}".format(FilterTypes.ERROR_MESSAGES)],
+                            options[f"filters:{FilterTypes.ERROR_MESSAGES}"],
                             case_insensitive=False,
                         ),
                     )

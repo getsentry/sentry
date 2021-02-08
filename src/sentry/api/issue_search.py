@@ -110,7 +110,7 @@ def convert_status_value(value, projects, user, environments):
     try:
         return parse_status_value(value)
     except ValueError:
-        raise InvalidSearchQuery("invalid status value of '{}'".format(value))
+        raise InvalidSearchQuery(f"invalid status value of '{value}'")
 
 
 value_converters = {

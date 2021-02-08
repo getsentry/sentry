@@ -39,7 +39,7 @@ class ProjectOwnershipSerializer(serializers.Serializer):
                 if owner.type == "user":
                     bad_actors.append(owner.identifier)
                 elif owner.type == "team":
-                    bad_actors.append("#{}".format(owner.identifier))
+                    bad_actors.append(f"#{owner.identifier}")
 
         if bad_actors:
             bad_actors.sort()

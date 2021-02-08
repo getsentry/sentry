@@ -13,7 +13,7 @@ COMPONENT_TYPES = ["stacktrace-link", "issue-link"]
 
 
 def get_component_interaction_key(sentry_app, component_type):
-    return "{}:{}".format(sentry_app.slug, component_type)
+    return f"{sentry_app.slug}:{component_type}"
 
 
 class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):

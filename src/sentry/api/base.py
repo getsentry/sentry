@@ -102,7 +102,7 @@ class Endpoint(APIView):
         )
         base_url = absolute_uri(urlquote(request.path))
         if querystring:
-            base_url = "{}?{}".format(base_url, querystring)
+            base_url = f"{base_url}?{querystring}"
         else:
             base_url = base_url + "?"
 
@@ -207,7 +207,7 @@ class Endpoint(APIView):
                 if origin and request.auth:
                     allowed_origins = request.auth.get_allowed_origins()
                     if not is_valid_origin(origin, allowed=allowed_origins):
-                        response = Response("Invalid origin: {}".format(origin), status=400)
+                        response = Response(f"Invalid origin: {origin}", status=400)
                         self.response = self.finalize_response(request, response, *args, **kwargs)
                         return self.response
 
@@ -281,9 +281,7 @@ class Endpoint(APIView):
 
         max_per_page = max(max_per_page, default_per_page)
         if per_page > max_per_page:
-            raise ParseError(
-                detail="Invalid per_page value. Cannot exceed {}.".format(max_per_page)
-            )
+            raise ParseError(detail=f"Invalid per_page value. Cannot exceed {max_per_page}.")
 
         return per_page
 

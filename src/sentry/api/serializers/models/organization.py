@@ -133,9 +133,7 @@ class OrganizationSerializer(Serializer):
 
         # batch_has has found some features
         if batch_features:
-            for feature_name, active in batch_features.get(
-                "organization:{}".format(obj.id), {}
-            ).items():
+            for feature_name, active in batch_features.get(f"organization:{obj.id}", {}).items():
                 if active:
                     # Remove organization prefix
                     feature_list.add(feature_name[len(_ORGANIZATION_SCOPE_PREFIX) :])

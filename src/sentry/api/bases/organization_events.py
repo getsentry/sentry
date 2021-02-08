@@ -164,7 +164,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         base_url = absolute_uri(urlquote(request.path))
         if querystring:
-            base_url = "{}?{}".format(base_url, querystring)
+            base_url = f"{base_url}?{querystring}"
         else:
             base_url = base_url + "?"
 

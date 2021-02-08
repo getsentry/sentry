@@ -40,7 +40,7 @@ class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
         for plugin in desired_plugins:
             keys_to_check.append("%s:enabled" % plugin.slug)
             if plugin.required_field:
-                keys_to_check.append("{}:{}".format(plugin.slug, plugin.required_field))
+                keys_to_check.append(f"{plugin.slug}:{plugin.required_field}")
 
         # Get all the project options for org that have truthy values
         project_options = ProjectOption.objects.filter(
