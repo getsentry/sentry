@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 SDK_INDEX_CACHE_KEY = "sentry:release-registry-sdk-versions"
 APP_INDEX_CACHE_KEY = "sentry:release-registry-app-versions"
+LAYER_INDEX_CACHE_KEY = "sentry:release-registry-layer-versions"
 
 REQUEST_TIMEOUT = 10
 
@@ -58,3 +59,7 @@ def fetch_release_registry_data(**kwargs):
     # Apps (e.g. sentry-cli)
     app_data = _fetch_registry_url("/apps")
     cache.set(APP_INDEX_CACHE_KEY, app_data, CACHE_TTL)
+
+    # AWS Layers
+    layer_data = _fetch_registry_url("/aws-lambda-layers")
+    cache.set(LAYER_INDEX_CACHE_KEY, layer_data, CACHE_TTL)
