@@ -42,7 +42,7 @@ import EventView from 'app/utils/discover/eventView';
 import {queryToObj} from 'app/utils/stream';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
-import {Query} from 'app/views/issueList/utils';
+import {isForReviewQuery} from 'app/views/issueList/utils';
 
 const DiscoveryExclusionFields: string[] = [
   'query',
@@ -75,6 +75,7 @@ type Props = {
   hasGuideAnchor?: boolean;
   memberList?: User[];
   onMarkReviewed?: (itemIds: string[]) => void;
+  showInboxTime?: boolean;
   // TODO(ts): higher order functions break defaultprops export types
 } & Partial<typeof defaultProps>;
 
@@ -145,7 +146,7 @@ class StreamGroup extends React.Component<Props, State> {
       // On the inbox tab and the inbox reason is removed
       const reviewed =
         state.reviewed ||
-        ((query === Query.FOR_REVIEW || query === Query.FOR_REVIEW_OWNER) &&
+        (isForReviewQuery(query) &&
           (state.data.inbox as InboxDetails)?.reason !== undefined &&
           data.inbox === false);
       return {data, reviewed};
@@ -284,6 +285,7 @@ class StreamGroup extends React.Component<Props, State> {
       selection,
       organization,
       displayReprocessingLayout,
+      showInboxTime,
       onMarkReviewed,
     } = this.props;
 
@@ -333,6 +335,7 @@ class StreamGroup extends React.Component<Props, State> {
             hasGuideAnchor={hasGuideAnchor}
             organization={organization}
             data={data}
+            showInboxTime={showInboxTime}
           />
         </GroupSummary>
         {hasGuideAnchor && <GuideAnchor target="issue_stream" />}

@@ -16,7 +16,14 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withProjects from 'app/utils/withProjects';
 
 import SavedSearchTab from './savedSearchTab';
-import {getTabs, isForReviewQuery, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
+import {
+  getTabs,
+  isForReviewQuery,
+  IssueSortOptions,
+  Query,
+  QueryCounts,
+  TAB_MAX_COUNT,
+} from './utils';
 
 type Props = {
   organization: Organization;
@@ -98,7 +105,15 @@ function IssueListHeader({
               const inboxGuideStepOne = queryName === 'For Review' && query !== tabQuery;
               const inboxGuideStepTwo = queryName === 'For Review' && query === tabQuery;
               const to = {
-                query: {...queryParms, query: tabQuery},
+                query: {
+                  ...queryParms,
+                  query: tabQuery,
+                  sort:
+                    queryParms.sort === IssueSortOptions.INBOX &&
+                    !isForReviewQuery(tabQuery)
+                      ? undefined
+                      : queryParms.sort,
+                },
                 pathname: `/organizations/${organization.slug}/issues/`,
               };
 

@@ -176,6 +176,33 @@ describe('IssueListHeader', () => {
     });
   });
 
+  it('removes inbox sort for non-inbox tabs', () => {
+    const wrapper = mountWithTheme(
+      <IssueListHeader
+        organization={organization}
+        queryCounts={queryCounts}
+        projectIds={[]}
+        savedSearchList={[]}
+        router={TestStubs.router({
+          location: {
+            pathname: '/test/',
+            query: {sort: 'inbox'},
+          },
+        })}
+      />,
+      TestStubs.routerContext()
+    );
+    const pathname = '/organizations/org-slug/issues/';
+    expect(wrapper.find('Link').at(0).prop('to')).toEqual({
+      pathname,
+      query: {query: 'is:unresolved'},
+    });
+    expect(wrapper.find('Link').at(1).prop('to')).toEqual({
+      pathname,
+      query: {query: 'is:unresolved is:for_review', sort: 'inbox'},
+    });
+  });
+
   it('tracks clicks on inbox tab', () => {
     const wrapper = mountWithTheme(
       <IssueListHeader

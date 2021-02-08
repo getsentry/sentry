@@ -25,6 +25,7 @@ type Props = WithRouterProps<{orgId: string}> & {
   showAssignee?: boolean;
   organization: Organization;
   hasGuideAnchor?: boolean;
+  showInboxTime?: boolean;
 };
 
 function EventOrGroupExtraDetails({
@@ -33,6 +34,7 @@ function EventOrGroupExtraDetails({
   params,
   organization,
   hasGuideAnchor,
+  showInboxTime,
 }: Props) {
   const {
     id,
@@ -57,7 +59,7 @@ function EventOrGroupExtraDetails({
     <GroupExtra hasInbox={hasInbox}>
       {hasInbox && inbox && (
         <GuideAnchor target="inbox_guide_reason" disabled={!hasGuideAnchor}>
-          <InboxReason inbox={inbox} />
+          <InboxReason inbox={inbox} showDateAdded={showInboxTime} />
         </GuideAnchor>
       )}
       {shortId &&
