@@ -114,6 +114,41 @@ class DynamicSamplingConditionSerializer(serializers.Serializer):
                 )
             if data.get("value") is None:
                 raise serializers.ValidationError("Missing field 'value'")
+        elif op == "has":
+            for key in six.iterkeys(data):
+                if key not in ["op", "name"]:
+                    raise serializers.ValidationError(
+                        "Invalid filed {} for has condition".format(key)
+                    )
+            name = data.get("name")
+            if type(name) not in six.string_types:
+                raise serializers.ValidationError(
+                    "Invalid field value {} for name, expected string", format(name)
+                )
+        elif op == "legacyBrowser":
+            for key in six.iterkeys(data):
+                if key not in ["op", "value"]:
+                    raise serializers.ValidationError(
+                        "Invalid filed {} for has condition".format(key)
+                    )
+            value = data.get("value")
+            if type(value) != list:
+                raise serializers.ValidationError(
+                    "Invalid field type for value expected array got {} ", format(type(value))
+                )
+            for val in value:
+                if type(val) not in six.string_types:
+                    raise serializers.ValidationError(
+                        "Invalid field value {} for browser type expected string", format(val)
+                    )
+        elif op in ["csp", "clientIp", "errorMessages"]:
+            for key in six.iterkeys(data):
+                if key not in ["op", "value"]:
+                    raise serializers.ValidationError(
+                        "Invalid filed {} for {} condition".format(key, op)
+                    )
+            if data.get("value") is None:
+                raise serializers.ValidationError("Missing field 'value' in operator:{}".format(op))
         else:
             raise serializers.ValidationError(
                 "Invalid dynamic rule condition operator:'{}'".format(op)
@@ -215,9 +250,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             )
         project = self.context["project"]
         other = (
-            Project.objects.filter(slug=slug, organization=project.organization)
-            .exclude(id=project.id)
-            .first()
+            Project.objects.filter(slug=slug, organization=project.organization).exclude(id=project.id).first()
         )
         if other is not None:
             raise serializers.ValidationError(

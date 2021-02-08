@@ -847,14 +847,32 @@ class ProjectDeleteTest(APITestCase):
 @pytest.mark.parametrize(
     "condition",
     (
+        {"op": "eq", "name": "field_1", "value": ["UPPER", "lower"], "ignoreCase": True},
+        {"op": "eq", "name": "field_2", "value": ["UPPER", "lower"]},
+        {"op": "glob", "name": "field_3", "value": ["1.2.*", "2.*"]},
+        {"op": "not", "inner": {"op": "glob", "name": "field_4", "value": ["1.*"]}},
         {"op": "and", "inner": []},
-        {"op": "and", "inner": [{"op": "and", "inner": []}]},
+        {"op": "and", "inner": [{"op": "glob", "name": "field_5", "value": ["2.*"]}]},
         {"op": "or", "inner": []},
-        {"op": "or", "inner": [{"op": "or", "inner": []}]},
-        {"op": "not", "inner": {"op": "or", "inner": []}},
-        {"op": "eq", "ignoreCase": True, "name": "field1", "value": ["val"]},
-        {"op": "eq", "name": "field1", "value": ["val"]},
-        {"op": "glob", "name": "field1", "value": ["val"]},
+        {"op": "or", "inner": [{"op": "glob", "name": "field_6", "value": ["3.*"]}]},
+        {"op": "has", "name": "has_field"},
+        {
+            "op": "legacyBrowser",
+            "value": [
+                "default",
+                "ie_pre_9",
+                "ie9",
+                "ie10",
+                "ie11",
+                "opera_pre_15",
+                "opera_mini_pre_8",
+                "android_pre_4",
+                "safari_pre_6",
+            ],
+        },
+        {"op": "csp", "value": ["v1", "v2"]},
+        {"op": "clientIp", "value": ["ci1", "ci2"]},
+        {"op": "errorMessages", "value": ["error.*", "some other error"]},
     ),
 )
 def test_condition_serializer_ok(condition):
