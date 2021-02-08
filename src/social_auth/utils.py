@@ -1,12 +1,12 @@
 import random
 import logging
 from importlib import import_module
-from six.moves.urllib.parse import parse_qs as urlparse_parse_qs, parse_qsl
+from urllib.parse import parse_qs as urlparse_parse_qs, parse_qsl
 
 from django.conf import settings
 from django.db.models import Model
 from django.contrib.contenttypes.models import ContentType
-from six.moves.urllib.parse import urlencode, urlparse, urlunparse
+from urllib.parse import urlencode, urlparse, urlunparse
 from six.moves.urllib.request import urlopen
 
 try:

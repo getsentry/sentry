@@ -1,7 +1,7 @@
 import logging
 from uuid import uuid4
 
-from six.moves.urllib.parse import urlparse, urlencode, urlunparse
+from urllib.parse import urlparse, urlencode, urlunparse
 from sentry.http import safe_urlread
 from sentry.coreapi import APIError
 from sentry.mediators import Mediator, Param

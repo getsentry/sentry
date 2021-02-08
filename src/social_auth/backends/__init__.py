@@ -19,7 +19,7 @@ from django.contrib.auth import authenticate
 from django.utils.crypto import get_random_string, constant_time_compare
 from six.moves.urllib.error import HTTPError
 from six.moves.urllib.request import Request
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 from social_auth.models import UserSocialAuth
 from social_auth.utils import (
     setting,
