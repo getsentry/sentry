@@ -11,7 +11,7 @@ def get_users_for_pull_requests(item_list, user=None):
     )
 
     if authors:
-        org_ids = set(item.organization_id for item in item_list)
+        org_ids = {item.organization_id for item in item_list}
         if len(org_ids) == 1:
             return get_users_for_authors(organization_id=org_ids.pop(), authors=authors, user=user)
     return {}

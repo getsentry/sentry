@@ -51,10 +51,10 @@ class GroupOwner(Model):
 
     def owner_id(self):
         if self.user_id:
-            return "user:{}".format(self.user_id)
+            return f"user:{self.user_id}"
 
         if self.team_id:
-            return "team:{}".format(self.team_id)
+            return f"team:{self.team_id}"
 
         raise NotImplementedError("Unknown Owner")
 

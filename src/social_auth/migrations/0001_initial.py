@@ -27,6 +27,6 @@ class Migration(migrations.Migration):
             ],
         ),
         migrations.AlterUniqueTogether(
-            name="usersocialauth", unique_together=set([("provider", "uid", "user")])
+            name="usersocialauth", unique_together={("provider", "uid", "user")}
         ),
     ]

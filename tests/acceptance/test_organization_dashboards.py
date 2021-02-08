@@ -4,7 +4,8 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 FEATURE_NAMES = [
     "organizations:discover-basic",
     "organizations:discover-query",
-    "organizations:dashboards-v2",
+    "organizations:dashboards-basic",
+    "organizations:dashboards-edit",
 ]
 
 

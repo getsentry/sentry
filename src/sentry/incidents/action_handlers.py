@@ -64,7 +64,7 @@ class EmailActionHandler(ActionHandler):
                 targets = [(target.id, target.email)]
             elif self.action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
                 users = self.project.filter_to_subscribed_users(
-                    set(member.user for member in target.member_set)
+                    {member.user for member in target.member_set}
                 )
                 targets = [(user.id, user.email) for user in users]
         # TODO: We need some sort of verification system to make sure we're not being

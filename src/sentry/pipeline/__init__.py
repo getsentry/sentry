@@ -10,6 +10,9 @@ from sentry.utils.hashlib import md5_text
 from sentry.web.helpers import render_to_response
 from sentry import analytics
 
+# give users an hour to complete
+INTEGRATION_EXPIRATION_TTL = 60 * 60
+
 
 class PipelineProvider:
     """
@@ -136,7 +139,7 @@ class Pipeline:
 
     @classmethod
     def get_for_request(cls, request):
-        state = RedisSessionStore(request, cls.pipeline_name)
+        state = RedisSessionStore(request, cls.pipeline_name, ttl=INTEGRATION_EXPIRATION_TTL)
         if not state.is_valid():
             return None
 
@@ -165,7 +168,7 @@ class Pipeline:
 
         self.request = request
         self.organization = organization
-        self.state = RedisSessionStore(request, self.pipeline_name)
+        self.state = RedisSessionStore(request, self.pipeline_name, ttl=INTEGRATION_EXPIRATION_TTL)
         self.provider = self.provider_manager.get(provider_key)
         self.provider_model = provider_model
 

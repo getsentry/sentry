@@ -3,7 +3,7 @@ import petname
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 from uuid import uuid4
 
 from sentry.db.models import (

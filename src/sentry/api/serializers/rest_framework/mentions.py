@@ -22,7 +22,7 @@ def extract_user_ids_from_mentions(organization_id, mentions):
     )
 
     return {
-        "users": set([user.id for user in actor_mentions["users"]]),
+        "users": {user.id for user in actor_mentions["users"]},
         "team_users": set(mentioned_team_users),
     }
 

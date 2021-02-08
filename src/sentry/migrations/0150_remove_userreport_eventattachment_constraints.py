@@ -106,7 +106,7 @@ class Migration(migrations.Migration):
                 ),
                 migrations.AlterUniqueTogether(
                     name="eventattachment",
-                    unique_together=set([("project_id", "event_id", "file_id")]),
+                    unique_together={("project_id", "event_id", "file_id")},
                 ),
                 migrations.RemoveField(
                     model_name="userreport",
@@ -122,17 +122,18 @@ class Migration(migrations.Migration):
                 ),
                 migrations.AlterUniqueTogether(
                     name="userreport",
-                    unique_together=set([("project_id", "event_id")]),
+                    unique_together={("project_id", "event_id")},
                 ),
                 migrations.AlterIndexTogether(
                     name="eventattachment",
-                    index_together=set(
-                        [("project_id", "date_added"), ("project_id", "date_added", "file_id")]
-                    ),
+                    index_together={
+                        ("project_id", "date_added"),
+                        ("project_id", "date_added", "file_id"),
+                    },
                 ),
                 migrations.AlterIndexTogether(
                     name="userreport",
-                    index_together=set([("project_id", "date_added"), ("project_id", "event_id")]),
+                    index_together={("project_id", "date_added"), ("project_id", "event_id")},
                 ),
             ],
         )
