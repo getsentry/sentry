@@ -20,7 +20,7 @@ class UserIndexEndpoint(Endpoint):
         query = request.GET.get("query")
         if query:
             tokens = tokenize_query(query)
-            for key, value in six.iteritems(tokens):
+            for key, value in tokens.items():
                 if key == "query":
                     value = " ".join(value)
                     queryset = queryset.filter(

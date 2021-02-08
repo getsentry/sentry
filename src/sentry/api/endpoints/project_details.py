@@ -84,7 +84,7 @@ class DynamicSamplingConditionSerializer(serializers.Serializer):
                 for child in inner:
                     self.validate(child)
         elif op == "eq":
-            for key in six.iterkeys(data):
+            for key in data.keys():
                 if key not in ["op", "name", "value", "ignoreCase"]:
                     raise serializers.ValidationError(
                         "Invalid filed {} for eq condition".format(key)
@@ -102,7 +102,7 @@ class DynamicSamplingConditionSerializer(serializers.Serializer):
             if data.get("value") is None:
                 raise serializers.ValidationError("Missing field 'value'")
         elif op == "glob":
-            for key in six.iterkeys(data):
+            for key in data.keys():
                 if key not in ["op", "name", "value", "ignoreCase"]:
                     raise serializers.ValidationError(
                         "Invalid filed {} for eq condition".format(key)
@@ -418,7 +418,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         if not has_project_write:
             # options isn't part of the serializer, but should not be editable by members
-            for key in chain(six.iterkeys(ProjectAdminSerializer().fields), ["options"]):
+            for key in chain(ProjectAdminSerializer().fields.keys(), ["options"]):
                 if request.data.get(key) and not result.get(key):
                     return Response(
                         {"detail": ["You do not have permission to perform this action."]},

@@ -45,7 +45,7 @@ class GroupEnvironmentWithStatsSerializer(EnvironmentSerializer):
         for item in item_list:
             items[self.group.id].append(item.id)
 
-        for key, (segments, interval) in six.iteritems(self.STATS_PERIODS):
+        for key, (segments, interval) in self.STATS_PERIODS.items():
             until = self.until or timezone.now()
             since = self.since or until - (segments * interval)
 

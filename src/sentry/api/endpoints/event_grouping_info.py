@@ -37,7 +37,7 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
         except GroupingConfigNotFound:
             raise ResourceDoesNotExist(detail="Unknown grouping config")
 
-        for (key, variant) in six.iteritems(variants):
+        for (key, variant) in variants.items():
             d = variant.as_dict()
             # Since the hashes are generated on the fly and might no
             # longer match the stored ones we indicate if the hash

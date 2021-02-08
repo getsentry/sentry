@@ -378,14 +378,14 @@ class OrganizationSerializer(serializers.Serializer):
         }
 
         # check if fields changed
-        for f, v in six.iteritems(org_tracked_field):
+        for f, v in org_tracked_field.items():
             if f != "flag_field":
                 if org.has_changed(f):
                     old_val = org.old_value(f)
                     changed_data[f] = "from {} to {}".format(old_val, v)
             else:
                 # check if flag fields changed
-                for f, v in six.iteritems(org_tracked_field["flag_field"]):
+                for f, v in org_tracked_field["flag_field"].items():
                     if org.flag_has_changed(f):
                         changed_data[f] = "to {}".format(v)
 

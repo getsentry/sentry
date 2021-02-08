@@ -147,7 +147,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
         if errors:
             return Response({"errors": errors}, status=400)
 
-        for key, value in six.iteritems(cleaned):
+        for key, value in cleaned.items():
             if value is None:
                 plugin.unset_option(project=project, key=key)
             else:

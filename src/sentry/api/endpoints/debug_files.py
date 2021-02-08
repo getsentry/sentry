@@ -310,7 +310,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
 
         file_response = {}
 
-        for checksum, file_to_assemble in six.iteritems(files):
+        for checksum, file_to_assemble in files.items():
             name = file_to_assemble.get("name", None)
             debug_id = file_to_assemble.get("debug_id", None)
             chunks = file_to_assemble.get("chunks", [])

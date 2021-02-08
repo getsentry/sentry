@@ -98,7 +98,7 @@ class Endpoint(APIView):
     def build_cursor_link(self, request, name, cursor):
         querystring = "&".join(
             "{}={}".format(urlquote(k), urlquote(v))
-            for k, v in six.iteritems(request.GET)
+            for k, v in request.GET.items()
             if k != "cursor"
         )
         base_url = absolute_uri(urlquote(request.path))

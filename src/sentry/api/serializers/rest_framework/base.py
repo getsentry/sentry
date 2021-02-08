@@ -30,7 +30,7 @@ def convert_dict_key_case(obj, converter):
         return obj
 
     obj = obj.copy()
-    for key in list(six.iterkeys(obj)):
+    for key in list(obj.keys()):
         converted_key = converter(key)
         obj[converted_key] = convert_dict_key_case(obj.pop(key), converter)
 

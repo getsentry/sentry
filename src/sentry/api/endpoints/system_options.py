@@ -54,7 +54,7 @@ class SystemOptionsEndpoint(Endpoint):
 
     def put(self, request):
         # TODO(dcramer): this should validate options before saving them
-        for k, v in six.iteritems(request.data):
+        for k, v in request.data.items():
             if v and isinstance(v, str):
                 v = v.strip()
             try:

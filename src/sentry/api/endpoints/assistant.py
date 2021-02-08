@@ -58,11 +58,11 @@ class AssistantEndpoint(Endpoint):
             AssistantActivity.objects.filter(user=request.user).values_list("guide_id", flat=True)
         )
 
-        for key, value in six.iteritems(guides):
+        for key, value in guides.items():
             value["seen"] = value["id"] in seen_ids
 
         if "v2" in request.GET:
-            guides = [{"guide": key, "seen": value["seen"]} for key, value in six.iteritems(guides)]
+            guides = [{"guide": key, "seen": value["seen"]} for key, value in guides.items()]
         return Response(guides)
 
     def put(self, request):

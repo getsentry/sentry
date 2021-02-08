@@ -10,7 +10,7 @@ class ProcessingIssueSerializer(Serializer):
         counts = {i.id: getattr(i, "num_events", None) for i in item_list}
 
         missing_counts = []
-        for pk, events in six.iteritems(counts):
+        for pk, events in counts.items():
             if events is None:
                 missing_counts.append(pk)
 

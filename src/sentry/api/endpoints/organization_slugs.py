@@ -22,7 +22,7 @@ class SlugsUpdateEndpoint(OrganizationEndpoint):
         :auth: required
         """
         slugs = request.data.get("slugs", {})
-        for project_id, slug in six.iteritems(slugs):
+        for project_id, slug in slugs.items():
             slug = slug.lower()
             try:
                 validate_slug(slug)
@@ -48,7 +48,7 @@ class SlugsUpdateEndpoint(OrganizationEndpoint):
                 project.save()
 
             # Set new ones
-            for project_id, slug in six.iteritems(slugs):
+            for project_id, slug in slugs.items():
                 project = projects.get(project_id)
                 if project is None:
                     continue

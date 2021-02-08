@@ -36,7 +36,7 @@ class ProjectOwnershipSerializer(serializers.Serializer):
         actors = resolve_actors(owners, self.context["ownership"].project_id)
 
         bad_actors = []
-        for owner, actor in six.iteritems(actors):
+        for owner, actor in actors.items():
             if actor is None:
                 if owner.type == "user":
                     bad_actors.append(owner.identifier)

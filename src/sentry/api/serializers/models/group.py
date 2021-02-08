@@ -75,7 +75,7 @@ logger = logging.getLogger(__name__)
 
 
 def merge_list_dictionaries(dict1, dict2):
-    for key, val in six.iteritems(dict2):
+    for key, val in dict2.items():
         dict1.setdefault(key, []).extend(val)
 
 
@@ -301,8 +301,8 @@ class GroupSerializerBase(Serializer):
             release_resolutions = {}
             commit_resolutions = {}
 
-        actor_ids = {r[-1] for r in six.itervalues(release_resolutions)}
-        actor_ids.update(r.actor_id for r in six.itervalues(ignore_items))
+        actor_ids = {r[-1] for r in release_resolutions.values()}
+        actor_ids.update(r.actor_id for r in ignore_items.values())
         if actor_ids:
             users = list(User.objects.filter(id__in=actor_ids, is_active=True))
             actors = {u.id: d for u, d in zip(users, serialize(users, user))}
@@ -851,7 +851,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         )
         seen_data = {
             issue["group_id"]: fix_tag_value_data(
-                dict(filter(lambda key: key[0] != "group_id", six.iteritems(issue)))
+                dict(filter(lambda key: key[0] != "group_id", issue.items()))
             )
             for issue in result["data"]
         }

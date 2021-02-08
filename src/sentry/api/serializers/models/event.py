@@ -38,7 +38,7 @@ class EventSerializer(Serializer):
         meta = event.data.get("_meta") or {}
         interface_list = []
 
-        for key, interface in six.iteritems(event.interfaces):
+        for key, interface in event.interfaces.items():
             # we treat user as a special contextual item
             if key in self._reserved_keys:
                 continue

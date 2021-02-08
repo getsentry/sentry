@@ -115,7 +115,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
         if query:
             tokens = tokenize_query(query)
-            for key, value in six.iteritems(tokens):
+            for key, value in tokens.items():
                 if key == "email":
                     queryset = queryset.filter(
                         Q(email__in=value)

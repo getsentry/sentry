@@ -33,6 +33,6 @@ class MonitorStatsEndpoint(MonitorEndpoint, StatsMixin):
         return Response(
             [
                 {"ts": ts, "ok": data[CheckInStatus.OK], "error": data[CheckInStatus.ERROR]}
-                for ts, data in six.iteritems(stats)
+                for ts, data in stats.items()
             ]
         )
