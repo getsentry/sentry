@@ -59,6 +59,6 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         try:
             installation.update_organization_config(request.data)
         except IntegrationError as e:
-            return self.respond({"detail": six.text_type(e)}, status=400)
+            return self.respond({"detail": str(e)}, status=400)
 
         return self.respond(status=200)

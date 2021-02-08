@@ -32,7 +32,7 @@ class OrganizationIntegrationServerlessFunctionsEndpoint(OrganizationIntegration
         try:
             serverless_functions = install.get_serverless_functions()
         except IntegrationError as e:
-            return self.respond({"detail": six.text_type(e)}, status=400)
+            return self.respond({"detail": str(e)}, status=400)
 
         return self.respond(serverless_functions)
 
@@ -62,4 +62,4 @@ class OrganizationIntegrationServerlessFunctionsEndpoint(OrganizationIntegration
                 resp = install.update_function_to_latest_version(target)
             return self.respond(resp)
         except IntegrationError as e:
-            return self.respond({"detail": six.text_type(e)}, status=400)
+            return self.respond({"detail": str(e)}, status=400)

@@ -286,7 +286,7 @@ class GroupSerializerBase(Serializer):
                     where=[
                         "sentry_grouplink.linked_id = sentry_commit.id",
                         "sentry_grouplink.group_id IN ({})".format(
-                            ", ".join(six.text_type(i.id) for i in resolved_item_list)
+                            ", ".join(str(i.id) for i in resolved_item_list)
                         ),
                         "sentry_grouplink.linked_type = %s",
                         "sentry_grouplink.relationship = %s",
@@ -523,7 +523,7 @@ class GroupSerializerBase(Serializer):
         is_subscribed, subscription_details = self._get_subscription(attrs)
         share_id = attrs["share_id"]
         group_dict = {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "shareId": share_id,
             "shortId": obj.qualified_short_id,
             "title": obj.title,
@@ -536,7 +536,7 @@ class GroupSerializerBase(Serializer):
             "isPublic": share_id is not None,
             "platform": obj.platform,
             "project": {
-                "id": six.text_type(obj.project.id),
+                "id": str(obj.project.id),
                 "name": obj.project.name,
                 "slug": obj.project.slug,
                 "platform": obj.project.platform,
@@ -561,7 +561,7 @@ class GroupSerializerBase(Serializer):
 
     def _convert_seen_stats(self, stats):
         return {
-            "count": six.text_type(stats["times_seen"]),
+            "count": str(stats["times_seen"]),
             "userCount": stats["user_count"],
             "firstSeen": stats["first_seen"],
             "lastSeen": stats["last_seen"],
@@ -1015,7 +1015,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             result = super().serialize(obj, attrs, user)
         else:
             result = {
-                "id": six.text_type(obj.id),
+                "id": str(obj.id),
             }
             if "times_seen" in attrs:
                 result.update(self._convert_seen_stats(attrs))

@@ -43,7 +43,7 @@ class SlugsUpdateEndpoint(OrganizationEndpoint):
             # Clear out all slugs first so that we can move them
             # around through the uniqueness
             for project in project_q:
-                projects[six.text_type(project.id)] = project
+                projects[str(project.id)] = project
                 project.slug = None
                 project.save()
 

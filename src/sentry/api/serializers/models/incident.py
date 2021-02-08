@@ -28,16 +28,16 @@ class IncidentSerializer(Serializer):
         results = {}
         for incident in item_list:
             results[incident] = {"projects": incident_projects.get(incident.id, [])}
-            results[incident]["alert_rule"] = alert_rules.get(six.text_type(incident.alert_rule.id))
+            results[incident]["alert_rule"] = alert_rules.get(str(incident.alert_rule.id))
 
         return results
 
     def serialize(self, obj, attrs, user):
         date_closed = obj.date_closed.replace(second=0, microsecond=0) if obj.date_closed else None
         return {
-            "id": six.text_type(obj.id),
-            "identifier": six.text_type(obj.identifier),
-            "organizationId": six.text_type(obj.organization_id),
+            "id": str(obj.id),
+            "identifier": str(obj.identifier),
+            "organizationId": str(obj.organization_id),
             "projects": attrs["projects"],
             "alertRule": attrs["alert_rule"],
             "status": obj.status,

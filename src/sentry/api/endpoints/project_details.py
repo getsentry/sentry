@@ -90,7 +90,7 @@ class DynamicSamplingConditionSerializer(serializers.Serializer):
                         "Invalid filed {} for eq condition".format(key)
                     )
             name = data.get("name")
-            if type(name) not in six.string_types:
+            if type(name) not in (str,):
                 raise serializers.ValidationError(
                     "Invalid field value {} for name, expected string", format(name)
                 )
@@ -108,7 +108,7 @@ class DynamicSamplingConditionSerializer(serializers.Serializer):
                         "Invalid filed {} for eq condition".format(key)
                     )
             name = data.get("name")
-            if type(name) not in six.string_types:
+            if type(name) not in (str,):
                 raise serializers.ValidationError(
                     "Invalid field value {} for name, expected string", format(name)
                 )
@@ -265,7 +265,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             sources = parse_sources(sources_json.strip())
             sources_json = json.dumps(sources) if sources else ""
         except InvalidSourcesError as e:
-            raise serializers.ValidationError(six.text_type(e))
+            raise serializers.ValidationError(str(e))
 
         return sources_json
 
@@ -276,7 +276,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         try:
             Enhancements.from_config_string(value)
         except InvalidEnhancerConfig as e:
-            raise serializers.ValidationError(six.text_type(e))
+            raise serializers.ValidationError(str(e))
 
         return value
 
@@ -287,7 +287,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         try:
             FingerprintingRules.from_config_string(value)
         except InvalidFingerprintingConfig as e:
-            raise serializers.ValidationError(six.text_type(e))
+            raise serializers.ValidationError(str(e))
 
         return value
 

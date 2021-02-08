@@ -31,7 +31,7 @@ class ProcessingIssueSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "type": obj.type,
             "checksum": obj.checksum,
             "numEvents": attrs["num_events"],

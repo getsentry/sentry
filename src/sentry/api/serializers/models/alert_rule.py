@@ -62,9 +62,9 @@ class AlertRuleSerializer(Serializer):
         # Temporary: Translate aggregate back here from `tags[sentry:user]` to `user` for the frontend.
         aggregate = translate_aggregate_field(obj.snuba_query.aggregate, reverse=True)
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "name": obj.name,
-            "organizationId": six.text_type(obj.organization_id),
+            "organizationId": str(obj.organization_id),
             "status": obj.status,
             "dataset": obj.snuba_query.dataset,
             "query": obj.snuba_query.query,

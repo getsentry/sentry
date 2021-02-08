@@ -116,7 +116,7 @@ class TeamSerializer(Serializer):
         else:
             avatar = {"avatarType": "letter_avatar", "avatarUuid": None}
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "slug": obj.slug,
             "name": obj.name,
             "dateCreated": obj.date_added,

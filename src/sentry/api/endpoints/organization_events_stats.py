@@ -69,7 +69,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
         try:
             snuba_args = self.get_snuba_query_args_legacy(request, organization)
         except InvalidSearchQuery as exc:
-            raise ParseError(detail=six.text_type(exc))
+            raise ParseError(detail=str(exc))
         except NoProjects:
             return Response({"data": []})
 
@@ -122,7 +122,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
         try:
             resolved = resolve_field_list([y_axis], snuba_filter)
         except InvalidSearchQuery as err:
-            raise ParseError(detail=six.text_type(err))
+            raise ParseError(detail=str(err))
         try:
             aggregate = resolved["aggregations"][0]
         except IndexError:

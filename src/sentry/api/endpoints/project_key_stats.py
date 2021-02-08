@@ -33,7 +33,7 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
         ):
             # XXX (alex, 08/05/19) key stats were being stored under either key_id or str(key_id)
             # so merge both of those back into one stats result.
-            result = tsdb.get_range(model=model, keys=[key.id, six.text_type(key.id)], **stat_args)
+            result = tsdb.get_range(model=model, keys=[key.id, str(key.id)], **stat_args)
             for key_id, points in six.iteritems(result):
                 for ts, count in points:
                     bucket = stats.setdefault(int(ts), {})

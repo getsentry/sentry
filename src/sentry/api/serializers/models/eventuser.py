@@ -9,7 +9,7 @@ from sentry.utils.avatar import get_gravatar_url
 class EventUserSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "hash": obj.hash,
             "tagValue": obj.tag_value,
             "identifier": obj.ident,

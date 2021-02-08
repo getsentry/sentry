@@ -77,13 +77,13 @@ ORG_OPTIONS = (
     (
         "attachmentsRole",
         "sentry:attachments_role",
-        six.text_type,
+        str,
         org_serializers.ATTACHMENTS_ROLE_DEFAULT,
     ),
     (
         "debugFilesRole",
         "sentry:debug_files_role",
-        six.text_type,
+        str,
         org_serializers.DEBUG_FILES_ROLE_DEFAULT,
     ),
     (
@@ -104,7 +104,7 @@ ORG_OPTIONS = (
         bool,
         org_serializers.REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     ),
-    ("relayPiiConfig", "sentry:relay_pii_config", six.text_type, None),
+    ("relayPiiConfig", "sentry:relay_pii_config", str, None),
     ("allowJoinRequests", "sentry:join_requests", bool, org_serializers.JOIN_REQUESTS_DEFAULT),
     ("apdexThreshold", "sentry:apdex_threshold", int, None),
 )

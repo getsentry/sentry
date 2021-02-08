@@ -101,8 +101,8 @@ class EventSerializer(Serializer):
                     "value": kv[1],
                     "_meta": prune_empty_keys(
                         {
-                            "key": get_path(meta, six.text_type(i), "0"),
-                            "value": get_path(meta, six.text_type(i), "1"),
+                            "key": get_path(meta, str(i), "0"),
+                            "value": get_path(meta, str(i), "1"),
                         }
                     )
                     or None,
@@ -120,7 +120,7 @@ class EventSerializer(Serializer):
             if query:
                 tag["query"] = query
 
-        tags_meta = prune_empty_keys({six.text_type(i): e.pop("_meta") for i, e in enumerate(tags)})
+        tags_meta = prune_empty_keys({str(i): e.pop("_meta") for i, e in enumerate(tags)})
 
         return (tags, meta_with_chunks(tags, tags_meta))
 
@@ -202,7 +202,7 @@ class EventSerializer(Serializer):
 
     def should_display_error(self, error):
         name = error.get("name")
-        if not isinstance(name, six.string_types):
+        if not isinstance(name, str):
             return True
 
         return (
@@ -237,9 +237,9 @@ class EventSerializer(Serializer):
 
         d = {
             "id": obj.event_id,
-            "groupID": six.text_type(obj.group_id) if obj.group_id else None,
+            "groupID": str(obj.group_id) if obj.group_id else None,
             "eventID": obj.event_id,
-            "projectID": six.text_type(obj.project_id),
+            "projectID": str(obj.project_id),
             "size": obj.size,
             "entries": attrs["entries"],
             "dist": obj.dist,
@@ -364,11 +364,11 @@ class SimpleEventSerializer(EventSerializer):
         user = obj.get_minimal_user()
 
         return {
-            "id": six.text_type(obj.event_id),
-            "event.type": six.text_type(obj.get_event_type()),
-            "groupID": six.text_type(obj.group_id) if obj.group_id else None,
-            "eventID": six.text_type(obj.event_id),
-            "projectID": six.text_type(obj.project_id),
+            "id": str(obj.event_id),
+            "event.type": str(obj.get_event_type()),
+            "groupID": str(obj.group_id) if obj.group_id else None,
+            "eventID": str(obj.event_id),
+            "projectID": str(obj.project_id),
             # XXX for 'message' this doesn't do the proper resolution of logentry
             # etc. that _get_legacy_message_with_meta does.
             "message": obj.message,
@@ -400,9 +400,9 @@ class ExternalEventSerializer(EventSerializer):
         user = obj.get_minimal_user()
 
         return {
-            "groupID": six.text_type(obj.group_id) if obj.group_id else None,
-            "eventID": six.text_type(obj.event_id),
-            "project": six.text_type(obj.project_id),
+            "groupID": str(obj.group_id) if obj.group_id else None,
+            "eventID": str(obj.event_id),
+            "project": str(obj.project_id),
             # XXX for 'message' this doesn't do the proper resolution of logentry
             # etc. that _get_legacy_message_with_meta does.
             "message": obj.message,

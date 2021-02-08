@@ -20,7 +20,7 @@ class OrganizationSearchSerializer(serializers.Serializer):
         try:
             SearchType(value)
         except ValueError as e:
-            raise serializers.ValidationError(six.text_type(e))
+            raise serializers.ValidationError(str(e))
         return value
 
 
@@ -63,9 +63,7 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
         try:
             search_type = SearchType(int(request.data.get("type", 0)))
         except ValueError as e:
-            return Response(
-                {"detail": "Invalid input for `type`. Error: %s" % six.text_type(e)}, status=400
-            )
+            return Response({"detail": "Invalid input for `type`. Error: %s" % str(e)}, status=400)
         SavedSearch.objects.filter(
             organization=organization, owner=request.user, type=search_type.value
         ).delete()

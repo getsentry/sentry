@@ -42,7 +42,7 @@ def geo_by_addr(ip):
     rv = {}
     for k in "country_code", "city", "region":
         d = geo.get(k)
-        if isinstance(d, six.binary_type):
+        if isinstance(d, bytes):
             d = d.decode("ISO-8859-1")
         rv[k] = d
 
@@ -75,7 +75,7 @@ def serialize_eventusers(organization, item_list, user, lookup):
         rv[(tag, project)] = {
             HEALTH_ID_KEY: make_health_id(lookup, [eu.tag_value, eu.project_id]),
             "value": {
-                "id": six.text_type(eu.id) if eu.id else None,
+                "id": str(eu.id) if eu.id else None,
                 "project": projects.get(eu.project_id),
                 "hash": eu.hash,
                 "tagValue": eu.tag_value,

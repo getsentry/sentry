@@ -74,7 +74,7 @@ def get_date_range_from_params(params, optional=False):
             start = parse_datetime_string(params["start"])
             end = parse_datetime_string(params["end"])
         except InvalidQuery as e:
-            raise InvalidParams(six.text_type(e))
+            raise InvalidParams(str(e))
     elif optional:
         return None, None
 

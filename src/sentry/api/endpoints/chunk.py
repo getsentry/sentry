@@ -119,7 +119,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             FileBlob.from_files(zip(files, checksums), organization=organization, logger=logger)
         except IOError as err:
             logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
-            return Response({"error": six.text_type(err)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": str(err)}, status=status.HTTP_400_BAD_REQUEST)
 
         logger.info("chunkupload.end", extra={"status": status.HTTP_200_OK})
         return Response(status=status.HTTP_200_OK)

@@ -48,19 +48,19 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
             environments = get_environments(request, group.project.organization)
             query, tags = self._get_search_query_and_tags(request, group, environments)
         except InvalidQuery as exc:
-            return Response({"detail": six.text_type(exc)}, status=400)
+            return Response({"detail": str(exc)}, status=400)
         except (NoResults, ResourceDoesNotExist):
             return Response([])
 
         try:
             start, end = get_date_range_from_params(request.GET, optional=True)
         except InvalidParams as e:
-            raise ParseError(detail=six.text_type(e))
+            raise ParseError(detail=str(e))
 
         try:
             return self._get_events_snuba(request, group, environments, query, tags, start, end)
         except GroupEventsError as exc:
-            raise ParseError(detail=six.text_type(exc))
+            raise ParseError(detail=str(exc))
 
     def _get_events_snuba(self, request, group, environments, query, tags, start, end):
         default_end = timezone.now()
@@ -83,7 +83,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         try:
             snuba_filter = get_filter(request.GET.get("query", None), params)
         except InvalidSearchQuery as e:
-            raise ParseError(detail=six.text_type(e))
+            raise ParseError(detail=str(e))
 
         snuba_filter.conditions.append(["event.type", "!=", "transaction"])
 

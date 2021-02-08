@@ -35,7 +35,7 @@ class UserReportSerializer(Serializer):
                 name = name or event_user.get("name")
                 email = email or event_user.get("email")
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "eventID": obj.event_id,
             "name": name,
             "email": email,
@@ -68,11 +68,7 @@ class UserReportWithGroupSerializer(UserReportSerializer):
         attrs = super().get_attrs(item_list, user)
         for item in item_list:
             attrs[item].update(
-                {
-                    "group": serialized_groups[six.text_type(item.group_id)]
-                    if item.group_id
-                    else None
-                }
+                {"group": serialized_groups[str(item.group_id)] if item.group_id else None}
             )
         return attrs
 

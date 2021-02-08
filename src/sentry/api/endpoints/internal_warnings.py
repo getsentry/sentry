@@ -23,11 +23,11 @@ class InternalWarningsEndpoint(Endpoint):
         for warning in seen_warnings:
             cls = type(warning)
             if cls in groupings:
-                groups[cls].append(six.text_type(warning))
+                groups[cls].append(str(warning))
             else:
-                warnings.append(six.text_type(warning))
+                warnings.append(str(warning))
 
-        sort_by_message = functools.partial(sorted, key=six.text_type)
+        sort_by_message = functools.partial(sorted, key=str)
 
         data = {
             "groups": sorted(

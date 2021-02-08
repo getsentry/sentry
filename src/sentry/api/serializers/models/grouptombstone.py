@@ -20,7 +20,7 @@ class GroupTombstoneSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "level": LOG_LEVELS.get(obj.level, "unknown"),
             "message": obj.message,
             "culprit": obj.culprit,
