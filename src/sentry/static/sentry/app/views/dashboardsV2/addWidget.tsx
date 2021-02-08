@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {IconAdd} from 'app/icons';
 
-import {WidgetWrapper} from './styles';
+import WidgetWrapper from './widgetWrapper';
 
 export const ADD_WIDGET_BUTTON_DRAG_ID = 'add-widget-button';
 

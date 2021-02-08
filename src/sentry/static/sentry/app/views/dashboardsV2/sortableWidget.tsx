@@ -4,7 +4,7 @@ import {useSortable} from '@dnd-kit/sortable';
 
 import theme from 'app/utils/theme';
 
-import {WidgetWrapper} from './styles';
+import WidgetWrapper from './widgetWrapper';
 import {Widget} from './types';
 import WidgetCard from './widgetCard';
 
