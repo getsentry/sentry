@@ -58,9 +58,12 @@ class Rules extends React.PureComponent<Props, State> {
       .map(ruleId => rules.find(rule => rule.id === ruleId))
       .filter(rule => !!rule) as RulesWithId;
 
+    const activeRuleType = rules[activeIndex].type;
+    const overRuleType = rules[overIndex].type;
+
     if (
-      rules[activeIndex].type === DynamicSamplingRuleType.TRACE &&
-      rules[overIndex].type === DynamicSamplingRuleType.TRANSACTION
+      activeRuleType === DynamicSamplingRuleType.TRACE &&
+      overRuleType === DynamicSamplingRuleType.TRANSACTION
     ) {
       addErrorMessage(
         t('Transaction traces rules cannot be under individual transactions rules')
@@ -69,8 +72,8 @@ class Rules extends React.PureComponent<Props, State> {
     }
 
     if (
-      rules[activeIndex].type === DynamicSamplingRuleType.TRANSACTION &&
-      rules[overIndex].type === DynamicSamplingRuleType.TRACE
+      activeRuleType === DynamicSamplingRuleType.TRANSACTION &&
+      overRuleType === DynamicSamplingRuleType.TRACE
     ) {
       addErrorMessage(
         t('Individual transactions rules cannot be above transaction traces rules')
