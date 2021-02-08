@@ -13,7 +13,7 @@ class Param:
 
     Example Usage:
         >>> class Creator(Mediator):
-        >>>     name = Param(six.binary_type, default='example')
+        >>>     name = Param(str, default='example')
         >>>
         >>> c = Creator(name='foo')
         >>> c.name
@@ -26,7 +26,7 @@ class Param:
         >>> c = Creator(name=False)
         Traceback (most recent call last):
             ...
-        TypeError: `name` must be a <type 'six.binary_type'>
+        TypeError: `name` must be a <type 'str'>
 
     Type Validation:
         When a Mediator is instantiated, it validates each of it's Params. This
@@ -34,12 +34,12 @@ class Param:
         expected.
 
         >>> class Creator(Mediator):
-        >>>     name = Param(six.binary_type)
+        >>>     name = Param(str)
         >>>
         >>> c = Creator(name=False)
         Traceback (most recent call last):
             ...
-        TypeError: `name` must be a <type 'six.binary_type'>
+        TypeError: `name` must be a <type 'str'>
 
     Presence Validation:
         Without specifying otherwise, Params are assumed to be required. If
@@ -62,7 +62,7 @@ class Param:
         Declaration order DOES matter.
 
         >>> class Creator(Mediator):
-        >>>     name = Param(six.binary_type, default='Pete')
+        >>>     name = Param(str, default='Pete')
         >>>
         >>> c = Creator()
         >>> c.name
@@ -70,7 +70,7 @@ class Param:
 
         >>> class Creator(Mediator):
         >>>     user = Param(dict)
-        >>>     name = Param(six.binary_type, default=lambda self: self.user['name'])
+        >>>     name = Param(str, default=lambda self: self.user['name'])
     """
 
     def __init__(self, type, **kwargs):

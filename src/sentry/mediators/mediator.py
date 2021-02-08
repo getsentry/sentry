@@ -33,7 +33,7 @@ class Mediator:
         function.
 
         >>> class Creator(Mediator):
-        >>>     name = Param(six.binary_type)
+        >>>     name = Param(str)
         >>>
         >>>     def call(self):
         >>>         with self.log():
@@ -62,7 +62,7 @@ class Mediator:
         >>> from sentry.mediators import Mediator, Param
         >>>
         >>> class Creator(Mediator):
-        >>>     name = Param(six.binary_type, default='example')
+        >>>     name = Param(str, default='example')
         >>>     user = Param('sentry.models.user.User', none=True)
 
         See ``sentry.mediators.param`` for more in-depth docs.
@@ -77,7 +77,7 @@ class Mediator:
             Instance method where you should implement your logic.
 
         >>> class Creator(Mediator):
-        >>>     name = Param(six.binary_type, default='example')
+        >>>     name = Param(str, default='example')
         >>>
         >>>     def call(self):
         >>>         Thing.objects.create(name=self.name)
