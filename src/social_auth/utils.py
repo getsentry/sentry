@@ -7,7 +7,7 @@ from django.conf import settings
 from django.db.models import Model
 from django.contrib.contenttypes.models import ContentType
 from urllib.parse import urlencode, urlparse, urlunparse
-from six.moves.urllib.request import urlopen
+from urllib.request import urlopen
 
 try:
     random = random.SystemRandom()
