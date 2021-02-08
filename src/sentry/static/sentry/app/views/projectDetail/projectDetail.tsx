@@ -168,7 +168,9 @@ const StyledPageContent = styled(PageContent)`
 `;
 
 const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
-  margin-bottom: 0;
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    margin-bottom: 0;
+  }
 `;
 
 StyledSdkUpdatesAlert.defaultProps = {
