@@ -142,4 +142,20 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
       })
     );
   });
+
+  it('does not call API if project is not stabilized yet', function () {
+    mountWithTheme(
+      <ProjectLatestReleases
+        organization={organization}
+        projectSlug={project.slug}
+        location={{
+          query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
+        }}
+        projectId={project.slug}
+        isProjectStabilized={false}
+      />
+    );
+
+    expect(endpointMock).toHaveBeenCalledTimes(0);
+  });
 });

@@ -178,4 +178,17 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
 
     expect(wrapper.find('AlertRowLink AlertDate').at(2).text()).toBe('Resolved ');
   });
+
+  it('does not call API if project is not stabilized yet', function () {
+    mountWithTheme(
+      <ProjectLatestAlerts
+        organization={organization}
+        projectSlug={project.slug}
+        location={router.location}
+        isProjectStabilized={false}
+      />
+    );
+
+    expect(endpointMock).toHaveBeenCalledTimes(0);
+  });
 });

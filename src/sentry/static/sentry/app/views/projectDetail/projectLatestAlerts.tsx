@@ -21,6 +21,7 @@ import {Incident, IncidentStatus} from '../alerts/types';
 
 import MissingAlertsButtons from './missingFeatureButtons/missingAlertsButtons';
 import {SectionHeadingLink, SectionHeadingWrapper, SidebarSection} from './styles';
+import {didProjectOrEnvironmentChange} from './utils';
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
@@ -42,8 +43,7 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
     // TODO(project-detail): we temporarily removed refetching based on timeselector
     if (
       this.state !== nextState ||
-      location.query.environment !== nextProps.location.query.environment ||
-      location.query.project !== nextProps.location.query.project ||
+      didProjectOrEnvironmentChange(location, nextProps.location) ||
       isProjectStabilized !== nextProps.isProjectStabilized
     ) {
       return true;
@@ -56,8 +56,7 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
     const {location, isProjectStabilized} = this.props;
 
     if (
-      prevProps.location.query.environment !== location.query.environment ||
-      prevProps.location.query.project !== location.query.project ||
+      didProjectOrEnvironmentChange(prevProps.location, location) ||
       prevProps.isProjectStabilized !== isProjectStabilized
     ) {
       this.remountComponent();

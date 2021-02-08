@@ -40,7 +40,6 @@ type RouteParams = {
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
-  // HoC vvv
   projects: Project[];
   loadingProjects: boolean;
   selection: GlobalSelection;

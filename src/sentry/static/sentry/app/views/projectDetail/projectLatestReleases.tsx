@@ -21,13 +21,14 @@ import {RELEASES_TOUR_STEPS} from 'app/views/releases/list/releaseLanding';
 
 import MissingReleasesButtons from './missingFeatureButtons/missingReleasesButtons';
 import {SectionHeadingLink, SectionHeadingWrapper, SidebarSection} from './styles';
+import {didProjectOrEnvironmentChange} from './utils';
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
   projectSlug: string;
   location: Location;
-  projectId?: string;
   isProjectStabilized: boolean;
+  projectId?: string;
 };
 
 type State = {
@@ -41,8 +42,7 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
     // TODO(project-detail): we temporarily removed refetching based on timeselector
     if (
       this.state !== nextState ||
-      location.query.environment !== nextProps.location.query.environment ||
-      location.query.project !== nextProps.location.query.project ||
+      didProjectOrEnvironmentChange(location, nextProps.location) ||
       isProjectStabilized !== nextProps.isProjectStabilized
     ) {
       return true;
@@ -55,8 +55,7 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
     const {location, isProjectStabilized} = this.props;
 
     if (
-      prevProps.location.query.environment !== location.query.environment ||
-      prevProps.location.query.project !== location.query.project ||
+      didProjectOrEnvironmentChange(prevProps.location, location) ||
       prevProps.isProjectStabilized !== isProjectStabilized
     ) {
       this.remountComponent();
