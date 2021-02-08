@@ -5,7 +5,7 @@ import threading
 
 from sentry.runner.decorators import configuration, log_options
 
-_DEFAULT_DAEMONS = {
+DEFAULT_DAEMONS = {
     "worker": ["sentry", "run", "worker", "-c", "1", "--autoreload"],
     "cron": ["sentry", "run", "cron", "--autoreload"],
     "post-process-forwarder": [
@@ -35,7 +35,7 @@ def _get_daemon(name, *args, **kwargs):
     if "suffix" in kwargs:
         display_name = "{}-{}".format(name, kwargs["suffix"])
 
-    return (display_name, _DEFAULT_DAEMONS[name] + list(args))
+    return (display_name, DEFAULT_DAEMONS[name] + list(args))
 
 
 @click.command()
@@ -225,6 +225,9 @@ def devserver(
 
     if settings.SENTRY_USE_RELAY:
         daemons += [_get_daemon("ingest")]
+
+    if settings.SENTRY_EXTRA_WORKERS:
+        daemons.extend([_get_daemon(name) for name in settings.SENTRY_EXTRA_WORKERS])
 
     if needs_https and has_https:
         https_port = str(parsed_url.port)
