@@ -1,7 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {selectByValue} from 'sentry-test/select';
+import {selectByValue} from 'sentry-test/select-new';
 
 import {Client} from 'app/api';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';

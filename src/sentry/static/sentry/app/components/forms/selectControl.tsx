@@ -173,13 +173,13 @@ function SelectControl(props: ControlProps) {
       ...provided,
       color: theme.formPlaceholder,
     }),
-    multiValue: () => ({
+    multiValue: (provided: React.CSSProperties) => ({
+      ...provided,
       color: '#007eff',
       backgroundColor: '#ebf5ff',
       borderRadius: '2px',
       border: '1px solid #c2e0ff',
       display: 'flex',
-      marginRight: '4px',
     }),
     multiValueLabel: (provided: React.CSSProperties) => ({
       ...provided,

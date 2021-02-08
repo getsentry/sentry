@@ -14,6 +14,8 @@ import SelectControl from './selectControl';
  */
 class SelectAsyncControl extends React.Component {
   static propTypes = {
+    deprecatedSelectControl: PropTypes.bool,
+
     forwardedRef: PropTypes.any,
     /**
      * API endpoint URL
@@ -83,7 +85,12 @@ class SelectAsyncControl extends React.Component {
       });
     }).then(
       resp => {
-        const {onResults} = this.props;
+        const {onResults, deprecatedSelectControl} = this.props;
+
+        // react-select v3 expects a bare list, while v2 requires an object with `options`.
+        if (!deprecatedSelectControl) {
+          return typeof onResults === 'function' ? onResults(resp) : resp;
+        }
 
         // Note `SelectControl` expects this data type:
         // {

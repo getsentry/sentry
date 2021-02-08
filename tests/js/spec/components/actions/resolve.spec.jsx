@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {selectByValue} from 'sentry-test/select-new';
 
 import ResolveActions from 'app/components/actions/resolve';
 import GlobalModal from 'app/components/globalModal';
@@ -206,7 +207,6 @@ describe('ResolveActions', function () {
     );
 
     wrapper.find('ActionLink').last().simulate('click');
-
     await tick();
     wrapper.update();
 
@@ -217,12 +217,9 @@ describe('ResolveActions', function () {
       }),
     ]);
 
-    wrapper.find('input[id="version"]').simulate('change', {target: {value: '1.2.0'}});
-
-    await tick();
-    wrapper.update();
-
-    wrapper.find('input[id="version"]').simulate('keyDown', {keyCode: 13});
+    selectByValue(wrapper, 'sentry-android-shop@1.2.0', {
+      selector: 'SelectAsyncControl[name="version"]',
+    });
 
     wrapper.find('CustomResolutionModal form').simulate('submit');
     expect(onUpdate).toHaveBeenCalledWith({

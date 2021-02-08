@@ -450,13 +450,13 @@ class QueryField extends React.Component<Props> {
           styles={!inFieldLabels ? styles : undefined}
           components={{
             Option: ({label, data, ...props}: OptionProps<OptionType>) => (
-              <components.Option label={label} {...(props as any)}>
+              <components.Option label={label} data={data} {...props}>
                 <span data-test-id="label">{label}</span>
                 {this.renderTag(data.value.kind)}
               </components.Option>
             ),
             SingleValue: ({data, ...props}: SingleValueProps<OptionType>) => (
-              <components.SingleValue data={data} {...(props as any)}>
+              <components.SingleValue data={data} {...props}>
                 <span data-test-id="label">{data.label}</span>
                 {this.renderTag(data.value.kind)}
               </components.SingleValue>
