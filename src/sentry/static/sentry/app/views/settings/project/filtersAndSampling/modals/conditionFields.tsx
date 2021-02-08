@@ -47,7 +47,6 @@ function ConditionFields({
             <Fields>
               <SelectField
                 label={t('Category')}
-                help={t('This is a description')}
                 name={`category-${index}`}
                 value={category}
                 onChange={value => onChange(index, 'category', value)}
@@ -60,7 +59,6 @@ function ConditionFields({
               />
               <StyledField
                 label={t('Match Conditions')}
-                help={t('This is a description')}
                 inline={false}
                 hideControlState
                 showHelpInTooltip

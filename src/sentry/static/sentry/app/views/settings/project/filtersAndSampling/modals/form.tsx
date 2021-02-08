@@ -206,7 +206,8 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
   geTransactionFieldDescription() {
     return {
       label: '',
-      help: '',
+      // TODO(PRISCILA): Add correct descriptions
+      // help: '',
     };
   }
 
@@ -265,7 +266,6 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
           )}
           <NumberField
             label={t('Sampling Rate')}
-            help={t('this is a description')}
             name="sampleRate"
             onChange={value => {
               this.handleChange('sampleRate', value ? Number(value) : undefined);
