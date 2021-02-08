@@ -124,11 +124,6 @@
     ); // IE9 and down, gets no color-stop at all for proper fallback
     background-repeat: no-repeat;
   }
-  .radial(@inner-color: #555; @outer-color: #333) {
-    background-image: -webkit-radial-gradient(circle, @inner-color, @outer-color);
-    background-image: radial-gradient(circle, @inner-color, @outer-color);
-    background-repeat: no-repeat;
-  }
   .striped(@color: rgba(255, 255, 255, 0.15); @angle: 45deg) {
     background-image: -webkit-linear-gradient(
       @angle,
