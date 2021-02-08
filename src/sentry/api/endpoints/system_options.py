@@ -1,5 +1,3 @@
-import six
-
 import sentry
 
 from django.conf import settings
@@ -54,8 +52,8 @@ class SystemOptionsEndpoint(Endpoint):
 
     def put(self, request):
         # TODO(dcramer): this should validate options before saving them
-        for k, v in six.iteritems(request.data):
-            if v and isinstance(v, six.string_types):
+        for k, v in request.data.items():
+            if v and isinstance(v, str):
                 v = v.strip()
             try:
                 option = options.lookup_key(k)
@@ -77,7 +75,7 @@ class SystemOptionsEndpoint(Endpoint):
                 return Response(
                     {
                         "error": "invalid_type" if type(e) is TypeError else "immutable_option",
-                        "errorDetail": {"option": k, "message": six.text_type(e)},
+                        "errorDetail": {"option": k, "message": str(e)},
                     },
                     status=400,
                 )

@@ -1,4 +1,3 @@
-import six
 from rest_framework.response import Response
 
 from sentry import options
@@ -40,6 +39,6 @@ class InternalMailEndpoint(Endpoint):
                 fail_silently=False,
             )
         except Exception as e:
-            error = six.text_type(e)
+            error = str(e)
 
         return Response({"error": error}, status=500 if error else 200)

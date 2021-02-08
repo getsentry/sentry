@@ -1,5 +1,3 @@
-import six
-
 from collections import namedtuple
 from datetime import timedelta
 from django.utils import timezone
@@ -50,7 +48,7 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
             items.setdefault(item.group_id, []).append(item.id)
             attrs[item]["stats"] = {}
 
-        for key, (segments, interval) in six.iteritems(self.STATS_PERIODS):
+        for key, (segments, interval) in self.STATS_PERIODS.items():
             until = self.until or timezone.now()
             since = self.since or until - (segments * interval)
 

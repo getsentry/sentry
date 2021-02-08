@@ -1,4 +1,3 @@
-import six
 from django.http import Http404
 from django.utils.encoding import force_str
 from django.core.signing import BadSignature, SignatureExpired
@@ -61,7 +60,7 @@ class AcceptProjectTransferEndpoint(Endpoint):
         try:
             data, project = self.get_validated_data(data, request.user)
         except InvalidPayload as e:
-            return Response({"detail": six.text_type(e)}, status=400)
+            return Response({"detail": str(e)}, status=400)
 
         organizations = Organization.objects.filter(
             status=OrganizationStatus.ACTIVE,
@@ -92,7 +91,7 @@ class AcceptProjectTransferEndpoint(Endpoint):
         try:
             data, project = self.get_validated_data(data, request.user)
         except InvalidPayload as e:
-            return Response({"detail": six.text_type(e)}, status=400)
+            return Response({"detail": str(e)}, status=400)
 
         transaction_id = data["transaction_id"]
 

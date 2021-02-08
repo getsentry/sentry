@@ -1,5 +1,3 @@
-import six
-
 from django.http import HttpResponse, StreamingHttpResponse
 
 from sentry import eventstore
@@ -29,7 +27,7 @@ class EventAppleCrashReportEndpoint(ProjectEndpoint):
 
         symbolicated = request.GET.get("minified") not in ("1", "true")
 
-        apple_crash_report_string = six.text_type(
+        apple_crash_report_string = str(
             AppleCrashReport(
                 threads=get_path(event.data, "threads", "values", filter=True),
                 context=event.data.get("contexts"),

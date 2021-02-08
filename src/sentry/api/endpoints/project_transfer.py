@@ -1,6 +1,6 @@
 import logging
 from uuid import uuid4
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from django.utils import timezone
 from rest_framework import status

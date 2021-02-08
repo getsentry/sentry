@@ -1,10 +1,9 @@
 import logging
-import six
 
 from io import BytesIO
 from gzip import GzipFile
 from rest_framework import status
-from six.moves.urllib.parse import urljoin
+from urllib.parse import urljoin
 from rest_framework.response import Response
 from django.core.urlresolvers import reverse
 from django.conf import settings
@@ -119,7 +118,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             FileBlob.from_files(zip(files, checksums), organization=organization, logger=logger)
         except IOError as err:
             logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
-            return Response({"error": six.text_type(err)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": str(err)}, status=status.HTTP_400_BAD_REQUEST)
 
         logger.info("chunkupload.end", extra={"status": status.HTTP_200_OK})
         return Response(status=status.HTTP_200_OK)

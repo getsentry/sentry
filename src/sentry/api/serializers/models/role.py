@@ -1,4 +1,3 @@
-import six
 from sentry.api.serializers import Serializer
 
 
@@ -7,7 +6,7 @@ class RoleSerializer(Serializer):
         allowed_roles = kwargs.get("allowed_roles") or []
 
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "name": obj.name,
             "desc": obj.desc,
             "scopes": obj.scopes,

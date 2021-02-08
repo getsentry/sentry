@@ -1,6 +1,5 @@
 import functools
 
-import six
 from rest_framework.response import Response
 
 from sentry import analytics, eventstore, search, features
@@ -145,7 +144,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         try:
             cursor_result, query_kwargs = self._search(request, project, {"count_hits": True})
         except ValidationError as exc:
-            return Response({"detail": six.text_type(exc)}, status=400)
+            return Response({"detail": str(exc)}, status=400)
 
         results = list(cursor_result)
 

@@ -1,5 +1,4 @@
 from rest_framework.response import Response
-import six
 
 from django.conf import settings
 from sentry.api.base import Endpoint
@@ -21,7 +20,7 @@ class BuiltinSymbolSourcesEndpoint(Endpoint):
     def get(self, request):
         sources = [
             normalize_symbol_source(key, source)
-            for key, source in six.iteritems(settings.SENTRY_BUILTIN_SOURCES)
+            for key, source in settings.SENTRY_BUILTIN_SOURCES.items()
         ]
 
         sources.sort(key=lambda s: s["name"])

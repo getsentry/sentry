@@ -3,7 +3,6 @@ from functools import wraps
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
-from six import string_types
 
 from sentry.api.authentication import ClientIdSecretAuthentication
 from sentry.api.base import Endpoint
@@ -103,7 +102,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
 
     def _get_organization_slug(self, request):
         organization_slug = request.json_body.get("organization")
-        if not organization_slug or not isinstance(organization_slug, string_types):
+        if not organization_slug or not isinstance(organization_slug, str):
             error_message = """
                 Please provide a valid value for the 'organization' field.
             """

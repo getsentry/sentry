@@ -1,5 +1,3 @@
-import six
-
 from sentry.api.serializers import Serializer, serialize
 from sentry.models import EventUser
 from sentry.search.utils import convert_user_tag_to_query
@@ -7,7 +5,7 @@ from sentry.search.utils import convert_user_tag_to_query
 
 class EnvironmentTagValueSerializer(Serializer):
     def serialize(self, obj, attrs, user):
-        return {"id": six.text_type(obj.id), "name": obj.value}
+        return {"id": str(obj.id), "name": obj.value}
 
 
 class UserTagValueSerializer(Serializer):

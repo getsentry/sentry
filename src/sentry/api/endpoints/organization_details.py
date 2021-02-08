@@ -1,5 +1,4 @@
 import logging
-import six
 
 from datetime import datetime
 
@@ -77,13 +76,13 @@ ORG_OPTIONS = (
     (
         "attachmentsRole",
         "sentry:attachments_role",
-        six.text_type,
+        str,
         org_serializers.ATTACHMENTS_ROLE_DEFAULT,
     ),
     (
         "debugFilesRole",
         "sentry:debug_files_role",
-        six.text_type,
+        str,
         org_serializers.DEBUG_FILES_ROLE_DEFAULT,
     ),
     (
@@ -104,7 +103,7 @@ ORG_OPTIONS = (
         bool,
         org_serializers.REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     ),
-    ("relayPiiConfig", "sentry:relay_pii_config", six.text_type, None),
+    ("relayPiiConfig", "sentry:relay_pii_config", str, None),
     ("allowJoinRequests", "sentry:join_requests", bool, org_serializers.JOIN_REQUESTS_DEFAULT),
     ("apdexThreshold", "sentry:apdex_threshold", int, None),
 )
@@ -378,14 +377,14 @@ class OrganizationSerializer(serializers.Serializer):
         }
 
         # check if fields changed
-        for f, v in six.iteritems(org_tracked_field):
+        for f, v in org_tracked_field.items():
             if f != "flag_field":
                 if org.has_changed(f):
                     old_val = org.old_value(f)
                     changed_data[f] = "from {} to {}".format(old_val, v)
             else:
                 # check if flag fields changed
-                for f, v in six.iteritems(org_tracked_field["flag_field"]):
+                for f, v in org_tracked_field["flag_field"].items():
                     if org.flag_has_changed(f):
                         changed_data[f] = "to {}".format(v)
 

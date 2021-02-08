@@ -1,5 +1,3 @@
-import six
-
 from django.db.models import Q
 
 from sentry import features
@@ -46,7 +44,7 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
         query = request.GET.get("query")
         if query:
             tokens = tokenize_query(query)
-            for key, value in six.iteritems(tokens):
+            for key, value in tokens.items():
                 if key == "query":
                     value = " ".join(value)
                     queryset = queryset.filter(Q(name__icontains=value) | Q(id__iexact=value))

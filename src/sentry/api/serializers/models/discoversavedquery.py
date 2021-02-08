@@ -1,4 +1,3 @@
-import six
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.user import UserSerializer
 from sentry.constants import ALL_ACCESS_PROJECTS
@@ -24,7 +23,7 @@ class DiscoverSavedQuerySerializer(Serializer):
             "display",
         ]
         data = {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "name": obj.name,
             "projects": [project.id for project in obj.projects.all()],
             "version": obj.version or obj.query.get("version", 1),

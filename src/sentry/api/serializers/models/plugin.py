@@ -1,5 +1,3 @@
-import six
-
 from sentry.api.serializers import Serializer
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
@@ -32,9 +30,9 @@ class PluginSerializer(Serializer):
             contexts.extend(x.type for x in obj.get_custom_contexts() or ())
         d = {
             "id": obj.slug,
-            "name": six.text_type(obj.get_title()),
-            "slug": obj.slug or slugify(six.text_type(obj.get_title())),
-            "shortName": six.text_type(obj.get_short_title()),
+            "name": str(obj.get_title()),
+            "slug": obj.slug or slugify(str(obj.get_title())),
+            "shortName": str(obj.get_short_title()),
             "type": obj.get_plugin_type(),
             "canDisable": obj.can_disable,
             "isTestable": hasattr(obj, "is_testable") and obj.is_testable(),
@@ -52,15 +50,15 @@ class PluginSerializer(Serializer):
             d["enabled"] = obj.is_enabled(self.project)
 
         if obj.version:
-            d["version"] = six.text_type(obj.version)
+            d["version"] = str(obj.version)
 
         if obj.author:
-            d["author"] = {"name": six.text_type(obj.author), "url": six.text_type(obj.author_url)}
+            d["author"] = {"name": str(obj.author), "url": str(obj.author_url)}
 
         d["isHidden"] = d.get("enabled", False) is False and obj.is_hidden()
 
         if obj.description:
-            d["description"] = six.text_type(obj.description)
+            d["description"] = str(obj.description)
 
         d["features"] = list({f.featureGate.value for f in obj.feature_descriptions})
 
@@ -95,12 +93,12 @@ class PluginWithConfigSerializer(PluginSerializer):
 
 def serialize_field(project, plugin, field):
     data = {
-        "name": six.text_type(field["name"]),
-        "label": six.text_type(field.get("label") or field["name"].title().replace("_", " ")),
+        "name": str(field["name"]),
+        "label": str(field.get("label") or field["name"].title().replace("_", " ")),
         "type": field.get("type", "text"),
         "required": field.get("required", True),
-        "help": six.text_type(field["help"]) if field.get("help") else None,
-        "placeholder": six.text_type(field["placeholder"]) if field.get("placeholder") else None,
+        "help": str(field["help"]) if field.get("help") else None,
+        "placeholder": str(field["placeholder"]) if field.get("placeholder") else None,
         "choices": field.get("choices"),
         "readonly": field.get("readonly", False),
         "defaultValue": field.get("default"),

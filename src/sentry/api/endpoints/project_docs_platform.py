@@ -1,5 +1,3 @@
-import six
-
 from sentry.utils.http import absolute_uri
 from rest_framework.response import Response
 from django.core.urlresolvers import reverse
@@ -17,7 +15,7 @@ def replace_keys(html, project_key):
     html = html.replace("___PUBLIC_DSN___", project_key.dsn_public)
     html = html.replace("___PUBLIC_KEY___", project_key.public_key)
     html = html.replace("___SECRET_KEY___", project_key.secret_key)
-    html = html.replace("___PROJECT_ID___", six.text_type(project_key.project_id))
+    html = html.replace("___PROJECT_ID___", str(project_key.project_id))
     html = html.replace("___MINIDUMP_URL___", project_key.minidump_endpoint)
     html = html.replace("___UNREAL_URL___", project_key.unreal_endpoint)
     html = html.replace(
@@ -30,8 +28,8 @@ def replace_keys(html, project_key):
     if "___PROJECT_NAME___" in html or "___ORG_NAME___" in html:
         project = project_key.project
         org = project.organization
-        html = html.replace("___ORG_NAME___", six.text_type(org.slug))
-        html = html.replace("___PROJECT_NAME___", six.text_type(project.slug))
+        html = html.replace("___ORG_NAME___", str(org.slug))
+        html = html.replace("___PROJECT_NAME___", str(project.slug))
 
     return html
 

@@ -1,4 +1,3 @@
-import six
 import logging
 from itertools import chain
 from uuid import uuid4
@@ -84,13 +83,13 @@ class DynamicSamplingConditionSerializer(serializers.Serializer):
                 for child in inner:
                     self.validate(child)
         elif op == "eq":
-            for key in six.iterkeys(data):
+            for key in data.keys():
                 if key not in ["op", "name", "value", "ignoreCase"]:
                     raise serializers.ValidationError(
                         "Invalid filed {} for eq condition".format(key)
                     )
             name = data.get("name")
-            if type(name) not in six.string_types:
+            if type(name) not in (str,):
                 raise serializers.ValidationError(
                     "Invalid field value {} for name, expected string", format(name)
                 )
@@ -102,13 +101,13 @@ class DynamicSamplingConditionSerializer(serializers.Serializer):
             if data.get("value") is None:
                 raise serializers.ValidationError("Missing field 'value'")
         elif op == "glob":
-            for key in six.iterkeys(data):
+            for key in data.keys():
                 if key not in ["op", "name", "value", "ignoreCase"]:
                     raise serializers.ValidationError(
                         "Invalid filed {} for eq condition".format(key)
                     )
             name = data.get("name")
-            if type(name) not in six.string_types:
+            if type(name) not in (str,):
                 raise serializers.ValidationError(
                     "Invalid field value {} for name, expected string", format(name)
                 )
@@ -265,7 +264,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             sources = parse_sources(sources_json.strip())
             sources_json = json.dumps(sources) if sources else ""
         except InvalidSourcesError as e:
-            raise serializers.ValidationError(six.text_type(e))
+            raise serializers.ValidationError(str(e))
 
         return sources_json
 
@@ -276,7 +275,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         try:
             Enhancements.from_config_string(value)
         except InvalidEnhancerConfig as e:
-            raise serializers.ValidationError(six.text_type(e))
+            raise serializers.ValidationError(str(e))
 
         return value
 
@@ -287,7 +286,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         try:
             FingerprintingRules.from_config_string(value)
         except InvalidFingerprintingConfig as e:
-            raise serializers.ValidationError(six.text_type(e))
+            raise serializers.ValidationError(str(e))
 
         return value
 
@@ -418,7 +417,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         if not has_project_write:
             # options isn't part of the serializer, but should not be editable by members
-            for key in chain(six.iterkeys(ProjectAdminSerializer().fields), ["options"]):
+            for key in chain(ProjectAdminSerializer().fields.keys(), ["options"]):
                 if request.data.get(key) and not result.get(key):
                     return Response(
                         {"detail": ["You do not have permission to perform this action."]},
