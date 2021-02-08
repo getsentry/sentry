@@ -16,7 +16,7 @@ jobs:
     timeout-minutes: 20
     strategy:
       matrix:
-        os: [ macos-latest ]
+        os: [ macos-latest, macos-11.0, ubuntu-latest ]
 
     steps:
       - uses: actions/checkout@v2
