@@ -18,6 +18,7 @@ import {
   IntegrationInstallationStatus,
   IntegrationType,
   Organization,
+  PlatformType,
   PluginWithProjectList,
   SentryApp,
   SentryAppInstallation,
@@ -81,7 +82,7 @@ type IntegrationCategorySelectEventParams = {
 
 type IntegrationStacktraceLinkEventParams = {
   provider?: string;
-  platform?: string;
+  platform?: PlatformType;
   setup_type?: 'automatic' | 'manual';
   error_reason?: 'file_not_found' | 'stack_root_mismatch';
 } & View;
