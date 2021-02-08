@@ -50,11 +50,9 @@ class Rule extends React.Component<Props, State> {
   }
 
   handleChangeMenuAction = () => {
-    const isMenuActionsOpen = !this.state.isMenuActionsOpen;
-
-    this.setState({
-      isMenuActionsOpen,
-    });
+    this.setState(state => ({
+      isMenuActionsOpen: !state.isMenuActionsOpen,
+    }));
   };
 
   render() {
