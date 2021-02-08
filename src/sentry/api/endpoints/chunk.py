@@ -3,7 +3,7 @@ import logging
 from io import BytesIO
 from gzip import GzipFile
 from rest_framework import status
-from six.moves.urllib.parse import urljoin
+from urllib.parse import urljoin
 from rest_framework.response import Response
 from django.core.urlresolvers import reverse
 from django.conf import settings
