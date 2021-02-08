@@ -111,7 +111,7 @@ class Param:
 
     @memoize
     def type(self):
-        if isinstance(self._type, six.string_types):
+        if isinstance(self._type, str):
             return self._eval_string_type()
         return self._type
 

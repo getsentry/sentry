@@ -36,7 +36,7 @@ class Creator(Mediator):
     organization = Param("sentry.models.Organization")
     projects = Param(Iterable)
     events = Param(Iterable)
-    url = Param(six.string_types)
+    url = Param((str,))
 
     def call(self):
         self.hook = self._create_service_hook()

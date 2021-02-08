@@ -50,7 +50,7 @@ def get_user_info(access_token, installation_data):
                 "verify_ssl": installation_data["verify_ssl"],
                 "client_id": installation_data["client_id"],
                 "error_status": getattr(resp, "status_code"),  # error might not be an HTTP error
-                "error_message": six.text_type(e),
+                "error_message": str(e),
             },
         )
         raise e
@@ -100,7 +100,7 @@ class GitlabIdentityProvider(OAuth2Provider):
                 extra={
                     "identity_id": identity.id,
                     "error_status": e.code,
-                    "error_message": six.text_type(e),
+                    "error_message": str(e),
                 },
             )
             payload = {}

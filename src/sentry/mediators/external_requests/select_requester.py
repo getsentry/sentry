@@ -25,9 +25,9 @@ class SelectRequester(Mediator):
 
     install = Param("sentry.models.SentryAppInstallation")
     project = Param("sentry.models.Project", required=False)
-    uri = Param(six.string_types)
-    query = Param(six.string_types, required=False)
-    dependent_data = Param(six.string_types, required=False)
+    uri = Param((str,))
+    query = Param((str,), required=False)
+    dependent_data = Param((str,), required=False)
 
     def call(self):
         return self._make_request()
@@ -71,7 +71,7 @@ class SelectRequester(Mediator):
                     "install_uuid": self.install.uuid,
                     "project_slug": self.project and self.project.slug,
                     "uri": self.uri,
-                    "error_message": six.text_type(e),
+                    "error_message": str(e),
                 },
             )
             response = {}

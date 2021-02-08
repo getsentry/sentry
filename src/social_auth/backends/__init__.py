@@ -216,7 +216,7 @@ class OAuthBackend(SocialAuthBackend):
         names = (cls.EXTRA_DATA or []) + setting(name + "_EXTRA_DATA", [])
 
         for entry in names:
-            if isinstance(entry, six.string_types):
+            if isinstance(entry, str):
                 entry = (entry,)
 
             try:

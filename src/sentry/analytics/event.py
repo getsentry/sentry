@@ -13,7 +13,7 @@ from sentry.utils.dates import to_timestamp
 
 
 class Attribute:
-    def __init__(self, name, type=six.text_type, required=True):
+    def __init__(self, name, type=str, required=True):
         self.name = name
         self.type = type
         self.required = required
@@ -61,7 +61,7 @@ class Map(Attribute):
 
         if items:
             raise ValueError(
-                "Unknown attributes: {}".format(", ".join(map(six.text_type, six.iterkeys(items))))
+                "Unknown attributes: {}".format(", ".join(map(str, six.iterkeys(items))))
             )
 
         return data

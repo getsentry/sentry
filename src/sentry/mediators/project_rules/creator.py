@@ -6,11 +6,11 @@ from sentry.models import Rule
 
 
 class Creator(Mediator):
-    name = Param(six.string_types)
+    name = Param((str,))
     environment = Param(int, required=False)
     project = Param("sentry.models.Project")
-    action_match = Param(six.string_types)
-    filter_match = Param(six.string_types, required=False)
+    action_match = Param((str,))
+    filter_match = Param((str,), required=False)
     actions = Param(Iterable)
     conditions = Param(Iterable)
     frequency = Param(int)

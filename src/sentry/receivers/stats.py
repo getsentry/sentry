@@ -24,7 +24,7 @@ def _get_task_name(task):
 
 def record_task_signal(signal, name, **options):
     def handler(sender, **kwargs):
-        if not isinstance(sender, six.string_types):
+        if not isinstance(sender, str):
             sender = _get_task_name(sender)
         options["skip_internal"] = options.get("skip_internal", False)
         metrics.incr("jobs.{}".format(name), instance=sender, **options)

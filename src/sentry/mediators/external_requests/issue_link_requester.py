@@ -44,11 +44,11 @@ class IssueLinkRequester(Mediator):
     """
 
     install = Param("sentry.models.SentryAppInstallation")
-    uri = Param(six.string_types)
+    uri = Param((str,))
     group = Param("sentry.models.Group")
     fields = Param(object)
     user = Param("sentry.models.User")
-    action = Param(six.string_types)
+    action = Param((str,))
 
     def call(self):
         return self._make_request()
@@ -81,7 +81,7 @@ class IssueLinkRequester(Mediator):
                     "project": self.group.project.slug,
                     "group": self.group.id,
                     "uri": self.uri,
-                    "error_message": six.text_type(e),
+                    "error_message": str(e),
                 },
             )
             response = {}

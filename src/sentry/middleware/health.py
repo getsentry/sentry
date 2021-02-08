@@ -29,7 +29,7 @@ class HealthCheck:
         return HttpResponse(
             json.dumps(
                 {
-                    "problems": [six.text_type(p) for p in problems],
+                    "problems": [str(p) for p in problems],
                     "healthy": {type(check).__name__: not p for check, p in results.items()},
                 }
             ),

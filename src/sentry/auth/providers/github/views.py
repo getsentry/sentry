@@ -121,7 +121,7 @@ class SelectOrganization(AuthView):
         form = SelectOrganizationForm(org_list, request.POST or None)
         if form.is_valid():
             org_id = form.cleaned_data["org"]
-            org = [o for o in org_list if org_id == six.text_type(o["id"])][0]
+            org = [o for o in org_list if org_id == str(o["id"])][0]
             helper.bind_state("org", org)
             return helper.next_step()
 

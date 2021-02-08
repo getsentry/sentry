@@ -651,7 +651,7 @@ class AuthHelper:
         try:
             identity = self.provider.build_identity(data)
         except IdentityNotValid as error:
-            return self.error(six.text_type(error) or ERR_INVALID_IDENTITY)
+            return self.error(str(error) or ERR_INVALID_IDENTITY)
 
         if self.state.flow == self.FLOW_LOGIN:
             # create identity and authenticate the user

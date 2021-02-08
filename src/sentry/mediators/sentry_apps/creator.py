@@ -19,19 +19,19 @@ from sentry.models.sentryapp import generate_slug, default_uuid
 
 
 class Creator(Mediator):
-    name = Param(six.string_types)
-    author = Param(six.string_types)
+    name = Param((str,))
+    author = Param((str,))
     organization = Param("sentry.models.Organization")
     scopes = Param(Iterable, default=lambda self: [])
     events = Param(Iterable, default=lambda self: [])
     webhook_url = Param(
-        six.string_types, required=False
+        (str,), required=False
     )  # only not required for internal integrations but internalCreator calls this
-    redirect_url = Param(six.string_types, required=False)
+    redirect_url = Param((str,), required=False)
     is_alertable = Param(bool, default=False)
     verify_install = Param(bool, default=True)
     schema = Param(dict, default=lambda self: {})
-    overview = Param(six.string_types, required=False)
+    overview = Param((str,), required=False)
     allowed_origins = Param(Iterable, default=lambda self: [])
     request = Param("rest_framework.request.Request", required=False)
     user = Param("sentry.models.User")
@@ -113,7 +113,7 @@ class Creator(Mediator):
             with transaction.atomic():
                 IntegrationFeature.objects.create(sentry_app=self.sentry_app)
         except IntegrityError as e:
-            self.log(sentry_app=self.sentry_app.slug, error_message=six.text_type(e))
+            self.log(sentry_app=self.sentry_app.slug, error_message=str(e))
 
     def audit(self):
         from sentry.utils.audit import create_audit_entry

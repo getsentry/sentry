@@ -9,7 +9,7 @@ from sentry.mediators.param import if_param
 
 class Updater(Mediator):
     sentry_app_installation = Param("sentry.models.SentryAppInstallation")
-    status = Param(six.string_types, required=False)
+    status = Param((str,), required=False)
 
     def call(self):
         self._update_status()

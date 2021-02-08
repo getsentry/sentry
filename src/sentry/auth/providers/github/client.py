@@ -26,7 +26,7 @@ class GitHubClient:
                 headers=headers,
             )
         except RequestException as e:
-            raise GitHubApiError(six.text_type(e), status=getattr(e, "status_code", 0))
+            raise GitHubApiError(str(e), status=getattr(e, "status_code", 0))
         if req.status_code < 200 or req.status_code >= 300:
             raise GitHubApiError(req.content, status=req.status_code)
         return json.loads(req.content)
@@ -41,8 +41,8 @@ class GitHubClient:
         return self._request("/user/emails")
 
     def is_org_member(self, org_id):
-        org_id = six.text_type(org_id)
+        org_id = str(org_id)
         for o in self.get_org_list():
-            if six.text_type(o["id"]) == org_id:
+            if str(o["id"]) == org_id:
                 return True
         return False

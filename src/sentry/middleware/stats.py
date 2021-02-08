@@ -17,7 +17,7 @@ def add_request_metric_tags(request, **kwargs):
 
 class ResponseCodeMiddleware:
     def process_response(self, request, response):
-        metrics.incr("response", instance=six.text_type(response.status_code), skip_internal=False)
+        metrics.incr("response", instance=str(response.status_code), skip_internal=False)
         return response
 
     def process_exception(self, request, exception):
