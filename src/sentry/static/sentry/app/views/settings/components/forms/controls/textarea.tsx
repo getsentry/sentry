@@ -16,14 +16,18 @@ type Props = React.TextareaHTMLAttributes<HTMLTextAreaElement> &
      * Number of rows to default to.
      */
     rows?: number;
+    /**
+     * Max number of rows to default to.
+     */
+    maxRows?: number;
   };
 
 const TextAreaControl = React.forwardRef(function TextAreaControl(
-  {autosize, rows, ...p}: Props,
+  {autosize, rows, maxRows, ...p}: Props,
   ref: React.Ref<HTMLTextAreaElement>
 ) {
   return autosize ? (
-    <TextareaAutosize async ref={ref} rows={rows ? rows : 2} {...p} />
+    <TextareaAutosize async ref={ref} rows={rows ? rows : 2} maxRows={maxRows} {...p} />
   ) : (
     <textarea ref={ref} {...p} />
   );
@@ -37,6 +41,7 @@ const propFilter = (p: string) =>
 const TextArea = styled(TextAreaControl, {shouldForwardProp: propFilter})`
   ${inputStyles};
   line-height: 1.3em;
+  ${p => p.autosize && 'height: auto'};
 `;
 
 export default TextArea;

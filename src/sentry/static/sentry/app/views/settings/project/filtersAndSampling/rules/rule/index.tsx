@@ -2,7 +2,9 @@ import React from 'react';
 import {DraggableSyntheticListeners, UseDraggableArguments} from '@dnd-kit/core';
 import styled from '@emotion/styled';
 
+import Tooltip from 'app/components/tooltip';
 import {IconGrabbable} from 'app/icons/iconGrabbable';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {DynamicSamplingRule} from 'app/types/dynamicSampling';
 

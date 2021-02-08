@@ -6,8 +6,10 @@ import {IconAdd, IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {DynamicSamplingInnerName} from 'app/types/dynamicSampling';
+import Field from 'app/views/settings/components/forms/field';
+import FieldHelp from 'app/views/settings/components/forms/field/fieldHelp';
 import SelectField from 'app/views/settings/components/forms/selectField';
-import TextField from 'app/views/settings/components/forms/textField';
+import TextareaField from 'app/views/settings/components/forms/textareaField';
 
 import LegacyBrowsersField from './legacyBrowsersField';
 
@@ -42,36 +44,54 @@ function ConditionFields({
         const displayDescription = index === 0;
         const showLegacyBrowsers = category === DynamicSamplingInnerName.LEGACY_BROWSERS;
         return (
-          <Fields key={index}>
-            <SelectField
-              label={displayDescription ? t('Category') : undefined}
-              help={displayDescription ? t('This is a description') : undefined}
-              name={`category-${index}`}
-              value={category}
-              onChange={value => onChange(index, 'category', value)}
-              choices={categoryOptions}
-              inline={false}
-              hideControlState
-              showHelpInTooltip
-              required
-              stacked
-            />
-            <TextField
-              label={displayDescription ? t('Match Conditions') : undefined}
-              help={displayDescription ? t('This is a description') : undefined}
-              placeholder={
-                showLegacyBrowsers ? t('No match condition') : 'ex. 1* or [I3].[0-9].*'
-              }
-              name={`match-${index}`}
-              value={match}
-              onChange={value => onChange(index, 'match', value)}
-              disabled={showLegacyBrowsers}
-              inline={false}
-              hideControlState
-              showHelpInTooltip
-              required
-              stacked
-            />
+          <FieldsWrapper key={index}>
+            <Fields>
+              <SelectField
+                label={displayDescription ? t('Category') : undefined}
+                help={displayDescription ? t('This is a description') : undefined}
+                name={`category-${index}`}
+                value={category}
+                onChange={value => onChange(index, 'category', value)}
+                choices={categoryOptions}
+                inline={false}
+                hideControlState
+                showHelpInTooltip
+                required
+                stacked
+              />
+              <StyledField
+                label={displayDescription ? t('Match Conditions') : undefined}
+                help={displayDescription ? t('This is a description') : undefined}
+                inline={false}
+                hideControlState
+                showHelpInTooltip
+                flexibleControlStateSize
+                required
+                stacked
+              >
+                <StyledTextareaField
+                  placeholder={
+                    showLegacyBrowsers
+                      ? t('No match condition')
+                      : 'ex. 1* or [I3].[0-9].*'
+                  }
+                  name={`match-${index}`}
+                  value={match}
+                  onChange={value => onChange(index, 'match', value)}
+                  disabled={showLegacyBrowsers}
+                  inline={false}
+                  autosize
+                  hideControlState
+                  stacked
+                />
+                <FieldHelp>{t('Press enter to add a new match condition')}</FieldHelp>
+              </StyledField>
+              <ButtonDeleteWrapper>
+                <Button onClick={onDelete(index)} size="small">
+                  {t('Delete Condition')}
+                </Button>
+              </ButtonDeleteWrapper>
+            </Fields>
             <IconDeleteWrapper onClick={onDelete(index)}>
               <IconDelete aria-label={t('Delete Condition')} />
             </IconDeleteWrapper>
@@ -82,7 +102,7 @@ function ConditionFields({
                 }}
               />
             )}
-          </Fields>
+          </FieldsWrapper>
         );
       })}
       <StyledButton icon={<IconAdd isCircled />} onClick={onAdd} size="small">
@@ -94,11 +114,28 @@ function ConditionFields({
 
 export default ConditionFields;
 
+const FieldsWrapper = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  align-items: center;
+  grid-gap: ${space(2)};
+  margin-bottom: ${space(2)};
+`;
+
 const Fields = styled('div')`
   display: grid;
-  grid-template-columns: 1fr 1fr max-content;
-  grid-gap: ${space(2)};
   align-items: flex-end;
+  border: 1px solid ${p => p.theme.gray200};
+  padding: ${space(2)};
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
+const StyledField = styled(Field)`
+  padding-bottom: 0;
+`;
+
+const StyledTextareaField = styled(TextareaField)`
+  padding-bottom: 0;
 `;
 
 const StyledButton = styled(Button)`
@@ -107,8 +144,22 @@ const StyledButton = styled(Button)`
 
 const IconDeleteWrapper = styled('div')`
   height: 40px;
-  display: flex;
   align-items: center;
   margin-bottom: ${space(2)};
   cursor: pointer;
+  display: none;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    display: flex;
+  }
+`;
+
+const ButtonDeleteWrapper = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  padding-top: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
 `;

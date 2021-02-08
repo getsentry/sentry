@@ -78,7 +78,7 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
         transaction: !inner.length ? Transaction.ALL : Transaction.MATCH_CONDITIONS,
         conditions: inner.map(({name, value}) => ({
           category: name,
-          match: value.join(' '),
+          match: value.join('\n'),
         })),
         sampleRate: sampleRate * 100,
         errors: {},
@@ -93,9 +93,14 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
   }
 
   getNewCondition(condition: Conditions[0]): DynamicSamplingConditionLogicalInner {
+    const newValue = condition.match
+      .split('\n')
+      .filter(match => !!match.trim())
+      .map(match => match.trim());
+
     const commonValues = {
       name: condition.category,
-      value: condition.match.split(' ').filter(match => !!match),
+      value: newValue,
     };
 
     if (
@@ -259,12 +264,7 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
             />
           )}
           <NumberField
-            label={
-              <React.Fragment>
-                {t('Sampling Rate')}
-                {' \u0025'}
-              </React.Fragment>
-            }
+            label={t('Sampling Rate')}
             help={t('this is a description')}
             name="sampleRate"
             onChange={value => {
@@ -273,7 +273,8 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
                 this.clearError('sampleRate');
               }
             }}
-            value={sampleRate}
+            placeholder={'\u0025'}
+            value={!sampleRate ? undefined : sampleRate}
             inline={false}
             hideControlState={!errors.sampleRate}
             error={errors.sampleRate}
