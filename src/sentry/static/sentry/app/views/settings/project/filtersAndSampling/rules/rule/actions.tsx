@@ -22,11 +22,19 @@ const editRuleMessage = t('You do not have permission to edit dynamic sampling r
 
 type Props = {
   disabled: boolean;
+  isMenuActionsOpen: boolean;
   onEditRule: () => void;
   onDeleteRule: () => void;
+  onOpenMenuActions: () => void;
 };
 
-function Actions({disabled, onEditRule, onDeleteRule}: Props) {
+function Actions({
+  disabled,
+  onEditRule,
+  onDeleteRule,
+  onOpenMenuActions,
+  isMenuActionsOpen,
+}: Props) {
   return (
     <React.Fragment>
       <StyledButtonbar gap={1}>
@@ -55,8 +63,14 @@ function Actions({disabled, onEditRule, onDeleteRule}: Props) {
       <StyledDropdownLink
         caret={false}
         customTitle={
-          <Button label={t('Actions')} icon={<IconEllipsis size="sm" />} size="xsmall" />
+          <Button
+            label={t('Actions')}
+            icon={<IconEllipsis size="sm" />}
+            size="xsmall"
+            onClick={onOpenMenuActions}
+          />
         }
+        isOpen={isMenuActionsOpen}
         anchorRight
       >
         <MenuItemActionLink

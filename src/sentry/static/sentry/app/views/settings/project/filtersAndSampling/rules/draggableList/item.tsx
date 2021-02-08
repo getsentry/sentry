@@ -1,10 +1,23 @@
 import React from 'react';
-import {DraggableSyntheticListeners, UseDraggableArguments} from '@dnd-kit/core';
+import {DraggableSyntheticListeners} from '@dnd-kit/core';
+import {useSortable} from '@dnd-kit/sortable';
 import {Transform} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
 
+type UseSortableOutputProps = ReturnType<typeof useSortable>;
+
 export type ItemProps = {
   value: React.ReactNode;
+  renderItem(args: {
+    dragging: boolean;
+    sorting: boolean;
+    value: ItemProps['value'];
+    index?: ItemProps['index'];
+    listeners?: ItemProps['listeners'];
+    transform?: ItemProps['transform'];
+    transition?: ItemProps['transition'];
+    attributes?: ItemProps['attributes'];
+  }): React.ReactElement | null;
   dragging?: boolean;
   index?: number;
   transform?: Transform | null;
@@ -12,21 +25,9 @@ export type ItemProps = {
   sorting?: boolean;
   transition?: string;
   forwardRef?: React.Ref<HTMLElement>;
-  attributes?: UseDraggableArguments['attributes'];
-  style?: React.CSSProperties;
+  attributes?: UseSortableOutputProps['attributes'];
   wrapperStyle?: React.CSSProperties;
   innerWrapperStyle?: React.CSSProperties;
-  renderItem(args: {
-    dragging: boolean;
-    sorting: boolean;
-    listeners: DraggableSyntheticListeners;
-    transform: ItemProps['transform'];
-    transition: ItemProps['transition'];
-    value: ItemProps['value'];
-    style?: React.CSSProperties;
-    index?: number;
-    attributes?: UseDraggableArguments['attributes'];
-  }): React.ReactElement | null;
 };
 
 function Item({
@@ -40,7 +41,6 @@ function Item({
   forwardRef,
   attributes,
   renderItem,
-  style,
   wrapperStyle,
   innerWrapperStyle,
 }: ItemProps) {
@@ -63,7 +63,6 @@ function Item({
           dragging: Boolean(dragging),
           sorting: Boolean(sorting),
           listeners,
-          style,
           transform,
           transition,
           value,
@@ -92,10 +91,7 @@ const Wrapper = styled('div')`
 `;
 
 const InnerWrapper = styled('div')`
-  position: relative;
   background-color: ${p => p.theme.white};
-  -webkit-tap-highlight-color: transparent;
-  transition: box-shadow 200ms cubic-bezier(0.18, 0.67, 0.6, 1.22);
 
   animation: pop 200ms cubic-bezier(0.18, 0.67, 0.6, 1.22);
   box-shadow: var(--box-shadow-picked-up);
