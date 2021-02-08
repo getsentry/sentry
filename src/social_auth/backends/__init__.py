@@ -17,7 +17,7 @@ import threading
 from requests_oauthlib import OAuth1
 from django.contrib.auth import authenticate
 from django.utils.crypto import get_random_string, constant_time_compare
-from six.moves.urllib.error import HTTPError
+from urllib.error import HTTPError
 from urllib.request import Request
 from urllib.parse import urlencode
 from social_auth.models import UserSocialAuth

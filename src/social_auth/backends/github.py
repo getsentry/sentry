@@ -12,7 +12,7 @@ field, check OAuthBackend class for details on how to extend it.
 """
 
 from django.conf import settings
-from six.moves.urllib.error import HTTPError
+from urllib.error import HTTPError
 from urllib.request import Request
 from social_auth.utils import dsa_urlopen
 from social_auth.backends import BaseOAuth2, OAuthBackend
