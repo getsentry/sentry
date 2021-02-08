@@ -24,7 +24,7 @@ StacktraceInfo.__eq__ = lambda a, b: a is b
 StacktraceInfo.__ne__ = lambda a, b: a is not b
 
 
-class ProcessableFrame(object):
+class ProcessableFrame:
     def __init__(self, frame, idx, processor, stacktrace_info, processable_frames):
         self.frame = frame
         self.idx = idx
@@ -81,7 +81,7 @@ class ProcessableFrame(object):
         return rv
 
 
-class StacktraceProcessingTask(object):
+class StacktraceProcessingTask:
     def __init__(self, processable_stacktraces, processors):
         self.processable_stacktraces = processable_stacktraces
         self.processors = processors
@@ -103,7 +103,7 @@ class StacktraceProcessingTask(object):
                     yield frame
 
 
-class StacktraceProcessor(object):
+class StacktraceProcessor:
     def __init__(self, data, stacktrace_infos, project=None):
         self.data = data
         self.stacktrace_infos = stacktrace_infos
@@ -183,10 +183,10 @@ def find_stacktraces_in_data(data, include_raw=False, with_exceptions=False):
         if not is_exception and (not stacktrace or not get_path(stacktrace, "frames", filter=True)):
             return
 
-        platforms = set(
+        platforms = {
             frame.get("platform") or data.get("platform")
             for frame in get_path(stacktrace, "frames", filter=True, default=())
-        )
+        }
         rv.append(
             StacktraceInfo(
                 stacktrace=stacktrace,

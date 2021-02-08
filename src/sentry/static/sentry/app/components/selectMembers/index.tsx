@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactSelect from 'react-select';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -86,7 +87,7 @@ class SelectMembers extends React.Component<Props, State> {
     this.unlisteners.forEach(callIfFunction);
   }
 
-  selectRef = React.createRef<typeof SelectControl>();
+  selectRef = React.createRef<ReactSelect>();
 
   unlisteners = [
     MemberListStore.listen(() => {
@@ -213,6 +214,8 @@ class SelectMembers extends React.Component<Props, State> {
       return;
     }
 
+    // @ts-ignore The types for react-select don't cover this property
+    // or the type of selectRef is incorrect.
     const select = this.selectRef.current.select.select;
     const input: HTMLInputElement = select.inputRef;
     if (input) {

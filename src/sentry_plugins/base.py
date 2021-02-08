@@ -17,7 +17,7 @@ from sentry.shared_integrations.exceptions import (
 )
 
 
-class CorePluginMixin(object):
+class CorePluginMixin:
     author = "Sentry Team"
     author_url = "https://github.com/getsentry/sentry"
     version = sentry_plugins.VERSION

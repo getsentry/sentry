@@ -146,7 +146,7 @@ class NodeStorage(local, Service):
             "key2": b'{"message": "hello world"}'
         }
         """
-        return dict((id, self._get_bytes(id)) for id in id_list)
+        return {id: self._get_bytes(id) for id in id_list}
 
     def get_multi(self, id_list, subkey=None):
         """

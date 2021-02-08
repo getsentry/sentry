@@ -1,4 +1,3 @@
-import six
 import re
 
 from datetime import datetime, timedelta
@@ -68,7 +67,7 @@ def parse_timestamp(value):
     # TODO(mitsuhiko): merge this code with coreapis date parser
     if isinstance(value, datetime):
         return value
-    elif isinstance(value, six.integer_types + (float,)):
+    elif isinstance(value, (int, float)):
         return datetime.utcfromtimestamp(value).replace(tzinfo=pytz.utc)
     value = (value or "").rstrip("Z").encode("ascii", "replace").split(b".", 1)
     if not value:
@@ -90,7 +89,7 @@ def parse_stats_period(period):
     Convert a value such as 1h into a
     proper timedelta.
     """
-    m = re.match("^(\d+)([hdmsw]?)$", period)
+    m = re.match(r"^(\d+)([hdmsw]?)$", period)
     if not m:
         return None
     value, unit = m.groups()

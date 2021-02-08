@@ -8,6 +8,7 @@ on:
 
 jobs:
   visual-diff:
+    if: github.repository == 'getsentry/sentry'
     runs-on: ubuntu-16.04
     timeout-minutes: 20
 

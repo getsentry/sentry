@@ -92,13 +92,11 @@ class SnubaProtocolEventStream(EventStream):
 
         event_data = event.get_raw_data(for_stream=True)
 
-        unexpected_tags = set(
-            [
-                k
-                for (k, v) in (get_path(event_data, "tags", filter=True) or [])
-                if k in self.UNEXPECTED_TAG_KEYS
-            ]
-        )
+        unexpected_tags = {
+            k
+            for (k, v) in (get_path(event_data, "tags", filter=True) or [])
+            if k in self.UNEXPECTED_TAG_KEYS
+        }
         if unexpected_tags:
             logger.error("%r received unexpected tags: %r", self, unexpected_tags)
 
@@ -320,7 +318,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         received_timestamp,  # type: float
         skip_consume=False,
     ):
-        super(SnubaEventStream, self).insert(
+        super().insert(
             group,
             event,
             is_new,

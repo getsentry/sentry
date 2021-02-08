@@ -25,7 +25,7 @@ SketchParameters = namedtuple("SketchParameters", "depth width capacity")
 CountMinScript = SentryScript(None, resource_string("sentry", "scripts/tsdb/cmsketch.lua"))
 
 
-class SuppressionWrapper(object):
+class SuppressionWrapper:
     """\
     Wraps a context manager and prevents any exceptions raised either during
     the managed block or the exiting of the wrapped manager from propagating.
@@ -113,7 +113,7 @@ class RedisTSDB(BaseTSDB):
         self.prefix = prefix
         self.vnodes = vnodes
         self.enable_frequency_sketches = options.pop("enable_frequency_sketches", False)
-        super(RedisTSDB, self).__init__(**options)
+        super().__init__(**options)
 
     def validate(self):
         logger.debug("Validating Redis version...")
@@ -222,9 +222,7 @@ class RedisTSDB(BaseTSDB):
         if default_timestamp is None:
             default_timestamp = timezone.now()
 
-        for (cluster, durable), environment_ids in self.get_cluster_groups(
-            set([None, environment_id])
-        ):
+        for (cluster, durable), environment_ids in self.get_cluster_groups({None, environment_id}):
             manager = cluster.map()
             if not durable:
                 manager = SuppressionWrapper(manager)
@@ -392,9 +390,7 @@ class RedisTSDB(BaseTSDB):
 
         ts = int(to_timestamp(timestamp))  # ``timestamp`` is not actually a timestamp :(
 
-        for (cluster, durable), environment_ids in self.get_cluster_groups(
-            set([None, environment_id])
-        ):
+        for (cluster, durable), environment_ids in self.get_cluster_groups({None, environment_id}):
             manager = cluster.fanout()
             if not durable:
                 manager = SuppressionWrapper(manager)
@@ -660,9 +656,7 @@ class RedisTSDB(BaseTSDB):
 
         ts = int(to_timestamp(timestamp))  # ``timestamp`` is not actually a timestamp :(
 
-        for (cluster, durable), environment_ids in self.get_cluster_groups(
-            set([None, environment_id])
-        ):
+        for (cluster, durable), environment_ids in self.get_cluster_groups({None, environment_id}):
             commands = {}
 
             for model, request in requests:

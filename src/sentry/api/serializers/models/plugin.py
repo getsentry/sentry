@@ -62,7 +62,7 @@ class PluginSerializer(Serializer):
         if obj.description:
             d["description"] = six.text_type(obj.description)
 
-        d["features"] = list(set(f.featureGate.value for f in obj.feature_descriptions))
+        d["features"] = list({f.featureGate.value for f in obj.feature_descriptions})
 
         d["featureDescriptions"] = [
             {
@@ -85,7 +85,7 @@ class PluginWithConfigSerializer(PluginSerializer):
         self.project = project
 
     def serialize(self, obj, attrs, user):
-        d = super(PluginWithConfigSerializer, self).serialize(obj, attrs, user)
+        d = super().serialize(obj, attrs, user)
         d["config"] = [
             serialize_field(self.project, obj, c)
             for c in obj.get_config(project=self.project, user=user, add_additial_fields=True)

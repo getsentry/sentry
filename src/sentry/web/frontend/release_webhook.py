@@ -31,7 +31,7 @@ class ReleaseWebhookView(View):
 
     @method_decorator(csrf_exempt)
     def dispatch(self, *args, **kwargs):
-        return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)
+        return super().dispatch(*args, **kwargs)
 
     def _handle_builtin(self, request, project):
         endpoint = "/projects/{}/{}/releases/".format(project.organization.slug, project.slug)

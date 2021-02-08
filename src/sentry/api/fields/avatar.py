@@ -26,7 +26,7 @@ class AvatarField(serializers.Field):
         max_dimension=MAX_DIMENSION,
         **kwargs,
     ):
-        super(AvatarField, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.max_size = max_size
         self.min_dimension = min_dimension
         self.max_dimension = max_dimension

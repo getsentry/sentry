@@ -26,10 +26,10 @@ class NewProcessingIssuesActivityEmail(ActivityEmail):
         self.issues = summarize_issues(self.activity.data["issues"])
 
     def get_participants(self):
-        return dict(
-            (user, GroupSubscriptionReason.processing_issue)
+        return {
+            user: GroupSubscriptionReason.processing_issue
             for user in self.project.get_mail_alert_subscribers()
-        )
+        }
 
     def get_context(self):
         return {

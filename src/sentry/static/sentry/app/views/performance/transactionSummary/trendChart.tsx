@@ -48,15 +48,6 @@ type Props = ReactRouter.WithRouterProps &
     trendDisplay: string;
   };
 
-const YAXIS_VALUES = [
-  'p50()',
-  'p75()',
-  'p95()',
-  'p99()',
-  'p100()',
-  'avg(transaction.duration)',
-];
-
 class TrendChart extends React.Component<Props> {
   handleLegendSelectChanged = legendChange => {
     const {location} = this.props;
@@ -151,9 +142,10 @@ class TrendChart extends React.Component<Props> {
               showLoading={false}
               query={query}
               includePrevious={false}
-              yAxis={YAXIS_VALUES}
+              yAxis={trendDisplay}
+              currentSeriesName={trendDisplay}
             >
-              {({results: _results, errored, loading, reloading}) => {
+              {({errored, loading, reloading, timeseriesData}) => {
                 if (errored) {
                   return (
                     <ErrorPanel>
@@ -162,10 +154,8 @@ class TrendChart extends React.Component<Props> {
                   );
                 }
 
-                const results = _results?.filter(r => r.seriesName === trendDisplay);
-
-                const series = results
-                  ? results
+                const series = timeseriesData
+                  ? timeseriesData
                       .map(values => {
                         return {
                           ...values,
@@ -180,7 +170,7 @@ class TrendChart extends React.Component<Props> {
                   : [];
 
                 const {smoothedResults} = transformEventStatsSmoothed(
-                  results,
+                  timeseriesData,
                   t('Smoothed')
                 );
 

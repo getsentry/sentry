@@ -205,7 +205,7 @@ class SnubaTSDB(BaseTSDB):
     )
 
     def __init__(self, **options):
-        super(SnubaTSDB, self).__init__(**options)
+        super().__init__(**options)
 
     def get_data(
         self,

@@ -86,7 +86,7 @@ def sort_dependencies():
             raise RuntimeError(
                 "Can't resolve dependencies for %s in serialized app list."
                 % ", ".join(
-                    "%s.%s" % (model._meta.app_label, model._meta.object_name)
+                    f"{model._meta.app_label}.{model._meta.object_name}"
                     for model, deps in sorted(skipped, key=lambda obj: obj[0].__name__)
                 )
             )
@@ -122,12 +122,11 @@ def export(dest, silent, indent, exclude):
                 or model._meta.proxy
             ):
                 if not silent:
-                    click.echo(">> Skipping model <%s>" % (model.__name__,), err=True)
+                    click.echo(f">> Skipping model <{model.__name__}>", err=True)
                 continue
 
             queryset = model._base_manager.order_by(model._meta.pk.name)
-            for obj in queryset.iterator():
-                yield obj
+            yield from queryset.iterator()
 
     if not silent:
         click.echo(">> Beginning export", err=True)

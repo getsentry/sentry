@@ -31,7 +31,7 @@ QUOTED_STRING = r'(?:"(?:\\"|[^"])*")'
 PARAMETER = r"(?:%(TOKEN)s(?:=(?:%(TOKEN)s|%(QUOTED_STRING)s))?)" % locals()
 LINK = r"<[^>]*>\s*(?:;\s*%(PARAMETER)s?\s*)*" % locals()
 COMMA = r"(?:\s*(?:,\s*)+)"
-LINK_SPLIT = r"%s(?=%s|\s*$)" % (LINK, COMMA)
+LINK_SPLIT = fr"{LINK}(?={COMMA}|\s*$)"
 
 link_splitter = re.compile(LINK_SPLIT)
 
@@ -46,7 +46,7 @@ def _unquotestring(instr):
 def _splitstring(instr, item, split):
     if not instr:
         return []
-    return [h.strip() for h in re.findall(r"%s(?=%s|\s*$)" % (item, split), instr)]
+    return [h.strip() for h in re.findall(fr"{item}(?={split}|\s*$)", instr)]
 
 
 def parse_link_header(instr):
@@ -74,7 +74,7 @@ def parse_link_header(instr):
         url, params = link.split(">", 1)
         url = url[1:]
         param_dict = {}
-        for param in _splitstring(params, PARAMETER, "\s*;\s*"):
+        for param in _splitstring(params, PARAMETER, r"\s*;\s*"):
             try:
                 a, v = param.split("=", 1)
                 param_dict[a.lower()] = _unquotestring(v)

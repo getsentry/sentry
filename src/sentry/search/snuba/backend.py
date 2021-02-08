@@ -1,6 +1,5 @@
 from abc import ABCMeta, abstractmethod
 import functools
-import six
 from datetime import timedelta
 
 from django.db.models import Q
@@ -37,6 +36,11 @@ def assigned_to_filter(actor, projects):
             ).values_list("group_id", flat=True)
         )
 
+    include_none = False
+    if isinstance(actor, list) and actor[0] == "me_or_none":
+        include_none = True
+        actor = actor[1]
+
     assigned_to_user = Q(
         id__in=GroupAssignee.objects.filter(
             user=actor, project_id__in=[p.id for p in projects]
@@ -55,7 +59,13 @@ def assigned_to_filter(actor, projects):
             ),
         ).values_list("group_id", flat=True)
     )
-    return assigned_to_user | assigned_to_team
+
+    assigned_query = assigned_to_user | assigned_to_team
+
+    if include_none:
+        return assigned_query | unassigned_filter(True, projects)
+    else:
+        return assigned_query
 
 
 def unassigned_filter(unassigned, projects):
@@ -130,20 +140,22 @@ def inbox_filter(inbox, projects):
     return query
 
 
-def assigned_or_suggested_filter(owner, projects):
+def assigned_or_suggested_filter(owner, projects, field_filter="id"):
     organization_id = projects[0].organization_id
     project_ids = [p.id for p in projects]
     if isinstance(owner, Team):
         return (
             Q(
-                id__in=GroupOwner.objects.filter(
-                    Q(group__assignee_set__isnull=True),
-                    team=owner,
-                    project_id__in=project_ids,
-                    organization_id=organization_id,
-                )
-                .values_list("group_id", flat=True)
-                .distinct()
+                **{
+                    f"{field_filter}__in": GroupOwner.objects.filter(
+                        Q(group__assignee_set__isnull=True),
+                        team=owner,
+                        project_id__in=project_ids,
+                        organization_id=organization_id,
+                    )
+                    .values_list("group_id", flat=True)
+                    .distinct()
+                }
             )
             | assigned_to_filter(owner, projects)
         )
@@ -162,14 +174,16 @@ def assigned_or_suggested_filter(owner, projects):
             ).values("team")
         )
         owned_by_me = Q(
-            id__in=GroupOwner.objects.filter(
-                Q(user_id=owner.id) | Q(team__in=teams),
-                Q(group__assignee_set__isnull=True),
-                project_id__in=[p.id for p in projects],
-                organization_id=organization_id,
-            )
-            .values_list("group_id", flat=True)
-            .distinct()
+            **{
+                f"{field_filter}__in": GroupOwner.objects.filter(
+                    Q(user_id=owner.id) | Q(team__in=teams),
+                    Q(group__assignee_set__isnull=True),
+                    project_id__in=[p.id for p in projects],
+                    organization_id=organization_id,
+                )
+                .values_list("group_id", flat=True)
+                .distinct()
+            }
         )
 
         owner_query = owned_by_me | assigned_to_filter(owner, projects)
@@ -187,7 +201,7 @@ def assigned_or_suggested_filter(owner, projects):
     raise InvalidSearchQuery("Unsupported owner type.")
 
 
-class Condition(object):
+class Condition:
     """\
     Adds a single filter to a ``QuerySet`` object. Used with
     ``QuerySetBuilder``.
@@ -242,7 +256,7 @@ class ScalarCondition(Condition):
         return qs_method(**q_dict)
 
 
-class QuerySetBuilder(object):
+class QuerySetBuilder:
     def __init__(self, conditions):
         self.conditions = conditions
 
@@ -255,8 +269,7 @@ class QuerySetBuilder(object):
         return queryset
 
 
-@six.add_metaclass(ABCMeta)
-class SnubaSearchBackendBase(SearchBackend):
+class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
     def query(
         self,
         projects,

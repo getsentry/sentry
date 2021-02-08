@@ -197,8 +197,7 @@ class OwnershipVisitor(NodeVisitor):
 
 def _iter_frames(data):
     try:
-        for frame in get_path(data, "stacktrace", "frames", filter=True) or ():
-            yield frame
+        yield from get_path(data, "stacktrace", "frames", filter=True) or ()
     except KeyError:
         pass
 
@@ -209,8 +208,7 @@ def _iter_frames(data):
 
     for value in values:
         try:
-            for frame in get_path(value, "stacktrace", "frames", filter=True) or ():
-                yield frame
+            yield from get_path(value, "stacktrace", "frames", filter=True) or ()
         except KeyError:
             continue
 

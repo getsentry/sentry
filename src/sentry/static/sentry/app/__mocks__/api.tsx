@@ -1,8 +1,13 @@
+import $ from 'jquery';
+
 import * as ImportedClient from 'app/api';
 
 const RealClient: typeof ImportedClient = jest.requireActual('app/api');
 
 export class Request {}
+
+export const initApiClient = RealClient.initApiClient;
+export const initApiClientErrorHandling = RealClient.initApiClientErrorHandling;
 
 const respond = (isAsync: boolean, fn, ...args): void => {
   if (fn) {

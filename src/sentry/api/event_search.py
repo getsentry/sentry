@@ -202,7 +202,7 @@ SEARCH_MAP = {
 SEARCH_MAP.update(**DATASETS[Dataset.Events])
 SEARCH_MAP.update(**DATASETS[Dataset.Discover])
 
-no_conversion = set(["start", "end"])
+no_conversion = {"start", "end"}
 
 PROJECT_NAME_ALIAS = "project.name"
 PROJECT_ALIAS = "project"
@@ -300,45 +300,41 @@ class SearchVisitor(NodeVisitor):
     # A list of mappers that map source keys to a target name. Format is
     # <target_name>: [<list of source names>],
     key_mappings = {}
-    duration_keys = set(["transaction.duration"])
-    percentage_keys = set(["percentage"])
-    numeric_keys = set(
-        [
-            "project_id",
-            "project.id",
-            "issue.id",
-            "stack.colno",
-            "stack.lineno",
-            "stack.stack_level",
-            "transaction.duration",
-            "apdex",
-            "p75",
-            "p95",
-            "p99",
-            "failure_rate",
-            "user_misery",
-        ]
-    )
-    date_keys = set(
-        [
-            "start",
-            "end",
-            "first_seen",
-            "last_seen",
-            "time",
-            "timestamp",
-            "transaction.start_time",
-            "transaction.end_time",
-        ]
-    )
-    boolean_keys = set(["error.handled", "error.unhandled", "stack.in_app", KEY_TRANSACTION_ALIAS])
+    duration_keys = {"transaction.duration"}
+    percentage_keys = {"percentage"}
+    numeric_keys = {
+        "project_id",
+        "project.id",
+        "issue.id",
+        "stack.colno",
+        "stack.lineno",
+        "stack.stack_level",
+        "transaction.duration",
+        "apdex",
+        "p75",
+        "p95",
+        "p99",
+        "failure_rate",
+        "user_misery",
+    }
+    date_keys = {
+        "start",
+        "end",
+        "first_seen",
+        "last_seen",
+        "time",
+        "timestamp",
+        "transaction.start_time",
+        "transaction.end_time",
+    }
+    boolean_keys = {"error.handled", "error.unhandled", "stack.in_app", KEY_TRANSACTION_ALIAS}
 
     unwrapped_exceptions = (InvalidSearchQuery,)
 
     def __init__(self, allow_boolean=True, params=None):
         self.allow_boolean = allow_boolean
         self.params = params if params is not None else {}
-        super(SearchVisitor, self).__init__()
+        super().__init__()
 
     @cached_property
     def key_mappings_lookup(self):
@@ -354,8 +350,7 @@ class SearchVisitor(NodeVisitor):
             # Flatten each group in the list, since nodes can return multiple items
             for item in seq:
                 if isinstance(item, list):
-                    for sub in _flatten(item):
-                        yield sub
+                    yield from _flatten(item)
                 else:
                     yield item
 
@@ -1313,7 +1308,7 @@ def get_filter(query=None, params=None):
     return eventstore.Filter(**kwargs)
 
 
-class PseudoField(object):
+class PseudoField:
     def __init__(self, name, alias, expression=None, expression_fn=None, result_type=None):
         self.name = name
         self.alias = alias
@@ -1452,7 +1447,7 @@ VALID_FIELD_PATTERN = re.compile(r"^[a-zA-Z0-9_.:-]*$")
 
 # The regex for alias here is to match any word, but exclude anything that is only digits
 # eg. 123 doesn't match, but test_123 will match
-ALIAS_REGEX = "(\w+)?(?!\d+)\w+"
+ALIAS_REGEX = r"(\w+)?(?!\d+)\w+"
 
 ALIAS_PATTERN = re.compile(r"{}$".format(ALIAS_REGEX))
 FUNCTION_PATTERN = re.compile(
@@ -1464,12 +1459,12 @@ class InvalidFunctionArgument(Exception):
     pass
 
 
-class ArgValue(object):
+class ArgValue:
     def __init__(self, arg):
         self.arg = arg
 
 
-class FunctionArg(object):
+class FunctionArg:
     def __init__(self, name):
         self.name = name
         self.has_default = False
@@ -1499,7 +1494,7 @@ class NullColumn(FunctionArg):
     """
 
     def __init__(self, name):
-        super(NullColumn, self).__init__(name)
+        super().__init__(name)
         self.has_default = True
 
     def get_default(self, params):
@@ -1511,7 +1506,7 @@ class NullColumn(FunctionArg):
 
 class CountColumn(FunctionArg):
     def __init__(self, name):
-        super(CountColumn, self).__init__(name)
+        super().__init__(name)
         self.has_default = True
 
     def get_default(self, params):
@@ -1538,7 +1533,7 @@ class CountColumn(FunctionArg):
 
 class StringArg(FunctionArg):
     def __init__(self, name, unquote=False, unescape_quotes=False):
-        super(StringArg, self).__init__(name)
+        super().__init__(name)
         self.unquote = unquote
         self.unescape_quotes = unescape_quotes
 
@@ -1590,7 +1585,7 @@ class ConditionArg(FunctionArg):
 
 class Column(FunctionArg):
     def __init__(self, name, allowed_columns=None):
-        super(Column, self).__init__(name)
+        super().__init__(name)
         # make sure to map the allowed columns to their snuba names
         self.allowed_columns = [SEARCH_MAP.get(col) for col in allowed_columns]
 
@@ -1605,10 +1600,10 @@ class Column(FunctionArg):
 
 class ColumnNoLookup(Column):
     def __init__(self, name, allowed_columns=None):
-        super(ColumnNoLookup, self).__init__(name, allowed_columns=allowed_columns)
+        super().__init__(name, allowed_columns=allowed_columns)
 
     def normalize(self, value, params):
-        super(ColumnNoLookup, self).normalize(value, params)
+        super().normalize(value, params)
         return value
 
 
@@ -1642,7 +1637,7 @@ class NumericColumn(FunctionArg):
 
 class NumericColumnNoLookup(NumericColumn):
     def __init__(self, name, allow_measurements_value=False):
-        super(NumericColumnNoLookup, self).__init__(name)
+        super().__init__(name)
         self.allow_measurements_value = allow_measurements_value
 
     def normalize(self, value, params):
@@ -1652,7 +1647,7 @@ class NumericColumnNoLookup(NumericColumn):
         if self.allow_measurements_value and value == "measurements_value":
             return ["arrayJoin", ["measurements_value"]]
 
-        super(NumericColumnNoLookup, self).normalize(value, params)
+        super().normalize(value, params)
         return value
 
 
@@ -1670,7 +1665,7 @@ class DurationColumn(FunctionArg):
 
 class DurationColumnNoLookup(DurationColumn):
     def normalize(self, value, params):
-        super(DurationColumnNoLookup, self).normalize(value, params)
+        super().normalize(value, params)
         return value
 
 
@@ -1683,7 +1678,7 @@ class StringArrayColumn(FunctionArg):
 
 class NumberRange(FunctionArg):
     def __init__(self, name, start, end):
-        super(NumberRange, self).__init__(name)
+        super().__init__(name)
         self.start = start
         self.end = end
 
@@ -1705,7 +1700,7 @@ class NumberRange(FunctionArg):
 
 class IntervalDefault(NumberRange):
     def __init__(self, name, start, end):
-        super(IntervalDefault, self).__init__(name, start, end)
+        super().__init__(name, start, end)
         self.has_default = True
 
     def get_default(self, params):
@@ -1726,7 +1721,7 @@ def with_default(default, argument):
     return argument
 
 
-class Function(object):
+class Function:
     def __init__(
         self,
         name,
@@ -2178,7 +2173,7 @@ FUNCTIONS = {
         Function(
             "percentile_range",
             required_args=[
-                DurationColumnNoLookup("column"),
+                NumericColumnNoLookup("column"),
                 NumberRange("percentile", 0, 1),
                 ConditionArg("condition"),
                 DateArg("middle"),
@@ -2214,7 +2209,7 @@ FUNCTIONS = {
         Function(
             "avg_range",
             required_args=[
-                DurationColumnNoLookup("column"),
+                NumericColumnNoLookup("column"),
                 ConditionArg("condition"),
                 DateArg("middle"),
             ],
@@ -2232,7 +2227,7 @@ FUNCTIONS = {
         Function(
             "variance_range",
             required_args=[
-                DurationColumnNoLookup("column"),
+                NumericColumnNoLookup("column"),
                 ConditionArg("condition"),
                 DateArg("middle"),
             ],
@@ -2373,7 +2368,7 @@ def get_function_alias(field):
 
 
 def get_function_alias_with_columns(function_name, columns):
-    columns = re.sub("[^\w]", "_", "_".join(columns))
+    columns = re.sub(r"[^\w]", "_", "_".join(columns))
     return "{}_{}".format(function_name, columns).rstrip("_")
 
 

@@ -15,7 +15,7 @@ class VercelUninstallEndpoint(Endpoint):
 
     @csrf_exempt
     def dispatch(self, request, *args, **kwargs):
-        return super(VercelUninstallEndpoint, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     @transaction_start("VercelUninstallEndpoint")
     def delete(self, request):

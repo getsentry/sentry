@@ -1,4 +1,3 @@
-import six
 from django.conf import settings
 from django.db import models
 from django.db.models import F
@@ -90,19 +89,19 @@ class Activity(Model):
         return (version or "")[:64]
 
     def __init__(self, *args, **kwargs):
-        super(Activity, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         from sentry.models import Release
 
         # XXX(dcramer): fix for bad data
         if self.type in (self.RELEASE, self.DEPLOY) and isinstance(self.data["version"], Release):
             self.data["version"] = self.data["version"].version
         if self.type == self.ASSIGNED:
-            self.data["assignee"] = six.text_type(self.data["assignee"])
+            self.data["assignee"] = str(self.data["assignee"])
 
     def save(self, *args, **kwargs):
         created = bool(not self.id)
 
-        super(Activity, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
         if not created:
             return
@@ -112,7 +111,7 @@ class Activity(Model):
             self.group.update(num_comments=F("num_comments") + 1)
 
     def delete(self, *args, **kwargs):
-        super(Activity, self).delete(*args, **kwargs)
+        super().delete(*args, **kwargs)
 
         # HACK: support Group.num_comments
         if self.type == Activity.NOTE:

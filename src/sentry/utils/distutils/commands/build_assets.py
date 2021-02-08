@@ -37,7 +37,7 @@ class BuildAssetsCommand(BaseBuildCommand):
     description = "build static media assets"
 
     def initialize_options(self):
-        self.asset_json_path = "{}/assets.json".format(self.distribution.get_name())
+        self.asset_json_path = f"{self.distribution.get_name()}/assets.json"
         BaseBuildCommand.initialize_options(self)
 
     def get_dist_paths(self):
@@ -73,7 +73,7 @@ class BuildAssetsCommand(BaseBuildCommand):
             except Exception:
                 pass
             else:
-                log.info("pulled version information from '{}'".format(json_path))
+                log.info(f"pulled version information from '{json_path}'")
                 version, build = data["version"], data["build"]
 
         return {"version": version, "build": build}
@@ -129,9 +129,7 @@ class BuildAssetsCommand(BaseBuildCommand):
         env["SENTRY_STATIC_DIST_PATH"] = self.sentry_static_dist_path
         env["NODE_ENV"] = "production"
         # TODO: Our JS builds should not require 4GB heap space
-        env["NODE_OPTIONS"] = (
-            (env.get("NODE_OPTIONS", "") + " --max-old-space-size=4096")
-        ).lstrip()
+        env["NODE_OPTIONS"] = (env.get("NODE_OPTIONS", "") + " --max-old-space-size=4096").lstrip()
         self._run_command(["yarn", "tsc", "-p", "config/tsconfig.build.json"], env=env)
         self._run_command(["yarn", "webpack", "--bail"], env=env)
 

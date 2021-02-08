@@ -1,14 +1,13 @@
 import six
 
 from six import string_types
-from sentry.utils.compat import implements_to_string
 
 
 def cmp(a, b):
     return (a > b) - (a < b)
 
 
-class Bit(object):
+class Bit:
     def __init__(self, number, is_set=True):
         self.number = number
         self.is_set = bool(is_set)
@@ -106,8 +105,7 @@ class Bit(object):
         return evaluator.prepare_node(self, query, allow_joins)
 
 
-@implements_to_string
-class BitHandler(object):
+class BitHandler:
     """
     Represents an array of bits, each as a ``Bit`` object.
     """

@@ -11,7 +11,6 @@ import {
   nextStep,
   recordFinish,
   registerAnchor,
-  toStep,
   unregisterAnchor,
 } from 'app/actionCreators/guides';
 import {Guide} from 'app/components/assistant/types';
@@ -30,7 +29,6 @@ type Props = {
   to?: {
     pathname: string;
     query: Query;
-    step: number;
   };
 };
 
@@ -108,12 +106,8 @@ const GuideAnchor = createReactClass<Props, State>({
   },
 
   handleNextStep(e: React.MouseEvent) {
-    if (this.props.to) {
-      toStep(this.props.to.step);
-    } else {
-      e.stopPropagation();
-      nextStep();
-    }
+    e.stopPropagation();
+    nextStep();
   },
 
   handleDismiss(e: React.MouseEvent) {
@@ -141,14 +135,26 @@ const GuideAnchor = createReactClass<Props, State>({
         <GuideAction>
           <div>
             {lastStep ? (
-              <StyledButton
-                size="small"
-                href="#" // to clear `#assistant` from the url
-                onClick={this.handleFinish}
-              >
-                {currentStep.nextText ||
-                  (hasManySteps ? t('Enough Already') : t('Got It'))}
-              </StyledButton>
+              <React.Fragment>
+                {currentStep.hasNextGuide && (
+                  <DismissButton
+                    size="small"
+                    href="#" // to clear `#assistant` from the url
+                    onClick={this.handleFinish}
+                  >
+                    {currentStep.dismissText || t('Dismiss')}
+                  </DismissButton>
+                )}
+                <StyledButton
+                  size="small"
+                  href={currentGuide.carryAssistantForward ? '#assistant' : '#'} // to clear `#assistant` from the url
+                  to={to}
+                  onClick={this.handleFinish}
+                >
+                  {currentStep.nextText ||
+                    (hasManySteps ? t('Enough Already') : t('Got It'))}
+                </StyledButton>
+              </React.Fragment>
             ) : (
               <React.Fragment>
                 {!currentStep.cantDismiss && (
@@ -156,9 +162,10 @@ const GuideAnchor = createReactClass<Props, State>({
                     priority="primary"
                     size="small"
                     href="#" // to clear `#assistant` from the url
+                    to={to}
                     onClick={this.handleDismiss}
                   >
-                    {t('Dismiss')}
+                    {currentStep.dismissText || t('Dismiss')}
                   </DismissButton>
                 )}
                 <StyledButton size="small" onClick={this.handleNextStep} to={to}>

@@ -12,7 +12,7 @@ from django.utils import timezone
 from sentry.utils.dates import to_timestamp
 
 
-class Attribute(object):
+class Attribute:
     def __init__(self, name, type=six.text_type, required=True):
         self.name = name
         self.type = type
@@ -67,7 +67,7 @@ class Map(Attribute):
         return data
 
 
-class Event(object):
+class Event:
     __slots__ = ["uuid", "data", "datetime"]
 
     type = None

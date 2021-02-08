@@ -13,7 +13,7 @@ from sentry.utils.compat import zip
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path
 
-CRASH_FILE_TYPES = set(["event.minidump"])
+CRASH_FILE_TYPES = {"event.minidump"}
 
 
 def get_crash_files(events):
@@ -309,7 +309,7 @@ class DetailedEventSerializer(EventSerializer):
         return list(get_suggested_updates(SdkSetupState.from_event_json(obj.data)))
 
     def serialize(self, obj, attrs, user):
-        result = super(DetailedEventSerializer, self).serialize(obj, attrs, user)
+        result = super().serialize(obj, attrs, user)
         result["release"] = self._get_release_info(user, obj)
         result["userReport"] = self._get_user_report(user, obj)
         result["sdkUpdates"] = self._get_sdk_updates(obj)
@@ -318,10 +318,10 @@ class DetailedEventSerializer(EventSerializer):
 
 class SharedEventSerializer(EventSerializer):
     def get_attrs(self, item_list, user):
-        return super(SharedEventSerializer, self).get_attrs(item_list, user, is_public=True)
+        return super().get_attrs(item_list, user, is_public=True)
 
     def serialize(self, obj, attrs, user):
-        result = super(SharedEventSerializer, self).serialize(obj, attrs, user)
+        result = super().serialize(obj, attrs, user)
         del result["context"]
         del result["contexts"]
         del result["user"]

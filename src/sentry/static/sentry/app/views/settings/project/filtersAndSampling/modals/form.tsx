@@ -22,11 +22,7 @@ import RadioField from 'app/views/settings/components/forms/radioField';
 
 import ConditionFields from './conditionFields';
 import handleXhrErrorResponse from './handleXhrErrorResponse';
-
-enum Transaction {
-  ALL = 'all',
-  MATCH_CONDITIONS = 'match-conditions',
-}
+import {Transaction} from './utils';
 
 const transactionChoices = [
   [Transaction.ALL, t('All')],
@@ -263,7 +259,12 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
             />
           )}
           <NumberField
-            label={t('Sampling Rate')}
+            label={
+              <React.Fragment>
+                {t('Sampling Rate')}
+                {' \u0025'}
+              </React.Fragment>
+            }
             help={t('this is a description')}
             name="sampleRate"
             onChange={value => {
