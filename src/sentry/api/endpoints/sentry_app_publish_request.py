@@ -25,11 +25,7 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
             status=SentryAppStatus.PUBLISH_REQUEST_INPROGRESS_STR,
         )
 
-        message = "User {} of organization {} wants to publish {}\n".format(
-            request.user.email,
-            sentry_app.owner.slug,
-            sentry_app.slug,
-        )
+        message = f"User {request.user.email} of organization {sentry_app.owner.slug} wants to publish {sentry_app.slug}\n"
 
         for question_pair in request.data.get("questionnaire"):
             message += "\n\n>{}\n{}".format(question_pair["question"], question_pair["answer"])

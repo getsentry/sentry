@@ -106,9 +106,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
             if not any(lookup_keys.values()):
                 return Response(
                     {
-                        "detail": "Must provide one of {} in order to find related events".format(
-                            possible_keys
-                        )
+                        "detail": f"Must provide one of {possible_keys} in order to find related events"
                     },
                     status=400,
                 )

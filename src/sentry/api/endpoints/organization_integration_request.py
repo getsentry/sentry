@@ -108,10 +108,7 @@ class OrganizationIntegrationRequestEndpoint(OrganizationEndpoint):
                 "organization_name": organization.name,
                 "requester_name": requester.name or requester.username,
                 "requester_link": absolute_uri(
-                    "/settings/{organization_slug}/members/{user_id}/".format(
-                        organization_slug=organization.slug,
-                        user_id=requester.id,
-                    )
+                    f"/settings/{organization.slug}/members/{requester.id}/"
                 ),
                 "settings_link": absolute_uri(
                     reverse("sentry-organization-settings", args=[organization.slug])

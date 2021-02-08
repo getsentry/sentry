@@ -511,13 +511,13 @@ def bulk_fetch_project_latest_releases(projects):
 
     return list(
         Release.objects.raw(
-            """
+            f"""
         SELECT lr.project_id as actual_project_id, r.*
         FROM (
             SELECT (
                 SELECT lrr.id
                 FROM sentry_release lrr
-                {}
+                {release_project_join_sql}
                 WHERE lrp.project_id = p.id
                 ORDER BY COALESCE(lrr.date_released, lrr.date_added) DESC
                 LIMIT 1
@@ -528,9 +528,7 @@ def bulk_fetch_project_latest_releases(projects):
         ) as lr
         JOIN sentry_release r
         ON r.id = lr.release_id
-            """.format(
-                release_project_join_sql
-            ),
+            """,
             # formatting tuples works specifically in psycopg2
             (tuple(str(i.id) for i in projects),),
         )

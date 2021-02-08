@@ -141,9 +141,7 @@ def convert_query_values(search_filters, projects, user, environments):
             search_filter = search_filter._replace(value=SearchValue(new_value))
         elif isinstance(search_filter, AggregateFilter):
             raise InvalidSearchQuery(
-                "Aggregate filters ({}) are not supported in issue searches.".format(
-                    search_filter.key.name
-                )
+                f"Aggregate filters ({search_filter.key.name}) are not supported in issue searches."
             )
         return search_filter
 

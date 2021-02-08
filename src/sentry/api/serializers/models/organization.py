@@ -78,18 +78,14 @@ class TrustedRelaySerializer(serializers.Serializer):
 
         if len(public_key) == 0:
             raise serializers.ValidationError(
-                "Missing public key for relay key info with name:'{}' in Trusted Relays".format(
-                    key_name
-                )
+                f"Missing public key for relay key info with name:'{key_name}' in Trusted Relays"
             )
 
         try:
             PublicKey.parse(public_key)
         except RelayError:
             raise serializers.ValidationError(
-                "Invalid public key for relay key info with name:'{}' in Trusted Relays".format(
-                    key_name
-                )
+                f"Invalid public key for relay key info with name:'{key_name}' in Trusted Relays"
             )
 
         return {"public_key": public_key, "name": key_name, "description": description}

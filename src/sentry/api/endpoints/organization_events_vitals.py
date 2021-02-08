@@ -40,9 +40,7 @@ class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
                     raise ParseError(detail=f"{vital} is not a valid vital")
                 aliases[vital] = []
                 for index, threshold in enumerate(self.VITALS[vital]["thresholds"]):
-                    column = "count_at_least({vital}, {threshold})".format(
-                        vital=vital, threshold=threshold
-                    )
+                    column = f"count_at_least({vital}, {threshold})"
                     # Order aliases for later calculation
                     aliases[vital].append(get_function_alias(column))
                     selected_columns.append(column)

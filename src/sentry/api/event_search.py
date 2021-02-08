@@ -718,9 +718,7 @@ class SearchVisitor(NodeVisitor):
         while idx != -1:
             if value[idx - 1] != "\\":
                 raise InvalidSearchQuery(
-                    "Invalid quote at '{}': quotes must enclose text or be escaped.".format(
-                        node.text
-                    )
+                    f"Invalid quote at '{node.text}': quotes must enclose text or be escaped."
                 )
 
             value = value[idx + 1 :]
@@ -975,9 +973,7 @@ def format_search_filter(term, params):
         except Exception as e:
             if not isinstance(e, Project.DoesNotExist) or term.operator != "!=":
                 raise InvalidSearchQuery(
-                    "Invalid query. Project {} does not exist or is not an actively selected project.".format(
-                        value
-                    )
+                    f"Invalid query. Project {value} does not exist or is not an actively selected project."
                 )
         else:
             # Create a new search filter with the correct values
@@ -1130,9 +1126,7 @@ def convert_search_boolean_to_snuba_query(terms, params=None):
         if prev:
             if SearchBoolean.is_operator(prev) and SearchBoolean.is_operator(term):
                 raise InvalidSearchQuery(
-                    "Missing condition in between two condition operators: '{} {}'".format(
-                        prev, term
-                    )
+                    f"Missing condition in between two condition operators: '{prev} {term}'"
                 )
         else:
             if SearchBoolean.is_operator(term):
@@ -1859,9 +1853,9 @@ class Function:
         # assert that no duplicate argument names are used
         names = set()
         for arg in self.args:
-            assert arg.name not in names, "{}: argument {} specified more than once".format(
-                self.name, arg.name
-            )
+            assert (
+                arg.name not in names
+            ), f"{self.name}: argument {arg.name} specified more than once"
             names.add(arg.name)
 
         for calculation in self.calculated_args:
