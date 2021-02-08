@@ -1,4 +1,3 @@
-import six
 import itertools
 from functools import reduce, partial
 from operator import or_
@@ -135,7 +134,7 @@ def zerofill(data, start, end, rollup):
     if rollup_end - rollup_start == rollup:
         rollup_end += 1
     i = 0
-    for key in six.moves.xrange(rollup_start, rollup_end, rollup):
+    for key in range(rollup_start, rollup_end, rollup):
         try:
             while data[i][0] < key:
                 rv.append(data[i])
