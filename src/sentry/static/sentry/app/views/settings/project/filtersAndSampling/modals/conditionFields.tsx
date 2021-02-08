@@ -83,7 +83,7 @@ function ConditionFields({
                   hideControlState
                   stacked
                 />
-                <FieldHelp>{t('Press enter to add a new match condition')}</FieldHelp>
+                <FieldHelp>{t('You can include multiple values by putting each value on a separate line')}</FieldHelp>
               </StyledField>
               <ButtonDeleteWrapper>
                 <Button onClick={onDelete(index)} size="small">
