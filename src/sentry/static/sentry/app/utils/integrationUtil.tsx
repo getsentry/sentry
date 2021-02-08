@@ -26,22 +26,6 @@ import {
 } from 'app/types';
 import {Hooks} from 'app/types/hooks';
 import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
-import {uniqueId} from 'app/utils/guid';
-
-const INTEGRATIONS_ANALYTICS_SESSION_KEY = 'INTEGRATION_ANALYTICS_SESSION' as const;
-
-export const startAnalyticsSession = () => {
-  const sessionId = uniqueId();
-  window.sessionStorage.setItem(INTEGRATIONS_ANALYTICS_SESSION_KEY, sessionId);
-  return sessionId;
-};
-
-export const clearAnalyticsSession = () => {
-  window.sessionStorage.removeItem(INTEGRATIONS_ANALYTICS_SESSION_KEY);
-};
-
-export const getAnalyticsSessionId = () =>
-  window.sessionStorage.getItem(INTEGRATIONS_ANALYTICS_SESSION_KEY);
 
 //define the various event paylaods
 type View = {
