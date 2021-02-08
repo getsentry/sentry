@@ -10,7 +10,6 @@ export type SortableItemProps = Pick<
 > & {
   id: string;
   index: number;
-  disabled?: boolean;
   wrapperStyle(args: {
     id: string;
     index: number;
@@ -25,6 +24,7 @@ export type SortableItemProps = Pick<
     isDragging: boolean;
     isDragOverlay: boolean;
   }): React.CSSProperties;
+  disabled?: boolean;
 };
 
 function SortableItem({

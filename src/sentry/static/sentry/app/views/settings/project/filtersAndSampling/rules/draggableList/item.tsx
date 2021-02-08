@@ -8,6 +8,16 @@ type UseSortableOutputProps = ReturnType<typeof useSortable>;
 
 export type ItemProps = {
   value: React.ReactNode;
+  renderItem(args: {
+    dragging: boolean;
+    sorting: boolean;
+    value: ItemProps['value'];
+    index?: ItemProps['index'];
+    listeners?: ItemProps['listeners'];
+    transform?: ItemProps['transform'];
+    transition?: ItemProps['transition'];
+    attributes?: ItemProps['attributes'];
+  }): React.ReactElement | null;
   dragging?: boolean;
   index?: number;
   transform?: Transform | null;
@@ -18,16 +28,6 @@ export type ItemProps = {
   attributes?: UseSortableOutputProps['attributes'];
   wrapperStyle?: React.CSSProperties;
   innerWrapperStyle?: React.CSSProperties;
-  renderItem(args: {
-    dragging: boolean;
-    sorting: boolean;
-    listeners: DraggableSyntheticListeners;
-    transform: ItemProps['transform'];
-    transition: ItemProps['transition'];
-    value: ItemProps['value'];
-    index?: number;
-    attributes?: UseSortableOutputProps['attributes'];
-  }): React.ReactElement | null;
 };
 
 function Item({
