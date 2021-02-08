@@ -12,10 +12,7 @@ QUERY_AGGREGATION_DISPLAY = {
 }
 
 
-def incident_attachment_info(incident, metric_value=None, action=None, method=None):
-    logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
-    alert_rule = incident.alert_rule
-
+def incident_status_info(incident, metric_value, action, method):
     if action and method:
         # Get status from trigger
         incident_status = (
@@ -29,8 +26,14 @@ def incident_attachment_info(incident, metric_value=None, action=None, method=No
         )
     else:
         incident_status = incident.status
+    return IncidentStatus(incident_status)
 
-    status = INCIDENT_STATUS[IncidentStatus(incident_status)]
+
+def incident_attachment_info(incident, metric_value=None, action=None, method=None):
+    logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
+    alert_rule = incident.alert_rule
+
+    status = INCIDENT_STATUS[incident_status_info(incident, metric_value, action, method)]
 
     agg_text = QUERY_AGGREGATION_DISPLAY.get(
         alert_rule.snuba_query.aggregate, alert_rule.snuba_query.aggregate

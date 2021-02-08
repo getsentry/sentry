@@ -10,8 +10,8 @@ from sentry.api.serializers.models.app_platform_event import AppPlatformEvent
 from sentry.api.serializers.models.incident import IncidentSerializer
 from sentry.constants import SentryAppInstallationStatus
 from sentry.incidents.logic import get_alertable_sentry_apps
-from sentry.incidents.models import INCIDENT_STATUS, IncidentStatus
-from sentry.integrations.metric_alerts import incident_attachment_info
+from sentry.incidents.models import INCIDENT_STATUS
+from sentry.integrations.metric_alerts import incident_attachment_info, incident_status_info
 from sentry.models import SentryApp, SentryAppInstallation
 from sentry.plugins.base import plugins
 from sentry.rules.actions.base import EventAction
@@ -76,7 +76,9 @@ def send_incident_alert_notification(action, incident, metric_value=None, method
         sentry_app,
         AppPlatformEvent(
             resource="metric_alert",
-            action=INCIDENT_STATUS[IncidentStatus(incident.status)].lower(),
+            action=INCIDENT_STATUS[
+                incident_status_info(incident, metric_value, action, method)
+            ].lower(),
             install=install,
             data=build_incident_attachment(action, incident, metric_value, method),
         ),
