@@ -2,7 +2,7 @@ import threading
 import weakref
 
 
-class ThreadCollector(object):
+class ThreadCollector:
     def __init__(self):
         self.collections = weakref.WeakKeyDictionary()
 

@@ -57,7 +57,7 @@ ERR_NOT_AUTHED = _("You must be authenticated to link accounts.")
 ERR_INVALID_IDENTITY = _("The provider did not return a valid user identity.")
 
 
-class RedisBackedState(object):
+class RedisBackedState:
     # Expire the pipeline after 10 minutes of inactivity.
     EXPIRATION_TTL = 10 * 60
 
@@ -515,7 +515,7 @@ def handle_new_user(auth_provider, organization, request, identity):
     return auth_identity
 
 
-class AuthHelper(object):
+class AuthHelper:
     """
     Helper class which is passed into AuthView's.
 

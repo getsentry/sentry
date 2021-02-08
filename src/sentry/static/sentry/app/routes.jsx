@@ -576,7 +576,7 @@ function routes() {
           name="Docs"
           componentPromise={() =>
             import(
-              /* webpackChunkName: "ProjectInstallPlatform" */ 'app/views/projectInstall/platform'
+              /* webpackChunkName: "PlatformOrIntegration" */ 'app/views/projectInstall/platformOrIntegration'
             )
           }
           component={errorHandler(LazyLoad)}
@@ -2035,7 +2035,7 @@ function routes() {
                 path=":platform/"
                 componentPromise={() =>
                   import(
-                    /* webpackChunkName: "ProjectInstallPlatform" */ 'app/views/projectInstall/platform'
+                    /* webpackChunkName: "PlatformOrIntegration" */ 'app/views/projectInstall/platformOrIntegration'
                   )
                 }
                 component={errorHandler(LazyLoad)}
@@ -2137,7 +2137,7 @@ function routes() {
               path=":platform/"
               componentPromise={() =>
                 import(
-                  /* webpackChunkName: "ProjectInstallPlatform" */ 'app/views/projectInstall/platform'
+                  /* webpackChunkName: "PlatformOrIntegration" */ 'app/views/projectInstall/platformOrIntegration'
                 )
               }
               component={errorHandler(LazyLoad)}

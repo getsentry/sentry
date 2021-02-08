@@ -1,12 +1,13 @@
+from datetime import timedelta
+import pickle
+
 import pytest
 
-from datetime import timedelta
 from django.utils import timezone
-
 from sentry.nodestore.base import json_dumps
 from sentry.nodestore.django.models import Node
 from sentry.nodestore.django.backend import DjangoNodeStorage
-from sentry.utils.compat import mock, pickle
+from sentry.utils.compat import mock
 from sentry.utils.strings import compress
 
 

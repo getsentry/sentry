@@ -271,8 +271,14 @@ from .endpoints.sentry_app_details import SentryAppDetailsEndpoint
 from .endpoints.sentry_app_features import SentryAppFeaturesEndpoint
 from .endpoints.sentry_app_publish_request import SentryAppPublishRequestEndpoint
 from .endpoints.sentry_app_installation_details import SentryAppInstallationDetailsEndpoint
+from .endpoints.sentry_app_installation_external_issues import (
+    SentryAppInstallationExternalIssuesEndpoint,
+)
 from .endpoints.sentry_app_installation_external_issue_actions import (
     SentryAppInstallationExternalIssueActionsEndpoint,
+)
+from .endpoints.sentry_app_installation_external_issue_details import (
+    SentryAppInstallationExternalIssueDetailsEndpoint,
 )
 from .endpoints.sentry_app_installation_external_requests import (
     SentryAppInstallationExternalRequestsEndpoint,
@@ -1223,6 +1229,16 @@ urlpatterns = [
         r"^sentry-app-installations/(?P<uuid>[^\/]+)/external-issue-actions/$",
         SentryAppInstallationExternalIssueActionsEndpoint.as_view(),
         name="sentry-api-0-sentry-app-installation-external-issue-actions",
+    ),
+    url(
+        r"^sentry-app-installations/(?P<uuid>[^\/]+)/external-issues/$",
+        SentryAppInstallationExternalIssuesEndpoint.as_view(),
+        name="sentry-api-0-sentry-app-installation-external-issues",
+    ),
+    url(
+        r"^sentry-app-installations/(?P<uuid>[^\/]+)/external-issues/(?P<external_issue_id>[^\/]+)/$",
+        SentryAppInstallationExternalIssueDetailsEndpoint.as_view(),
+        name="sentry-api-0-sentry-app-installation-external-issue-details",
     ),
     # Teams
     url(

@@ -1,6 +1,5 @@
 from abc import ABCMeta, abstractmethod
 import functools
-import six
 from datetime import timedelta
 
 from django.db.models import Q
@@ -202,7 +201,7 @@ def assigned_or_suggested_filter(owner, projects, field_filter="id"):
     raise InvalidSearchQuery("Unsupported owner type.")
 
 
-class Condition(object):
+class Condition:
     """\
     Adds a single filter to a ``QuerySet`` object. Used with
     ``QuerySetBuilder``.
@@ -257,7 +256,7 @@ class ScalarCondition(Condition):
         return qs_method(**q_dict)
 
 
-class QuerySetBuilder(object):
+class QuerySetBuilder:
     def __init__(self, conditions):
         self.conditions = conditions
 
@@ -270,8 +269,7 @@ class QuerySetBuilder(object):
         return queryset
 
 
-@six.add_metaclass(ABCMeta)
-class SnubaSearchBackendBase(SearchBackend):
+class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
     def query(
         self,
         projects,

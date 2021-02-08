@@ -11,7 +11,7 @@ class GitHubEnterpriseAppsClient(GitHubClientMixin):
         self.integration = integration
         self.app_id = app_id
         self.private_key = private_key
-        super(GitHubEnterpriseAppsClient, self).__init__(verify_ssl=verify_ssl)
+        super().__init__(verify_ssl=verify_ssl)
 
     def get_jwt(self):
         return get_jwt(github_id=self.app_id, github_private_key=self.private_key)

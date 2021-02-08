@@ -3,7 +3,7 @@ import petname
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 from uuid import uuid4
 
 from sentry.db.models import (
@@ -24,7 +24,7 @@ def generate_token():
     return uuid4().hex + uuid4().hex
 
 
-class ApiApplicationStatus(object):
+class ApiApplicationStatus:
     active = 0
     inactive = 1
     pending_deletion = 2
@@ -63,7 +63,7 @@ class ApiApplication(Model):
 
     __repr__ = sane_repr("name", "owner_id")
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     @property

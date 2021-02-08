@@ -31,7 +31,7 @@ class DiscoverQuerySerializer(serializers.Serializer):
     turbo = serializers.BooleanField(required=False)
 
     def __init__(self, *args, **kwargs):
-        super(DiscoverQuerySerializer, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         data = kwargs["data"]
 
@@ -88,11 +88,11 @@ class DiscoverQuerySerializer(serializers.Serializer):
         return [self.get_condition(condition) for condition in value]
 
     def validate_aggregations(self, value):
-        valid_functions = set(["count()", "uniq", "avg", "sum"])
-        requested_functions = set(agg[0] for agg in value)
+        valid_functions = {"count()", "uniq", "avg", "sum"}
+        requested_functions = {agg[0] for agg in value}
 
         if not requested_functions.issubset(valid_functions):
-            invalid_functions = ", ".join((requested_functions - valid_functions))
+            invalid_functions = ", ".join(requested_functions - valid_functions)
 
             raise serializers.ValidationError(
                 "Invalid aggregate function - {}".format(invalid_functions)
@@ -163,8 +163,8 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
     display = serializers.CharField(required=False, allow_null=True)
 
     disallowed_fields = {
-        1: set(["environment", "query", "yAxis", "display"]),
-        2: set(["groupby", "rollup", "aggregations", "conditions", "limit"]),
+        1: {"environment", "query", "yAxis", "display"},
+        2: {"groupby", "rollup", "aggregations", "conditions", "limit"},
     }
 
     def validate_projects(self, projects):
@@ -242,7 +242,7 @@ class KeyTransactionSerializer(serializers.Serializer):
     transaction = serializers.CharField(required=True, max_length=200)
 
     def validate(self, data):
-        data = super(KeyTransactionSerializer, self).validate(data)
+        data = super().validate(data)
         base_filter = self.context.copy()
         # Limit the number of key transactions
         if KeyTransaction.objects.filter(**base_filter).count() >= MAX_KEY_TRANSACTIONS:

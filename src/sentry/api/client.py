@@ -5,10 +5,8 @@ from rest_framework.test import APIRequestFactory, force_authenticate
 
 from sentry.auth.superuser import Superuser
 from sentry.utils import json
-from sentry.utils.compat import implements_to_string
 
 
-@implements_to_string
 class ApiError(Exception):
     def __init__(self, status_code, body):
         self.status_code = status_code
@@ -21,7 +19,7 @@ class ApiError(Exception):
         return "<ApiError: {}>".format(self)
 
 
-class ApiClient(object):
+class ApiClient:
     prefix = "/api/0"
 
     ApiError = ApiError

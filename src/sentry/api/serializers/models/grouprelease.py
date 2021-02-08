@@ -43,7 +43,7 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
         self.until = until
 
     def get_attrs(self, item_list, user):
-        attrs = super(GroupReleaseWithStatsSerializer, self).get_attrs(item_list, user)
+        attrs = super().get_attrs(item_list, user)
 
         items = {}
         for item in item_list:
@@ -74,6 +74,6 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
         return attrs
 
     def serialize(self, obj, attrs, user):
-        result = super(GroupReleaseWithStatsSerializer, self).serialize(obj, attrs, user)
+        result = super().serialize(obj, attrs, user)
         result["stats"] = attrs["stats"]
         return result

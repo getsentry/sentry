@@ -22,7 +22,7 @@ class IncidentSerializer(Serializer):
 
         alert_rules = {
             d["id"]: d
-            for d in serialize(set(i.alert_rule for i in item_list if i.alert_rule.id), user)
+            for d in serialize({i.alert_rule for i in item_list if i.alert_rule.id}, user)
         }
 
         results = {}
@@ -53,7 +53,7 @@ class IncidentSerializer(Serializer):
 
 class DetailedIncidentSerializer(IncidentSerializer):
     def get_attrs(self, item_list, user, **kwargs):
-        results = super(DetailedIncidentSerializer, self).get_attrs(item_list, user=user, **kwargs)
+        results = super().get_attrs(item_list, user=user, **kwargs)
         subscribed_incidents = set()
         if user.is_authenticated():
             subscribed_incidents = set(
@@ -78,7 +78,7 @@ class DetailedIncidentSerializer(IncidentSerializer):
         return {"seen_by": serialize(seen_by_list), "has_seen": has_seen}
 
     def serialize(self, obj, attrs, user):
-        context = super(DetailedIncidentSerializer, self).serialize(obj, attrs, user)
+        context = super().serialize(obj, attrs, user)
         seen_list = self._get_incident_seen_list(obj, user)
 
         context["isSubscribed"] = attrs["is_subscribed"]

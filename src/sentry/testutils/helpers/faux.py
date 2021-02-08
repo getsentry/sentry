@@ -1,12 +1,10 @@
-import six
-
 from collections import deque
 
 from sentry.utils import json
 from sentry.utils.functional import compact
 
 
-class Faux(object):
+class Faux:
     """
     Convenience functions for testing, and asserting, with ``unittest.mock``
     objects.
@@ -81,9 +79,7 @@ class Faux(object):
         if actual == expected:
             return True
 
-        raise AssertionError(
-            "Expected kwargs[{}] to equal {!r}. Received {!r}.".format(key, expected, actual)
-        )
+        raise AssertionError(f"Expected kwargs[{key}] to equal {expected!r}. Received {actual!r}.")
 
     def args_contain(self, value, **kwargs):
         if value in self.args:
@@ -154,17 +150,17 @@ class Faux(object):
     def _args_to_s(self, *args):
         if not len(args):
             return None
-        return ", ".join("{!r}".format(arg) for arg in args)
+        return ", ".join(f"{arg!r}" for arg in args)
 
     def _kwargs_to_s(self, **kwargs):
         if not len(kwargs):
             return None
-        return ", ".join("{}={!r}".format(k, v) for k, v in six.iteritems(kwargs))
+        return ", ".join(f"{k}={v!r}" for k, v in kwargs.items())
 
 
-class Mock(object):
+class Mock:
     def __init__(self, *args, **kwargs):
-        for k, v in six.iteritems(kwargs):
+        for k, v in kwargs.items():
             setattr(self, k, v)
 
 

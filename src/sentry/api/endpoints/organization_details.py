@@ -259,7 +259,7 @@ class OrganizationSerializer(serializers.Serializer):
         return value
 
     def validate(self, attrs):
-        attrs = super(OrganizationSerializer, self).validate(attrs)
+        attrs = super().validate(attrs)
         if attrs.get("avatarType") == "upload":
             has_existing_file = OrganizationAvatar.objects.filter(
                 organization=self.context["organization"], file__isnull=False
@@ -414,7 +414,7 @@ class OwnerOrganizationSerializer(OrganizationSerializer):
             org.default_role = self.initial_data["defaultRole"]
         if cancel_deletion:
             org.status = OrganizationStatus.VISIBLE
-        return super(OwnerOrganizationSerializer, self).save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
 
 class OrganizationDetailsEndpoint(OrganizationEndpoint):

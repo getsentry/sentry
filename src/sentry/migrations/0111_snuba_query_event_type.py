@@ -52,6 +52,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterUniqueTogether(
             name="snubaqueryeventtype",
-            unique_together=set([("snuba_query", "type")]),
+            unique_together={("snuba_query", "type")},
         ),
     ]

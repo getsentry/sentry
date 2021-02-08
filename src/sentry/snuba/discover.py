@@ -531,7 +531,7 @@ def top_events_timeseries(
         issues = {}
         if "issue" in selected_columns:
             issues = Group.issues_mapping(
-                set([event["issue.id"] for event in top_events["data"]]),
+                {event["issue.id"] for event in top_events["data"]},
                 params["project_id"],
                 organization,
             )

@@ -1,14 +1,13 @@
 from base64 import b64encode
 import collections
 import logging
-import six
+import pickle
 from uuid import uuid4
 
 from django.db.models.signals import post_delete
 
 from sentry import nodestore
 from sentry.utils.cache import memoize
-from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress, compress
 from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
 from sentry.db.models.utils import Creator
@@ -84,8 +83,8 @@ class NodeData(collections.MutableMapping):
     def __repr__(self):
         cls_name = type(self).__name__
         if self._node_data:
-            return "<%s: id=%s data=%r>" % (cls_name, self.id, repr(self._node_data))
-        return "<%s: id=%s>" % (cls_name, self.id)
+            return "<{}: id={} data={!r}>".format(cls_name, self.id, repr(self._node_data))
+        return f"<{cls_name}: id={self.id}>"
 
     def get_ref(self, instance):
         if not self.ref_func:
@@ -118,7 +117,7 @@ class NodeData(collections.MutableMapping):
         ref_version = data.pop("_ref_version", None)
         if ref_version == self.ref_version and ref is not None and self.ref != ref:
             raise NodeIntegrityFailure(
-                "Node reference for %s is invalid: %s != %s" % (self.id, ref, self.ref)
+                f"Node reference for {self.id} is invalid: {ref} != {self.ref}"
             )
         if self.wrapper is not None:
             data = self.wrapper(data)
@@ -167,10 +166,10 @@ class NodeField(GzippedDictField):
         self.ref_version = kwargs.pop("ref_version", None)
         self.wrapper = kwargs.pop("wrapper", None)
         self.id_func = kwargs.pop("id_func", lambda: b64encode(uuid4().bytes))
-        super(NodeField, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def contribute_to_class(self, cls, name):
-        super(NodeField, self).contribute_to_class(cls, name)
+        super().contribute_to_class(cls, name)
         setattr(cls, name, Creator(self))
         post_delete.connect(self.on_delete, sender=self.model, weak=False)
 
@@ -186,7 +185,7 @@ class NodeField(GzippedDictField):
         # If value is a string, we assume this is a value we've loaded from the
         # database, it should be decompressed/unpickled, and we should end up
         # with a dict.
-        if value and isinstance(value, six.string_types):
+        if value and isinstance(value, str):
             try:
                 value = pickle.loads(decompress(value))
             except Exception as e:

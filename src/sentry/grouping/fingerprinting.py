@@ -59,7 +59,7 @@ class InvalidFingerprintingConfig(Exception):
     pass
 
 
-class EventAccess(object):
+class EventAccess:
     def __init__(self, event):
         self.event = event
         self._exceptions = None
@@ -164,7 +164,7 @@ class EventAccess(object):
         return getattr(self, "get_" + match_group)()
 
 
-class FingerprintingRules(object):
+class FingerprintingRules:
     def __init__(self, rules, changelog=None, version=None):
         if version is None:
             version = VERSION
@@ -242,7 +242,7 @@ MATCHERS = {
 }
 
 
-class Match(object):
+class Match:
     def __init__(self, key, pattern, negated=False):
         if key.startswith("tags."):
             self.key = key
@@ -346,7 +346,7 @@ class Match(object):
         )
 
 
-class Rule(object):
+class Rule:
     def __init__(self, matchers, fingerprint, attributes):
         self.matchers = matchers
         self.fingerprint = fingerprint

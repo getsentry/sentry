@@ -44,7 +44,7 @@ class SplunkError(Exception):
         self.status_code = status_code
         self.code = code
         self.text = text
-        super(SplunkError, self).__init__(text)
+        super().__init__(text)
 
     @classmethod
     def from_response(cls, response):
@@ -223,7 +223,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
         return "{}:{}".format(self.conf_key, md5_text(self.project_token).hexdigest())
 
     def is_ratelimited(self, event):
-        if super(SplunkPlugin, self).is_ratelimited(event):
+        if super().is_ratelimited(event):
             metrics.incr(
                 "integrations.splunk.forward-event.rate-limited",
                 tags={

@@ -176,7 +176,7 @@ class S3Boto3StorageFile(File):
     def read(self, *args, **kwargs):
         if "r" not in self._mode:
             raise AttributeError("File was not opened in read mode.")
-        return super(S3Boto3StorageFile, self).read(*args, **kwargs)
+        return super().read(*args, **kwargs)
 
     def write(self, content):
         if "w" not in self._mode:
@@ -195,7 +195,7 @@ class S3Boto3StorageFile(File):
             self._multipart = self.obj.initiate_multipart_upload(**parameters)
         if self.buffer_size <= self._buffer_file_size:
             self._flush_write_buffer()
-        return super(S3Boto3StorageFile, self).write(force_bytes(content))
+        return super().write(force_bytes(content))
 
     @property
     def _buffer_file_size(self):
@@ -366,10 +366,10 @@ class S3Boto3Storage(Storage):
         Get the locally cached files for the bucket.
         """
         if self.preload_metadata and not self._entries:
-            self._entries = dict(
-                (self._decode_name(entry.key), entry)
+            self._entries = {
+                self._decode_name(entry.key): entry
                 for entry in self.bucket.objects.filter(Prefix=self.location)
-            )
+            }
         return self._entries
 
     def _get_access_keys(self):
@@ -609,20 +609,18 @@ class S3Boto3Storage(Storage):
         # from v2 and v4 signatures, regardless of the actual signature version used.
         split_url = urlparse.urlsplit(url)
         qs = urlparse.parse_qsl(split_url.query, keep_blank_values=True)
-        blacklist = set(
-            [
-                "x-amz-algorithm",
-                "x-amz-credential",
-                "x-amz-date",
-                "x-amz-expires",
-                "x-amz-signedheaders",
-                "x-amz-signature",
-                "x-amz-security-token",
-                "awsaccesskeyid",
-                "expires",
-                "signature",
-            ]
-        )
+        blacklist = {
+            "x-amz-algorithm",
+            "x-amz-credential",
+            "x-amz-date",
+            "x-amz-expires",
+            "x-amz-signedheaders",
+            "x-amz-signature",
+            "x-amz-security-token",
+            "awsaccesskeyid",
+            "expires",
+            "signature",
+        }
         filtered_qs = ((key, val) for key, val in qs if key.lower() not in blacklist)
         # Note: Parameters that did not have a value in the original query string will have
         # an '=' sign appended to it, e.g ?foo&bar becomes ?foo=&bar=
@@ -654,4 +652,4 @@ class S3Boto3Storage(Storage):
         if self.file_overwrite:
             name = self._clean_name(name)
             return name
-        return super(S3Boto3Storage, self).get_available_name(name, max_length)
+        return super().get_available_name(name, max_length)

@@ -72,7 +72,7 @@ def get_access_requests(item_list, user):
 class TeamSerializer(Serializer):
     def get_attrs(self, item_list, user):
         request = env.request
-        org_ids = set([t.organization_id for t in item_list])
+        org_ids = {t.organization_id for t in item_list}
 
         org_roles = get_org_roles(org_ids, user)
 
@@ -151,12 +151,12 @@ class TeamWithProjectsSerializer(TeamSerializer):
         for project_team in project_teams:
             project_map[project_team.team_id].append(projects_by_id[project_team.project_id])
 
-        result = super(TeamWithProjectsSerializer, self).get_attrs(item_list, user)
+        result = super().get_attrs(item_list, user)
         for team in item_list:
             result[team]["projects"] = project_map[team.id]
         return result
 
     def serialize(self, obj, attrs, user):
-        d = super(TeamWithProjectsSerializer, self).serialize(obj, attrs, user)
+        d = super().serialize(obj, attrs, user)
         d["projects"] = attrs["projects"]
         return d

@@ -17,7 +17,7 @@ from sentry.utils.redis import redis_clusters
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 
 
-class RedisRuleStatus(object):
+class RedisRuleStatus:
     def __init__(self, uuid=None):
         self._uuid = uuid or self._generate_uuid()
 

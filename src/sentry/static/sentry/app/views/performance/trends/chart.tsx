@@ -21,7 +21,9 @@ import {YAxis} from 'app/views/releases/detail/overview/chart/releaseChartContro
 
 import {NormalizedTrendsTransaction, TrendChangeType, TrendsStats} from './types';
 import {
+  generateTrendFunctionAsString,
   getCurrentTrendFunction,
+  getCurrentTrendParameter,
   getUnselectedSeries,
   transformEventStatsSmoothed,
   trendToColor,
@@ -239,10 +241,15 @@ class Chart extends React.Component<Props> {
     const data = events?.data ?? [];
 
     const trendFunction = getCurrentTrendFunction(location);
-    const results = transformEventStats(data, trendFunction.chartLabel);
+    const trendParameter = getCurrentTrendParameter(location);
+    const chartLabel = generateTrendFunctionAsString(
+      trendFunction.field,
+      trendParameter.column
+    );
+    const results = transformEventStats(data, chartLabel);
     const {smoothedResults, minValue, maxValue} = transformEventStatsSmoothed(
       results,
-      trendFunction.chartLabel
+      chartLabel
     );
 
     const start = props.start ? getUtcToLocalDateObject(props.start) : null;
@@ -256,7 +263,7 @@ class Chart extends React.Component<Props> {
       return selection;
     }, {});
     const legend = {
-      ...getLegend(trendFunction.chartLabel),
+      ...getLegend(chartLabel),
       selected: seriesSelection,
     };
 
