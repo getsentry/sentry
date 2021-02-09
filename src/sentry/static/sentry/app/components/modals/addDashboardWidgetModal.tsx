@@ -13,6 +13,7 @@ import ButtonBar from 'app/components/buttonBar';
 import WidgetQueryForm from 'app/components/dashboards/widgetQueryForm';
 import SelectControl from 'app/components/forms/selectControl';
 import {PanelAlert} from 'app/components/panels';
+import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, TagCollection} from 'app/types';
@@ -291,7 +292,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
             </Field>
             <Field
               data-test-id="chart-type"
-              label={t('Visualization')}
+              label={t('Visualization Display')}
               inline={false}
               flexibleControlStateSize
               stacked
@@ -302,7 +303,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                 required
                 options={DISPLAY_TYPE_CHOICES.slice()}
                 name="displayType"
-                label={t('Chart Style')}
+                label={t('Visualization Display')}
                 value={state.displayType}
                 onChange={(option: {label: string; value: Widget['displayType']}) => {
                   this.handleFieldChange('displayType')(option.value);
@@ -341,13 +342,13 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
           </Measurements>
           {this.canAddOverlay() && (
             <AddOverlayButton
-              size="small"
+              icon={<IconAdd isCircled />}
               onClick={(event: React.MouseEvent) => {
                 event.preventDefault();
                 this.handleAddOverlay();
               }}
             >
-              {t('Add Overlay')}
+              {t('New Query Overlay')}
             </AddOverlayButton>
           )}
           <WidgetCard
