@@ -1,5 +1,3 @@
-import six
-
 from django.utils.translation import ugettext as _
 from django.utils.safestring import mark_safe
 from django.core.urlresolvers import reverse
@@ -70,7 +68,7 @@ def default_plugin_config(plugin, project, request):
         if "action_test" in request.POST and plugin.is_testable():
             test_results = plugin.test_configuration_and_get_test_results(project)
         else:
-            for field, value in six.iteritems(form.cleaned_data):
+            for field, value in form.cleaned_data.items():
                 key = "%s:%s" % (plugin_key, field)
                 if project:
                     ProjectOption.objects.set_value(project, key, value)
@@ -106,7 +104,7 @@ def default_plugin_config(plugin, project, request):
 
 def default_issue_plugin_config(plugin, project, form_data):
     plugin_key = plugin.get_conf_key()
-    for field, value in six.iteritems(form_data):
+    for field, value in form_data.items():
         key = "%s:%s" % (plugin_key, field)
         if project:
             ProjectOption.objects.set_value(project, key, value)

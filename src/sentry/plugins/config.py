@@ -1,6 +1,5 @@
 __all__ = ["PluginConfigMixin"]
 
-import six
 
 from collections import OrderedDict
 from django import forms
@@ -36,7 +35,7 @@ class ConfigValidator:
         initial = self._initial
         cleaned = self.result
         errors = self.errors
-        for field in six.itervalues(self.config):
+        for field in self.config.values():
             key = field["name"]
             value = data.get(key, initial.get(key))
 
@@ -46,7 +45,7 @@ class ConfigValidator:
             try:
                 value = self.validate_field(name=key, value=value)
             except (forms.ValidationError, serializers.ValidationError, PluginError) as e:
-                errors[key] = six.text_type(e)
+                errors[key] = str(e)
 
             if not errors.get(key):
                 cleaned[key] = value
@@ -68,7 +67,7 @@ class ConfigValidator:
                 raise PluginError("Field is required")
             return value
 
-        if isinstance(value, six.string_types):
+        if isinstance(value, str):
             value = value.strip()
             # TODO(dcramer): probably should do something with default
             # validations here, though many things will end up bring string
@@ -125,7 +124,7 @@ class PluginConfigMixin(ProviderMixin):
                     value = self.get_option(name, project)
                 return value
 
-            if isinstance(value, six.string_types):
+            if isinstance(value, str):
                 value = value.strip()
                 # TODO(dcramer): probably should do something with default
                 # validations here, though many things will end up bring string

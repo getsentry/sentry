@@ -1,7 +1,7 @@
 # from rest_framework.response import Response
 # from sentry.exceptions import PluginError
 # from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint
-# from six.moves.urllib.parse import urlencode
+# from urllib.parse import urlencode
 
 # class GitlabIssueSearchEndpoint(IssueGroupActionEndpoint):
 #     def get(self, request, group, **kwargs):

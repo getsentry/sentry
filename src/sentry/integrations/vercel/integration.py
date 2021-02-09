@@ -1,10 +1,9 @@
 from uuid import uuid4
-import six
 import logging
 
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.serializers import ValidationError
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 
 from sentry.integrations import (
@@ -356,7 +355,7 @@ class VercelIntegrationProvider(IntegrationProvider):
         except ApiError as err:
             logger.info(
                 "vercel.create_webhook.failed",
-                extra={"error": six.text_type(err), "external_id": external_id},
+                extra={"error": str(err), "external_id": external_id},
             )
             try:
                 details = list(err.json["messages"][0].values()).pop()

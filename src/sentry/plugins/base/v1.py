@@ -1,7 +1,6 @@
 __all__ = ("Plugin",)
 
 import logging
-import six
 
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
@@ -217,9 +216,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         >>> plugin.get_conf_version(project)
         """
         options = self.get_conf_options(project)
-        return md5_text("&".join(sorted("%s=%s" % o for o in six.iteritems(options)))).hexdigest()[
-            :3
-        ]
+        return md5_text("&".join(sorted("%s=%s" % o for o in options.items()))).hexdigest()[:3]
 
     def get_conf_title(self):
         """

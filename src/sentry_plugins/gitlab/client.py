@@ -1,4 +1,4 @@
-from six.moves.urllib.parse import quote
+from urllib.parse import quote
 from sentry_plugins.client import ApiClient
 
 from sentry.shared_integrations.exceptions import ApiError

@@ -1,5 +1,4 @@
 from bs4 import BeautifulSoup
-import six
 from rest_framework.response import Response
 
 from sentry.api.bases.integration import IntegrationEndpoint
@@ -40,7 +39,7 @@ class JiraSearchEndpoint(IntegrationEndpoint):
             try:
                 resp = installation.search_issues(query)
             except IntegrationError as e:
-                return Response({"detail": six.text_type(e)}, status=400)
+                return Response({"detail": str(e)}, status=400)
             return Response(
                 [
                     {"label": "(%s) %s" % (i["key"], i["fields"]["summary"]), "value": i["key"]}

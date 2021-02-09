@@ -7,7 +7,6 @@ __all__ = [
 ]
 
 import logging
-import six
 import sys
 
 from collections import namedtuple
@@ -346,29 +345,21 @@ class IntegrationInstallation:
 
     def raise_error(self, exc, identity=None):
         if isinstance(exc, ApiUnauthorized):
-            six.reraise(
-                InvalidIdentity,
-                InvalidIdentity(self.message_from_error(exc), identity=identity),
-                sys.exc_info()[2],
+            raise InvalidIdentity(self.message_from_error(exc), identity=identity).with_traceback(
+                sys.exc_info()[2]
             )
         elif isinstance(exc, ApiError):
             if exc.json:
                 error_fields = self.error_fields_from_json(exc.json)
                 if error_fields is not None:
-                    six.reraise(
-                        IntegrationFormError, IntegrationFormError(error_fields), sys.exc_info()[2]
-                    )
+                    raise IntegrationFormError(error_fields).with_traceback(sys.exc_info()[2])
 
-            six.reraise(
-                IntegrationError, IntegrationError(self.message_from_error(exc)), sys.exc_info()[2]
-            )
+            raise IntegrationError(self.message_from_error(exc)).with_traceback(sys.exc_info()[2])
         elif isinstance(exc, IntegrationError):
             raise
         else:
-            self.logger.exception(six.text_type(exc))
-            six.reraise(
-                IntegrationError, IntegrationError(self.message_from_error(exc)), sys.exc_info()[2]
-            )
+            self.logger.exception(str(exc))
+            raise IntegrationError(self.message_from_error(exc)).with_traceback(sys.exc_info()[2])
 
     @property
     def metadata(self):

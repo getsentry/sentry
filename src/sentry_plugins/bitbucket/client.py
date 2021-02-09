@@ -1,5 +1,3 @@
-import six
-
 from django.conf import settings
 from requests_oauthlib import OAuth1
 from unidiff import PatchSet
@@ -20,8 +18,8 @@ class BitbucketClient(AuthApiClient):
 
     def bind_auth(self, **kwargs):
         kwargs["auth"] = OAuth1(
-            six.text_type(settings.BITBUCKET_CONSUMER_KEY),
-            six.text_type(settings.BITBUCKET_CONSUMER_SECRET),
+            str(settings.BITBUCKET_CONSUMER_KEY),
+            str(settings.BITBUCKET_CONSUMER_SECRET),
             self.auth.tokens["oauth_token"],
             self.auth.tokens["oauth_token_secret"],
             signature_type="auth_header",

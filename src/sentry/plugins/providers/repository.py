@@ -1,6 +1,5 @@
 from logging import getLogger
 
-import six
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError, transaction
 from rest_framework.response import Response
@@ -64,7 +63,7 @@ class RepositoryProvider(ProviderMixin):
             )
         except PluginError as e:
             logger.exception("repo.create-error")
-            return Response({"errors": {"__all__": six.text_type(e)}}, status=400)
+            return Response({"errors": {"__all__": str(e)}}, status=400)
 
         try:
             with transaction.atomic():

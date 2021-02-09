@@ -1,5 +1,3 @@
-import six
-
 from sentry.plugins import providers
 
 
@@ -22,7 +20,7 @@ class ProviderManager:
         return self._items[id]
 
     def all(self):
-        return six.iteritems(self._items)
+        return self._items.items()
 
 
 class RepositoryProviderManager(ProviderManager):
@@ -40,7 +38,7 @@ class BindingManager:
     }
 
     def __init__(self):
-        self._bindings = {k: v() for k, v in six.iteritems(self.BINDINGS)}
+        self._bindings = {k: v() for k, v in self.BINDINGS.items()}
 
     def add(self, name, binding, **kwargs):
         self._bindings[name].add(binding, **kwargs)

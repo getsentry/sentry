@@ -2,7 +2,7 @@ import datetime
 import jwt
 import re
 import logging
-from six.moves.urllib.parse import parse_qs, urlparse, urlsplit
+from urllib.parse import parse_qs, urlparse, urlsplit
 
 
 from sentry.integrations.atlassian_connect import get_query_hash

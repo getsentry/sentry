@@ -1,6 +1,6 @@
 import time
 
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from sentry import options
 from sentry.integrations.client import ApiClient

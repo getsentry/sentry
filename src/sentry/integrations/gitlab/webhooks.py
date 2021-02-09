@@ -1,6 +1,5 @@
 import dateutil.parser
 import logging
-import six
 
 from django.db import IntegrityError, transaction
 from django.http import HttpResponse, Http404
@@ -110,7 +109,7 @@ class MergeEventWebhook(Webhook):
         except KeyError as e:
             logger.info(
                 "gitlab.webhook.invalid-merge-data",
-                extra={"integration_id": integration.id, "error": six.string_type(e)},
+                extra={"integration_id": integration.id, "error": str(e)},
             )
 
         if not author_email:

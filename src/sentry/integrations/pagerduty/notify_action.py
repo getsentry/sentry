@@ -2,7 +2,6 @@
 Used for notifying a *specific* plugin
 """
 
-import six
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
@@ -100,7 +99,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                 self.logger.info(
                     "rule.fail.pagerduty_trigger",
                     extra={
-                        "error": six.text_type(e),
+                        "error": str(e),
                         "service_name": service.service_name,
                         "service_id": service.id,
                     },

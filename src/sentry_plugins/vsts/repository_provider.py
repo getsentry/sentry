@@ -1,7 +1,5 @@
-import six
-
 from sentry.plugins import providers
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 from .mixins import VisualStudioMixin
 
@@ -49,7 +47,7 @@ class VisualStudioRepositoryProvider(VisualStudioMixin, providers.RepositoryProv
                     "instance": instance,
                     "project": project,
                     "name": repo["name"],
-                    "external_id": six.text_type(repo["id"]),
+                    "external_id": str(repo["id"]),
                     "url": repo["_links"]["web"]["href"],
                 }
             )

@@ -1,5 +1,4 @@
 import logging
-import six
 
 from sentry.plugins import providers
 from sentry.models import Integration
@@ -38,7 +37,7 @@ class VstsRepositoryProvider(providers.IntegrationRepositoryProvider):
                 "instance": instance,
                 "project": repo["project"]["name"],
                 "name": repo["name"],
-                "external_id": six.text_type(repo["id"]),
+                "external_id": str(repo["id"]),
                 "url": repo["_links"]["web"]["href"],
             }
         )

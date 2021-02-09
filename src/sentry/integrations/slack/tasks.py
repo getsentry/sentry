@@ -1,4 +1,3 @@
-import six
 from uuid import uuid4
 
 from django.conf import settings
@@ -51,7 +50,7 @@ class RedisRuleStatus:
     def _format_value(self, status, rule_id):
         value = {"status": status}
         if rule_id:
-            value["rule_id"] = six.text_type(rule_id)
+            value["rule_id"] = str(rule_id)
         if status == "failed":
             value[
                 "error"

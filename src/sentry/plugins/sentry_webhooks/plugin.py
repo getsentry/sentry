@@ -1,6 +1,5 @@
 import logging
 from requests.exceptions import ReadTimeout, ConnectionError
-import six
 import sentry
 
 from django import forms
@@ -95,7 +94,7 @@ class WebHooksPlugin(notify.NotificationPlugin):
 
     def get_group_data(self, group, event, triggering_rules):
         data = {
-            "id": six.text_type(group.id),
+            "id": str(group.id),
             "project": group.project.slug,
             "project_name": group.project.name,
             "project_slug": group.project.slug,

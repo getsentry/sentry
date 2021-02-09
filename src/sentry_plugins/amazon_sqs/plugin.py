@@ -1,6 +1,5 @@
 import logging
 
-import six
 import boto3
 from botocore.client import ClientError, Config
 
@@ -190,17 +189,17 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
 
             sqs_send_message(message)
         except ClientError as e:
-            if six.text_type(e).startswith(
-                "An error occurred (InvalidClientTokenId)"
-            ) or six.text_type(e).startswith("An error occurred (AccessDenied)"):
+            if str(e).startswith("An error occurred (InvalidClientTokenId)") or str(e).startswith(
+                "An error occurred (AccessDenied)"
+            ):
                 # If there's an issue with the user's token then we can't do
                 # anything to recover. Just log and continue.
                 log_and_increment("sentry_plugins.amazon_sqs.access_token_invalid")
                 return False
-            elif six.text_type(e).endswith("must contain the parameter MessageGroupId."):
+            elif str(e).endswith("must contain the parameter MessageGroupId."):
                 log_and_increment("sentry_plugins.amazon_sqs.missing_message_group_id")
                 return False
-            elif six.text_type(e).startswith("An error occurred (NoSuchBucket)"):
+            elif str(e).startswith("An error occurred (NoSuchBucket)"):
                 # If there's an issue with the user's s3 bucket then we can't do
                 # anything to recover. Just log and continue.
                 log_and_increment("sentry_plugins.amazon_sqs.s3_bucket_invalid")

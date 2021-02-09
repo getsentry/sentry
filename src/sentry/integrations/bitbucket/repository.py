@@ -1,5 +1,4 @@
 import logging
-import six
 
 from sentry.app import locks
 from sentry.models import OrganizationOption
@@ -34,7 +33,7 @@ class BitbucketRepositoryProvider(providers.IntegrationRepositoryProvider):
         except Exception as e:
             installation.raise_error(e)
         else:
-            config["external_id"] = six.text_type(repo["uuid"])
+            config["external_id"] = str(repo["uuid"])
             config["name"] = repo["full_name"]
         return config
 

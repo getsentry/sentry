@@ -3,7 +3,7 @@ import jwt
 
 from unidiff import PatchSet
 
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 from sentry.utils.http import absolute_uri
 from sentry.integrations.atlassian_connect import get_query_hash
