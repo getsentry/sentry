@@ -2,7 +2,6 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 from itertools import chain
 
-import six
 from django.db import transaction
 from django.db.models.signals import post_save
 from django.utils import timezone

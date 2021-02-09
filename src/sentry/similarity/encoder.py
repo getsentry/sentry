@@ -1,6 +1,5 @@
 from collections import Mapping, Set, Sequence
 
-import six
 from sentry.utils.compat import map
 
 

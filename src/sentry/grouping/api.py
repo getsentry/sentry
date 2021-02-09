@@ -1,5 +1,4 @@
 import re
-import six
 
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.component import GroupingComponent

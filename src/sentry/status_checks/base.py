@@ -1,6 +1,3 @@
-import six
-
-
 def sort_by_severity(problems):
     """\
     Sort an iterable of ``Problem``s by their severity, from most severe to least severe.

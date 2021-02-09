@@ -1,5 +1,3 @@
-import six
-
 from sentry.models import Activity
 
 from .mail import ActivityMailDebugView

@@ -3,7 +3,6 @@ from datetime import datetime
 from uuid import uuid4
 
 import pytz
-import six
 import urllib3
 
 from sentry import quotas

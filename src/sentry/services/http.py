@@ -1,5 +1,4 @@
 import os
-import six
 import sys
 
 from sentry.services.base import Service

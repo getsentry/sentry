@@ -1,5 +1,3 @@
-import six
-
 from django.db.models.fields import BigIntegerField
 
 from bitfield.query import BitQueryExactLookupStub

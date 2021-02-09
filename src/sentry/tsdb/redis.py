@@ -6,7 +6,6 @@ import uuid
 from collections import defaultdict, namedtuple
 from hashlib import md5
 
-import six
 from django.utils import timezone
 from django.utils.encoding import force_bytes
 from pkg_resources import resource_string

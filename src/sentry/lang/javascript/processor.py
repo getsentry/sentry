@@ -6,7 +6,6 @@ import logging
 import re
 import sys
 import base64
-import six
 import zlib
 
 from django.conf import settings

@@ -1,7 +1,6 @@
 __all__ = ("Exception", "Mechanism", "upgrade_legacy_mechanism")
 
 import re
-import six
 
 from sentry.interfaces.base import Interface
 from sentry.utils.json import prune_empty_keys

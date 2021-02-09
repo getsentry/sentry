@@ -1,5 +1,3 @@
-import six
-
 from django import forms
 from django.db import IntegrityError, transaction
 from django.http import HttpResponse

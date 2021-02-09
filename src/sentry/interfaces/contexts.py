@@ -1,4 +1,3 @@
-import six
 import string
 
 from django.utils.encoding import force_text

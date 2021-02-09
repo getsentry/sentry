@@ -2,7 +2,6 @@ from os import path
 
 import hashlib
 import logging
-import six
 
 from django.db import IntegrityError, transaction
 

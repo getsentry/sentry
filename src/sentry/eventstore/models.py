@@ -1,5 +1,4 @@
 import pytz
-import six
 import string
 
 from collections import OrderedDict

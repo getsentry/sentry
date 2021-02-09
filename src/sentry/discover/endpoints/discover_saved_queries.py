@@ -1,4 +1,3 @@
-import six
 from django.db.models import Case, When
 from rest_framework.response import Response
 

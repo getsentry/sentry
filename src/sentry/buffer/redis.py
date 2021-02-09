@@ -1,5 +1,3 @@
-import six
-
 import pickle
 import threading
 from time import time

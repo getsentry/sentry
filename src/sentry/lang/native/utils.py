@@ -1,5 +1,4 @@
 import re
-import six
 import logging
 
 from sentry.attachments import attachment_cache

@@ -1,6 +1,3 @@
-import six
-
-
 def remove_non_stacktrace_variants(variants):
     """This is a utility function that when given multiple variants will
     mark all variants as non contributing that do not contain any stacktraces

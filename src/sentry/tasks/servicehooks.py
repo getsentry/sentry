@@ -1,5 +1,3 @@
-import six
-
 from time import time
 
 from sentry.api.serializers import serialize

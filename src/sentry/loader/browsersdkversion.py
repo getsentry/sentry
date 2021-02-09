@@ -4,7 +4,6 @@ import re
 import logging
 from pkg_resources import parse_version
 
-import six
 import sentry
 from django.conf import settings
 from sentry.utils import json

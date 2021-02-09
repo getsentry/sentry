@@ -1,6 +1,5 @@
 import csv
 import logging
-import six
 import tempfile
 import codecs
 

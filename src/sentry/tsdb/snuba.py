@@ -2,7 +2,6 @@ import collections
 from copy import deepcopy
 import itertools
 
-import six
 
 from sentry.tsdb.base import BaseTSDB, TSDBModel
 from sentry.utils import snuba, outcomes

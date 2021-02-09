@@ -1,5 +1,3 @@
-import six
-
 from sentry.models import User, Team
 
 from .base import ActivityEmail

@@ -1,6 +1,5 @@
 from datetime import timedelta
 import logging
-import six
 
 from django.utils import timezone
 

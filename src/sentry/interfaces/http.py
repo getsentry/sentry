@@ -3,7 +3,6 @@ from sentry.utils.compat import map
 __all__ = ("Http",)
 
 import re
-import six
 
 from django.utils.translation import ugettext as _
 from django.utils.http import urlencode

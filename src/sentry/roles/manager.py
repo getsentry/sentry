@@ -1,5 +1,3 @@
-import six
-
 from collections import OrderedDict
 
 

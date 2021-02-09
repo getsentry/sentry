@@ -8,7 +8,6 @@ import traceback
 import resource
 from optparse import make_option
 
-import six
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.encoding import force_str
 
@@ -35,9 +34,7 @@ def catch_errors(f):
                 return encode(
                     {
                         "result": None,
-                        "error": force_str(str(e))
-                        + " "
-                        + force_str(traceback.format_exc()),
+                        "error": force_str(str(e)) + " " + force_str(traceback.format_exc()),
                         "metrics": None,
                         "encoding_error": True,
                     }

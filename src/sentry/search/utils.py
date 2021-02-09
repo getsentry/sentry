@@ -1,7 +1,6 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-import six
 from django.db import DataError
 from django.utils import timezone
 

@@ -1,5 +1,4 @@
 import logging
-import six
 
 from django.template.context_processors import csrf
 from django.core.urlresolvers import reverse
@@ -83,9 +82,7 @@ class OrganizationMixin:
 
         if active_organization is None and organization_slug:
             try:
-                active_organization = next(
-                    o for o in organizations if o.slug == organization_slug
-                )
+                active_organization = next(o for o in organizations if o.slug == organization_slug)
             except StopIteration:
                 logger.info("Active organization [%s] not found in scope", organization_slug)
                 if is_implicit:
@@ -100,7 +97,6 @@ class OrganizationMixin:
                 active_organization = organizations[0]
             except IndexError:
                 logger.info("User is not a member of any organizations")
-                pass
 
         if active_organization and self._is_org_member(request.user, active_organization):
             if active_organization.slug != request.session.get("activeorg"):

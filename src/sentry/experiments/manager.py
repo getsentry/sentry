@@ -1,6 +1,3 @@
-import six
-
-
 class ExperimentManager:
     """
     Allows loading of experiment assignments (done in getsentry) on the frontend by

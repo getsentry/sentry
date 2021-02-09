@@ -3,7 +3,6 @@ import logging
 import jsonschema
 import pytz
 import sentry_sdk
-import six
 from confluent_kafka import Consumer, KafkaException, OFFSET_INVALID, TopicPartition
 from confluent_kafka.admin import AdminClient
 from dateutil.parser import parse as parse_date

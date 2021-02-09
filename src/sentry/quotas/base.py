@@ -1,5 +1,3 @@
-import six
-
 from django.conf import settings
 from django.core.cache import cache
 from enum import IntEnum, unique
@@ -282,7 +280,6 @@ class Quota(Service):
                           attachments, this should be set to the size of the
                           attachment in bytes.
         """
-        pass
 
     def get_event_retention(self, organization):
         """
@@ -297,7 +294,6 @@ class Quota(Service):
         """
         Validates that the quota service is operational.
         """
-        pass
 
     def _translate_quota(self, quota, parent_quota):
         if str(quota).endswith("%"):

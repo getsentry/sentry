@@ -1,6 +1,5 @@
 from collections import Counter, defaultdict
 
-import six
 from django.utils import timezone
 
 from sentry.tsdb.base import BaseTSDB

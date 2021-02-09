@@ -1,8 +1,3 @@
-import six
-
-from six import string_types
-
-
 def cmp(a, b):
     return (a > b) - (a < b)
 

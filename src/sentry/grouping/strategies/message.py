@@ -1,5 +1,4 @@
 import re
-import six
 from itertools import islice
 
 from sentry.grouping.component import GroupingComponent

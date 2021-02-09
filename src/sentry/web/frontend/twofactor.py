@@ -1,4 +1,3 @@
-import six
 import time
 
 from django.http import HttpResponseRedirect, HttpResponse

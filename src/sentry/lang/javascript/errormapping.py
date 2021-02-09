@@ -2,7 +2,6 @@ import re
 import time
 import logging
 import random
-import six
 
 from django.conf import settings
 from django.core.cache import cache

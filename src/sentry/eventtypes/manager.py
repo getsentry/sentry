@@ -1,6 +1,3 @@
-import six
-
-
 class EventTypeManager:
     def __init__(self):
         self.__values = []

@@ -1,5 +1,3 @@
-import six
-
 from symbolic import ProguardMapper
 from sentry.plugins.base.v2 import Plugin2
 from sentry.stacktraces.processing import StacktraceProcessor

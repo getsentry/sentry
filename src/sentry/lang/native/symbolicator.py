@@ -1,7 +1,6 @@
 import sys
 import jsonschema
 import logging
-import six
 import time
 import base64
 

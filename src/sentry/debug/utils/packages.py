@@ -1,4 +1,3 @@
-import six
 import sys
 from sentry.utils.compat import map
 

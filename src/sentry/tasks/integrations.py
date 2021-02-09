@@ -2,7 +2,6 @@ from time import time
 from datetime import timedelta
 
 import logging
-import six
 
 from sentry import analytics, features
 from sentry.models import (

@@ -1,4 +1,3 @@
-import six
 import time
 import random
 import logging

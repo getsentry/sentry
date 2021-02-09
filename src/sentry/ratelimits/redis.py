@@ -1,5 +1,3 @@
-import six
-
 from time import time
 
 from sentry.exceptions import InvalidConfiguration

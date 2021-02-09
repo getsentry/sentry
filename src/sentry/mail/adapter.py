@@ -1,6 +1,5 @@
 import itertools
 import logging
-import six
 
 from django.utils import dateformat
 from django.utils.encoding import force_text

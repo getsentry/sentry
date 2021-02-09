@@ -1,7 +1,6 @@
 import functools
 import itertools
 import logging
-import six
 
 from collections import OrderedDict, defaultdict, namedtuple
 from six.moves import reduce

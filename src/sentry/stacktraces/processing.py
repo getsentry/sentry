@@ -1,4 +1,3 @@
-import six
 import logging
 from datetime import datetime
 from django.utils import timezone
@@ -145,7 +144,6 @@ class StacktraceProcessor:
         to give the processor a chance to store additional data to the frame
         if wanted.  In particular a cache key can be set here.
         """
-        pass
 
     def process_exception(self, exception):
         """Processes an exception."""

@@ -1,4 +1,3 @@
-import six
 import copy
 import logging
 

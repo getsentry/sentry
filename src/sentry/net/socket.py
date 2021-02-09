@@ -1,4 +1,3 @@
-import six
 import ipaddress
 import socket
 import functools

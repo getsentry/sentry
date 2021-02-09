@@ -1,4 +1,3 @@
-import six
 import sys
 import logging
 
