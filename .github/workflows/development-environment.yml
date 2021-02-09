@@ -87,6 +87,7 @@ jobs:
             ${{ runner.os }}-yarn-
 
       - name: Set up development environment (as per docs)
+        shell: bash
         run: |
           python -m venv .venv
           source .venv/bin/activate
