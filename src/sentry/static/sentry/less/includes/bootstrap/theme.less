@@ -42,10 +42,11 @@
 
 // Mixin for generating new styles
 .btn-styles(@btn-color: #555) {
-  #gradient > .vertical(@start-color: @btn-color; @end-color: darken(@btn-color, 12%));;
-  .reset-filter(
-
-  ); // Disable gradients for IE9 because filter bleeds through rounded corners; see https://github.com/twbs/bootstrap/issues/10620
+  background-image: linear-gradient(
+    to bottom,
+    @btn-color 0%,
+    darken(@btn-color, 12%) 100%
+  );
   background-repeat: repeat-x;
   border-color: darken(@btn-color, 14%);
 
@@ -113,21 +114,23 @@
 
 .dropdown-menu > li > a:hover,
 .dropdown-menu > li > a:focus {
-  #gradient >
-    .vertical(
-      @start-color: @dropdown-link-hover-bg; @end-color:
-        darken(@dropdown-link-hover-bg, 5%)
-    );;
+  background-image: linear-gradient(
+    to bottom,
+    @dropdown-link-hover-bg 0%,
+    darken(@dropdown-link-hover-bg, 5%) 100%
+  );
+  background-repeat: repeat-x;
   background-color: darken(@dropdown-link-hover-bg, 5%);
 }
 .dropdown-menu > .active > a,
 .dropdown-menu > .active > a:hover,
 .dropdown-menu > .active > a:focus {
-  #gradient >
-    .vertical(
-      @start-color: @dropdown-link-active-bg; @end-color:
-        darken(@dropdown-link-active-bg, 5%)
-    );;
+  background-image: linear-gradient(
+    to bottom,
+    @dropdown-link-active-bg 0%,
+    darken(@dropdown-link-active-bg, 5%) 100%
+  );
+  background-repeat: repeat-x;
   background-color: darken(@dropdown-link-active-bg, 5%);
 }
 
@@ -137,23 +140,23 @@
 
 // Default navbar
 .navbar-default {
-  #gradient >
-    .vertical(
-      @start-color: lighten(@navbar-default-bg, 10%) ; @end-color: @navbar-default-bg
-    );;
-  .reset-filter(
-
-  ); // Remove gradient in IE<10 to fix bug where dropdowns don't get triggered
+  background-image: linear-gradient(
+    to bottom,
+    lighten(@navbar-default-bg, 10%) 0%,
+    @navbar-default-bg 100%
+  );
+  background-repeat: repeat-x;
   border-radius: @navbar-border-radius;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 1px 5px rgba(0, 0, 0, 0.075);
 
   .navbar-nav > .open > a,
   .navbar-nav > .active > a {
-    #gradient >
-      .vertical(
-        @start-color: darken(@navbar-default-link-active-bg, 5%) ; @end-color:
-          darken(@navbar-default-link-active-bg, 2%)
-      );;
+    background-image: linear-gradient(
+      to bottom,
+      darken(@navbar-default-link-active-bg, 5%) 0%,
+      darken(@navbar-default-link-active-bg, 2%) 100%
+    );
+    background-repeat: repeat-x;
     box-shadow: inset 0 3px 9px rgba(0, 0, 0, 0.075);
   }
 }
@@ -164,21 +167,21 @@
 
 // Inverted navbar
 .navbar-inverse {
-  #gradient >
-    .vertical(
-      @start-color: lighten(@navbar-inverse-bg, 10%) ; @end-color: @navbar-inverse-bg
-    );;
-  .reset-filter(
-
-  ); // Remove gradient in IE<10 to fix bug where dropdowns don't get triggered; see https://github.com/twbs/bootstrap/issues/10257
+  background-image: linear-gradient(
+    to bottom,
+    lighten(@navbar-inverse-bg, 10%) 10%,
+    @navbar-inverse-bg 100%
+  );
+  background-repeat: repeat-x;
   border-radius: @navbar-border-radius;
   .navbar-nav > .open > a,
   .navbar-nav > .active > a {
-    #gradient >
-      .vertical(
-        @start-color: @navbar-inverse-link-active-bg; @end-color:
-          lighten(@navbar-inverse-link-active-bg, 2.5%)
-      );;
+    background-image: linear-gradient(
+      to bottom,
+      @navbar-inverse-link-active-bg 0%,
+      lighten(@navbar-inverse-link-active-bg, 2.5%) 100%
+    );
+    background-repeat: repeat-x;
     box-shadow: inset 0 3px 9px rgba(0, 0, 0, 0.25);
   }
 
@@ -202,11 +205,12 @@
     &:hover,
     &:focus {
       color: #fff;
-      #gradient >
-        .vertical(
-          @start-color: @dropdown-link-active-bg; @end-color:
-            darken(@dropdown-link-active-bg, 5%)
-        );;
+      background-image: linear-gradient(
+        to bottom,
+        @dropdown-link-active-bg 0%,
+        darken(@dropdown-link-active-bg, 5%) 100%
+      );
+      background-repeat: repeat-x;
     }
   }
 }
@@ -223,7 +227,8 @@
 
 // Mixin for generating new styles
 .alert-styles(@color) {
-  #gradient > .vertical(@start-color: @color; @end-color: darken(@color, 7.5%));;
+  background-image: linear-gradient(to bottom, @color 0%, darken(@color, 7.5%) 100%);
+  background-repeat: repeat-x;
   border-color: darken(@color, 15%);
 }
 
@@ -247,12 +252,18 @@
 
 // Give the progress background some depth
 .progress {
-  #gradient > .vertical(@start-color: darken(@progress-bg, 4%) ; @end-color: @progress-bg);;
+  background-image: linear-gradient(
+    to bottom,
+    darken(@progress-bg, 4%) 0%,
+    @progress-bg 100%
+  );
+  background-repeat: repeat-x;
 }
 
 // Mixin for generating new styles
 .progress-bar-styles(@color) {
-  #gradient > .vertical(@start-color: @color; @end-color: darken(@color, 10%));;
+  background-image: linear-gradient(to bottom, @color 0%, darken(@color, 10%) 100%);
+  background-repeat: repeat-x;
 }
 
 // Apply the mixin to the progress bars
@@ -284,10 +295,12 @@
 .list-group-item.active:hover,
 .list-group-item.active:focus {
   text-shadow: 0 -1px 0 darken(@list-group-active-bg, 10%);
-  #gradient >
-    .vertical(
-      @start-color: @list-group-active-bg; @end-color: darken(@list-group-active-bg, 7.5%)
-    );;
+  background-image: linear-gradient(
+    to bottom,
+    @list-group-active-bg 0%,
+    darken(@list-group-active-bg, 7.5%) 100%
+  );
+  background-repeat: repeat-x;
   border-color: darken(@list-group-active-border, 7.5%);
 }
 
@@ -302,7 +315,8 @@
 
 // Mixin for generating new styles
 .panel-heading-styles(@color) {
-  #gradient > .vertical(@start-color: @color; @end-color: darken(@color, 5%));;
+  background-image: linear-gradient(to bottom, @color 0%, darken(@color, 5%) 100%);
+  background-repeat: repeat-x;
 }
 
 // Apply the mixin to the panel headings only
@@ -330,7 +344,8 @@
 // --------------------------------------------------
 
 .well {
-  #gradient > .vertical(@start-color: darken(@well-bg, 5%) ; @end-color: @well-bg);;
+  background-image: linear-gradient(to bottom, darken(@well-bg, 5%) 0%, @well-bg 100%);
+  background-repeat: repeat-x;
   border-color: darken(@well-bg, 10%);
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 0 rgba(255, 255, 255, 0.1);
 }
