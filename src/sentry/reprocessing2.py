@@ -81,7 +81,6 @@ import hashlib
 import logging
 import sentry_sdk
 from sentry.utils import json
-import six
 
 from django.conf import settings
 
@@ -346,7 +345,7 @@ def start_group_reprocessing(
     new_activity = models.Activity.objects.create(
         type=models.Activity.REPROCESS,
         project=new_group.project,
-        ident=six.text_type(group_id),
+        ident=str(group_id),
         group_id=group_id,
         user_id=acting_user_id,
         data={"eventCount": event_count, "oldGroupId": group_id, "newGroupId": new_group.id},

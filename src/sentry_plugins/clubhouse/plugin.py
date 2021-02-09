@@ -1,5 +1,3 @@
-import six
-
 from django.conf.urls import url
 from rest_framework.response import Response
 
@@ -99,7 +97,7 @@ class ClubhousePlugin(CorePluginMixin, IssuePlugin2):
         try:
             config["project"] = int(config["project"])
         except ValueError as exc:
-            self.logger.exception(six.text_type(exc))
+            self.logger.exception(str(exc))
             raise PluginError(
                 "Invalid Project ID. "
                 "Project IDs are numbers-only, and can be found on the Project's page"

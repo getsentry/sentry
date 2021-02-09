@@ -2,7 +2,6 @@ from time import time
 import logging
 import re
 
-import six
 from django import forms
 from django.utils.translation import ugettext as _
 
@@ -414,9 +413,7 @@ class VstsIntegrationProvider(IntegrationProvider):
             )
         except ApiError as e:
             auth_codes = (400, 401, 403)
-            permission_error = "permission" in six.text_type(
-                e
-            ) or "not authorized" in six.text_type(e)
+            permission_error = "permission" in str(e) or "not authorized" in str(e)
             if e.code in auth_codes or permission_error:
                 raise IntegrationError(
                     "You do not have sufficient account access to create webhooks "

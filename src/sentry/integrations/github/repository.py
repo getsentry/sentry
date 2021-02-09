@@ -1,5 +1,4 @@
 import logging
-import six
 
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.models import Integration
@@ -36,7 +35,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
         client = installation.get_client()
 
         repo = self._validate_repo(client, installation, config["identifier"])
-        config["external_id"] = six.text_type(repo["id"])
+        config["external_id"] = str(repo["id"])
         config["integration_id"] = integration.id
 
         return config

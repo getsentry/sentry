@@ -2,7 +2,6 @@ import dateutil.parser
 import hashlib
 import hmac
 import logging
-import six
 
 from django.db import IntegrityError, transaction
 from django.http import HttpResponse, Http404
@@ -108,7 +107,7 @@ class PushEventWebhook(Webhook):
             repo = Repository.objects.get(
                 organization_id=organization.id,
                 provider="github_apps" if is_apps else "github",
-                external_id=six.text_type(event["repository"]["id"]),
+                external_id=str(event["repository"]["id"]),
             )
         except Repository.DoesNotExist:
             raise Http404()
@@ -154,7 +153,7 @@ class PushEventWebhook(Webhook):
                             try:
                                 gh_user = client.request_no_auth("GET", "/users/%s" % gh_username)
                             except ApiError as exc:
-                                logger.exception(six.text_type(exc))
+                                logger.exception(str(exc))
                             else:
                                 # even if we can't find a user, set to none so we
                                 # don't re-query
@@ -267,7 +266,7 @@ class PullRequestEventWebhook(Webhook):
             repo = Repository.objects.get(
                 organization_id=organization.id,
                 provider="github_apps" if is_apps else "github",
-                external_id=six.text_type(event["repository"]["id"]),
+                external_id=str(event["repository"]["id"]),
             )
 
         except Repository.DoesNotExist:
@@ -377,7 +376,7 @@ class GithubWebhookBase(View):
             logger.error("github.webhook.missing-secret", extra=self.get_logging_data(organization))
             return HttpResponse(status=401)
 
-        body = six.binary_type(request.body)
+        body = bytes(request.body)
         if not body:
             logger.error("github.webhook.missing-body", extra=self.get_logging_data(organization))
             return HttpResponse(status=400)

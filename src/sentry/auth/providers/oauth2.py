@@ -191,7 +191,7 @@ class OAuth2Provider(Provider):
         error = payload.get("error", "unknown_error")
         error_description = payload.get("error_description", "no description available")
 
-        formatted_error = "HTTP {} ({}): {}".format(req.status_code, error, error_description)
+        formatted_error = f"HTTP {req.status_code} ({error}): {error_description}"
 
         if req.status_code == 401:
             raise IdentityNotValid(formatted_error)

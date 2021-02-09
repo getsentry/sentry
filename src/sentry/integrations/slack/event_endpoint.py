@@ -1,5 +1,4 @@
 import re
-import six
 from collections import defaultdict
 
 from django.db.models import Q
@@ -44,7 +43,7 @@ def unfurl_issues(integration, url_by_issue_id, event_id_by_url=None):
         return {}
 
     out = {}
-    for issue_id, url in six.iteritems(url_by_issue_id):
+    for issue_id, url in url_by_issue_id.items():
         if issue_id in group_by_id:
             group = group_by_id[issue_id]
             # lookup the event by the id
@@ -61,7 +60,7 @@ def unfurl_incidents(integration, incident_map, event_id_by_url=None):
     # Since we don't have real ids here, we have to also extract the org slug
     # from the url so that we can make sure the identifiers correspond to the
     # correct organization.
-    for identifier, url in six.iteritems(incident_map):
+    for identifier, url in incident_map.items():
         org_slug = _org_slug_regexp.match(url).group(1)
         filter_query |= Q(identifier=identifier, organization__slug=org_slug)
 
@@ -78,9 +77,7 @@ def unfurl_incidents(integration, incident_map, event_id_by_url=None):
         return {}
 
     return {
-        v: build_incident_attachment(results[k])
-        for k, v in six.iteritems(incident_map)
-        if k in results
+        v: build_incident_attachment(results[k]) for k, v in incident_map.items() if k in results
     }
 
 
@@ -158,7 +155,7 @@ class SlackEventEndpoint(Endpoint):
         try:
             client.post("/chat.postMessage", headers=headers, data=payload, json=True)
         except ApiError as e:
-            logger.error("slack.event.on-message-error", extra={"error": six.text_type(e)})
+            logger.error("slack.event.on-message-error", extra={"error": str(e)})
 
         return self.respond()
 
@@ -172,7 +169,7 @@ class SlackEventEndpoint(Endpoint):
                     "slack.link-shared", extra={"slack_shared_link": parse_link(item["url"])}
                 )
             except Exception as e:
-                logger.error("slack.parse-link-error", extra={"error": six.text_type(e)})
+                logger.error("slack.parse-link-error", extra={"error": str(e)})
             event_type, instance_id, event_id = self._parse_url(item["url"])
             if not instance_id:
                 continue
@@ -207,7 +204,7 @@ class SlackEventEndpoint(Endpoint):
         try:
             client.post("/chat.unfurl", data=payload)
         except ApiError as e:
-            logger.error("slack.event.unfurl-error", extra={"error": six.text_type(e)})
+            logger.error("slack.event.unfurl-error", extra={"error": str(e)})
 
         return self.respond()
 

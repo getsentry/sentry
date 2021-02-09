@@ -1,5 +1,4 @@
 import logging
-import six
 
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from cryptography.hazmat.backends import default_backend
@@ -13,7 +12,7 @@ from sentry.integrations import (
     FeatureDescription,
     IntegrationInstallation,
 )
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.pipeline import PipelineView
 from sentry.utils.compat import filter
@@ -204,9 +203,7 @@ class OAuthCallbackView(PipelineView):
             return pipeline.next_step()
         except ApiError as error:
             logger.info("identity.bitbucket-server.access-token", extra={"error": error})
-            return pipeline.error(
-                "Could not fetch an access token from Bitbucket. %s" % six.text_type(error)
-            )
+            return pipeline.error("Could not fetch an access token from Bitbucket. %s" % str(error))
 
 
 class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):

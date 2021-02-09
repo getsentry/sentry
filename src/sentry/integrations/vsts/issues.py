@@ -1,4 +1,3 @@
-import six
 from mistune import markdown
 
 from collections import OrderedDict
@@ -146,7 +145,7 @@ class VstsIssueSync(IssueSyncMixin):
         return fields
 
     def get_issue_url(self, key, **kwargs):
-        return "%s_workitems/edit/%s" % (self.instance, six.text_type(key))
+        return "%s_workitems/edit/%s" % (self.instance, str(key))
 
     def create_issue(self, data, **kwargs):
         """
@@ -177,7 +176,7 @@ class VstsIssueSync(IssueSyncMixin):
 
         project_name = created_item["fields"]["System.AreaPath"]
         return {
-            "key": six.text_type(created_item["id"]),
+            "key": str(created_item["id"]),
             "title": title,
             "description": description,
             "metadata": {"display_name": "%s#%s" % (project_name, created_item["id"])},
@@ -187,7 +186,7 @@ class VstsIssueSync(IssueSyncMixin):
         client = self.get_client()
         work_item = client.get_work_item(self.instance, issue_id)
         return {
-            "key": six.text_type(work_item["id"]),
+            "key": str(work_item["id"]),
             "title": work_item["fields"]["System.Title"],
             "description": work_item["fields"].get("System.Description"),
             "metadata": {

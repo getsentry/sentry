@@ -1,5 +1,4 @@
 import pytz
-import six
 
 from datetime import datetime
 from django import forms
@@ -14,7 +13,6 @@ from sentry.app import ratelimiter
 from sentry.utils.auth import find_users, logger
 from sentry.models import User
 from sentry.web.forms.fields import CustomTypedChoiceField, AllowedEmailField
-from six.moves import range
 
 
 def _get_timezone_choices():
@@ -164,7 +162,7 @@ class PasswordlessRegistrationForm(forms.ModelForm):
         required=True,
     )
     subscribe = CustomTypedChoiceField(
-        coerce=lambda x: six.text_type(x) == "1",
+        coerce=lambda x: str(x) == "1",
         label=_("Email updates"),
         choices=(
             (1, "Yes, I would like to receive updates via email"),
