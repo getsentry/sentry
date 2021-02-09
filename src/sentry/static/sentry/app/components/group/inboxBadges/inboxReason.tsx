@@ -7,6 +7,7 @@ import TimeSince, {getRelativeDate} from 'app/components/timeSince';
 import {t, tct} from 'app/locale';
 import {InboxDetails} from 'app/types';
 import {getDuration} from 'app/utils/formatters';
+import getDynamicText from 'app/utils/getDynamicText';
 import {Theme} from 'app/utils/theme';
 
 const GroupInboxReason = {
@@ -28,6 +29,10 @@ const EVENT_ROUND_LIMIT = 1000;
 
 function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
   const {reason, reason_details, date_added: dateAdded} = inbox;
+  const relativeDateAdded = getDynamicText({
+    value: dateAdded && getRelativeDate(dateAdded, 'ago', true),
+    fixed: '3s ago',
+  });
 
   const getCountText = (count: number) =>
     count > EVENT_ROUND_LIMIT
@@ -92,7 +97,7 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
           tooltipText:
             dateAdded &&
             t('Unignored %(relative)s', {
-              relative: getRelativeDate(dateAdded, 'ago', true),
+              relative: relativeDateAdded,
             }),
           tooltipDescription: getTooltipDescription(),
         };
@@ -103,7 +108,7 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
           tooltipText:
             dateAdded &&
             t('Regressed %(relative)s', {
-              relative: getRelativeDate(dateAdded, 'ago', true),
+              relative: relativeDateAdded,
             }),
           // TODO: Add tooltip description for regression move when resolver is added to reason
           // Resolved by {full_name} {time} ago.
@@ -114,8 +119,7 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
           tagType: 'highlight',
           reasonBadgeText: t('Manual'),
           tooltipText:
-            dateAdded &&
-            t('Moved %(relative)s', {relative: getRelativeDate(dateAdded, 'ago', true)}),
+            dateAdded && t('Moved %(relative)s', {relative: relativeDateAdded}),
           // TODO: IF manual moves stay then add tooltip description for manual move
           // Moved to inbox by {full_name}.
         };
@@ -126,7 +130,7 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
           tooltipText:
             dateAdded &&
             t('Reprocessed %(relative)s', {
-              relative: getRelativeDate(dateAdded, 'ago', true),
+              relative: relativeDateAdded,
             }),
         };
       case GroupInboxReason.NEW:
@@ -137,7 +141,7 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
           tooltipText:
             dateAdded &&
             t('Created %(relative)s', {
-              relative: getRelativeDate(dateAdded, 'ago', true),
+              relative: relativeDateAdded,
             }),
         };
     }
@@ -158,10 +162,10 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
   return (
     <StyledTag type={tagType} tooltipText={tooltip} fontSize={fontSize}>
       {reasonBadgeText}
-      {showDateAdded && inbox.date_added && (
+      {showDateAdded && dateAdded && (
         <React.Fragment>
           <Separator type={tagType ?? 'default'}>{' | '}</Separator>
-          <TimeSince date={inbox.date_added} suffix="" shorten disabledAbsoluteTooltip />
+          <TimeSince date={dateAdded} suffix="" shorten disabledAbsoluteTooltip />
         </React.Fragment>
       )}
     </StyledTag>
