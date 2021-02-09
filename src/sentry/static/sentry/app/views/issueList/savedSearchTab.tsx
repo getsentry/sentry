@@ -47,8 +47,8 @@ function SavedSearchTab({
         {isActive ? (
           <React.Fragment>
             <TitleTextOverflow>
-              {savedSearch ? savedSearch.name : t('Custom Search')}
-            </TitleTextOverflow>{' '}
+              {savedSearch ? savedSearch.name : t('Custom Search')}{' '}
+            </TitleTextOverflow>
             <StyledQueryCount isTag count={queryCount} max={1000} />
           </React.Fragment>
         ) : (
@@ -121,6 +121,7 @@ const TitleWrapper = styled('span')`
 `;
 
 const TitleTextOverflow = styled('span')`
+  margin-right: ${space(0.5)};
   max-width: 150px;
   ${overflowEllipsis};
 `;
