@@ -77,7 +77,10 @@ def process_suspect_commits(event_id, event_platform, event_frames, group_id, pr
                     if created:
                         owner_count += 1
                         if owner_count > PREFERRED_GROUP_OWNERS:
-                            owners.first().delete()
+                            owner = owners.first()
+                            if owner:
+                                owner.delete()
+
         except Commit.DoesNotExist:
             logger.info(
                 "process_suspect_commits.skipped",
