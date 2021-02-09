@@ -69,6 +69,8 @@ IS_DEV = ENVIRONMENT == "development"
 
 DEBUG = IS_DEV
 
+ADMIN_ENABLED = DEBUG
+
 MAINTENANCE = False
 
 ADMINS = ()
