@@ -184,4 +184,5 @@ class TeamWithProjectsSerializerTest(TestCase):
             "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
             "memberCount": 0,
             "dateCreated": team.date_added,
+            "externalTeams": [],
         }
