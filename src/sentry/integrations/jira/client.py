@@ -174,7 +174,7 @@ class JiraApiClient(ApiClient):
 
         # XXX(dcramer): document how this is possible, if it even is
         if len(metas["projects"]) > 1:
-            raise ApiError("More than one project found matching {}.".format(project))
+            raise ApiError(f"More than one project found matching {project}.")
 
         try:
             return metas["projects"][0]
@@ -240,7 +240,7 @@ class JiraApiClient(ApiClient):
         if name.startswith(CUSTOMFIELD_PREFIX):
             # Transform `customfield_0123` into `cf[0123]`
             cf_id = name[len(CUSTOMFIELD_PREFIX) :]
-            jql_name = "cf[{}]".format(cf_id)
+            jql_name = f"cf[{cf_id}]"
         else:
             jql_name = name
         return self.get_cached(

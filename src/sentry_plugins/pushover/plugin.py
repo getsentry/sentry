@@ -93,8 +93,8 @@ class PushoverPlugin(CorePluginMixin, NotifyPlugin):
     def validate_config(self, project, config, actor):
         if int(config["priority"]) == 2 and config["retry"] < 30:
             retry = str(config["retry"])
-            self.logger.exception(str("Retry not 30 or higher. It is {}.".format(retry)))
-            raise PluginError("Retry must be 30 or higher. It is {}.".format(retry))
+            self.logger.exception(str(f"Retry not 30 or higher. It is {retry}."))
+            raise PluginError(f"Retry must be 30 or higher. It is {retry}.")
         return config
 
     def get_client(self, project):
@@ -116,14 +116,14 @@ class PushoverPlugin(CorePluginMixin, NotifyPlugin):
         retry = int(self.get_option("retry", project) or 30)
         expire = int(self.get_option("expire", project) or 90)
 
-        title = "{}: {}".format(project.name, group.title)
+        title = f"{project.name}: {group.title}"
         link = group.get_absolute_url(params={"referrer": "pushover_plugin"})
 
         message = event.title[:256]
 
         tags = event.tags
         if tags:
-            message += "\n\nTags: %s" % (", ".join("{}={}".format(k, v) for (k, v) in tags))
+            message += "\n\nTags: %s" % (", ".join(f"{k}={v}" for (k, v) in tags))
 
         client = self.get_client(project)
         try:

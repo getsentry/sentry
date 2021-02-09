@@ -28,7 +28,7 @@ class GitHubSearchEndpoint(IntegrationEndpoint):
 
             try:
                 response = installation.search_issues(
-                    query=("repo:{} {}".format(repo, query)).encode("utf-8")
+                    query=(f"repo:{repo} {query}").encode("utf-8")
                 )
             except ApiError as err:
                 if err.code == 403:

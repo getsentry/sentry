@@ -170,11 +170,11 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
             try:
                 api.user.whoami()
             except phabricator.APIError as e:
-                raise PluginError("{} {}".format(e.code, e))
+                raise PluginError(f"{e.code} {e}")
             except HTTPException as e:
-                raise PluginError("Unable to reach Phabricator host: {}".format(e))
+                raise PluginError(f"Unable to reach Phabricator host: {e}")
             except Exception as e:
-                raise PluginError("Unhandled error from Phabricator: {}".format(e))
+                raise PluginError(f"Unhandled error from Phabricator: {e}")
         return config
 
     def is_configured(self, request, project, **kwargs):
@@ -228,7 +228,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
                 projectPHIDs=form_data.get("tags"),
             )
         except phabricator.APIError as e:
-            raise PluginError("{} {}".format(e.code, e))
+            raise PluginError(f"{e.code} {e}")
         except HTTPException as e:
             raise PluginError("Unable to reach Phabricator host: %s" % e)
 

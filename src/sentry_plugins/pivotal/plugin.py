@@ -119,13 +119,13 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
             body = safe_urlread(req)
         except requests.RequestException as e:
             msg = str(e)
-            raise PluginError("Error communicating with Pivotal: {}".format(msg))
+            raise PluginError(f"Error communicating with Pivotal: {msg}")
 
         try:
             json_resp = json.loads(body)
         except ValueError as e:
             msg = str(e)
-            raise PluginError("Error communicating with Pivotal: {}".format(msg))
+            raise PluginError(f"Error communicating with Pivotal: {msg}")
 
         if req.status_code > 399:
             raise PluginError(json_resp["error"])
@@ -160,13 +160,13 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
             body = safe_urlread(req)
         except requests.RequestException as e:
             msg = str(e)
-            raise PluginError("Error communicating with Pivotal: {}".format(msg))
+            raise PluginError(f"Error communicating with Pivotal: {msg}")
 
         try:
             json_resp = json.loads(body)
         except ValueError as e:
             msg = str(e)
-            raise PluginError("Error communicating with Pivotal: {}".format(msg))
+            raise PluginError(f"Error communicating with Pivotal: {msg}")
 
         if req.status_code > 399:
             raise PluginError(json_resp["error"])

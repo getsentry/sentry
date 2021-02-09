@@ -286,7 +286,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         elif action_type == ACTION_TYPE.ASSIGN:
             assignee = data["assignInput"]
             if assignee == "ME":
-                assignee = "user:{}".format(user_id)
+                assignee = f"user:{user_id}"
             action_data = {"assignedTo": assignee}
         elif action_type == ACTION_TYPE.UNASSIGN:
             action_data = {"assignedTo": ""}

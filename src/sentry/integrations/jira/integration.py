@@ -357,7 +357,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def create_comment_attribution(self, user_id, comment_text):
         user = User.objects.get(id=user_id)
         attribution = "%s wrote:\n\n" % user.name
-        return "{}{{quote}}{}{{quote}}".format(attribution, comment_text)
+        return f"{attribution}{{quote}}{comment_text}{{quote}}"
 
     def update_comment(self, issue_id, user_id, group_note):
         quoted_comment = self.create_comment_attribution(user_id, group_note.data["text"])
@@ -399,7 +399,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         if data.get("errors"):
             if message:
                 message += " "
-            message += " ".join(["{}: {}".format(k, v) for k, v in data.get("errors").items()])
+            message += " ".join([f"{k}: {v}" for k, v in data.get("errors").items()])
         return message
 
     def error_fields_from_json(self, data):
@@ -774,7 +774,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                         try:
                             v = int(v)
                         except ValueError:
-                            raise IntegrationError("Invalid sprint ({}) specified".format(v))
+                            raise IntegrationError(f"Invalid sprint ({v}) specified")
                     elif schema["type"] == "array" and schema.get("items") == "option":
                         v = [{"value": vx} for vx in v]
                     elif schema["type"] == "array" and schema.get("items") == "string":

@@ -205,7 +205,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
         # XXX: get_option may need tweaked in Sentry so that it can be pre-fetched in bulk
         repo = self.get_option("repo", group.project)
 
-        return "https://github.com/{}/issues/{}".format(repo, issue_id)
+        return f"https://github.com/{repo}/issues/{issue_id}"
 
     def view_autocomplete(self, request, group, **kwargs):
         field = request.GET.get("autocomplete_field")
@@ -217,9 +217,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
         client = self.get_client(request.user)
 
         try:
-            response = client.search_issues(
-                query=("repo:{} {}".format(repo, query)).encode("utf-8")
-            )
+            response = client.search_issues(query=(f"repo:{repo} {query}").encode("utf-8"))
         except Exception as e:
             return self.handle_api_error(e)
 
@@ -300,7 +298,7 @@ class GitHubRepositoryProvider(GitHubMixin, providers.RepositoryProvider):
         return config
 
     def get_webhook_secret(self, organization):
-        lock = locks.get("github:webhook-secret:{}".format(organization.id), duration=60)
+        lock = locks.get(f"github:webhook-secret:{organization.id}", duration=60)
         with lock.acquire():
             # TODO(dcramer): get_or_create would be a useful native solution
             secret = OrganizationOption.objects.get_value(
@@ -319,9 +317,7 @@ class GitHubRepositoryProvider(GitHubMixin, providers.RepositoryProvider):
             "active": True,
             "events": WEBHOOK_EVENTS,
             "config": {
-                "url": absolute_uri(
-                    "/plugins/github/organizations/{}/webhook/".format(organization.id)
-                ),
+                "url": absolute_uri(f"/plugins/github/organizations/{organization.id}/webhook/"),
                 "content_type": "json",
                 "secret": self.get_webhook_secret(organization),
             },

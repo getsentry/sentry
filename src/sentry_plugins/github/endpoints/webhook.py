@@ -352,7 +352,7 @@ class GithubWebhookBase(View):
         if method == "sha1":
             mod = hashlib.sha1
         else:
-            raise NotImplementedError("signature method {} is not supported".format(method))
+            raise NotImplementedError(f"signature method {method} is not supported")
         expected = hmac.new(key=secret.encode("utf-8"), msg=body, digestmod=mod).hexdigest()
         return constant_time_compare(expected, signature)
 

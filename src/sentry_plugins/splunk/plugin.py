@@ -266,7 +266,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
                 json=payload,
                 # Splunk cloud instances certifcates dont play nicely
                 verify=False,
-                headers={"Authorization": "Splunk {}".format(self.project_token)},
+                headers={"Authorization": f"Splunk {self.project_token}"},
                 timeout=5,
             )
             if resp.status_code != 200:

@@ -70,9 +70,9 @@ class PluginManager(InstanceManager):
                 return result
 
     def register(self, cls):
-        self.add("{}.{}".format(cls.__module__, cls.__name__))
+        self.add(f"{cls.__module__}.{cls.__name__}")
         return cls
 
     def unregister(self, cls):
-        self.remove("{}.{}".format(cls.__module__, cls.__name__))
+        self.remove(f"{cls.__module__}.{cls.__name__}")
         return cls

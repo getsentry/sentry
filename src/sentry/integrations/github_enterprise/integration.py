@@ -381,7 +381,7 @@ class GitHubEnterpriseInstallationRedirect(PipelineView):
     def get_app_url(self, installation_data):
         url = installation_data.get("url")
         name = installation_data.get("name")
-        return "https://{}/github-apps/{}".format(url, name)
+        return f"https://{url}/github-apps/{name}"
 
     def dispatch(self, request, pipeline):
         installation_data = pipeline.fetch_state(key="installation_data")

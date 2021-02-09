@@ -169,7 +169,7 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
 
     def get_issue_url(self, group, issue_id, **kwargs):
         repo = self.get_option("repo", group.project)
-        return "https://bitbucket.org/{}/issue/{}/".format(repo, issue_id)
+        return f"https://bitbucket.org/{repo}/issue/{issue_id}/"
 
     def view_autocomplete(self, request, group, **kwargs):
         field = request.GET.get("autocomplete_field")

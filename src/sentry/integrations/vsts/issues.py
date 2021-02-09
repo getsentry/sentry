@@ -329,7 +329,7 @@ class VstsIssueSync(IssueSyncMixin):
         # https://docs.microsoft.com/en-us/microsoftteams/platform/concepts/bots/bots-text-formats
         user = User.objects.get(id=user_id)
         attribution = "%s wrote:\n\n" % user.name
-        quoted_comment = "{}<blockquote>{}</blockquote>".format(attribution, comment_text)
+        quoted_comment = f"{attribution}<blockquote>{comment_text}</blockquote>"
         return quoted_comment
 
     def update_comment(self, issue_id, user_id, external_comment_id, comment_text):

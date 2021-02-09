@@ -179,7 +179,7 @@ class VercelWebhookEndpoint(Endpoint):
                 headers = {
                     "Accept": "application/json",
                     "Authorization": "Bearer %s" % token,
-                    "User-Agent": "sentry_vercel/{}".format(VERSION),
+                    "User-Agent": f"sentry_vercel/{VERSION}",
                 }
                 json_error = None
 
@@ -193,7 +193,7 @@ class VercelWebhookEndpoint(Endpoint):
                 except RequestException as e:
                     # errors here should be uncommon but we should be aware of them
                     logger.error(
-                        "Error creating release: {} - {}".format(e, json_error),
+                        f"Error creating release: {e} - {json_error}",
                         extra=logging_params,
                         exc_info=True,
                     )
@@ -212,7 +212,7 @@ class VercelWebhookEndpoint(Endpoint):
                 except RequestException as e:
                     # errors will probably be common if the user doesn't have repos set up
                     logger.info(
-                        "Error setting refs: {} - {}".format(e, json_error),
+                        f"Error setting refs: {e} - {json_error}",
                         extra=logging_params,
                         exc_info=True,
                     )

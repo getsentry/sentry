@@ -65,7 +65,7 @@ class JiraSearchEndpoint(IntegrationEndpoint):
             response = jira_client.get_field_autocomplete(name=field, value=query)
         except (ApiUnauthorized, ApiError):
             return Response(
-                {"detail": "Unable to fetch autocomplete for {} from Jira".format(field)},
+                {"detail": f"Unable to fetch autocomplete for {field} from Jira"},
                 status=400,
             )
         choices = [

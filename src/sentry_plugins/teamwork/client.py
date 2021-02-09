@@ -10,7 +10,7 @@ class TeamworkClient:
 
     def _request(self, path, method="GET", params=None, data=None):
         path = path.lstrip("/")
-        url = "{}/{}".format(self.base_url, path)
+        url = f"{self.base_url}/{path}"
 
         if not params:
             params = {}
@@ -26,11 +26,11 @@ class TeamworkClient:
         return self._request(path="/projects.json")["projects"]
 
     def list_tasklists(self, project_id):
-        return self._request(path="/projects/{}/tasklists.json".format(project_id))["tasklists"]
+        return self._request(path=f"/projects/{project_id}/tasklists.json")["tasklists"]
 
     def create_task(self, tasklist_id, **kwargs):
         return self._request(
             method="POST",
-            path="/tasklists/{}/tasks.json".format(tasklist_id),
+            path=f"/tasklists/{tasklist_id}/tasks.json",
             data={"todo-item": kwargs},
         )["id"]

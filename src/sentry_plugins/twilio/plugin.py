@@ -76,7 +76,7 @@ class TwilioConfigurationForm(forms.Form):
     def clean_sms_from(self):
         data = self.cleaned_data["sms_from"]
         if not validate_phone(data):
-            raise forms.ValidationError("{} is not a valid phone number.".format(data))
+            raise forms.ValidationError(f"{data} is not a valid phone number.")
         return clean_phone(data)
 
     def clean_sms_to(self):
@@ -88,7 +88,7 @@ class TwilioConfigurationForm(forms.Form):
             )
         for phone in phones:
             if not validate_phone(phone):
-                raise forms.ValidationError("{} is not a valid phone number.".format(phone))
+                raise forms.ValidationError(f"{phone} is not a valid phone number.")
         return ",".join(sorted(set(map(clean_phone, phones))))
 
     def clean(self):
@@ -151,7 +151,7 @@ class TwilioPlugin(CorePluginMixin, NotificationPlugin):
         code = data.get("code")
         message = data.get("message")
         more_info = data.get("more_info")
-        error_message = "{} - {} {}".format(code, message, more_info)
+        error_message = f"{code} - {message} {more_info}"
         if message:
             return error_message
         return None

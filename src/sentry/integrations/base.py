@@ -63,7 +63,7 @@ class IntegrationMetadata(IntegrationMetadata):
         we prefix them with `integration`.
         """
         if f is not None:
-            return "integrations-{}".format(f)
+            return f"integrations-{f}"
 
     def _asdict(self):
         metadata = super()._asdict()
@@ -178,7 +178,7 @@ class IntegrationProvider(PipelineProvider):
         return self._integration_key or self.key
 
     def get_logger(self):
-        return logging.getLogger("sentry.integration.{}".format(self.key))
+        return logging.getLogger(f"sentry.integration.{self.key}")
 
     def post_install(self, integration, organization, extra=None):
         pass

@@ -199,7 +199,7 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
             # on an account that doesn't have an organization
             integration_name = f"{account_number} {region}"
 
-        external_id = "{}-{}".format(account_number, region)
+        external_id = f"{account_number}-{region}"
 
         integration = {
             "name": integration_name,

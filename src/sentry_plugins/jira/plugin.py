@@ -94,7 +94,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             schema.get("items") == "user" or schema["type"] == "user"
         ):
             fieldtype = "select"
-            sentry_url = "/api/0/issues/{}/plugins/{}/autocomplete".format(group.id, self.slug)
+            sentry_url = f"/api/0/issues/{group.id}/plugins/{self.slug}/autocomplete"
             fkwargs["url"] = "{}?jira_url={}".format(
                 sentry_url,
                 quote_plus(field_meta["autoCompleteUrl"]),
@@ -149,7 +149,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             meta = client.get_create_meta_for_project(jira_project_key)
         except ApiError as e:
             raise PluginError(
-                "JIRA responded with an error. We received a status code of {}".format(e.code)
+                f"JIRA responded with an error. We received a status code of {e.code}"
             )
         except ApiUnauthorized:
             raise PluginError(
@@ -278,7 +278,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
 
     def get_issue_url(self, group, issue_id, **kwargs):
         instance = self.get_option("instance_url", group.project)
-        return "{}/browse/{}".format(instance, issue_id)
+        return f"{instance}/browse/{issue_id}"
 
     def _get_formatted_user(self, user):
         display = "{} {}({})".format(
@@ -403,7 +403,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         if data.get("errors"):
             if message:
                 message += " "
-            message += " ".join(["{}: {}".format(k, v) for k, v in data.get("errors").items()])
+            message += " ".join([f"{k}: {v}" for k, v in data.get("errors").items()])
         return message
 
     def create_issue(self, request, group, form_data, **kwargs):
