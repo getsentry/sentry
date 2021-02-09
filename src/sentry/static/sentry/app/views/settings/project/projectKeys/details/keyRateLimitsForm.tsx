@@ -145,7 +145,7 @@ class KeyRateLimitsForm extends React.Component<Props> {
                   }}
                   formatMessageValue={(value: RateLimitValue) => {
                     return t(
-                      '%s events in %s',
+                      '%s errors in %s',
                       value.count,
                       formatRateLimitWindow(value.window)
                     );
