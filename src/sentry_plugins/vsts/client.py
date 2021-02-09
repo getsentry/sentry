@@ -90,27 +90,21 @@ class VstsClient(AuthApiClient):
 
     def get_commits(self, instance, repo_id, commit, limit=100):
         return self.get(
-            "https://{}/DefaultCollection/_apis/git/repositories/{}/commits".format(
-                instance, repo_id
-            ),
+            f"https://{instance}/DefaultCollection/_apis/git/repositories/{repo_id}/commits",
             params={"commit": commit, "$top": limit},
         )
 
     def get_commit_filechanges(self, instance, repo_id, commit):
 
         resp = self.get(
-            "https://{}/DefaultCollection/_apis/git/repositories/{}/commits/{}/changes".format(
-                instance, repo_id, commit
-            )
+            f"https://{instance}/DefaultCollection/_apis/git/repositories/{repo_id}/commits/{commit}/changes"
         )
         changes = resp["changes"]
         return changes
 
     def get_commit_range(self, instance, repo_id, start_sha, end_sha):
         return self.post(
-            "https://{}/DefaultCollection/_apis/git/repositories/{}/commitsBatch".format(
-                instance, repo_id
-            ),
+            f"https://{instance}/DefaultCollection/_apis/git/repositories/{repo_id}/commitsBatch",
             data={
                 "itemVersion": {"versionType": "commit", "version": start_sha},
                 "compareVersion": {"versionType": "commit", "version": end_sha},

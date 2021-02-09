@@ -144,9 +144,7 @@ def build_assigned_text(group, identity, assignee):
     else:
         raise NotImplementedError
 
-    return "*Issue assigned to {assignee_text} by <@{user_id}>*".format(
-        assignee_text=assignee_text, user_id=identity.external_id
-    )
+    return f"*Issue assigned to {assignee_text} by <@{identity.external_id}>*"
 
 
 def build_action_text(group, identity, action):

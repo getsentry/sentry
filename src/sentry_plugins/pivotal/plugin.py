@@ -133,9 +133,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
     def build_api_url(self, group, pivotal_api=None):
         project = self.get_option("project", group.project)
 
-        _url = "https://www.pivotaltracker.com/services/v5/projects/{}/{}".format(
-            project, pivotal_api
-        )
+        _url = f"https://www.pivotaltracker.com/services/v5/projects/{project}/{pivotal_api}"
 
         return _url
 

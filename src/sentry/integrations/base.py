@@ -335,11 +335,7 @@ class IntegrationInstallation:
                 msg = self.error_message_from_json(exc.json) or "unknown error"
             else:
                 msg = "unknown error"
-            return "Error Communicating with {} (HTTP {}): {}".format(
-                self.model.get_provider().name,
-                exc.code,
-                msg,
-            )
+            return f"Error Communicating with {self.model.get_provider().name} (HTTP {exc.code}): {msg}"
         else:
             return ERR_INTERNAL
 
