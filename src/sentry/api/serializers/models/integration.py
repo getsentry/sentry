@@ -3,7 +3,15 @@ from collections import defaultdict
 
 from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import ExternalIssue, GroupLink, Integration, OrganizationIntegration
+from sentry.models import (
+    ExternalIssue,
+    GroupLink,
+    Integration,
+    OrganizationIntegration,
+    ExternalTeam,
+    EXTERNAL_PROVIDERS,
+    ExternalProviders,
+)
 
 
 # converts the provider to JSON
@@ -197,3 +205,15 @@ class IntegrationIssueSerializer(IntegrationSerializer):
         data = super().serialize(obj, attrs, user)
         data["externalIssues"] = attrs.get("external_issues", [])
         return data
+
+
+@register(ExternalTeam)
+class ExternalTeamSerializer(Serializer):
+    def serialize(self, obj, attrs, user):
+        provider = EXTERNAL_PROVIDERS.get(ExternalProviders(obj.provider), "unknown")
+        return {
+            "id": obj.id,
+            "team_id": obj.team_id,
+            "provider": provider,
+            "external_id": obj.external_id,
+        }
