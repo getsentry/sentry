@@ -114,7 +114,9 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const transactionName = event.title;
     const query = decodeScalar(location.query.query, '');
 
-    const hasQuickTraceView = organization.features.includes('trace-view-quick');
+    const hasQuickTraceView =
+      organization.features.includes('trace-view-quick') &&
+      organization.features.includes('trace-view-summary');
 
     return (
       <React.Fragment>
@@ -182,7 +184,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                 </React.Fragment>
               )}
               <OpsBreakdown event={event} />
-              <EventVitals event={event} showSectionHeader />
+              <EventVitals event={event} />
               <TagsTable event={event} query={query} generateUrl={this.generateTagUrl} />
             </Layout.Side>
           )}
