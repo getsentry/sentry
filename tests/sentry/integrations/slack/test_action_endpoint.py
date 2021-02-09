@@ -412,17 +412,22 @@ class StatusActionTest(BaseEventTest):
         resp = self.client.post("/extensions/slack/action/", data={"nopayload": 0})
         assert resp.status_code == 400
 
-    @patch(
-        "sentry.integrations.slack.requests.SlackRequest._check_signing_secret", return_value=True
-    )
-    def test_sentry_docs_link_clicked(self, check_signing_secret_mock):
+    def test_sentry_docs_link_clicked(self):
         payload = {
             "team": {"id": "TXXXXXXX1", "domain": "example.com"},
             "user": {"id": self.identity.external_id, "domain": "example"},
             "type": "block_actions",
             "actions": [{"value": "sentry_docs_link_clicked"}],
         }
-        payload = {"payload": json.dumps(payload)}
 
-        resp = self.client.post("/extensions/slack/action/", data=payload)
+        payload = {"payload": json.dumps(payload)}
+        from tests.sentry.integrations.slack.test_requests import set_signature
+        from sentry import options
+        from urllib.parse import urlencode
+
+        headers = set_signature(
+            options.get("slack.signing-secret"), urlencode(payload).encode("utf-8")
+        )
+
+        resp = self.client.post("/extensions/slack/action/", data=payload, **headers)
         assert resp.status_code == 200
