@@ -1,5 +1,4 @@
 import logging
-import six
 
 from django.core.urlresolvers import reverse
 
@@ -140,7 +139,7 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
                     "user_id": user_id,
                     "repository": repo.name,
                     "provider": provider.id,
-                    "error": six.text_type(e),
+                    "error": str(e),
                     "end_sha": end_sha,
                     "start_sha": start_sha,
                 },
@@ -148,7 +147,7 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
             if isinstance(e, InvalidIdentity) and getattr(e, "identity", None):
                 handle_invalid_identity(identity=e.identity, commit_failure=True)
             elif isinstance(e, (PluginError, InvalidIdentity, IntegrationError)):
-                msg = generate_fetch_commits_error_email(release, repo, six.text_type(e))
+                msg = generate_fetch_commits_error_email(release, repo, str(e))
                 emails = get_emails_for_user_or_org(user, release.organization_id)
                 msg.send_async(to=emails)
             else:
@@ -208,9 +207,7 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
         # use deploys as a proxy for ReleaseEnvironment, because they contain
         # a timestamp in addition to release and env data
         for repository_id, commit_id in repo_queryset:
-            for environment_id, (deploy_id, date_finished) in six.iteritems(
-                last_deploy_per_environment
-            ):
+            for environment_id, (deploy_id, date_finished) in last_deploy_per_environment.items():
                 # we need to mark LatestRepoReleaseEnvironment, but only if there's not a
                 # deploy in the given environment which has completed *after*
                 # this deploy (given we might process commits out of order)

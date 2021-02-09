@@ -1,6 +1,5 @@
 import math
 import sentry_sdk
-import six
 import logging
 
 from collections import namedtuple
@@ -93,7 +92,7 @@ def zerofill(data, start, end, rollup, orderby):
         else:
             data_by_time[obj["time"]] = [obj]
 
-    for key in six.moves.xrange(start, end, rollup):
+    for key in range(start, end, rollup):
         if key in data_by_time and len(data_by_time[key]) > 0:
             rv = rv + data_by_time[key]
             data_by_time[key] = []
@@ -399,7 +398,7 @@ def create_result_key(result_row, fields, issues):
                     value = value[-1]
                 else:
                     value = ""
-            values.append(six.text_type(value))
+            values.append(str(value))
     return ",".join(values)
 
 
@@ -552,7 +551,7 @@ def top_events_timeseries(
                     "discover.top-events.timeseries.key-mismatch",
                     extra={"result_key": result_key, "top_event_keys": list(results.keys())},
                 )
-        for key, item in six.iteritems(results):
+        for key, item in results.items():
             results[key] = SnubaTSResult(
                 {
                     "data": zerofill(

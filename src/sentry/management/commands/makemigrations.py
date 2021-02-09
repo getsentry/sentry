@@ -1,6 +1,5 @@
 import os
 
-import six
 from django.conf import settings
 from django.db.migrations.loader import MigrationLoader
 from django.core.management.commands import makemigrations
@@ -33,7 +32,7 @@ class Command(makemigrations.Command):
         loader = MigrationLoader(None, ignore_no_migrations=True)
 
         latest_migration_by_app = {}
-        for migration in six.itervalues(loader.disk_migrations):
+        for migration in loader.disk_migrations.values():
             name = migration.name
             app_label = migration.app_label
             if (

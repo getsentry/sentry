@@ -1,6 +1,6 @@
 from django.core.urlresolvers import reverse
 from django.utils.html import escape, mark_safe
-from six.moves.urllib.parse import urlparse, urlunparse
+from urllib.parse import urlparse, urlunparse
 
 from sentry import options
 from sentry.models import (

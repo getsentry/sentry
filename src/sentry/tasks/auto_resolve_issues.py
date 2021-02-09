@@ -1,5 +1,3 @@
-import six
-
 from collections import defaultdict
 from datetime import datetime, timedelta
 from django.utils import timezone
@@ -30,7 +28,7 @@ def schedule_auto_resolution():
         opts_by_project[opt.project_id][opt.key] = opt.value
 
     cutoff = time() - ONE_HOUR
-    for project_id, options in six.iteritems(opts_by_project):
+    for project_id, options in opts_by_project.items():
         if not options.get("sentry:resolve_age"):
             # kill the option to avoid it coming up in the future
             ProjectOption.objects.filter(

@@ -1,6 +1,4 @@
 from datetime import datetime
-
-import six
 import itertools
 
 from sentry.api.event_search import get_filter
@@ -390,10 +388,7 @@ def _get_timestamps(query):
     rollup = query.rollup
     start = int(to_timestamp(query.start))
     end = int(to_timestamp(query.end))
-    return [
-        datetime.utcfromtimestamp(ts).isoformat() + "Z"
-        for ts in six.moves.xrange(start, end, rollup)
-    ]
+    return [datetime.utcfromtimestamp(ts).isoformat() + "Z" for ts in range(start, end, rollup)]
 
 
 def _split_rows_groupby(rows, groupby):

@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.utils.functional import cached_property
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 
 class RedisBackend:

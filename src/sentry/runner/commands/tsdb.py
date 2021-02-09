@@ -36,13 +36,11 @@ class DateTimeParamType(click.ParamType):
 @click.group()
 def tsdb():
     """Tools for interacting with the time series database."""
-    pass
 
 
 @tsdb.group()
 def query():
     """Execute queries against the time series database."""
-    pass
 
 
 @query.command()

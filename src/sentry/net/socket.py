@@ -1,10 +1,9 @@
-import six
 import ipaddress
 import socket
 import functools
 from ssl import wrap_socket
 
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 from django.conf import settings
 from django.utils.encoding import force_text
 from urllib3.util.connection import allowed_gai_family, _set_socket_options
@@ -13,7 +12,7 @@ from sentry.exceptions import RestrictedIPAddress
 
 
 DISALLOWED_IPS = frozenset(
-    ipaddress.ip_network(six.text_type(i), strict=False) for i in settings.SENTRY_DISALLOWED_IPS
+    ipaddress.ip_network(str(i), strict=False) for i in settings.SENTRY_DISALLOWED_IPS
 )
 
 

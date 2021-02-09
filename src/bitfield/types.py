@@ -1,8 +1,3 @@
-import six
-
-from six import string_types
-
-
 def cmp(a, b):
     return (a > b) - (a < b)
 
@@ -146,7 +141,7 @@ class BitHandler:
         )
 
     def __str__(self):
-        return six.text_type(self._value)
+        return str(self._value)
 
     def __int__(self):
         return self._value
@@ -239,7 +234,7 @@ class BitHandler:
             yield (k, getattr(self, k).is_set)
 
     def get_label(self, flag):
-        if isinstance(flag, string_types):
+        if isinstance(flag, str):
             flag = self._keys.index(flag)
         if isinstance(flag, Bit):
             flag = flag.number

@@ -3,7 +3,7 @@ import logging
 from django.db import transaction
 from django.core.urlresolvers import reverse
 from django.utils import timezone
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from sentry.auth.access import from_user
 from sentry.incidents.models import (

@@ -1,6 +1,5 @@
 from collections import OrderedDict
 import logging
-import six
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
@@ -34,7 +33,7 @@ def get_interface(name):
 
 def get_interfaces(data):
     result = []
-    for key, data in six.iteritems(data):
+    for key, data in data.items():
         # Skip invalid interfaces that were nulled out during normalization
         if data is None:
             continue

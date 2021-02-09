@@ -1,5 +1,4 @@
 import logging
-import six
 
 from collections import namedtuple
 from datetime import timedelta
@@ -192,9 +191,9 @@ class RuleProcessor:
     def apply(self):
         # we should only apply rules on unresolved issues
         if not self.event.group.is_unresolved():
-            return six.itervalues({})
+            return {}.values()
 
         self.grouped_futures.clear()
         for rule in self.get_rules():
             self.apply_rule(rule)
-        return six.itervalues(self.grouped_futures)
+        return self.grouped_futures.values()

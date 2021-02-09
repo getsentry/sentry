@@ -1,7 +1,6 @@
 from collections import defaultdict
 from itertools import chain
 
-import six
 
 from django.db.models import Count, Q
 
@@ -76,7 +75,7 @@ class ReleaseActivityEmail(ActivityEmail):
                         user__sentry_orgmember_set__organization=self.organization,
                     ).select_related("user")
                 }
-                self.user_ids = {u.id for u in six.itervalues(users)}
+                self.user_ids = {u.id for u in users.values()}
 
             else:
                 users = {}
@@ -165,7 +164,7 @@ class ReleaseActivityEmail(ActivityEmail):
         }
 
         # merge the two type of participants
-        return dict(chain(six.iteritems(participants_committed), six.iteritems(participants_opted)))
+        return dict(chain(participants_committed.items(), participants_opted.items()))
 
     def get_users_by_teams(self):
         if not self.user_id_team_lookup:

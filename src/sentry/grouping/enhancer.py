@@ -1,5 +1,4 @@
 import os
-import six
 import zlib
 import base64
 import msgpack
@@ -65,7 +64,7 @@ _        = space*
 
 
 FAMILIES = {"native": "N", "javascript": "J", "all": "a"}
-REVERSE_FAMILIES = {v: k for k, v in six.iteritems(FAMILIES)}
+REVERSE_FAMILIES = {v: k for k, v in FAMILIES.items()}
 
 VERSION = 1
 MATCH_KEYS = {
@@ -76,7 +75,7 @@ MATCH_KEYS = {
     "package": "P",
     "app": "a",
 }
-SHORT_MATCH_KEYS = {v: k for k, v in six.iteritems(MATCH_KEYS)}
+SHORT_MATCH_KEYS = {v: k for k, v in MATCH_KEYS.items()}
 
 ACTIONS = ["group", "app"]
 ACTION_FLAGS = {
@@ -87,7 +86,7 @@ ACTION_FLAGS = {
     (False, "up"): 4,
     (False, "down"): 5,
 }
-REVERSE_ACTION_FLAGS = {v: k for k, v in six.iteritems(ACTION_FLAGS)}
+REVERSE_ACTION_FLAGS = {v: k for k, v in ACTION_FLAGS.items()}
 
 
 MATCHERS = {
@@ -446,7 +445,7 @@ class Enhancements:
 
     @classmethod
     def loads(cls, data):
-        if isinstance(data, six.text_type):
+        if isinstance(data, str):
             data = data.encode("ascii", "ignore")
         padded = data + b"=" * (4 - (len(data) % 4))
         try:
@@ -486,7 +485,7 @@ class Rule:
         matchers = {}
         for matcher in self.matchers:
             matchers[matcher.key] = matcher.pattern
-        return {"match": matchers, "actions": [six.text_type(x) for x in self.actions]}
+        return {"match": matchers, "actions": [str(x) for x in self.actions]}
 
     def get_matching_frame_actions(self, frame_data, platform):
         """Given a frame returns all the matching actions based on this rule.
@@ -525,7 +524,7 @@ class EnhancmentsVisitor(NodeVisitor):
         rules = []
         in_header = True
         for child in children:
-            if isinstance(child, six.string_types):
+            if isinstance(child, str):
                 if in_header and child[:2] == "##":
                     changelog.append(child[2:].rstrip())
                 else:

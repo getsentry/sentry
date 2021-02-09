@@ -1,5 +1,6 @@
 import bisect
-import functools
+from functools import reduce, partial
+from itertools import zip_longest
 import logging
 import math
 import operator
@@ -28,13 +29,12 @@ from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder
 from sentry.utils.iterators import chunked
 from sentry.utils.math import mean
-from six.moves import reduce, zip_longest
 from sentry.utils.compat import map
 from sentry.utils.compat import zip
 from sentry.utils.compat import filter
 
 
-date_format = functools.partial(dateformat.format, format_string="F jS, Y")
+date_format = partial(dateformat.format, format_string="F jS, Y")
 
 logger = logging.getLogger(__name__)
 
@@ -178,7 +178,7 @@ def prepare_project_series(start__stop, project, rollup=60 * 60 * 24):
     start, stop = start__stop
     resolution, series = tsdb.get_optimal_rollup_series(start, stop, rollup)
     assert resolution == rollup, "resolution does not match requested value"
-    clean = functools.partial(clean_series, start, stop, rollup)
+    clean = partial(clean_series, start, stop, rollup)
     issue_ids = project.group_set.filter(
         status=GroupStatus.RESOLVED, resolved_at__gte=start, resolved_at__lt=stop
     ).values_list("id", flat=True)
@@ -352,19 +352,19 @@ Report, prepare_project_report, merge_reports = build(
         (
             "series",
             prepare_project_series,
-            functools.partial(merge_series, function=merge_sequences),
+            partial(merge_series, function=merge_sequences),
         ),
         (
             "aggregates",
             prepare_project_aggregates,
-            functools.partial(merge_sequences, function=safe_add),
+            partial(merge_sequences, function=safe_add),
         ),
         ("issue_summaries", prepare_project_issue_summaries, merge_sequences),
         ("usage_summary", prepare_project_usage_summary, merge_sequences),
         (
             "calendar_series",
             prepare_project_calendar_series,
-            functools.partial(merge_series, function=safe_add),
+            partial(merge_series, function=safe_add),
         ),
     ],
 )
@@ -394,7 +394,7 @@ class DummyReportBackend(ReportBackend):
 
     def fetch(self, timestamp, duration, organization, projects):
         assert all(project.organization_id == organization.id for project in projects)
-        return map(functools.partial(self.build, timestamp, duration), projects)
+        return map(partial(self.build, timestamp, duration), projects)
 
 
 class RedisReportBackend(ReportBackend):
@@ -706,7 +706,7 @@ def build_project_breakdown_series(reports):
     # (key, count) pairs.
     series = reduce(
         merge_series,
-        [series_map(functools.partial(summarize, key), report[0]) for key, report in selections],
+        [series_map(partial(summarize, key), report[0]) for key, report in selections],
     )
 
     legend = [key for key, value in reversed(selections)]
@@ -773,14 +773,14 @@ def get_percentile(values, percentile):
 
 
 def colorize(spectrum, values):
-    calculate_percentile = functools.partial(get_percentile, sorted(values))
+    calculate_percentile = partial(get_percentile, sorted(values))
 
     legend = OrderedDict()
     width = 1.0 / len(spectrum)
     for i, color in enumerate(spectrum, 1):
         legend[color] = calculate_percentile(i * width)
 
-    find_index = functools.partial(bisect.bisect_left, list(legend.values()))
+    find_index = partial(bisect.bisect_left, list(legend.values()))
 
     results = []
     for value in values:

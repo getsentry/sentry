@@ -1,4 +1,3 @@
-import six
 import time
 
 from django.http import HttpResponseRedirect, HttpResponse
@@ -27,7 +26,7 @@ class TwoFactorAuthView(BaseView):
             if not interface.is_backup_interface:
                 rv.set_cookie(
                     COOKIE_NAME,
-                    six.text_type(interface.type).encode("utf-8"),
+                    str(interface.type).encode("utf-8"),
                     max_age=COOKIE_MAX_AGE,
                     path="/",
                 )
@@ -57,7 +56,7 @@ class TwoFactorAuthView(BaseView):
         interface_type = request.COOKIES.get(COOKIE_NAME)
         if interface_type:
             for interface in interfaces:
-                if six.text_type(interface.type) == interface_type:
+                if str(interface.type) == interface_type:
                     return interface
 
         # Fallback is to go the highest ranked as default.  This will be

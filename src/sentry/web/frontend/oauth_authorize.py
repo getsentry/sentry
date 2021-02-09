@@ -1,11 +1,10 @@
 import logging
-import six
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from django.utils.safestring import mark_safe
-from six.moves.urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from sentry.models import ApiApplication, ApiApplicationStatus, ApiAuthorization, ApiGrant, ApiToken
 from sentry.web.frontend.auth_login import AuthLoginView
@@ -24,13 +23,13 @@ class OAuthAuthorizeView(AuthLoginView):
             return self.redirect(
                 "{}#{}".format(
                     redirect_uri,
-                    urlencode([(k, v) for k, v in six.iteritems(params) if v is not None]),
+                    urlencode([(k, v) for k, v in params.items() if v is not None]),
                 )
             )
 
         parts = list(urlparse(redirect_uri))
         query = parse_qsl(parts[4])
-        for key, value in six.iteritems(params):
+        for key, value in params.items():
             if value is not None:
                 query.append((key, value))
         parts[4] = urlencode(query)

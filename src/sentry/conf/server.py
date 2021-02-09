@@ -16,7 +16,7 @@ from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
 
 from datetime import timedelta
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 
 def gettext_noop(s):

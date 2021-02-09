@@ -4,7 +4,6 @@ import sys
 from collections import defaultdict
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models import Q
-from six.moves import input
 
 from sentry.models import Organization, OrganizationMember, User
 from functools import reduce

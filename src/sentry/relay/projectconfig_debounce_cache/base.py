@@ -35,4 +35,3 @@ class ProjectConfigDebounceCache(Service):
         Mark a task done such that `check_is_debounced` starts emitting False
         for the given parameters.
         """
-        pass

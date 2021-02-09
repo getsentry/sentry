@@ -1,5 +1,3 @@
-import six
-
 from collections import OrderedDict
 
 
@@ -15,7 +13,7 @@ class Role:
         self.is_global = bool(is_global)
 
     def __str__(self):
-        return six.text_type(self.name)
+        return str(self.name)
 
     def __repr__(self):
         return "<Role: {}>".format(self.id)
@@ -43,7 +41,7 @@ class RoleManager:
         self._top_dog = role_list[-1]
 
     def __iter__(self):
-        return six.itervalues(self._roles)
+        return self._roles.values()
 
     def can_manage(self, role, other):
         return self.get(role).priority >= self.get(other).priority

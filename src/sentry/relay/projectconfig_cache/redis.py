@@ -1,5 +1,3 @@
-import six
-
 from sentry.relay.projectconfig_cache.base import ProjectConfigCache
 from sentry.utils import json
 from sentry.utils.redis import get_dynamic_cluster_from_options, validate_dynamic_cluster
@@ -28,7 +26,7 @@ class RedisProjectConfigCache(ProjectConfigCache):
             return self.cluster.get_local_client_for_key(routing_key)
 
     def set_many(self, configs):
-        for project_id, config in six.iteritems(configs):
+        for project_id, config in configs.items():
             # XXX(markus): Figure out how to do pipelining here. We may have
             # multiple routing keys (-> multiple clients).
             #

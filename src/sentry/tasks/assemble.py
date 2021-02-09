@@ -2,7 +2,6 @@ from os import path
 
 import hashlib
 import logging
-import six
 
 from django.db import IntegrityError, transaction
 
@@ -51,9 +50,9 @@ def _get_cache_key(task, scope, checksum):
         % hashlib.sha1(
             b"%s|%s|%s"
             % (
-                six.text_type(scope).encode("ascii"),
+                str(scope).encode("ascii"),
                 checksum.encode("ascii"),
-                six.text_type(task).encode("utf-8"),
+                str(task).encode("utf-8"),
             )
         ).hexdigest()
     )
@@ -239,7 +238,7 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
             dist = release.add_dist(dist_name)
 
         artifacts = manifest.get("files", {})
-        for rel_path, artifact in six.iteritems(artifacts):
+        for rel_path, artifact in artifacts.items():
             artifact_url = artifact.get("url", rel_path)
             artifact_basename = artifact_url.rsplit("/", 1)[-1]
 
@@ -280,7 +279,7 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
 
     except AssembleArtifactsError as e:
         set_assemble_status(
-            AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.ERROR, detail=six.text_type(e)
+            AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.ERROR, detail=str(e)
         )
     except BaseException:
         logger.error("failed to assemble release bundle", exc_info=True)

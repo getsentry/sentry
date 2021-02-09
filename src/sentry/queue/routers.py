@@ -1,5 +1,4 @@
 import itertools
-import six
 
 from celery import current_app
 
@@ -24,7 +23,7 @@ class SplitQueueRouter:
 
     def route_for_task(self, task, *args, **kwargs):
         if task in COUNTER_TASKS:
-            return {"queue": six.next(self.counter_queues)}
+            return {"queue": next(self.counter_queues)}
         if task in TRIGGER_TASKS:
-            return {"queue": six.next(self.trigger_queues)}
+            return {"queue": next(self.trigger_queues)}
         return None

@@ -1,5 +1,3 @@
-import six
-
 from django.forms.widgets import TextInput, Widget
 from django.forms.utils import flatatt
 from django.forms import Field, CharField, EmailField, TypedChoiceField, ValidationError
@@ -37,7 +35,7 @@ class UserField(CharField):
                 attrs = {}
             if "placeholder" not in attrs:
                 attrs["placeholder"] = "username"
-            if isinstance(value, six.integer_types):
+            if isinstance(value, int):
                 value = User.objects.get(id=value).username
             return super(UserField.widget, self).render(name, value, attrs)
 

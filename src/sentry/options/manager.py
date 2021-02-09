@@ -1,4 +1,3 @@
-import six
 import sys
 import logging
 
@@ -211,7 +210,7 @@ class OptionsManager:
         # Guess type based on the default value
         if type is None:
             # the default value would be equivalent to '' if no type / default
-            # is specified and we assume six.text_type for safety
+            # is specified and we assume str for safety
             if default_value is None:
                 default_value = ""
 
@@ -253,7 +252,7 @@ class OptionsManager:
             raise UnknownOption(key)
 
     def validate(self, options, warn=False):
-        for k, v in six.iteritems(options):
+        for k, v in options.items():
             try:
                 self.validate_option(k, v)
             except UnknownOption as e:
@@ -271,7 +270,7 @@ class OptionsManager:
         """
         Return an iterator for all keys in the registry.
         """
-        return six.itervalues(self.registry)
+        return self.registry.values()
 
     def filter(self, flag=None):
         """

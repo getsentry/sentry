@@ -1,6 +1,3 @@
-import six
-
-
 def sort_by_severity(problems):
     """\
     Sort an iterable of ``Problem``s by their severity, from most severe to least severe.
@@ -27,7 +24,7 @@ class Problem:
 
     def __init__(self, message, severity=SEVERITY_CRITICAL, url=None):
         assert severity in self.SEVERITY_LEVELS
-        self.message = six.text_type(message)
+        self.message = str(message)
         self.severity = severity
         self.url = url
 

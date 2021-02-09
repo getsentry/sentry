@@ -1,4 +1,3 @@
-from six import string_types
 import zlib
 
 from sentry.utils import metrics
@@ -37,7 +36,7 @@ class CachedAttachment:
         self.name = name
         self.content_type = content_type
         self.type = type or "event.attachment"
-        assert isinstance(self.type, string_types), self.type
+        assert isinstance(self.type, str), self.type
         self.rate_limited = rate_limited
 
         if size is not None:

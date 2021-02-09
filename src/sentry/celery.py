@@ -24,7 +24,7 @@ def patch_thread_ident():
         from django.db.backends import BaseDatabaseWrapper, DatabaseError
 
         if "validate_thread_sharing" in BaseDatabaseWrapper.__dict__:
-            from six.moves import _thread as thread
+            import _thread as thread
 
             _get_ident = thread.get_ident
 

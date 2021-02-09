@@ -177,7 +177,6 @@ class IssueTrackingPlugin2(Plugin):
 
         Returns ``{'id': '1', 'title': issue_title}``
         """
-        pass
 
     def has_auth_configured(self, **kwargs):
         if not self.auth_provider:

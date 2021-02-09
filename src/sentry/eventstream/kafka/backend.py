@@ -1,5 +1,4 @@
 import logging
-import six
 
 from confluent_kafka import OFFSET_INVALID, TopicPartition
 from django.conf import settings
@@ -50,7 +49,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         self.producer.poll(0.0)
 
         assert isinstance(extra_data, tuple)
-        key = six.text_type(project_id)
+        key = str(project_id)
 
         try:
             self.producer.produce(

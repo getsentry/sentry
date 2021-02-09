@@ -1,6 +1,6 @@
 __all__ = ("Csp", "Hpkp", "ExpectCT", "ExpectStaple")
 
-from six.moves.urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urlsplit, urlunsplit
 
 from sentry.interfaces.base import Interface
 from sentry.utils import json
