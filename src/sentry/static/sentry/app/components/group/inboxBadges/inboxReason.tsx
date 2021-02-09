@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import DateTime from 'app/components/dateTime';
 import Tag from 'app/components/tag';
-import TimeSince from 'app/components/timeSince';
+import TimeSince, {getRelativeDate} from 'app/components/timeSince';
 import {t, tct} from 'app/locale';
 import {InboxDetails} from 'app/types';
 import {getDuration} from 'app/utils/formatters';
@@ -81,7 +81,7 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
   function getReasonDetails(): {
     tagType: React.ComponentProps<typeof Tag>['type'];
     reasonBadgeText: string;
-    tooltipText?: React.ReactNode;
+    tooltipText?: string;
     tooltipDescription?: string | React.ReactElement;
   } {
     switch (reason) {
@@ -91,8 +91,8 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
           reasonBadgeText: t('Unignored'),
           tooltipText:
             dateAdded &&
-            tct('Unignored [relative]', {
-              relative: <TimeSince date={dateAdded} shorten disabledAbsoluteTooltip />,
+            t('Unignored %(relative)s', {
+              relative: getRelativeDate(dateAdded, 'ago', true),
             }),
           tooltipDescription: getTooltipDescription(),
         };
@@ -102,8 +102,8 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
           reasonBadgeText: t('Regression'),
           tooltipText:
             dateAdded &&
-            tct('Regressed [relative]', {
-              relative: <TimeSince date={dateAdded} shorten disabledAbsoluteTooltip />,
+            t('Regressed %(relative)s', {
+              relative: getRelativeDate(dateAdded, 'ago', true),
             }),
           // TODO: Add tooltip description for regression move when resolver is added to reason
           // Resolved by {full_name} {time} ago.
@@ -115,9 +115,7 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
           reasonBadgeText: t('Manual'),
           tooltipText:
             dateAdded &&
-            tct('Moved [relative]', {
-              relative: <TimeSince date={dateAdded} shorten disabledAbsoluteTooltip />,
-            }),
+            t('Moved %(relative)s', {relative: getRelativeDate(dateAdded, 'ago', true)}),
           // TODO: IF manual moves stay then add tooltip description for manual move
           // Moved to inbox by {full_name}.
         };
@@ -127,8 +125,8 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
           reasonBadgeText: t('Reprocessed'),
           tooltipText:
             dateAdded &&
-            tct('Reprocessed [relative]', {
-              relative: <TimeSince date={dateAdded} shorten disabledAbsoluteTooltip />,
+            t('Reprocessed %(relative)s', {
+              relative: getRelativeDate(dateAdded, 'ago', true),
             }),
         };
       case GroupInboxReason.NEW:
@@ -138,8 +136,8 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
           reasonBadgeText: t('New Issue'),
           tooltipText:
             dateAdded &&
-            tct('Created [relative]', {
-              relative: <TimeSince date={dateAdded} shorten disabledAbsoluteTooltip />,
+            t('Created %(relative)s', {
+              relative: getRelativeDate(dateAdded, 'ago', true),
             }),
         };
     }
@@ -160,10 +158,10 @@ function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
   return (
     <StyledTag type={tagType} tooltipText={tooltip} fontSize={fontSize}>
       {reasonBadgeText}
-      {showDateAdded && dateAdded && (
+      {showDateAdded && inbox.date_added && (
         <React.Fragment>
           <Separator type={tagType ?? 'default'}>{' | '}</Separator>
-          <TimeSince date={dateAdded} suffix="" shorten disabledAbsoluteTooltip />
+          <TimeSince date={inbox.date_added} suffix="" shorten disabledAbsoluteTooltip />
         </React.Fragment>
       )}
     </StyledTag>
