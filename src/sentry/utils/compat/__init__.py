@@ -1,18 +1,16 @@
-from six.moves import map as _map
-from six.moves import filter as _filter
-from six.moves import zip as _zip
-
-
 def map(a, b, *c):
-    return list(_map(a, b, *c))
+    # TODO(joshuarli): Remove all this.
+    return list(map(a, b, *c))
 
 
 def filter(a, b):
-    return list(_filter(a, b))
+    # TODO(joshuarli): Remove all this.
+    return list(filter(a, b))
 
 
 def zip(*a):
-    return list(_zip(*a))
+    # TODO(joshuarli): Remove all this.
+    return list(zip(*a))
 
 
 from binascii import crc32 as _crc32
