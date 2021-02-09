@@ -18,15 +18,59 @@ query_big_sur() {
 }
 
 get_shell_startup_script() {
+  _startup_script=''
   if [ -n "$SHELL" ]; then
     case "$SHELL" in
-      /bin/bash)
-        echo "${HOME}/.bash_profile"
+      */bash)
+        _startup_script="${HOME}/.bash_profile"
         ;;
-      /bin/zsh)
-        echo "${HOME}/.zshrc"
+      */zsh)
+        _startup_script="${HOME}/.zshrc"
         ;;
+      */fish)
+        _startup_script="${HOME}/.config/fish/config.fish"
+        ;;
+      *)
+        echo "$SHELL is currently not supported."
+        exit 1
     esac
+  else
+    echo "The environment variable \$SHELL needs to be defined."
+    exit 1
+  fi
+}
+
+_append_to_startup_script() {
+  if [ -n "$SHELL" ]; then
+    case "$SHELL" in
+      */bash)
+        # shellcheck disable=SC2016
+        echo -e '\nif command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi' >> "${1}"
+        ;;
+      */zsh)
+        # shellcheck disable=SC2016
+        echo -e '\nif command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi' >> "${1}"
+        ;;
+      */fish)
+        echo -e '\n\n# pyenv init\nif command -v pyenv 1>/dev/null 2>&1\n  pyenv init - | source\nend' >> "$1"
+    esac
+
+    echo "  --> Tail of ${1}"
+    tail -n 3 "${1}"
+  fi
+}
+
+append_to_config() {
+  get_shell_startup_script
+  if [ -n "$_startup_script" ]; then
+    echo "Adding pyenv init (if missing) to ${_startup_script}..."
+    # shellcheck disable=SC2016
+    if ! grep -qF 'eval "$(pyenv init -)"' "${_startup_script}"; then
+      # pyenv init - is needed to include the pyenv shims in your PATH
+      # The first \n is very important since on Github workers the output was being appended to
+      # the last line rather than on a new line. I never figured out why
+      _append_to_startup_script "${_startup_script}"
+    fi
   fi
 }
 
@@ -56,17 +100,7 @@ setup_pyenv() {
     exit 1
   fi
 
-  _startup_script=$(get_shell_startup_script)
-  echo "Adding pyenv init (if missing) to ${_startup_script}..."
-  if [ -n "$_startup_script" ]; then
-    # shellcheck disable=SC2016
-    if ! grep -qF 'eval "$(pyenv init -)"' "${_startup_script}"; then
-      # pyenv init - is needed to include the pyenv shims in your PATH
-      echo -e '\nif command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi' >> "${_startup_script}"
-      echo "  --> Tail of ${_startup_script}"
-      tail "${_startup_script}"
-    fi
-  fi
+  append_to_config
 
   # If the script is called with the "dot space right" approach (. ./scripts/pyenv_setup.sh),
   # the effects of this will be persistent outside of this script
@@ -74,9 +108,7 @@ setup_pyenv() {
   source "${_startup_script}"
   # The Python version installed via pyenv does not come with wheel pre-installed
   # Installing wheel will speed up installation of Python dependencies
-  pip install wheel
-  # Make sure we have a somewhat modern pip package
-  pip install --upgrade "pip>=20.0.2"
+  PIP_DISABLE_PIP_VERSION_CHECK=on pip install wheel
 }
 
 setup_pyenv

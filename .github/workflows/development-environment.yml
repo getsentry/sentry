@@ -19,8 +19,6 @@ jobs:
         os: [ macos-latest ]
     env:
       PIP_DISABLE_PIP_VERSION_CHECK: on
-      # Make the environment more similar to what Mac defaults to
-      SHELL: /bin/zsh
 
     steps:
       - uses: actions/checkout@v2
@@ -31,7 +29,6 @@ jobs:
           echo "HOMEBREW_CACHE=`brew --cache`" >> $GITHUB_ENV
           echo "VOLTA_HOME=$HOME/.volta" >> $GITHUB_ENV
           echo "PATH=$HOME/.volta/bin:$PATH" >> $GITHUB_ENV
-          touch "$HOME/.zshrc"
 
       - name: Cache (brew)
         uses: actions/cache@v2
@@ -58,7 +55,7 @@ jobs:
         # XXX: Can we cache the installed Python environments?
         run: |
           make setup-pyenv
-          source "$HOME/.zshrc"
+          source "$HOME/.bashrc"
           [[ $(python -V | sed s/Python\ //g) != $(cat .python-version) ]] && echo "Wrong Python version: $(python -V)" && exit 1
           echo "::set-output name=python-version::$(python -V  | sed s/Python\ //g)"
 
@@ -92,7 +89,7 @@ jobs:
         # XXX: I don't understand why we need to source again when we already do in a previous step
         run: |
           python -V
-          source "$HOME/.zshrc"
+          source "$HOME/.bashrc"
           [[ $(python -V | sed s/Python\ //g) != $(cat .python-version) ]] && echo "Wrong Python version: $(python -V)" && exit 1
           python -m venv .venv
           source .venv/bin/activate
