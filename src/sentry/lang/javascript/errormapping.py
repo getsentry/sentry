@@ -5,7 +5,7 @@ import random
 
 from django.conf import settings
 from django.core.cache import cache
-from six.moves.urllib.parse import parse_qsl
+from urllib.parse import parse_qsl
 
 from sentry import http
 from sentry.utils import json

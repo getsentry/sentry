@@ -11,7 +11,7 @@ import zlib
 from django.conf import settings
 from os.path import splitext
 from requests.utils import get_encoding_from_headers
-from six.moves.urllib.parse import urlsplit
+from urllib.parse import urlsplit
 from symbolic import SourceMapView
 import sentry_sdk
 

@@ -8,7 +8,7 @@ from django.core.exceptions import SuspiciousOperation
 from collections import namedtuple
 from django.conf import settings
 from requests.exceptions import RequestException, Timeout, ReadTimeout
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 from sentry.models import EventError
 from sentry.exceptions import RestrictedIPAddress

@@ -6,7 +6,7 @@ import re
 
 from django.utils.translation import ugettext as _
 from django.utils.http import urlencode
-from six.moves.urllib.parse import parse_qsl
+from urllib.parse import parse_qsl
 
 from sentry.interfaces.base import Interface
 from sentry.utils.json import prune_empty_keys

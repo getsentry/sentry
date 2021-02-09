@@ -8,7 +8,7 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 
 from requests.exceptions import RequestException
-from six.moves.urllib.parse import urljoin
+from urllib.parse import urljoin
 
 import sentry_sdk
 
