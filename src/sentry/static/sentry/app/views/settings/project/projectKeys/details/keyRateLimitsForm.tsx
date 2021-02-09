@@ -109,10 +109,12 @@ class KeyRateLimitsForm extends React.Component<Props> {
               <PanelBody>
                 <PanelAlert type="info" icon={<IconFlag size="md" />}>
                   {t(
-                    `Rate limits provide a flexible way to manage your event
+                    `Rate limits provide a flexible way to manage your error
                       volume. If you have a noisy project or environment you
                       can configure a rate limit for this key to reduce the
-                      number of events processed.`
+                      number of errors processed. To manage your transaction
+                      volume, we recommend adjusting your sample rate in your
+                      SDK configuration.`
                   )}
                 </PanelAlert>
                 {!hasFeature &&
