@@ -1,4 +1,3 @@
-import copy
 import inspect
 from threading import local
 import re
@@ -130,7 +129,9 @@ def call_many_elements(
     *args: Any,
     **kwargs: Any,
 ) -> Iterator[_R]:
-    orig_len = len(getattr(_next_elem, "values", ()))
+    orig_values = getattr(_next_elem, "values", {})
+    _next_elem.values = {}
+
     rv = f(*args, **kwargs)
 
     if inspect.isgenerator(rv):
@@ -140,7 +141,7 @@ def call_many_elements(
 
         counter = 0
 
-        while len(getattr(_next_elem, "values", ())) > orig_len:
+        while _next_elem.values:
             try:
                 yield f(*args, **kwargs)
             except StopParametrization:
@@ -150,6 +151,8 @@ def call_many_elements(
 
             if counter > 1000:
                 raise RuntimeError("Infinite loop")
+
+    _next_elem.values = orig_values
 
 
 def call_single_element(
@@ -179,13 +182,7 @@ def call_single_element(
 
                 return stored_items.pop()
 
-    args_bak = copy.deepcopy(args)
-    kwargs_bak = copy.deepcopy(kwargs)
-
     items = f(*args, **kwargs)
-
-    # assert args_bak == args
-    # assert kwargs_bak == kwargs
 
     if inspect.isgenerator(items):
         items = list(items)
@@ -197,7 +194,7 @@ def call_single_element(
 
         items.reverse()
 
-        _next_elem.values.setdefault(f.__name__, []).append((args_bak, kwargs_bak, items))
+        _next_elem.values.setdefault(f.__name__, []).append((args, kwargs, items))
 
         return items.pop()
     else:
