@@ -178,3 +178,6 @@ class GroupingComponent:
 
     def __repr__(self):
         return f"GroupingComponent({self.id!r}, hint={self.hint!r}, contributes={self.contributes!r}, values={self.values!r})"
+
+    def is_empty(self):
+        return len(self.values) == 0

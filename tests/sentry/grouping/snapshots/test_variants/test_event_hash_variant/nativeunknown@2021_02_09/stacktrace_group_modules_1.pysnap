@@ -1,0 +1,64 @@
+---
+created: '2021-02-09T12:19:24.674168Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace
+        frame (non app frame)
+          package*
+            "foo.so"
+        frame (non app frame)
+          package*
+            "foo.so"
+        frame (non app frame)
+          package*
+            "foo.so"
+        frame (non app frame)
+          package*
+            "bar.so"
+        frame (non app frame)
+          package*
+            "bar.so"
+        frame (non app frame)
+          function*
+            "do_something"
+        frame (non app frame)
+          package*
+            "bar.so"
+        frame (non app frame)
+          package*
+            "foo.so"
+--------------------------------------------------------------------------
+system:
+  hash: "875c31c687f6f680af58f2be727ecb0e"
+  component:
+    system*
+      stacktrace*
+        frame*
+          package*
+            "foo.so"
+        frame (ignored due to recursion)
+          package*
+            "foo.so"
+        frame (ignored due to recursion)
+          package*
+            "foo.so"
+        frame*
+          package*
+            "bar.so"
+        frame (ignored due to recursion)
+          package*
+            "bar.so"
+        frame*
+          function*
+            "do_something"
+        frame*
+          package*
+            "bar.so"
+        frame*
+          package*
+            "foo.so"

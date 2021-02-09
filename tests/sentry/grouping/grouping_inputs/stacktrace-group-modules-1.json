@@ -1,0 +1,40 @@
+{
+  "platform": "native",
+  "stacktrace": {
+    "frames": [
+      {
+        "package": "/foo/bar/foo.so",
+        "instruction_addr": "0x1"
+      },
+      {
+        "package": "/foo/bar/foo.so",
+        "instruction_addr": "0x2"
+      },
+      {
+        "package": "/foo/bar/foo.so",
+        "instruction_addr": "0x3"
+      },
+      {
+        "package": "/foo/bar/bar.so",
+        "instruction_addr": "0x4"
+      },
+      {
+        "package": "/foo/bar/bar.so",
+        "instruction_addr": "0x5"
+      },
+      {
+        "package": "/foo/bar/bar.so",
+        "function": "do_something",
+        "instruction_addr": "0x6"
+      },
+      {
+        "package": "/foo/bar/bar.so",
+        "instruction_addr": "0x7"
+      },
+      {
+        "package": "/foo/bar/foo.so",
+        "instruction_addr": "0x8"
+      }
+    ]
+  }
+}

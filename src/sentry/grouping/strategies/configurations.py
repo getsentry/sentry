@@ -56,6 +56,9 @@ BASE_STRATEGY = create_strategy_configuration(
         # considered for hierarchical grouping (see HIERARCHICAL_VARIANTS
         # constant)
         "hierarchical_grouping": False,
+        # Use the `package` component of a frame if no other information is
+        # available.
+        "use_package_fallback": False,
     },
 )
 
@@ -192,4 +195,19 @@ register_strategy_config(
         * Initial version
     """,
     hidden=True,
+)
+
+
+# Experimental strategy for grouping unknown native frames by package
+register_strategy_config(
+    id="nativeunknown:2021-02-09",
+    base="newstyle:2019-10-29",
+    risk=RISK_LEVEL_HIGH,
+    changelog="""
+        * Initial version
+    """,
+    hidden=True,
+    initial_context={
+        "use_package_fallback": True,
+    },
 )

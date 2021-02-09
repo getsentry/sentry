@@ -63,6 +63,17 @@ def is_recursion_v1(frame1, frame2):
     return True
 
 
+def get_package_component(package, platform):
+    if package is None or platform != "native":
+        return GroupingComponent(id="package")
+
+    package = _basename_re.split(package)[-1].lower()
+    package_component = GroupingComponent(
+        id="package", values=[package], similarity_encoder=ident_encoder
+    )
+    return package_component
+
+
 def get_filename_component(abs_path, filename, platform, allow_file_origin=False):
     """Attempt to normalize filenames by detecting special filenames and by
     using the basename only.
@@ -275,6 +286,10 @@ def frame(frame, event, context, **meta):
     values = [module_component, filename_component, function_component]
     if context_line_component is not None:
         values.append(context_line_component)
+
+    if context["use_package_fallback"] and all(component.is_empty() for component in values):
+        package_component = get_package_component(package=frame.package, platform=platform)
+        values.append(package_component)
 
     rv = GroupingComponent(id="frame", values=values)
 

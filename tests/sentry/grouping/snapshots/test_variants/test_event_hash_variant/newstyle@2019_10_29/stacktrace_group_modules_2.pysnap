@@ -1,0 +1,30 @@
+---
+created: '2021-02-09T12:19:15.197958Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace
+        frame (non app frame)
+        frame (non app frame)
+        frame (non app frame)
+          function*
+            "do_something"
+        frame (non app frame)
+        frame (non app frame)
+--------------------------------------------------------------------------
+system:
+  hash: "d66c268854f0e9a3bb23fad03cb69796"
+  component:
+    system*
+      stacktrace*
+        frame
+        frame (ignored due to recursion)
+        frame*
+          function*
+            "do_something"
+        frame
+        frame

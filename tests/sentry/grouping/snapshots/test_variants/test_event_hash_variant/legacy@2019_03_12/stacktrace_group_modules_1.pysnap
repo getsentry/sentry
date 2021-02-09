@@ -1,0 +1,39 @@
+---
+created: '2021-02-09T12:19:08.406694Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app
+      stacktrace
+        frame (frame considered in-app because no frame is in-app)
+        frame (ignored due to recursion)
+        frame (ignored due to recursion)
+        frame (frame considered in-app because no frame is in-app)
+        frame (ignored due to recursion)
+        frame (frame considered in-app because no frame is in-app)
+          function (function name is not used if module or filename are available)
+            "do_something"
+        frame (frame considered in-app because no frame is in-app)
+        frame (frame considered in-app because no frame is in-app)
+--------------------------------------------------------------------------
+fallback:
+  hash: "d41d8cd98f00b204e9800998ecf8427e"
+--------------------------------------------------------------------------
+system:
+  hash: null
+  component:
+    system
+      stacktrace
+        frame
+        frame (ignored due to recursion)
+        frame (ignored due to recursion)
+        frame
+        frame (ignored due to recursion)
+        frame
+          function (function name is not used if module or filename are available)
+            "do_something"
+        frame
+        frame
