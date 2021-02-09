@@ -98,12 +98,12 @@ PREBUILT_DASHBOARDS = {
                     "queries": [
                         {
                             "name": "Known Users",
-                            "conditions": "has:user.email",
+                            "conditions": "has:user.email !event.type:transaction",
                             "fields": ["count_unique(user.email)"],
                         },
                         {
                             "name": "Anonymous Users",
-                            "conditions": "!has:user.email",
+                            "conditions": "!has:user.email !event.type:transaction",
                             "fields": ["count()"],
                         },
                     ],
@@ -131,7 +131,7 @@ PREBUILT_DASHBOARDS = {
                     "queries": [
                         {
                             "name": "Error counts",
-                            "conditions": "event.type:error has:geo.country_code",
+                            "conditions": "!event.type:transaction has:geo.country_code",
                             "fields": ["count()"],
                         }
                     ],
