@@ -55,7 +55,7 @@ class IntegrationRepositoryProvider:
                     },
                 )
             # update from params
-            for field_name, field_value in six.iteritems(repo_update_params):
+            for field_name, field_value in repo_update_params.items():
                 setattr(repo, field_name, field_value)
             # also update the status if it was in a bad state
             repo.status = ObjectStatus.VISIBLE

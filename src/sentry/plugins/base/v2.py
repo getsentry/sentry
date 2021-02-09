@@ -205,7 +205,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         >>> plugin.get_conf_version(project)
         """
         options = self.get_conf_options(project)
-        return md5_text("&".join(sorted("%s=%s" % o for o in six.iteritems(options)))).hexdigest()[
+        return md5_text("&".join(sorted("%s=%s" % o for o in options.items()))).hexdigest()[
             :3
         ]
 

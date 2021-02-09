@@ -36,7 +36,7 @@ class ConfigValidator:
         initial = self._initial
         cleaned = self.result
         errors = self.errors
-        for field in six.itervalues(self.config):
+        for field in self.config.values():
             key = field["name"]
             value = data.get(key, initial.get(key))
 

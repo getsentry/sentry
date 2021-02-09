@@ -28,7 +28,7 @@ class IssueBasicMixin:
 
     def get_group_body(self, group, event, **kwargs):
         result = []
-        for interface in six.itervalues(event.interfaces):
+        for interface in event.interfaces.values():
             output = safe_execute(interface.to_string, event, _with_transaction=False)
             if output:
                 result.append(output)
@@ -117,7 +117,7 @@ class IssueBasicMixin:
         """
         persisted_fields = self.get_persisted_default_config_fields()
         if persisted_fields:
-            project_defaults = {k: v for k, v in six.iteritems(data) if k in persisted_fields}
+            project_defaults = {k: v for k, v in data.items() if k in persisted_fields}
             self.org_integration.config.setdefault("project_issue_defaults", {}).setdefault(
                 str(project.id), {}
             ).update(project_defaults)
@@ -125,7 +125,7 @@ class IssueBasicMixin:
 
         user_persisted_fields = self.get_persisted_user_default_config_fields()
         if user_persisted_fields:
-            user_defaults = {k: v for k, v in six.iteritems(data) if k in user_persisted_fields}
+            user_defaults = {k: v for k, v in data.items() if k in user_persisted_fields}
             user_option_key = dict(user=user, key="issue:defaults", project=project)
             new_user_defaults = UserOption.objects.get_value(default={}, **user_option_key)
             new_user_defaults.setdefault(self.org_integration.integration.provider, {}).update(

@@ -44,7 +44,7 @@ def unfurl_issues(integration, url_by_issue_id, event_id_by_url=None):
         return {}
 
     out = {}
-    for issue_id, url in six.iteritems(url_by_issue_id):
+    for issue_id, url in url_by_issue_id.items():
         if issue_id in group_by_id:
             group = group_by_id[issue_id]
             # lookup the event by the id
@@ -61,7 +61,7 @@ def unfurl_incidents(integration, incident_map, event_id_by_url=None):
     # Since we don't have real ids here, we have to also extract the org slug
     # from the url so that we can make sure the identifiers correspond to the
     # correct organization.
-    for identifier, url in six.iteritems(incident_map):
+    for identifier, url in incident_map.items():
         org_slug = _org_slug_regexp.match(url).group(1)
         filter_query |= Q(identifier=identifier, organization__slug=org_slug)
 
@@ -79,7 +79,7 @@ def unfurl_incidents(integration, incident_map, event_id_by_url=None):
 
     return {
         v: build_incident_attachment(results[k])
-        for k, v in six.iteritems(incident_map)
+        for k, v in incident_map.items()
         if k in results
     }
 

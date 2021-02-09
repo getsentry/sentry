@@ -79,7 +79,7 @@ class VictorOpsPlugin(CorePluginMixin, NotifyPlugin):
             return ENHANCED_PRIVACY_BODY
 
         interface_list = []
-        for interface in six.itervalues(event.interfaces):
+        for interface in event.interfaces.values():
             body = interface.to_string(event)
             if not body:
                 continue
