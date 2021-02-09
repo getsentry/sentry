@@ -4,6 +4,7 @@ import {Location} from 'history';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import NotFound from 'app/components/errors/notFound';
 import {BorderlessEventEntries} from 'app/components/events/eventEntries';
 import EventMetadata from 'app/components/events/eventMetadata';
@@ -11,10 +12,12 @@ import EventVitals from 'app/components/events/eventVitals';
 import * as SpanEntryContext from 'app/components/events/interfaces/spans/context';
 import OpsBreakdown from 'app/components/events/opsBreakdown';
 import RootSpanStatus from 'app/components/events/rootSpanStatus';
+import FileSize from 'app/components/fileSize';
 import * as Layout from 'app/components/layouts/thirds';
 import LoadingError from 'app/components/loadingError';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import TagsTable from 'app/components/tagsTable';
+import {IconOpen} from 'app/icons';
 import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {Event, EventTag} from 'app/types/event';
@@ -118,6 +121,8 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
       organization.features.includes('trace-view-quick') &&
       organization.features.includes('trace-view-summary');
 
+    const eventJsonUrl = `/api/0/projects/${organization.slug}/${this.projectId}/events/${event.eventID}/json/`;
+
     return (
       <React.Fragment>
         <Layout.Header>
@@ -131,9 +136,16 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
             <Layout.Title data-test-id="event-header">{event.title}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
-            <Button onClick={this.toggleSidebar}>
-              {isSidebarVisible ? 'Hide Details' : 'Show Details'}
-            </Button>
+            <ButtonBar gap={1}>
+              <Button onClick={this.toggleSidebar}>
+                {isSidebarVisible ? 'Hide Details' : 'Show Details'}
+              </Button>
+              {hasQuickTraceView && (
+                <Button icon={<IconOpen />} href={eventJsonUrl} external>
+                  {t('JSON')} (<FileSize bytes={event.size} />)
+                </Button>
+              )}
+            </ButtonBar>
           </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>
