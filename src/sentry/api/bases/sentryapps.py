@@ -113,22 +113,18 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
         try:
             return Organization.objects.get(slug=organization_slug)
         except Organization.DoesNotExist:
-            error_message = """
-                Organization '{}' does not exist.
-            """.format(
-                organization_slug
-            )
+            error_message = f"""
+                Organization '{organization_slug}' does not exist.
+            """
             raise ValidationError({"organization": to_single_line_str(error_message)})
 
     def _get_organization_for_user(self, user, organization_slug):
         try:
             return user.get_orgs().get(slug=organization_slug)
         except Organization.DoesNotExist:
-            error_message = """
-                User does not belong to the '{}' organization.
-            """.format(
-                organization_slug
-            )
+            error_message = f"""
+                User does not belong to the '{organization_slug}' organization.
+            """
             raise PermissionDenied(to_single_line_str(error_message))
 
     def _get_organization(self, request):

@@ -35,7 +35,7 @@ class TeamGroupsNewEndpoint(TeamEndpoint, EnvironmentMixin):
                 active_at__gte=cutoff_dt,
             )
             .extra(select={"sort_value": sort_value})
-            .order_by("-{}".format(sort_value), "-first_seen")[:limit]
+            .order_by(f"-{sort_value}", "-first_seen")[:limit]
         )
 
         for group in group_list:

@@ -186,7 +186,7 @@ class BasePaginator:
         except EmptyResultSet:
             return 0
         cursor = connections[self.queryset.db].cursor()
-        cursor.execute("SELECT COUNT(*) FROM ({}) as t".format(h_sql), h_params)
+        cursor.execute(f"SELECT COUNT(*) FROM ({h_sql}) as t", h_params)
         return cursor.fetchone()[0]
 
 
@@ -494,7 +494,7 @@ class CombinedQuerysetIntermediary:
             self.instance_type = type(instance)
             assert hasattr(
                 instance, self.order_by
-            ), "Model of type {} does not have field {}".format(self.instance_type, self.order_by)
+            ), f"Model of type {self.instance_type} does not have field {self.order_by}"
             self.order_by_type = type(getattr(instance, self.order_by))
         except ObjectDoesNotExist:
             self.is_empty = True

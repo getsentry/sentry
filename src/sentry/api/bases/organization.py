@@ -290,7 +290,7 @@ class OrganizationEndpoint(Endpoint):
                     grouped_period = "<=30d"
                 sentry_sdk.set_tag("query.period.grouped", grouped_period)
         except InvalidParams as e:
-            raise ParseError(detail="Invalid date range: {}".format(e))
+            raise ParseError(detail=f"Invalid date range: {e}")
 
         try:
             projects = self.get_projects(request, organization, project_ids)

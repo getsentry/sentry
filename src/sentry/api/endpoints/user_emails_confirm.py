@@ -44,7 +44,7 @@ class UserEmailsConfirmEndpoint(UserEndpoint):
         from sentry.app import ratelimiter
 
         if ratelimiter.is_limited(
-            "auth:confirm-email:{}".format(user.id),
+            f"auth:confirm-email:{user.id}",
             limit=10,
             window=60,  # 10 per minute should be enough for anyone
         ):

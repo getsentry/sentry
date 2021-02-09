@@ -31,7 +31,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     return Response({"detail": "topEvents must be an integer"}, status=400)
                 if top_events > MAX_TOP_EVENTS:
                     return Response(
-                        {"detail": "Can only get up to {} top events".format(MAX_TOP_EVENTS)},
+                        {"detail": f"Can only get up to {MAX_TOP_EVENTS} top events"},
                         status=400,
                     )
                 elif top_events <= 0:
