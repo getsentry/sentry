@@ -18,7 +18,7 @@ jobs:
       # Need to checkout just for `github/file-filters.yml`
       - uses: actions/checkout@v2
 
-      - name: Check for frontend file changes
+      - name: Check for file changes
         uses: getsentry/paths-filter@v2
         id: changes
         with:
@@ -32,7 +32,7 @@ jobs:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
-      - name: Dispatch getsentry frontend tests
+      - name: Dispatch getsentry tests
         uses: actions/github-script@v3
         with:
           github-token: ${{ steps.getsentry.outputs.token }}
