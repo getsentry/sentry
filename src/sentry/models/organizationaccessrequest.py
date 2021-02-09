@@ -66,6 +66,7 @@ class OrganizationAccessRequest(Model):
 
         msg.send_async([m.user.email for m in member_list])
 
+    #
     def send_approved_email(self):
         from sentry.utils.email import MessageBuilder
 
