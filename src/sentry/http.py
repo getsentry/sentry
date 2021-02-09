@@ -1,4 +1,4 @@
-import six
+from io import BytesIO
 import warnings
 import time
 import logging
@@ -181,7 +181,7 @@ def fetch_file(
 
                 return_body = False
                 if outfile is None:
-                    outfile = six.BytesIO()
+                    outfile = BytesIO()
                     return_body = True
 
                 cl = 0

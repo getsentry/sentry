@@ -39,6 +39,7 @@ import os
 import posixpath
 import mimetypes
 import threading
+from io import BytesIO
 from gzip import GzipFile
 
 from django.conf import settings
@@ -47,7 +48,6 @@ from django.core.files.base import File
 from django.core.files.storage import Storage
 from django.utils.encoding import force_text, smart_str, filepath_to_uri, force_bytes
 from django.utils.six.moves.urllib import parse as urlparse
-from django.utils.six import BytesIO
 from django.utils.timezone import localtime
 
 from boto3.session import Session

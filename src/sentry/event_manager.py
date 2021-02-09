@@ -1,8 +1,6 @@
 import logging
-
-
+from io import BytesIO
 import ipaddress
-import six
 
 from datetime import datetime, timedelta
 from django.conf import settings
@@ -1332,7 +1330,7 @@ def save_attachment(
         type=attachment.type,
         headers={"Content-Type": attachment.content_type},
     )
-    file.putfile(six.BytesIO(data), blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE)
+    file.putfile(BytesIO(data), blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE)
 
     EventAttachment.objects.create(
         event_id=event_id,
