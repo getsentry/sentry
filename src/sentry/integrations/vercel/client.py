@@ -18,7 +18,7 @@ class VercelClient(ApiClient):
     PROJECTS_URL = "/v4/projects/"
     WEBHOOK_URL = "/v1/integrations/webhooks"
     ENV_VAR_URL = "/v4/projects/%s/env"
-    GET_ENV_VAR_URL = "/v5/projects/%s/env/"
+    GET_ENV_VAR_URL = "/v5/projects/%s/env"
     SECRETS_URL = "/v2/now/secrets"
     DELETE_ENV_VAR_URL = "/v4/projects/%s/env/%s"
 

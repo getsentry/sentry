@@ -205,7 +205,10 @@ class VercelIntegrationTest(IntegrationTestCase):
             responses.GET,
             "https://api.vercel.com/v5/projects/%s/env"
             % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
-            json={"envs": []},
+            json={
+                "envs": [],
+                "pagination": {"count": 10},
+            },
         )
 
         for i, name in enumerate(secret_names):
@@ -331,6 +334,7 @@ class VercelIntegrationTest(IntegrationTestCase):
                 % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
                 json={
                     "envs": [{"value": "sec_%s" % i, "target": "production", "key": env_var_name}],
+                    "pagination": {"count": 10},
                 },
             )
         for i, env_var_name in enumerate(env_var_names):
