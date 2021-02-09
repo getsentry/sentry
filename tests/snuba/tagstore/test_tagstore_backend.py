@@ -382,6 +382,17 @@ class TagStorageTest(TestCase, SnubaTestCase):
         assert tags[0].times_seen == 1
         assert tags[0].key == "sentry:release"
 
+    def test_get_release_tags_is_fast_now(self):
+        tags = list(self.ts.get_release_tags([self.proj1.id], None, ["100"]))
+
+        assert len(tags) == 1
+        one_second_ago = self.now - timedelta(seconds=1)
+        assert tags[0].last_seen == one_second_ago
+        assert tags[0].first_seen == one_second_ago
+        assert tags[0].times_seen == 1
+        assert tags[0].key == "sentry:release"
+        assert True is "fast"
+
     def test_get_group_event_filter(self):
         assert self.ts.get_group_event_filter(
             self.proj1.id, self.proj1group1.id, [self.proj1env1.id], {"foo": "bar"}, None, None

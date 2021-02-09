@@ -444,6 +444,7 @@ class Group(Model):
         )
 
     def get_first_release(self):
+        print("id of first release:",self.first_release_id)
         if self.first_release_id is None:
             return tagstore.get_first_release(self.project_id, self.id)
 

@@ -1,6 +1,6 @@
 from sentry.utils.compat import mock
 
-from sentry.models import Environment, Release, GroupInboxReason
+from sentry.models import Environment, Release, GroupInboxReason, ReleaseProjectEnvironment
 from sentry.models.groupinbox import add_group_to_inbox, remove_group_from_inbox
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -151,3 +151,51 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             response = self.client.get(url, format="json")
             assert response.status_code == 200, response.content
             assert response.data["inbox"] is None
+
+    def test_release_query_is_fast_now(self):
+        with self.feature("organizations:inbox"):
+            print("releaseproject:",ReleaseProjectEnvironment.objects.all())
+
+            self.login_as(user=self.user)
+
+            self.store_event(
+                data={"release": "1.0", "timestamp": iso_format(before_now(days=7))},
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={"release": "1.1", "timestamp": iso_format(before_now(days=3))},
+                project_id=self.project.id,
+            )
+            event = self.store_event(
+                data={"release": "1.2", "timestamp": iso_format(before_now(minutes=3))},
+                project_id=self.project.id,
+            )
+
+            print("releaseproject:",ReleaseProjectEnvironment.objects.all())
+            ReleaseProjectEnvironment.objects.all()
+            
+            group = event.group
+            # add_group_to_inbox(group, GroupInboxReason.NEW)
+
+            url = f"/api/0/issues/{group.id}/?expand=inbox"
+
+
+            # with mock.patch(
+                # "sentry.api.endpoints.group_details.tagstore.get_release_tags"
+            # ) as get_release_tags:
+            response = self.client.get(url, format="json")
+            assert response.status_code == 200
+                # assert get_release_tags.call_count == 1
+
+            # response = self.client.get(url, format="json")
+            # assert response.status_code == 200, response.content
+            # assert response.data["inbox"] is not None
+            # assert response.data["inbox"]["reason"] == GroupInboxReason.NEW.value
+            # assert response.data["inbox"]["reason_details"] is None
+
+            # remove_group_from_inbox(event.group)
+            # response = self.client.get(url, format="json")
+            # assert response.status_code == 200, response.content
+            # assert response.data["inbox"] is None
+
+            assert True is "fast"

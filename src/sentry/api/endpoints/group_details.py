@@ -116,6 +116,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         )
 
     def _get_release_info(self, request, group, version):
+        print("group_details _get_release_info")
         try:
             release = Release.objects.get(
                 projects=group.project,
@@ -124,9 +125,11 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             )
         except Release.DoesNotExist:
             release = {"version": version}
+        print("serializing release:",release)
         return serialize(release, request.user)
 
     def _get_first_last_release_info(self, request, group, versions):
+        print("group_details _get_first_last_release_info")
         releases = {
             release.version: release
             for release in Release.objects.filter(
@@ -178,15 +181,19 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             activity = self._get_activity(request, group, num=100)
             seen_by = self._get_seen_by(request, group)
 
+            print("getting first release")
             first_release = group.get_first_release()
-
+            print("first:",first_release)
             if first_release is not None:
+                print("getting last release")
                 last_release = group.get_last_release()
             else:
                 last_release = None
 
             action_list = self._get_actions(request, group)
 
+            print("first release is:",first_release)
+            print("last release is:",last_release)
             if first_release is not None and last_release is not None:
                 first_release, last_release = self._get_first_last_release_info(
                     request, group, [first_release, last_release]
