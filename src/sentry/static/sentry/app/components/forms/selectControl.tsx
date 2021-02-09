@@ -353,12 +353,11 @@ function SelectPicker({async, creatable, forwardedRef, ...props}: PickerProps) {
 
 SelectPicker.propTypes = SelectControl.propTypes;
 
-const RefForwardedSelectControl = React.forwardRef(function RefForwardedSelectControl(
-  props: ControlProps,
-  ref: React.Ref<ReactSelect>
-) {
-  return <SelectControlWithTheme forwardedRef={ref} {...props} />;
-});
+const RefForwardedSelectControl = React.forwardRef<ReactSelect, ControlProps>(
+  function RefForwardedSelectControl(props, ref) {
+    return <SelectControlWithTheme forwardedRef={ref} {...props} />;
+  }
+);
 
 // TODO(ts): Needed because <SelectField> uses this
 RefForwardedSelectControl.propTypes = SelectControl.propTypes;
