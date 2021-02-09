@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import os
-import six
 import click
 from click.formatting import join_options
 
@@ -97,7 +96,7 @@ def dump_command(out, cmd, path):
             data["arguments"].append({"metavar": param.make_metavar()})
 
     if isinstance(cmd, click.Group):
-        for child_name, child_cmd in six.iteritems(cmd.commands):
+        for child_name, child_cmd in cmd.commands.items():
             try:
                 dump_command(out, child_cmd, path + [child_name])
             except NoHelp:
