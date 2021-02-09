@@ -36,7 +36,7 @@ type State = AsyncComponent['state'] & {
   builtinSymbolSources: Array<BuiltinSymbolSource> | null;
 };
 
-class DebugFileDetails extends AsyncComponent<Props, State> {
+class DebugImageDetails extends AsyncComponent<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -132,9 +132,11 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
       return candidates;
     }
 
-    const imageCandidates = candidates.map(candidate => ({
+    const imageCandidates = candidates.map(({location, ...candidate}) => ({
       ...candidate,
-      location: candidate.location?.split(INTERNAL_SOURCE_LOCATION)[1],
+      location: location?.includes(INTERNAL_SOURCE_LOCATION)
+        ? location.split(INTERNAL_SOURCE_LOCATION)[1]
+        : location,
     }));
 
     // Check for unapplied candidates (debug files)
@@ -212,7 +214,9 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
 
     return (
       <React.Fragment>
-        <Header closeButton>{title ?? t('Unknown')}</Header>
+        <Header closeButton>
+          <span data-test-id="modal-title">{title ?? t('Unknown')}</span>
+        </Header>
         <Body>
           <Content>
             <GeneralInfo>
@@ -258,7 +262,7 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
   }
 }
 
-export default DebugFileDetails;
+export default DebugImageDetails;
 
 const Content = styled('div')`
   display: grid;
