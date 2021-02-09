@@ -288,7 +288,7 @@ class VercelIntegration(IntegrationInstallation):
         return any(
             [
                 env_var
-                for env_var in client.get_env_vars(vercel_project_id)["envs"]
+                for env_var in client.get_env_vars(vercel_project_id)
                 if env_var["key"] == name
             ]
         )
