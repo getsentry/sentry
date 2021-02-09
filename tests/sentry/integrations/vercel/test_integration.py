@@ -207,7 +207,7 @@ class VercelIntegrationTest(IntegrationTestCase):
             % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
             json={
                 "envs": [],
-                "pagination": {"count": 10},
+                "pagination": {"count": 0},
             },
         )
 
@@ -334,7 +334,7 @@ class VercelIntegrationTest(IntegrationTestCase):
                 % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
                 json={
                     "envs": [{"value": "sec_%s" % i, "target": "production", "key": env_var_name}],
-                    "pagination": {"count": 10},
+                    "pagination": {"count": 4},
                 },
             )
         for i, env_var_name in enumerate(env_var_names):
