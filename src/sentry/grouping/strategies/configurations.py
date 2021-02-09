@@ -163,6 +163,18 @@ register_strategy_config(
     },
 )
 
+register_strategy_config(
+    id="mobile:2021-02-09",
+    base="newstyle:2019-10-29",
+    strategies=["message:v1"],
+    delegates=["frame:v1", "single-exception:v1"],
+    risk=RISK_LEVEL_HIGH,
+    changelog="""
+        * Experimental grouping algorithm for mobile
+    """,
+    hidden=True,
+)
+
 
 # Grouping strategy for similarity
 register_strategy_config(

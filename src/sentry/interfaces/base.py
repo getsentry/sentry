@@ -99,7 +99,10 @@ class Interface:
             self._data = {}
 
     def __getattr__(self, name):
-        return self._data[name]
+        try:
+            return self._data[name]
+        except KeyError:
+            raise AttributeError()
 
     def __setattr__(self, name, value):
         if name == "_data":

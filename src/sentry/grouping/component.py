@@ -104,6 +104,9 @@ class GroupingComponent:
         if hint is not None:
             self.hint = hint
         if values is not None:
+            for value in values:
+                if not isinstance(value, (GroupingComponent, str, int)):
+                    raise TypeError("Invalid value type %s" % (value,))
             if contributes is None:
                 contributes = _calculate_contributes(values)
             self.values = values

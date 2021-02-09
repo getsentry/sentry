@@ -1,3 +1,6 @@
+import copy
+import inspect
+from threading import local
 import re
 
 from hashlib import md5
@@ -6,6 +9,10 @@ from django.utils.encoding import force_bytes
 
 from sentry.utils.safe import get_path
 from sentry.stacktraces.processing import get_crash_frame_from_event_data
+
+from typing import Any, TypeVar, Callable, Union, Generator, Iterator
+
+_R = TypeVar("_R")
 
 
 _fingerprint_var_re = re.compile(r"\{\{\s*(\S+)\s*\}\}")
@@ -109,3 +116,89 @@ def expand_title_template(template, event_data):
         return match.group(0)
 
     return _fingerprint_var_re.sub(_handle_match, template)
+
+
+_next_elem = local()
+
+
+class StopParametrization(Exception):
+    pass
+
+
+def call_many_elements(
+    f: Callable[..., Union[Generator[_R, None, None], _R]],
+    *args: Any,
+    **kwargs: Any,
+) -> Iterator[_R]:
+    orig_len = len(getattr(_next_elem, "values", ()))
+    rv = f(*args, **kwargs)
+
+    if inspect.isgenerator(rv):
+        yield from rv
+    else:
+        yield rv
+
+        counter = 0
+
+        while len(getattr(_next_elem, "values", ())) > orig_len:
+            try:
+                yield f(*args, **kwargs)
+            except StopParametrization:
+                break
+
+            counter += 1
+
+            if counter > 1000:
+                raise RuntimeError("Infinite loop")
+
+
+def call_single_element(
+    f: Callable[..., Union[Generator[_R, None, None], _R]],
+    *args: Any,
+    **kwargs: Any,
+) -> _R:
+    """
+    Helper function for calling a function that makes the caller implicitly
+    support generators. Everything is a matrix, like in Matlab!
+
+    >>> def foo():
+    ...     yield 2
+    ...     yield 3
+
+    >>> # alternative foo
+    >>> def foo(): return 2
+    >>> def bar(): return call_single_element(foo) * 2
+    >>> assert list(call_many_elements(bar)) == [4, 6]
+    """
+    if hasattr(_next_elem, "values"):
+        reverse_values = enumerate(_next_elem.values.get(f.__name__, ()))
+        for i, (stored_args, stored_kwargs, stored_items) in reverse_values:
+            if stored_args == args and stored_kwargs == kwargs:
+                if not stored_items:
+                    raise StopParametrization()
+
+                return stored_items.pop()
+
+    args_bak = copy.deepcopy(args)
+    kwargs_bak = copy.deepcopy(kwargs)
+
+    items = f(*args, **kwargs)
+
+    # assert args_bak == args
+    # assert kwargs_bak == kwargs
+
+    if inspect.isgenerator(items):
+        items = list(items)
+        if not items:
+            raise StopParametrization()
+
+        if not hasattr(_next_elem, "values"):
+            _next_elem.values = {}
+
+        items.reverse()
+
+        _next_elem.values.setdefault(f.__name__, []).append((args_bak, kwargs_bak, items))
+
+        return items.pop()
+    else:
+        return items
