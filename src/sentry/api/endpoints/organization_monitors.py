@@ -70,7 +70,7 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
                     queryset = queryset.none()
 
         queryset = queryset.extra(
-            select={"is_error": "sentry_monitor.status = %s" % (MonitorStatus.ERROR,)}
+            select={"is_error": f"sentry_monitor.status = {MonitorStatus.ERROR}"}
         )
 
         return self.paginate(

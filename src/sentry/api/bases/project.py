@@ -142,8 +142,8 @@ class ProjectEndpoint(Endpoint):
                 # get full path so that we keep query strings
                 requested_url = request.get_full_path()
                 new_url = requested_url.replace(
-                    "projects/%s/%s/" % (organization_slug, project_slug),
-                    "projects/%s/%s/" % (organization_slug, redirect.project.slug),
+                    f"projects/{organization_slug}/{project_slug}/",
+                    f"projects/{organization_slug}/{redirect.project.slug}/",
                 )
 
                 # Resource was moved/renamed if the requested url is different than the new url

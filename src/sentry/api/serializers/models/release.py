@@ -49,7 +49,7 @@ def expose_version_info(info):
 
 def _user_to_author_cache_key(organization_id, author):
     author_hash = md5_text(author.email.lower()).hexdigest()
-    return "get_users_for_authors:{}:{}".format(organization_id, author_hash)
+    return f"get_users_for_authors:{organization_id}:{author_hash}"
 
 
 def get_users_for_authors(organization_id, authors, user=None):

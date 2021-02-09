@@ -78,18 +78,14 @@ class TrustedRelaySerializer(serializers.Serializer):
 
         if len(public_key) == 0:
             raise serializers.ValidationError(
-                "Missing public key for relay key info with name:'{}' in Trusted Relays".format(
-                    key_name
-                )
+                f"Missing public key for relay key info with name:'{key_name}' in Trusted Relays"
             )
 
         try:
             PublicKey.parse(public_key)
         except RelayError:
             raise serializers.ValidationError(
-                "Invalid public key for relay key info with name:'{}' in Trusted Relays".format(
-                    key_name
-                )
+                f"Invalid public key for relay key info with name:'{key_name}' in Trusted Relays"
             )
 
         return {"public_key": public_key, "name": key_name, "description": description}
@@ -133,9 +129,7 @@ class OrganizationSerializer(Serializer):
 
         # batch_has has found some features
         if batch_features:
-            for feature_name, active in batch_features.get(
-                "organization:{}".format(obj.id), {}
-            ).items():
+            for feature_name, active in batch_features.get(f"organization:{obj.id}", {}).items():
                 if active:
                     # Remove organization prefix
                     feature_list.add(feature_name[len(_ORGANIZATION_SCOPE_PREFIX) :])

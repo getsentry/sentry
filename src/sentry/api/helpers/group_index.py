@@ -134,7 +134,7 @@ def validate_search_filter_permissions(organization, search_filters, user):
                     user=user, organization=organization, sender=validate_search_filter_permissions
                 )
                 raise ValidationError(
-                    "You need access to the advanced search feature to use {}".format(feature_name)
+                    f"You need access to the advanced search feature to use {feature_name}"
                 )
 
 
@@ -479,9 +479,7 @@ def rate_limit_endpoint(limit=1, window=1):
             ):
                 return Response(
                     {
-                        "detail": "You are attempting to use this endpoint too quickly. Limit is {}/{}s".format(
-                            limit, window
-                        )
+                        "detail": f"You are attempting to use this endpoint too quickly. Limit is {limit}/{window}s"
                     },
                     status=429,
                 )
