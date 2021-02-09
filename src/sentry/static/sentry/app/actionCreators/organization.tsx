@@ -10,15 +10,25 @@ import {Client} from 'app/api';
 import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
 import {Organization, Project, Team} from 'app/types';
+import {getPreloadedDataPromise} from 'app/utils/getPreloadedData';
 
 async function fetchOrg(
   api: Client,
   slug: string,
-  detailed: boolean
+  detailed: boolean,
+  isInitialFetch?: boolean
 ): Promise<Organization> {
-  const org = await api.requestPromise(`/organizations/${slug}/`, {
-    query: {detailed: detailed ? 1 : 0},
-  });
+  const org = await getPreloadedDataPromise(
+    'organization',
+    slug,
+    () =>
+      // This data should get preloaded in static/sentry/index.ejs
+      // If this url changes make sure to update the preload
+      api.requestPromise(`/organizations/${slug}/`, {
+        query: {detailed: detailed ? 1 : 0},
+      }),
+    isInitialFetch
+  );
 
   if (!org) {
     throw new Error('retrieved organization is falsey');
@@ -30,18 +40,36 @@ async function fetchOrg(
   return org;
 }
 
-async function fetchProjectsAndTeams(slug: string): Promise<[Project[], Team[]]> {
+async function fetchProjectsAndTeams(
+  slug: string,
+  isInitialFetch?: boolean
+): Promise<[Project[], Team[]]> {
   // Create a new client so the request is not cancelled
   const uncancelableApi = new Client();
   try {
     const [projects, teams] = await Promise.all([
-      uncancelableApi.requestPromise(`/organizations/${slug}/projects/`, {
-        query: {
-          all_projects: 1,
-          collapse: 'latestDeploys',
-        },
-      }),
-      uncancelableApi.requestPromise(`/organizations/${slug}/teams/`),
+      getPreloadedDataPromise(
+        'projects',
+        slug,
+        () =>
+          // This data should get preloaded in static/sentry/index.ejs
+          // If this url changes make sure to update the preload
+          uncancelableApi.requestPromise(`/organizations/${slug}/projects/`, {
+            query: {
+              all_projects: 1,
+              collapse: 'latestDeploys',
+            },
+          }),
+        isInitialFetch
+      ),
+      getPreloadedDataPromise(
+        'teams',
+        slug,
+        // This data should get preloaded in static/sentry/index.ejs
+        // If this url changes make sure to update the preload
+        () => uncancelableApi.requestPromise(`/organizations/${slug}/teams/`),
+        isInitialFetch
+      ),
     ]);
 
     return [projects, teams];
@@ -72,7 +100,8 @@ export async function fetchOrganizationDetails(
   api: Client,
   slug: string,
   detailed: boolean,
-  silent: boolean
+  silent: boolean,
+  isInitialFetch?: boolean
 ) {
   if (!silent) {
     OrganizationActions.fetchOrg();
@@ -81,9 +110,9 @@ export async function fetchOrganizationDetails(
   }
 
   try {
-    const promises: Array<Promise<any>> = [fetchOrg(api, slug, detailed)];
+    const promises: Array<Promise<any>> = [fetchOrg(api, slug, detailed, isInitialFetch)];
     if (!detailed) {
-      promises.push(fetchProjectsAndTeams(slug));
+      promises.push(fetchProjectsAndTeams(slug, isInitialFetch));
     }
 
     const [org, projectsAndTeams] = await Promise.all(promises);

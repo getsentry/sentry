@@ -175,7 +175,7 @@ class OrganizationContext extends React.Component<Props, State> {
   }
 
   componentDidMount() {
-    this.fetchData();
+    this.fetchData(true);
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -233,7 +233,7 @@ class OrganizationContext extends React.Component<Props, State> {
     );
   }
 
-  fetchData() {
+  fetchData(isInitialFetch = false) {
     if (!OrganizationContext.getOrganizationSlug(this.props)) {
       return;
     }
@@ -247,7 +247,8 @@ class OrganizationContext extends React.Component<Props, State> {
       this.props.api,
       OrganizationContext.getOrganizationSlug(this.props),
       this.props.detailed,
-      !OrganizationContext.isOrgChanging(this.props) // if true, will preserve a lightweight org that was fetched
+      !OrganizationContext.isOrgChanging(this.props), // if true, will preserve a lightweight org that was fetched,
+      isInitialFetch
     );
   }
 
