@@ -139,8 +139,3 @@ class MailAdapter:
     def handle_user_report(report: Mapping[str, Any], project: Project):
         metrics.incr("mail_adapter.handle_user_report")
         return UserReportNotification(project, report).send()
-
-    def handle_signal(self, name, payload, **kwargs):
-        metrics.incr("mail_adapter.handle_signal")
-        if name == "user-reports.created":
-            self.handle_user_report(payload, **kwargs)
