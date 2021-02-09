@@ -15,7 +15,6 @@ import {
 } from 'app/components/charts/styles';
 import SelectControl from 'app/components/forms/selectControl';
 import LoadingMask from 'app/components/loadingMask';
-import {Panel, PanelBody} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -305,24 +304,7 @@ class TriggersChart extends React.PureComponent<Props, State> {
                   </React.Fragment>
                 );
 
-                return (
-                  <Feature
-                    organization={organization}
-                    features={['metric-alert-gui-filters']}
-                  >
-                    {({hasFeature: hasGuiFilters}) =>
-                      hasGuiFilters ? (
-                        <React.Fragment>{chart}</React.Fragment>
-                      ) : (
-                        <StickyWrapper>
-                          <StyledPanel>
-                            <StyledPanelBody>{chart}</StyledPanelBody>
-                          </StyledPanel>
-                        </StickyWrapper>
-                      )
-                    }
-                  </Feature>
-                );
+                return chart;
               }}
             </EventsRequest>
           );
@@ -344,24 +326,6 @@ const ChartPlaceholder = styled(Placeholder)`
   /* Height and margin should add up to graph size (200px) */
   margin: 0 0 ${space(2)};
   height: 184px;
-`;
-
-const StickyWrapper = styled('div')`
-  position: sticky;
-  top: ${space(1)};
-  z-index: ${p => p.theme.zIndex.dropdown - 1};
-`;
-
-const StyledPanel = styled(Panel)`
-  /* Remove margin for the sticky window */
-  margin-bottom: 0;
-`;
-
-const StyledPanelBody = styled(PanelBody)`
-  h4 {
-    margin-bottom: ${space(1)};
-  }
-  padding-top: ${space(2)};
 `;
 
 const PeriodSelectControl = styled(SelectControl)`
