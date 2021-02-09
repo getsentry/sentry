@@ -18,7 +18,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import Placeholder from 'app/components/placeholder';
 import {IconWarning} from 'app/icons';
 import space from 'app/styles/space';
-import {GlobalSelection} from 'app/types';
+import {GlobalSelection, Organization} from 'app/types';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import {getFieldFormatter} from 'app/utils/discover/fieldRenderers';
 import {getAggregateArg, getMeasurementSlug} from 'app/utils/discover/fields';
@@ -38,6 +38,7 @@ type WidgetCardChartProps = Pick<ReactRouter.WithRouterProps, 'router'> &
     WidgetQueries['state'],
     'timeseriesResults' | 'tableResults' | 'errorMessage' | 'loading'
   > & {
+    organization: Organization;
     location: Location;
     widget: Widget;
     selection: GlobalSelection;
@@ -70,7 +71,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
     errorMessage,
     tableResults,
   }: TableResultProps): React.ReactNode {
-    const {location, widget} = this.props;
+    const {location, widget, organization} = this.props;
     if (errorMessage) {
       return (
         <ErrorPanel>
@@ -95,6 +96,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
           loading={loading}
           metadata={result.meta}
           data={result.data}
+          organization={organization}
         />
       );
     });
