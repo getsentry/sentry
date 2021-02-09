@@ -12,14 +12,22 @@ from sentry.snuba import discover
 logger = logging.getLogger(__name__)
 
 
-def serialize_event(event, parent, is_root=False):
+def find_event(items, function, default=None):
+    return next((item for item in items if function(item)), default)
+
+
+def is_root(item):
+    return item["root"] == "1"
+
+
+def serialize_event(event, parent, is_root_event=False):
     return {
         "event_id": event["id"],
         "span_id": event["trace.span"],
         "transaction": event["transaction"],
         "project_id": event["project_id"],
         "parent_event_id": parent,
-        "is_root": is_root,
+        "is_root": is_root_event,
     }
 
 
@@ -63,7 +71,6 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsEndpointBase):
         event_id = request.GET.get("event_id")
         if event_id is None:
             raise ParseError("Only the light trace view is supported at this time")
-        is_root = lambda item: item["root"] == "1"
 
         if is_root(result["data"][0]):
             root = result["data"][0]
@@ -94,7 +101,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsEndpointBase):
         parent_map = {item["trace.parent_span"]: item for item in result}
         trace_results = [serialize_event(root, None, True)]
 
-        snuba_event = next((item for item in result if item["id"] == event_id), None)
+        snuba_event = find_event(result, lambda item: item["id"] == event_id)
         if snuba_event is None:
             sentry_sdk.set_tag("query.error_reason", "Matching event not found")
             raise ParseError("event matching matching requested id not found")
@@ -102,16 +109,12 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsEndpointBase):
         if root["id"] != event_id:
             # Get the root event and see if the current event's span is in the root event
             root_event = eventstore.get_event_by_id(root["project_id"], root["id"])
-            root_span = next(
-                (
-                    item
-                    for item in root_event.data.get("spans", [])
-                    if item["span_id"] == snuba_event["trace.parent_span"]
-                ),
-                None,
+            root_span = find_event(
+                root_event.data.get("spans", []),
+                lambda item: item["span_id"] == snuba_event["trace.parent_span"],
             )
 
-            # For the light response, the parent will be unknown unless we're a direct descendent of the root
+            # For the light response, the parent will be unknown unless it is a direct descendent of the root
             trace_results.append(
                 serialize_event(snuba_event, root["id"] if root_span is not None else None)
             )
