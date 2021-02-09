@@ -10,9 +10,9 @@ import ButtonBar from 'app/components/buttonBar';
 import NotFound from 'app/components/errors/notFound';
 import {BorderlessEventEntries} from 'app/components/events/eventEntries';
 import EventMetadata from 'app/components/events/eventMetadata';
+import EventVitals from 'app/components/events/eventVitals';
 import * as SpanEntryContext from 'app/components/events/interfaces/spans/context';
 import OpsBreakdown from 'app/components/events/opsBreakdown';
-import RealUserMonitoring from 'app/components/events/realUserMonitoring';
 import RootSpanStatus from 'app/components/events/rootSpanStatus';
 import * as Layout from 'app/components/layouts/thirds';
 import LoadingError from 'app/components/loadingError';
@@ -221,7 +221,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               />
               <RootSpanStatus event={event} />
               <OpsBreakdown event={event} />
-              <RealUserMonitoring event={event} />
+              <EventVitals event={event} />
               {event.groupID && (
                 <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
               )}
