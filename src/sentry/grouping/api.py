@@ -1,6 +1,7 @@
 import re
 import six
 
+from sentry.grouping.strategies.base import GroupingContext
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.variants import (
@@ -147,13 +148,13 @@ def apply_server_fingerprinting(event, config, allow_custom_title=True):
         }
 
 
-def _get_calculated_grouping_variants_for_event(event, config):
+def _get_calculated_grouping_variants_for_event(event, context):
     winning_strategy = None
     precedence_hint = None
     per_variant_components = {}
 
-    for strategy in config.iter_strategies():
-        rv = strategy.get_grouping_component_variants(event, config=config)
+    for strategy in context.config.iter_strategies():
+        rv = strategy.get_grouping_component_variants(event, context=context)
         for (variant, component) in six.iteritems(rv):
             per_variant_components.setdefault(variant, []).append(component)
 
@@ -214,10 +215,11 @@ def get_grouping_variants_for_event(event, config=None):
 
     if config is None:
         config = load_default_grouping_config()
+    context = GroupingContext(config)
 
     # At this point we need to calculate the default event values.  If the
     # fingerprint is salted we will wrap it.
-    components = _get_calculated_grouping_variants_for_event(event, config)
+    components = _get_calculated_grouping_variants_for_event(event, context)
 
     # If no defaults are referenced we produce a single completely custom
     # fingerprint and mark all other variants as non-contributing
@@ -229,7 +231,7 @@ def get_grouping_variants_for_event(event, config=None):
                 contributes_to_similarity=True,
                 hint="custom fingerprint takes precedence",
             )
-            rv[key] = ComponentVariant(component, config)
+            rv[key] = ComponentVariant(component, context.config)
 
         fingerprint = resolve_fingerprint_values(fingerprint, event.data)
         rv["custom-fingerprint"] = CustomFingerprintVariant(fingerprint, fingerprint_info)
@@ -238,14 +240,16 @@ def get_grouping_variants_for_event(event, config=None):
     elif defaults_referenced == 1 and len(fingerprint) == 1:
         rv = {}
         for (key, component) in six.iteritems(components):
-            rv[key] = ComponentVariant(component, config)
+            rv[key] = ComponentVariant(component, context.config)
 
     # Otherwise we need to salt each of the components.
     else:
         rv = {}
         fingerprint = resolve_fingerprint_values(fingerprint, event.data)
         for (key, component) in six.iteritems(components):
-            rv[key] = SaltedComponentVariant(fingerprint, component, config, fingerprint_info)
+            rv[key] = SaltedComponentVariant(
+                fingerprint, component, context.config, fingerprint_info
+            )
 
     # Ensure we have a fallback hash if nothing else works out
     if not any(x.contributes for x in six.itervalues(rv)):

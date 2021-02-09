@@ -391,16 +391,17 @@ def get_frame_component(
 
 
 @strategy(id="stacktrace:v1", interfaces=["stacktrace"], variants=["!system", "app"], score=1800)
-def stacktrace(stacktrace, config, variant, **meta):
-    return get_stacktrace_component(stacktrace, config, variant, meta)
+def stacktrace(stacktrace, context, **meta):
+    return get_stacktrace_component(stacktrace, context, meta)
 
 
 @stacktrace.variant_processor
-def stacktrace_variant_processor(variants, config, **meta):
+def stacktrace_variant_processor(variants, context, **meta):
     return remove_non_stacktrace_variants(variants)
 
 
-def get_stacktrace_component(stacktrace, config, variant, meta):
+def get_stacktrace_component(stacktrace, context, meta):
+    variant = context["variant"]
     frames = stacktrace.frames
     all_frames_considered_in_app = False
 
@@ -408,7 +409,7 @@ def get_stacktrace_component(stacktrace, config, variant, meta):
     prev_frame = None
     frames_for_filtering = []
     for frame in frames:
-        frame_component = config.get_grouping_component(frame, variant=variant, **meta)
+        frame_component = context.get_grouping_component(frame, **meta)
         if variant == "app" and not frame.in_app and not all_frames_considered_in_app:
             frame_component.update(contributes=False, hint="non app frame")
         elif prev_frame is not None and is_recursion_v1(frame, prev_frame):
@@ -432,7 +433,7 @@ def get_stacktrace_component(stacktrace, config, variant, meta):
     ):
         values[0].update(contributes=False, hint="ignored single non-URL JavaScript frame")
 
-    return config.enhancements.assemble_stacktrace_component(
+    return context.config.enhancements.assemble_stacktrace_component(
         values,
         frames_for_filtering,
         meta["event"].platform,
@@ -470,9 +471,9 @@ def _stacktrace_encoder(id, stacktrace):
     yield (id, "frames-pairs"), shingle(2, encoded_frames)
 
 
-def single_exception_common(exception, config, meta, with_value):
+def single_exception_common(exception, context, meta, with_value):
     if exception.stacktrace is not None:
-        stacktrace_component = config.get_grouping_component(exception.stacktrace, **meta)
+        stacktrace_component = context.get_grouping_component(exception.stacktrace, **meta)
     else:
         stacktrace_component = GroupingComponent(id="stacktrace")
 
@@ -514,34 +515,34 @@ def single_exception_common(exception, config, meta, with_value):
     interfaces=["singleexception"],
     variants=["!system", "app"],
 )
-def single_exception(exception, config, **meta):
+def single_exception(exception, context, **meta):
     id = meta["strategy"].id
     with_value = id == "single-exception:v2"
-    return single_exception_common(exception, config, meta, with_value=with_value)
+    return single_exception_common(exception, context, meta, with_value=with_value)
 
 
 @strategy(
     id="chained-exception:v1", interfaces=["exception"], variants=["!system", "app"], score=2000
 )
-def chained_exception(chained_exception, config, **meta):
+def chained_exception(chained_exception, context, **meta):
     # Case 1: we have a single exception, use the single exception
     # component directly to avoid a level of nesting
     exceptions = chained_exception.exceptions()
     if len(exceptions) == 1:
-        return config.get_grouping_component(exceptions[0], **meta)
+        return context.get_grouping_component(exceptions[0], **meta)
 
     # Case 2: produce a component for each chained exception
-    values = [config.get_grouping_component(exception, **meta) for exception in exceptions]
+    values = [context.get_grouping_component(exception, **meta) for exception in exceptions]
     return GroupingComponent(id="chained-exception", values=values)
 
 
 @chained_exception.variant_processor
-def chained_exception_variant_processor(variants, config, **meta):
+def chained_exception_variant_processor(variants, context, **meta):
     return remove_non_stacktrace_variants(variants)
 
 
 @strategy(id="threads:v1", interfaces=["threads"], variants=["!system", "app"], score=1900)
-def threads(threads_interface, config, **meta):
+def threads(threads_interface, context, **meta):
     thread_count = len(threads_interface.values)
     if thread_count != 1:
         return GroupingComponent(
@@ -555,10 +556,10 @@ def threads(threads_interface, config, **meta):
         return GroupingComponent(id="threads", contributes=False, hint="thread has no stacktrace")
 
     return GroupingComponent(
-        id="threads", values=[config.get_grouping_component(stacktrace, **meta)]
+        id="threads", values=[context.get_grouping_component(stacktrace, **meta)]
     )
 
 
 @threads.variant_processor
-def threads_variant_processor(variants, config, **meta):
+def threads_variant_processor(variants, context, **meta):
     return remove_non_stacktrace_variants(variants)
