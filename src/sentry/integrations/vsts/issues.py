@@ -1,4 +1,3 @@
-import six
 from mistune import markdown
 
 from collections import OrderedDict

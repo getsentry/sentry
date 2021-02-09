@@ -1,6 +1,5 @@
 import logging
 import time
-import six
 
 from django.core.cache import cache
 from django.http import Http404
@@ -419,9 +418,7 @@ def get_channel_id_with_timeout(integration, name, timeout):
                 # Slack limits the response of `<list_type>.list` to 1000 channels
                 items = client.get(endpoint, params=dict(payload, cursor=cursor, limit=1000))
             except ApiError as e:
-                logger.info(
-                    "rule.slack.%s_list_failed" % list_type, extra={"error": str(e)}
-                )
+                logger.info("rule.slack.%s_list_failed" % list_type, extra={"error": str(e)})
                 return (prefix, None, False)
 
             for c in items[result_name]:

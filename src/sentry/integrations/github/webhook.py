@@ -2,7 +2,6 @@ import dateutil.parser
 import hashlib
 import hmac
 import logging
-import six
 
 from django.db import IntegrityError, transaction
 from django.http import HttpResponse

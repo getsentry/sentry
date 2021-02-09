@@ -1,6 +1,5 @@
 import logging
 import sentry
-import six
 
 from django import forms
 
@@ -94,8 +93,7 @@ class OpsGeniePlugin(CorePluginMixin, notify.NotificationPlugin):
         }
 
         payload["tags"] = [
-            "%s:%s" % (str(x).replace(",", ""), str(y).replace(",", ""))
-            for x, y in event.tags
+            "%s:%s" % (str(x).replace(",", ""), str(y).replace(",", "")) for x, y in event.tags
         ]
 
         return payload

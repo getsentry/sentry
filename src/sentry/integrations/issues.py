@@ -1,5 +1,4 @@
 import logging
-import six
 from collections import defaultdict
 
 from sentry import features

@@ -1,6 +1,5 @@
 import jwt
 import logging
-import six
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry.api.base import Endpoint
@@ -51,9 +50,7 @@ class JiraIssueUpdatedWebhook(Endpoint):
         try:
             integration = get_integration_from_token(token)
         except ValueError as err:
-            logger.info(
-                "token-validation-error", extra={"token": token, "error": str(err)}
-            )
+            logger.info("token-validation-error", extra={"token": token, "error": str(err)})
             return self.respond(status=400)
 
         data = request.data

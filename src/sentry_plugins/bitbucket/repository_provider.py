@@ -1,5 +1,3 @@
-import six
-
 from uuid import uuid4
 
 from sentry.app import locks

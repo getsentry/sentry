@@ -1,6 +1,5 @@
 import hmac
 import logging
-import six
 
 from django.utils.crypto import constant_time_compare
 from functools import wraps

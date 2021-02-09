@@ -1,6 +1,5 @@
 import logging
 from requests.exceptions import ReadTimeout, ConnectionError
-import six
 import sentry
 
 from django import forms

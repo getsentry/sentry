@@ -1,5 +1,4 @@
 import logging
-import six
 
 from django.http import Http404
 

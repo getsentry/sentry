@@ -1,6 +1,5 @@
 from logging import getLogger
 
-import six
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError, transaction
 from rest_framework.response import Response

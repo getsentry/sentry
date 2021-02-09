@@ -1,5 +1,4 @@
 from uuid import uuid4
-import six
 import logging
 
 from django.utils.translation import ugettext_lazy as _

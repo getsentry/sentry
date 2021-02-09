@@ -16,7 +16,6 @@ For more details on the payload: http://dev.splunk.com/view/event-collector/SP-C
 
 import logging
 
-import six
 from requests.exceptions import ConnectTimeout, ReadTimeout
 
 from sentry import http, tagstore

@@ -1,7 +1,6 @@
 from .client import VstsApiClient
 
 import logging
-import six
 
 from sentry.models import (
     Identity,

@@ -1,5 +1,4 @@
 import re
-import six
 
 from django.utils.translation import ugettext_lazy as _
 from functools import wraps

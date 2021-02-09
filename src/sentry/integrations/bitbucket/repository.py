@@ -1,5 +1,4 @@
 import logging
-import six
 
 from sentry.app import locks
 from sentry.models import OrganizationOption

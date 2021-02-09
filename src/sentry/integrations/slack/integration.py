@@ -1,5 +1,3 @@
-import six
-
 from collections import namedtuple
 from django.utils.translation import ugettext_lazy as _
 

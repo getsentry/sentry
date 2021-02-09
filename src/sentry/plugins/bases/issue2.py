@@ -1,5 +1,3 @@
-import six
-
 from rest_framework.response import Response
 from social_auth.models import UserSocialAuth
 

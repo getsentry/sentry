@@ -12,8 +12,6 @@ from sentry.pipeline import Pipeline
 from sentry.web.helpers import render_to_response
 from . import default_manager
 
-import six
-
 
 def ensure_integration(key, data):
     defaults = {

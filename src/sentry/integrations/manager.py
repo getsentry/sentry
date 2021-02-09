@@ -1,6 +1,5 @@
 __all__ = ["IntegrationManager"]
 
-import six
 
 from sentry.exceptions import NotRegistered
 

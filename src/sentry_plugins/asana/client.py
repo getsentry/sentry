@@ -1,5 +1,4 @@
 from sentry_plugins.client import AuthApiClient
-from six import text_type
 
 
 class AsanaClient(AuthApiClient):

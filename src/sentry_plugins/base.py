@@ -1,5 +1,4 @@
 import sentry_plugins
-import six
 import sys
 
 from sentry.exceptions import InvalidIdentity, PluginError
@@ -53,7 +52,9 @@ class CorePluginMixin:
 
     def raise_error(self, exc, identity=None):
         if isinstance(exc, ApiUnauthorized):
-            raise InvalidIdentity(self.message_from_error(exc), identity=identity).with_traceback(sys.exc_info()[2])
+            raise InvalidIdentity(self.message_from_error(exc), identity=identity).with_traceback(
+                sys.exc_info()[2]
+            )
         elif isinstance(exc, ApiError):
             raise PluginError(self.message_from_error(exc)).with_traceback(sys.exc_info()[2])
         elif isinstance(exc, PluginError):
