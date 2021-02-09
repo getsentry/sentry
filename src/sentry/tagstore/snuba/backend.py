@@ -519,9 +519,9 @@ class SnubaTagStorage(TagStorage):
         return keys_with_counts
 
     def __get_release(self, project_id, group_id, first=True):
-        print("__get_release called. first?",first)
+        print("__get_release called. first?", first)
         filters = {"project_id": get_project_list(project_id)}
-        print("filters:",filters)
+        print("filters:", filters)
         conditions = [["tags[sentry:release]", "IS NOT NULL", None], DEFAULT_TYPE_CONDITION]
         if group_id is not None:
             filters["group_id"] = [group_id]
@@ -537,7 +537,7 @@ class SnubaTagStorage(TagStorage):
             orderby=orderby,
             referrer="tagstore.__get_release",
         )
-        print("returning release info:",result)
+        print("returning release info:", result)
         if not result:
             return None
         else:
@@ -551,8 +551,8 @@ class SnubaTagStorage(TagStorage):
         return self.__get_release(project_id, group_id, False)
 
     def get_release_tags(self, project_ids, environment_id, versions):
-        print("tagstore get_release_tags:",project_ids)
-        print("seen column:",SEEN_COLUMN)
+        print("tagstore get_release_tags:", project_ids)
+        print("seen column:", SEEN_COLUMN)
         filters = {"project_id": project_ids}
         if environment_id:
             filters["environment"] = [environment_id]

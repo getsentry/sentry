@@ -154,7 +154,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
     def test_release_query_is_fast_now(self):
         with self.feature("organizations:inbox"):
-            print("releaseproject:",ReleaseProjectEnvironment.objects.all())
+            print("releaseproject:", ReleaseProjectEnvironment.objects.all())
 
             self.login_as(user=self.user)
 
@@ -171,21 +171,20 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
                 project_id=self.project.id,
             )
 
-            print("releaseproject:",ReleaseProjectEnvironment.objects.all())
+            print("releaseproject:", ReleaseProjectEnvironment.objects.all())
             ReleaseProjectEnvironment.objects.all()
-            
+
             group = event.group
             # add_group_to_inbox(group, GroupInboxReason.NEW)
 
             url = f"/api/0/issues/{group.id}/?expand=inbox"
 
-
             # with mock.patch(
-                # "sentry.api.endpoints.group_details.tagstore.get_release_tags"
+            # "sentry.api.endpoints.group_details.tagstore.get_release_tags"
             # ) as get_release_tags:
             response = self.client.get(url, format="json")
             assert response.status_code == 200
-                # assert get_release_tags.call_count == 1
+            # assert get_release_tags.call_count == 1
 
             # response = self.client.get(url, format="json")
             # assert response.status_code == 200, response.content

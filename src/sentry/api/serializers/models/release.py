@@ -227,7 +227,7 @@ class ReleaseSerializer(Serializer):
         )
 
     def __get_release_data_no_environment(self, project, item_list):
-        print("release.py __get_release_data_no_environment", project,item_list)
+        print("release.py __get_release_data_no_environment", project, item_list)
         if project is not None:
             project_ids = [project.id]
             specialized = True
@@ -240,7 +240,7 @@ class ReleaseSerializer(Serializer):
         tag_values = tagstore.get_release_tags(
             project_ids, environment_id=None, versions=[o.version for o in item_list]
         )
-        print("tag values:",tag_values)
+        print("tag values:", tag_values)
         for tv in tag_values:
             first_val = first_seen.get(tv.value)
             last_val = last_seen.get(tv.value)
