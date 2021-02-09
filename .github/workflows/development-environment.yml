@@ -13,7 +13,7 @@ jobs:
   dev-environment:
     name: python set up
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    timeout-minutes: 25
     strategy:
       matrix:
         os: [ macos-latest, macos-11.0, ubuntu-latest ]
