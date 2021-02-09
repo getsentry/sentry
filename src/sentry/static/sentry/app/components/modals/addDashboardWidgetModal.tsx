@@ -184,7 +184,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
           };
         });
 
-        if (value === 'world_map') {
+        if (['world_map', 'big_number'].includes(value)) {
           // For world map chart, cap fields of the queries to only one field.
           newQueries = newQueries.map(query => {
             return {
@@ -215,9 +215,27 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       const newState = cloneDeep(prevState);
       newState.queries.splice(index, index + 1);
 
+      // If there is only one query, then its name will not be visible.
+      if (newState.queries.length === 1) {
+        newState.queries[0].name = '';
+      }
+
       return newState;
     });
   };
+
+  handleAddOverlay = () => {
+    this.setState(prevState => {
+      const newState = cloneDeep(prevState);
+      newState.queries.push(cloneDeep(newQuery));
+
+      return newState;
+    });
+  };
+
+  canAddOverlay() {
+    return ['line', 'area', 'stacked_area', 'bar'].includes(this.state.displayType);
+  }
 
   render() {
     const {
@@ -321,6 +339,17 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               );
             }}
           </Measurements>
+          {this.canAddOverlay() && (
+            <AddOverlayButton
+              size="small"
+              onClick={(event: React.MouseEvent) => {
+                event.preventDefault();
+                this.handleAddOverlay();
+              }}
+            >
+              {t('Add Overlay')}
+            </AddOverlayButton>
+          )}
           <WidgetCard
             api={api}
             organization={organization}
@@ -368,6 +397,10 @@ const DoubleFieldWrapper = styled('div')`
   grid-template-columns: repeat(2, 1fr);
   grid-column-gap: ${space(1)};
   width: 100%;
+`;
+
+const AddOverlayButton = styled(Button)`
+  margin-bottom: ${space(2)};
 `;
 
 export default withApi(withGlobalSelection(withTags(AddDashboardWidgetModal)));
