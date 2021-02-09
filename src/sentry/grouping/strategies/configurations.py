@@ -45,6 +45,9 @@ register_strategy_config(
         * Traditional grouping algorithm
         * Some known weaknesses with regards to grouping of native frames
     """,
+    initial_context={
+        "trim_message": False,
+    },
 )
 
 # Simple newstyle grouping
@@ -64,10 +67,10 @@ register_strategy_config(
         "stacktrace:v1",
         "chained-exception:v1",
         "template:v1",
-        "message:v2",
+        "message:v1",
     ],
     risk=RISK_LEVEL_HIGH,
-    delegates=["frame:v3", "stacktrace:v1", "single-exception:v2"],
+    delegates=["frame:v1", "stacktrace:v1", "single-exception:v1"],
     changelog="""
         * Uses source code information all platforms with reliable sources
           for grouping (JavaScript, Python, PHP and Ruby) and function
@@ -86,13 +89,15 @@ register_strategy_config(
         "contextline_platforms": ("javascript", "node", "python", "php", "ruby"),
         "php_detect_anonymous_classes": False,
         "with_context_line_file_origin_bug": True,
+        "trim_message": True,
+        "with_exception_value_fallback": True,
     },
 )
 
 register_strategy_config(
     id="newstyle:2019-10-29",
     base="newstyle:2019-05-08",
-    delegates=["frame:v4"],
+    delegates=["frame:v1"],
     risk=RISK_LEVEL_MEDIUM,
     changelog="""
         * Better rules for when to take context lines into account for
@@ -136,14 +141,16 @@ register_strategy_config(
         "contextline_platforms": (),
         "php_detect_anonymous_classes": False,
         "with_context_line_file_origin_bug": False,
+        "trim_message": False,
+        "with_exception_value_fallback": False,
     },
 )
 
 register_strategy_config(
     id="newstyle:2019-04-17",
     base="newstyle:2019-04-05",
-    strategies=["message:v2"],
-    delegates=["frame:v2", "single-exception:v2"],
+    strategies=["message:v1"],
+    delegates=["frame:v1", "single-exception:v1"],
     risk=RISK_LEVEL_HIGH,
     changelog="""
         * Experimental grouping algorithm (should not be used)
@@ -151,6 +158,8 @@ register_strategy_config(
     hidden=True,
     initial_context={
         "legacy_function_logic": False,
+        "trim_message": True,
+        "with_exception_value_fallback": True,
     },
 )
 

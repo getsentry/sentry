@@ -228,7 +228,7 @@ def get_function_component(
 
 
 @strategy(
-    ids=["frame:v1", "frame:v2", "frame:v3", "frame:v4"],
+    ids=["frame:v1"],
     interfaces=["frame"],
     variants=["!system", "app"],
 )
@@ -416,7 +416,12 @@ def _stacktrace_encoder(id, stacktrace):
     yield (id, "frames-pairs"), shingle(2, encoded_frames)
 
 
-def single_exception_common(exception, context, meta, with_value):
+@strategy(
+    ids=["single-exception:v1"],
+    interfaces=["singleexception"],
+    variants=["!system", "app"],
+)
+def single_exception(exception, context, **meta):
     if exception.stacktrace is not None:
         stacktrace_component = context.get_grouping_component(exception.stacktrace, **meta)
     else:
@@ -433,7 +438,7 @@ def single_exception_common(exception, context, meta, with_value):
 
     values = [stacktrace_component, type_component]
 
-    if with_value:
+    if context["with_exception_value_fallback"]:
         value_component = GroupingComponent(id="value", similarity_encoder=text_shingle_encoder(5))
 
         value_in = exception.value
@@ -453,17 +458,6 @@ def single_exception_common(exception, context, meta, with_value):
         values.append(value_component)
 
     return GroupingComponent(id="exception", values=values)
-
-
-@strategy(
-    ids=["single-exception:v1", "single-exception:v2"],
-    interfaces=["singleexception"],
-    variants=["!system", "app"],
-)
-def single_exception(exception, context, **meta):
-    id = meta["strategy"].id
-    with_value = id == "single-exception:v2"
-    return single_exception_common(exception, context, meta, with_value=with_value)
 
 
 @strategy(
