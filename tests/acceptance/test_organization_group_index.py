@@ -32,7 +32,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         self.dismiss_assistant()
 
     def create_issues(self):
-        self.store_event(
+        event_a = self.store_event(
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
@@ -41,7 +41,8 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        self.store_event(
+        add_group_to_inbox(event_a.group, GroupInboxReason.NEW)
+        event_b = self.store_event(
             data={
                 "event_id": "b" * 32,
                 "message": "oh snap",
@@ -50,6 +51,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
+        add_group_to_inbox(event_b.group, GroupInboxReason.NEW)
 
     def test_with_onboarding(self):
         self.project.update(first_event=None)
@@ -111,26 +113,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
     @patch("django.utils.timezone.now")
     def test_inbox_results(self, mock_now):
         mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
-        event_a = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "inbox event a",
-                "timestamp": iso_format(event_time),
-                "fingerprint": ["group-test-inbox-results-a"],
-            },
-            project_id=self.project.id,
-        )
-        add_group_to_inbox(event_a.group, GroupInboxReason.NEW)
-        event_b = self.store_event(
-            data={
-                "event_id": "b" * 32,
-                "message": "another inbox event",
-                "timestamp": iso_format(event_time),
-                "fingerprint": ["group-test-inbox-results-b"],
-            },
-            project_id=self.project.id,
-        )
-        add_group_to_inbox(event_b.group, GroupInboxReason.NEW)
+        self.create_issues()
         # Disable for_review_guide
         AssistantActivity.objects.create(user=self.user, guide_id=9, viewed_ts=timezone.now())
 
@@ -140,16 +123,15 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             )
             self.page.wait_for_stream()
             self.browser.snapshot("organization issues inbox results")
-
             groups = self.browser.elements('[data-test-id="event-issue-header"]')
             assert len(groups) == 2
 
             self.page.select_issue(1)
             self.page.mark_reviewed_issues()
+
             self.page.visit_issue_list(
                 self.org.slug, query="?query=is%3Aunresolved+is%3Afor_review"
             )
             self.page.wait_for_stream()
-
             groups = self.browser.elements('[data-test-id="event-issue-header"]')
             assert len(groups) == 1
