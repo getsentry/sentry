@@ -85,7 +85,7 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
     );
   }
 
-  const showAddOverlay = !(
+  const showAddYAxisButton = !(
     ['world_map', 'big_number'].includes(displayType) && fields.length === 1
   );
 
@@ -115,16 +115,16 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
               borderless
               onClick={event => handleRemove(event, i)}
               icon={<IconDelete />}
-              title={t('Remove this overlay')}
-              label={t('Remove this overlay')}
+              title={t('Remove this Y-Axis')}
+              label={t('Remove this Y-Axis')}
             />
           )}
         </QueryFieldWrapper>
       ))}
       <div>
-        {showAddOverlay && (
+        {showAddYAxisButton && (
           <Button size="small" onClick={handleAdd} icon={<IconAdd isCircled />}>
-            {t('Add an overlay')}
+            {t('Add Y-Axis')}
           </Button>
         )}
       </div>
