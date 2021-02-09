@@ -184,7 +184,7 @@ class Table extends React.Component<TableProps, TableState> {
           {({isLoading, tableData}) => (
             <GridEditable
               isLoading={isLoading}
-              data={tableData ? tableData.data : []}
+              data={tableData ? tableData.data.slice(0, 5) : []}
               columnOrder={columnOrder}
               columnSortBy={columnSortBy}
               grid={{
