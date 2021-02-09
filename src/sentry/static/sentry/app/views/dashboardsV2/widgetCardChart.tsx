@@ -351,20 +351,21 @@ const LoadingScreen = ({loading}: {loading: boolean}) => {
 
 const BigNumber = styled('div')`
   font-size: 32px;
-  margin-top: ${space(1)};
-  padding: ${space(1)} ${space(2)} ${space(2)};
+  padding: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
   * {
     text-align: left !important;
   }
 `;
 
 const ChartWrapper = styled('div')`
-  padding: 0 ${space(2)} ${space(2)};
+  padding: 0 ${space(3)} ${space(3)};
 `;
 
 const StyledSimpleTableChart = styled(SimpleTableChart)`
   /* align with other card charts */
   height: 216px;
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin-top: ${space(1.5)};
 `;
 
 export default WidgetCardChart;
