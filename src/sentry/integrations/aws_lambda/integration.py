@@ -1,6 +1,7 @@
 import logging
 import six
 
+from concurrent.futures import ThreadPoolExecutor
 from botocore.exceptions import ClientError
 from django.utils.translation import ugettext_lazy as _
 
@@ -61,6 +62,8 @@ metadata = IntegrationMetadata(
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/aws_lambda",
     aspects={},
 )
+
+_lambda_setup_thread_pool = ThreadPoolExecutor(max_workers=10)
 
 
 class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
@@ -347,19 +350,30 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
         lambda_functions = get_supported_functions(lambda_client)
         lambda_functions.sort(key=lambda x: x["FunctionName"].lower())
 
+        def is_lambda_enabled(function):
+            name = function["FunctionName"]
+            # check to see if the user wants to enable this function
+            return enabled_lambdas.get(name)
+
+        lambda_functions = filter(is_lambda_enabled, lambda_functions)
+
+        def _enable_lambda(function):
+            try:
+                enable_single_lambda(lambda_client, function, sentry_project_dsn)
+                return (True, function, None)
+            except Exception as e:
+                return (False, function, e)
+
         failures = []
         success_count = 0
 
-        for function in lambda_functions:
+        # use threading here to parallelize requests
+        results = list(_lambda_setup_thread_pool.map(_enable_lambda, lambda_functions))
+        for success, function, e in results:
             name = function["FunctionName"]
-            # check to see if the user wants to enable this function
-            if not enabled_lambdas.get(name):
-                continue
-
-            try:
-                enable_single_lambda(lambda_client, function, sentry_project_dsn)
+            if success:
                 success_count += 1
-            except Exception as e:
+            else:
                 # need to make sure we catch any error to continue to the next function
                 err_message = six.text_type(e)
                 invalid_layer = get_invalid_layer_name(err_message)
