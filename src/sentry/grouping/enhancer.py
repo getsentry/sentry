@@ -446,7 +446,7 @@ class Enhancements:
 
     @classmethod
     def loads(cls, data):
-        if isinstance(data, six.text_type):
+        if isinstance(data, str):
             data = data.encode("ascii", "ignore")
         padded = data + b"=" * (4 - (len(data) % 4))
         try:
@@ -486,7 +486,7 @@ class Rule:
         matchers = {}
         for matcher in self.matchers:
             matchers[matcher.key] = matcher.pattern
-        return {"match": matchers, "actions": [six.text_type(x) for x in self.actions]}
+        return {"match": matchers, "actions": [str(x) for x in self.actions]}
 
     def get_matching_frame_actions(self, frame_data, platform):
         """Given a frame returns all the matching actions based on this rule.
@@ -525,7 +525,7 @@ class EnhancmentsVisitor(NodeVisitor):
         rules = []
         in_header = True
         for child in children:
-            if isinstance(child, six.string_types):
+            if isinstance(child, str):
                 if in_header and child[:2] == "##":
                     changelog.append(child[2:].rstrip())
                 else:

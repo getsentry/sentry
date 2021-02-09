@@ -10,14 +10,14 @@ def convert_options_to_env(options):
         if v is None:
             continue
         key = "UWSGI_" + k.upper().replace("-", "_")
-        if isinstance(v, six.string_types):
+        if isinstance(v, str):
             value = v
         elif v is True:
             value = "true"
         elif v is False:
             value = "false"
-        elif isinstance(v, six.integer_types):
-            value = six.text_type(v)
+        elif isinstance(v, int):
+            value = str(v)
         else:
             raise TypeError("Unknown option type: %r (%s)" % (k, type(v)))
         yield key, value

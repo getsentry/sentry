@@ -399,7 +399,7 @@ def create_result_key(result_row, fields, issues):
                     value = value[-1]
                 else:
                     value = ""
-            values.append(six.text_type(value))
+            values.append(str(value))
     return ",".join(values)
 
 

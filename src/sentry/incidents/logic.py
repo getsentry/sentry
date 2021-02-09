@@ -228,8 +228,8 @@ def create_incident_activity(
 ):
     if activity_type == IncidentActivityType.COMMENT and user:
         subscribe_to_incident(incident, user)
-    value = six.text_type(value) if value is not None else value
-    previous_value = six.text_type(previous_value) if previous_value is not None else previous_value
+    value = str(value) if value is not None else value
+    previous_value = str(previous_value) if previous_value is not None else previous_value
     kwargs = {}
     if date_added:
         kwargs["date_added"] = date_added

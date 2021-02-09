@@ -114,7 +114,7 @@ class OAuthTokenView(View):
                     "token_type": "bearer",
                     "scope": " ".join(token.get_scopes()),  # NOQA
                     "user": {
-                        "id": six.text_type(token.user.id),
+                        "id": str(token.user.id),
                         # we might need these to become scope based
                         "name": token.user.name,
                         "email": token.user.email,

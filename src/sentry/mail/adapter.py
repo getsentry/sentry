@@ -316,7 +316,7 @@ class MailAdapter:
         except (Commit.DoesNotExist, Release.DoesNotExist):
             pass
         except Exception as exc:
-            logging.exception(six.text_type(exc))
+            logging.exception(str(exc))
         else:
             for committer in committers:
                 for commit in committer["commits"]:
@@ -422,7 +422,7 @@ class MailAdapter:
             # notification template. If there is more than one record for a group,
             # just choose the most recent one.
             if len(counts) == 1:
-                group = six.next(iter(counts))
+                group = next(iter(counts))
                 record = max(
                     itertools.chain.from_iterable(
                         groups.get(group, []) for groups in six.itervalues(digest)
@@ -445,7 +445,7 @@ class MailAdapter:
                 "X-SMTPAPI": json.dumps({"category": "digest_email"}),
             }
 
-            group = six.next(iter(counts))
+            group = next(iter(counts))
             subject = self.get_digest_subject(group, counts, start)
 
             self.add_unsubscribe_link(context, user_id, project, "alert_digest")

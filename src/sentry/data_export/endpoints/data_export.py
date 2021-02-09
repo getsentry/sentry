@@ -77,7 +77,7 @@ class DataExportQuerySerializer(serializers.Serializer):
             try:
                 get_filter(query_info["query"], processor.params)
             except InvalidSearchQuery as err:
-                raise serializers.ValidationError(six.text_type(err))
+                raise serializers.ValidationError(str(err))
 
         return data
 
@@ -142,5 +142,5 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
             metrics.incr(
                 "dataexport.invalid", tags={"query_type": data.get("query_type")}, sample_rate=1.0
             )
-            return Response({"detail": six.text_type(e)}, status=400)
+            return Response({"detail": str(e)}, status=400)
         return Response(serialize(data_export, request.user), status=status)

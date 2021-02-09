@@ -416,7 +416,7 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
     # reason it'd not be binary would be from old cached blobs, so
     # for compatibility with current cached files, let's coerce back to
     # binary and say utf8 encoding.
-    if not isinstance(result.body, six.binary_type):
+    if not isinstance(result.body, bytes):
         try:
             result = http.UrlResult(
                 result.url,
@@ -469,7 +469,7 @@ def fetch_sourcemap(url, project=None, release=None, dist=None, allow_scraping=T
                 + (b"=" * (-(len(url) - BASE64_PREAMBLE_LENGTH) % 4))
             )
         except TypeError as e:
-            raise UnparseableSourcemap({"url": "<base64>", "reason": six.text_type(e)})
+            raise UnparseableSourcemap({"url": "<base64>", "reason": str(e)})
     else:
         # look in the database and, if not found, optionally try to scrape the web
         result = fetch_file(
@@ -480,7 +480,7 @@ def fetch_sourcemap(url, project=None, release=None, dist=None, allow_scraping=T
         return SourceMapView.from_json_bytes(body)
     except Exception as exc:
         # This is in debug because the product shows an error already.
-        logger.debug(six.text_type(exc), exc_info=True)
+        logger.debug(str(exc), exc_info=True)
         raise UnparseableSourcemap({"url": http.expose_url(url)})
 
 

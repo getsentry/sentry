@@ -41,7 +41,7 @@ class ReleaseWebhookView(View):
         except json.JSONDecodeError as exc:
             return HttpResponse(
                 status=400,
-                content=json.dumps({"error": six.text_type(exc)}),
+                content=json.dumps({"error": str(exc)}),
                 content_type="application/json",
             )
 
@@ -110,7 +110,7 @@ class ReleaseWebhookView(View):
         except HookValidationError as exc:
             return HttpResponse(
                 status=400,
-                content=json.dumps({"error": six.text_type(exc)}),
+                content=json.dumps({"error": str(exc)}),
                 content_type="application/json",
             )
 

@@ -38,9 +38,9 @@ def trim_package(pkg):
 def to_hex_addr(addr):
     if addr is None:
         return None
-    elif isinstance(addr, six.integer_types):
+    elif isinstance(addr, int):
         rv = "0x%x" % addr
-    elif isinstance(addr, six.string_types):
+    elif isinstance(addr, str):
         if addr[:2] == "0x":
             addr = int(addr[2:], 16)
         rv = "0x%x" % int(addr)

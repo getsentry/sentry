@@ -61,7 +61,7 @@ message_type_regexp = re.compile("^(?P<type>[a-zA-Z]*Error): (?P<message>.*)")
 
 
 def translate_message(original_message):
-    if not isinstance(original_message, six.string_types):
+    if not isinstance(original_message, str):
         return original_message
 
     type = None

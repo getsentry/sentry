@@ -25,7 +25,7 @@ def catch_errors(f):
         try:
             return f(*args, **kwargs)
         except Exception as e:
-            error = force_str(six.text_type(e)) + " " + force_str(traceback.format_exc())
+            error = force_str(str(e)) + " " + force_str(traceback.format_exc())
 
         try:
             return encode({"result": None, "error": error, "metrics": None})
@@ -35,7 +35,7 @@ def catch_errors(f):
                 return encode(
                     {
                         "result": None,
-                        "error": force_str(six.text_type(e))
+                        "error": force_str(str(e))
                         + " "
                         + force_str(traceback.format_exc()),
                         "metrics": None,

@@ -8,7 +8,7 @@ from sentry.utils import json
 
 
 def stringify(value):
-    if isinstance(value, six.string_types):
+    if isinstance(value, str):
         return value
 
     if isinstance(value, (int, float, bool)):

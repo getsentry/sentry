@@ -167,7 +167,7 @@ class RedisTSDB(BaseTSDB):
         """
         model_key = self.get_model_key(key)
 
-        if isinstance(model_key, six.integer_types):
+        if isinstance(model_key, int):
             vnode = model_key % self.vnodes
         else:
             vnode = crc32(force_bytes(model_key)) % self.vnodes
@@ -186,9 +186,9 @@ class RedisTSDB(BaseTSDB):
         # We specialize integers so that a pure int-map can be optimized by
         # Redis, whereas long strings (say tag values) will store in a more
         # efficient hashed format.
-        if not isinstance(key, six.integer_types):
+        if not isinstance(key, int):
             # enforce utf-8 encoding
-            if isinstance(key, six.text_type):
+            if isinstance(key, str):
                 key = key.encode("utf-8")
 
             key_repr = repr(key)[1:].encode("utf-8")

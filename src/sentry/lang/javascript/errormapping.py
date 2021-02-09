@@ -93,7 +93,7 @@ def process_react_exception(exc, match, mapping):
     args = []
     for k, v in parse_qsl(qs, keep_blank_values=True):
         if k == "args[]":
-            if isinstance(v, six.binary_type):
+            if isinstance(v, bytes):
                 v = v.decode("utf-8", "replace")
             args.append(v)
 

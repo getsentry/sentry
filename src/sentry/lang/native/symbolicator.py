@@ -118,8 +118,8 @@ class Symbolicator:
 
         self.sess = SymbolicatorSession(
             url=base_url,
-            project_id=six.text_type(project.id),
-            event_id=six.text_type(event_id),
+            project_id=str(project.id),
+            event_id=str(event_id),
             timeout=settings.SYMBOLICATOR_POLL_TIMEOUT,
             sources=get_sources_for_project(project),
             options=get_options_for_project(project),
@@ -340,7 +340,7 @@ def parse_sources(config):
     try:
         sources = json.loads(config)
     except BaseException as e:
-        raise InvalidSourcesError(six.text_type(e))
+        raise InvalidSourcesError(str(e))
 
     try:
         jsonschema.validate(sources, SOURCES_SCHEMA)

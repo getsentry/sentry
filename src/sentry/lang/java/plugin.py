@@ -21,7 +21,7 @@ class JavaStacktraceProcessor(StacktraceProcessor):
 
         for image in get_path(self.data, "debug_meta", "images", filter=is_valid_image, default=()):
             self.available = True
-            self.images.add(six.text_type(image["uuid"]).lower())
+            self.images.add(str(image["uuid"]).lower())
 
     def handles_frame(self, frame, stacktrace_info):
         platform = frame.get("platform") or self.data.get("platform")

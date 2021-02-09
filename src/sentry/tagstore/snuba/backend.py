@@ -824,7 +824,7 @@ class SnubaTagStorage(TagStorage):
                 )
 
         tag_values = [
-            TagValue(key=key, value=six.text_type(value), **fix_tag_value_data(data))
+            TagValue(key=key, value=str(value), **fix_tag_value_data(data))
             for value, data in six.iteritems(results)
         ]
 

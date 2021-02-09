@@ -101,7 +101,7 @@ def transform_aliases_and_query(**kwargs):
 
     for aggregation in aggregations or []:
         derived_columns.add(aggregation[2])
-        if isinstance(aggregation[1], six.string_types):
+        if isinstance(aggregation[1], str):
             aggregation[1] = get_snuba_column_name(aggregation[1])
         elif isinstance(aggregation[1], (set, tuple, list)):
             aggregation[1] = [get_snuba_column_name(col) for col in aggregation[1]]

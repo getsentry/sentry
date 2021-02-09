@@ -364,7 +364,7 @@ class Event:
         # config ID is given in which case it's merged with the stored or
         # default config dictionary
         if force_config is not None:
-            if isinstance(force_config, six.string_types):
+            if isinstance(force_config, str):
                 stored_config = self.get_grouping_config()
                 config = dict(stored_config)
                 config["id"] = force_config
@@ -499,7 +499,7 @@ class EventSubjectTemplateData:
             value = self.event.get_tag(self.tag_aliases.get(name, name))
             if value is None:
                 raise KeyError
-            return six.text_type(value)
+            return str(value)
         elif name == "project":
             return self.event.project.get_full_name()
         elif name == "projectID":

@@ -73,7 +73,7 @@ class DiscoverQuerySerializer(serializers.Serializer):
                 optional=True,
             )
         except InvalidParams as e:
-            raise serializers.ValidationError(six.text_type(e))
+            raise serializers.ValidationError(str(e))
 
         if start is None or end is None:
             raise serializers.ValidationError("Either start and end dates or range is required")
@@ -116,7 +116,7 @@ class DiscoverQuerySerializer(serializers.Serializer):
             condition[2] = int(condition[2])
 
         # Strip double quotes on strings
-        if isinstance(condition[2], six.string_types):
+        if isinstance(condition[2], str):
             match = re.search(r'^"(.*)"$', condition[2])
             if match:
                 condition[2] = match.group(1)
@@ -125,7 +125,7 @@ class DiscoverQuerySerializer(serializers.Serializer):
         if array_field and has_equality_operator and (array_field.group(1) != self.arrayjoin):
             value = condition[2]
 
-            if isinstance(value, six.string_types):
+            if isinstance(value, str):
                 value = "'{}'".format(value)
 
             bool_value = 1 if condition[1] == "=" else 0

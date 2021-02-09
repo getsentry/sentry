@@ -15,7 +15,7 @@ class Role:
         self.is_global = bool(is_global)
 
     def __str__(self):
-        return six.text_type(self.name)
+        return str(self.name)
 
     def __repr__(self):
         return "<Role: {}>".format(self.id)

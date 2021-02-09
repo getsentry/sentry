@@ -412,7 +412,7 @@ class FingerprintingVisitor(NodeVisitor):
         rules = []
         in_header = True
         for child in children:
-            if isinstance(child, six.string_types):
+            if isinstance(child, str):
                 if in_header and child[:2] == "##":
                     changelog.append(child[2:].rstrip())
                 else:

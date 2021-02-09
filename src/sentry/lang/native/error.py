@@ -31,12 +31,12 @@ class SymbolicationFailed(Exception):
 
     def __init__(self, message=None, type=None, obj=None):
         Exception.__init__(self)
-        self.message = six.text_type(message)
+        self.message = str(message)
         self.type = type
         self.image_name = None
         self.image_path = None
         if obj is not None:
-            self.image_uuid = six.text_type(obj.debug_id)
+            self.image_uuid = str(obj.debug_id)
             if obj.name:
                 self.image_path = obj.name
                 self.image_name = image_name(obj.name)

@@ -164,7 +164,7 @@ class PasswordlessRegistrationForm(forms.ModelForm):
         required=True,
     )
     subscribe = CustomTypedChoiceField(
-        coerce=lambda x: six.text_type(x) == "1",
+        coerce=lambda x: str(x) == "1",
         label=_("Email updates"),
         choices=(
             (1, "Yes, I would like to receive updates via email"),

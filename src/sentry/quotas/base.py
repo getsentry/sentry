@@ -87,7 +87,7 @@ class QuotaConfig:
 
         self.id = id
         self.scope = scope
-        self.scope_id = six.text_type(scope_id) if scope_id is not None else None
+        self.scope_id = str(scope_id) if scope_id is not None else None
         self.categories = set(categories or [])
         # NOTE: Use `quotas.base._limit_from_settings` to map from settings
         self.limit = limit
@@ -104,8 +104,8 @@ class QuotaConfig:
 
     def to_json_legacy(self):
         data = {
-            "prefix": six.text_type(self.id) if self.id is not None else None,
-            "subscope": six.text_type(self.scope_id) if self.scope_id is not None else None,
+            "prefix": str(self.id) if self.id is not None else None,
+            "subscope": str(self.scope_id) if self.scope_id is not None else None,
             "limit": self.limit,
             "window": self.window,
             "reasonCode": self.reason_code,
@@ -122,7 +122,7 @@ class QuotaConfig:
             categories = [c.api_name() for c in self.categories]
 
         data = {
-            "id": six.text_type(self.id) if self.id is not None else None,
+            "id": str(self.id) if self.id is not None else None,
             "scope": self.scope.api_name(),
             "scopeId": self.scope_id,
             "categories": categories,
@@ -300,7 +300,7 @@ class Quota(Service):
         pass
 
     def _translate_quota(self, quota, parent_quota):
-        if six.text_type(quota).endswith("%"):
+        if str(quota).endswith("%"):
             pct = int(quota[:-1])
             quota = int(parent_quota or 0) * pct / 100
 

@@ -83,7 +83,7 @@ class OrganizationMixin:
 
         if active_organization is None and organization_slug:
             try:
-                active_organization = six.next(
+                active_organization = next(
                     o for o in organizations if o.slug == organization_slug
                 )
             except StopIteration:

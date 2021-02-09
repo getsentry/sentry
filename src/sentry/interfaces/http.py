@@ -41,8 +41,8 @@ def format_headers(value):
         if k.lower() == "cookie":
             cookie_header = v
         else:
-            if not isinstance(v, six.string_types):
-                v = six.text_type(v)
+            if not isinstance(v, str):
+                v = str(v)
             result.append((k.title(), v))
     return result, cookie_header
 
@@ -51,7 +51,7 @@ def format_cookies(value):
     if not value:
         return ()
 
-    if isinstance(value, six.string_types):
+    if isinstance(value, str):
         value = parse_qsl(value, keep_blank_values=True)
 
     if isinstance(value, dict):
@@ -65,15 +65,15 @@ def fix_broken_encoding(value):
     Strips broken characters that can't be represented at all
     in utf8. This prevents our parsers from breaking elsewhere.
     """
-    if isinstance(value, six.text_type):
+    if isinstance(value, str):
         value = value.encode("utf8", errors="replace")
-    if isinstance(value, six.binary_type):
+    if isinstance(value, bytes):
         value = value.decode("utf8", errors="replace")
     return value
 
 
 def jsonify(value):
-    return to_unicode(value) if isinstance(value, six.string_types) else json.dumps(value)
+    return to_unicode(value) if isinstance(value, str) else json.dumps(value)
 
 
 class Http(Interface):
@@ -202,14 +202,14 @@ class Http(Interface):
         headers = meta.get("headers")
         if headers:
             headers_meta = headers.pop("", None)
-            headers = {six.text_type(i): {"1": h[1]} for i, h in enumerate(sorted(headers.items()))}
+            headers = {str(i): {"1": h[1]} for i, h in enumerate(sorted(headers.items()))}
             if headers_meta:
                 headers[""] = headers_meta
 
         cookies = meta.get("cookies")
         if cookies:
             cookies_meta = cookies.pop("", None)
-            cookies = {six.text_type(i): {"1": h[1]} for i, h in enumerate(sorted(cookies.items()))}
+            cookies = {str(i): {"1": h[1]} for i, h in enumerate(sorted(cookies.items()))}
             if cookies_meta:
                 cookies[""] = cookies_meta
 

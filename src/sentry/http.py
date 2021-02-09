@@ -127,7 +127,7 @@ def expose_url(url):
     if url[:5] == "data:":
         return "<data url>"
     url = truncatechars(url, MAX_URL_LENGTH)
-    if isinstance(url, six.binary_type):
+    if isinstance(url, bytes):
         url = url.decode("utf-8", "replace")
     return url
 
@@ -219,11 +219,11 @@ def fetch_file(
                 elif isinstance(exc, (RequestException, ZeroReturnError, OpenSSLError)):
                     error = {
                         "type": EventError.FETCH_GENERIC_ERROR,
-                        "value": six.text_type(type(exc)),
+                        "value": str(type(exc)),
                         "url": expose_url(url),
                     }
                 else:
-                    logger.exception(six.text_type(exc))
+                    logger.exception(str(exc))
                     error = {"type": EventError.UNKNOWN_ERROR, "url": expose_url(url)}
 
                 # TODO(dcramer): we want to be less aggressive on disabling domains

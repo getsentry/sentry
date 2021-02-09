@@ -253,9 +253,9 @@ class EventManager:
             project_id=self._project.id if self._project else project_id,
             client_ip=self._client_ip,
             client=self._auth.client if self._auth else None,
-            key_id=six.text_type(self._key.id) if self._key else None,
+            key_id=str(self._key.id) if self._key else None,
             grouping_config=self._grouping_config,
-            protocol_version=six.text_type(self.version) if self.version is not None else None,
+            protocol_version=str(self.version) if self.version is not None else None,
             is_renormalize=self._is_renormalize,
             remove_other=self._remove_other,
             normalize_user_agent=True,
@@ -837,7 +837,7 @@ def _get_event_user_impl(project, data, metrics_tags):
 
     if ip_address:
         try:
-            ipaddress.ip_address(six.text_type(ip_address))
+            ipaddress.ip_address(str(ip_address))
         except ValueError:
             ip_address = None
 

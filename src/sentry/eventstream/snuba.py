@@ -125,7 +125,7 @@ class SnubaProtocolEventStream(EventStream):
                     "skip_consume": skip_consume,
                 },
             ),
-            headers={"Received-Timestamp": six.text_type(received_timestamp)},
+            headers={"Received-Timestamp": str(received_timestamp)},
         )
 
     def start_delete_groups(self, project_id, group_ids):

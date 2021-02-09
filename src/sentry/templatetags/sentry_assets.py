@@ -93,7 +93,7 @@ class ScriptNode(template.Node):
         self.attrs = kwargs
 
     def _get_value(self, token, context):
-        if isinstance(token, six.string_types):
+        if isinstance(token, str):
             return token
         if isinstance(token, template.base.FilterExpression):
             return token.resolve(context)

@@ -223,7 +223,7 @@ class TicketEventAction(IntegrationEventAction):
         self.form_fields = {
             self.integration_key: {
                 "choices": integration_choices,
-                "initial": six.text_type(self.get_integration_id()),
+                "initial": str(self.get_integration_id()),
                 "type": "choice",
                 "resetsForm": True,
                 "updatesForm": True,

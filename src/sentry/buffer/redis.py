@@ -65,7 +65,7 @@ class RedisBuffer(Buffer):
             with self.cluster.all() as client:
                 client.ping()
         except Exception as e:
-            raise InvalidConfiguration(six.text_type(e))
+            raise InvalidConfiguration(str(e))
 
     def _coerce_val(self, value):
         if isinstance(value, models.Model):
@@ -116,7 +116,7 @@ class RedisBuffer(Buffer):
         return result
 
     def _dump_value(self, value):
-        if isinstance(value, six.string_types):
+        if isinstance(value, str):
             type_ = "s"
         elif isinstance(value, datetime):
             type_ = "d"
@@ -127,7 +127,7 @@ class RedisBuffer(Buffer):
             type_ = "f"
         else:
             raise TypeError(type(value))
-        return (type_, six.text_type(value))
+        return (type_, str(value))
 
     def _load_values(self, payload):
         result = {}

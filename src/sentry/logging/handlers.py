@@ -55,7 +55,7 @@ class HumanRenderer:
     def __call__(self, logger, name, event_dict):
         level = event_dict.pop("level")
         real_level = (
-            level.upper() if isinstance(level, six.string_types) else logging.getLevelName(level)
+            level.upper() if isinstance(level, str) else logging.getLevelName(level)
         )
         base = "%s [%s] %s: %s" % (
             now().strftime("%H:%M:%S"),
@@ -106,7 +106,7 @@ class MessageContainsFilter(logging.Filter):
     def __init__(self, contains):
         if not isinstance(contains, list):
             contains = [contains]
-        if not all(isinstance(c, six.string_types) for c in contains):
+        if not all(isinstance(c, str) for c in contains):
             raise TypeError("'contains' must be a string or list of strings")
         self.contains = contains
 
