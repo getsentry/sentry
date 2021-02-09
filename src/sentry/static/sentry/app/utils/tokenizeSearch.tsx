@@ -16,7 +16,7 @@ function isOp(t: Token) {
   return t.type === TokenType.OP;
 }
 
-function isNotParen(value: string) {
+function isBooleanOp(value: string) {
   return ['OR', 'AND'].includes(value.toUpperCase());
 }
 
@@ -30,7 +30,7 @@ export class QueryResults {
     for (let token of strTokens) {
       let tokenState = TokenType.QUERY;
 
-      if (isNotParen(token)) {
+      if (isBooleanOp(token)) {
         this.addOp(token.toUpperCase());
         continue;
       }
@@ -207,7 +207,7 @@ export class QueryResults {
         const token = this.tokens[i];
         const prev = this.tokens[i - 1];
         const next = this.tokens[i + 1];
-        if (isOp(token) && isNotParen(token.value)) {
+        if (isOp(token) && isBooleanOp(token.value)) {
           if (
             (prev === undefined || isOp(prev) || next === undefined || isOp(next)) &&
             // Want to avoid removing `(term) OR (term)`
