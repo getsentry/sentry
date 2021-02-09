@@ -77,7 +77,7 @@ function Status({candidate}: Props) {
     case CandidateDownloadStatus.DELETED: {
       return (
         <StatusTooltip label={t('This file was deleted after the issue was processed.')}>
-          <Tag type="error">{t('Deleted')}</Tag>
+          <Tag type="success">{t('Deleted')}</Tag>
         </StatusTooltip>
       );
     }
