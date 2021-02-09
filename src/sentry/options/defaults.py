@@ -280,7 +280,7 @@ register("store.use-relay-dsn-sample-rate", default=1)
 # Mock out integrations and services for tests
 register("mocks.jira", default=False)
 
-# Record statistics about event payloads and their compressability
+# Record statistics about event payloads and their compressibility
 register("store.nodestore-stats-sample-rate", default=0.0)  # unused
 
 # Killswitch to stop storing any reprocessing payloads.
