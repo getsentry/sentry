@@ -17,7 +17,7 @@ class GitHubClient:
         self.access_token = access_token
 
     def _request(self, path):
-        headers = {"Authorization": "token {}".format(self.access_token)}
+        headers = {"Authorization": f"token {self.access_token}"}
 
         try:
             req = self.http.get(
