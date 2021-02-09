@@ -8,15 +8,15 @@ import WidgetWrapper from './widgetWrapper';
 
 export const ADD_WIDGET_BUTTON_DRAG_ID = 'add-widget-button';
 
+const initialStyles = {
+  x: 0,
+  y: 0,
+  scaleX: 1,
+  scaleY: 1,
+};
+
 function AddWidget(props: {onClick: () => void}) {
   const {onClick} = props;
-
-  const initialStyles = {
-    x: 0,
-    y: 0,
-    scaleX: 1,
-    scaleY: 1,
-  };
 
   const {setNodeRef, transform} = useSortable({
     disabled: true,

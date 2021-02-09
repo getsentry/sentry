@@ -8,6 +8,14 @@ import {Widget} from './types';
 import WidgetCard from './widgetCard';
 import WidgetWrapper from './widgetWrapper';
 
+const initialStyles = {
+  x: 0,
+  y: 0,
+  scaleX: 1,
+  scaleY: 1,
+  zIndex: 0,
+};
+
 type Props = {
   widget: Widget;
   dragId: string;
@@ -42,14 +50,6 @@ function SortableWidget(props: Props) {
       document.body.style.cursor = '';
     };
   }, [currentWidgetDragging]);
-
-  const initialStyles = {
-    x: 0,
-    y: 0,
-    scaleX: 1,
-    scaleY: 1,
-    zIndex: 0,
-  };
 
   return (
     <WidgetWrapper
