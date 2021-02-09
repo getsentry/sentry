@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import partial from 'lodash/partial';
 
 import Count from 'app/components/count';
 import Duration from 'app/components/duration';
@@ -39,10 +38,18 @@ type RenderFunctionBaggage = {
   location: Location;
 };
 
-type FieldFormatterRenderFunction = (field: string, data: EventData) => React.ReactNode;
+type FieldFormatterRenderFunctionProps = {
+  field: string;
+  data: EventData;
+  alignNumbers?: boolean;
+};
+
+type FieldFormatterRenderFunction = (
+  props: FieldFormatterRenderFunctionProps
+) => React.ReactNode;
 
 type FieldFormatterRenderFunctionPartial = (
-  data: EventData,
+  props: Omit<FieldFormatterRenderFunctionProps, 'field'>,
   baggage: RenderFunctionBaggage
 ) => React.ReactNode;
 
@@ -79,14 +86,14 @@ const emptyValue = <EmptyValueContainer>{t('n/a')}</EmptyValueContainer>;
 const FIELD_FORMATTERS: FieldFormatters = {
   boolean: {
     isSortable: true,
-    renderFunc: (field, data) => {
+    renderFunc: ({field, data}) => {
       const value = data[field] ? t('true') : t('false');
       return <Container>{value}</Container>;
     },
   },
   date: {
     isSortable: true,
-    renderFunc: (field, data) => (
+    renderFunc: ({field, data}) => (
       <Container>
         {data[field]
           ? getDynamicText({
@@ -99,8 +106,8 @@ const FIELD_FORMATTERS: FieldFormatters = {
   },
   duration: {
     isSortable: true,
-    renderFunc: (field, data) => (
-      <NumberContainer>
+    renderFunc: ({field, data, alignNumbers}) => (
+      <NumberContainer alignNumbers={alignNumbers}>
         {typeof data[field] === 'number' ? (
           <Duration seconds={data[field] / 1000} fixedDigits={2} abbreviation />
         ) : (
@@ -111,31 +118,31 @@ const FIELD_FORMATTERS: FieldFormatters = {
   },
   integer: {
     isSortable: true,
-    renderFunc: (field, data) => (
-      <NumberContainer>
+    renderFunc: ({field, data, alignNumbers}) => (
+      <NumberContainer alignNumbers={alignNumbers}>
         {typeof data[field] === 'number' ? <Count value={data[field]} /> : emptyValue}
       </NumberContainer>
     ),
   },
   number: {
     isSortable: true,
-    renderFunc: (field, data) => (
-      <NumberContainer>
+    renderFunc: ({field, data, alignNumbers}) => (
+      <NumberContainer alignNumbers={alignNumbers}>
         {typeof data[field] === 'number' ? formatFloat(data[field], 4) : emptyValue}
       </NumberContainer>
     ),
   },
   percentage: {
     isSortable: true,
-    renderFunc: (field, data) => (
-      <NumberContainer>
+    renderFunc: ({field, data, alignNumbers}) => (
+      <NumberContainer alignNumbers={alignNumbers}>
         {typeof data[field] === 'number' ? formatPercentage(data[field]) : emptyValue}
       </NumberContainer>
     ),
   },
   string: {
     isSortable: true,
-    renderFunc: (field, data) => {
+    renderFunc: ({field, data}) => {
       // Some fields have long arrays in them, only show the tail of the data.
       const value = Array.isArray(data[field])
         ? data[field].slice(-1)
@@ -147,7 +154,7 @@ const FIELD_FORMATTERS: FieldFormatters = {
   },
   array: {
     isSortable: true,
-    renderFunc: (field, data) => {
+    renderFunc: ({field, data}) => {
       const value = Array.isArray(data[field]) ? data[field] : [data[field]];
       return <ArrayValue value={value} />;
     },
@@ -155,7 +162,7 @@ const FIELD_FORMATTERS: FieldFormatters = {
 };
 
 type SpecialFieldRenderFunc = (
-  data: EventData,
+  props: FieldFormatterRenderFunctionProps,
   baggage: RenderFunctionBaggage
 ) => React.ReactNode;
 
@@ -184,7 +191,7 @@ type SpecialFields = {
 const SPECIAL_FIELDS: SpecialFields = {
   id: {
     sortField: 'id',
-    renderFunc: data => {
+    renderFunc: ({data}) => {
       const id: string | unknown = data?.id;
       if (typeof id !== 'string') {
         return null;
@@ -195,7 +202,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   'issue.id': {
     sortField: 'issue.id',
-    renderFunc: (data, {organization}) => {
+    renderFunc: ({data}, {organization}) => {
       const target = {
         pathname: `/organizations/${organization.slug}/issues/${data['issue.id']}/`,
       };
@@ -211,7 +218,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   issue: {
     sortField: null,
-    renderFunc: (data, {organization}) => {
+    renderFunc: ({data}, {organization}) => {
       const issueID = data['issue.id'];
 
       if (!issueID) {
@@ -237,7 +244,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   project: {
     sortField: 'project',
-    renderFunc: (data, {organization}) => {
+    renderFunc: ({data}, {organization}) => {
       return (
         <Container>
           <Projects orgId={organization.slug} slugs={[data.project]}>
@@ -257,7 +264,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   user: {
     sortField: 'user',
-    renderFunc: data => {
+    renderFunc: ({data}) => {
       if (data.user) {
         const [key, value] = data.user.split(':');
         const userObj = {
@@ -297,7 +304,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   release: {
     sortField: 'release',
-    renderFunc: data =>
+    renderFunc: ({data}) =>
       data.release ? (
         <VersionContainer>
           <Version version={data.release} anchor={false} tooltipRawVersion truncate />
@@ -308,7 +315,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   'error.handled': {
     sortField: 'error.handled',
-    renderFunc: data => {
+    renderFunc: ({data}) => {
       const values = data['error.handled'];
       // Transactions will have null, and default events have no handled attributes.
       if (values === null || values?.length === 0) {
@@ -320,7 +327,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   key_transaction: {
     sortField: 'key_transaction',
-    renderFunc: (data, {organization}) => (
+    renderFunc: ({data}, {organization}) => (
       <Container>
         <KeyTransactionField
           isKeyTransaction={(data.key_transaction ?? 0) !== 0}
@@ -333,7 +340,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   'trend_percentage()': {
     sortField: 'trend_percentage()',
-    renderFunc: data => (
+    renderFunc: ({data}) => (
       <NumberContainer>
         {typeof data.trend_percentage === 'number'
           ? formatPercentage(data.trend_percentage - 1)
@@ -352,7 +359,7 @@ type SpecialFunctions = {
  * or they require custom UI formatting that can't be handled by the datatype formatters.
  */
 const SPECIAL_FUNCTIONS: SpecialFunctions = {
-  user_misery: data => {
+  user_misery: ({data}) => {
     const uniqueUsers = data.count_unique_user;
     let userMiseryField: string = '';
     for (const field in data) {
@@ -445,12 +452,18 @@ export function getFieldRenderer(
   }
 
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
-    return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
+    return function (props) {
+      return FIELD_FORMATTERS[fieldType].renderFunc({field: fieldName, ...props});
+    };
   }
-  return partial(FIELD_FORMATTERS.string.renderFunc, fieldName);
+  return function (props) {
+    return FIELD_FORMATTERS.string.renderFunc({field: fieldName, ...props});
+  };
 }
 
-type FieldTypeFormatterRenderFunctionPartial = (data: EventData) => React.ReactNode;
+type FieldTypeFormatterRenderFunction = (
+  props: Omit<FieldFormatterRenderFunctionProps, 'field'>
+) => React.ReactNode;
 
 /**
  * Get the field renderer for the named field only based on its type from the given
@@ -463,12 +476,16 @@ type FieldTypeFormatterRenderFunctionPartial = (data: EventData) => React.ReactN
 export function getFieldFormatter(
   field: string,
   meta: MetaType
-): FieldTypeFormatterRenderFunctionPartial {
+): FieldTypeFormatterRenderFunction {
   const fieldName = getAggregateAlias(field);
   const fieldType = meta[fieldName];
 
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
-    return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
+    return function (props) {
+      return FIELD_FORMATTERS[fieldType].renderFunc({field: fieldName, ...props});
+    };
   }
-  return partial(FIELD_FORMATTERS.string.renderFunc, fieldName);
+  return function (props) {
+    return FIELD_FORMATTERS.string.renderFunc({field: fieldName, ...props});
+  };
 }

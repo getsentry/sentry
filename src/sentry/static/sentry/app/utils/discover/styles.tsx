@@ -16,8 +16,8 @@ export const VersionContainer = styled('div')`
   display: flex;
 `;
 
-export const NumberContainer = styled('div')`
-  text-align: right;
+export const NumberContainer = styled('div')<{alignNumbers?: boolean}>`
+  text-align: ${p => (p.alignNumbers === false ? 'left' : 'right')};
   ${overflowEllipsis};
 `;
 
