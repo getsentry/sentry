@@ -87,7 +87,7 @@ describe('Debug Meta - Image Details Candidates', function () {
     // The UI shall sort the candidates by source location (alphabetical)
     const locations = debugFileColumn.find('Location').map(location => location.text());
     // Only 3 results are returned, as the UI only displays the Location component
-    // when the location is defined and when it is not an internal location
+    // when the location is defined and when it is not internal
     expect(locations).toEqual(['arizona', 'burgenland', 'brussels']);
   });
 });
