@@ -1,0 +1,70 @@
+name: api docs
+
+on:
+  push:
+    branches:
+      - master
+
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  test:
+    name: api docs test
+    runs-on: ubuntu-16.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Check for python and `api-docs` file changes
+        uses: getsentry/paths-filter@v2
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
+      - uses: volta-cli/action@v1
+        if: steps.changes.outputs.api_docs == 'true'
+
+      - name: Set python version output
+        id: python-version
+        if: steps.changes.outputs.api_docs == 'true'
+        run: |
+          echo "::set-output name=python-version::$(cat .python-version)"
+
+      # Until GH composite actions can use `uses`, we need to setup python here
+      - uses: actions/setup-python@v2
+        if: steps.changes.outputs.api_docs == 'true'
+        with:
+          python-version: ${{ steps.python-version.outputs.python-version }}
+
+      - name: Setup pip
+        uses: ./.github/actions/setup-pip
+        id: pip
+        if: steps.changes.outputs.api_docs == 'true'
+
+      - name: pip cache
+        uses: actions/cache@v2
+        if: steps.changes.outputs.api_docs == 'true'
+        with:
+          path: ${{ steps.pip.outputs.pip-cache-dir }}
+          key: ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ hashFiles('**/requirements-*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}
+
+      - name: Setup sentry python env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        if: steps.changes.outputs.api_docs == 'true'
+        with:
+          snuba: true
+
+      - name: Install Javascript Dependencies
+        if: steps.changes.outputs.api_docs == 'true'
+        run: |
+          cd api-docs && yarn install --frozen-lockfile
+
+      - name: Run API docs tests
+        if: steps.changes.outputs.api_docs == 'true'
+        run: |
+          make test-api-docs

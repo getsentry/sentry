@@ -1,0 +1,49 @@
+name: check if migration is required
+on:
+  pull_request:
+    paths:
+      # Matches all python files regardless of directory depth.
+      - '**.py'
+      - requirements*.txt
+
+jobs:
+  main:
+    name: is migration required
+    runs-on: ubuntu-16.04
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set python version output
+        id: python-version
+        run: |
+          echo "::set-output name=python-version::$(cat .python-version)"
+
+      # Until GH composite actions can use `uses`, we need to setup python here
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ steps.python-version.outputs.python-version }}
+
+      - name: Setup pip
+        uses: ./.github/actions/setup-pip
+        id: pip
+
+      - name: pip cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.pip.outputs.pip-cache-dir }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements-*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+
+      - name: Check if a migration is required
+        env:
+          SENTRY_LOG_LEVEL: ERROR
+          PGPASSWORD: postgres
+        run: |
+          # Below will exit with non-zero status if model changes are missing migrations
+          sentry django makemigrations -n ci_test --check --dry-run --no-input || (echo '::error::Error: Migration required -- to generate a migration, run `sentry django makemigrations -n <some_name>`' && exit 1)

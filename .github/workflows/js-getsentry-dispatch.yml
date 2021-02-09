@@ -1,0 +1,62 @@
+# If frontend files change, dispatch a request to getsentry to run its javascript test suites
+name: getsentry dispatcher
+
+on:
+  # XXX: We are using `pull_request_target` instead of `pull_request` because we want
+  # this to run on forks.  It allows forks to access secrets safely by
+  # only running workflows from the main branch. Prefer to use `pull_request` when possible.
+  #
+  # See https://github.com/getsentry/sentry/pull/21600 for more details
+  pull_request_target:
+
+jobs:
+  frontend:
+    name: frontend dispatch
+    runs-on: ubuntu-16.04
+    steps:
+      # Need to checkout just for `github/file-filters.yml`
+      - uses: actions/checkout@v2
+
+      - name: Check for frontend file changes
+        uses: getsentry/paths-filter@v2
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
+      - name: getsentry token
+        uses: getsentry/action-github-app-token@v1
+        id: getsentry
+        with:
+          app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
+      - name: Dispatch getsentry frontend tests
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{ steps.getsentry.outputs.token }}
+          script: |
+            // Check for getsentry PR dependency
+            const body = context.payload.pull_request.body;
+
+            // Logs convert the full PR URL into a shortened link, but we need to match against the full URL
+            const matches = body && body.match(/requires.*getsentry\/getsentry\/pull\/(\d+)/im);
+            const pr = matches && await github.pulls.get({
+              owner: 'getsentry',
+              repo: 'getsentry',
+              pull_number: matches[1],
+            });
+            const branch = pr ? pr.data.head.ref : '';
+
+            github.actions.createWorkflowDispatch({
+              owner: 'getsentry',
+              repo: 'getsentry',
+              workflow_id: 'js-build-and-lint.yml',
+              ref: 'master',
+              inputs: {
+                pull_request: matches && matches[1] || '',
+                branch,
+                skip: "${{ steps.changes.outputs.frontend != 'true' }}",
+                'sentry-sha': '${{ github.event.pull_request.head.sha }}',
+              }
+            })
