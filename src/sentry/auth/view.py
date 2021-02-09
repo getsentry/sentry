@@ -16,7 +16,7 @@ class AuthView(BaseView):
 
     def get_ident(self):
         cls = type(self)
-        return "{module}.{name}".format(module=cls.__module__, name=cls.__name__)
+        return f"{cls.__module__}.{cls.__name__}"
 
 
 class ConfigureView(BaseView, PluggableViewMixin):

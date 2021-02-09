@@ -53,15 +53,13 @@ class Creator(Mediator):
         if queryset.exists():
             # In reality, the slug is taken but it's determined by the name field
             raise ValidationError(
-                {"name": ["Name {} is already taken, please use another.".format(self.name)]}
+                {"name": [f"Name {self.name} is already taken, please use another."]}
             )
         return slug
 
     def _create_proxy_user(self):
         # need a proxy user name that will always be unique
-        return User.objects.create(
-            username="{}-{}".format(self.slug, default_uuid()), is_sentry_app=True
-        )
+        return User.objects.create(username=f"{self.slug}-{default_uuid()}", is_sentry_app=True)
 
     def _create_api_application(self):
         return ApiApplication.objects.create(

@@ -82,7 +82,7 @@ class Updater(Mediator):
         for event in self.events:
             needed_scope = REQUIRED_EVENT_PERMISSIONS[event]
             if needed_scope not in self.sentry_app.scope_list:
-                raise APIError("{} webhooks require the {} permission.".format(event, needed_scope))
+                raise APIError(f"{event} webhooks require the {needed_scope} permission.")
 
         from sentry.mediators.service_hooks.creator import expand_events
 

@@ -54,7 +54,7 @@ class Map(Attribute):
         for attr in self.attributes:
             nv = items.pop(attr.name, None)
             if attr.required and nv is None:
-                raise ValueError("{} is required (cannot be None)".format(attr.name))
+                raise ValueError(f"{attr.name} is required (cannot be None)")
 
             data[attr.name] = attr.extract(nv)
 
@@ -85,7 +85,7 @@ class Event:
         for attr in self.attributes:
             nv = items.pop(attr.name, None)
             if attr.required and nv is None:
-                raise ValueError("{} is required (cannot be None)".format(attr.name))
+                raise ValueError(f"{attr.name} is required (cannot be None)")
             data[attr.name] = attr.extract(nv)
 
         if items:

@@ -234,7 +234,7 @@ class OAuthBackend(SocialAuthBackend):
                 data[alias] = value
 
             except (TypeError, ValueError):
-                raise BackendError("invalid entry: %s" % (entry,))
+                raise BackendError(f"invalid entry: {entry}")
 
         return data
 
