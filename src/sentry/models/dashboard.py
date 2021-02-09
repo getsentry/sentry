@@ -168,7 +168,7 @@ PREBUILT_DASHBOARDS = {
                         {
                             "name": "",
                             "conditions": "!event.type:transaction has:browser.name",
-                            "fields": ["count()", "browser.name"],
+                            "fields": ["browser.name", "count()"],
                             "orderby": "-count",
                         }
                     ],
