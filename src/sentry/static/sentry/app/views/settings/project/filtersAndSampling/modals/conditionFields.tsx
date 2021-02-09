@@ -58,8 +58,8 @@ function ConditionFields({
                 required
                 stacked
               />
-              <StyledField
-                label={t('Match Conditions')}
+              <Field
+                label={t('Matches')}
                 // help={t('This is a description')} // TODO(PRISCILA): Add correct description
                 inline={false}
                 hideControlState
@@ -70,9 +70,7 @@ function ConditionFields({
               >
                 <StyledTextareaField
                   placeholder={
-                    showLegacyBrowsers
-                      ? t('No match condition')
-                      : 'ex. 1* or [I3].[0-9].*'
+                    showLegacyBrowsers ? t('No match') : 'ex. 1* or [I3].[0-9].*'
                   }
                   name={`match-${index}`}
                   value={match}
@@ -88,7 +86,7 @@ function ConditionFields({
                     'You can include multiple values by putting each value on a separate line'
                   )}
                 </FieldHelp>
-              </StyledField>
+              </Field>
               <ButtonDeleteWrapper>
                 <Button onClick={onDelete(index)} size="small">
                   {t('Delete Condition')}
@@ -133,7 +131,6 @@ const FieldsWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
   grid-gap: ${space(2)};
-  margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: 1fr max-content;
@@ -161,13 +158,10 @@ const Wrapper = styled('div')`
       @media (max-width: ${p => p.theme.breakpoints[0]}) {
         border-top: 1px solid ${p => p.theme.border};
         padding-top: ${space(2)};
+        margin-top: ${space(2)};
       }
     }
   }
-`;
-
-const StyledField = styled(Field)`
-  padding-bottom: 0;
 `;
 
 const StyledTextareaField = styled(TextareaField)`
@@ -181,8 +175,7 @@ const StyledButton = styled(Button)`
 const ButtonDeleteWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
-  padding-top: ${space(2)};
-
+  margin-bottom: ${space(2)};
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     display: none;
   }
