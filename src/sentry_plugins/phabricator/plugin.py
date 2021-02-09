@@ -1,15 +1,13 @@
-import six
-
 from django.conf.urls import url
+from http.client import HTTPException
 from rest_framework.response import Response
+from urllib.parse import urljoin
 
 from sentry.exceptions import PluginError
 from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.integrations import FeatureDescription, IntegrationFeatures
-from six.moves.urllib.parse import urljoin
-from six.moves.http_client import HTTPException
 
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
@@ -224,8 +222,8 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
         api = self.get_api(group.project)
         try:
             data = api.maniphest.createtask(
-                title=six.text_type(form_data["title"]),
-                description=six.text_type(form_data["description"]),
+                title=str(form_data["title"]),
+                description=str(form_data["description"]),
                 ownerPHID=form_data.get("assignee"),
                 projectPHIDs=form_data.get("tags"),
             )

@@ -1,5 +1,4 @@
 import logging
-import six
 
 from concurrent.futures import ThreadPoolExecutor
 from botocore.exceptions import ClientError
@@ -58,7 +57,7 @@ metadata = IntegrationMetadata(
     features=FEATURES,
     author="The Sentry Team",
     noun=_("Installation"),
-    issue_url="https://github.com/getsentry/sentry/issues/new",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=AWS%20Lambda%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/aws_lambda",
     aspects={},
 )
@@ -292,7 +291,7 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
             except Exception as e:
                 logger.error(
                     "AwsLambdaCloudFormationPipelineView.unexpected_error",
-                    extra={"error": six.text_type(e)},
+                    extra={"error": str(e)},
                 )
                 return render_response(_("Unkown errror"))
 
@@ -368,20 +367,22 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
 
         with ThreadPoolExecutor(max_workers=10) as _lambda_setup_thread_pool:
             # use threading here to parallelize requests
+            # no timeout on the thread since the underlying request will time out
+            # if it takes too long
             for success, function, e in _lambda_setup_thread_pool.map(
-                _enable_lambda, lambda_functions, timeout=10
+                _enable_lambda, lambda_functions
             ):
                 name = function["FunctionName"]
                 if success:
                     success_count += 1
                 else:
                     # need to make sure we catch any error to continue to the next function
-                    err_message = six.text_type(e)
+                    err_message = str(e)
                     invalid_layer = get_invalid_layer_name(err_message)
                     if invalid_layer:
                         err_message = _(INVALID_LAYER_TEXT) % invalid_layer
                     else:
-                        err_message = _("Unkown Error")
+                        err_message = _("Unknown Error")
                     failures.append({"name": function["FunctionName"], "error": err_message})
                     logger.info(
                         "update_function_configuration.error",
@@ -390,7 +391,7 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
                             "lambda_name": name,
                             "account_number": account_number,
                             "region": region,
-                            "error": six.text_type(e),
+                            "error": str(e),
                         },
                     )
 

@@ -1,5 +1,4 @@
 import logging
-import six
 from operator import attrgetter
 import re
 
@@ -85,7 +84,7 @@ metadata = IntegrationMetadata(
     features=FEATURE_DESCRIPTIONS,
     author="The Sentry Team",
     noun=_("Instance"),
-    issue_url="https://github.com/getsentry/sentry/issues/new?title=Jira%20Integration:%20&labels=Component%3A%20Integrations",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=Jira%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/jira",
     aspects={"externalInstall": external_install},
 )
@@ -549,7 +548,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                     "integration_id": self.model.id,
                     "organization_id": self.organization_id,
                     "jira_project": project_id,
-                    "error": six.text_type(e),
+                    "error": str(e),
                 },
             )
             raise IntegrationError(
@@ -593,7 +592,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 extra={
                     "integration_id": self.model.id,
                     "organization_id": self.organization_id,
-                    "error": six.text_type(e),
+                    "error": str(e),
                 },
             )
             raise IntegrationError(
@@ -697,7 +696,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                             "integration_id": self.model.id,
                             "organization_id": self.organization_id,
                             "persisted_reporter_id": reporter_id,
-                            "error": six.text_type(e),
+                            "error": str(e),
                         },
                     )
                     continue

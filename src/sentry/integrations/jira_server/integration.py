@@ -1,5 +1,4 @@
 import logging
-import six
 
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from cryptography.hazmat.backends import default_backend
@@ -8,7 +7,7 @@ from django.core.urlresolvers import reverse
 from django.core.validators import URLValidator
 from django.utils.translation import ugettext as _
 from django.views.decorators.csrf import csrf_exempt
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 from sentry.integrations import (
     IntegrationFeatures,
@@ -72,7 +71,7 @@ metadata = IntegrationMetadata(
     features=FEATURE_DESCRIPTIONS,
     author="The Sentry Team",
     noun=_("Installation"),
-    issue_url="https://github.com/getsentry/sentry/issues/new?title=Jira%20Server%20Integration:%20&labels=Component%3A%20Integrations",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=Jira%20Server%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/jira_server",
     aspects={"alerts": [setup_alert]},
 )
@@ -313,7 +312,7 @@ class JiraServerIntegrationProvider(IntegrationProvider):
         except ApiError as err:
             logger.info(
                 "jira-server.webhook.failed",
-                extra={"error": six.text_type(err), "external_id": external_id},
+                extra={"error": str(err), "external_id": external_id},
             )
             try:
                 details = next(x for x in err.json["messages"][0].values())

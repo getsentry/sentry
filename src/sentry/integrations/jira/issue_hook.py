@@ -1,8 +1,7 @@
+from functools import reduce
 import logging
-
 from jwt import ExpiredSignatureError
-from six.moves import reduce
-from six.moves.urllib.parse import quote
+from urllib.parse import quote
 
 
 from sentry.api.serializers import serialize, StreamGroupSerializer

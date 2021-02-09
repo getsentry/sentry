@@ -1,5 +1,4 @@
 import logging
-import six
 
 from rest_framework.response import Response
 
@@ -37,7 +36,7 @@ class BitbucketSearchEndpoint(IntegrationEndpoint):
             try:
                 resp = installation.get_client().search_issues(repo, full_query)
             except ApiError as e:
-                if "no issue tracker" in six.text_type(e):
+                if "no issue tracker" in str(e):
                     logger.info(
                         "bitbucket.issue-search-no-issue-tracker",
                         extra={"installation_id": installation.model.id, "repo": repo},

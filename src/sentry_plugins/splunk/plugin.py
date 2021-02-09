@@ -16,7 +16,6 @@ For more details on the payload: http://dev.splunk.com/view/event-collector/SP-C
 
 import logging
 
-import six
 from requests.exceptions import ConnectTimeout, ReadTimeout
 
 from sentry import http, tagstore
@@ -171,7 +170,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
             "type": event.get_event_type(),
         }
         props["tags"] = [[k.format(tagstore.get_standardized_key(k)), v] for k, v in event.tags]
-        for key, value in six.iteritems(event.interfaces):
+        for key, value in event.interfaces.items():
             if key == "request":
                 headers = value.headers
                 if not isinstance(headers, dict):
@@ -193,7 +192,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
                 props.update(
                     {
                         "{}_{}".format(key.rsplit(".", 1)[-1].lower(), k): v
-                        for k, v in six.iteritems(value.to_json())
+                        for k, v in value.to_json().items()
                     }
                 )
             elif key == "user":
@@ -299,7 +298,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
                     "instance": self.project_instance,
                     "project_id": event.project_id,
                     "organization_id": event.project.organization_id,
-                    "error": six.text_type(exc),
+                    "error": str(exc),
                 },
             )
 

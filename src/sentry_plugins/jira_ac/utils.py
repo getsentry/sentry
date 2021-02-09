@@ -1,7 +1,7 @@
 import hashlib
 import jwt
 
-from six.moves.urllib.parse import quote
+from urllib.parse import quote
 
 from sentry.shared_integrations.exceptions import ApiError
 

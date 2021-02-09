@@ -1,5 +1,3 @@
-import six
-
 from django.conf.urls import url
 from rest_framework.response import Response
 from requests.exceptions import HTTPError
@@ -194,7 +192,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
         try:
             int(config["workspace"])
         except ValueError as exc:
-            self.logger.exception(six.text_type(exc))
+            self.logger.exception(str(exc))
             raise PluginError("Non-numeric workspace value")
         return config
 

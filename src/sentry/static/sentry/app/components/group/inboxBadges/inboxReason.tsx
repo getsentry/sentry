@@ -1,5 +1,4 @@
 import React from 'react';
-import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import DateTime from 'app/components/dateTime';
@@ -185,7 +184,7 @@ const Separator = styled('span')<{type: keyof Theme['tag']}>`
 `;
 
 const StyledTag = styled(Tag, {
-  shouldForwardProp: p => isPropValid(p) && p !== 'fontSize',
+  shouldForwardProp: p => p !== 'fontSize',
 })<{fontSize: 'sm' | 'md'}>`
   font-size: ${p =>
     p.fontSize === 'sm' ? p.theme.fontSizeSmall : p.theme.fontSizeMedium};
