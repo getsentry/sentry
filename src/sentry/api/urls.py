@@ -107,6 +107,7 @@ from .endpoints.organization_events_trends import (
     OrganizationEventsTrendsEndpoint,
     OrganizationEventsTrendsStatsEndpoint,
 )
+from .endpoints.organization_events_trace import OrganizationEventsTraceLightEndpoint
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from .endpoints.organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
@@ -893,6 +894,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/event-baseline/$",
                     OrganizationEventBaseline.as_view(),
                     name="sentry-api-0-organization-event-baseline",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/events-trace-light/(?P<trace_id>[^\/]+)/$",
+                    OrganizationEventsTraceLightEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-trace-light",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/issues/new/$",
