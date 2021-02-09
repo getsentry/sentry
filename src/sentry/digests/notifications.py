@@ -1,9 +1,9 @@
 import functools
+from functools import reduce
 import itertools
 import logging
 
 from collections import OrderedDict, defaultdict, namedtuple
-from six.moves import reduce
 
 from sentry.app import tsdb
 from sentry.digests import Record

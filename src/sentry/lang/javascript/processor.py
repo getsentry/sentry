@@ -411,7 +411,7 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
             }
         )
 
-    # Make sure the file we're getting back is six.binary_type. The only
+    # Make sure the file we're getting back is bytes. The only
     # reason it'd not be binary would be from old cached blobs, so
     # for compatibility with current cached files, let's coerce back to
     # binary and say utf8 encoding.

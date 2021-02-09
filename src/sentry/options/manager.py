@@ -210,7 +210,7 @@ class OptionsManager:
         # Guess type based on the default value
         if type is None:
             # the default value would be equivalent to '' if no type / default
-            # is specified and we assume six.text_type for safety
+            # is specified and we assume str for safety
             if default_value is None:
                 default_value = ""
 
