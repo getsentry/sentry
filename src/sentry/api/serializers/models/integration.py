@@ -210,10 +210,13 @@ class IntegrationIssueSerializer(IntegrationSerializer):
 @register(ExternalTeam)
 class ExternalTeamSerializer(Serializer):
     def serialize(self, obj, attrs, user):
-        provider = EXTERNAL_PROVIDERS.get(ExternalProviders(obj.provider), "unknown")
+        provider = self.get_provider_string(obj.provider)
         return {
             "id": obj.id,
             "team_id": obj.team_id,
             "provider": provider,
             "external_id": obj.external_id,
         }
+
+    def get_provider_string(self, provider):
+        return EXTERNAL_PROVIDERS.get(ExternalProviders(provider), "unknown")
