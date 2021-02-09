@@ -4,7 +4,6 @@ from urllib.parse import parse_qs
 from sentry.utils.compat.mock import patch
 
 from sentry.api import client
-from sentry import options
 from sentry.models import (
     Integration,
     OrganizationIntegration,
@@ -64,14 +63,11 @@ class BaseEventTest(APITestCase):
         action_data=None,
         type="event_callback",
         data=None,
-        token=None,
         team_id="TXXXXXXX1",
         callback_id=None,
         slack_user=None,
         original_message=None,
     ):
-        if token is None:
-            token = options.get("slack.signing-secret")
 
         if slack_user is None:
             slack_user = {"id": self.identity.external_id, "domain": "example"}
@@ -83,7 +79,6 @@ class BaseEventTest(APITestCase):
             original_message = {}
 
         payload = {
-            "token": token,
             "team": {"id": team_id, "domain": "example.com"},
             "channel": {"id": "C065W1189", "domain": "forgotten-works"},
             "user": slack_user,
@@ -422,7 +417,6 @@ class StatusActionTest(BaseEventTest):
     )
     def test_sentry_docs_link_clicked(self, check_signing_secret_mock):
         payload = {
-            "token": options.get("slack.verification-token"),
             "team": {"id": "TXXXXXXX1", "domain": "example.com"},
             "user": {"id": self.identity.external_id, "domain": "example"},
             "type": "block_actions",
