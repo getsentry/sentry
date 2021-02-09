@@ -41,8 +41,8 @@ class SlackClient(ApiClient):
 
         extra = {
             self.integration_type: self.name,
-            "status_string": six.text_type(code),
-            "error": six.text_type(error)[:256] if error else None,
+            "status_string": str(code),
+            "error": str(error)[:256] if error else None,
         }
         extra.update(getattr(self, "logging_context", None) or {})
         self.logger.info("%s.http_response" % (self.integration_type), extra=extra)

@@ -291,7 +291,7 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
             except Exception as e:
                 logger.error(
                     "AwsLambdaCloudFormationPipelineView.unexpected_error",
-                    extra={"error": six.text_type(e)},
+                    extra={"error": str(e)},
                 )
                 return render_response(_("Unkown errror"))
 
@@ -361,7 +361,7 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
                 success_count += 1
             except Exception as e:
                 # need to make sure we catch any error to continue to the next function
-                err_message = six.text_type(e)
+                err_message = str(e)
                 invalid_layer = get_invalid_layer_name(err_message)
                 if invalid_layer:
                     err_message = _(INVALID_LAYER_TEXT) % invalid_layer
@@ -375,7 +375,7 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
                         "lambda_name": name,
                         "account_number": account_number,
                         "region": region,
-                        "error": six.text_type(e),
+                        "error": str(e),
                     },
                 )
 

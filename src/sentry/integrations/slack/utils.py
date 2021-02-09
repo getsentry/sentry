@@ -420,7 +420,7 @@ def get_channel_id_with_timeout(integration, name, timeout):
                 items = client.get(endpoint, params=dict(payload, cursor=cursor, limit=1000))
             except ApiError as e:
                 logger.info(
-                    "rule.slack.%s_list_failed" % list_type, extra={"error": six.text_type(e)}
+                    "rule.slack.%s_list_failed" % list_type, extra={"error": str(e)}
                 )
                 return (prefix, None, False)
 
@@ -479,7 +479,7 @@ def send_incident_alert_notification(action, incident, metric_value):
     try:
         client.post("/chat.postMessage", data=payload, timeout=5)
     except ApiError as e:
-        logger.info("rule.fail.slack_post", extra={"error": six.text_type(e)})
+        logger.info("rule.fail.slack_post", extra={"error": str(e)})
 
 
 def get_identity(user, organization_id, integration_id):
@@ -524,6 +524,6 @@ def parse_link(url):
 
     parsed_path = "/".join(new_path)
 
-    parsed_path += "/" + six.text_type(url_parts[4])
+    parsed_path += "/" + str(url_parts[4])
 
     return parsed_path

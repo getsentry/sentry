@@ -116,7 +116,7 @@ class SlackIntegrationProvider(IntegrationProvider):
         try:
             resp = client.get("/team.info", params=payload)
         except ApiError as e:
-            logger.error("slack.team-info.response-error", extra={"error": six.text_type(e)})
+            logger.error("slack.team-info.response-error", extra={"error": str(e)})
             raise IntegrationError("Could not retrieve Slack team information.")
 
         return resp["team"]

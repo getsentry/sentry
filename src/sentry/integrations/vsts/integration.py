@@ -414,9 +414,9 @@ class VstsIntegrationProvider(IntegrationProvider):
             )
         except ApiError as e:
             auth_codes = (400, 401, 403)
-            permission_error = "permission" in six.text_type(
+            permission_error = "permission" in str(
                 e
-            ) or "not authorized" in six.text_type(e)
+            ) or "not authorized" in str(e)
             if e.code in auth_codes or permission_error:
                 raise IntegrationError(
                     "You do not have sufficient account access to create webhooks "

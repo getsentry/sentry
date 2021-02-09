@@ -64,7 +64,7 @@ class NotificationPlugin(Plugin):
             self.logger.info(
                 "notification-plugin.notify-failed",
                 extra={
-                    "error": six.text_type(err),
+                    "error": str(err),
                     "plugin": self.slug,
                     "project_id": event.group.project_id,
                     "organization_id": event.group.project.organization_id,
@@ -150,13 +150,13 @@ class NotificationPlugin(Plugin):
                 test_results = "%s\n%s" % (exc, exc.read()[:256])
             else:
                 logging.exception(
-                    "Plugin(%s) raised an error during test, %s", self.slug, six.text_type(exc)
+                    "Plugin(%s) raised an error during test, %s", self.slug, str(exc)
                 )
-                if six.text_type(exc).lower().startswith("error communicating with"):
-                    test_results = six.text_type(exc)[:256]
+                if str(exc).lower().startswith("error communicating with"):
+                    test_results = str(exc)[:256]
                 else:
                     test_results = (
-                        "There was an internal error with the Plugin, %s" % six.text_type(exc)[:256]
+                        "There was an internal error with the Plugin, %s" % str(exc)[:256]
                     )
         if not test_results:
             test_results = "No errors returned"

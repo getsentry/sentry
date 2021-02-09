@@ -119,13 +119,13 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
             req = self.make_api_request(group.project, _url, json_data={"text": comment})
             body = safe_urlread(req)
         except requests.RequestException as e:
-            msg = six.text_type(e)
+            msg = str(e)
             raise PluginError("Error communicating with Pivotal: %s" % (msg,))
 
         try:
             json_resp = json.loads(body)
         except ValueError as e:
-            msg = six.text_type(e)
+            msg = str(e)
             raise PluginError("Error communicating with Pivotal: %s" % (msg,))
 
         if req.status_code > 399:
@@ -140,7 +140,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
 
     def make_api_request(self, project, _url, json_data=None):
         req_headers = {
-            "X-TrackerToken": six.text_type(self.get_option("token", project)),
+            "X-TrackerToken": str(self.get_option("token", project)),
             "Content-Type": "application/json",
         }
         return safe_urlopen(_url, json=json_data, headers=req_headers, allow_redirects=True)
@@ -158,13 +158,13 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
             req = self.make_api_request(group.project, _url, json_data=json_data)
             body = safe_urlread(req)
         except requests.RequestException as e:
-            msg = six.text_type(e)
+            msg = str(e)
             raise PluginError("Error communicating with Pivotal: %s" % (msg,))
 
         try:
             json_resp = json.loads(body)
         except ValueError as e:
-            msg = six.text_type(e)
+            msg = str(e)
             raise PluginError("Error communicating with Pivotal: %s" % (msg,))
 
         if req.status_code > 399:

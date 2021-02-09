@@ -278,7 +278,7 @@ def wrap_lambda_updater():
             try:
                 return func(*args, **kwargs)
             except Exception as e:
-                err_message = six.text_type(e)
+                err_message = str(e)
                 invalid_layer = get_invalid_layer_name(err_message)
                 # only have one specific error to catch
                 if invalid_layer:

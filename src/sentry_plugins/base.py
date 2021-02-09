@@ -63,5 +63,5 @@ class CorePluginMixin:
         elif isinstance(exc, PluginError):
             raise
         else:
-            self.logger.exception(six.text_type(exc))
+            self.logger.exception(str(exc))
             six.reraise(PluginError, PluginError(self.message_from_error(exc)), sys.exc_info()[2])

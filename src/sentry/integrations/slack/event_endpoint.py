@@ -158,7 +158,7 @@ class SlackEventEndpoint(Endpoint):
         try:
             client.post("/chat.postMessage", headers=headers, data=payload, json=True)
         except ApiError as e:
-            logger.error("slack.event.on-message-error", extra={"error": six.text_type(e)})
+            logger.error("slack.event.on-message-error", extra={"error": str(e)})
 
         return self.respond()
 
@@ -172,7 +172,7 @@ class SlackEventEndpoint(Endpoint):
                     "slack.link-shared", extra={"slack_shared_link": parse_link(item["url"])}
                 )
             except Exception as e:
-                logger.error("slack.parse-link-error", extra={"error": six.text_type(e)})
+                logger.error("slack.parse-link-error", extra={"error": str(e)})
             event_type, instance_id, event_id = self._parse_url(item["url"])
             if not instance_id:
                 continue
@@ -207,7 +207,7 @@ class SlackEventEndpoint(Endpoint):
         try:
             client.post("/chat.unfurl", data=payload)
         except ApiError as e:
-            logger.error("slack.event.unfurl-error", extra={"error": six.text_type(e)})
+            logger.error("slack.event.unfurl-error", extra={"error": str(e)})
 
         return self.respond()
 

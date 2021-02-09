@@ -108,7 +108,7 @@ class GitHubEnterpriseWebhookBase(View):
             return None
 
     def handle(self, request):
-        body = six.binary_type(request.body)
+        body = bytes(request.body)
         if not body:
             logger.warning("github_enterprise.webhook.missing-body", extra=self.get_logging_data())
             return HttpResponse(status=400)
@@ -155,7 +155,7 @@ class GitHubEnterpriseWebhookBase(View):
         except (KeyError, IndexError) as e:
             logger.info(
                 "github_enterprise.webhook.missing-signature",
-                extra={"host": host, "error": six.text_type(e)},
+                extra={"host": host, "error": str(e)},
             )
         handler()(event, host)
         return HttpResponse(status=204)

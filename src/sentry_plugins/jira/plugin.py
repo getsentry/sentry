@@ -672,7 +672,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         try:
             issue_id = self.create_issue(request={}, group=group, form_data=post_data)
         except PluginError as e:
-            logger.info("post_process.fail", extra={"error": six.text_type(e)})
+            logger.info("post_process.fail", extra={"error": str(e)})
         else:
             prefix = self.get_conf_key()
             GroupMeta.objects.set_value(group, "%s:tid" % prefix, issue_id)

@@ -224,8 +224,8 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
         api = self.get_api(group.project)
         try:
             data = api.maniphest.createtask(
-                title=six.text_type(form_data["title"]),
-                description=six.text_type(form_data["description"]),
+                title=str(form_data["title"]),
+                description=str(form_data["description"]),
                 ownerPHID=form_data.get("assignee"),
                 projectPHIDs=form_data.get("tags"),
             )

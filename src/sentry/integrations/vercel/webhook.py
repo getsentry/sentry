@@ -31,7 +31,7 @@ def verify_signature(request):
     secret = options.get("vercel.client-secret")
 
     expected = hmac.new(
-        key=secret.encode("utf-8"), msg=six.binary_type(request.body), digestmod=hashlib.sha1
+        key=secret.encode("utf-8"), msg=bytes(request.body), digestmod=hashlib.sha1
     ).hexdigest()
     return constant_time_compare(expected, signature)
 

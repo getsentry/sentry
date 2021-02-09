@@ -238,7 +238,7 @@ class RedminePlugin(CorePluginMixin, IssuePlugin):
         for field in self.fields:
             if field["name"] in ["project_id", "tracker_id", "default_priority"]:
                 if not config[field["name"]]:
-                    self.logger.exception(six.text_type("{} required.".format(field["name"])))
+                    self.logger.exception(str("{} required.".format(field["name"])))
                     self.client_errors.append(field["name"])
 
         if self.client_errors:

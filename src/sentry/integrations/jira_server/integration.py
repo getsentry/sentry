@@ -313,7 +313,7 @@ class JiraServerIntegrationProvider(IntegrationProvider):
         except ApiError as err:
             logger.info(
                 "jira-server.webhook.failed",
-                extra={"error": six.text_type(err), "external_id": external_id},
+                extra={"error": str(err), "external_id": external_id},
             )
             try:
                 details = next(x for x in err.json["messages"][0].values())

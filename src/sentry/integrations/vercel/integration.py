@@ -356,7 +356,7 @@ class VercelIntegrationProvider(IntegrationProvider):
         except ApiError as err:
             logger.info(
                 "vercel.create_webhook.failed",
-                extra={"error": six.text_type(err), "external_id": external_id},
+                extra={"error": str(err), "external_id": external_id},
             )
             try:
                 details = list(err.json["messages"][0].values()).pop()

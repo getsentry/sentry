@@ -299,7 +299,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
                     "instance": self.project_instance,
                     "project_id": event.project_id,
                     "organization_id": event.project.organization_id,
-                    "error": six.text_type(exc),
+                    "error": str(exc),
                 },
             )
 

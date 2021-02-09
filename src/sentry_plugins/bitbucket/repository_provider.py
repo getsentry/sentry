@@ -44,7 +44,7 @@ class BitbucketRepositoryProvider(BitbucketMixin, providers.RepositoryProvider):
             except Exception as e:
                 self.raise_error(e, identity=client.auth)
             else:
-                config["external_id"] = six.text_type(repo["uuid"])
+                config["external_id"] = str(repo["uuid"])
         return config
 
     def get_webhook_secret(self, organization):
