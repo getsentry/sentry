@@ -1,4 +1,4 @@
-from six.moves.urllib.parse import urlencode, parse_qsl
+from urllib.parse import urlencode, parse_qsl
 from django.utils.crypto import constant_time_compare
 from django.core.urlresolvers import reverse
 

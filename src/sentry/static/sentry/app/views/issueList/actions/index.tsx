@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 
+import {bulkDelete, bulkUpdate, mergeGroups} from 'app/actionCreators/group';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import Checkbox from 'app/components/checkbox';
@@ -158,7 +159,8 @@ class IssueListActions extends React.Component<Props, State> {
       // * users with global views need to be explicit about what projects the query will run against
       const projectConstraints = {project: selection.projects};
 
-      api.bulkUpdate(
+      bulkUpdate(
+        api,
         {
           orgId,
           itemIds,
@@ -184,7 +186,8 @@ class IssueListActions extends React.Component<Props, State> {
     addLoadingMessage(t('Removing events\u2026'));
 
     this.actionSelectedGroups(itemIds => {
-      api.bulkDelete(
+      bulkDelete(
+        api,
         {
           orgId,
           itemIds,
@@ -209,7 +212,8 @@ class IssueListActions extends React.Component<Props, State> {
     addLoadingMessage(t('Merging events\u2026'));
 
     this.actionSelectedGroups(itemIds => {
-      api.merge(
+      mergeGroups(
+        api,
         {
           orgId,
           itemIds,

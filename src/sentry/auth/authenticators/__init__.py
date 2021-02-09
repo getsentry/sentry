@@ -1,5 +1,3 @@
-import six
-
 from .base import AuthenticatorInterface  # NOQA
 from .sms import SmsInterface
 from .recovery_code import RecoveryCodeInterface
@@ -19,7 +17,7 @@ def register_authenticator(cls):
 
 
 def available_authenticators(ignore_backup=False):
-    interfaces = six.itervalues(AUTHENTICATOR_INTERFACES)
+    interfaces = AUTHENTICATOR_INTERFACES.values()
     if not ignore_backup:
         return [v for v in interfaces if v.is_available]
     return [v for v in interfaces if not v.is_backup_interface and v.is_available]

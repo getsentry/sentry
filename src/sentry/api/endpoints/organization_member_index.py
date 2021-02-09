@@ -1,5 +1,3 @@
-import six
-
 from django.db import transaction
 from django.db.models import Q, F
 from rest_framework import serializers
@@ -115,7 +113,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
         if query:
             tokens = tokenize_query(query)
-            for key, value in six.iteritems(tokens):
+            for key, value in tokens.items():
                 if key == "email":
                     queryset = queryset.filter(
                         Q(email__in=value)
@@ -238,7 +236,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             om.save()
 
         if result["teams"]:
-            lock = locks.get("org:member:{}".format(om.id), duration=5)
+            lock = locks.get(f"org:member:{om.id}", duration=5)
             with TimedRetryPolicy(10)(lock.acquire):
                 save_team_assignments(om, result["teams"])
 

@@ -38,7 +38,7 @@ class AvatarMixin:
         return {"type": self.model, "kwargs": {self.object_type: obj}}
 
     def get_avatar_filename(self, obj):
-        return "{}.png".format(obj.id)
+        return f"{obj.id}.png"
 
     def put(self, request, **kwargs):
         obj = kwargs[self.object_type]

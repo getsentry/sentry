@@ -1,5 +1,3 @@
-import six
-
 from sentry.api.serializers import Serializer, register
 from sentry.models import SavedSearch, SavedSearchUserDefault
 
@@ -23,9 +21,9 @@ class SavedSearchSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             # TODO: Remove once we've completely deprecated Sentry 9
-            "projectId": six.text_type(obj.project_id) if obj.project_id else None,
+            "projectId": str(obj.project_id) if obj.project_id else None,
             "type": obj.type,
             "name": obj.name,
             "query": obj.query,
