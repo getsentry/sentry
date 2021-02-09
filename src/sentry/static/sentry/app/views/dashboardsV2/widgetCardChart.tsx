@@ -246,7 +246,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
     }
 
     const legend = {
-      right: 0,
+      left: 0,
       top: 3,
       type: 'plain',
       selected: getSeriesSelection(location),
@@ -267,7 +267,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       grid: {
         left: 0,
         right: 0,
-        top: space(3),
+        top: '40px',
         bottom: 0,
       },
       seriesOptions: {
@@ -351,20 +351,20 @@ const LoadingScreen = ({loading}: {loading: boolean}) => {
 
 const BigNumber = styled('div')`
   font-size: 32px;
-  margin-top: ${space(1)};
-  padding: ${space(1)} ${space(2)} ${space(2)};
+  padding: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
   * {
     text-align: left !important;
   }
 `;
 
 const ChartWrapper = styled('div')`
-  padding: 0 ${space(2)} ${space(2)};
+  padding: 0 ${space(3)} ${space(3)};
 `;
 
 const StyledSimpleTableChart = styled(SimpleTableChart)`
   /* align with other card charts */
   height: 216px;
+  margin-top: ${space(1.5)};
 `;
 
 export default WidgetCardChart;
