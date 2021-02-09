@@ -1,4 +1,4 @@
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 from django.forms.utils import ErrorList
 from django.http import HttpResponse

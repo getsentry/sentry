@@ -1,7 +1,6 @@
 import logging
-import six
-from six.moves.urllib.error import HTTPError as UrllibHTTPError
-from six.moves.urllib.parse import urlparse, urlencode, urlunparse, parse_qs
+from urllib.error import HTTPError as UrllibHTTPError
+from urllib.parse import urlparse, urlencode, urlunparse, parse_qs
 
 from django import forms
 from requests.exceptions import SSLError, HTTPError
@@ -64,7 +63,7 @@ class NotificationPlugin(Plugin):
             self.logger.info(
                 "notification-plugin.notify-failed",
                 extra={
-                    "error": six.text_type(err),
+                    "error": str(err),
                     "plugin": self.slug,
                     "project_id": event.group.project_id,
                     "organization_id": event.group.project.organization_id,
@@ -149,14 +148,12 @@ class NotificationPlugin(Plugin):
             elif hasattr(exc, "read") and callable(exc.read):
                 test_results = "%s\n%s" % (exc, exc.read()[:256])
             else:
-                logging.exception(
-                    "Plugin(%s) raised an error during test, %s", self.slug, six.text_type(exc)
-                )
-                if six.text_type(exc).lower().startswith("error communicating with"):
-                    test_results = six.text_type(exc)[:256]
+                logging.exception("Plugin(%s) raised an error during test, %s", self.slug, str(exc))
+                if str(exc).lower().startswith("error communicating with"):
+                    test_results = str(exc)[:256]
                 else:
                     test_results = (
-                        "There was an internal error with the Plugin, %s" % six.text_type(exc)[:256]
+                        "There was an internal error with the Plugin, %s" % str(exc)[:256]
                     )
         if not test_results:
             test_results = "No errors returned"
