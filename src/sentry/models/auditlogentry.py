@@ -223,7 +223,9 @@ class AuditLogEntry(Model):
         elif self.event == AuditLogEntryEvent.MEMBER_ADD:
             if self.target_user == self.actor:
                 return "joined the organization"
-            return f"added member {self.target_user.get_display_name()}"
+            return "added member {}".format(
+                self.data.get("email") or self.target_user.get_display_name(),
+            )
         elif self.event == AuditLogEntryEvent.MEMBER_ACCEPT:
             return "accepted the membership invite"
         elif self.event == AuditLogEntryEvent.MEMBER_REMOVE:
