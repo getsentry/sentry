@@ -1,13 +1,13 @@
 from django.conf.urls import url
+from http.client import HTTPException
 from rest_framework.response import Response
+from urllib.parse import urljoin
 
 from sentry.exceptions import PluginError
 from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.integrations import FeatureDescription, IntegrationFeatures
-from urllib.parse import urljoin
-from six.moves.http_client import HTTPException
 
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config

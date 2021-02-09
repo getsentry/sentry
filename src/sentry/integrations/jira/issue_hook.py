@@ -1,7 +1,6 @@
+from functools import reduce
 import logging
-
 from jwt import ExpiredSignatureError
-from six.moves import reduce
 from urllib.parse import quote
 
 
