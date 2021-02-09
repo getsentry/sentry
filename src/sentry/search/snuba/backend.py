@@ -177,7 +177,7 @@ def assigned_or_suggested_filter(owner, projects, field_filter="id"):
             **{
                 f"{field_filter}__in": GroupOwner.objects.filter(
                     Q(user_id=owner.id) | Q(team__in=teams),
-                    Q(group__assignee_set__isnull=True),
+                    group__assignee_set__isnull=True,
                     project_id__in=[p.id for p in projects],
                     organization_id=organization_id,
                 )
@@ -191,7 +191,7 @@ def assigned_or_suggested_filter(owner, projects, field_filter="id"):
         if include_none:
             no_owner = unassigned_filter(True, projects) & ~Q(
                 id__in=GroupOwner.objects.filter(
-                    project_id__in=[p.id for p in projects]
+                    project_id__in=[p.id for p in projects],
                 ).values_list("group_id", flat=True)
             )
             return no_owner | owner_query
