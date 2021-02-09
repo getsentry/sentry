@@ -20,6 +20,10 @@ function isBooleanOp(value: string) {
   return ['OR', 'AND'].includes(value.toUpperCase());
 }
 
+function isParen(token: Token) {
+  return token !== undefined && isOp(token) && ['(', ')'].includes(token.value);
+}
+
 export class QueryResults {
   tagValues: Record<string, string[]>;
   tokens: Token[];
@@ -208,18 +212,16 @@ export class QueryResults {
         const prev = this.tokens[i - 1];
         const next = this.tokens[i + 1];
         if (isOp(token) && isBooleanOp(token.value)) {
-          if (
-            (prev === undefined || isOp(prev) || next === undefined || isOp(next)) &&
+          if (prev === undefined || isOp(prev) || next === undefined || isOp(next)) {
             // Want to avoid removing `(term) OR (term)`
-            !(
-              prev !== undefined &&
-              next !== undefined &&
-              isOp(prev) &&
+            if (
+              isParen(prev) &&
+              isParen(next) &&
               prev.value === ')' &&
-              isOp(next) &&
               next.value === '('
-            )
-          ) {
+            ) {
+              continue;
+            }
             toRemove = i;
             break;
           }
