@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def find_event(items, function, default=None):
-    return next((item for item in items if function(item)), default)
+    return next(filter(function, items), default)
 
 
 def is_root(item):
