@@ -271,6 +271,27 @@ describe('utils/tokenizeSearch', function () {
       expect(results.formatString()).toEqual('transaction:def');
     });
 
+    it('does not remove boolean operators after setting tag values', function () {
+      const results = new QueryResults([
+        '(',
+        'start:xyz',
+        'AND',
+        'end:abc',
+        ')',
+        'OR',
+        '(',
+        'start:abc',
+        'AND',
+        'end:xyz',
+        ')',
+      ]);
+
+      results.setTagValues('transaction', ['def']);
+      expect(results.formatString()).toEqual(
+        '( start:xyz AND end:abc ) OR ( start:abc AND end:xyz ) transaction:def'
+      );
+    });
+
     it('removes tags from query object', function () {
       let results = new QueryResults(['x', 'a:a', 'b:b']);
       results.removeTag('a');
