@@ -414,6 +414,7 @@ class PagerDutyActionHandlerTest(FireTest, TestCase):
             incident, IncidentStatus.CRITICAL, status_method=IncidentStatusMethod.RULE_TRIGGERED
         )
         action = self.create_alert_rule_trigger_action(
+            target_identifier=self.service.id,
             type=AlertRuleTriggerAction.Type.PAGERDUTY,
             target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
             integration=self.integration,
@@ -421,7 +422,7 @@ class PagerDutyActionHandlerTest(FireTest, TestCase):
         metric_value = 1000
         data = build_incident_attachment(action, incident, self.integration_key, metric_value)
 
-        assert data["routing_key"] == "pfc73e8cb4s44d519f3d63d45b5q77g9"
+        assert data["routing_key"] == self.integration_key
         assert data["event_action"] == "trigger"
         assert data["dedup_key"] == f"incident_{incident.organization_id}_{incident.identifier}"
         assert data["payload"]["summary"] == alert_rule.name
