@@ -476,9 +476,9 @@ class MailAdapter:
         email = email_cls(activity)
         email.send()
 
-    def handle_user_report(self, payload, project, **kwargs):
+    def handle_user_report(self, report, project):
         metrics.incr("mail_adapter.handle_user_report")
-        group = Group.objects.get(id=payload["report"]["issue"]["id"])
+        group = Group.objects.get(id=report["issue"]["id"])
 
         participants = GroupSubscription.objects.get_participants(group=group)
 
@@ -493,24 +493,24 @@ class MailAdapter:
             "project_link": absolute_uri("/{}/{}/".format(project.organization.slug, project.slug)),
             "issue_link": absolute_uri(
                 "/{}/{}/issues/{}/".format(
-                    project.organization.slug, project.slug, payload["report"]["issue"]["id"]
+                    project.organization.slug, project.slug, report["issue"]["id"]
                 )
             ),
             # TODO(dcramer): we dont have permalinks to feedback yet
             "link": absolute_uri(
                 "/{}/{}/issues/{}/feedback/".format(
-                    project.organization.slug, project.slug, payload["report"]["issue"]["id"]
+                    project.organization.slug, project.slug, report["issue"]["id"]
                 )
             ),
             "group": group,
-            "report": payload["report"],
+            "report": report,
             "enhanced_privacy": enhanced_privacy,
         }
 
         subject_prefix = self._build_subject_prefix(project)
         subject = force_text(
             "{}{} - New Feedback from {}".format(
-                subject_prefix, group.qualified_short_id, payload["report"]["name"]
+                subject_prefix, group.qualified_short_id, report["name"]
             )
         )
 
