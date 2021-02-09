@@ -160,6 +160,19 @@ PREBUILT_DASHBOARDS = {
                         }
                     ],
                 },
+                {
+                    "title": "Errors by Browser",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "",
+                            "conditions": "!event.type:transaction has:browser.name",
+                            "fields": ["count()", "browser.name"],
+                            "orderby": "-count",
+                        }
+                    ],
+                },
             ],
         }
     ]
