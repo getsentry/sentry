@@ -160,11 +160,11 @@ class TeamWithProjectsSerializer(TeamSerializer):
         result = super().get_attrs(item_list, user)
         for team in item_list:
             result[team]["projects"] = project_map[team.id]
-            result[team]["external_teams"] = external_teams_map[team.id]
+            result[team]["externalTeams"] = external_teams_map[team.id]
         return result
 
     def serialize(self, obj, attrs, user):
         d = super().serialize(obj, attrs, user)
         d["projects"] = attrs["projects"]
-        d["external_teams"] = attrs["external_teams"]
+        d["externalTeams"] = attrs["externalTeams"]
         return d
