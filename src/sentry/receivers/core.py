@@ -101,7 +101,7 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
     project.update_option("sentry:origins", ["*"])
 
     if verbosity > 0:
-        echo("Created internal Sentry project (slug=%s, id=%s)" % (project.slug, project.id))
+        echo("Created internal Sentry project (slug={}, id={})".format(project.slug, project.id))
 
     return project
 

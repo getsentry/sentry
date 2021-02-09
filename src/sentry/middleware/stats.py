@@ -42,7 +42,7 @@ class RequestTimingMiddleware:
             view = view.__class__
 
         try:
-            path = "%s.%s" % (view.__module__, view.__name__)
+            path = "{}.{}".format(view.__module__, view.__name__)
         except AttributeError:
             return
 

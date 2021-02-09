@@ -140,7 +140,7 @@ class OtpMixin:
 
     def _get_otp_counter_cache_key(self, counter):
         if self.authenticator is not None:
-            return "used-otp-counters:%s:%s" % (self.authenticator.user_id, counter)
+            return "used-otp-counters:{}:{}".format(self.authenticator.user_id, counter)
 
     def check_otp_counter(self, counter):
         # OTP uses an internal counter that increments every 30 seconds.

@@ -47,7 +47,7 @@ class SmsInterface(OtpMixin, AuthenticatorInterface):
         if len(phone_number) == 10:
             mask = "(***) ***-**%s" % (phone_number[-2:])
         else:
-            mask = "%s%s" % ((len(phone_number) - 2) * "*", phone_number[-2:])
+            mask = "{}{}".format((len(phone_number) - 2) * "*", phone_number[-2:])
 
         if self.send_text(request=request):
             return ActivationMessageResult(
@@ -78,7 +78,7 @@ class SmsInterface(OtpMixin, AuthenticatorInterface):
             text = _("%(code)s is your Sentry authentication code.")
 
         if request is not None:
-            text = "%s\n\n%s" % (text, _("Requested from %(ip)s"))
+            text = "{}\n\n{}".format(text, _("Requested from %(ip)s"))
             ctx["ip"] = request.META["REMOTE_ADDR"]
 
         return send_sms(text % ctx, to=self.phone_number)
