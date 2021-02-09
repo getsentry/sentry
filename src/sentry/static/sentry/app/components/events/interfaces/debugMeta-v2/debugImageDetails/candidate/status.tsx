@@ -28,6 +28,7 @@ function Status({candidate}: Props) {
         </StatusTooltip>
       );
     }
+    case CandidateDownloadStatus.ERROR:
     case CandidateDownloadStatus.MALFORMED: {
       const {details} = download;
       return (

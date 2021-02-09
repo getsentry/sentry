@@ -25,7 +25,7 @@ import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
-import {CandidateDownloadStatus, Image, ImageStatus} from 'app/types/debugImage';
+import {Image, ImageStatus} from 'app/types/debugImage';
 import {Event} from 'app/types/event';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
