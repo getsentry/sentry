@@ -149,10 +149,6 @@ def get_function_component(
     """
     from sentry.stacktraces.functions import trim_function_name
 
-    javascript_fuzzing = context["javascript_fuzzing"]
-    php_detect_anonymous_classes = context["php_detect_anonymous_classes"]
-    legacy_function_logic = context["legacy_function_logic"]
-
     behavior_family = get_behavior_family_for_platform(platform)
 
     # We started trimming function names in csharp late which changed the
@@ -165,7 +161,7 @@ def get_function_component(
     # for csharp.
     prefer_raw_function_name = platform == "csharp"
 
-    if legacy_function_logic or prefer_raw_function_name:
+    if context["legacy_function_logic"] or prefer_raw_function_name:
         func = raw_function or function
     else:
         func = function or raw_function
@@ -192,7 +188,7 @@ def get_function_component(
     elif platform == "php":
         if func.startswith(("[Anonymous", "class@anonymous\x00")):
             function_component.update(contributes=False, hint="ignored anonymous function")
-        if php_detect_anonymous_classes and func.startswith("class@anonymous"):
+        if context["php_detect_anonymous_classes"] and func.startswith("class@anonymous"):
             new_function = func.rsplit("::", 1)[-1]
             if new_function != func:
                 function_component.update(values=[new_function], hint="anonymous class method")
@@ -204,12 +200,12 @@ def get_function_component(
     elif behavior_family == "native":
         if func in ("<redacted>", "<unknown>"):
             function_component.update(contributes=False, hint="ignored unknown function")
-        elif legacy_function_logic:
+        elif context["legacy_function_logic"]:
             new_function = trim_function_name(func, platform, normalize_lambdas=False)
             if new_function != func:
                 function_component.update(values=[new_function], hint="isolated function")
 
-    elif javascript_fuzzing and behavior_family == "javascript":
+    elif context["javascript_fuzzing"] and behavior_family == "javascript":
         # This changes Object.foo or Foo.foo into foo so that we can
         # resolve some common cross browser differences
         new_function = func.rsplit(".", 1)[-1]
@@ -239,16 +235,13 @@ def get_function_component(
 def frame(frame, event, context, **meta):
     platform = frame.platform or event.platform
 
-    use_contextline = platform in context["contextline_platforms"]
-    javascript_fuzzing = context["javascript_fuzzing"]
-
     platform = frame.platform or event.platform
 
     # Safari throws [native code] frames in for calls like ``forEach``
     # whereas Chrome ignores these. Let's remove it from the hashing algo
     # so that they're more likely to group together
     filename_component = get_filename_component(
-        frame.abs_path, frame.filename, platform, allow_file_origin=javascript_fuzzing
+        frame.abs_path, frame.filename, platform, allow_file_origin=context["javascript_fuzzing"]
     )
 
     # if we have a module we use that for grouping.  This will always
@@ -262,7 +255,7 @@ def frame(frame, event, context, **meta):
     context_line_component = None
 
     # If we are allowed to use the contextline we add it now.
-    if use_contextline:
+    if platform in context["contextline_platforms"]:
         context_line_component = get_contextline_component(
             frame,
             platform,
@@ -289,7 +282,7 @@ def frame(frame, event, context, **meta):
     # frames consistently.  These force common bad stacktraces together
     # to have a common hash at the cost of maybe skipping over frames that
     # would otherwise be useful.
-    if javascript_fuzzing and get_behavior_family_for_platform(platform) == "javascript":
+    if context["javascript_fuzzing"] and get_behavior_family_for_platform(platform) == "javascript":
         func = frame.raw_function or frame.function
         if func:
             func = func.rsplit(".", 1)[-1]
@@ -324,7 +317,6 @@ def get_contextline_component(frame, platform, function, context):
     quality of the sourcecode.  It does however protect against some bad
     JavaScript environments based on origin checks.
     """
-    with_context_line_file_origin_bug = context["with_context_line_file_origin_bug"]
     line = " ".join((frame.context_line or "").expandtabs(2).split())
     if not line:
         return GroupingComponent(id="context-line")
@@ -336,7 +328,7 @@ def get_contextline_component(frame, platform, function, context):
         if len(frame.context_line) > 120:
             component.update(hint="discarded because line too long", contributes=False)
         elif get_behavior_family_for_platform(platform) == "javascript":
-            if with_context_line_file_origin_bug:
+            if context["with_context_line_file_origin_bug"]:
                 if has_url_origin(frame.abs_path, allow_file_origin=True):
                     component.update(hint="discarded because from URL origin", contributes=False)
             elif not function and has_url_origin(frame.abs_path):
