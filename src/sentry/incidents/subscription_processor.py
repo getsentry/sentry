@@ -349,8 +349,9 @@ class SubscriptionProcessor:
                 ).select_related("alert_rule_trigger")
             )
         )
-        # Grab the trigger from first action, since they were already sorted by severity when deduped
-        # All triggers will all be for the same incident and status, so doesn't matter which we grab
+
+        # Grab the first trigger to get incident id (they are all the same)
+        # All triggers should either be firing or resolving, so doesn't matter which we grab.
         incident_trigger = incident_triggers[0]
         method = "fire" if incident_triggers[0].status == TriggerStatus.ACTIVE.value else "resolve"
         for action in actions:
