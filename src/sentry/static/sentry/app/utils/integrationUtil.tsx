@@ -120,7 +120,7 @@ export type EventParameters = {
 export type AnalyticsKey = keyof EventParameters;
 
 //define the event key to event name mappings
-const eventNameMap: Record<AnalyticsKey, string> = {
+export const eventNameMap: Record<AnalyticsKey, string> = {
   'integrations.install_modal_opened': 'Integrations: Install Modal Opened',
   'integrations.integration_viewed': 'Integrations: Integration Viewed',
   'integrations.installation_start': 'Integrations: Installation Start',
@@ -157,9 +157,6 @@ const eventNameMap: Record<AnalyticsKey, string> = {
   'integrations.cloudformation_link_clicked': 'Integrations: CloudFormation Link Clicked',
   'integrations.switch_manual_sdk_setup': 'Integrations: Switch Manual SDK Setup',
 };
-
-//hook to lazyily generate eventNameMap
-export const getEventNameMap = () => eventNameMap;
 
 const mapIntegrationParams = analyticsParams => {
   //Reload expects integration_status even though it's not relevant for non-sentry apps
