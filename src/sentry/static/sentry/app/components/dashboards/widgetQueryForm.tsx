@@ -16,7 +16,7 @@ import {generateFieldOptions} from 'app/views/eventsV2/utils';
 import Input from 'app/views/settings/components/forms/controls/input';
 import Field from 'app/views/settings/components/forms/field';
 
-import WidgetQueryFields, {QueryFieldWrapper} from './widgetQueryFields';
+import WidgetQueryFields from './widgetQueryFields';
 
 const generateOrderOptions = (fields: string[]): SelectValue<string>[] => {
   const options: SelectValue<string>[] = [];
@@ -76,19 +76,17 @@ class WidgetQueryForm extends React.Component<Props> {
 
     return (
       <QueryWrapper>
-        <QueryFieldWrapper>
-          {canRemove && (
+        {canRemove && (
+          <DeleteRow>
             <Button
               data-test-id="remove-query"
-              size="small"
+              size="xsmall"
               priority="danger"
               onClick={this.props.onRemove}
               icon={<IconDelete />}
-            >
-              {t('Remove Overlay')}
-            </Button>
-          )}
-        </QueryFieldWrapper>
+            />
+          </DeleteRow>
+        )}
         <Field
           data-test-id="new-query"
           label={t('Query')}
@@ -111,7 +109,7 @@ class WidgetQueryForm extends React.Component<Props> {
         {canRemove && (
           <Field
             data-test-id="Query Name"
-            label={t('Query name')}
+            label={t('Legend Alias')}
             inline={false}
             flexibleControlStateSize
             stacked
@@ -135,7 +133,7 @@ class WidgetQueryForm extends React.Component<Props> {
         />
         {displayType === 'table' && (
           <Field
-            label={t('Order by')}
+            label={t('Sort by')}
             inline={false}
             flexibleControlStateSize
             stacked
@@ -160,9 +158,12 @@ class WidgetQueryForm extends React.Component<Props> {
 }
 
 const QueryWrapper = styled('div')`
-  padding-bottom: ${space(2)};
-  margin-bottom: ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
+  padding-bottom: ${space(3)};
+  position: relative;
+`;
+
+const DeleteRow = styled('div')`
+  text-align: right;
 `;
 
 export default WidgetQueryForm;

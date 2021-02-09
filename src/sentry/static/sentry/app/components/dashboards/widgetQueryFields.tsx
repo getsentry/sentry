@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
-import {IconAdd, IconDelete} from 'app/icons';
+import {IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {
@@ -123,8 +123,8 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
       ))}
       <div>
         {showAddYAxisButton && (
-          <Button size="small" onClick={handleAdd} icon={<IconAdd isCircled />}>
-            {t('Add Y-Axis')}
+          <Button size="small" onClick={handleAdd}>
+            {t('Add Overlay')}
           </Button>
         )}
       </div>

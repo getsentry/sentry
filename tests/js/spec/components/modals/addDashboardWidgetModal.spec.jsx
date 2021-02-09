@@ -131,7 +131,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
 
     // Click the add button
-    const add = wrapper.find('button[aria-label="Add Y-Axis"]');
+    const add = wrapper.find('button[aria-label="Add Overlay"]');
     add.simulate('click');
     wrapper.update();
 
