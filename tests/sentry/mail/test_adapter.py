@@ -40,7 +40,7 @@ from sentry.notifications.utils.participants import (
     get_send_to_team,
 )
 from sentry.ownership import grammar
-from sentry.ownership.grammar import Matcher, Owner, dump_schema
+from sentry.ownership.grammar import dump_schema, Matcher, Owner
 from sentry.plugins.base import Notification
 from sentry.rules.processor import RuleFuture
 from sentry.testutils import TestCase
@@ -1032,12 +1032,9 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest, TestCase):
         )
 
         with self.tasks():
-            self.adapter.handle_signal(
-                name="user-reports.created",
+            self.adapter.handle_user_report(
                 project=self.project,
-                payload={
-                    "report": serialize(report, AnonymousUser(), UserReportWithGroupSerializer())
-                },
+                report=serialize(report, AnonymousUser(), UserReportWithGroupSerializer()),
             )
 
         assert len(mail.outbox) == 1
@@ -1066,12 +1063,9 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest, TestCase):
         report = self.create_report()
 
         with self.tasks():
-            self.adapter.handle_signal(
-                name="user-reports.created",
+            self.adapter.handle_user_report(
                 project=self.project,
-                payload={
-                    "report": serialize(report, AnonymousUser(), UserReportWithGroupSerializer())
-                },
+                report=serialize(report, AnonymousUser(), UserReportWithGroupSerializer()),
             )
 
         assert len(mail.outbox) == 1
