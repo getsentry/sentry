@@ -63,8 +63,6 @@ metadata = IntegrationMetadata(
     aspects={},
 )
 
-_lambda_setup_thread_pool = ThreadPoolExecutor(max_workers=10)
-
 
 class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
     def __init__(self, *args, **kwargs):
@@ -308,6 +306,7 @@ class AwsLambdaListFunctionsPipelineView(PipelineView):
     def dispatch(self, request, pipeline):
         if request.method == "POST":
             # accept form data or json data
+            # form data is needed for tests
             data = request.POST or json.loads(request.body)
             pipeline.bind_state("enabled_lambdas", data)
             return pipeline.next_step()
@@ -367,31 +366,33 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
         failures = []
         success_count = 0
 
-        # use threading here to parallelize requests
-        results = list(_lambda_setup_thread_pool.map(_enable_lambda, lambda_functions))
-        for success, function, e in results:
-            name = function["FunctionName"]
-            if success:
-                success_count += 1
-            else:
-                # need to make sure we catch any error to continue to the next function
-                err_message = six.text_type(e)
-                invalid_layer = get_invalid_layer_name(err_message)
-                if invalid_layer:
-                    err_message = _(INVALID_LAYER_TEXT) % invalid_layer
+        with ThreadPoolExecutor(max_workers=10) as _lambda_setup_thread_pool:
+            # use threading here to parallelize requests
+            for success, function, e in _lambda_setup_thread_pool.map(
+                _enable_lambda, lambda_functions, timeout=10
+            ):
+                name = function["FunctionName"]
+                if success:
+                    success_count += 1
                 else:
-                    err_message = _("Unkown Error")
-                failures.append({"name": function["FunctionName"], "error": err_message})
-                logger.info(
-                    "update_function_configuration.error",
-                    extra={
-                        "organization_id": organization.id,
-                        "lambda_name": name,
-                        "account_number": account_number,
-                        "region": region,
-                        "error": six.text_type(e),
-                    },
-                )
+                    # need to make sure we catch any error to continue to the next function
+                    err_message = six.text_type(e)
+                    invalid_layer = get_invalid_layer_name(err_message)
+                    if invalid_layer:
+                        err_message = _(INVALID_LAYER_TEXT) % invalid_layer
+                    else:
+                        err_message = _("Unkown Error")
+                    failures.append({"name": function["FunctionName"], "error": err_message})
+                    logger.info(
+                        "update_function_configuration.error",
+                        extra={
+                            "organization_id": organization.id,
+                            "lambda_name": name,
+                            "account_number": account_number,
+                            "region": region,
+                            "error": six.text_type(e),
+                        },
+                    )
 
         analytics.record(
             "integrations.serverless_setup",
