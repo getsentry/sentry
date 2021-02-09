@@ -3,14 +3,13 @@
 # Modified by: Shwagroo Team and Gun.io
 
 import cProfile
+from io import StringIO
 import re
 import pstats
-import six
 import sys
 
 from django.conf import settings
 from django.http import HttpResponse
-from six import StringIO
 
 from sentry.auth.superuser import is_active_superuser
 
@@ -59,7 +58,7 @@ class ProfileMiddleware:
                 return name[0]
 
     def get_summary(self, results_dict, total):
-        results = [(item[1], item[0]) for item in six.iteritems(results_dict)]
+        results = [(item[1], item[0]) for item in results_dict.items()]
         results.sort(reverse=True)
         results = results[:40]
 
@@ -88,12 +87,12 @@ class ProfileMiddleware:
         oldstats = stats.stats
         stats.stats = newstats = {}
         max_name_len = 0
-        for func, (cc, nc, tt, ct, callers) in six.iteritems(oldstats):
+        for func, (cc, nc, tt, ct, callers) in oldstats.items():
             newfunc = func_strip_path(func)
             if len(func_std_string(newfunc)) > max_name_len:
                 max_name_len = len(func_std_string(newfunc))
             newcallers = {}
-            for func2, caller in six.iteritems(callers):
+            for func2, caller in callers.items():
                 newcallers[func_strip_path(func2)] = caller
 
             if newfunc in newstats:

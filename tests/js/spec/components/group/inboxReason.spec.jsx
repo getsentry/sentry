@@ -23,4 +23,10 @@ describe('InboxReason', () => {
     const wrapper = mountWithTheme(<InboxReason showDateAdded inbox={inbox} />);
     expect(wrapper.find('TimeSince').exists()).toBeTruthy();
   });
+
+  it('has a tooltip', () => {
+    const wrapper = mountWithTheme(<InboxReason inbox={inbox} />);
+    const tooltip = mountWithTheme(wrapper.find('Tooltip').prop('title'));
+    expect(tooltip.text()).toContain('Mark Reviewed to remove this label');
+  });
 });

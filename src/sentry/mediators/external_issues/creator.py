@@ -1,5 +1,3 @@
-import six
-
 from sentry.mediators import Mediator, Param
 from sentry.models import PlatformExternalIssue
 from sentry.utils.html import escape
@@ -8,9 +6,9 @@ from sentry.utils.html import escape
 class Creator(Mediator):
     install = Param("sentry.models.SentryAppInstallation")
     group = Param("sentry.models.Group")
-    web_url = Param(six.string_types)
-    project = Param(six.string_types)
-    identifier = Param(six.string_types)
+    web_url = Param((str,))
+    project = Param((str,))
+    identifier = Param((str,))
 
     def call(self):
         self._create_external_issue()

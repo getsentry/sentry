@@ -1,14 +1,13 @@
 import random
 import logging
 from importlib import import_module
-import six
-from six.moves.urllib.parse import parse_qs as urlparse_parse_qs, parse_qsl
+from urllib.parse import parse_qs as urlparse_parse_qs, parse_qsl
 
 from django.conf import settings
 from django.db.models import Model
 from django.contrib.contenttypes.models import ContentType
-from six.moves.urllib.parse import urlencode, urlparse, urlunparse
-from six.moves.urllib.request import urlopen
+from urllib.parse import urlencode, urlparse, urlunparse
+from urllib.request import urlopen
 
 try:
     random = random.SystemRandom()
@@ -136,7 +135,7 @@ def parse_qs(value):
 
 
 def drop_lists(value):
-    return {key: val[0] for key, val in six.iteritems(value)}
+    return {key: val[0] for key, val in value.items()}
 
 
 if __name__ == "__main__":
