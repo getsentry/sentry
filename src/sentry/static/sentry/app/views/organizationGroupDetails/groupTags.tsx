@@ -73,7 +73,7 @@ class GroupTags extends React.Component<Props, State> {
   };
 
   getTagsDocsUrl() {
-    return 'https://docs.sentry.io/enriching-error-data/additional-data/';
+    return 'https://docs.sentry.io/platform-redirect/?next=/enriching-events/tags';
   }
 
   render() {
