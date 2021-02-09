@@ -21,6 +21,7 @@ type Release = {version: string; date: string};
 type Props = AsyncComponent['props'] & {
   organization: Organization;
   selection: GlobalSelection;
+  isProjectStabilized: boolean;
 };
 
 type State = AsyncComponent['state'] & {
@@ -40,7 +41,11 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
   }
 
   getEndpoints() {
-    const {organization, selection} = this.props;
+    const {organization, selection, isProjectStabilized} = this.props;
+
+    if (!isProjectStabilized) {
+      return [];
+    }
 
     const {projects, environments, datetime} = selection;
     const {period} = datetime;
@@ -95,7 +100,11 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
    */
   async onLoadAllEndpointsSuccess() {
     const {currentReleases, previousReleases} = this.state;
-    const {organization, selection} = this.props;
+    const {organization, selection, isProjectStabilized} = this.props;
+
+    if (!isProjectStabilized) {
+      return;
+    }
 
     if ([...(currentReleases ?? []), ...(previousReleases ?? [])].length !== 0) {
       this.setState({noReleaseEver: false});
@@ -142,7 +151,12 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (prevProps.selection !== this.props.selection) {
+    const {selection, isProjectStabilized} = this.props;
+
+    if (
+      prevProps.selection !== selection ||
+      prevProps.isProjectStabilized !== isProjectStabilized
+    ) {
       this.remountComponent();
     }
   }

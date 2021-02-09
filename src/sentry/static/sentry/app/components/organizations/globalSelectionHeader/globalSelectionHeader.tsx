@@ -135,7 +135,7 @@ type Props = {
 
   // Callbacks //
   onChangeProjects?: (val: number[]) => void;
-  onUpdateProjects?: () => void;
+  onUpdateProjects?: (selectedProjects: number[]) => void;
   onChangeEnvironments?: (environments: Environment[]) => void;
   onUpdateEnvironments?: (environments: Environment[]) => void;
   onChangeTime?: (datetime: any) => void;

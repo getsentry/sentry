@@ -21,7 +21,7 @@ import {SidebarSection} from './styles';
 type Props = {
   organization: Organization;
   location: Location;
-  project: Project | null;
+  project?: Project;
 };
 
 function ProjectQuickLinks({organization, project, location}: Props) {

@@ -16,7 +16,7 @@ import {SectionHeadingLink, SectionHeadingWrapper, SidebarSection} from './style
 
 type Props = {
   organization: Organization;
-  project?: Project | null;
+  project?: Project;
 };
 
 function ProjectTeamAccess({organization, project}: Props) {
