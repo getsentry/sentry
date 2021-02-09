@@ -20,9 +20,8 @@ import {
   IntegrationType,
   Organization,
 } from 'app/types';
+import {AnalyticsKey, EventParameters} from 'app/utils/integrationEvents';
 import {
-  AnalyticsKey,
-  EventParameters,
   getCategories,
   getIntegrationFeatureGate,
   trackIntegrationEvent,

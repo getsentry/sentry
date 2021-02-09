@@ -3,8 +3,10 @@ import * as qs from 'query-string';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {uniqueId} from 'app/utils/guid';
-
-import {allEventMap, EventParameters} from './analyticsAggregator';
+import {
+  eventNameMap as integrationEventMap,
+  EventParameters as IntegrationEventParameters,
+} from 'app/utils/integrationEvents';
 
 const ANALYTICS_SESSION = 'ANALYTICS_SESSION';
 
@@ -22,6 +24,11 @@ export const getAnalyticsSessionId = () =>
   window.sessionStorage.getItem(ANALYTICS_SESSION);
 
 const hasAnalyticsDebug = () => window.localStorage.getItem('DEBUG_ANALYTICS') === '1';
+
+//TODO: add more types/sources
+export type EventParameters = IntegrationEventParameters;
+
+export const allEventMap = {...integrationEventMap};
 
 type AnalyticsKey = keyof EventParameters;
 

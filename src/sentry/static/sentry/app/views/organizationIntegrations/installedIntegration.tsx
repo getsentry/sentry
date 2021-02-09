@@ -11,7 +11,7 @@ import {IconDelete, IconFlag, IconSettings} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Integration, IntegrationProvider, ObjectStatus, Organization} from 'app/types';
-import {AnalyticsKey} from 'app/utils/integrationUtil';
+import {AnalyticsKey} from 'app/utils/integrationEvents';
 import theme from 'app/utils/theme';
 
 import IntegrationItem from './integrationItem';

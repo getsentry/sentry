@@ -14,8 +14,8 @@ import NarrowLayout from 'app/components/narrowLayout';
 import {IconFlag} from 'app/icons';
 import {t, tct} from 'app/locale';
 import {Integration, IntegrationProvider, Organization} from 'app/types';
+import {AnalyticsKey} from 'app/utils/integrationEvents';
 import {
-  AnalyticsKey,
   getIntegrationFeatureGate,
   trackIntegrationEvent,
 } from 'app/utils/integrationUtil';
