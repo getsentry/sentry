@@ -80,6 +80,30 @@ PREBUILT_DASHBOARDS = {
             "createdBy": "",
             "widgets": [
                 {
+                    "title": "Number of Errors",
+                    "displayType": "big_number",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "",
+                            "conditions": "!event.type:transaction",
+                            "fields": ["count()"],
+                        }
+                    ],
+                },
+                {
+                    "title": "Number of Issues",
+                    "displayType": "big_number",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "",
+                            "conditions": "!event.type:transaction",
+                            "fields": ["count_unique(issue)"],
+                        }
+                    ],
+                },
+                {
                     "title": "Events",
                     "displayType": "line",
                     "interval": "5m",
