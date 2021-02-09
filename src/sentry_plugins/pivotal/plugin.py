@@ -8,7 +8,7 @@ from sentry.plugins.bases.issue2 import IssuePlugin2, IssueGroupActionEndpoint, 
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.utils import json
 from sentry.integrations import FeatureDescription, IntegrationFeatures
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config

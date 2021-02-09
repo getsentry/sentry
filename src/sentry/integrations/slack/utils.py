@@ -3,7 +3,7 @@ import time
 
 from django.core.cache import cache
 from django.http import Http404
-from six.moves.urllib.parse import urlparse, urlencode, parse_qs
+from urllib.parse import urlparse, urlencode, parse_qs
 
 from sentry import tagstore
 from sentry.api.fields.actor import Actor

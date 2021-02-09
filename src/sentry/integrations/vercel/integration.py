@@ -3,7 +3,7 @@ import logging
 
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.serializers import ValidationError
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 
 from sentry.integrations import (

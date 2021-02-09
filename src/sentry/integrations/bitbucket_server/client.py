@@ -2,7 +2,7 @@ import logging
 
 from oauthlib.oauth1 import SIGNATURE_RSA
 from requests_oauthlib import OAuth1
-from six.moves.urllib.parse import parse_qsl
+from urllib.parse import parse_qsl
 from sentry.integrations.client import ApiClient
 from sentry.shared_integrations.exceptions import ApiError
 

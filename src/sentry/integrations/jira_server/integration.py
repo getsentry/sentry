@@ -7,7 +7,7 @@ from django.core.urlresolvers import reverse
 from django.core.validators import URLValidator
 from django.utils.translation import ugettext as _
 from django.views.decorators.csrf import csrf_exempt
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 from sentry.integrations import (
     IntegrationFeatures,

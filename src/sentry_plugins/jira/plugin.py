@@ -4,7 +4,7 @@ import re
 from django.conf import settings
 from django.conf.urls import url
 from rest_framework.response import Response
-from six.moves.urllib.parse import (
+from urllib.parse import (
     parse_qs,
     quote_plus,
     unquote_plus,

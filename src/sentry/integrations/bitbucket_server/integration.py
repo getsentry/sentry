@@ -12,7 +12,7 @@ from sentry.integrations import (
     FeatureDescription,
     IntegrationInstallation,
 )
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 from sentry.integrations.repositories import RepositoryMixin
 from sentry.pipeline import PipelineView
 from sentry.utils.compat import filter

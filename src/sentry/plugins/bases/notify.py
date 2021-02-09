@@ -1,6 +1,6 @@
 import logging
 from six.moves.urllib.error import HTTPError as UrllibHTTPError
-from six.moves.urllib.parse import urlparse, urlencode, urlunparse, parse_qs
+from urllib.parse import urlparse, urlencode, urlunparse, parse_qs
 
 from django import forms
 from requests.exceptions import SSLError, HTTPError
