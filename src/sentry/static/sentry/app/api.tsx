@@ -2,11 +2,9 @@ import {browserHistory} from 'react-router';
 import {Severity} from '@sentry/react';
 import jQuery from 'jquery';
 import Cookies from 'js-cookie';
-import isNil from 'lodash/isNil';
 import isUndefined from 'lodash/isUndefined';
 
 import {openSudo, redirectToProject} from 'app/actionCreators/modal';
-import GroupActions from 'app/actions/groupActions';
 import {
   PROJECT_MOVED,
   SUDO_REQUIRED,
@@ -21,6 +19,9 @@ import createRequestError from 'app/utils/requestError/createRequestError';
 import {EXPERIMENTAL_SPA} from './constants';
 
 export class Request {
+  /**
+   * Is the request still in flight
+   */
   alive: boolean;
   xhr: JQueryXHR;
 
@@ -34,61 +35,6 @@ export class Request {
     this.xhr.abort();
     metric('app.api.request-abort', 1);
   }
-}
-
-type ParamsType = {
-  itemIds?: Array<number> | Array<string>;
-  query?: string;
-  environment?: string | Array<string> | null;
-  project?: Array<number> | null;
-};
-
-type QueryArgs =
-  | {
-      query: string;
-      environment?: string | Array<string>;
-      project?: Array<number>;
-    }
-  | {
-      id: Array<number> | Array<string>;
-      environment?: string | Array<string>;
-      project?: Array<number>;
-    }
-  | {
-      environment?: string | Array<string>;
-      project?: Array<number>;
-    };
-
-/**
- * Converts input parameters to API-compatible query arguments
- * @param params
- */
-export function paramsToQueryArgs(params: ParamsType): QueryArgs {
-  const p: QueryArgs = params.itemIds
-    ? {id: params.itemIds} // items matching array of itemids
-    : params.query
-    ? {query: params.query} // items matching search query
-    : {}; // all items
-
-  // only include environment if it is not null/undefined
-  if (params.query && !isNil(params.environment)) {
-    p.environment = params.environment;
-  }
-
-  // only include projects if it is not null/undefined/an empty array
-  if (params.project && params.project.length) {
-    p.project = params.project;
-  }
-
-  // only include date filters if they are not null/undefined
-  if (params.query) {
-    ['start', 'end', 'period', 'utc'].forEach(prop => {
-      if (!isNil(params[prop])) {
-        p[prop === 'period' ? 'statsPeriod' : prop] = params[prop];
-      }
-    });
-  }
-  return p;
 }
 
 export function initApiClient() {
@@ -155,7 +101,7 @@ export type APIRequestMethod = 'POST' | 'GET' | 'DELETE' | 'PUT';
 
 type FunctionCallback<Args extends any[] = any[]> = (...args: Args) => void;
 
-type RequestCallbacks = {
+export type RequestCallbacks = {
   success?: (data: any, textStatus?: string, xhr?: JQueryXHR) => void;
   complete?: (jqXHR: JQueryXHR, textStatus: string) => void;
   // TODO(ts): Update this when sentry is mostly migrated to TS
@@ -455,129 +401,5 @@ export class Client {
         },
       });
     });
-  }
-
-  _chain<Args extends any[]>(...funcs: Array<((...args: Args) => any) | undefined>) {
-    const filteredFuncs = funcs.filter(
-      (f): f is (...args: Args) => any => typeof f === 'function'
-    );
-    return (...args: Args): void => {
-      filteredFuncs.forEach(func => {
-        func.apply(funcs, args);
-      });
-    };
-  }
-
-  _wrapRequest(
-    path: string,
-    options: RequestOptions,
-    extraParams: RequestCallbacks
-  ): Request {
-    if (isUndefined(extraParams)) {
-      extraParams = {};
-    }
-
-    options.success = this._chain(options.success, extraParams.success);
-    options.error = this._chain(options.error, extraParams.error);
-    options.complete = this._chain(options.complete, extraParams.complete);
-
-    return this.request(path, options);
-  }
-
-  bulkDelete(
-    params: ParamsType & {orgId: string; projectId?: string},
-    options: RequestCallbacks
-  ): Request {
-    const path: string = params.projectId
-      ? `/projects/${params.orgId}/${params.projectId}/issues/`
-      : `/organizations/${params.orgId}/issues/`;
-
-    const query: QueryArgs = paramsToQueryArgs(params);
-    const id: string = uniqueId();
-
-    GroupActions.delete(id, params.itemIds);
-
-    return this._wrapRequest(
-      path,
-      {
-        query,
-        method: 'DELETE',
-        success: response => {
-          GroupActions.deleteSuccess(id, params.itemIds, response);
-        },
-        error: error => {
-          GroupActions.deleteError(id, params.itemIds, error);
-        },
-      },
-      options
-    );
-  }
-
-  bulkUpdate(
-    params: ParamsType & {
-      orgId: string;
-      projectId?: string;
-      failSilently?: boolean;
-      data?: any;
-    },
-    options: RequestCallbacks
-  ): Request {
-    const path: string = params.projectId
-      ? `/projects/${params.orgId}/${params.projectId}/issues/`
-      : `/organizations/${params.orgId}/issues/`;
-
-    const query: QueryArgs = paramsToQueryArgs(params);
-    const id: string = uniqueId();
-
-    GroupActions.update(id, params.itemIds, params.data);
-
-    return this._wrapRequest(
-      path,
-      {
-        query,
-        method: 'PUT',
-        data: params.data,
-        success: response => {
-          GroupActions.updateSuccess(id, params.itemIds, response);
-        },
-        error: error => {
-          GroupActions.updateError(id, params.itemIds, error, params.failSilently);
-        },
-      },
-      options
-    );
-  }
-
-  merge(
-    params: ParamsType & {
-      orgId: string;
-      projectId?: string;
-    },
-    options: RequestCallbacks
-  ): Request {
-    const path: string = params.projectId
-      ? `/projects/${params.orgId}/${params.projectId}/issues/`
-      : `/organizations/${params.orgId}/issues/`;
-
-    const query: QueryArgs = paramsToQueryArgs(params);
-    const id: string = uniqueId();
-
-    GroupActions.merge(id, params.itemIds);
-
-    return this._wrapRequest(
-      path,
-      {
-        query,
-        method: 'PUT',
-        data: {merge: 1},
-        success: response => {
-          GroupActions.mergeSuccess(id, params.itemIds, response);
-        },
-        error: error => {
-          GroupActions.mergeError(id, params.itemIds, error);
-        },
-      },
-      options
-    );
   }
 }
