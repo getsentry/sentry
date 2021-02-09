@@ -27,7 +27,7 @@ class InMemoryTSDB(BaseTSDB):
         if timestamp is None:
             timestamp = timezone.now()
 
-        for rollup, max_values in six.iteritems(self.rollups):
+        for rollup, max_values in self.rollups.items():
             norm_epoch = self.normalize_to_rollup(timestamp, rollup)
             for environment_id in environment_ids:
                 self.data[model][(key, environment_id)][norm_epoch] += count
@@ -85,7 +85,7 @@ class InMemoryTSDB(BaseTSDB):
         for epoch, key, count in results:
             results_by_key[key][epoch] = int(count or 0)
 
-        for key, points in six.iteritems(results_by_key):
+        for key, points in results_by_key.items():
             results_by_key[key] = sorted(points.items())
         return dict(results_by_key)
 
@@ -97,7 +97,7 @@ class InMemoryTSDB(BaseTSDB):
         if timestamp is None:
             timestamp = timezone.now()
 
-        for rollup, max_values in six.iteritems(self.rollups):
+        for rollup, max_values in self.rollups.items():
             r = self.normalize_to_rollup(timestamp, rollup)
             for environment_id in environment_ids:
                 self.sets[model][(key, environment_id)][r].update(values)
@@ -269,9 +269,9 @@ class InMemoryTSDB(BaseTSDB):
 
         results = {}
 
-        for key, series in six.iteritems(
-            self.get_frequency_series(model, items, start, end, rollup, environment_id)
-        ):
+        for key, series in self.get_frequency_series(
+            model, items, start, end, rollup, environment_id
+        ).items():
             result = results[key] = {}
             for timestamp, scores in series:
                 for member, score in scores.items():

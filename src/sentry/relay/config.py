@@ -176,7 +176,7 @@ class _ConfigBase:
     def __init__(self, **kwargs):
         data = {}
         object.__setattr__(self, "data", data)
-        for (key, val) in six.iteritems(kwargs):
+        for (key, val) in kwargs.items():
             if val is not None:
                 data[key] = val
 
@@ -200,7 +200,7 @@ class _ConfigBase:
         data = self.__get_data()
         return {
             key: value.to_dict() if isinstance(value, _ConfigBase) else value
-            for (key, value) in six.iteritems(data)
+            for (key, value) in data.items()
         }
 
     def to_json_string(self):

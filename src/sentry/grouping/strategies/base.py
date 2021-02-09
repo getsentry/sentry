@@ -242,7 +242,7 @@ def create_strategy_configuration(
     NewStrategyConfiguration.hidden = hidden
 
     by_class = {}
-    for strategy in six.itervalues(NewStrategyConfiguration.strategies):
+    for strategy in NewStrategyConfiguration.strategies.values():
         by_class.setdefault(strategy.strategy_class, []).append(strategy.id)
 
     for strategy_id in strategies or {}:

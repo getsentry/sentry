@@ -113,7 +113,7 @@ def rewrite_exception(data):
     """
     rv = False
     for exc in get_path(data, "exception", "values", filter=True, default=()):
-        for processor in six.itervalues(error_processors):
+        for processor in error_processors.values():
             try:
                 if processor.try_process(exc):
                     rv = True

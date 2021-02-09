@@ -154,15 +154,13 @@ def _get_calculated_grouping_variants_for_event(event, config):
 
     for strategy in config.iter_strategies():
         rv = strategy.get_grouping_component_variants(event, config=config)
-        for (variant, component) in six.iteritems(rv):
+        for (variant, component) in rv.items():
             per_variant_components.setdefault(variant, []).append(component)
 
             if winning_strategy is None:
                 if component.contributes:
                     winning_strategy = strategy.name
-                    variants_hint = "/".join(
-                        sorted(k for k, v in six.iteritems(rv) if v.contributes)
-                    )
+                    variants_hint = "/".join(sorted(k for k, v in rv.items() if v.contributes))
                     precedence_hint = "%s take%s precedence" % (
                         "%s of %s" % (strategy.name, variants_hint)
                         if variant != "default"
@@ -175,7 +173,7 @@ def _get_calculated_grouping_variants_for_event(event, config):
                 )
 
     rv = {}
-    for (variant, components) in six.iteritems(per_variant_components):
+    for (variant, components) in per_variant_components.items():
         component = GroupingComponent(id=variant, values=components)
         if not component.contributes and precedence_hint:
             component.update(hint=precedence_hint)
@@ -223,7 +221,7 @@ def get_grouping_variants_for_event(event, config=None):
     # fingerprint and mark all other variants as non-contributing
     if defaults_referenced == 0:
         rv = {}
-        for (key, component) in six.iteritems(components):
+        for (key, component) in components.items():
             component.update(
                 contributes=False,
                 contributes_to_similarity=True,
@@ -237,18 +235,18 @@ def get_grouping_variants_for_event(event, config=None):
     # If the fingerprints are unsalted, we can return them right away.
     elif defaults_referenced == 1 and len(fingerprint) == 1:
         rv = {}
-        for (key, component) in six.iteritems(components):
+        for (key, component) in components.items():
             rv[key] = ComponentVariant(component, config)
 
     # Otherwise we need to salt each of the components.
     else:
         rv = {}
         fingerprint = resolve_fingerprint_values(fingerprint, event.data)
-        for (key, component) in six.iteritems(components):
+        for (key, component) in components.items():
             rv[key] = SaltedComponentVariant(fingerprint, component, config, fingerprint_info)
 
     # Ensure we have a fallback hash if nothing else works out
-    if not any(x.contributes for x in six.itervalues(rv)):
+    if not any(x.contributes for x in rv.values()):
         rv["fallback"] = FallbackVariant()
 
     return rv

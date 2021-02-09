@@ -87,7 +87,7 @@ def scrub_data(project, event):
             "datascrubbing.config.num_applications", len(config.get("applications") or ())
         )
         total_rules = 0
-        for selector, rules in six.iteritems(config.get("applications") or {}):
+        for selector, rules in (config.get("applications") or {}).items():
             metrics.timing("datascrubbing.config.selectors.size", len(selector))
             metrics.timing("datascrubbing.config.rules_per_selector.size", len(rules))
             total_rules += len(rules)
@@ -113,13 +113,13 @@ def _merge_pii_configs(prefixes_and_configs):
             continue
 
         rules = partial_config.get("rules") or {}
-        for rule_name, rule in six.iteritems(rules):
+        for rule_name, rule in rules.items():
             prefixed_rule_name = "{}{}".format(prefix, rule_name)
             merged_config.setdefault("rules", {})[
                 prefixed_rule_name
             ] = _prefix_rule_references_in_rule(rules, rule, prefix)
 
-        for selector, applications in six.iteritems(partial_config.get("applications") or {}):
+        for selector, applications in (partial_config.get("applications") or {}).items():
             merged_applications = merged_config.setdefault("applications", {}).setdefault(
                 selector, []
             )

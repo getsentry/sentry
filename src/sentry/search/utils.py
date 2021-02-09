@@ -429,7 +429,7 @@ def parse_query(projects, query, user, environments):
     tokens = tokenize_query(query)
 
     results = {"tags": {}, "query": []}
-    for key, token_list in six.iteritems(tokens):
+    for key, token_list in tokens.items():
         for value in token_list:
             if key == "query":
                 results["query"].append(value)

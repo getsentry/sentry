@@ -239,7 +239,7 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
             dist = release.add_dist(dist_name)
 
         artifacts = manifest.get("files", {})
-        for rel_path, artifact in six.iteritems(artifacts):
+        for rel_path, artifact in artifacts.items():
             artifact_url = artifact.get("url", rel_path)
             artifact_basename = artifact_url.rsplit("/", 1)[-1]
 

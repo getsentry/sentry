@@ -229,7 +229,7 @@ class BaseTSDB(Service):
         # window, retrieved several days after it's occurrence), this can
         # return a rollup that has already been evicted due to TTL, even if a
         # lower resolution representation of the range exists.
-        for rollup, samples in six.iteritems(self.rollups):
+        for rollup, samples in self.rollups.items():
             if rollup * samples >= num_seconds:
                 return rollup
 
@@ -369,7 +369,7 @@ class BaseTSDB(Service):
             rollup,
             environment_ids=[environment_id] if environment_id is not None else None,
         )
-        sum_set = {key: sum(p for _, p in points) for (key, points) in six.iteritems(range_set)}
+        sum_set = {key: sum(p for _, p in points) for (key, points) in range_set.items()}
         return sum_set
 
     def rollup(self, values, rollup):
@@ -379,7 +379,7 @@ class BaseTSDB(Service):
         """
         normalize_ts_to_epoch = self.normalize_ts_to_epoch
         result = {}
-        for key, points in six.iteritems(values):
+        for key, points in values.items():
             result[key] = []
             last_new_ts = None
             for (ts, count) in points:

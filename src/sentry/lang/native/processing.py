@@ -125,7 +125,7 @@ def _merge_image(raw_image, complete_image, sdk_info, data):
 
     # Set image data from symbolicator as symbolicator might know more
     # than the SDK, especially for minidumps
-    for k, v in six.iteritems(complete_image):
+    for k, v in complete_image.items():
         if k in IMAGE_STATUS_FIELDS:
             statuses.add(v)
         if not (v is None or (v == "unknown" and k in ("arch", "type"))):

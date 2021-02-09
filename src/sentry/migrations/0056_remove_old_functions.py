@@ -42,7 +42,7 @@ def convert_function(field, count_default="count()", transform=None):
         field = count_default
         return field
 
-    for old_fn, new_fn in six.iteritems(FUNCTION_CHANGE):
+    for old_fn, new_fn in FUNCTION_CHANGE.items():
         if old_fn + "()" in field:
             field = field.replace(old_fn + "()", transform(new_fn))
         elif old_fn in field:
@@ -82,7 +82,7 @@ def convert(DiscoverSavedQuery, saved_query):
         match = COUNT_REGEX.match(search)
         if match:
             search = search.replace(match.groups()[0], "count()")
-        for old_fn, new_fn in six.iteritems(FUNCTION_CHANGE):
+        for old_fn, new_fn in FUNCTION_CHANGE.items():
             if old_fn + "()" in search:
                 search = search.replace(old_fn + "()", new_fn)
             elif old_fn in search:

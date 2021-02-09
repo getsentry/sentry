@@ -36,7 +36,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         query = request.query_params.get("query")
         if query:
             tokens = tokenize_query(query)
-            for key, value in six.iteritems(tokens):
+            for key, value in tokens.items():
                 if key == "name" or key == "query":
                     value = " ".join(value)
                     queryset = queryset.filter(name__icontains=value)

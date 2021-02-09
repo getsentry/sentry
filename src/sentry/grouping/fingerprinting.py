@@ -357,7 +357,7 @@ class Rule:
         for matcher in self.matchers:
             by_match_group.setdefault(matcher.match_group, []).append(matcher)
 
-        for match_group, matchers in six.iteritems(by_match_group):
+        for match_group, matchers in by_match_group.items():
             for values in access.get_values(match_group):
                 if all(x.matches(values) for x in matchers):
                     break

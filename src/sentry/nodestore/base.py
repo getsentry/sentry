@@ -167,7 +167,7 @@ class NodeStorage(local, Service):
 
         items = {
             id: self._decode(value, subkey=subkey)
-            for id, value in six.iteritems(self._get_bytes_multi(uncached_ids))
+            for id, value in self._get_bytes_multi(uncached_ids).items()
         }
         if subkey is None:
             self._set_cache_items(items)
@@ -184,7 +184,7 @@ class NodeStorage(local, Service):
         b'{"stacktrace": {}}\nunprocessed\n{}'
         """
         lines = [json_dumps(data.pop(None)).encode("utf8")]
-        for key, value in six.iteritems(data):
+        for key, value in data.items():
             lines.append(key.encode("ascii"))
             lines.append(json_dumps(value).encode("utf8"))
 

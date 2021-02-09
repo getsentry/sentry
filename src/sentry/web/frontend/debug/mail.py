@@ -245,7 +245,7 @@ def alert(request):
     # XXX: this interface_list code needs to be the same as in
     #      src/sentry/mail/adapter.py
     interface_list = []
-    for interface in six.itervalues(event.interfaces):
+    for interface in event.interfaces.values():
         body = interface.to_email_html(event)
         if not body:
             continue

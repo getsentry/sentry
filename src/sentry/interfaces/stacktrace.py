@@ -475,7 +475,7 @@ class Stacktrace(Interface):
             return meta
 
         frame_meta = {}
-        for index, value in six.iteritems(meta.get("frames", {})):
+        for index, value in meta.get("frames", {}).items():
             if index == "":
                 continue
             frame = self.frames[int(index)]

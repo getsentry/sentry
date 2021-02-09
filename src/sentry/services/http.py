@@ -6,7 +6,7 @@ from sentry.services.base import Service
 
 
 def convert_options_to_env(options):
-    for k, v in six.iteritems(options):
+    for k, v in options.items():
         if v is None:
             continue
         key = "UWSGI_" + k.upper().replace("-", "_")
@@ -41,7 +41,7 @@ class SentryHTTPServer(Service):
 
         options = (settings.SENTRY_WEB_OPTIONS or {}).copy()
         if extra_options is not None:
-            for k, v in six.iteritems(extra_options):
+            for k, v in extra_options.items():
                 options[k] = v
         options.setdefault("module", "sentry.wsgi:application")
         options.setdefault("protocol", "http")

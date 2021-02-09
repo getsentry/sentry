@@ -135,7 +135,7 @@ class SnubaTagStorage(TagStorage):
                     first_seen=parse_datetime(data["first_seen"]),
                     last_seen=parse_datetime(data["last_seen"]),
                 )
-                for value, data in six.iteritems(result)
+                for value, data in result.items()
             ]
 
             return key_ctor(
@@ -217,9 +217,7 @@ class SnubaTagStorage(TagStorage):
         result = None
 
         if should_cache:
-            filtering_strings = [
-                "{}={}".format(key, value) for key, value in six.iteritems(filters)
-            ]
+            filtering_strings = ["{}={}".format(key, value) for key, value in filters.items()]
             cache_key = "tagstore.__get_tag_keys:{}".format(
                 md5_text(*filtering_strings).hexdigest()
             )
@@ -264,7 +262,7 @@ class SnubaTagStorage(TagStorage):
             ctor = functools.partial(GroupTagKey, group_id=group_id)
 
         results = set()
-        for key, data in six.iteritems(result):
+        for key, data in result.items():
             params = {"key": key}
             if include_values_seen:
                 params["values_seen"] = data["values_seen"]
@@ -399,7 +397,7 @@ class SnubaTagStorage(TagStorage):
 
         return {
             issue: GroupTagValue(group_id=issue, key=key, value=value, **fix_tag_value_data(data))
-            for issue, data in six.iteritems(result)
+            for issue, data in result.items()
         }
 
     def get_group_seen_values_for_environments(
@@ -426,7 +424,7 @@ class SnubaTagStorage(TagStorage):
             referrer="tagstore.get_group_seen_values_for_environments",
         )
 
-        return {issue: fix_tag_value_data(data) for issue, data in six.iteritems(result)}
+        return {issue: fix_tag_value_data(data) for issue, data in result.items()}
 
     def get_group_tag_value_count(self, project_id, group_id, environment_id, key):
         tag = "tags[{}]".format(key)
@@ -513,7 +511,7 @@ class SnubaTagStorage(TagStorage):
                     first_seen=parse_datetime(data["first_seen"]),
                     last_seen=parse_datetime(data["last_seen"]),
                 )
-                for value, data in six.iteritems(values)
+                for value, data in values.items()
             ]
 
         return keys_with_counts
@@ -572,8 +570,8 @@ class SnubaTagStorage(TagStorage):
         )
 
         values = []
-        for project_data in six.itervalues(result):
-            for value, data in six.iteritems(project_data):
+        for project_data in result.values():
+            for value, data in project_data.items():
                 values.append(TagValue(key=tag, value=value, **fix_tag_value_data(data)))
 
         return set(values)
@@ -618,8 +616,8 @@ class SnubaTagStorage(TagStorage):
         )
 
         values = []
-        for issue, users in six.iteritems(result):
-            for name, data in six.iteritems(users):
+        for issue, users in result.items():
+            for name, data in users.items():
                 values.append(
                     GroupTagValue(
                         group_id=issue, key="sentry:user", value=name, **fix_tag_value_data(data)
@@ -733,7 +731,7 @@ class SnubaTagStorage(TagStorage):
             # but want to do this with names that include our query
             status_codes = [
                 span_key
-                for span_key, value in six.iteritems(SPAN_STATUS_CODE_TO_NAME)
+                for span_key, value in SPAN_STATUS_CODE_TO_NAME.items()
                 if (query and query in value) or (not query)
             ]
             if status_codes:
@@ -810,7 +808,7 @@ class SnubaTagStorage(TagStorage):
                 results = OrderedDict(
                     [
                         (SPAN_STATUS_CODE_TO_NAME[result_key], data)
-                        for result_key, data in six.iteritems(results)
+                        for result_key, data in results.items()
                     ]
                 )
             # With project names we map the ids back to the project slugs
@@ -818,14 +816,14 @@ class SnubaTagStorage(TagStorage):
                 results = OrderedDict(
                     [
                         (project_slugs[value], data)
-                        for value, data in six.iteritems(results)
+                        for value, data in results.items()
                         if value in project_slugs
                     ]
                 )
 
         tag_values = [
             TagValue(key=key, value=str(value), **fix_tag_value_data(data))
-            for value, data in six.iteritems(results)
+            for value, data in results.items()
         ]
 
         desc = order_by.startswith("-")
@@ -861,7 +859,7 @@ class SnubaTagStorage(TagStorage):
 
         group_tag_values = [
             GroupTagValue(group_id=group_id, key=key, value=value, **fix_tag_value_data(data))
-            for value, data in six.iteritems(results)
+            for value, data in results.items()
         ]
 
         for cb in callbacks:

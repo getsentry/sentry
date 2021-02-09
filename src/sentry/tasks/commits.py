@@ -208,9 +208,7 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
         # use deploys as a proxy for ReleaseEnvironment, because they contain
         # a timestamp in addition to release and env data
         for repository_id, commit_id in repo_queryset:
-            for environment_id, (deploy_id, date_finished) in six.iteritems(
-                last_deploy_per_environment
-            ):
+            for environment_id, (deploy_id, date_finished) in last_deploy_per_environment.items():
                 # we need to mark LatestRepoReleaseEnvironment, but only if there's not a
                 # deploy in the given environment which has completed *after*
                 # this deploy (given we might process commits out of order)

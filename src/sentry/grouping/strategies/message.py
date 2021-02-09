@@ -98,7 +98,7 @@ def trim_message_for_grouping(string):
         s += "..."
 
     def _handle_match(match):
-        for key, value in six.iteritems(match.groupdict()):
+        for key, value in match.groupdict().items():
             if value is not None:
                 return "<%s>" % key
         return ""

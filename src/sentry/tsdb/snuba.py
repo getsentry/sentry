@@ -259,7 +259,7 @@ class SnubaTSDB(BaseTSDB):
 
         columns = (model_query_settings.groupby, model_query_settings.aggregate)
         keys_map = dict(zip(columns, self.flatten_keys(keys)))
-        keys_map = {k: v for k, v in six.iteritems(keys_map) if k is not None and v is not None}
+        keys_map = {k: v for k, v in keys_map.items() if k is not None and v is not None}
         if environment_ids is not None:
             keys_map["environment"] = environment_ids
 
@@ -444,7 +444,7 @@ class SnubaTSDB(BaseTSDB):
         #    {group:[top1, ...]}
         # into
         #    {group: [(top1, score), ...]}
-        for k, top in six.iteritems(result):
+        for k, top in result.items():
             item_scores = [(v, float(i + 1)) for i, v in enumerate(reversed(top or []))]
             result[k] = list(reversed(item_scores))
 

@@ -24,13 +24,13 @@ class OAuthAuthorizeView(AuthLoginView):
             return self.redirect(
                 "{}#{}".format(
                     redirect_uri,
-                    urlencode([(k, v) for k, v in six.iteritems(params) if v is not None]),
+                    urlencode([(k, v) for k, v in params.items() if v is not None]),
                 )
             )
 
         parts = list(urlparse(redirect_uri))
         query = parse_qsl(parts[4])
-        for key, value in six.iteritems(params):
+        for key, value in params.items():
             if value is not None:
                 query.append((key, value))
         parts[4] = urlencode(query)

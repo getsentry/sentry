@@ -16,7 +16,7 @@ class BaseEvent:
         title = data.get("title")
         if title is not None:
             metadata["title"] = title
-        for key, value in six.iteritems(self.extract_metadata(data)):
+        for key, value in self.extract_metadata(data).items():
             # If we already have a custom title, do not override with the
             # computed title.
             if key not in metadata:

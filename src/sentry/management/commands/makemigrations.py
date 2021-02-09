@@ -33,7 +33,7 @@ class Command(makemigrations.Command):
         loader = MigrationLoader(None, ignore_no_migrations=True)
 
         latest_migration_by_app = {}
-        for migration in six.itervalues(loader.disk_migrations):
+        for migration in loader.disk_migrations.values():
             name = migration.name
             app_label = migration.app_label
             if (

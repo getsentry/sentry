@@ -168,7 +168,7 @@ def uncontribute_non_stacktrace_variants(variants):
 
     # In case any of the variants has a contributing stacktrace, we want
     # to make all other variants non contributing.  Thr e
-    for (key, component) in six.iteritems(variants):
+    for (key, component) in variants.items():
         if any(
             s.contributes for s in component.iter_subcomponents(id="stacktrace", recursive=True)
         ):
@@ -418,7 +418,7 @@ class Exception(Interface):
 
         result = {}
         values = meta.get("values", meta)
-        for index, value in six.iteritems(values):
+        for index, value in values.items():
             exc = self.values[int(index)]
             if exc is not None:
                 result[index] = exc.get_api_meta(value, is_public=is_public, platform=platform)

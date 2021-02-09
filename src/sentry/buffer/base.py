@@ -59,7 +59,7 @@ class Buffer(Service, metaclass=BufferMount):
         created = False
 
         if not signal_only:
-            update_kwargs = {c: F(c) + v for c, v in six.iteritems(columns)}
+            update_kwargs = {c: F(c) + v for c, v in columns.items()}
 
             if extra:
                 update_kwargs.update(extra)

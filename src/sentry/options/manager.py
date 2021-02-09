@@ -253,7 +253,7 @@ class OptionsManager:
             raise UnknownOption(key)
 
     def validate(self, options, warn=False):
-        for k, v in six.iteritems(options):
+        for k, v in options.items():
             try:
                 self.validate_option(k, v)
             except UnknownOption as e:
@@ -271,7 +271,7 @@ class OptionsManager:
         """
         Return an iterator for all keys in the registry.
         """
-        return six.itervalues(self.registry)
+        return self.registry.values()
 
     def filter(self, flag=None):
         """

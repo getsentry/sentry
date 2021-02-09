@@ -89,4 +89,4 @@ class GroupingBasedFeatureSet(FeatureSet):
 
                     results.setdefault(label, set()).update(features)
 
-        return {label: sorted(features) for label, features in six.iteritems(results)}
+        return {label: sorted(features) for label, features in results.items()}

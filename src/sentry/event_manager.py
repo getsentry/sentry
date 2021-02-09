@@ -578,7 +578,7 @@ def _get_or_create_release_many(jobs, projects):
         if old_datetime is None or new_datetime > old_datetime:
             release_date_added[release_key] = new_datetime
 
-    for (project_id, version), jobs_to_update in six.iteritems(jobs_with_releases):
+    for (project_id, version), jobs_to_update in jobs_with_releases.items():
         release = Release.get_or_create(
             project=projects[project_id],
             version=version,
@@ -617,9 +617,7 @@ def _get_event_user_many(jobs, projects):
 @metrics.wraps("save_event.derive_plugin_tags_many")
 def _derive_plugin_tags_many(jobs, projects):
     # XXX: We ought to inline or remove this one for sure
-    plugins_for_projects = {
-        p.id: plugins.for_project(p, version=None) for p in six.itervalues(projects)
-    }
+    plugins_for_projects = {p.id: plugins.for_project(p, version=None) for p in projects.values()}
 
     for job in jobs:
         for plugin in plugins_for_projects[job["project_id"]]:
@@ -637,7 +635,7 @@ def _derive_interface_tags_many(jobs):
     # XXX: We ought to inline or remove this one for sure
     for job in jobs:
         data = job["data"]
-        for path, iface in six.iteritems(job["event"].interfaces):
+        for path, iface in job["event"].interfaces.items():
             for k, v in iface.iter_tags():
                 set_tag(data, k, v)
 
@@ -1410,7 +1408,7 @@ def _materialize_event_metrics(jobs):
 @metrics.wraps("event_manager.save_transaction_events")
 def save_transaction_events(jobs, projects):
     with metrics.timer("event_manager.save_transactions.collect_organization_ids"):
-        organization_ids = {project.organization_id for project in six.itervalues(projects)}
+        organization_ids = {project.organization_id for project in projects.values()}
 
     with metrics.timer("event_manager.save_transactions.fetch_organizations"):
         organizations = {
@@ -1418,7 +1416,7 @@ def save_transaction_events(jobs, projects):
         }
 
     with metrics.timer("event_manager.save_transactions.set_organization_cache"):
-        for project in six.itervalues(projects):
+        for project in projects.values():
             try:
                 project._organization_cache = organizations[project.organization_id]
             except KeyError:

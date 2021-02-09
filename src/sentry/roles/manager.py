@@ -43,7 +43,7 @@ class RoleManager:
         self._top_dog = role_list[-1]
 
     def __iter__(self):
-        return six.itervalues(self._roles)
+        return self._roles.values()
 
     def can_manage(self, role, other):
         return self.get(role).priority >= self.get(other).priority

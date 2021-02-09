@@ -7,7 +7,7 @@ class EventTypeManager:
         self.__lookup = {}
 
     def __iter__(self):
-        return six.itervalues(self.__values)
+        return self.__values.values()
 
     def __contains__(self, key):
         return key in self.__lookup

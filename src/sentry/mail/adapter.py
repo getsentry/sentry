@@ -347,7 +347,7 @@ class MailAdapter:
         # data which may show PII or source code
         if not enhanced_privacy:
             interface_list = []
-            for interface in six.itervalues(event.interfaces):
+            for interface in event.interfaces.values():
                 body = interface.to_email_html(event)
                 if not body:
                     continue
@@ -425,7 +425,7 @@ class MailAdapter:
                 group = next(iter(counts))
                 record = max(
                     itertools.chain.from_iterable(
-                        groups.get(group, []) for groups in six.itervalues(digest)
+                        groups.get(group, []) for groups in digest.values()
                     ),
                     key=lambda record: record.timestamp,
                 )

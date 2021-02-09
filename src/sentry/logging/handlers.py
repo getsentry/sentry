@@ -54,16 +54,14 @@ class JSONRenderer:
 class HumanRenderer:
     def __call__(self, logger, name, event_dict):
         level = event_dict.pop("level")
-        real_level = (
-            level.upper() if isinstance(level, str) else logging.getLevelName(level)
-        )
+        real_level = level.upper() if isinstance(level, str) else logging.getLevelName(level)
         base = "%s [%s] %s: %s" % (
             now().strftime("%H:%M:%S"),
             real_level,
             event_dict.pop("name", "root"),
             event_dict.pop("event", ""),
         )
-        join = " ".join(k + "=" + repr(v) for k, v in six.iteritems(event_dict))
+        join = " ".join(k + "=" + repr(v) for k, v in event_dict.items())
         return "%s%s" % (base, (" (%s)" % join if join else ""))
 
 
@@ -76,9 +74,7 @@ class StructLogHandler(logging.StreamHandler):
         if logger is None:
             logger = get_logger()
 
-        kwargs = {
-            k: v for k, v in six.iteritems(vars(record)) if k not in throwaways and v is not None
-        }
+        kwargs = {k: v for k, v in vars(record).items() if k not in throwaways and v is not None}
         kwargs.update({"level": record.levelno, "event": record.msg})
 
         if record.args:

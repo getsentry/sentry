@@ -132,7 +132,7 @@ class ErrorPageEmbedView(View):
 
         # customization options
         options = DEFAULT_OPTIONS.copy()
-        for name in six.iterkeys(options):
+        for name in options.keys():
             if name in request.GET:
                 options[name] = str(request.GET[name])
 

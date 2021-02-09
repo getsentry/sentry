@@ -233,7 +233,7 @@ class RedisTSDB(BaseTSDB):
                 # (hash_key) -> "max expiration encountered"
                 key_expiries = defaultdict(lambda: 0.0)
 
-                for rollup, max_values in six.iteritems(self.rollups):
+                for rollup, max_values in self.rollups.items():
                     for item in items:
                         if len(item) == 2:
                             model, key = item
@@ -256,7 +256,7 @@ class RedisTSDB(BaseTSDB):
 
                             key_operations[(hash_key, hash_field)] += count
 
-                for (hash_key, hash_field), count in six.iteritems(key_operations):
+                for (hash_key, hash_field), count in key_operations.items():
                     client.hincrby(hash_key, hash_field, count)
                     if key_expiries.get(hash_key):
                         client.expireat(hash_key, key_expiries.pop(hash_key))
@@ -296,7 +296,7 @@ class RedisTSDB(BaseTSDB):
         for epoch, key, count in results:
             results_by_key[key][epoch] = int(count.value or 0)
 
-        for key, points in six.iteritems(results_by_key):
+        for key, points in results_by_key.items():
             results_by_key[key] = sorted(points.items())
         return dict(results_by_key)
 
@@ -398,7 +398,7 @@ class RedisTSDB(BaseTSDB):
             with manager as client:
                 for model, key, values in items:
                     c = client.target_key(key)
-                    for rollup, max_values in six.iteritems(self.rollups):
+                    for rollup, max_values in self.rollups.items():
                         for environment_id in environment_ids:
                             k = self.make_key(model, rollup, ts, key, environment_id)
                             c.pfadd(k, *values)
@@ -430,7 +430,7 @@ class RedisTSDB(BaseTSDB):
 
         return {
             key: [(timestamp, promise.value) for timestamp, promise in value]
-            for key, value in six.iteritems(responses)
+            for key, value in responses.items()
         }
 
     def get_distinct_counts_totals(
@@ -459,7 +459,7 @@ class RedisTSDB(BaseTSDB):
 
                 responses[key] = client.target_key(key).execute_command("PFCOUNT", *ks)
 
-        return {key: value.value for key, value in six.iteritems(responses)}
+        return {key: value.value for key, value in responses.items()}
 
     def get_distinct_counts_union(
         self, model, keys, start, end=None, rollup=None, environment_id=None
@@ -660,13 +660,13 @@ class RedisTSDB(BaseTSDB):
             commands = {}
 
             for model, request in requests:
-                for key, items in six.iteritems(request):
+                for key, items in request.items():
                     keys = []
                     expirations = {}
 
                     # Figure out all of the keys we need to be incrementing, as
                     # well as their expiration policies.
-                    for rollup, max_values in six.iteritems(self.rollups):
+                    for rollup, max_values in self.rollups.items():
                         for environment_id in environment_ids:
                             chunk = self.make_frequency_table_keys(
                                 model, rollup, ts, key, environment_id
@@ -808,9 +808,9 @@ class RedisTSDB(BaseTSDB):
 
         responses = {}
 
-        for key, series in six.iteritems(
-            self.get_frequency_series(model, items, start, end, rollup, environment_id)
-        ):
+        for key, series in self.get_frequency_series(
+            model, items, start, end, rollup, environment_id
+        ).items():
             response = responses[key] = {}
             for timestamp, results in series:
                 for member, value in results.items():

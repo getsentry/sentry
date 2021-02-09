@@ -32,7 +32,7 @@ class TagType:
         return {name: getattr(self, name) for name in self.__slots__}
 
     def __setstate__(self, state):
-        for name, value in six.iteritems(state):
+        for name, value in state.items():
             setattr(self, name, value)
 
 

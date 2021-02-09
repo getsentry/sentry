@@ -87,4 +87,4 @@ class ProjectOptionsManager:
         """
         Return an iterator for all keys in the registry.
         """
-        return six.itervalues(self.registry)
+        return self.registry.values()

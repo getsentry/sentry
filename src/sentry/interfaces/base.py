@@ -34,7 +34,7 @@ def get_interface(name):
 
 def get_interfaces(data):
     result = []
-    for key, data in six.iteritems(data):
+    for key, data in data.items():
         # Skip invalid interfaces that were nulled out during normalization
         if data is None:
             continue

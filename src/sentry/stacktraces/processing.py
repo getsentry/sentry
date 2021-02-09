@@ -94,7 +94,7 @@ class StacktraceProcessingTask:
         return iter(self.processors)
 
     def iter_processable_stacktraces(self):
-        return six.iteritems(self.processable_stacktraces)
+        return self.processable_stacktraces.items()
 
     def iter_processable_frames(self, processor=None):
         for _, frames in self.iter_processable_stacktraces():
@@ -474,7 +474,7 @@ def get_stacktrace_processing_task(infos, processors):
                 to_lookup[processable_frame.cache_key] = processable_frame
 
     frame_cache = lookup_frame_cache(to_lookup)
-    for cache_key, processable_frame in six.iteritems(to_lookup):
+    for cache_key, processable_frame in to_lookup.items():
         processable_frame.cache_value = frame_cache.get(cache_key)
 
     return StacktraceProcessingTask(
