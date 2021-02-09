@@ -443,7 +443,6 @@ export function getFieldRenderer(
     return SPECIAL_FIELDS[field].renderFunc;
   }
   const fieldName = getAggregateAlias(field);
-  const fieldType = meta[fieldName];
 
   for (const alias in SPECIAL_FUNCTIONS) {
     if (fieldName.startsWith(alias)) {
@@ -451,14 +450,7 @@ export function getFieldRenderer(
     }
   }
 
-  if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
-    return function (props) {
-      return FIELD_FORMATTERS[fieldType].renderFunc({field: fieldName, ...props});
-    };
-  }
-  return function (props) {
-    return FIELD_FORMATTERS.string.renderFunc({field: fieldName, ...props});
-  };
+  return getFieldFormatter(field, meta);
 }
 
 type FieldTypeFormatterRenderFunction = (
