@@ -215,7 +215,7 @@ class TableView extends React.Component<TableViewProps> {
 
     const count = Math.min(tableData?.data?.length ?? TOP_N, TOP_N);
 
-    let cell = fieldRenderer(dataRow, {organization, location});
+    let cell = fieldRenderer({data: dataRow}, {organization, location});
 
     if (columnKey === 'id') {
       const eventSlug = generateEventSlug(dataRow);

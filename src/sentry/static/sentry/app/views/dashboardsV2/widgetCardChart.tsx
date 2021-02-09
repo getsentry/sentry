@@ -132,7 +132,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       const dataRow = result.data[0];
       const fieldRenderer = getFieldFormatter(field, tableMeta);
 
-      const rendered = fieldRenderer(dataRow);
+      const rendered = fieldRenderer({data: dataRow});
 
       return <BigNumber key={`big_number:${result.title}`}>{rendered}</BigNumber>;
     });

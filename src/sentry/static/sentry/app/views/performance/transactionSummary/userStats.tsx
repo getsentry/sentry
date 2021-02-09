@@ -56,7 +56,7 @@ function UserStats({eventView, totals, location, organization, transactionName}:
 
     const apdexKey = `apdex_${threshold}`;
     const formatter = getFieldRenderer(apdexKey, {[apdexKey]: 'number'});
-    apdex = formatter(totals, {organization, location});
+    apdex = formatter({data: totals}, {organization, location});
 
     const [vitalsPassed, vitalsTotal] = VITAL_GROUPS.map(({vitals: vs}) => vs).reduce(
       ([passed, total], vs) => {

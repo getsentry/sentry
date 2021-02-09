@@ -440,7 +440,7 @@ class TransactionsTable extends React.PureComponent<TableProps> {
       const fieldType = tableMeta[fieldName];
 
       const fieldRenderer = getFieldRenderer(field, tableMeta);
-      let rendered = fieldRenderer(row, {organization, location});
+      let rendered = fieldRenderer({data: row}, {organization, location});
 
       const target = generateLink?.[tableTitles[index]]?.(
         organization,

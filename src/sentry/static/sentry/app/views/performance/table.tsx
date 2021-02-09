@@ -101,7 +101,7 @@ class Table extends React.Component<Props, State> {
 
     const field = String(column.key);
     const fieldRenderer = getFieldRenderer(field, tableMeta);
-    const rendered = fieldRenderer(dataRow, {organization, location});
+    const rendered = fieldRenderer({data: dataRow}, {organization, location});
 
     const allowActions = [
       Actions.ADD,

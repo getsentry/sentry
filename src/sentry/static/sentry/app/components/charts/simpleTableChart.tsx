@@ -32,7 +32,7 @@ class SimpleTableChart extends React.Component<Props> {
 
     return columns.map(column => {
       const fieldRenderer = getFieldRenderer(column.name, tableMeta);
-      const rendered = fieldRenderer(row, {organization, location});
+      const rendered = fieldRenderer({data: row}, {organization, location});
       return <div key={`${index}:${column.name}`}>{rendered}</div>;
     });
   }
