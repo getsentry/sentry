@@ -83,15 +83,15 @@ class VercelWebhookEndpoint(Endpoint):
         # contruct the repo depeding what provider we use
         if meta.get("githubCommitSha"):
             # we use these instead of githubOrg and githubRepo since it's the repo the user has access to
-            repository = "%s/%s" % (meta["githubCommitOrg"], meta["githubCommitRepo"])
+            repository = "{}/{}".format(meta["githubCommitOrg"], meta["githubCommitRepo"])
         elif meta.get("gitlabCommitSha"):
             # gitlab repos are formatted with a space for some reason
-            repository = "%s / %s" % (
+            repository = "{} / {}".format(
                 meta["gitlabProjectNamespace"],
                 meta["gitlabProjectName"],
             )
         elif meta.get("bitbucketCommitSha"):
-            repository = "%s/%s" % (meta["bitbucketRepoOwner"], meta["bitbucketRepoName"])
+            repository = "{}/{}".format(meta["bitbucketRepoOwner"], meta["bitbucketRepoName"])
         else:
             # this can happen with manual builds
             raise NoCommitFoundError("No commit found")
@@ -193,7 +193,7 @@ class VercelWebhookEndpoint(Endpoint):
                 except RequestException as e:
                     # errors here should be uncommon but we should be aware of them
                     logger.error(
-                        "Error creating release: %s - %s" % (e, json_error),
+                        "Error creating release: {} - {}".format(e, json_error),
                         extra=logging_params,
                         exc_info=True,
                     )
@@ -212,7 +212,7 @@ class VercelWebhookEndpoint(Endpoint):
                 except RequestException as e:
                     # errors will probably be common if the user doesn't have repos set up
                     logger.info(
-                        "Error setting refs: %s - %s" % (e, json_error),
+                        "Error setting refs: {} - {}".format(e, json_error),
                         extra=logging_params,
                         exc_info=True,
                     )

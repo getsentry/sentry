@@ -71,7 +71,7 @@ API_ERRORS = {
 
 def build_repository_query(metadata, name, query):
     account_type = "user" if metadata["account_type"] == "User" else "org"
-    return ("%s:%s %s" % (account_type, name, query)).encode("utf-8")
+    return ("{}:{} {}".format(account_type, name, query)).encode("utf-8")
 
 
 class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin):
@@ -125,7 +125,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
 
             if message is None:
                 message = exc.json.get("message", "unknown error") if exc.json else "unknown error"
-            return "Error Communicating with GitHub (HTTP %s): %s" % (exc.code, message)
+            return "Error Communicating with GitHub (HTTP {}): {}".format(exc.code, message)
         else:
             return ERR_INTERNAL
 

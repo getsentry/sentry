@@ -83,7 +83,7 @@ class InstallationRepositoryEventWebhook(Webhook):
                         provider="github",
                         external_id=r["id"],
                         defaults={
-                            "url": "https://github.com/%s" % (r["full_name"],),
+                            "url": "https://github.com/{}".format(r["full_name"]),
                             "config": config,
                             "integration_id": integration.id,
                         },
@@ -352,7 +352,7 @@ class GithubWebhookBase(View):
         if method == "sha1":
             mod = hashlib.sha1
         else:
-            raise NotImplementedError("signature method %s is not supported" % (method,))
+            raise NotImplementedError("signature method {} is not supported".format(method))
         expected = hmac.new(key=secret.encode("utf-8"), msg=body, digestmod=mod).hexdigest()
         return constant_time_compare(expected, signature)
 

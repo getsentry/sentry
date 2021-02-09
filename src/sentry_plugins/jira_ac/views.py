@@ -19,7 +19,7 @@ from jwt.exceptions import ExpiredSignatureError
 from sentry.utils.sdk import bind_organization_context, configure_scope
 from sentry.web.decorators import transaction_start
 
-JIRA_KEY = "%s.jira_ac" % (urlparse(absolute_uri()).hostname,)
+JIRA_KEY = "{}.jira_ac".format(urlparse(absolute_uri()).hostname)
 
 
 class BaseJiraWidgetView(View):

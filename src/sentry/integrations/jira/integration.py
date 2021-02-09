@@ -300,7 +300,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return fields
 
     def get_issue_url(self, key, **kwargs):
-        return "%s/browse/%s" % (self.model.metadata["base_url"], key)
+        return "{}/browse/{}".format(self.model.metadata["base_url"], key)
 
     def get_persisted_default_config_fields(self):
         return ["project", "issuetype", "priority", "labels"]
@@ -357,7 +357,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def create_comment_attribution(self, user_id, comment_text):
         user = User.objects.get(id=user_id)
         attribution = "%s wrote:\n\n" % user.name
-        return "%s{quote}%s{quote}" % (attribution, comment_text)
+        return "{}{{quote}}{}{{quote}}".format(attribution, comment_text)
 
     def update_comment(self, issue_id, user_id, group_note):
         quoted_comment = self.create_comment_attribution(user_id, group_note.data["text"])
@@ -399,7 +399,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         if data.get("errors"):
             if message:
                 message += " "
-            message += " ".join(["%s: %s" % (k, v) for k, v in data.get("errors").items()])
+            message += " ".join(["{}: {}".format(k, v) for k, v in data.get("errors").items()])
         return message
 
     def error_fields_from_json(self, data):

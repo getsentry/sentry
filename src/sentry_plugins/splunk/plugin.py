@@ -64,7 +64,7 @@ class SplunkError(Exception):
         return cls(status_code=response.status_code, code=code, text=body.get("text"))
 
     def __repr__(self):
-        return "<%s: status_code=%s, code=%s, text=%s>" % (
+        return "<{}: status_code={}, code={}, text={}>".format(
             type(self).__name__,
             self.status_code,
             self.code,

@@ -23,7 +23,7 @@ class PluginMount(type):
         if not new_cls.slug:
             new_cls.slug = new_cls.title.replace(" ", "-").lower()
         if not hasattr(new_cls, "logger"):
-            new_cls.logger = logging.getLogger("sentry.plugins.%s" % (new_cls.slug,))
+            new_cls.logger = logging.getLogger("sentry.plugins.{}".format(new_cls.slug))
         return new_cls
 
 
@@ -73,7 +73,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
     required_field = None
 
     def _get_option_key(self, key):
-        return "%s:%s" % (self.get_conf_key(), key)
+        return "{}:{}".format(self.get_conf_key(), key)
 
     def get_plugin_type(self):
         return "default"

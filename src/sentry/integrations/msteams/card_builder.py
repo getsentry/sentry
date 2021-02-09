@@ -54,7 +54,7 @@ def get_assignee_string(group):
 
 
 def build_welcome_card(signed_params):
-    url = "%s?signed_params=%s" % (
+    url = "{}?signed_params={}".format(
         absolute_uri("/extensions/msteams/configure/"),
         signed_params,
     )
@@ -399,7 +399,7 @@ def build_group_footer(group, rules, project, event):
         date_ts = max(date_ts, event_ts)
 
     date = date_ts.replace(microsecond=0).isoformat()
-    date_text = "{{DATE(%s, SHORT)}} at {{TIME(%s)}}" % (date, date)
+    date_text = "{{{{DATE({}, SHORT)}}}} at {{{{TIME({})}}}}".format(date, date)
     date_column = {
         "type": "Column",
         "items": [

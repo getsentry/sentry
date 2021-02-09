@@ -42,7 +42,7 @@ class JiraSearchEndpoint(IntegrationEndpoint):
                 return Response({"detail": str(e)}, status=400)
             return Response(
                 [
-                    {"label": "(%s) %s" % (i["key"], i["fields"]["summary"]), "value": i["key"]}
+                    {"label": "({}) {}".format(i["key"], i["fields"]["summary"]), "value": i["key"]}
                     for i in resp.get("issues", [])
                 ]
             )

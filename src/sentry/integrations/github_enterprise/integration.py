@@ -140,7 +140,9 @@ class GitHubEnterpriseIntegration(IntegrationInstallation, GitHubIssueBasic, Rep
             message = API_ERRORS.get(exc.code)
             if message is None:
                 message = exc.json.get("message", "unknown error") if exc.json else "unknown error"
-            return "Error Communicating with GitHub Enterprise (HTTP %s): %s" % (exc.code, message)
+            return "Error Communicating with GitHub Enterprise (HTTP {}): {}".format(
+                exc.code, message
+            )
         else:
             return ERR_INTERNAL
 

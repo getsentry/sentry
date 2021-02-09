@@ -145,7 +145,7 @@ class VstsIssueSync(IssueSyncMixin):
         return fields
 
     def get_issue_url(self, key, **kwargs):
-        return "%s_workitems/edit/%s" % (self.instance, str(key))
+        return "{}_workitems/edit/{}".format(self.instance, str(key))
 
     def create_issue(self, data, **kwargs):
         """
@@ -179,7 +179,7 @@ class VstsIssueSync(IssueSyncMixin):
             "key": str(created_item["id"]),
             "title": title,
             "description": description,
-            "metadata": {"display_name": "%s#%s" % (project_name, created_item["id"])},
+            "metadata": {"display_name": "{}#{}".format(project_name, created_item["id"])},
         }
 
     def get_issue(self, issue_id, **kwargs):
@@ -190,7 +190,9 @@ class VstsIssueSync(IssueSyncMixin):
             "title": work_item["fields"]["System.Title"],
             "description": work_item["fields"].get("System.Description"),
             "metadata": {
-                "display_name": "%s#%s" % (work_item["fields"]["System.AreaPath"], work_item["id"])
+                "display_name": "{}#{}".format(
+                    work_item["fields"]["System.AreaPath"], work_item["id"]
+                )
             },
         }
 
@@ -327,7 +329,7 @@ class VstsIssueSync(IssueSyncMixin):
         # https://docs.microsoft.com/en-us/microsoftteams/platform/concepts/bots/bots-text-formats
         user = User.objects.get(id=user_id)
         attribution = "%s wrote:\n\n" % user.name
-        quoted_comment = "%s<blockquote>%s</blockquote>" % (attribution, comment_text)
+        quoted_comment = "{}<blockquote>{}</blockquote>".format(attribution, comment_text)
         return quoted_comment
 
     def update_comment(self, issue_id, user_id, external_comment_id, comment_text):

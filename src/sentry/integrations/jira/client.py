@@ -12,7 +12,7 @@ from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.integrations.jira")
 
-JIRA_KEY = "%s.jira" % (urlparse(absolute_uri()).hostname,)
+JIRA_KEY = "{}.jira".format(urlparse(absolute_uri()).hostname)
 ISSUE_KEY_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*-\d+$")
 CUSTOMFIELD_PREFIX = "customfield_"
 

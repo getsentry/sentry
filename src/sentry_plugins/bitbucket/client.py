@@ -27,7 +27,7 @@ class BitbucketClient(AuthApiClient):
         return kwargs
 
     def get_issue(self, repo, issue_id):
-        return self.get("/1.0/repositories/%s/issues/%s" % (repo, issue_id))
+        return self.get("/1.0/repositories/{}/issues/{}".format(repo, issue_id))
 
     def create_issue(self, repo, data):
         data = {
@@ -43,7 +43,7 @@ class BitbucketClient(AuthApiClient):
 
     def create_comment(self, repo, issue_id, data):
         return self.post(
-            "/1.0/repositories/%s/issues/%s/comments" % (repo, issue_id), data=data, json=False
+            "/1.0/repositories/{}/issues/{}/comments".format(repo, issue_id), data=data, json=False
         )
 
     def get_repo(self, repo):

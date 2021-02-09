@@ -116,14 +116,14 @@ class PushoverPlugin(CorePluginMixin, NotifyPlugin):
         retry = int(self.get_option("retry", project) or 30)
         expire = int(self.get_option("expire", project) or 90)
 
-        title = "%s: %s" % (project.name, group.title)
+        title = "{}: {}".format(project.name, group.title)
         link = group.get_absolute_url(params={"referrer": "pushover_plugin"})
 
         message = event.title[:256]
 
         tags = event.tags
         if tags:
-            message += "\n\nTags: %s" % (", ".join("%s=%s" % (k, v) for (k, v) in tags))
+            message += "\n\nTags: %s" % (", ".join("{}={}".format(k, v) for (k, v) in tags))
 
         client = self.get_client(project)
         try:

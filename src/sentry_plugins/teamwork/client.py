@@ -10,7 +10,7 @@ class TeamworkClient:
 
     def _request(self, path, method="GET", params=None, data=None):
         path = path.lstrip("/")
-        url = "%s/%s" % (self.base_url, path)
+        url = "{}/{}".format(self.base_url, path)
 
         if not params:
             params = {}

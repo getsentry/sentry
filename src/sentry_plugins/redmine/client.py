@@ -19,7 +19,7 @@ class RedmineClient:
         projects = []
 
         def get_response(limit, offset):
-            return self.request("GET", "/projects.json?limit=%s&offset=%s" % (limit, offset))
+            return self.request("GET", "/projects.json?limit={}&offset={}".format(limit, offset))
 
         response = get_response(limit, 0)
 

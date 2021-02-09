@@ -129,7 +129,7 @@ class VercelIntegration(IntegrationInstallation):
                 dashboard_url = "https://vercel.com/dashboard/%s/" % slug
             else:
                 dashboard_url = "https://vercel.com/dashboard/"
-            return "%sintegrations/%s" % (dashboard_url, configuration_id)
+            return "{}integrations/{}".format(dashboard_url, configuration_id)
         return None
 
     def get_client(self):
@@ -166,7 +166,7 @@ class VercelIntegration(IntegrationInstallation):
         slug = self.get_slug()
         base_url = "https://vercel.com/%s" % slug
         vercel_projects = [
-            {"value": p["id"], "label": p["name"], "url": "%s/%s" % (base_url, p["name"])}
+            {"value": p["id"], "label": p["name"], "url": "{}/{}".format(base_url, p["name"])}
             for p in vercel_client.get_projects()
         ]
 

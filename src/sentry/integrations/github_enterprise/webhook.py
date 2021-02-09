@@ -83,7 +83,7 @@ class GitHubEnterpriseWebhookBase(View):
 
     def is_valid_signature(self, method, body, secret, signature):
         if method != "sha1":
-            raise NotImplementedError("signature method %s is not supported" % (method,))
+            raise NotImplementedError("signature method {} is not supported".format(method))
         expected = hmac.new(
             key=secret.encode("utf-8"), msg=body, digestmod=hashlib.sha1
         ).hexdigest()

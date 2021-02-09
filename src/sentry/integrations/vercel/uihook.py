@@ -70,7 +70,7 @@ class VercelUIHook(Endpoint):
             return HttpResponse("The requested integration does not exist.")
 
         connect_projects_link = absolute_uri(
-            "/settings/%s/integrations/vercel/%s/" % (organization.slug, integration.id)
+            "/settings/{}/integrations/vercel/{}/".format(organization.slug, integration.id)
         )
         doc_link = "https://docs.sentry.io/product/integrations/vercel/"
         source_code_link = absolute_uri(

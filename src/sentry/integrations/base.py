@@ -178,7 +178,7 @@ class IntegrationProvider(PipelineProvider):
         return self._integration_key or self.key
 
     def get_logger(self):
-        return logging.getLogger("sentry.integration.%s" % (self.key,))
+        return logging.getLogger("sentry.integration.{}".format(self.key))
 
     def post_install(self, integration, organization, extra=None):
         pass
@@ -335,7 +335,7 @@ class IntegrationInstallation:
                 msg = self.error_message_from_json(exc.json) or "unknown error"
             else:
                 msg = "unknown error"
-            return "Error Communicating with %s (HTTP %s): %s" % (
+            return "Error Communicating with {} (HTTP {}): {}".format(
                 self.model.get_provider().name,
                 exc.code,
                 msg,

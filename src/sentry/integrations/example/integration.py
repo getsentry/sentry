@@ -67,7 +67,7 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
         attribution = "%s wrote:\n\n" % user.name
         comment = {
             "id": "123456789",
-            "text": "%s<blockquote>%s</blockquote>" % (attribution, group_note.data["text"]),
+            "text": "{}<blockquote>{}</blockquote>".format(attribution, group_note.data["text"]),
         }
         return comment
 

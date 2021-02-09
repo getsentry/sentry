@@ -151,7 +151,7 @@ class TwilioPlugin(CorePluginMixin, NotificationPlugin):
         code = data.get("code")
         message = data.get("message")
         more_info = data.get("more_info")
-        error_message = "%s - %s %s" % (code, message, more_info)
+        error_message = "{} - {} {}".format(code, message, more_info)
         if message:
             return error_message
         return None
