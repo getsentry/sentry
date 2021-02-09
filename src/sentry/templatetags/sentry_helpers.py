@@ -17,7 +17,6 @@ from sentry.api.serializers import serialize as serialize_func
 from sentry.utils import json
 from sentry.utils.strings import soft_break as _soft_break
 from sentry.utils.strings import soft_hyphenate, to_unicode, truncatechars
-from six.moves import range
 from urllib.parse import quote
 
 SentryVersion = namedtuple("SentryVersion", ["current", "latest", "update_available", "build"])

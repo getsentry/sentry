@@ -1,6 +1,5 @@
 import math
 import sentry_sdk
-import six
 import logging
 
 from collections import namedtuple
@@ -93,7 +92,7 @@ def zerofill(data, start, end, rollup, orderby):
         else:
             data_by_time[obj["time"]] = [obj]
 
-    for key in six.moves.xrange(start, end, rollup):
+    for key in range(start, end, rollup):
         if key in data_by_time and len(data_by_time[key]) > 0:
             rv = rv + data_by_time[key]
             data_by_time[key] = []

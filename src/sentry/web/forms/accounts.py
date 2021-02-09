@@ -13,7 +13,6 @@ from sentry.app import ratelimiter
 from sentry.utils.auth import find_users, logger
 from sentry.models import User
 from sentry.web.forms.fields import CustomTypedChoiceField, AllowedEmailField
-from six.moves import range
 
 
 def _get_timezone_choices():
