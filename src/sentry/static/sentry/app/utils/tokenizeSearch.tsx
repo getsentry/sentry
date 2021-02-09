@@ -16,6 +16,10 @@ function isOp(t: Token) {
   return t.type === TokenType.OP;
 }
 
+function isNotParen(value: string) {
+  return ['OR', 'AND'].includes(value.toUpperCase());
+}
+
 export class QueryResults {
   tagValues: Record<string, string[]>;
   tokens: Token[];
@@ -26,7 +30,7 @@ export class QueryResults {
     for (let token of strTokens) {
       let tokenState = TokenType.QUERY;
 
-      if (['OR', 'AND'].includes(token.toUpperCase())) {
+      if (isNotParen(token)) {
         this.addOp(token.toUpperCase());
         continue;
       }
@@ -203,8 +207,19 @@ export class QueryResults {
         const token = this.tokens[i];
         const prev = this.tokens[i - 1];
         const next = this.tokens[i + 1];
-        if (isOp(token) && ['OR', 'AND'].includes(token.value)) {
-          if (prev === undefined || isOp(prev) || next === undefined || isOp(next)) {
+        if (isOp(token) && isNotParen(token.value)) {
+          if (
+            (prev === undefined || isOp(prev) || next === undefined || isOp(next)) &&
+            // Want to avoid removing `(term) OR (term)`
+            !(
+              prev !== undefined &&
+              next !== undefined &&
+              isOp(prev) &&
+              prev.value === ')' &&
+              isOp(next) &&
+              next.value === '('
+            )
+          ) {
             toRemove = i;
             break;
           }
