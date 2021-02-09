@@ -1,7 +1,6 @@
 from hashlib import sha256
 import hmac
 import logging
-import six
 
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -41,7 +40,7 @@ class ReleaseWebhookView(View):
         except json.JSONDecodeError as exc:
             return HttpResponse(
                 status=400,
-                content=json.dumps({"error": six.text_type(exc)}),
+                content=json.dumps({"error": str(exc)}),
                 content_type="application/json",
             )
 
@@ -110,7 +109,7 @@ class ReleaseWebhookView(View):
         except HookValidationError as exc:
             return HttpResponse(
                 status=400,
-                content=json.dumps({"error": six.text_type(exc)}),
+                content=json.dumps({"error": str(exc)}),
                 content_type="application/json",
             )
 

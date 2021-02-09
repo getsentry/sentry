@@ -1,5 +1,4 @@
 import logging
-import six
 
 from collections import namedtuple
 from time import time
@@ -244,7 +243,7 @@ class OptionsStore:
         now = int(time())
 
         try:
-            for k, (_, _, grace) in six.iteritems(self._local_cache):
+            for k, (_, _, grace) in self._local_cache.items():
                 if now > grace:
                     to_expire.append(k)
         except RuntimeError:

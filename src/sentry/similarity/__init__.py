@@ -1,4 +1,3 @@
-import six
 import logging
 
 from django.conf import settings
@@ -61,7 +60,7 @@ def get_frame_attributes(frame):
 
 
 def _make_index_backend(cluster, namespace="sim:1"):
-    if isinstance(cluster, six.string_types):
+    if isinstance(cluster, str):
         cluster_id = cluster
 
         try:

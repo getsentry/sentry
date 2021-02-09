@@ -1,10 +1,10 @@
 import os
 import posixpath
+from urllib.parse import unquote
 
 from django.conf import settings
 from django.http import HttpResponseNotFound, Http404
 from django.contrib.staticfiles import finders
-from django.utils.six.moves.urllib.parse import unquote
 from django.views import static
 
 FOREVER_CACHE = "max-age=315360000"

@@ -1,6 +1,5 @@
 import json  # noqa
 import os
-import six
 
 from flask import Flask, redirect, url_for, request, session
 from flask_oauth import OAuth
@@ -54,7 +53,7 @@ def index():
             # Unauthorized - bad token
             session.pop("access_token", None)
             return redirect(url_for("login"))
-        return "{}\n{}".format(six.text_type(e), e.read())
+        return "{}\n{}".format(str(e), e.read())
 
     return ("<h1>Hi, {}!</h1>" "<pre>{}</pre>").format(
         json.loads(session["user"])["email"], json.dumps(json.loads(res.read()), indent=2)

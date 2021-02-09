@@ -1,7 +1,6 @@
 import sys
 import jsonschema
 import logging
-import six
 import time
 import base64
 
@@ -9,7 +8,7 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 
 from requests.exceptions import RequestException
-from six.moves.urllib.parse import urljoin
+from urllib.parse import urljoin
 
 import sentry_sdk
 
@@ -118,8 +117,8 @@ class Symbolicator:
 
         self.sess = SymbolicatorSession(
             url=base_url,
-            project_id=six.text_type(project.id),
-            event_id=six.text_type(event_id),
+            project_id=str(project.id),
+            event_id=str(event_id),
             timeout=settings.SYMBOLICATOR_POLL_TIMEOUT,
             sources=get_sources_for_project(project),
             options=get_options_for_project(project),
@@ -340,7 +339,7 @@ def parse_sources(config):
     try:
         sources = json.loads(config)
     except BaseException as e:
-        raise InvalidSourcesError(six.text_type(e))
+        raise InvalidSourcesError(str(e))
 
     try:
         jsonschema.validate(sources, SOURCES_SCHEMA)
@@ -412,7 +411,7 @@ def get_sources_for_project(project):
     # Add builtin sources last to ensure that custom sources have precedence
     # over our defaults.
     builtin_sources = project.get_option("sentry:builtin_symbol_sources")
-    for key, source in six.iteritems(settings.SENTRY_BUILTIN_SOURCES):
+    for key, source in settings.SENTRY_BUILTIN_SOURCES.items():
         if key not in builtin_sources:
             continue
 

@@ -3,7 +3,7 @@ from collections import OrderedDict
 from requests.exceptions import RequestException
 
 from simplejson.decoder import JSONDecodeError
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 from sentry.utils import json
 
 

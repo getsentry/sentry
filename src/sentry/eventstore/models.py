@@ -1,5 +1,4 @@
 import pytz
-import six
 import string
 
 from collections import OrderedDict
@@ -364,7 +363,7 @@ class Event:
         # config ID is given in which case it's merged with the stored or
         # default config dictionary
         if force_config is not None:
-            if isinstance(force_config, six.string_types):
+            if isinstance(force_config, str):
                 stored_config = self.get_grouping_config()
                 config = dict(stored_config)
                 config["id"] = force_config
@@ -429,11 +428,11 @@ class Event:
         data["message"] = self.message
         data["datetime"] = self.datetime
         data["tags"] = [(k.split("sentry:", 1)[-1], v) for (k, v) in self.tags]
-        for k, v in sorted(six.iteritems(self.data)):
+        for k, v in sorted(self.data.items()):
             if k in data:
                 continue
             if k == "sdk":
-                v = {v_k: v_v for v_k, v_v in six.iteritems(v) if v_k != "client_ip"}
+                v = {v_k: v_v for v_k, v_v in v.items() if v_k != "client_ip"}
             data[k] = v
 
         # for a long time culprit was not persisted.  In those cases put
@@ -467,7 +466,7 @@ class Event:
             message += data["logentry"].get("formatted") or data["logentry"].get("message") or ""
 
         if event_metadata:
-            for value in six.itervalues(event_metadata):
+            for value in event_metadata.values():
                 value_u = force_text(value, errors="replace")
                 if value_u not in message:
                     message = "{} {}".format(message, value_u)
@@ -499,7 +498,7 @@ class EventSubjectTemplateData:
             value = self.event.get_tag(self.tag_aliases.get(name, name))
             if value is None:
                 raise KeyError
-            return six.text_type(value)
+            return str(value)
         elif name == "project":
             return self.event.project.get_full_name()
         elif name == "projectID":
