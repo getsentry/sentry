@@ -46,7 +46,7 @@ metadata = IntegrationMetadata(
     features=FEATURES,
     author="The Sentry Team",
     noun="example",
-    issue_url="https://github.com/getsentry/sentry/issues/new",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=Integration%20Problem",
     source_url="https://github.com/getsentry/sentry",
     aspects={},
 )
