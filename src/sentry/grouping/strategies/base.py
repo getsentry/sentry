@@ -41,12 +41,10 @@ def strategy(id=None, ids=None, variants=None, interfaces=None, name=None, score
 
 class GroupingContext(object):
     def __init__(self, strategy_config):
-        self._stack = [
-            {
-                "variant": None,
-            }
-        ]
+        self._stack = [strategy_config.initial_context]
         self.config = strategy_config
+        self.push()
+        self["variant"] = None
 
     def __setitem__(self, key, value):
         self._stack[-1][key] = value
@@ -252,7 +250,14 @@ class StrategyConfiguration:
 
 
 def create_strategy_configuration(
-    id, strategies=None, delegates=None, changelog=None, hidden=False, base=None, risk=None
+    id,
+    strategies=None,
+    delegates=None,
+    changelog=None,
+    hidden=False,
+    base=None,
+    risk=None,
+    initial_context=None,
 ):
     """Declares a new strategy configuration.
 
@@ -272,6 +277,7 @@ def create_strategy_configuration(
     NewStrategyConfiguration.config_class = id.split(":", 1)[0]
     NewStrategyConfiguration.strategies = dict(base.strategies) if base else {}
     NewStrategyConfiguration.delegates = dict(base.delegates) if base else {}
+    NewStrategyConfiguration.initial_context = dict(base.initial_context) if base else {}
     if risk is None:
         risk = RISK_LEVEL_LOW
     NewStrategyConfiguration.risk = risk
@@ -300,6 +306,9 @@ def create_strategy_configuration(
                 )
             NewStrategyConfiguration.delegates[interface] = strategy
             new_delegates.add(interface)
+
+    if initial_context:
+        NewStrategyConfiguration.initial_context.update(initial_context)
 
     NewStrategyConfiguration.changelog = inspect.cleandoc(changelog or "")
     NewStrategyConfiguration.__name__ = "StrategyConfiguration(%s)" % id

@@ -126,15 +126,12 @@ def get_module_component(abs_path, module, platform):
 
 
 def get_function_component(
+    context,
     function,
+    raw_function,
     platform,
-    legacy_function_logic,
-    prefer_raw_function_name=False,
     sourcemap_used=False,
     context_line_available=False,
-    raw_function=None,
-    javascript_fuzzing=False,
-    php_detect_anonymous_classes=False,
 ):
     """
     Attempt to normalize functions by removing common platform outliers.
@@ -147,12 +144,26 @@ def get_function_component(
     use the frame v1 function name logic or the frame v2 logic.  The difference
     is that v2 uses the function name consistently and v1 prefers raw function
     or a trimmed version (of the truncated one) for native.  Related to this is
-    the `prefer_raw_function_name` parameter which just flat out prefers the
+    the `prefer_raw_function_name` flag which just flat out prefers the
     raw function name over the non raw one.
     """
     from sentry.stacktraces.functions import trim_function_name
 
+    javascript_fuzzing = context["javascript_fuzzing"]
+    php_detect_anonymous_classes = context["php_detect_anonymous_classes"]
+    legacy_function_logic = context["legacy_function_logic"]
+
     behavior_family = get_behavior_family_for_platform(platform)
+
+    # We started trimming function names in csharp late which changed the
+    # inputs to the grouping code.  Where previously the `function` attribute
+    # contained the raw and untrimmed strings, it now contains the trimmed one
+    # which is preferred by the frame component.  Because of this we tell the
+    # component to prefer the raw function name over the function name for
+    # csharp.
+    # TODO: if a frame:v5 is added the raw function name should not be preferred
+    # for csharp.
+    prefer_raw_function_name = platform == "csharp"
 
     if legacy_function_logic or prefer_raw_function_name:
         func = raw_function or function
@@ -225,92 +236,12 @@ def get_function_component(
     interfaces=["frame"],
     variants=["!system", "app"],
 )
-def frame(frame, event, **meta):
-    id = meta["strategy"].id
+def frame(frame, event, context, **meta):
     platform = frame.platform or event.platform
 
-    use_contextline = False
-    javascript_fuzzing = False
-    php_detect_anonymous_classes = False
+    use_contextline = platform in context["contextline_platforms"]
+    javascript_fuzzing = context["javascript_fuzzing"]
 
-    # Version specific bugs
-    legacy_function_logic = id == "frame:v1"
-    with_context_line_file_origin_bug = id == "frame:v3"
-
-    # We started trimming function names in csharp late which changed the
-    # inputs to the grouping code.  Where previously the `function` attribute
-    # contained the raw and untrimmed strings, it now contains the trimmed one
-    # which is preferred by the frame component.  Because of this we tell the
-    # component to prefer the raw function name over the function name for
-    # csharp.
-    # TODO: if a frame:v5 is added the raw function name should not be preferred
-    # for csharp.
-    prefer_raw_function_name = platform == "csharp"
-
-    if id in ("frame:v3", "frame:v4"):
-        javascript_fuzzing = True
-        # These are platforms that we know have always source available and
-        # where the source is of good quality for grouping.  For javascript
-        # this assumes that we have sourcemaps available.
-        use_contextline = platform in ("javascript", "node", "python", "php", "ruby")
-
-    # Starting with v4 we're adding support for anonymous classes
-    # detection
-    if id == "frame:v4":
-        php_detect_anonymous_classes = True
-
-    return get_frame_component(
-        frame,
-        event,
-        meta,
-        legacy_function_logic=legacy_function_logic,
-        use_contextline=use_contextline,
-        javascript_fuzzing=javascript_fuzzing,
-        with_context_line_file_origin_bug=with_context_line_file_origin_bug,
-        php_detect_anonymous_classes=php_detect_anonymous_classes,
-        prefer_raw_function_name=prefer_raw_function_name,
-    )
-
-
-def get_contextline_component(frame, platform, function, with_context_line_file_origin_bug=False):
-    """Returns a contextline component.  The caller's responsibility is to
-    make sure context lines are only used for platforms where we trust the
-    quality of the sourcecode.  It does however protect against some bad
-    JavaScript environments based on origin checks.
-    """
-    line = " ".join((frame.context_line or "").expandtabs(2).split())
-    if not line:
-        return GroupingComponent(id="context-line")
-
-    component = GroupingComponent(
-        id="context-line", values=[line], similarity_encoder=ident_encoder
-    )
-    if line:
-        if len(frame.context_line) > 120:
-            component.update(hint="discarded because line too long", contributes=False)
-        elif get_behavior_family_for_platform(platform) == "javascript":
-            if with_context_line_file_origin_bug:
-                if has_url_origin(frame.abs_path, allow_file_origin=True):
-                    component.update(hint="discarded because from URL origin", contributes=False)
-            elif not function and has_url_origin(frame.abs_path):
-                component.update(
-                    hint="discarded because from URL origin and no function", contributes=False
-                )
-
-    return component
-
-
-def get_frame_component(
-    frame,
-    event,
-    meta,
-    legacy_function_logic=False,
-    use_contextline=False,
-    javascript_fuzzing=False,
-    with_context_line_file_origin_bug=False,
-    php_detect_anonymous_classes=False,
-    prefer_raw_function_name=False,
-):
     platform = frame.platform or event.platform
 
     # Safari throws [native code] frames in for calls like ``forEach``
@@ -336,19 +267,16 @@ def get_frame_component(
             frame,
             platform,
             function=frame.function,
-            with_context_line_file_origin_bug=with_context_line_file_origin_bug,
+            context=context,
         )
 
     function_component = get_function_component(
+        context=context,
         function=frame.function,
         raw_function=frame.raw_function,
         platform=platform,
         sourcemap_used=frame.data and frame.data.get("sourcemap") is not None,
         context_line_available=context_line_component and context_line_component.contributes,
-        legacy_function_logic=legacy_function_logic,
-        prefer_raw_function_name=prefer_raw_function_name,
-        javascript_fuzzing=javascript_fuzzing,
-        php_detect_anonymous_classes=php_detect_anonymous_classes,
     )
 
     values = [module_component, filename_component, function_component]
@@ -390,17 +318,37 @@ def get_frame_component(
     return rv
 
 
+def get_contextline_component(frame, platform, function, context):
+    """Returns a contextline component.  The caller's responsibility is to
+    make sure context lines are only used for platforms where we trust the
+    quality of the sourcecode.  It does however protect against some bad
+    JavaScript environments based on origin checks.
+    """
+    with_context_line_file_origin_bug = context["with_context_line_file_origin_bug"]
+    line = " ".join((frame.context_line or "").expandtabs(2).split())
+    if not line:
+        return GroupingComponent(id="context-line")
+
+    component = GroupingComponent(
+        id="context-line", values=[line], similarity_encoder=ident_encoder
+    )
+    if line:
+        if len(frame.context_line) > 120:
+            component.update(hint="discarded because line too long", contributes=False)
+        elif get_behavior_family_for_platform(platform) == "javascript":
+            if with_context_line_file_origin_bug:
+                if has_url_origin(frame.abs_path, allow_file_origin=True):
+                    component.update(hint="discarded because from URL origin", contributes=False)
+            elif not function and has_url_origin(frame.abs_path):
+                component.update(
+                    hint="discarded because from URL origin and no function", contributes=False
+                )
+
+    return component
+
+
 @strategy(id="stacktrace:v1", interfaces=["stacktrace"], variants=["!system", "app"], score=1800)
 def stacktrace(stacktrace, context, **meta):
-    return get_stacktrace_component(stacktrace, context, meta)
-
-
-@stacktrace.variant_processor
-def stacktrace_variant_processor(variants, context, **meta):
-    return remove_non_stacktrace_variants(variants)
-
-
-def get_stacktrace_component(stacktrace, context, meta):
     variant = context["variant"]
     frames = stacktrace.frames
     all_frames_considered_in_app = False
@@ -439,6 +387,11 @@ def get_stacktrace_component(stacktrace, context, meta):
         meta["event"].platform,
         similarity_self_encoder=_stacktrace_encoder,
     )
+
+
+@stacktrace.variant_processor
+def stacktrace_variant_processor(variants, context, **meta):
+    return remove_non_stacktrace_variants(variants)
 
 
 def _stacktrace_encoder(id, stacktrace):

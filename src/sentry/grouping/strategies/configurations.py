@@ -80,6 +80,13 @@ register_strategy_config(
           better.
         * C/C++ and other native stacktraces are more reliably grouped.
     """,
+    initial_context={
+        "legacy_function_logic": False,
+        "javascript_fuzzing": True,
+        "contextline_platforms": ("javascript", "node", "python", "php", "ruby"),
+        "php_detect_anonymous_classes": False,
+        "with_context_line_file_origin_bug": True,
+    },
 )
 
 register_strategy_config(
@@ -92,6 +99,10 @@ register_strategy_config(
           JavaScript platforms for grouping purposes.
         * Better support for PHP7 anonymous classes.
     """,
+    initial_context={
+        "php_detect_anonymous_classes": True,
+        "with_context_line_file_origin_bug": False,
+    },
 )
 
 
@@ -119,6 +130,13 @@ register_strategy_config(
         * Experimental grouping algorithm (should not be used)
     """,
     hidden=True,
+    initial_context={
+        "legacy_function_logic": True,
+        "javascript_fuzzing": False,
+        "contextline_platforms": (),
+        "php_detect_anonymous_classes": False,
+        "with_context_line_file_origin_bug": False,
+    },
 )
 
 register_strategy_config(
@@ -131,28 +149,9 @@ register_strategy_config(
         * Experimental grouping algorithm (should not be used)
     """,
     hidden=True,
-)
-
-register_strategy_config(
-    id="combined:2019-04-07",
-    strategies=[
-        "expect-ct:v1",
-        "expect-staple:v1",
-        "hpkp:v1",
-        "csp:v1",
-        "threads:v1",
-        "stacktrace:v1nl",
-        "chained-exception:v1nl",
-        "template:v1",
-        "message:v1",
-    ],
-    delegates=["frame:v1nl", "stacktrace:v1nl", "single-exception:v1nl"],
-    risk=RISK_LEVEL_HIGH,
-    changelog="""
-        * Uses `newstyle:2019-04-05` for native platforms
-        * Uses `legacy:2019-03-12` for all other platforms
-    """,
-    hidden=True,
+    initial_context={
+        "legacy_function_logic": False,
+    },
 )
 
 
