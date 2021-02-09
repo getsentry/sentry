@@ -1,6 +1,5 @@
 from copy import copy
 import logging
-import six
 
 from bitfield.types import BitHandler
 from django.db import models
@@ -26,9 +25,9 @@ def sane_repr(*attrs):
     def _repr(self):
         cls = type(self).__name__
 
-        pairs = ("%s=%s" % (a, repr(getattr(self, a, None))) for a in attrs)
+        pairs = ("{}={}".format(a, repr(getattr(self, a, None))) for a in attrs)
 
-        return "<%s at 0x%x: %s>" % (cls, id(self), ", ".join(pairs))
+        return "<{} at 0x{:x}: {}>".format(cls, id(self), ", ".join(pairs))
 
     return _repr
 
@@ -88,7 +87,7 @@ class BaseModel(models.Model):
                     v = self.__get_field_value(f)
                 except AttributeError as e:
                     # this case can come up from pickling
-                    logging.exception(six.text_type(e))
+                    logging.exception(str(e))
                 else:
                     if isinstance(v, BitHandler):
                         v = copy(v)
@@ -151,7 +150,7 @@ def __model_class_prepared(sender, **kwargs):
         return
 
     if not hasattr(sender, "__core__"):
-        raise ValueError("{!r} model has not defined __core__".format(sender))
+        raise ValueError(f"{sender!r} model has not defined __core__")
 
 
 signals.pre_save.connect(__model_pre_save)

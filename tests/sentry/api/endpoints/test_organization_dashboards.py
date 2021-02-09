@@ -24,7 +24,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert "widgets" not in data
 
     def test_get(self):
-        response = self.client.get(self.url)
+        response = self.do_request("get", self.url)
         assert response.status_code == 200, response.content
         assert len(response.data) == 3
 
@@ -34,7 +34,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     def test_get_with_tombstone(self):
         DashboardTombstone.objects.create(organization=self.organization, slug="default-overview")
-        response = self.client.get(self.url)
+        response = self.do_request("get", self.url)
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
 
@@ -44,29 +44,35 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         dashboard = Dashboard.objects.create(
             title="Dashboard 11", created_by=self.user, organization=self.organization
         )
-        response = self.client.get(self.url, data={"query": "1"})
+        response = self.do_request("get", self.url, data={"query": "1"})
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
         self.assert_equal_dashboards(self.dashboard, response.data[0])
         self.assert_equal_dashboards(dashboard, response.data[1])
 
     def test_get_query_no_results(self):
-        response = self.client.get(self.url, data={"query": "not-in-there"})
+        response = self.do_request("get", self.url, data={"query": "not-in-there"})
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
     def test_post(self):
-        response = self.client.post(self.url, data={"title": "Dashboard from Post"})
+        response = self.do_request("post", self.url, data={"title": "Dashboard from Post"})
         assert response.status_code == 201
         dashboard = Dashboard.objects.get(
             organization=self.organization, title="Dashboard from Post"
         )
         assert dashboard.created_by == self.user
 
-    def test_post_permissions(self):
+    def test_post_member_can_create(self):
         self.create_user_member_role()
-        response = self.client.post(self.url, data={"title": "Dashboard from Post"})
+        response = self.do_request("post", self.url, data={"title": "Dashboard from Post"})
         assert response.status_code == 201
+
+    def test_post_features_required(self):
+        response = self.do_request(
+            "post", self.url, data={"title": "Dashboard from Post"}, features=[]
+        )
+        assert response.status_code == 404
 
     def test_post_with_widgets(self):
         data = {
@@ -94,7 +100,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 },
             ],
         }
-        response = self.client.post(self.url, data=data)
+        response = self.do_request("post", self.url, data=data)
         assert response.status_code == 201, response.data
         dashboard = Dashboard.objects.get(
             organization=self.organization, title="Dashboard from Post"
@@ -112,10 +118,10 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 self.assert_serialized_widget_query(expected_query, actual_query)
 
     def test_invalid_data(self):
-        response = self.client.post(self.url, data={"malformed-data": "Dashboard from Post"})
+        response = self.do_request("post", self.url, data={"malformed-data": "Dashboard from Post"})
         assert response.status_code == 400
 
     def test_integrity_error(self):
-        response = self.client.post(self.url, data={"title": self.dashboard.title})
+        response = self.do_request("post", self.url, data={"title": self.dashboard.title})
         assert response.status_code == 409
         assert response.data == "Dashboard title already taken"

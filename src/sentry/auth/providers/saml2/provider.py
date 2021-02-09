@@ -9,8 +9,7 @@ from django.http import HttpResponse, HttpResponseServerError
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
-from six import iteritems
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 from sentry import options
 from sentry.auth.provider import Provider
@@ -300,7 +299,7 @@ class SAML2Provider(Provider):
         attributes = {}
 
         # map configured provider attributes
-        for key, provider_key in iteritems(self.config["attribute_mapping"]):
+        for key, provider_key in self.config["attribute_mapping"].items():
             attributes[key] = raw_attributes.get(provider_key, [""])[0]
 
         # Email and identifier MUST be correctly mapped

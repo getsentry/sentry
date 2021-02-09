@@ -62,6 +62,43 @@ describe('GroupStore', function () {
     });
   });
 
+  describe('onPopulateStats()', function () {
+    const stats = {auto: [[1611576000, 10]]};
+    beforeAll(function () {
+      jest.spyOn(GroupStore, 'trigger');
+    });
+    beforeEach(function () {
+      GroupStore.trigger.mockReset();
+      GroupStore.items = [{id: 1}, {id: 2}, {id: 3}];
+    });
+
+    it('should merge stats into existing groups', function () {
+      GroupStore.onPopulateStats(
+        [1, 2, 3],
+        [
+          {id: 1, stats},
+          {id: 2, stats},
+          {id: 3, stats},
+        ]
+      );
+      expect(GroupStore.getAllItems()[0].stats).toEqual(stats);
+      expect(GroupStore.trigger).toHaveBeenCalledWith(new Set([1, 2, 3]));
+    });
+
+    it('should not change current item ids', function () {
+      GroupStore.onPopulateStats(
+        [2, 3],
+        [
+          {id: 2, stats},
+          {id: 3, stats},
+        ]
+      );
+      expect(GroupStore.trigger).toHaveBeenCalledWith(new Set([1, 2, 3]));
+      expect(GroupStore.getAllItems()[0].stats).toBeUndefined();
+      expect(GroupStore.getAllItems()[1].stats).toEqual(stats);
+    });
+  });
+
   describe('update methods', function () {
     beforeAll(function () {
       jest.spyOn(GroupStore, 'trigger');

@@ -1523,7 +1523,7 @@ export type SavedQueryState = {
  * The option format used by react-select based components
  */
 export type SelectValue<T> = {
-  label: string;
+  label: string | number | React.ReactElement;
   value: T;
   disabled?: boolean;
   tooltip?: string;
@@ -1532,7 +1532,10 @@ export type SelectValue<T> = {
 /**
  * The 'other' option format used by checkboxes, radios and more.
  */
-export type Choices = [value: string | number, label: string | number][];
+export type Choices = [
+  value: string | number,
+  label: string | number | React.ReactElement
+][];
 
 /**
  * The issue config form fields we get are basically the form fields we use in

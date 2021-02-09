@@ -1,5 +1,4 @@
 import os
-import six
 import mmap
 import tempfile
 import time
@@ -62,7 +61,7 @@ def _get_size_and_checksum(fileobj, logger=nooplogger):
 @contextmanager
 def _locked_blob(checksum, logger=nooplogger):
     logger.debug("_locked_blob.start", extra={"checksum": checksum})
-    lock = locks.get("fileblob:upload:{}".format(checksum), duration=UPLOAD_RETRY_TIME)
+    lock = locks.get(f"fileblob:upload:{checksum}", duration=UPLOAD_RETRY_TIME)
     with TimedRetryPolicy(UPLOAD_RETRY_TIME, metric_instance="lock.fileblob.upload")(lock.acquire):
         logger.debug("_locked_blob.acquired", extra={"checksum": checksum})
         # test for presence
@@ -259,7 +258,7 @@ class FileBlob(Model):
         return "/".join(pieces)
 
     def delete(self, *args, **kwargs):
-        lock = locks.get("fileblob:upload:{}".format(self.checksum), duration=UPLOAD_RETRY_TIME)
+        lock = locks.get(f"fileblob:upload:{self.checksum}", duration=UPLOAD_RETRY_TIME)
         with TimedRetryPolicy(UPLOAD_RETRY_TIME, metric_instance="lock.fileblob.delete")(
             lock.acquire
         ):
@@ -499,7 +498,7 @@ class ChunkedFileBlobIndexWrapper:
         old_file = self._curfile
         try:
             try:
-                self._curidx = six.next(self._idxiter)
+                self._curidx = next(self._idxiter)
                 self._curfile = self._curidx.blob.getfile()
             except StopIteration:
                 self._curidx = None

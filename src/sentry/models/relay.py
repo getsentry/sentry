@@ -1,4 +1,3 @@
-import six
 from django.db import models
 from django.utils import timezone
 
@@ -48,7 +47,7 @@ class Relay(Model):
             return True
 
         trusted_relays = org.get_option("sentry:trusted-relays", [])
-        key = six.text_type(self.public_key_object)
+        key = str(self.public_key_object)
 
         for relay_info in trusted_relays:
             if relay_info is not None and relay_info.get("public_key") == key:

@@ -1,4 +1,3 @@
-import six
 from rest_framework import serializers
 
 from sentry_relay.auth import PublicKey
@@ -79,18 +78,14 @@ class TrustedRelaySerializer(serializers.Serializer):
 
         if len(public_key) == 0:
             raise serializers.ValidationError(
-                "Missing public key for relay key info with name:'{}' in Trusted Relays".format(
-                    key_name
-                )
+                f"Missing public key for relay key info with name:'{key_name}' in Trusted Relays"
             )
 
         try:
             PublicKey.parse(public_key)
         except RelayError:
             raise serializers.ValidationError(
-                "Invalid public key for relay key info with name:'{}' in Trusted Relays".format(
-                    key_name
-                )
+                f"Invalid public key for relay key info with name:'{key_name}' in Trusted Relays"
             )
 
         return {"public_key": public_key, "name": key_name, "description": description}
@@ -134,9 +129,7 @@ class OrganizationSerializer(Serializer):
 
         # batch_has has found some features
         if batch_features:
-            for feature_name, active in batch_features.get(
-                "organization:{}".format(obj.id), {}
-            ).items():
+            for feature_name, active in batch_features.get(f"organization:{obj.id}", {}).items():
                 if active:
                     # Remove organization prefix
                     feature_list.add(feature_name[len(_ORGANIZATION_SCOPE_PREFIX) :])
@@ -171,7 +164,7 @@ class OrganizationSerializer(Serializer):
             feature_list.add("shared-issues")
 
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "slug": obj.slug,
             "status": {"id": status.name.lower(), "name": status.label},
             "name": obj.name or obj.slug,
@@ -192,7 +185,7 @@ class OnboardingTasksSerializer(Serializer):
 
         data = {}
         for item in item_list:
-            data[item] = {"user": user_map.get(six.text_type(item.user_id))}
+            data[item] = {"user": user_map.get(str(item.user_id))}
         return data
 
     def serialize(self, obj, attrs, user):
@@ -264,10 +257,10 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "storeCrashReports": convert_crashreport_count(
                     obj.get_option("sentry:store_crash_reports")
                 ),
-                "attachmentsRole": six.text_type(
+                "attachmentsRole": str(
                     obj.get_option("sentry:attachments_role", ATTACHMENTS_ROLE_DEFAULT)
                 ),
-                "debugFilesRole": six.text_type(
+                "debugFilesRole": str(
                     obj.get_option("sentry:debug_files_role", DEBUG_FILES_ROLE_DEFAULT)
                 ),
                 "eventsMemberAdmin": bool(
@@ -287,8 +280,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "allowJoinRequests": bool(
                     obj.get_option("sentry:join_requests", JOIN_REQUESTS_DEFAULT)
                 ),
-                "relayPiiConfig": six.text_type(obj.get_option("sentry:relay_pii_config") or "")
-                or None,
+                "relayPiiConfig": str(obj.get_option("sentry:relay_pii_config") or "") or None,
                 "apdexThreshold": int(
                     obj.get_option("sentry:apdex_threshold", APDEX_THRESHOLD_DEFAULT)
                 ),

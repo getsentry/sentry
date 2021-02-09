@@ -4,6 +4,7 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import {inputStyles} from 'app/styles/input';
+import space from 'app/styles/space';
 
 type InputProps = Omit<Parameters<typeof inputStyles>[0], 'theme'>;
 type Props = React.TextareaHTMLAttributes<HTMLTextAreaElement> &
@@ -16,14 +17,18 @@ type Props = React.TextareaHTMLAttributes<HTMLTextAreaElement> &
      * Number of rows to default to.
      */
     rows?: number;
+    /**
+     * Max number of rows to default to.
+     */
+    maxRows?: number;
   };
 
 const TextAreaControl = React.forwardRef(function TextAreaControl(
-  {autosize, rows, ...p}: Props,
+  {autosize, rows, maxRows, ...p}: Props,
   ref: React.Ref<HTMLTextAreaElement>
 ) {
   return autosize ? (
-    <TextareaAutosize async ref={ref} rows={rows ? rows : 2} {...p} />
+    <TextareaAutosize async ref={ref} rows={rows ? rows : 2} maxRows={maxRows} {...p} />
   ) : (
     <textarea ref={ref} {...p} />
   );
@@ -36,6 +41,7 @@ const propFilter = (p: string) =>
 
 const TextArea = styled(TextAreaControl, {shouldForwardProp: propFilter})`
   ${inputStyles};
+  padding: ${space(1)};
   line-height: 1.3em;
 `;
 

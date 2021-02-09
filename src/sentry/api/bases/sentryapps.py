@@ -3,7 +3,6 @@ from functools import wraps
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
-from six import string_types
 
 from sentry.api.authentication import ClientIdSecretAuthentication
 from sentry.api.base import Endpoint
@@ -103,7 +102,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
 
     def _get_organization_slug(self, request):
         organization_slug = request.json_body.get("organization")
-        if not organization_slug or not isinstance(organization_slug, string_types):
+        if not organization_slug or not isinstance(organization_slug, str):
             error_message = """
                 Please provide a valid value for the 'organization' field.
             """
@@ -114,22 +113,18 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
         try:
             return Organization.objects.get(slug=organization_slug)
         except Organization.DoesNotExist:
-            error_message = """
-                Organization '{}' does not exist.
-            """.format(
-                organization_slug
-            )
+            error_message = f"""
+                Organization '{organization_slug}' does not exist.
+            """
             raise ValidationError({"organization": to_single_line_str(error_message)})
 
     def _get_organization_for_user(self, user, organization_slug):
         try:
             return user.get_orgs().get(slug=organization_slug)
         except Organization.DoesNotExist:
-            error_message = """
-                User does not belong to the '{}' organization.
-            """.format(
-                organization_slug
-            )
+            error_message = f"""
+                User does not belong to the '{organization_slug}' organization.
+            """
             raise PermissionDenied(to_single_line_str(error_message))
 
     def _get_organization(self, request):
@@ -353,7 +348,7 @@ class SentryAppInstallationBaseEndpoint(IntegrationPlatformEndpoint):
 class SentryAppInstallationExternalIssuePermission(SentryAppInstallationPermission):
     scope_map = {
         "POST": ("event:read", "event:write", "event:admin"),
-        "DELETE": ("event:admin"),
+        "DELETE": ("event:admin",),
     }
 
 
