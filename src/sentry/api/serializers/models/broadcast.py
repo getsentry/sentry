@@ -1,5 +1,3 @@
-import six
-
 from django.db.models import Count
 
 from sentry.api.serializers import Serializer, register
@@ -22,7 +20,7 @@ class BroadcastSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "message": obj.message,
             "title": obj.title,
             "link": obj.link,

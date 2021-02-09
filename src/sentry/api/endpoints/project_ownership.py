@@ -1,5 +1,3 @@
-import six
-
 from rest_framework import serializers
 from rest_framework.response import Response
 from django.utils import timezone
@@ -36,12 +34,12 @@ class ProjectOwnershipSerializer(serializers.Serializer):
         actors = resolve_actors(owners, self.context["ownership"].project_id)
 
         bad_actors = []
-        for owner, actor in six.iteritems(actors):
+        for owner, actor in actors.items():
             if actor is None:
                 if owner.type == "user":
                     bad_actors.append(owner.identifier)
                 elif owner.type == "team":
-                    bad_actors.append("#{}".format(owner.identifier))
+                    bad_actors.append(f"#{owner.identifier}")
 
         if bad_actors:
             bad_actors.sort()

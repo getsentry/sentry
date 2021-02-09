@@ -355,7 +355,7 @@
     <table style="margin-bottom: 10px">
       <tr>
         <td>
-            <h4>Events Seen {{ duration.noun|title }}</h4>
+            <h4>Errors Seen {{ duration.noun|title }}</h4>
         </td>
         <td class="legend">
             <span class="swatch all"></span> All: {{ report.series.all|small_count }}
@@ -432,7 +432,7 @@
     <table class="issue-breakdown">
       <tr class="mobile-full-width">
         <td>
-          <h4>Events by Issue Type</h4>
+          <h4>Errors by Issue Type</h4>
         </td>
         <td class="legend">
           {% for type, count in report.distribution.types %}
@@ -462,7 +462,7 @@
 
     {% with series=report.projects.series height=110 %}
 
-    <h4>Events by Project</h4>
+    <h4>Errors by Project</h4>
 
     <table class="graph">
       <tr>
@@ -495,7 +495,7 @@
       <thead>
         <tr>
           <th style="width: 1em;"></th>
-          <th style="width: 7em;" class="numeric">Events</th>
+          <th style="width: 7em;" class="numeric">Errors</th>
           <th>Project</th>
           <th style="width: 7em;" class="numeric col-filtered">Filtered</th>
           <th style="width: 7em;" class="numeric col-rate-limited">Rate Limited</th>
@@ -548,9 +548,9 @@
           <h4>3 Month History</h4>
         </th>
         <td class="spectrum" style="vertical-align: bottom;">
-          Fewer Events
+          Fewer Errors
           <div class="range">{% for color in report.calendar.legend %}<span style="background-color: {{ color }}">&nbsp;</span>{% endfor %}</div>
-          More Events
+          More Errors
         </td>
       </tr>
     </table>

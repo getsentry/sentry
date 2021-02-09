@@ -62,7 +62,7 @@ class OrganizationEventBaseline(OrganizationEventsEndpointBase):
                 if baseline_value is None:
                     return Response(status=404)
 
-            delta_column = "absolute_delta(transaction.duration,{})".format(baseline_value)
+            delta_column = f"absolute_delta(transaction.duration,{baseline_value})"
 
             result = discover.query(
                 selected_columns=[
@@ -106,9 +106,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
             if not any(lookup_keys.values()):
                 return Response(
                     {
-                        "detail": "Must provide one of {} in order to find related events".format(
-                            possible_keys
-                        )
+                        "detail": f"Must provide one of {possible_keys} in order to find related events"
                     },
                     status=400,
                 )
@@ -123,7 +121,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
                 try:
                     # Need to escape quotes in case some "joker" has a transaction with quotes
                     transaction_name = UNESCAPED_QUOTE_RE.sub('\\"', lookup_keys["transaction"])
-                    parsed_terms = parse_search_query('transaction:"{}"'.format(transaction_name))
+                    parsed_terms = parse_search_query(f'transaction:"{transaction_name}"')
                 except ParseError:
                     return Response({"detail": "Invalid transaction search"}, status=400)
 

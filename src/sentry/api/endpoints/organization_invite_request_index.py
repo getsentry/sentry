@@ -78,7 +78,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
             )
 
             if result["teams"]:
-                lock = locks.get("org:member:{}".format(om.id), duration=5)
+                lock = locks.get(f"org:member:{om.id}", duration=5)
                 with TimedRetryPolicy(10)(lock.acquire):
                     save_team_assignments(om, result["teams"])
 

@@ -1,6 +1,6 @@
 import logging
 
-from six.moves.urllib.parse import parse_qsl, urlencode
+from urllib.parse import parse_qsl, urlencode
 from time import time
 from uuid import uuid4
 

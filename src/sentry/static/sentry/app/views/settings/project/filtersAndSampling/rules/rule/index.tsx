@@ -2,7 +2,9 @@ import React from 'react';
 import {DraggableSyntheticListeners, UseDraggableArguments} from '@dnd-kit/core';
 import styled from '@emotion/styled';
 
+import Tooltip from 'app/components/tooltip';
 import {IconGrabbable} from 'app/icons/iconGrabbable';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {DynamicSamplingRule} from 'app/types/dynamicSampling';
 
@@ -71,9 +73,17 @@ class Rule extends React.Component<Props, State> {
     return (
       <Columns>
         <GrabColumn>
-          <IconGrabbableWrapper {...listeners} disabled={disabled} {...grabAttributes}>
-            <IconGrabbable />
-          </IconGrabbableWrapper>
+          <Tooltip
+            title={
+              disabled
+                ? t('You do not have permission to reorder dynamic sampling rules.')
+                : undefined
+            }
+          >
+            <IconGrabbableWrapper {...listeners} disabled={disabled} {...grabAttributes}>
+              <IconGrabbable />
+            </IconGrabbableWrapper>
+          </Tooltip>
         </GrabColumn>
         <Column>
           <Type type={type} />

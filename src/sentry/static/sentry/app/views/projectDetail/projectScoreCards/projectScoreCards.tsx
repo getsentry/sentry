@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
-import withGlobalSelection from 'app/utils/withGlobalSelection';
 
 import ProjectApdexScoreCard from './projectApdexScoreCard';
 import ProjectStabilityScoreCard from './projectStabilityScoreCard';
@@ -12,16 +11,29 @@ import ProjectVelocityScoreCard from './projectVelocityScoreCard';
 type Props = {
   organization: Organization;
   selection: GlobalSelection;
+  isProjectStabilized: boolean;
 };
 
-function ProjectScoreCards({organization, selection}: Props) {
+function ProjectScoreCards({organization, selection, isProjectStabilized}: Props) {
   return (
     <CardWrapper>
-      <ProjectStabilityScoreCard organization={organization} selection={selection} />
+      <ProjectStabilityScoreCard
+        organization={organization}
+        selection={selection}
+        isProjectStabilized={isProjectStabilized}
+      />
 
-      <ProjectVelocityScoreCard organization={organization} selection={selection} />
+      <ProjectVelocityScoreCard
+        organization={organization}
+        selection={selection}
+        isProjectStabilized={isProjectStabilized}
+      />
 
-      <ProjectApdexScoreCard organization={organization} selection={selection} />
+      <ProjectApdexScoreCard
+        organization={organization}
+        selection={selection}
+        isProjectStabilized={isProjectStabilized}
+      />
     </CardWrapper>
   );
 }
@@ -37,4 +49,4 @@ const CardWrapper = styled('div')`
   }
 `;
 
-export default withGlobalSelection(ProjectScoreCards);
+export default ProjectScoreCards;

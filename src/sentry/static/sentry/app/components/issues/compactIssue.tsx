@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
 
+import {bulkUpdate} from 'app/actionCreators/group';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {openModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
@@ -136,7 +137,8 @@ const CompactIssue = createReactClass<Props, State>({
     const issue = this.state.issue;
     addLoadingMessage(t('Saving changes\u2026'));
 
-    this.props.api.bulkUpdate(
+    bulkUpdate(
+      this.props.api,
       {
         orgId: this.props.organization.slug,
         projectId: issue.project.slug,
