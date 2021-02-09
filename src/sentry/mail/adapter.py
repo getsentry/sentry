@@ -547,8 +547,3 @@ class MailAdapter:
             )
             msg.add_users([user.id], project=project)
             msg.send_async()
-
-    def handle_signal(self, name, payload, **kwargs):
-        metrics.incr("mail_adapter.handle_signal")
-        if name == "user-reports.created":
-            self.handle_user_report(payload, **kwargs)
