@@ -8,7 +8,9 @@ import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import NotFound from 'app/components/errors/notFound';
+import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import {BorderlessEventEntries} from 'app/components/events/eventEntries';
+import EventMessage from 'app/components/events/eventMessage';
 import EventMetadata from 'app/components/events/eventMetadata';
 import EventVitals from 'app/components/events/eventVitals';
 import * as SpanEntryContext from 'app/components/events/interfaces/spans/context';
@@ -27,7 +29,7 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {FIELD_TAGS} from 'app/utils/discover/fields';
 import {eventDetailsRoute} from 'app/utils/discover/urls';
-import {getMessage, getTitle} from 'app/utils/events';
+import {getMessage} from 'app/utils/events';
 import Projects from 'app/utils/projects';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 
@@ -154,7 +156,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               organization={organization}
               location={location}
             />
-            <EventHeader event={event} organization={organization} />
+            <EventHeader event={event} />
           </Layout.HeaderContent>
           <StyledHeaderActions>
             <ButtonBar gap={1}>
@@ -271,25 +273,14 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 }
 
-const EventHeader = ({
-  event,
-  organization,
-}: {
-  event: Event;
-  organization: Organization;
-}) => {
-  const {title} = getTitle(event, organization);
-
-  const message = getMessage(event);
-
+const EventHeader = ({event}: {event: Event}) => {
   return (
-    <Layout.Title data-test-id="event-header">
-      <span>
-        {title}
-        {message && message.length > 0 ? ':' : null}
-      </span>
-      <EventSubheading>{getMessage(event)}</EventSubheading>
-    </Layout.Title>
+    <EventHeaderContainer>
+      <TitleWrapper>
+        <EventOrGroupTitle hasGuideAnchor data={event} />
+      </TitleWrapper>
+      <EventMessage message={getMessage(event)} />
+    </EventHeaderContainer>
   );
 };
 
@@ -299,9 +290,13 @@ const StyledHeaderActions = styled(Layout.HeaderActions)`
   }
 `;
 
-const EventSubheading = styled('span')`
-  color: ${p => p.theme.gray300};
-  margin-left: ${space(1)};
+const TitleWrapper = styled('h3')`
+  margin-bottom: ${space(1)};
+  font-size: ${p => p.theme.headerFontSize};
+`;
+
+const EventHeaderContainer = styled('div')`
+  max-width: 935px;
 `;
 
 export default EventDetailsContent;
