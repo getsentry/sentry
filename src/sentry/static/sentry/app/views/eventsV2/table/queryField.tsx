@@ -77,7 +77,7 @@ type OptionType = {
 };
 
 class QueryField extends React.Component<Props> {
-  handleFieldChange = (selected: FieldValueOption | null | undefined) => {
+  handleFieldChange = (selected?: FieldValueOption | null) => {
     if (!selected) {
       return;
     }

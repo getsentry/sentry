@@ -8,7 +8,7 @@ type Props = Omit<ControlProps, 'onChange'> & {
   /**
    * Triggered when values change.
    */
-  onChange?: (value: SelectValue<any>[] | null | undefined) => void;
+  onChange?: (value?: SelectValue<any>[] | null) => void;
 };
 
 export default React.forwardRef<ReactSelect, Props>(function MultiSelectControl(

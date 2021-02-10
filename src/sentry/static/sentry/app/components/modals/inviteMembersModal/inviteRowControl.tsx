@@ -27,7 +27,7 @@ type Props = {
 
   onChangeEmails: (emails: SelectOption[]) => void;
   onChangeRole: (role: SelectOption) => void;
-  onChangeTeams: (teams: SelectOption[] | null | undefined) => void;
+  onChangeTeams: (teams?: SelectOption[] | null) => void;
 };
 
 const InviteRowControl = ({

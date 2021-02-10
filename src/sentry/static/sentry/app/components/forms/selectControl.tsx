@@ -80,7 +80,7 @@ export type ControlProps<OptionType = GeneralSelectValue> = Omit<
   /**
    * Handler for changes. Narrower than the types in react-select.
    */
-  onChange?: (value: OptionType | null | undefined) => void;
+  onChange?: (value?: OptionType | null) => void;
   /**
    * Unlike react-select which expects an OptionType as its value
    * we accept the option.value and resolve the option object.
