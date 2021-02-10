@@ -69,7 +69,7 @@ class SentryHTTPServer(Service):
             '%(addr) - %(user) [%(ltime)] "%(method) %(uri) %(proto)" %(status) %(size) "%(referer)" "%(uagent)"',
         )
 
-        options.setdefault("%s-socket" % options["protocol"], "{}:{}".format(host, port))
+        options.setdefault("%s-socket" % options["protocol"], f"{host}:{port}")
 
         # We only need to set uid/gid when stepping down from root, but if
         # we are trying to run as root, then ignore it entirely.
@@ -151,7 +151,7 @@ class SentryHTTPServer(Service):
         virtualenv_path = os.path.dirname(os.path.abspath(sys.argv[0]))
         current_path = env.get("PATH", "")
         if virtualenv_path not in current_path:
-            env["PATH"] = "{}:{}".format(virtualenv_path, current_path)
+            env["PATH"] = f"{virtualenv_path}:{current_path}"
 
     def run(self):
         self.prepare_environment()

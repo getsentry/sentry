@@ -208,7 +208,7 @@ class SynchronizedConsumer:
             functools.partial(
                 run_commit_log_consumer,
                 cluster_name=self.cluster_name,
-                consumer_group="{}:sync:{}".format(self.consumer_group, uuid.uuid1().hex),
+                consumer_group=f"{self.consumer_group}:sync:{uuid.uuid1().hex}",
                 commit_log_topic=self.commit_log_topic,
                 synchronize_commit_group=self.synchronize_commit_group,
                 partition_state_manager=self.__partition_state_manager,
@@ -261,7 +261,7 @@ class SynchronizedConsumer:
         elif current_state is SynchronizedPartitionState.LOCAL_BEHIND:
             self.__consumer.resume([TopicPartition(topic, partition, current_offsets.local)])
         else:
-            raise NotImplementedError("Unexpected partition state: {}".format(current_state))
+            raise NotImplementedError(f"Unexpected partition state: {current_state}")
 
     def subscribe(self, topics, on_assign=None, on_revoke=None):
         """

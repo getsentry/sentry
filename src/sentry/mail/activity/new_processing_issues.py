@@ -44,7 +44,7 @@ class NewProcessingIssuesActivityEmail(ActivityEmail):
         }
 
     def get_subject(self):
-        return "Processing Issues on {}".format(self.project.slug)
+        return f"Processing Issues on {self.project.slug}"
 
     def get_template(self):
         return "sentry/emails/activity/new_processing_issues.txt"

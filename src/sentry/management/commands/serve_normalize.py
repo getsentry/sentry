@@ -113,7 +113,7 @@ class MetricCollector:
         metrics.update(usage_dict)
 
         if self.is_linux:
-            with open("/proc/{}/status".format(self.pid)) as procfh:
+            with open(f"/proc/{self.pid}/status") as procfh:
                 metrics["proc"] = procfh.read()
 
         return metrics
@@ -206,12 +206,12 @@ class Command(BaseCommand):
             server_type = "forking"
         else:
             server_type = "single-threaded"
-        self.stdout.write("Server type: {}\n".format(server_type))
+        self.stdout.write(f"Server type: {server_type}\n")
 
         if socket_file:
             self.socket_file = os.path.abspath(socket_file)
             self._check_socket_path(socket_file)
-            self.stdout.write("Binding to unix socket: {}\n".format(socket_file))
+            self.stdout.write(f"Binding to unix socket: {socket_file}\n")
             if threading:
                 server = SocketServer.ThreadingUnixStreamServer(socket_file, EventNormalizeHandler)
                 server.daemon_threads = True
@@ -222,7 +222,7 @@ class Command(BaseCommand):
         elif network_socket:
             host, port = network_socket.split(":")
             port = int(port)
-            self.stdout.write("Binding to network socket: {}:{}\n".format(host, port))
+            self.stdout.write(f"Binding to network socket: {host}:{port}\n")
             if threading:
                 server = SocketServer.ThreadingTCPServer((host, port), EventNormalizeHandler)
                 server.daemon_threads = True

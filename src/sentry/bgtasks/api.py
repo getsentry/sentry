@@ -27,7 +27,7 @@ class BgTask:
 
     @property
     def name(self):
-        return "{}:{}".format(self.callback.__module__, self.callback.__name__)
+        return f"{self.callback.__module__}:{self.callback.__name__}"
 
     def run(self):
         if self.running:

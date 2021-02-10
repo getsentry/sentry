@@ -24,7 +24,7 @@ FUNCTION_PATTERN = re.compile(r"^(?P<function>[^\(]+)\((?P<columns>[^\)]*)\)$")
 
 def get_function_alias_with_columns(function_name, columns):
     columns = "_".join(columns).replace(".", "_")
-    return "{}_{}".format(function_name, columns).rstrip("_")
+    return f"{function_name}_{columns}".rstrip("_")
 
 
 def get_function_alias(field):

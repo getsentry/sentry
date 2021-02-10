@@ -66,7 +66,7 @@ def send_subscriber_notifications(activity_id):
 def generate_incident_activity_email(activity, user):
     incident = activity.incident
     return MessageBuilder(
-        subject="Activity on Alert {} (#{})".format(incident.title, incident.identifier),
+        subject=f"Activity on Alert {incident.title} (#{incident.identifier})",
         template="sentry/emails/incidents/activity.txt",
         html_template="sentry/emails/incidents/activity.html",
         type="incident.activity",
@@ -84,7 +84,7 @@ def build_activity_context(activity, user):
         )
     incident = activity.incident
 
-    action = "{} on alert {} (#{})".format(action, incident.title, incident.identifier)
+    action = f"{action} on alert {incident.title} (#{incident.identifier})"
 
     return {
         "user_name": activity.user.name if activity.user else "Sentry",

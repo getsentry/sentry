@@ -57,8 +57,7 @@ def _get_project_enhancements_config(project):
     from sentry.utils.hashlib import md5_text
 
     cache_key = (
-        "grouping-enhancements:"
-        + md5_text("{}|{}".format(enhancements_base, enhancements)).hexdigest()
+        "grouping-enhancements:" + md5_text(f"{enhancements_base}|{enhancements}").hexdigest()
     )
     rv = cache.get(cache_key)
     if rv is not None:
@@ -162,7 +161,7 @@ def _get_calculated_grouping_variants_for_event(event, config):
                     winning_strategy = strategy.name
                     variants_hint = "/".join(sorted(k for k, v in rv.items() if v.contributes))
                     precedence_hint = "{} take{} precedence".format(
-                        "{} of {}".format(strategy.name, variants_hint)
+                        f"{strategy.name} of {variants_hint}"
                         if variant != "default"
                         else strategy.name,
                         "" if strategy.name.endswith("s") else "s",

@@ -143,7 +143,7 @@ class FancyBlob(Blob):
             download_url=self.download_url, path=self.path
         )
         if self.generation is not None:
-            download_url += "&generation={:d}".format(self.generation)
+            download_url += f"&generation={self.generation:d}"
         return download_url
 
 
@@ -324,7 +324,7 @@ class GoogleCloudStorage(Storage):
         blob = self.bucket.get_blob(name)
 
         if blob is None:
-            raise NotFound("File does not exist: {}".format(name))
+            raise NotFound(f"File does not exist: {name}")
 
         return blob
 

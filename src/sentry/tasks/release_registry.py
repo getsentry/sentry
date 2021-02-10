@@ -26,7 +26,7 @@ def _fetch_registry_url(relative_url):
     base_url = settings.SENTRY_RELEASE_REGISTRY_BASEURL.rstrip("/")
     relative_url = relative_url.lstrip("/")
 
-    full_url = "{}/{}".format(base_url, relative_url)
+    full_url = f"{base_url}/{relative_url}"
 
     with metrics.timer(
         "release_registry.fetch.duration", tags={"url": relative_url}, sample_rate=1.0

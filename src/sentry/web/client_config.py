@@ -81,7 +81,7 @@ def _get_public_dsn():
         return settings.SENTRY_FRONTEND_DSN
 
     project_id = settings.SENTRY_FRONTEND_PROJECT or settings.SENTRY_PROJECT
-    cache_key = "dsn:{}".format(project_id)
+    cache_key = f"dsn:{project_id}"
 
     result = cache.get(cache_key)
     if result is None:

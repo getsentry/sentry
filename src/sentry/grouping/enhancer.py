@@ -263,7 +263,7 @@ class FlagAction(Action):
     def update_frame_components_contributions(self, components, frames, idx, rule=None):
         rule_hint = "stack trace rule"
         if rule:
-            rule_hint = "{} ({})".format(rule_hint, rule.matcher_description)
+            rule_hint = f"{rule_hint} ({rule.matcher_description})"
 
         sliced_components = self._slice_to_range(components, idx)
         sliced_frames = self._slice_to_range(frames, idx)
@@ -289,7 +289,7 @@ class VarAction(Action):
         self.value = value
 
     def __str__(self):
-        return "{}={}".format(self.var, self.value)
+        return f"{self.var}={self.value}"
 
     def _to_config_structure(self):
         return [self.var, self.value]
@@ -320,7 +320,7 @@ class StacktraceState:
         description = self.describe_var_rule(var)
         if description is None:
             return hint
-        return "{} by stack trace rule ({})".format(hint, description)
+        return f"{hint} by stack trace rule ({description})"
 
 
 class Enhancements:
@@ -480,7 +480,7 @@ class Rule:
     def matcher_description(self):
         rv = " ".join(x.description for x in self.matchers)
         for action in self.actions:
-            rv = "{} {}".format(rv, action)
+            rv = f"{rv} {action}"
         return rv
 
     def as_dict(self):

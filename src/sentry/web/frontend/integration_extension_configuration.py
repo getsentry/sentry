@@ -98,9 +98,7 @@ class IntegrationExtensionConfigurationView(BaseView):
 
     def has_one_required_feature(self, org, user):
         provider = integrations.get(self.provider)
-        integration_features = [
-            "organizations:integrations-{}".format(f.value) for f in provider.features
-        ]
+        integration_features = [f"organizations:integrations-{f.value}" for f in provider.features]
         for flag_name in integration_features:
             try:
                 if features.has(flag_name, org, actor=user):

@@ -71,7 +71,7 @@ class SafeConnectionMixin:
         except SocketTimeout:
             raise ConnectTimeoutError(
                 self,
-                "Connection to {} timed out. (connect timeout={})".format(self.host, self.timeout),
+                f"Connection to {self.host} timed out. (connect timeout={self.timeout})",
             )
 
         except SocketError as e:
@@ -140,7 +140,7 @@ class TimeoutAdapter(HTTPAdapter):
         return HTTPAdapter.send(self, *args, **kwargs)
 
 
-USER_AGENT = "sentry/{version} (https://sentry.io)".format(version=SENTRY_VERSION)
+USER_AGENT = f"sentry/{SENTRY_VERSION} (https://sentry.io)"
 
 
 class Session(_Session):

@@ -51,7 +51,7 @@ class ApiHostError(ApiError):
     @classmethod
     def from_request(cls, request):
         host = urlparse(request.url).netloc
-        return cls("Unable to reach host: {}".format(host))
+        return cls(f"Unable to reach host: {host}")
 
 
 class ApiTimeoutError(ApiError):
@@ -66,7 +66,7 @@ class ApiTimeoutError(ApiError):
     @classmethod
     def from_request(cls, request):
         host = urlparse(request.url).netloc
-        return cls("Timed out attempting to reach host: {}".format(host))
+        return cls(f"Timed out attempting to reach host: {host}")
 
 
 class ApiUnauthorized(ApiError):
@@ -101,5 +101,5 @@ class ClientError(RequestException):
     """4xx Error Occurred"""
 
     def __init__(self, status_code, url, response=None):
-        http_error_msg = "{} Client Error: for url: {}".format(status_code, url)
+        http_error_msg = f"{status_code} Client Error: for url: {url}"
         super().__init__(http_error_msg, response=response)

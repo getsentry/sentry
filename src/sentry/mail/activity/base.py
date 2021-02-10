@@ -61,7 +61,7 @@ class ActivityEmail:
         return "sentry/emails/activity/generic.html"
 
     def get_project_link(self):
-        return absolute_uri("/{}/{}/".format(self.organization.slug, self.project.slug))
+        return absolute_uri(f"/{self.organization.slug}/{self.project.slug}/")
 
     def get_group_link(self):
         referrer = self.__class__.__name__
@@ -94,15 +94,15 @@ class ActivityEmail:
         }
 
     def get_email_type(self):
-        return "notify.activity.{}".format(self.activity.get_type_display())
+        return f"notify.activity.{self.activity.get_type_display()}"
 
     def get_subject(self):
         group = self.group
 
-        return "{} - {}".format(group.qualified_short_id, group.title)
+        return f"{group.qualified_short_id} - {group.title}"
 
     def get_subject_with_prefix(self):
-        return "{}{}".format(self._get_subject_prefix(), self.get_subject()).encode("utf-8")
+        return f"{self._get_subject_prefix()}{self.get_subject()}".encode("utf-8")
 
     def get_context(self):
         description = self.get_description()

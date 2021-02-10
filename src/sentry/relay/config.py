@@ -56,11 +56,11 @@ def get_filter_settings(project):
         filter_settings[filter_id] = settings
 
     if features.has("projects:custom-inbound-filters", project):
-        invalid_releases = project.get_option("sentry:{}".format(FilterTypes.RELEASES))
+        invalid_releases = project.get_option(f"sentry:{FilterTypes.RELEASES}")
         if invalid_releases:
             filter_settings["releases"] = {"releases": invalid_releases}
 
-        error_messages = project.get_option("sentry:{}".format(FilterTypes.ERROR_MESSAGES))
+        error_messages = project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}")
         if error_messages:
             filter_settings["errorMessages"] = {"patterns": error_messages}
 
@@ -254,10 +254,10 @@ class _ConfigBase:
         try:
             return utils.json.dumps(self.to_dict(), sort_keys=True)
         except Exception as e:
-            return "Content Error:{}".format(e)
+            return f"Content Error:{e}"
 
     def __repr__(self):
-        return "({}){}".format(self.__class__.__name__, self)
+        return f"({self.__class__.__name__}){self}"
 
 
 class ProjectConfig(_ConfigBase):
@@ -282,7 +282,7 @@ def _load_filter_settings(flt, project):
         default options for the filter will be returned
     """
     filter_id = flt.id
-    filter_key = "filters:{}".format(filter_id)
+    filter_key = f"filters:{filter_id}"
     setting = project.get_option(filter_key)
 
     return _filter_option_to_config_setting(flt, setting)

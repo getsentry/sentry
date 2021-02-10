@@ -139,7 +139,7 @@ class RedisTSDB(BaseTSDB):
 
     def add_environment_parameter(self, key, environment_id):
         if environment_id is not None:
-            return "{}?e={}".format(key, environment_id)
+            return f"{key}?e={environment_id}"
         else:
             return key
 
@@ -473,7 +473,7 @@ class RedisTSDB(BaseTSDB):
         temporary_id = uuid.uuid1().hex
 
         def make_temporary_key(key):
-            return "{}{}:{}".format(self.prefix, temporary_id, key)
+            return f"{self.prefix}{temporary_id}:{key}"
 
         def expand_key(key):
             """
@@ -499,7 +499,7 @@ class RedisTSDB(BaseTSDB):
             results from merging all HyperLogLogs at the provided keys.
             """
             (host, keys) = value
-            destination = make_temporary_key("p:{}".format(host))
+            destination = make_temporary_key(f"p:{host}")
             client = cluster.get_local_client(host)
             with client.pipeline(transaction=False) as pipeline:
                 pipeline.execute_command(
@@ -514,7 +514,7 @@ class RedisTSDB(BaseTSDB):
             Calculate the cardinality of the provided HyperLogLog values.
             """
             destination = make_temporary_key("a")  # all values will be merged into this key
-            aggregates = {make_temporary_key("a:{}".format(host)): value for host, value in values}
+            aggregates = {make_temporary_key(f"a:{host}"): value for host, value in values}
 
             # Choose a random host to execute the reduction on. (We use a host
             # here that we've already accessed as part of this process -- this
@@ -558,7 +558,7 @@ class RedisTSDB(BaseTSDB):
             temporary_id = uuid.uuid1().hex
 
             def make_temporary_key(key):
-                return "{}{}:{}".format(self.prefix, temporary_id, key)
+                return f"{self.prefix}{temporary_id}:{key}"
 
             data = {}
             for rollup, series in rollups.items():
