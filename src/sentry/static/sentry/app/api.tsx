@@ -186,7 +186,7 @@ export type RequestOptions = RequestCallbacks & {
    */
   query?: Array<any> | object;
   /**
-   * Because of the async nature of API requetss, errors will happen outside of
+   * Because of the async nature of API requests, errors will happen outside of
    * the stack that initated the request. a preservedError can be passed to
    * coalesce the stacks together.
    */
