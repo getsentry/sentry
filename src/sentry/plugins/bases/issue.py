@@ -150,7 +150,6 @@ class IssueTrackingPlugin(Plugin):
         Can be overridden for any actions needed when linking issues
         (like adding a comment to an existing issue).
         """
-        pass
 
     def get_initial_form_data(self, request, group, event, **kwargs):
         return {
@@ -188,9 +187,7 @@ class IssueTrackingPlugin(Plugin):
                     "project": group.project,
                     "has_auth_configured": has_auth_configured,
                     "required_auth_settings": required_auth_settings,
-                    "plugin_link": "/settings/{}/projects/{}/plugins/{}/".format(
-                        project.organization.slug, project.slug, self.slug
-                    ),
+                    "plugin_link": f"/settings/{project.organization.slug}/projects/{project.slug}/plugins/{self.slug}/",
                 },
             )
 

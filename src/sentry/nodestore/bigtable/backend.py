@@ -28,7 +28,7 @@ def _compress_data(data, compression):
     elif compression is False:
         pass
     else:
-        raise ValueError("invalid argument for compression: {!r}".format(compression))
+        raise ValueError(f"invalid argument for compression: {compression!r}")
 
     return data, flags
 

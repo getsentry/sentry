@@ -98,9 +98,8 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
       return undefined;
     }
     trackIntegrationEvent(
+      'integrations.installation_start',
       {
-        eventKey: 'integrations.installation_start',
-        eventName: 'Integrations: Installation Start',
         integration_type: 'sentry_app',
         integration: sentryApp.slug,
         view: 'external_install',
@@ -113,9 +112,8 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
     //installation is complete if the status is installed
     if (install.status === 'installed') {
       trackIntegrationEvent(
+        'integrations.installation_complete',
         {
-          eventKey: 'integrations.installation_complete',
-          eventName: 'Integrations: Installation Complete',
           integration_type: 'sentry_app',
           integration: sentryApp.slug,
           view: 'external_install',

@@ -26,7 +26,7 @@ def fix_project_platform(apps, schema_editor):
                 project.save()
                 continue
         except Exception:
-            logging.exception("Error changing platform for project {}".format(project.id))
+            logging.exception(f"Error changing platform for project {project.id}")
 
 
 class Migration(migrations.Migration):

@@ -63,7 +63,7 @@ class IntegrationMetadata(IntegrationMetadata):
         we prefix them with `integration`.
         """
         if f is not None:
-            return "integrations-{}".format(f)
+            return f"integrations-{f}"
 
     def _asdict(self):
         metadata = super()._asdict()
@@ -178,7 +178,7 @@ class IntegrationProvider(PipelineProvider):
         return self._integration_key or self.key
 
     def get_logger(self):
-        return logging.getLogger("sentry.integration.%s" % (self.key,))
+        return logging.getLogger(f"sentry.integration.{self.key}")
 
     def post_install(self, integration, organization, extra=None):
         pass
@@ -335,11 +335,7 @@ class IntegrationInstallation:
                 msg = self.error_message_from_json(exc.json) or "unknown error"
             else:
                 msg = "unknown error"
-            return "Error Communicating with %s (HTTP %s): %s" % (
-                self.model.get_provider().name,
-                exc.code,
-                msg,
-            )
+            return f"Error Communicating with {self.model.get_provider().name} (HTTP {exc.code}): {msg}"
         else:
             return ERR_INTERNAL
 

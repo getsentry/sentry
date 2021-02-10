@@ -112,7 +112,7 @@ def inbox_search(
             .distinct()
         )
 
-    owner_search = get_search_filter(search_filters, "owner", "=")
+    owner_search = get_search_filter(search_filters, "assigned_or_suggested", "=")
     if owner_search:
         qs = qs.filter(
             assigned_or_suggested_filter(owner_search, projects, field_filter="group_id")

@@ -195,7 +195,6 @@ class IssueBasicMixin:
         Does anything needed after an issue has been linked, i.e. creating
         a comment for a linked issue.
         """
-        pass
 
     def make_external_key(self, data):
         """
@@ -278,7 +277,7 @@ class IssueBasicMixin:
         for ei in external_issues:
             link = self.get_issue_url(ei.key)
             label = self.get_issue_display_name(ei) or ei.key
-            annotations.append('<a href="%s">%s</a>' % (link, label))
+            annotations.append(f'<a href="{link}">{label}</a>')
 
         return annotations
 

@@ -90,7 +90,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
         if field != "issue_id" or not query:
             return Response({"issue_id": []})
         query = query.encode("utf-8")
-        _url = "%s?%s" % (self.build_api_url(group, "search"), urlencode({"query": query}))
+        _url = "{}?{}".format(self.build_api_url(group, "search"), urlencode({"query": query}))
         try:
             req = self.make_api_request(group.project, _url)
             body = safe_urlread(req)
@@ -105,7 +105,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
 
         resp = json_resp.get("stories", {})
         stories = resp.get("stories", [])
-        issues = [{"text": "(#%s) %s" % (i["id"], i["name"]), "id": i["id"]} for i in stories]
+        issues = [{"text": "(#{}) {}".format(i["id"], i["name"]), "id": i["id"]} for i in stories]
 
         return Response({field: issues})
 
@@ -113,19 +113,19 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
         comment = form_data.get("comment")
         if not comment:
             return
-        _url = "%s/%s/comments" % (self.build_api_url(group, "stories"), form_data["issue_id"])
+        _url = "{}/{}/comments".format(self.build_api_url(group, "stories"), form_data["issue_id"])
         try:
             req = self.make_api_request(group.project, _url, json_data={"text": comment})
             body = safe_urlread(req)
         except requests.RequestException as e:
             msg = str(e)
-            raise PluginError("Error communicating with Pivotal: %s" % (msg,))
+            raise PluginError(f"Error communicating with Pivotal: {msg}")
 
         try:
             json_resp = json.loads(body)
         except ValueError as e:
             msg = str(e)
-            raise PluginError("Error communicating with Pivotal: %s" % (msg,))
+            raise PluginError(f"Error communicating with Pivotal: {msg}")
 
         if req.status_code > 399:
             raise PluginError(json_resp["error"])
@@ -133,7 +133,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
     def build_api_url(self, group, pivotal_api=None):
         project = self.get_option("project", group.project)
 
-        _url = "https://www.pivotaltracker.com/services/v5/projects/%s/%s" % (project, pivotal_api)
+        _url = f"https://www.pivotaltracker.com/services/v5/projects/{project}/{pivotal_api}"
 
         return _url
 
@@ -158,13 +158,13 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
             body = safe_urlread(req)
         except requests.RequestException as e:
             msg = str(e)
-            raise PluginError("Error communicating with Pivotal: %s" % (msg,))
+            raise PluginError(f"Error communicating with Pivotal: {msg}")
 
         try:
             json_resp = json.loads(body)
         except ValueError as e:
             msg = str(e)
-            raise PluginError("Error communicating with Pivotal: %s" % (msg,))
+            raise PluginError(f"Error communicating with Pivotal: {msg}")
 
         if req.status_code > 399:
             raise PluginError(json_resp["error"])
@@ -178,7 +178,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
         return "https://www.pivotaltracker.com/story/show/%s" % issue_id
 
     def get_issue_title_by_id(self, request, group, issue_id):
-        _url = "%s/%s" % (self.build_api_url(group, "stories"), issue_id)
+        _url = "{}/{}".format(self.build_api_url(group, "stories"), issue_id)
         req = self.make_api_request(group.project, _url)
 
         body = safe_urlread(req)

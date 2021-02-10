@@ -1,5 +1,3 @@
-import six
-
 from symbolic import ProguardMapper
 from sentry.plugins.base.v2 import Plugin2
 from sentry.stacktraces.processing import StacktraceProcessor
@@ -21,7 +19,7 @@ class JavaStacktraceProcessor(StacktraceProcessor):
 
         for image in get_path(self.data, "debug_meta", "images", filter=is_valid_image, default=()):
             self.available = True
-            self.images.add(six.text_type(image["uuid"]).lower())
+            self.images.add(str(image["uuid"]).lower())
 
     def handles_frame(self, frame, stacktrace_info):
         platform = frame.get("platform") or self.data.get("platform")
@@ -74,7 +72,7 @@ class JavaStacktraceProcessor(StacktraceProcessor):
         if not ty or not mod:
             return False
 
-        key = "%s.%s" % (mod, ty)
+        key = f"{mod}.{ty}"
 
         for view in self.mapping_views:
             mapped = view.remap_class(key)

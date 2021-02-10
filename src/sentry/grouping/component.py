@@ -37,6 +37,7 @@ class GroupingComponent:
         contributes=None,
         contributes_to_similarity=None,
         values=None,
+        variant_provider=False,
         similarity_encoder=None,
         similarity_self_encoder=None,
     ):
@@ -46,6 +47,7 @@ class GroupingComponent:
         self.hint = DEFAULT_HINTS.get(id)
         self.contributes = None
         self.contributes_to_similarity = None
+        self.variant_provider = variant_provider
         self.values = []
 
         self.update(
@@ -168,9 +170,4 @@ class GroupingComponent:
         return rv
 
     def __repr__(self):
-        return "GroupingComponent(%r, hint=%r, contributes=%r, values=%r)" % (
-            self.id,
-            self.hint,
-            self.contributes,
-            self.values,
-        )
+        return f"GroupingComponent({self.id!r}, hint={self.hint!r}, contributes={self.contributes!r}, values={self.values!r})"

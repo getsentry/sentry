@@ -4,8 +4,6 @@ from django.utils.translation import ugettext
 class SocialAuthBaseException(ValueError):
     """Base class for pipeline exceptions."""
 
-    pass
-
 
 class BackendError(SocialAuthBaseException):
     def __str__(self):

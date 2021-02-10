@@ -42,6 +42,7 @@ import {DATA_SOURCE_LABELS, getIncidentRuleMetricPreset} from '../../utils';
 
 import MetricChart from './metricChart';
 import RelatedIssues from './relatedIssues';
+import RelatedTransactions from './relatedTransactions';
 
 type Props = {
   api: Client;
@@ -349,6 +350,7 @@ class DetailsBody extends React.Component<Props> {
       api,
       rule,
       incidents,
+      location,
       organization,
       params: {orgId},
     } = this.props;
@@ -422,6 +424,19 @@ class DetailsBody extends React.Component<Props> {
                         start={timePeriod.start}
                         end={timePeriod.end}
                         filter={queryWithTypeFilter}
+                      />
+                    )}
+                    {rule?.dataset === Dataset.TRANSACTIONS && (
+                      <RelatedTransactions
+                        organization={organization}
+                        location={location}
+                        rule={rule}
+                        projects={((projects as Project[]) || []).filter(project =>
+                          rule.projects.includes(project.slug)
+                        )}
+                        start={timePeriod.start}
+                        end={timePeriod.end}
+                        filter={DATASET_EVENT_TYPE_FILTERS[rule.dataset]}
                       />
                     )}
                   </ActivityWrapper>
