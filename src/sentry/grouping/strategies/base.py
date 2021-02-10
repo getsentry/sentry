@@ -38,6 +38,47 @@ def strategy(id=None, ids=None, variants=None, interfaces=None, name=None, score
     return decorator
 
 
+class GroupingContext:
+    def __init__(self, strategy_config):
+        self._stack = [strategy_config.initial_context]
+        self.config = strategy_config
+        self.push()
+        self["variant"] = None
+
+    def __setitem__(self, key, value):
+        self._stack[-1][key] = value
+
+    def __getitem__(self, key):
+        for d in reversed(self._stack):
+            if key in d:
+                return d[key]
+        raise KeyError(key)
+
+    def __enter__(self):
+        self.push()
+        return self
+
+    def __exit__(self, exc_type, exc_value, tb):
+        self.pop()
+
+    def push(self):
+        self._stack.append({})
+
+    def pop(self):
+        self._stack.pop()
+
+    def get_grouping_component(self, interface, *args, **kwargs):
+        """Invokes a delegate grouping strategy.  If no such delegate is
+        configured a fallback grouping component is returned.
+        """
+        path = interface.path
+        strategy = self.config.delegates.get(path)
+        if strategy is not None:
+            kwargs["context"] = self
+            return strategy(interface, *args, **kwargs)
+        return GroupingComponent(id=path, hint="grouping algorithm does not consider this value")
+
+
 def lookup_strategy(strategy_id):
     """Looks up a strategy by id."""
     try:
@@ -87,7 +128,7 @@ class Strategy:
         self.variant_processor_func = func
         return func
 
-    def get_grouping_component(self, event, variant, config):
+    def get_grouping_component(self, event, variant, context):
         """Given a specific variant this calculates the grouping component."""
         args = []
         for iface_path in self.interfaces:
@@ -95,9 +136,13 @@ class Strategy:
             if iface is None:
                 return None
             args.append(iface)
-        return self(event=event, variant=variant, config=config, *args)
+        with context:
+            # If a variant is passed put it into the context
+            if variant is not None:
+                context["variant"] = variant
+            return self(event=event, context=context, *args)
 
-    def get_grouping_component_variants(self, event, config):
+    def get_grouping_component_variants(self, event, context):
         """This returns a dictionary of all components by variant that this
         strategy can produce.
         """
@@ -106,7 +151,7 @@ class Strategy:
         # them all the same.
         if not self.mandatory_variants:
             for variant in self.variants:
-                component = self.get_grouping_component(event, variant, config)
+                component = self.get_grouping_component(event, variant, context)
                 if component is not None:
                     rv[variant] = component
 
@@ -115,7 +160,7 @@ class Strategy:
             prevent_contribution = None
 
             for variant in self.mandatory_variants:
-                component = self.get_grouping_component(event, variant, config)
+                component = self.get_grouping_component(event, variant, context)
                 if component is None:
                     continue
                 if component.contributes:
@@ -127,7 +172,7 @@ class Strategy:
             for variant in self.optional_variants:
                 # We also only want to create another variant if it
                 # produces different results than the mandatory components
-                component = self.get_grouping_component(event, variant, config)
+                component = self.get_grouping_component(event, variant, context)
                 if component is None:
                     continue
 
@@ -158,7 +203,7 @@ class Strategy:
                 rv[variant] = component
 
         if self.variant_processor_func is not None:
-            rv = self._invoke(self.variant_processor_func, rv, event=event, config=config)
+            rv = self._invoke(self.variant_processor_func, rv, event=event, context=context)
         return rv
 
 
@@ -186,17 +231,6 @@ class StrategyConfiguration:
         """Iterates over all strategies by highest score to lowest."""
         return iter(sorted(self.strategies.values(), key=lambda x: -x.score))
 
-    def get_grouping_component(self, interface, *args, **kwargs):
-        """Invokes a delegate grouping strategy.  If no such delegate is
-        configured a fallback grouping component is returned.
-        """
-        path = interface.path
-        strategy = self.delegates.get(path)
-        if strategy is not None:
-            kwargs["config"] = self
-            return strategy(interface, *args, **kwargs)
-        return GroupingComponent(id=path, hint="grouping algorithm does not consider this value")
-
     @classmethod
     def as_dict(self):
         return {
@@ -215,7 +249,14 @@ class StrategyConfiguration:
 
 
 def create_strategy_configuration(
-    id, strategies=None, delegates=None, changelog=None, hidden=False, base=None, risk=None
+    id,
+    strategies=None,
+    delegates=None,
+    changelog=None,
+    hidden=False,
+    base=None,
+    risk=None,
+    initial_context=None,
 ):
     """Declares a new strategy configuration.
 
@@ -235,6 +276,7 @@ def create_strategy_configuration(
     NewStrategyConfiguration.config_class = id.split(":", 1)[0]
     NewStrategyConfiguration.strategies = dict(base.strategies) if base else {}
     NewStrategyConfiguration.delegates = dict(base.delegates) if base else {}
+    NewStrategyConfiguration.initial_context = dict(base.initial_context) if base else {}
     if risk is None:
         risk = RISK_LEVEL_LOW
     NewStrategyConfiguration.risk = risk
@@ -263,6 +305,9 @@ def create_strategy_configuration(
                 )
             NewStrategyConfiguration.delegates[interface] = strategy
             new_delegates.add(interface)
+
+    if initial_context:
+        NewStrategyConfiguration.initial_context.update(initial_context)
 
     NewStrategyConfiguration.changelog = inspect.cleandoc(changelog or "")
     NewStrategyConfiguration.__name__ = "StrategyConfiguration(%s)" % id
