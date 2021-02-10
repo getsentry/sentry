@@ -6,6 +6,8 @@ from sentry.db.models import (
     DefaultFieldsModel,
     JSONField,
 )
+from django.utils import timezone
+
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +24,8 @@ class ProjectCodeOwners(DefaultFieldsModel):
     raw = models.TextField(null=True)
     # schema ⇒ transformed into IssueOwner syntax
     schema = JSONField(null=True)
+    # override date_added from DefaultFieldsModel
+    date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
