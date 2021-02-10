@@ -158,7 +158,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
             />
             <EventHeader event={event} />
           </Layout.HeaderContent>
-          <StyledHeaderActions>
+          <Layout.HeaderActions>
             <ButtonBar gap={1}>
               <Button onClick={this.toggleSidebar}>
                 {isSidebarVisible ? 'Hide Details' : 'Show Details'}
@@ -177,7 +177,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                 </Feature>
               )}
             </ButtonBar>
-          </StyledHeaderActions>
+          </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>
           <Layout.Main fullWidth={!isSidebarVisible}>
@@ -279,27 +279,24 @@ const EventHeader = ({event}: {event: Event}) => {
       <TitleWrapper>
         <EventOrGroupTitle hasGuideAnchor data={event} />
       </TitleWrapper>
-      <EventMessage message={getMessage(event)} />
+      <MessageWrapper>
+        <EventMessage message={getMessage(event)} />
+      </MessageWrapper>
     </EventHeaderContainer>
   );
 };
 
-const StyledHeaderActions = styled(Layout.HeaderActions)`
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    display: none;
-  }
-`;
-
-const TitleWrapper = styled('h3')`
-  margin-bottom: ${space(1)};
-  font-size: ${p => p.theme.headerFontSize};
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-`;
-
 const EventHeaderContainer = styled('div')`
-  max-width: 935px;
+  max-width: ${p => p.theme.breakpoints[0]};
+`;
+
+const TitleWrapper = styled('div')`
+  font-size: ${p => p.theme.headerFontSize};
+  margin-top: 20px;
+`;
+
+const MessageWrapper = styled('div')`
+  margin-top: ${space(1)};
 `;
 
 export default EventDetailsContent;
