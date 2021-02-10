@@ -1,5 +1,3 @@
-import six
-
 from collections import defaultdict
 from django.db.models import Count
 
@@ -17,6 +15,7 @@ from sentry.models import (
     ProjectTeam,
     Team,
     TeamAvatar,
+    ExternalTeam,
 )
 from sentry.utils.compat import zip
 
@@ -116,7 +115,7 @@ class TeamSerializer(Serializer):
         else:
             avatar = {"avatarType": "letter_avatar", "avatarUuid": None}
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "slug": obj.slug,
             "name": obj.name,
             "dateCreated": obj.date_added,
@@ -136,6 +135,8 @@ class TeamWithProjectsSerializer(TeamSerializer):
             .select_related("project")
         )
 
+        external_teams = list(ExternalTeam.objects.filter(team__in=item_list))
+
         # TODO(dcramer): we should query in bulk for ones we're missing here
         orgs = {i.organization_id: i.organization for i in item_list}
 
@@ -151,12 +152,19 @@ class TeamWithProjectsSerializer(TeamSerializer):
         for project_team in project_teams:
             project_map[project_team.team_id].append(projects_by_id[project_team.project_id])
 
+        external_teams_map = defaultdict(list)
+        for external_team in external_teams:
+            serialized = serialize(external_team, user)
+            external_teams_map[external_team.team_id].append(serialized)
+
         result = super().get_attrs(item_list, user)
         for team in item_list:
             result[team]["projects"] = project_map[team.id]
+            result[team]["externalTeams"] = external_teams_map[team.id]
         return result
 
     def serialize(self, obj, attrs, user):
         d = super().serialize(obj, attrs, user)
         d["projects"] = attrs["projects"]
+        d["externalTeams"] = attrs["externalTeams"]
         return d

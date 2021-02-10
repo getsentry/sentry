@@ -1,4 +1,5 @@
 import logging
+from enum import Enum
 
 from django.db import models, IntegrityError
 from django.utils import timezone
@@ -60,6 +61,55 @@ class RepositoryProjectPathConfig(DefaultFieldsModel):
         app_label = "sentry"
         db_table = "sentry_repositoryprojectpathconfig"
         unique_together = (("project", "stack_root"),)
+
+
+class ExternalProviders(Enum):
+    GITHUB = 0
+    GITLAB = 1
+
+
+EXTERNAL_PROVIDERS = {
+    ExternalProviders.GITHUB: "github",
+    ExternalProviders.GITLAB: "gitlab",
+}
+
+
+class ExternalTeam(DefaultFieldsModel):
+    __core__ = False
+
+    team = FlexibleForeignKey("sentry.Team")
+    provider = BoundedPositiveIntegerField(
+        choices=(
+            (ExternalProviders.GITHUB, "github"),
+            (ExternalProviders.GITLAB, "gitlab"),
+        ),
+    )
+    # external_id => the Github/Gitlab team name. Column name is vague to be reused for more external team identities.
+    external_id = models.TextField()
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_externalteam"
+        unique_together = (("team", "provider", "external_id"),)
+
+
+class ExternalUser(DefaultFieldsModel):
+    __core__ = False
+
+    user = FlexibleForeignKey("sentry.User")
+    provider = BoundedPositiveIntegerField(
+        choices=(
+            (ExternalProviders.GITHUB, "github"),
+            (ExternalProviders.GITLAB, "gitlab"),
+        ),
+    )
+    # external_id => the Github/Gitlab username. Column name is vague to be reused for more external user identities.
+    external_id = models.TextField()
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_externaluser"
+        unique_together = (("user", "provider", "external_id"),)
 
 
 class OrganizationIntegration(DefaultFieldsModel):

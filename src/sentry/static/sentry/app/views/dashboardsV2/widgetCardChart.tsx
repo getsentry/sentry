@@ -18,7 +18,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import Placeholder from 'app/components/placeholder';
 import {IconWarning} from 'app/icons';
 import space from 'app/styles/space';
-import {GlobalSelection} from 'app/types';
+import {GlobalSelection, Organization} from 'app/types';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
 import {getFieldFormatter} from 'app/utils/discover/fieldRenderers';
 import {getAggregateArg, getMeasurementSlug} from 'app/utils/discover/fields';
@@ -38,6 +38,7 @@ type WidgetCardChartProps = Pick<ReactRouter.WithRouterProps, 'router'> &
     WidgetQueries['state'],
     'timeseriesResults' | 'tableResults' | 'errorMessage' | 'loading'
   > & {
+    organization: Organization;
     location: Location;
     widget: Widget;
     selection: GlobalSelection;
@@ -70,7 +71,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
     errorMessage,
     tableResults,
   }: TableResultProps): React.ReactNode {
-    const {location, widget} = this.props;
+    const {location, widget, organization} = this.props;
     if (errorMessage) {
       return (
         <ErrorPanel>
@@ -95,6 +96,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
           loading={loading}
           metadata={result.meta}
           data={result.data}
+          organization={organization}
         />
       );
     });
@@ -246,7 +248,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
     }
 
     const legend = {
-      right: 0,
+      left: 0,
       top: 3,
       type: 'plain',
       selected: getSeriesSelection(location),
@@ -267,7 +269,7 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
       grid: {
         left: 0,
         right: 0,
-        top: space(3),
+        top: '40px',
         bottom: 0,
       },
       seriesOptions: {
@@ -351,20 +353,20 @@ const LoadingScreen = ({loading}: {loading: boolean}) => {
 
 const BigNumber = styled('div')`
   font-size: 32px;
-  margin-top: ${space(1)};
-  padding: ${space(1)} ${space(2)} ${space(2)};
+  padding: ${space(1)} ${space(3)} ${space(3)} ${space(3)};
   * {
     text-align: left !important;
   }
 `;
 
 const ChartWrapper = styled('div')`
-  padding: 0 ${space(2)} ${space(2)};
+  padding: 0 ${space(3)} ${space(3)};
 `;
 
 const StyledSimpleTableChart = styled(SimpleTableChart)`
   /* align with other card charts */
   height: 216px;
+  margin-top: ${space(1.5)};
 `;
 
 export default WidgetCardChart;

@@ -1,6 +1,5 @@
 import logging
 import re
-import six
 
 from django.utils.timezone import now
 from structlog import get_logger
@@ -54,17 +53,15 @@ class JSONRenderer:
 class HumanRenderer:
     def __call__(self, logger, name, event_dict):
         level = event_dict.pop("level")
-        real_level = (
-            level.upper() if isinstance(level, six.string_types) else logging.getLevelName(level)
-        )
-        base = "%s [%s] %s: %s" % (
+        real_level = level.upper() if isinstance(level, str) else logging.getLevelName(level)
+        base = "{} [{}] {}: {}".format(
             now().strftime("%H:%M:%S"),
             real_level,
             event_dict.pop("name", "root"),
             event_dict.pop("event", ""),
         )
-        join = " ".join(k + "=" + repr(v) for k, v in six.iteritems(event_dict))
-        return "%s%s" % (base, (" (%s)" % join if join else ""))
+        join = " ".join(k + "=" + repr(v) for k, v in event_dict.items())
+        return "{}{}".format(base, (" (%s)" % join if join else ""))
 
 
 class StructLogHandler(logging.StreamHandler):
@@ -76,9 +73,7 @@ class StructLogHandler(logging.StreamHandler):
         if logger is None:
             logger = get_logger()
 
-        kwargs = {
-            k: v for k, v in six.iteritems(vars(record)) if k not in throwaways and v is not None
-        }
+        kwargs = {k: v for k, v in vars(record).items() if k not in throwaways and v is not None}
         kwargs.update({"level": record.levelno, "event": record.msg})
 
         if record.args:
@@ -106,7 +101,7 @@ class MessageContainsFilter(logging.Filter):
     def __init__(self, contains):
         if not isinstance(contains, list):
             contains = [contains]
-        if not all(isinstance(c, six.string_types) for c in contains):
+        if not all(isinstance(c, str) for c in contains):
             raise TypeError("'contains' must be a string or list of strings")
         self.contains = contains
 

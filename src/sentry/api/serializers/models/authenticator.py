@@ -1,5 +1,3 @@
-import six
-
 from sentry.api.serializers import Serializer, register
 from sentry.auth.authenticators import (
     AuthenticatorInterface,
@@ -14,7 +12,7 @@ from sentry.auth.authenticators import (
 class AuthenticatorInterfaceSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         data = {
-            "id": six.text_type(obj.interface_id),
+            "id": str(obj.interface_id),
             "name": obj.name,
             "description": obj.description,
             "enrollButton": obj.enroll_button,
@@ -28,7 +26,7 @@ class AuthenticatorInterfaceSerializer(Serializer):
 
         # authenticator is enrolled
         if obj.authenticator is not None:
-            data["authId"] = six.text_type(obj.authenticator.id)
+            data["authId"] = str(obj.authenticator.id)
             data["createdAt"] = obj.authenticator.created_at
             data["lastUsedAt"] = obj.authenticator.last_used_at
 

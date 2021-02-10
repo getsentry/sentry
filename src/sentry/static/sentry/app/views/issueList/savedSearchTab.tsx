@@ -42,18 +42,20 @@ function SavedSearchTab({
   );
 
   const title = (
-    <TitleWrapper>
-      <Tooltip title={tooltipTitle} position="bottom" isHoverable delay={1000}>
+    <Tooltip title={tooltipTitle} position="bottom" isHoverable delay={1000}>
+      <TitleWrapper>
         {isActive ? (
           <React.Fragment>
-            {savedSearch ? savedSearch.name : t('Custom Search')}{' '}
+            <TitleTextOverflow>
+              {savedSearch ? savedSearch.name : t('Custom Search')}{' '}
+            </TitleTextOverflow>
             <StyledQueryCount isTag count={queryCount} max={1000} />
           </React.Fragment>
         ) : (
           t('Saved Searches')
         )}
-      </Tooltip>
-    </TitleWrapper>
+      </TitleWrapper>
+    </Tooltip>
   );
 
   return (
@@ -113,8 +115,14 @@ const TabWrapper = styled('li')<{isActive?: boolean}>`
 
 const TitleWrapper = styled('span')`
   margin-right: ${space(0.5)};
-  max-width: 150px;
   user-select: none;
+  display: flex;
+  align-items: center;
+`;
+
+const TitleTextOverflow = styled('span')`
+  margin-right: ${space(0.5)};
+  max-width: 150px;
   ${overflowEllipsis};
 `;
 

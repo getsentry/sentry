@@ -1,5 +1,4 @@
 from rest_framework.response import Response
-import six
 
 from sentry.constants import ObjectStatus
 from sentry.plugins.base import plugins
@@ -41,7 +40,7 @@ class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
         for plugin in desired_plugins:
             keys_to_check.append("%s:enabled" % plugin.slug)
             if plugin.required_field:
-                keys_to_check.append("%s:%s" % (plugin.slug, plugin.required_field))
+                keys_to_check.append(f"{plugin.slug}:{plugin.required_field}")
 
         # Get all the project options for org that have truthy values
         project_options = ProjectOption.objects.filter(
@@ -90,7 +89,7 @@ class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
             info_by_project = info_by_plugin_project.get(plugin.slug, {})
 
             # iterate through the projects
-            for project_id, plugin_info in six.iteritems(info_by_project):
+            for project_id, plugin_info in info_by_project.items():
                 # if the project is being deleted
                 if project_id not in project_map:
                     continue

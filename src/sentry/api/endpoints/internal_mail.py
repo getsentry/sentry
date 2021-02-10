@@ -1,4 +1,3 @@
-import six
 from rest_framework.response import Response
 
 from sentry import options
@@ -33,13 +32,13 @@ class InternalMailEndpoint(Endpoint):
         )
         try:
             send_mail(
-                "%s Test Email" % (options.get("mail.subject-prefix"),),
+                "{} Test Email".format(options.get("mail.subject-prefix")),
                 body,
                 options.get("mail.from"),
                 [request.user.email],
                 fail_silently=False,
             )
         except Exception as e:
-            error = six.text_type(e)
+            error = str(e)
 
         return Response({"error": error}, status=500 if error else 200)

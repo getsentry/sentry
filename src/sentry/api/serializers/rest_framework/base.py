@@ -1,4 +1,3 @@
-import six
 from django.utils.text import re_camel_case
 from rest_framework.fields import empty
 from rest_framework.serializers import ModelSerializer, Serializer
@@ -30,7 +29,7 @@ def convert_dict_key_case(obj, converter):
         return obj
 
     obj = obj.copy()
-    for key in list(six.iterkeys(obj)):
+    for key in list(obj.keys()):
         converted_key = converter(key)
         obj[converted_key] = convert_dict_key_case(obj.pop(key), converter)
 

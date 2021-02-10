@@ -77,7 +77,7 @@ class GitlabIssueBasic(IssueBasicMixin):
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
 
-        project_and_issue_iid = "%s#%s" % (project["path_with_namespace"], issue["iid"])
+        project_and_issue_iid = "{}#{}".format(project["path_with_namespace"], issue["iid"])
         return {
             "key": project_and_issue_iid,
             "title": issue["title"],
@@ -163,7 +163,7 @@ class GitlabIssueBasic(IssueBasicMixin):
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
 
-        project_and_issue_iid = "%s#%s" % (project["path_with_namespace"], issue["iid"])
+        project_and_issue_iid = "{}#{}".format(project["path_with_namespace"], issue["iid"])
         return {
             "key": project_and_issue_iid,
             "title": issue["title"],

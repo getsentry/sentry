@@ -588,7 +588,7 @@ class AlertRuleTriggerAction(Model):
         if type in self._type_registrations:
             return self._type_registrations[type].handler(action, incident, project)
         else:
-            metrics.incr("alert_rule_trigger.unhandled_type.{}".format(self.type))
+            metrics.incr(f"alert_rule_trigger.unhandled_type.{self.type}")
 
     def fire(self, action, incident, project, metric_value):
         handler = self.build_handler(action, incident, project)

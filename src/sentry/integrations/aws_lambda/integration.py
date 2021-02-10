@@ -1,6 +1,6 @@
 import logging
-import six
 
+from concurrent.futures import ThreadPoolExecutor
 from botocore.exceptions import ClientError
 from django.utils.translation import ugettext_lazy as _
 
@@ -57,7 +57,7 @@ metadata = IntegrationMetadata(
     features=FEATURES,
     author="The Sentry Team",
     noun=_("Installation"),
-    issue_url="https://github.com/getsentry/sentry/issues/new",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=AWS%20Lambda%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/aws_lambda",
     aspects={},
 )
@@ -99,7 +99,7 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
             sentry_layer = layers[sentry_layer_index]
 
             # determine the version and if it's out of date
-            latest_version = get_latest_layer_version(function["Runtime"])
+            latest_version = get_latest_layer_version(function)
             current_version = get_version_of_arn(sentry_layer)
             out_of_date = latest_version > current_version
         else:
@@ -127,14 +127,12 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
     @wrap_lambda_updater()
     def enable_function(self, target):
         function = self.get_one_lambda_function(target)
-        layer_arn = get_latest_layer_for_function(function)
-
         config_data = self.get_config_data()
         project_id = config_data["default_project_id"]
 
         sentry_project_dsn = get_dsn_for_project(self.organization_id, project_id)
 
-        enable_single_lambda(self.client, function, sentry_project_dsn, layer_arn)
+        enable_single_lambda(self.client, function, sentry_project_dsn)
 
         return self.get_serialized_lambda_function(target)
 
@@ -202,7 +200,7 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
             # on an account that doesn't have an organization
             integration_name = f"{account_number} {region}"
 
-        external_id = "{}-{}".format(account_number, region)
+        external_id = f"{account_number}-{region}"
 
         integration = {
             "name": integration_name,
@@ -293,7 +291,7 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
             except Exception as e:
                 logger.error(
                     "AwsLambdaCloudFormationPipelineView.unexpected_error",
-                    extra={"error": six.text_type(e)},
+                    extra={"error": str(e)},
                 )
                 return render_response(_("Unkown errror"))
 
@@ -307,6 +305,7 @@ class AwsLambdaListFunctionsPipelineView(PipelineView):
     def dispatch(self, request, pipeline):
         if request.method == "POST":
             # accept form data or json data
+            # form data is needed for tests
             data = request.POST or json.loads(request.body)
             pipeline.bind_state("enabled_lambdas", data)
             return pipeline.next_step()
@@ -349,39 +348,52 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
         lambda_functions = get_supported_functions(lambda_client)
         lambda_functions.sort(key=lambda x: x["FunctionName"].lower())
 
+        def is_lambda_enabled(function):
+            name = function["FunctionName"]
+            # check to see if the user wants to enable this function
+            return enabled_lambdas.get(name)
+
+        lambda_functions = filter(is_lambda_enabled, lambda_functions)
+
+        def _enable_lambda(function):
+            try:
+                enable_single_lambda(lambda_client, function, sentry_project_dsn)
+                return (True, function, None)
+            except Exception as e:
+                return (False, function, e)
+
         failures = []
         success_count = 0
 
-        for function in lambda_functions:
-            name = function["FunctionName"]
-            # check to see if the user wants to enable this function
-            if not enabled_lambdas.get(name):
-                continue
-
-            # find the latest layer for this function
-            layer_arn = get_latest_layer_for_function(function)
-            try:
-                enable_single_lambda(lambda_client, function, sentry_project_dsn, layer_arn)
-                success_count += 1
-            except Exception as e:
-                # need to make sure we catch any error to continue to the next function
-                err_message = six.text_type(e)
-                invalid_layer = get_invalid_layer_name(err_message)
-                if invalid_layer:
-                    err_message = _(INVALID_LAYER_TEXT) % invalid_layer
+        with ThreadPoolExecutor(max_workers=10) as _lambda_setup_thread_pool:
+            # use threading here to parallelize requests
+            # no timeout on the thread since the underlying request will time out
+            # if it takes too long
+            for success, function, e in _lambda_setup_thread_pool.map(
+                _enable_lambda, lambda_functions
+            ):
+                name = function["FunctionName"]
+                if success:
+                    success_count += 1
                 else:
-                    err_message = _("Unkown Error")
-                failures.append({"name": function["FunctionName"], "error": err_message})
-                logger.info(
-                    "update_function_configuration.error",
-                    extra={
-                        "organization_id": organization.id,
-                        "lambda_name": name,
-                        "account_number": account_number,
-                        "region": region,
-                        "error": six.text_type(e),
-                    },
-                )
+                    # need to make sure we catch any error to continue to the next function
+                    err_message = str(e)
+                    invalid_layer = get_invalid_layer_name(err_message)
+                    if invalid_layer:
+                        err_message = _(INVALID_LAYER_TEXT) % invalid_layer
+                    else:
+                        err_message = _("Unknown Error")
+                    failures.append({"name": function["FunctionName"], "error": err_message})
+                    logger.info(
+                        "update_function_configuration.error",
+                        extra={
+                            "organization_id": organization.id,
+                            "lambda_name": name,
+                            "account_number": account_number,
+                            "region": region,
+                            "error": str(e),
+                        },
+                    )
 
         analytics.record(
             "integrations.serverless_setup",

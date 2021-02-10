@@ -16,7 +16,7 @@ from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
 
 from datetime import timedelta
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 
 def gettext_noop(s):
@@ -68,6 +68,8 @@ ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
 IS_DEV = ENVIRONMENT == "development"
 
 DEBUG = IS_DEV
+
+ADMIN_ENABLED = DEBUG
 
 MAINTENANCE = False
 
@@ -608,7 +610,7 @@ CELERY_ROUTES = ("sentry.queue.routers.SplitQueueRouter",)
 def create_partitioned_queues(name):
     exchange = Exchange(name, type="direct")
     for num in range(1):
-        CELERY_QUEUES.append(Queue("{}-{}".format(name, num), exchange=exchange))
+        CELERY_QUEUES.append(Queue(f"{name}-{num}", exchange=exchange))
 
 
 create_partitioned_queues("counters")
@@ -871,8 +873,6 @@ SENTRY_FEATURES = {
     "organizations:incidents": False,
     # Enable metric aggregate in metric alert rule builder
     "organizations:metric-alert-builder-aggregate": False,
-    # Enable new GUI filters in the metric alert rule builder
-    "organizations:metric-alert-gui-filters": False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     "organizations:integrations-issue-basic": True,

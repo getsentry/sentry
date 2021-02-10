@@ -111,8 +111,8 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
         integration = serializer.integration
 
         # strip off the base URL (could be in different formats)
-        rest_url = source_url.replace("{}/-/blob/".format(repo.url), "")
-        rest_url = rest_url.replace("{}/blob/".format(repo.url), "")
+        rest_url = source_url.replace(f"{repo.url}/-/blob/", "")
+        rest_url = rest_url.replace(f"{repo.url}/blob/", "")
         branch, _, source_path = rest_url.partition("/")
 
         stack_root, source_root = find_roots(stack_path, source_path)

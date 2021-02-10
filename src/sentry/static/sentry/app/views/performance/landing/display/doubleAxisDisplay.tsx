@@ -88,7 +88,6 @@ const DoubleChartContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-gap: ${space(3)};
-  background-color: ${p => p.theme.background};
   min-height: 282px;
 `;
 

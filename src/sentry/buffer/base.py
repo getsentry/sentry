@@ -1,5 +1,4 @@
 import logging
-import six
 
 from django.db.models import F
 
@@ -11,7 +10,7 @@ from sentry.utils.services import Service
 class BufferMount(type):
     def __new__(cls, name, bases, attrs):
         new_cls = type.__new__(cls, name, bases, attrs)
-        new_cls.logger = logging.getLogger("sentry.buffer.%s" % (new_cls.__name__.lower(),))
+        new_cls.logger = logging.getLogger(f"sentry.buffer.{new_cls.__name__.lower()}")
         return new_cls
 
 
@@ -59,7 +58,7 @@ class Buffer(Service, metaclass=BufferMount):
         created = False
 
         if not signal_only:
-            update_kwargs = {c: F(c) + v for c, v in six.iteritems(columns)}
+            update_kwargs = {c: F(c) + v for c, v in columns.items()}
 
             if extra:
                 update_kwargs.update(extra)

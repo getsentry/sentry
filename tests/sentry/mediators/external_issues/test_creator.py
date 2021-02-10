@@ -5,7 +5,7 @@ from sentry.testutils import TestCase
 
 class TestCreator(TestCase):
     def setUp(self):
-        super(TestCreator, self).setUp()
+        super().setUp()
 
         self.user = self.create_user(name="foo")
         self.org = self.create_organization(owner=self.user)

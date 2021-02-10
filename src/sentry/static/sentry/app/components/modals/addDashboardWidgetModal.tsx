@@ -13,6 +13,7 @@ import ButtonBar from 'app/components/buttonBar';
 import WidgetQueryForm from 'app/components/dashboards/widgetQueryForm';
 import SelectControl from 'app/components/forms/selectControl';
 import {PanelAlert} from 'app/components/panels';
+import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization, TagCollection} from 'app/types';
@@ -184,7 +185,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
           };
         });
 
-        if (value === 'world_map') {
+        if (['world_map', 'big_number'].includes(value)) {
           // For world map chart, cap fields of the queries to only one field.
           newQueries = newQueries.map(query => {
             return {
@@ -215,9 +216,27 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       const newState = cloneDeep(prevState);
       newState.queries.splice(index, index + 1);
 
+      // If there is only one query, then its name will not be visible.
+      if (newState.queries.length === 1) {
+        newState.queries[0].name = '';
+      }
+
       return newState;
     });
   };
+
+  handleAddOverlay = () => {
+    this.setState(prevState => {
+      const newState = cloneDeep(prevState);
+      newState.queries.push(cloneDeep(newQuery));
+
+      return newState;
+    });
+  };
+
+  canAddOverlay() {
+    return ['line', 'area', 'stacked_area', 'bar'].includes(this.state.displayType);
+  }
 
   render() {
     const {
@@ -273,7 +292,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
             </Field>
             <Field
               data-test-id="chart-type"
-              label={t('Visualization')}
+              label={t('Visualization Display')}
               inline={false}
               flexibleControlStateSize
               stacked
@@ -284,7 +303,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                 required
                 options={DISPLAY_TYPE_CHOICES.slice()}
                 name="displayType"
-                label={t('Chart Style')}
+                label={t('Visualization Display')}
                 value={state.displayType}
                 onChange={(option: {label: string; value: Widget['displayType']}) => {
                   this.handleFieldChange('displayType')(option.value);
@@ -321,6 +340,17 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               );
             }}
           </Measurements>
+          {this.canAddOverlay() && (
+            <AddOverlayButton
+              icon={<IconAdd isCircled />}
+              onClick={(event: React.MouseEvent) => {
+                event.preventDefault();
+                this.handleAddOverlay();
+              }}
+            >
+              {t('New Query Overlay')}
+            </AddOverlayButton>
+          )}
           <WidgetCard
             api={api}
             organization={organization}
@@ -334,8 +364,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                 <PanelAlert type="error">{errorMessage}</PanelAlert>
               )
             }
-            isDragging={false}
-            startWidgetDrag={() => undefined}
+            isSorting={false}
+            currentWidgetDragging={false}
           />
         </Body>
         <Footer>
@@ -368,6 +398,10 @@ const DoubleFieldWrapper = styled('div')`
   grid-template-columns: repeat(2, 1fr);
   grid-column-gap: ${space(1)};
   width: 100%;
+`;
+
+const AddOverlayButton = styled(Button)`
+  margin-bottom: ${space(2)};
 `;
 
 export default withApi(withGlobalSelection(withTags(AddDashboardWidgetModal)));

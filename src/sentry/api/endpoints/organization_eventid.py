@@ -1,5 +1,3 @@
-import six
-
 from rest_framework.response import Response
 
 from sentry import eventstore
@@ -46,8 +44,8 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
                 {
                     "organizationSlug": organization.slug,
                     "projectSlug": project_slugs_by_id[event.project_id],
-                    "groupId": six.text_type(event.group_id),
-                    "eventId": six.text_type(event.event_id),
+                    "groupId": str(event.group_id),
+                    "eventId": str(event.event_id),
                     "event": serialize(event, request.user),
                 }
             )
