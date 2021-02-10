@@ -94,9 +94,8 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
 
   handlePreSubmit() {
     trackIntegrationEvent(
+      'integrations.stacktrace_submit_config',
       {
-        eventKey: 'integrations.stacktrace_submit_config',
-        eventName: 'Integrations: Stacktrace Submit Config',
         setup_type: 'manual',
         view: 'integration_configuration_detail',
         provider: this.props.integration.provider.key,

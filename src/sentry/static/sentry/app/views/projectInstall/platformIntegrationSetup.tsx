@@ -90,9 +90,8 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
   trackSwitchToManual = () => {
     const {organization, integrationSlug} = this.props;
     trackIntegrationEvent(
+      'integrations.switch_manual_sdk_setup',
       {
-        eventKey: 'integrations.switch_manual_sdk_setup',
-        eventName: 'Integrations: Switch Manual SDK Setup',
         integration_type: 'first_party',
         integration: integrationSlug,
         view: 'project_creation',

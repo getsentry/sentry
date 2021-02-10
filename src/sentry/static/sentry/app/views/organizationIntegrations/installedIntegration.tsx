@@ -11,7 +11,7 @@ import {IconDelete, IconFlag, IconSettings} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Integration, IntegrationProvider, ObjectStatus, Organization} from 'app/types';
-import {SingleIntegrationEvent} from 'app/utils/integrationUtil';
+import {AnalyticsKey} from 'app/utils/integrationEvents';
 import theme from 'app/utils/theme';
 
 import IntegrationItem from './integrationItem';
@@ -22,18 +22,13 @@ export type Props = {
   integration: Integration;
   onRemove: (integration: Integration) => void;
   onDisable: (integration: Integration) => void;
-  trackIntegrationEvent: (
-    options: Pick<SingleIntegrationEvent, 'eventKey' | 'eventName'>
-  ) => void; //analytics callback
+  trackIntegrationEvent: (eventKey: AnalyticsKey) => void; //analytics callback
   className?: string;
 };
 
 export default class InstalledIntegration extends React.Component<Props> {
   handleUninstallClick = () => {
-    this.props.trackIntegrationEvent({
-      eventKey: 'integrations.uninstall_clicked',
-      eventName: 'Integrations: Uninstall Clicked',
-    });
+    this.props.trackIntegrationEvent('integrations.uninstall_clicked');
   };
 
   getRemovalBodyAndText(aspects: Integration['provider']['aspects']) {
@@ -54,10 +49,7 @@ export default class InstalledIntegration extends React.Component<Props> {
 
   handleRemove(integration: Integration) {
     this.props.onRemove(integration);
-    this.props.trackIntegrationEvent({
-      eventKey: 'integrations.uninstall_completed',
-      eventName: 'Integrations: Uninstall Completed',
-    });
+    this.props.trackIntegrationEvent('integrations.uninstall_completed');
   }
 
   get removeConfirmProps() {
