@@ -31,12 +31,10 @@ jobs:
           echo "PATH=$HOME/.pyenv/shims:$HOME/.volta/bin:$PATH" >> $GITHUB_ENV
 
       - name: Install prerequisites
-        # Depending on the host watchman will not install (read: intermittent issue),
-        # thus, we mark this as continue-on-error
-        continue-on-error: true
         # Xcode CLI & brew are already installed, thus, no need to call xcode-select install
         # XXX: Can the Brew set up be cached?
         run: |
+          brew list --versions
           brew bundle
 
       - name: Install Python (via Pyenv)
