@@ -21,6 +21,7 @@ export type ModalOptions = {
   modalClassName?: string;
   dialogClassName?: string;
   type?: string;
+  backdrop?: BoostrapModal['props']['backdrop'];
 };
 
 /**
@@ -220,5 +221,5 @@ export async function openAddDashboardWidgetModal(options: DashboardWidgetModalO
   );
   const {default: Modal} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {});
+  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static'});
 }
