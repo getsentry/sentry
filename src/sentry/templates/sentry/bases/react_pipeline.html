@@ -1,5 +1,6 @@
 {% extends "sentry/base-react.html" %}
 {% block body_app_boot %}
+{% script %}
 <script>
   $(function() {
     if (typeof RenderPipelineView === 'function') {
@@ -7,4 +8,5 @@
     };
   });
 </script>
+{% endscript %}
 {% endblock %}
