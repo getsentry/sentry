@@ -82,7 +82,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
 
         # Test the trigger "resolving"
         data = incident_attachment_info(incident, action=action, method="resolve")
-        assert data["title"] == "Resolved: {}".format(alert_rule.name)
+        assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"
         assert data["text"] == "4 events in the last 10 minutes\nFilter: level:error"
         assert data["ts"] == date_started
