@@ -14,6 +14,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import MutedBox from 'app/components/mutedBox';
 import ReprocessedBox from 'app/components/reprocessedBox';
 import ResolutionBox from 'app/components/resolutionBox';
+import SuggestProjectCTA from 'app/components/suggestProjectCTA';
 import {
   Environment,
   Group,
@@ -220,6 +221,7 @@ class GroupEventDetails extends React.Component<Props, State> {
 
     return (
       <div className={className}>
+        {event && <SuggestProjectCTA event={event} organization={organization} />}
         <div className="event-details-container">
           {hasReprocessingV2Feature &&
           reprocessStatus === ReprocessingStatus.REPROCESSING &&
