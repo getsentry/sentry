@@ -65,7 +65,7 @@ class Table extends React.Component<TableProps, TableState> {
 
     const field = String(column.key);
     const fieldRenderer = getFieldRenderer(field, tableMeta);
-    const rendered = fieldRenderer(dataRow, {organization, location});
+    const rendered = fieldRenderer({data: dataRow}, {organization, location});
 
     if (field === 'transaction') {
       const projectID = getProjectID(dataRow, projects);
