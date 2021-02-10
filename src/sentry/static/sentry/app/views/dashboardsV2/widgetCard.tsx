@@ -132,6 +132,7 @@ class WidgetCard extends React.Component<Props> {
                     widget={widget}
                     selection={selection}
                     router={router}
+                    organization={organization}
                   />
                   {this.renderToolbar()}
                 </React.Fragment>
