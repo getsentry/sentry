@@ -8,12 +8,12 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 /**
  * Styled components used to render discover result sets.
  */
-export const Container = styled('div')`
+export const Container = styled('div')<{align?: 'left' | 'right'}>`
+  text-align: ${p => p.align ?? 'left'};
   ${overflowEllipsis};
 `;
 
-export const VersionContainer = styled('div')<{align?: 'left' | 'right'}>`
-  text-align: ${p => p.align ?? 'left'};
+export const VersionContainer = styled('div')`
   display: flex;
 `;
 
