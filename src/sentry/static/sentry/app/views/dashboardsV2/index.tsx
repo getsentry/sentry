@@ -22,7 +22,6 @@ class DashboardsV2Container extends React.Component<Props> {
     return (
       <Feature
         features={['dashboards-basic']}
-        requireAll={false}
         organization={organization}
         renderDisabled={this.renderNoAccess}
       >

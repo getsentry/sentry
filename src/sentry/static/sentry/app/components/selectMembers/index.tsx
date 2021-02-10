@@ -1,5 +1,4 @@
 import React from 'react';
-import ReactSelect from 'react-select';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -87,7 +86,8 @@ class SelectMembers extends React.Component<Props, State> {
     this.unlisteners.forEach(callIfFunction);
   }
 
-  selectRef = React.createRef<ReactSelect>();
+  // TODO(ts) This type could be improved when react-select types are better.
+  selectRef = React.createRef<any>();
 
   unlisteners = [
     MemberListStore.listen(() => {
