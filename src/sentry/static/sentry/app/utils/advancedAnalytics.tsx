@@ -29,7 +29,7 @@ export const getAnalyticsSessionId = () =>
 
 const hasAnalyticsDebug = () => window.localStorage.getItem('DEBUG_ANALYTICS') === '1';
 
-type EventParameters = IntegrationEventParameters & GrowthEventParameters;
+export type EventParameters = IntegrationEventParameters & GrowthEventParameters;
 
 const allEventMap = {...integrationEventMap, ...growthEventMap};
 
