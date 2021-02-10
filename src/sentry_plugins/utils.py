@@ -8,6 +8,6 @@ def get_secret_field_config(secret, help_text=None, include_prefix=False, **kwar
         "required": not has_saved_value,
     }
     if help_text:
-        context["help"] = "%s%s" % ((saved_text if has_saved_value else ""), help_text)
+        context["help"] = "{}{}".format((saved_text if has_saved_value else ""), help_text)
     context.update(kwargs)
     return context
