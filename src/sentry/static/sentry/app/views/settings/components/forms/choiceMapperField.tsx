@@ -5,7 +5,7 @@ import Button from 'app/components/button';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import {Item} from 'app/components/dropdownAutoComplete/types';
 import DropdownButton from 'app/components/dropdownButton';
-import SelectControl from 'app/components/forms/selectControl';
+import SelectControl, {ControlProps} from 'app/components/forms/selectControl';
 import {IconAdd, IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -13,7 +13,6 @@ import {defined, objectIsEmpty} from 'app/utils';
 import InputField from 'app/views/settings/components/forms/inputField';
 
 type InputFieldProps = React.ComponentProps<typeof InputField>;
-type SelectControlProps = React.ComponentProps<typeof SelectControl>;
 
 type DefaultProps = {
   /**
@@ -37,7 +36,7 @@ const defaultProps: DefaultProps = {
   allowEmpty: false,
 };
 
-type MappedSelectors = Record<string, Partial<SelectControlProps>>;
+type MappedSelectors = Record<string, Partial<ControlProps>>;
 
 export type ChoiceMapperProps = {
   /**
