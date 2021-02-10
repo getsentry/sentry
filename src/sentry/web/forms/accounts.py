@@ -1,5 +1,4 @@
 import pytz
-import six
 
 from datetime import datetime
 from django import forms
@@ -14,7 +13,6 @@ from sentry.app import ratelimiter
 from sentry.utils.auth import find_users, logger
 from sentry.models import User
 from sentry.web.forms.fields import CustomTypedChoiceField, AllowedEmailField
-from six.moves import range
 
 
 def _get_timezone_choices():
@@ -22,7 +20,7 @@ def _get_timezone_choices():
     for tz in pytz.common_timezones:
         now = datetime.now(pytz.timezone(tz))
         offset = now.strftime("%z")
-        results.append((int(offset), tz, "(UTC%s) %s" % (offset, tz)))
+        results.append((int(offset), tz, f"(UTC{offset}) {tz}"))
     results.sort()
 
     for i in range(len(results)):
@@ -97,7 +95,7 @@ class AuthenticationForm(forms.Form):
             return False
 
         ip_address = self.request.META["REMOTE_ADDR"]
-        return ratelimiter.is_limited("auth:ip:{}".format(ip_address), limit)
+        return ratelimiter.is_limited(f"auth:ip:{ip_address}", limit)
 
     def _is_user_rate_limited(self):
         limit = options.get("auth.user-rate-limit")
@@ -108,7 +106,7 @@ class AuthenticationForm(forms.Form):
         if not username:
             return False
 
-        return ratelimiter.is_limited("auth:username:{}".format(username), limit)
+        return ratelimiter.is_limited(f"auth:username:{username}", limit)
 
     def clean(self):
         username = self.cleaned_data.get("username")
@@ -164,7 +162,7 @@ class PasswordlessRegistrationForm(forms.ModelForm):
         required=True,
     )
     subscribe = CustomTypedChoiceField(
-        coerce=lambda x: six.text_type(x) == "1",
+        coerce=lambda x: str(x) == "1",
         label=_("Email updates"),
         choices=(
             (1, "Yes, I would like to receive updates via email"),

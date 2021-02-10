@@ -1,6 +1,5 @@
 import logging
 
-import six
 
 from datetime import datetime
 from django.db import IntegrityError, transaction
@@ -40,7 +39,7 @@ class PushEventWebhook(Webhook):
             repo = Repository.objects.get(
                 organization_id=organization.id,
                 provider=PROVIDER_NAME,
-                external_id=six.text_type(event["repository"]["id"]),
+                external_id=str(event["repository"]["id"]),
             )
         except Repository.DoesNotExist:
             raise Http404()
@@ -115,7 +114,7 @@ class BitbucketServerWebhookEndpoint(View):
             )
             return HttpResponse(status=400)
 
-        body = six.binary_type(request.body)
+        body = bytes(request.body)
         if not body:
             logger.error(
                 PROVIDER_NAME + ".webhook.missing-body", extra={"organization_id": organization.id}

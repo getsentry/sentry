@@ -1,5 +1,3 @@
-import six
-
 from collections import defaultdict
 
 
@@ -12,7 +10,7 @@ class RuleRegistry:
         return rule_id in self._map
 
     def __iter__(self):
-        for rule_type, rule_list in six.iteritems(self._rules):
+        for rule_type, rule_list in self._rules.items():
             for rule in rule_list:
                 yield rule_type, rule
 

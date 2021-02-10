@@ -1,3 +1,4 @@
+from functools import reduce
 import itertools
 import logging
 import operator
@@ -6,7 +7,6 @@ import uuid
 from collections import defaultdict, namedtuple
 from hashlib import md5
 
-import six
 from django.utils import timezone
 from django.utils.encoding import force_bytes
 from pkg_resources import resource_string
@@ -15,7 +15,6 @@ from sentry.tsdb.base import BaseTSDB
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.redis import check_cluster_versions, get_cluster_from_options, SentryScript
 from sentry.utils.versioning import Version
-from six.moves import reduce
 from sentry.utils.compat import map, zip, crc32
 
 logger = logging.getLogger(__name__)
@@ -140,7 +139,7 @@ class RedisTSDB(BaseTSDB):
 
     def add_environment_parameter(self, key, environment_id):
         if environment_id is not None:
-            return "{}?e={}".format(key, environment_id)
+            return f"{key}?e={environment_id}"
         else:
             return key
 
@@ -167,7 +166,7 @@ class RedisTSDB(BaseTSDB):
         """
         model_key = self.get_model_key(key)
 
-        if isinstance(model_key, six.integer_types):
+        if isinstance(model_key, int):
             vnode = model_key % self.vnodes
         else:
             vnode = crc32(force_bytes(model_key)) % self.vnodes
@@ -186,9 +185,9 @@ class RedisTSDB(BaseTSDB):
         # We specialize integers so that a pure int-map can be optimized by
         # Redis, whereas long strings (say tag values) will store in a more
         # efficient hashed format.
-        if not isinstance(key, six.integer_types):
+        if not isinstance(key, int):
             # enforce utf-8 encoding
-            if isinstance(key, six.text_type):
+            if isinstance(key, str):
                 key = key.encode("utf-8")
 
             key_repr = repr(key)[1:].encode("utf-8")
@@ -233,7 +232,7 @@ class RedisTSDB(BaseTSDB):
                 # (hash_key) -> "max expiration encountered"
                 key_expiries = defaultdict(lambda: 0.0)
 
-                for rollup, max_values in six.iteritems(self.rollups):
+                for rollup, max_values in self.rollups.items():
                     for item in items:
                         if len(item) == 2:
                             model, key = item
@@ -256,7 +255,7 @@ class RedisTSDB(BaseTSDB):
 
                             key_operations[(hash_key, hash_field)] += count
 
-                for (hash_key, hash_field), count in six.iteritems(key_operations):
+                for (hash_key, hash_field), count in key_operations.items():
                     client.hincrby(hash_key, hash_field, count)
                     if key_expiries.get(hash_key):
                         client.expireat(hash_key, key_expiries.pop(hash_key))
@@ -296,7 +295,7 @@ class RedisTSDB(BaseTSDB):
         for epoch, key, count in results:
             results_by_key[key][epoch] = int(count.value or 0)
 
-        for key, points in six.iteritems(results_by_key):
+        for key, points in results_by_key.items():
             results_by_key[key] = sorted(points.items())
         return dict(results_by_key)
 
@@ -398,7 +397,7 @@ class RedisTSDB(BaseTSDB):
             with manager as client:
                 for model, key, values in items:
                     c = client.target_key(key)
-                    for rollup, max_values in six.iteritems(self.rollups):
+                    for rollup, max_values in self.rollups.items():
                         for environment_id in environment_ids:
                             k = self.make_key(model, rollup, ts, key, environment_id)
                             c.pfadd(k, *values)
@@ -430,7 +429,7 @@ class RedisTSDB(BaseTSDB):
 
         return {
             key: [(timestamp, promise.value) for timestamp, promise in value]
-            for key, value in six.iteritems(responses)
+            for key, value in responses.items()
         }
 
     def get_distinct_counts_totals(
@@ -459,7 +458,7 @@ class RedisTSDB(BaseTSDB):
 
                 responses[key] = client.target_key(key).execute_command("PFCOUNT", *ks)
 
-        return {key: value.value for key, value in six.iteritems(responses)}
+        return {key: value.value for key, value in responses.items()}
 
     def get_distinct_counts_union(
         self, model, keys, start, end=None, rollup=None, environment_id=None
@@ -474,7 +473,7 @@ class RedisTSDB(BaseTSDB):
         temporary_id = uuid.uuid1().hex
 
         def make_temporary_key(key):
-            return "{}{}:{}".format(self.prefix, temporary_id, key)
+            return f"{self.prefix}{temporary_id}:{key}"
 
         def expand_key(key):
             """
@@ -500,7 +499,7 @@ class RedisTSDB(BaseTSDB):
             results from merging all HyperLogLogs at the provided keys.
             """
             (host, keys) = value
-            destination = make_temporary_key("p:{}".format(host))
+            destination = make_temporary_key(f"p:{host}")
             client = cluster.get_local_client(host)
             with client.pipeline(transaction=False) as pipeline:
                 pipeline.execute_command(
@@ -515,7 +514,7 @@ class RedisTSDB(BaseTSDB):
             Calculate the cardinality of the provided HyperLogLog values.
             """
             destination = make_temporary_key("a")  # all values will be merged into this key
-            aggregates = {make_temporary_key("a:{}".format(host)): value for host, value in values}
+            aggregates = {make_temporary_key(f"a:{host}"): value for host, value in values}
 
             # Choose a random host to execute the reduction on. (We use a host
             # here that we've already accessed as part of this process -- this
@@ -559,7 +558,7 @@ class RedisTSDB(BaseTSDB):
             temporary_id = uuid.uuid1().hex
 
             def make_temporary_key(key):
-                return "{}{}:{}".format(self.prefix, temporary_id, key)
+                return f"{self.prefix}{temporary_id}:{key}"
 
             data = {}
             for rollup, series in rollups.items():
@@ -660,13 +659,13 @@ class RedisTSDB(BaseTSDB):
             commands = {}
 
             for model, request in requests:
-                for key, items in six.iteritems(request):
+                for key, items in request.items():
                     keys = []
                     expirations = {}
 
                     # Figure out all of the keys we need to be incrementing, as
                     # well as their expiration policies.
-                    for rollup, max_values in six.iteritems(self.rollups):
+                    for rollup, max_values in self.rollups.items():
                         for environment_id in environment_ids:
                             chunk = self.make_frequency_table_keys(
                                 model, rollup, ts, key, environment_id
@@ -808,9 +807,9 @@ class RedisTSDB(BaseTSDB):
 
         responses = {}
 
-        for key, series in six.iteritems(
-            self.get_frequency_series(model, items, start, end, rollup, environment_id)
-        ):
+        for key, series in self.get_frequency_series(
+            model, items, start, end, rollup, environment_id
+        ).items():
             response = responses[key] = {}
             for timestamp, results in series:
                 for member, value in results.items():

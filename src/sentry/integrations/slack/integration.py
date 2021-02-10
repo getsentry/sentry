@@ -1,5 +1,3 @@
-import six
-
 from collections import namedtuple
 from django.utils.translation import ugettext_lazy as _
 
@@ -56,7 +54,7 @@ metadata = IntegrationMetadata(
     features=FEATURES,
     author="The Sentry Team",
     noun=_("Workspace"),
-    issue_url="https://github.com/getsentry/sentry/issues/new?title=Slack%20Integration:%20&labels=Component%3A%20Integrations",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=Slack%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/slack",
     aspects={"alerts": [setup_alert]},
 )
@@ -116,7 +114,7 @@ class SlackIntegrationProvider(IntegrationProvider):
         try:
             resp = client.get("/team.info", params=payload)
         except ApiError as e:
-            logger.error("slack.team-info.response-error", extra={"error": six.text_type(e)})
+            logger.error("slack.team-info.response-error", extra={"error": str(e)})
             raise IntegrationError("Could not retrieve Slack team information.")
 
         return resp["team"]

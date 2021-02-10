@@ -49,6 +49,18 @@ class OrganizationSdkUpdates(APITestCase, SnubaTestCase):
             "enables": [],
         }
 
+    def test_no_projects(self):
+        org = self.create_organization()
+        self.create_member(user=self.user, organization=org)
+
+        url = reverse(
+            "sentry-api-0-organization-sdk-updates",
+            kwargs={"organization_slug": org.slug},
+        )
+
+        response = self.client.get(url)
+        assert len(response.data) == 0
+
     def test_filtered_project(self):
         min_ago = iso_format(before_now(minutes=1))
         self.store_event(

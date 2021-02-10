@@ -103,10 +103,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   handleAddToProject = () => {
     const plugin = this.plugin;
     const {organization, router} = this.props;
-    this.trackIntegrationEvent({
-      eventKey: 'integrations.plugin_add_to_project_clicked',
-      eventName: 'Integrations: Plugin Add to Project Clicked',
-    });
+    this.trackIntegrationEvent('integrations.plugin_add_to_project_clicked');
     modal.openModal(
       modalProps => (
         <ContextPickerModal

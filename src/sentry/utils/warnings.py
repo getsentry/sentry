@@ -75,7 +75,7 @@ class WarningSet(collections.Set):
         return len(self.__warnings)
 
     def __iter__(self):
-        return self.__warnings.values()
+        yield from self.__warnings.values()
 
     def __get_key(self, warning):
         return (type(warning), warning.args if hasattr(warning, "args") else str(warning))

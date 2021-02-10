@@ -151,7 +151,7 @@ def remove_function_outliers_legacy(function):
 
 
 @strategy(id="single-exception:legacy", interfaces=["singleexception"], variants=["!system", "app"])
-def single_exception_legacy(exception, config, **meta):
+def single_exception_legacy(exception, context, **meta):
     type_component = GroupingComponent(
         id="type",
         values=[exception.type] if exception.type else [],
@@ -167,7 +167,7 @@ def single_exception_legacy(exception, config, **meta):
     stacktrace_component = GroupingComponent(id="stacktrace")
 
     if exception.stacktrace is not None:
-        stacktrace_component = config.get_grouping_component(exception.stacktrace, **meta)
+        stacktrace_component = context.get_grouping_component(exception.stacktrace, **meta)
         if stacktrace_component.contributes:
             if exception.type:
                 type_component.update(contributes=True)
@@ -190,12 +190,12 @@ def single_exception_legacy(exception, config, **meta):
 @strategy(
     id="chained-exception:legacy", interfaces=["exception"], variants=["!system", "app"], score=2000
 )
-def chained_exception_legacy(chained_exception, config, **meta):
+def chained_exception_legacy(chained_exception, context, **meta):
     # Case 1: we have a single exception, use the single exception
     # component directly
     exceptions = chained_exception.exceptions()
     if len(exceptions) == 1:
-        return config.get_grouping_component(exceptions[0], **meta)
+        return context.get_grouping_component(exceptions[0], **meta)
 
     # Case 2: try to build a new component out of the individual
     # errors however with a trick.  In case any exception has a
@@ -203,7 +203,7 @@ def chained_exception_legacy(chained_exception, config, **meta):
     any_stacktraces = False
     values = []
     for exception in exceptions:
-        exception_component = config.get_grouping_component(exception, **meta)
+        exception_component = context.get_grouping_component(exception, **meta)
         stacktrace_component = exception_component.get_subcomponent("stacktrace")
         if stacktrace_component is not None and stacktrace_component.contributes:
             any_stacktraces = True
@@ -219,7 +219,7 @@ def chained_exception_legacy(chained_exception, config, **meta):
 
 
 @chained_exception_legacy.variant_processor
-def chained_exception_legacy_variant_processor(variants, config, **meta):
+def chained_exception_legacy_variant_processor(variants, context, **meta):
     return remove_non_stacktrace_variants(variants)
 
 
@@ -382,7 +382,8 @@ def frame_legacy(frame, event, **meta):
 @strategy(
     id="stacktrace:legacy", interfaces=["stacktrace"], variants=["!system", "app"], score=1800
 )
-def stacktrace_legacy(stacktrace, config, variant, **meta):
+def stacktrace_legacy(stacktrace, context, **meta):
+    variant = context["variant"]
     frames = stacktrace.frames
     contributes = None
     hint = None
@@ -414,7 +415,7 @@ def stacktrace_legacy(stacktrace, config, variant, **meta):
     prev_frame = None
     frames_for_filtering = []
     for frame in frames:
-        frame_component = config.get_grouping_component(frame, variant=variant, **meta)
+        frame_component = context.get_grouping_component(frame, variant=variant, **meta)
         if variant == "app" and not frame.in_app and not all_frames_considered_in_app:
             frame_component.update(contributes=False, hint="non app frame")
         elif prev_frame is not None and is_recursion_legacy(frame, prev_frame):
@@ -425,7 +426,7 @@ def stacktrace_legacy(stacktrace, config, variant, **meta):
         frames_for_filtering.append(frame.get_raw_data())
         prev_frame = frame
 
-    rv = config.enhancements.assemble_stacktrace_component(
+    rv = context.config.enhancements.assemble_stacktrace_component(
         values, frames_for_filtering, meta["event"].platform
     )
     rv.update(contributes=contributes, hint=hint)
@@ -433,7 +434,7 @@ def stacktrace_legacy(stacktrace, config, variant, **meta):
 
 
 @strategy(id="threads:legacy", interfaces=["threads"], variants=["!system", "app"], score=1900)
-def threads_legacy(threads_interface, config, **meta):
+def threads_legacy(threads_interface, context, **meta):
     thread_count = len(threads_interface.values)
     if thread_count != 1:
         return GroupingComponent(
@@ -447,5 +448,5 @@ def threads_legacy(threads_interface, config, **meta):
         return GroupingComponent(id="threads", contributes=False, hint="thread has no stacktrace")
 
     return GroupingComponent(
-        id="threads", values=[config.get_grouping_component(stacktrace, **meta)]
+        id="threads", values=[context.get_grouping_component(stacktrace, **meta)]
     )

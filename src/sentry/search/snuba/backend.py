@@ -26,14 +26,16 @@ from sentry.search.base import SearchBackend
 from sentry.search.snuba.executors import PostgresSnubaQueryExecutor
 
 
-def assigned_to_filter(actor, projects):
+def assigned_to_filter(actor, projects, field_filter="id"):
     from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 
     if isinstance(actor, Team):
         return Q(
-            id__in=GroupAssignee.objects.filter(
-                team=actor, project_id__in=[p.id for p in projects]
-            ).values_list("group_id", flat=True)
+            **{
+                f"{field_filter}__in": GroupAssignee.objects.filter(
+                    team=actor, project_id__in=[p.id for p in projects]
+                ).values_list("group_id", flat=True)
+            }
         )
 
     include_none = False
@@ -42,37 +44,43 @@ def assigned_to_filter(actor, projects):
         actor = actor[1]
 
     assigned_to_user = Q(
-        id__in=GroupAssignee.objects.filter(
-            user=actor, project_id__in=[p.id for p in projects]
-        ).values_list("group_id", flat=True)
+        **{
+            f"{field_filter}__in": GroupAssignee.objects.filter(
+                user=actor, project_id__in=[p.id for p in projects]
+            ).values_list("group_id", flat=True)
+        }
     )
     assigned_to_team = Q(
-        id__in=GroupAssignee.objects.filter(
-            project_id__in=[p.id for p in projects],
-            team_id__in=Team.objects.filter(
-                id__in=OrganizationMemberTeam.objects.filter(
-                    organizationmember__in=OrganizationMember.objects.filter(
-                        user=actor, organization_id=projects[0].organization_id
-                    ),
-                    is_active=True,
-                ).values("team")
-            ),
-        ).values_list("group_id", flat=True)
+        **{
+            f"{field_filter}__in": GroupAssignee.objects.filter(
+                project_id__in=[p.id for p in projects],
+                team_id__in=Team.objects.filter(
+                    id__in=OrganizationMemberTeam.objects.filter(
+                        organizationmember__in=OrganizationMember.objects.filter(
+                            user=actor, organization_id=projects[0].organization_id
+                        ),
+                        is_active=True,
+                    ).values("team")
+                ),
+            ).values_list("group_id", flat=True)
+        }
     )
 
     assigned_query = assigned_to_user | assigned_to_team
 
     if include_none:
-        return assigned_query | unassigned_filter(True, projects)
+        return assigned_query | unassigned_filter(True, projects, field_filter=field_filter)
     else:
         return assigned_query
 
 
-def unassigned_filter(unassigned, projects):
+def unassigned_filter(unassigned, projects, field_filter="id"):
     query = Q(
-        id__in=GroupAssignee.objects.filter(project_id__in=[p.id for p in projects]).values_list(
-            "group_id", flat=True
-        )
+        **{
+            f"{field_filter}__in": GroupAssignee.objects.filter(
+                project_id__in=[p.id for p in projects]
+            ).values_list("group_id", flat=True)
+        }
     )
     if unassigned:
         query = ~query
@@ -157,7 +165,7 @@ def assigned_or_suggested_filter(owner, projects, field_filter="id"):
                     .distinct()
                 }
             )
-            | assigned_to_filter(owner, projects)
+            | assigned_to_filter(owner, projects, field_filter=field_filter)
         )
     elif isinstance(owner, User) or (isinstance(owner, list) and owner[0] == "me_or_none"):
         include_none = False
@@ -177,7 +185,7 @@ def assigned_or_suggested_filter(owner, projects, field_filter="id"):
             **{
                 f"{field_filter}__in": GroupOwner.objects.filter(
                     Q(user_id=owner.id) | Q(team__in=teams),
-                    Q(group__assignee_set__isnull=True),
+                    group__assignee_set__isnull=True,
                     project_id__in=[p.id for p in projects],
                     organization_id=organization_id,
                 )
@@ -186,13 +194,15 @@ def assigned_or_suggested_filter(owner, projects, field_filter="id"):
             }
         )
 
-        owner_query = owned_by_me | assigned_to_filter(owner, projects)
+        owner_query = owned_by_me | assigned_to_filter(owner, projects, field_filter=field_filter)
 
         if include_none:
-            no_owner = unassigned_filter(True, projects) & ~Q(
-                id__in=GroupOwner.objects.filter(
-                    project_id__in=[p.id for p in projects]
-                ).values_list("group_id", flat=True)
+            no_owner = unassigned_filter(True, projects, field_filter) & ~Q(
+                **{
+                    f"{field_filter}__in": GroupOwner.objects.filter(
+                        project_id__in=[p.id for p in projects],
+                    ).values_list("group_id", flat=True)
+                }
             )
             return no_owner | owner_query
         else:
@@ -220,7 +230,7 @@ class QCallbackCondition(Condition):
         q = self.callback(value)
         if search_filter.operator not in ("=", "!="):
             raise InvalidSearchQuery(
-                "Operator {} not valid for search {}".format(search_filter.operator, search_filter)
+                f"Operator {search_filter.operator} not valid for search {search_filter}"
             )
         queryset_method = queryset.filter if search_filter.operator == "=" else queryset.exclude
         queryset = queryset_method(q)
@@ -242,14 +252,14 @@ class ScalarCondition(Condition):
     def _get_operator(self, search_filter):
         django_operator = self.OPERATOR_TO_DJANGO.get(search_filter.operator, "")
         if django_operator:
-            django_operator = "__{}".format(django_operator)
+            django_operator = f"__{django_operator}"
         return django_operator
 
     def apply(self, queryset, search_filter):
         django_operator = self._get_operator(search_filter)
         qs_method = queryset.exclude if search_filter.operator == "!=" else queryset.filter
 
-        q_dict = {"{}{}".format(self.field, django_operator): search_filter.value.raw_value}
+        q_dict = {f"{self.field}{django_operator}": search_filter.value.raw_value}
         if self.extra:
             q_dict.update(self.extra)
 
@@ -320,7 +330,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
 
         # ensure sort strategy is supported by executor
         if not query_executor.has_sort_strategy(sort_by):
-            raise InvalidSearchQuery("Sort key '{}' not supported.".format(sort_by))
+            raise InvalidSearchQuery(f"Sort key '{sort_by}' not supported.")
 
         return query_executor.query(
             projects=projects,

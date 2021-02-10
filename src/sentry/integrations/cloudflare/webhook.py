@@ -1,6 +1,5 @@
 import hmac
 import logging
-import six
 
 from django.utils.crypto import constant_time_compare
 from functools import wraps
@@ -57,7 +56,7 @@ class CloudflareWebhookEndpoint(Endpoint):
 
         organizations = Organization.objects.get_for_user(request.user, scope=scope)
         for org in organizations:
-            if six.text_type(org.id) == organization_id:
+            if str(org.id) == organization_id:
                 return org
         return None
 
@@ -74,7 +73,7 @@ class CloudflareWebhookEndpoint(Endpoint):
             teams__in=Team.objects.get_for_user(org, request.user, scope="project:write"),
         )
         for project in projects:
-            if six.text_type(project.id) == project_id:
+            if str(project.id) == project_id:
                 return project
         return None
 
@@ -91,14 +90,14 @@ class CloudflareWebhookEndpoint(Endpoint):
             key=lambda x: x.slug,
         )
 
-        enum_choices = [six.text_type(o.id) for o in organizations]
+        enum_choices = [str(o.id) for o in organizations]
 
         data["install"]["schema"]["properties"]["organization"] = {
             "type": "string",
             "title": "Sentry Organization",
             "order": 1,
             "enum": enum_choices,
-            "enumNames": {six.text_type(o.id): o.slug for o in organizations},
+            "enumNames": {str(o.id): o.slug for o in organizations},
             "required": True,
         }
         if not enum_choices:
@@ -130,14 +129,14 @@ class CloudflareWebhookEndpoint(Endpoint):
             key=lambda x: x.slug,
         )
 
-        enum_choices = [six.text_type(o.id) for o in projects]
+        enum_choices = [str(o.id) for o in projects]
 
         data["install"]["schema"]["properties"]["project"] = {
             "type": "string",
             "title": "Sentry Project",
             "order": 2,
             "enum": enum_choices,
-            "enumNames": {six.text_type(o.id): o.slug for o in projects},
+            "enumNames": {str(o.id): o.slug for o in projects},
             "required": True,
         }
         if not enum_choices:
@@ -202,7 +201,7 @@ class CloudflareWebhookEndpoint(Endpoint):
             return Response(status=400)
 
         event = data.get("event")
-        logger.info("cloudflare.webhook.{}".format(event), extra=logging_data)
+        logger.info(f"cloudflare.webhook.{event}", extra=logging_data)
         if not signature:
             logger.error("cloudflare.webhook.invalid-signature", extra=logging_data)
             return Response(status=400)

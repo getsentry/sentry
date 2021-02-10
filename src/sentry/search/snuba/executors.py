@@ -167,9 +167,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         selected_columns = []
         if get_sample:
             query_hash = md5(json.dumps(conditions).encode("utf-8")).hexdigest()[:8]
-            selected_columns.append(
-                ("cityHash64", ("'{}'".format(query_hash), "group_id"), "sample")
-            )
+            selected_columns.append(("cityHash64", (f"'{query_hash}'", "group_id"), "sample"))
             sort_field = "sample"
             orderby = [sort_field]
             referrer = "search_sample"
@@ -177,7 +175,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             # Get the top matching groups by score, i.e. the actual search results
             # in the order that we want them.
             orderby = [
-                "-{}".format(sort_field),
+                f"-{sort_field}",
                 "group_id",
             ]  # ensure stable sort within the same score
             referrer = "search"
@@ -226,10 +224,10 @@ def trend_aggregation(start, end):
     middle = start + timedelta(seconds=(end - start).total_seconds() * 0.5)
     middle = datetime.strftime(middle, DateArg.date_format)
 
-    agg_range_1 = "countIf(greater(toDateTime('{}'), timestamp))".format(middle)
-    agg_range_2 = "countIf(lessOrEquals(toDateTime('{}'), timestamp))".format(middle)
+    agg_range_1 = f"countIf(greater(toDateTime('{middle}'), timestamp))"
+    agg_range_2 = f"countIf(lessOrEquals(toDateTime('{middle}'), timestamp))"
     return [
-        "if(greater({}, 0), divide({}, {}), 0)".format(agg_range_1, agg_range_2, agg_range_1),
+        f"if(greater({agg_range_1}, 0), divide({agg_range_2}, {agg_range_1}), 0)",
         "",
     ]
 

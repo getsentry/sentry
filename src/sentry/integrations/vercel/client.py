@@ -32,7 +32,7 @@ class VercelClient(ApiClient):
             # always need to use the team_id as a param for requests
             params = params or {}
             params["teamId"] = self.team_id
-        headers = {"Authorization": "Bearer {}".format(self.access_token)}
+        headers = {"Authorization": f"Bearer {self.access_token}"}
         try:
             return self._request(
                 method, path, headers=headers, data=data, params=params, allow_text=allow_text
@@ -48,23 +48,26 @@ class VercelClient(ApiClient):
     def get_user(self):
         return self.get(self.USER_URL)["user"]
 
-    def get_projects(self):
+    def paginate(self, url, type):
         limit = 20
         params = {"limit": limit}
-        projects = []
-        # no one should have more than 200 projects
+        results = []
+        # no one should have more than 200 results
         for i in range(10):
-            resp = self.get(self.PROJECTS_URL, params=params)
-            projects += resp["projects"]
-            # if we have less projects than the limit, we are done
+            resp = self.get(url, params=params)
+            results += resp[type]
+            # if we have less results than the limit, we are done
             if resp["pagination"]["count"] < limit:
-                return projects
+                return results
             # continue pagination by setting the until parameter
             params = params.copy()
             params["until"] = resp["pagination"]["next"]
         # log the warning if this happens so we can look into solutions
-        logger.warn("Did not finish project pagination", extra={"team_id": self.team_id})
-        return projects
+        logger.warn("Did not finish pagination", extra={"team_id": self.team_id, "url": url})
+        return results
+
+    def get_projects(self):
+        return self.paginate(self.PROJECTS_URL, "projects")
 
     def get_project(self, vercel_project_id):
         return self.get(self.PROJECT_URL % vercel_project_id)
@@ -79,7 +82,7 @@ class VercelClient(ApiClient):
         return response
 
     def get_env_vars(self, vercel_project_id):
-        return self.get(self.GET_ENV_VAR_URL % vercel_project_id)
+        return self.paginate(self.GET_ENV_VAR_URL % vercel_project_id, "envs")
 
     def create_secret(self, vercel_project_id, name, value):
         data = {"name": name, "value": value}

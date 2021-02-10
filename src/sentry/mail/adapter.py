@@ -1,6 +1,5 @@
 import itertools
 import logging
-import six
 
 from django.utils import dateformat
 from django.utils.encoding import force_text
@@ -124,7 +123,7 @@ class MailAdapter:
         subject = force_text(subject)
 
         msg = MessageBuilder(
-            subject="%s%s" % (subject_prefix, subject),
+            subject=f"{subject_prefix}{subject}",
             template=template,
             html_template=html_template,
             body=body,
@@ -258,7 +257,7 @@ class MailAdapter:
         return {user.id}
 
     def get_send_to_all_in_project(self, project):
-        cache_key = "mail:send_to:{}".format(project.pk)
+        cache_key = f"mail:send_to:{project.pk}"
         send_to_list = cache.get(cache_key)
         if send_to_list is None:
             send_to_list = [s for s in self.get_sendable_users(project) if s]
@@ -303,7 +302,7 @@ class MailAdapter:
 
         rules = []
         for rule in notification.rules:
-            rule_link = "/organizations/%s/alerts/rules/%s/%s/" % (org.slug, project.slug, rule.id)
+            rule_link = f"/organizations/{org.slug}/alerts/rules/{project.slug}/{rule.id}/"
 
             rules.append((rule.label, rule_link))
 
@@ -316,7 +315,7 @@ class MailAdapter:
         except (Commit.DoesNotExist, Release.DoesNotExist):
             pass
         except Exception as exc:
-            logging.exception(six.text_type(exc))
+            logging.exception(str(exc))
         else:
             for committer in committers:
                 for commit in committer["commits"]:
@@ -347,7 +346,7 @@ class MailAdapter:
         # data which may show PII or source code
         if not enhanced_privacy:
             interface_list = []
-            for interface in six.itervalues(event.interfaces):
+            for interface in event.interfaces.values():
                 body = interface.to_email_html(event)
                 if not body:
                     continue
@@ -422,10 +421,10 @@ class MailAdapter:
             # notification template. If there is more than one record for a group,
             # just choose the most recent one.
             if len(counts) == 1:
-                group = six.next(iter(counts))
+                group = next(iter(counts))
                 record = max(
                     itertools.chain.from_iterable(
-                        groups.get(group, []) for groups in six.itervalues(digest)
+                        groups.get(group, []) for groups in digest.values()
                     ),
                     key=lambda record: record.timestamp,
                 )
@@ -445,7 +444,7 @@ class MailAdapter:
                 "X-SMTPAPI": json.dumps({"category": "digest_email"}),
             }
 
-            group = six.next(iter(counts))
+            group = next(iter(counts))
             subject = self.get_digest_subject(group, counts, start)
 
             self.add_unsubscribe_link(context, user_id, project, "alert_digest")
@@ -468,9 +467,7 @@ class MailAdapter:
 
         email_cls = emails.get(activity.type)
         if not email_cls:
-            logger.debug(
-                "No email associated with activity type `{}`".format(activity.get_type_display())
-            )
+            logger.debug(f"No email associated with activity type `{activity.get_type_display()}`")
             return
 
         email = email_cls(activity)
@@ -490,7 +487,7 @@ class MailAdapter:
 
         context = {
             "project": project,
-            "project_link": absolute_uri("/{}/{}/".format(project.organization.slug, project.slug)),
+            "project_link": absolute_uri(f"/{project.organization.slug}/{project.slug}/"),
             "issue_link": absolute_uri(
                 "/{}/{}/issues/{}/".format(
                     project.organization.slug, project.slug, payload["report"]["issue"]["id"]

@@ -192,6 +192,12 @@ class TestAlertRuleSerializer(TestCase):
         assert alert_rule.snuba_query.dataset == QueryDatasets.TRANSACTIONS.value
         assert alert_rule.snuba_query.aggregate == "count()"
 
+    def test_query_project(self):
+        self.run_fail_validation_test(
+            {"query": f"project:{self.project.slug}"},
+            {"query": ["Project is an invalid search term"]},
+        )
+
     def test_decimal(self):
         params = self.valid_transaction_params.copy()
         alert_threshold = 0.8

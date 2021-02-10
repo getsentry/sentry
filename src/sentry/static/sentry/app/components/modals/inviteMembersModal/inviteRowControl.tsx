@@ -5,10 +5,12 @@ import SelectControl from 'app/components/forms/selectControl';
 import RoleSelectControl from 'app/components/roleSelectControl';
 import {IconClose} from 'app/icons/iconClose';
 import {t} from 'app/locale';
-import {MemberRole, Team} from 'app/types';
+import {MemberRole, SelectValue, Team} from 'app/types';
 
 import renderEmailValue from './renderEmailValue';
 import {InviteStatus} from './types';
+
+type SelectOption = SelectValue<string>;
 
 type Props = {
   className?: string;
@@ -23,10 +25,9 @@ type Props = {
   inviteStatus: InviteStatus;
   onRemove: () => void;
 
-  // TODO(ts): Update when we have react-select typings
-  onChangeEmails: (options: any) => void;
-  onChangeRole: (value: any) => void;
-  onChangeTeams: (value: any) => void;
+  onChangeEmails: (emails: SelectOption[]) => void;
+  onChangeRole: (role: SelectOption) => void;
+  onChangeTeams: (teams?: SelectOption[] | null) => void;
 };
 
 const InviteRowControl = ({
@@ -60,7 +61,10 @@ const InviteRowControl = ({
         valueComponent={props => renderEmailValue(inviteStatus[props.value.value], props)}
         onBlur={e =>
           e.target.value &&
-          onChangeEmails([...emails.map(value => ({value})), {value: e.target.value}])
+          onChangeEmails([
+            ...emails.map(value => ({value, label: value})),
+            {label: e.target.value, value: e.target.value},
+          ])
         }
         shouldKeyDownEventCreateNewOption={({keyCode}) =>
           // Keycodes are ENTER, SPACE, TAB, COMMA
@@ -89,7 +93,7 @@ const InviteRowControl = ({
       <SelectControl
         data-test-id="select-teams"
         disabled={disabled}
-        placeholder={t('Add to teams...')}
+        placeholder={t('Add to teams\u2026')}
         value={teams}
         options={teamOptions.map(({slug}) => ({
           value: slug,

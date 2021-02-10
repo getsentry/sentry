@@ -1,5 +1,6 @@
 import logging
 from collections import defaultdict, OrderedDict
+from functools import reduce
 
 from django.db import transaction
 
@@ -23,7 +24,6 @@ from sentry.models import (
 )
 from sentry import similarity
 from sentry.tasks.base import instrumented_task
-from six.moves import reduce
 
 
 logger = logging.getLogger(__name__)

@@ -4,7 +4,6 @@ import re
 import logging
 from pkg_resources import parse_version
 
-import six
 import sentry
 from django.conf import settings
 from sentry.utils import json
@@ -24,14 +23,14 @@ def load_registry(path):
     try:
         with open(fn, "rb") as f:
             return json.load(f)
-    except IOError:
+    except OSError:
         return None
 
 
 def get_highest_browser_sdk_version(versions):
     full_versions = [x for x in versions if _version_regexp.match(x)]
     return (
-        six.text_type(max(map(parse_version, full_versions)))
+        str(max(map(parse_version, full_versions)))
         if full_versions
         else settings.JS_SDK_LOADER_SDK_VERSION
     )

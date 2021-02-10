@@ -62,7 +62,7 @@ class PluginManager(InstanceManager):
             try:
                 result = getattr(plugin, func_name)(*args, **kwargs)
             except Exception as e:
-                logger = logging.getLogger("sentry.plugins.%s" % (type(plugin).slug,))
+                logger = logging.getLogger("sentry.plugins.{}".format(type(plugin).slug))
                 logger.error("%s.process_error", func_name, exc_info=True, extra={"exception": e})
                 continue
 
@@ -70,9 +70,9 @@ class PluginManager(InstanceManager):
                 return result
 
     def register(self, cls):
-        self.add("%s.%s" % (cls.__module__, cls.__name__))
+        self.add(f"{cls.__module__}.{cls.__name__}")
         return cls
 
     def unregister(self, cls):
-        self.remove("%s.%s" % (cls.__module__, cls.__name__))
+        self.remove(f"{cls.__module__}.{cls.__name__}")
         return cls
