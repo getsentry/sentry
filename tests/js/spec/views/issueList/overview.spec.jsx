@@ -144,6 +144,7 @@ describe('IssueList', function () {
   });
 
   afterEach(function () {
+    jest.clearAllMocks();
     MockApiClient.clearMockResponses();
     if (wrapper) {
       wrapper.unmount();
@@ -1086,7 +1087,7 @@ describe('IssueList', function () {
         projectId: 99,
         query: 'foo:bar',
       };
-      instance.transitionTo(null, savedSearch);
+      instance.transitionTo(undefined, savedSearch);
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/searches/123/',
@@ -1098,6 +1099,26 @@ describe('IssueList', function () {
       });
     });
 
+    it('transitions to saved search with a sort', function () {
+      savedSearch = {
+        id: 123,
+        project: null,
+        query: 'foo:bar',
+        sort: 'freq',
+      };
+      instance.transitionTo(undefined, savedSearch);
+
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/issues/searches/123/',
+        query: {
+          environment: [],
+          project: [parseInt(project.id, 10)],
+          statsPeriod: '14d',
+          sort: savedSearch.sort,
+        },
+      });
+    });
+
     it('goes to all projects when using a basic saved search and global-views feature', function () {
       organization.features = ['global-views'];
       savedSearch = {
@@ -1105,7 +1126,7 @@ describe('IssueList', function () {
         project: null,
         query: 'is:unresolved',
       };
-      instance.transitionTo(null, savedSearch);
+      instance.transitionTo(undefined, savedSearch);
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/searches/1/',
@@ -1124,7 +1145,7 @@ describe('IssueList', function () {
         projectId: null,
         query: 'is:unresolved',
       };
-      instance.transitionTo(null, savedSearch);
+      instance.transitionTo(undefined, savedSearch);
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/searches/1/',

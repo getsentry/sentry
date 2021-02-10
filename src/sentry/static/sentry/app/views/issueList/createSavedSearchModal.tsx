@@ -5,15 +5,18 @@ import {ModalRenderProps} from 'app/actionCreators/modal';
 import {createSavedSearch} from 'app/actionCreators/savedSearches';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
-import {TextField} from 'app/components/forms';
+import {SelectField, TextField} from 'app/components/forms';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {LightWeightOrganization} from 'app/types';
 import withApi from 'app/utils/withApi';
 
+import {getSortLabel, IssueSortOptions} from './utils';
+
 type Props = ModalRenderProps & {
   api: Client;
   query: string;
+  sort?: string;
   organization: LightWeightOrganization;
 };
 
@@ -22,9 +25,18 @@ type State = {
   name: string;
   error: string | null;
   query: string | null;
+  sort: string | null;
 };
 
 type FieldOnChangeParameters = Parameters<NonNullable<TextField['props']['onChange']>>[0];
+
+const SortOptions = [
+  {value: IssueSortOptions.DATE, label: getSortLabel(IssueSortOptions.DATE)},
+  {value: IssueSortOptions.NEW, label: getSortLabel(IssueSortOptions.NEW)},
+  {value: IssueSortOptions.FREQ, label: getSortLabel(IssueSortOptions.FREQ)},
+  {value: IssueSortOptions.PRIORITY, label: getSortLabel(IssueSortOptions.PRIORITY)},
+  {value: IssueSortOptions.USER, label: getSortLabel(IssueSortOptions.USER)},
+];
 
 class CreateSavedSearchModal extends React.Component<Props, State> {
   state: State = {
@@ -32,11 +44,13 @@ class CreateSavedSearchModal extends React.Component<Props, State> {
     name: '',
     error: null,
     query: null,
+    sort: null,
   };
 
   onSubmit = (e: React.FormEvent) => {
     const {api, organization} = this.props;
     const query = this.state.query || this.props.query;
+    const sort = this.state.sort || this.props.sort || null;
 
     e.preventDefault();
 
@@ -44,7 +58,7 @@ class CreateSavedSearchModal extends React.Component<Props, State> {
 
     addLoadingMessage(t('Saving Changes'));
 
-    createSavedSearch(api, organization.slug, this.state.name, query)
+    createSavedSearch(api, organization.slug, this.state.name, query, sort)
       .then(_data => {
         this.props.closeModal();
         this.setState({
@@ -74,9 +88,13 @@ class CreateSavedSearchModal extends React.Component<Props, State> {
     this.setState({query: String(val)});
   };
 
+  handleChangeSort = (val: string | number | boolean) => {
+    this.setState({sort: val as string});
+  };
+
   render() {
     const {isSaving, error} = this.state;
-    const {Header, Footer, Body, closeModal, query} = this.props;
+    const {Header, Footer, Body, closeModal, query, sort} = this.props;
 
     return (
       <form onSubmit={this.onSubmit}>
@@ -105,6 +123,16 @@ class CreateSavedSearchModal extends React.Component<Props, State> {
             value={query}
             required
             onChange={this.handleChangeQuery}
+          />
+          <SelectField
+            key="sort"
+            name="sort"
+            label={t('Sort By')}
+            required
+            clearable={false}
+            defaultValue={sort}
+            options={SortOptions}
+            onChange={this.handleChangeSort}
           />
         </Body>
         <Footer>

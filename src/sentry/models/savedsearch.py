@@ -1,8 +1,27 @@
 from django.db import models
 from django.utils import timezone
+from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.models.search_common import SearchType
+
+
+class SortOptions:
+    DATE = "date"
+    NEW = "new"
+    PRIORITY = "priority"
+    FREQ = "freq"
+    USER = "user"
+
+    @classmethod
+    def as_choices(cls):
+        return (
+            (cls.DATE, _("Last Seen")),
+            (cls.PRIORITY, _("Priority")),
+            (cls.NEW, _("First Seen")),
+            (cls.FREQ, _("Frequency")),
+            (cls.USER, _("Users")),
+        )
 
 
 class SavedSearch(Model):
@@ -18,6 +37,9 @@ class SavedSearch(Model):
     type = models.PositiveSmallIntegerField(default=SearchType.ISSUE.value, null=True)
     name = models.CharField(max_length=128)
     query = models.TextField()
+    sort = models.CharField(
+        max_length=16, default=SortOptions.DATE, choices=SortOptions.as_choices()
+    )
     date_added = models.DateTimeField(default=timezone.now)
     # TODO: Remove this column once we've completely removed Sentry 9
     is_default = models.BooleanField(default=False)
