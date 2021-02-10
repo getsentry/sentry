@@ -103,7 +103,7 @@ class ExternalTeam(DefaultFieldsModel):
 class ExternalUser(DefaultFieldsModel):
     __core__ = False
 
-    user = FlexibleForeignKey("sentry.User")
+    organizationmember = FlexibleForeignKey("sentry.OrganizationMember")
     provider = BoundedPositiveIntegerField(
         choices=(
             (ExternalProviders.GITHUB, "github"),
@@ -116,7 +116,7 @@ class ExternalUser(DefaultFieldsModel):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_externaluser"
-        unique_together = (("user", "provider", "external_id"),)
+        unique_together = (("organizationmember", "provider", "external_id"),)
 
 
 class OrganizationIntegration(DefaultFieldsModel):
