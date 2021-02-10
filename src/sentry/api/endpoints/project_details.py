@@ -1,4 +1,3 @@
-import six
 import logging
 from itertools import chain
 from uuid import uuid4
@@ -76,7 +75,7 @@ class DynamicSamplingConditionSerializer(serializers.Serializer):
             inner = data.get("inner")
             if inner is None:
                 raise serializers.ValidationError(
-                    "Missing inner field from  rule condition '{}' ".format(op)
+                    f"Missing inner field from  rule condition '{op}' "
                 )
             if op == "not":
                 self.validate(inner)
@@ -84,13 +83,11 @@ class DynamicSamplingConditionSerializer(serializers.Serializer):
                 for child in inner:
                     self.validate(child)
         elif op == "eq":
-            for key in six.iterkeys(data):
+            for key in data.keys():
                 if key not in ["op", "name", "value", "ignoreCase"]:
-                    raise serializers.ValidationError(
-                        "Invalid filed {} for eq condition".format(key)
-                    )
+                    raise serializers.ValidationError(f"Invalid filed {key} for eq condition")
             name = data.get("name")
-            if type(name) not in six.string_types:
+            if type(name) not in (str,):
                 raise serializers.ValidationError(
                     "Invalid field value {} for name, expected string", format(name)
                 )
@@ -102,34 +99,32 @@ class DynamicSamplingConditionSerializer(serializers.Serializer):
             if data.get("value") is None:
                 raise serializers.ValidationError("Missing field 'value'")
         elif op == "glob":
-            for key in six.iterkeys(data):
+            for key in data.keys():
                 if key not in ["op", "name", "value", "ignoreCase"]:
-                    raise serializers.ValidationError(
-                        "Invalid filed {} for eq condition".format(key)
-                    )
+                    raise serializers.ValidationError(f"Invalid filed {key} for eq condition")
             name = data.get("name")
-            if type(name) not in six.string_types:
+            if type(name) not in (str,):
                 raise serializers.ValidationError(
                     "Invalid field value {} for name, expected string", format(name)
                 )
             if data.get("value") is None:
                 raise serializers.ValidationError("Missing field 'value'")
         elif op == "has":
-            for key in six.iterkeys(data):
+            for key in data.keys():
                 if key not in ["op", "name"]:
                     raise serializers.ValidationError(
-                        "Invalid filed {} for has condition".format(key)
+                        f"Invalid filed {key} for has condition"
                     )
             name = data.get("name")
-            if type(name) not in six.string_types:
+            if type(name) not in (str,):
                 raise serializers.ValidationError(
                     "Invalid field value {} for name, expected string", format(name)
                 )
         elif op == "legacyBrowser":
-            for key in six.iterkeys(data):
+            for key in data.keys():
                 if key not in ["op", "value"]:
                     raise serializers.ValidationError(
-                        "Invalid filed {} for has condition".format(key)
+                        f"Invalid filed {key} for has condition"
                     )
             value = data.get("value")
             if type(value) != list:
@@ -137,22 +132,20 @@ class DynamicSamplingConditionSerializer(serializers.Serializer):
                     "Invalid field type for value expected array got {} ", format(type(value))
                 )
             for val in value:
-                if type(val) not in six.string_types:
+                if type(val) not in (str,):
                     raise serializers.ValidationError(
                         "Invalid field value {} for browser type expected string", format(val)
                     )
         elif op in ["csp", "clientIp", "errorMessages"]:
-            for key in six.iterkeys(data):
+            for key in data.keys():
                 if key not in ["op", "value"]:
                     raise serializers.ValidationError(
-                        "Invalid filed {} for {} condition".format(key, op)
+                        f"Invalid filed {key} for {op} condition"
                     )
             if data.get("value") is None:
-                raise serializers.ValidationError("Missing field 'value' in operator:{}".format(op))
+                raise serializers.ValidationError(f"Missing field 'value' in operator:{op}")
         else:
-            raise serializers.ValidationError(
-                "Invalid dynamic rule condition operator:'{}'".format(op)
-            )
+            raise serializers.ValidationError(f"Invalid dynamic rule condition operator:'{op}'")
 
         return data
 
@@ -245,9 +238,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
 
     def validate_slug(self, slug):
         if slug in RESERVED_PROJECT_SLUGS:
-            raise serializers.ValidationError(
-                'The slug "%s" is reserved and not allowed.' % (slug,)
-            )
+            raise serializers.ValidationError(f'The slug "{slug}" is reserved and not allowed.')
         project = self.context["project"]
         other = (
             Project.objects.filter(slug=slug, organization=project.organization)
@@ -300,7 +291,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             sources = parse_sources(sources_json.strip())
             sources_json = json.dumps(sources) if sources else ""
         except InvalidSourcesError as e:
-            raise serializers.ValidationError(six.text_type(e))
+            raise serializers.ValidationError(str(e))
 
         return sources_json
 
@@ -311,7 +302,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         try:
             Enhancements.from_config_string(value)
         except InvalidEnhancerConfig as e:
-            raise serializers.ValidationError(six.text_type(e))
+            raise serializers.ValidationError(str(e))
 
         return value
 
@@ -322,7 +313,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         try:
             FingerprintingRules.from_config_string(value)
         except InvalidFingerprintingConfig as e:
-            raise serializers.ValidationError(six.text_type(e))
+            raise serializers.ValidationError(str(e))
 
         return value
 
@@ -453,7 +444,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         if not has_project_write:
             # options isn't part of the serializer, but should not be editable by members
-            for key in chain(six.iterkeys(ProjectAdminSerializer().fields), ["options"]):
+            for key in chain(ProjectAdminSerializer().fields.keys(), ["options"]):
                 if request.data.get(key) and not result.get(key):
                     return Response(
                         {"detail": ["You do not have permission to perform this action."]},
@@ -689,22 +680,22 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "sentry:blacklisted_ips",
                     clean_newline_inputs(options["filters:blacklisted_ips"]),
                 )
-            if "filters:{}".format(FilterTypes.RELEASES) in options:
+            if f"filters:{FilterTypes.RELEASES}" in options:
                 if features.has("projects:custom-inbound-filters", project, actor=request.user):
                     project.update_option(
-                        "sentry:{}".format(FilterTypes.RELEASES),
-                        clean_newline_inputs(options["filters:{}".format(FilterTypes.RELEASES)]),
+                        f"sentry:{FilterTypes.RELEASES}",
+                        clean_newline_inputs(options[f"filters:{FilterTypes.RELEASES}"]),
                     )
                 else:
                     return Response(
                         {"detail": ["You do not have that feature enabled"]}, status=400
                     )
-            if "filters:{}".format(FilterTypes.ERROR_MESSAGES) in options:
+            if f"filters:{FilterTypes.ERROR_MESSAGES}" in options:
                 if features.has("projects:custom-inbound-filters", project, actor=request.user):
                     project.update_option(
-                        "sentry:{}".format(FilterTypes.ERROR_MESSAGES),
+                        f"sentry:{FilterTypes.ERROR_MESSAGES}",
                         clean_newline_inputs(
-                            options["filters:{}".format(FilterTypes.ERROR_MESSAGES)],
+                            options[f"filters:{FilterTypes.ERROR_MESSAGES}"],
                             case_insensitive=False,
                         ),
                     )
