@@ -139,9 +139,8 @@ export class IntegrationListDirectory extends AsyncComponent<
       }
     });
     trackIntegrationEvent(
+      'integrations.index_viewed',
       {
-        eventKey: 'integrations.index_viewed',
-        eventName: 'Integrations: Index Page Viewed',
         integrations_installed: integrationsInstalled.size,
         view: 'integrations_directory',
       },
@@ -266,9 +265,8 @@ export class IntegrationListDirectory extends AsyncComponent<
 
   debouncedTrackIntegrationSearch = debounce((search: string, numResults: number) => {
     trackIntegrationEvent(
+      'integrations.directory_item_searched',
       {
-        eventKey: 'integrations.directory_item_searched',
-        eventName: 'Integrations: Directory Item Searched',
         view: 'integrations_directory',
         search_term: search,
         num_results: numResults,
@@ -348,9 +346,8 @@ export class IntegrationListDirectory extends AsyncComponent<
 
       if (category) {
         trackIntegrationEvent(
+          'integrations.directory_category_selected',
           {
-            eventKey: 'integrations.directory_category_selected',
-            eventName: 'Integrations: Directory Category Selected',
             view: 'integrations_directory',
             category,
           },

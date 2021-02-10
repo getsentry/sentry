@@ -154,9 +154,8 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
   //debounce so we don't send a request on every input change
   debouncedTrackValueChanged = debounce((fieldName: string) => {
     trackIntegrationEvent(
+      'integrations.installation_input_value_changed',
       {
-        eventKey: 'integrations.installation_input_value_changed',
-        eventName: 'Integrations: Installation Input Value Changed',
         integration: 'aws_lambda',
         integration_type: 'first_party',
         field_name: fieldName,
@@ -167,9 +166,8 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
 
   trackOpenCloudFormation = () => {
     trackIntegrationEvent(
+      'integrations.cloudformation_link_clicked',
       {
-        eventKey: 'integrations.cloudformation_link_clicked',
-        eventName: 'Integrations: CloudFormation Link Clicked',
         integration: 'aws_lambda',
         integration_type: 'first_party',
       },

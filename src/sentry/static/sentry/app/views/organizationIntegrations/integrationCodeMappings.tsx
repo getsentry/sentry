@@ -92,9 +92,8 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     // the manual setup option flow from the issue details page
     const startSession = referrer === 'stacktrace-issue-details' ? false : true;
     trackIntegrationEvent(
+      'integrations.code_mappings_viewed',
       {
-        eventKey: 'integrations.code_mappings_viewed',
-        eventName: 'Integrations: Code Mappings Viewed',
         integration: this.props.integration.provider.key,
         integration_type: 'first_party',
       },
@@ -123,9 +122,8 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
 
   handleSubmitSuccess = (pathConfig: RepositoryProjectPathConfig) => {
     trackIntegrationEvent(
+      'integrations.stacktrace_complete_setup',
       {
-        eventKey: 'integrations.stacktrace_complete_setup',
-        eventName: 'Integrations: Stacktrace Complete Setup',
         setup_type: 'manual',
         view: 'integration_configuration_detail',
         provider: this.props.integration.provider.key,
@@ -143,9 +141,8 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
   openModal = (pathConfig?: RepositoryProjectPathConfig) => {
     const {organization, integration} = this.props;
     trackIntegrationEvent(
+      'integrations.stacktrace_start_setup',
       {
-        eventKey: 'integrations.stacktrace_start_setup',
-        eventName: 'Integrations: Stacktrace Start Setup',
         setup_type: 'manual',
         view: 'integration_configuration_detail',
         provider: this.props.integration.provider.key,
@@ -213,9 +210,8 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
                     size="small"
                     onClick={() => {
                       trackIntegrationEvent(
+                        'integrations.stacktrace_docs_clicked',
                         {
-                          eventKey: 'integrations.stacktrace_docs_clicked',
-                          eventName: 'Integrations: Stacktrace Docs Clicked',
                           view: 'integration_configuration_detail',
                           provider: this.props.integration.provider.key,
                         },

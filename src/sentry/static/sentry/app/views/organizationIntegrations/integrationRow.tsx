@@ -105,9 +105,8 @@ const IntegrationRow = (props: Props) => {
               size="xsmall"
               onClick={() =>
                 trackIntegrationEvent(
+                  'integrations.resolve_now_clicked',
                   {
-                    eventKey: 'integrations.resolve_now_clicked',
-                    eventName: 'Integrations: Resolve Now Clicked',
                     integration_type: convertIntegrationTypeToSnakeCase(type),
                     integration: slug,
                   },

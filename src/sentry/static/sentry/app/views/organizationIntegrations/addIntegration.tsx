@@ -64,9 +64,8 @@ export default class AddIntegration extends React.Component<Props> {
 
   openDialog = (urlParams?: {[key: string]: string}) => {
     trackIntegrationEvent(
+      'integrations.installation_start',
       {
-        eventKey: 'integrations.installation_start',
-        eventName: 'Integrations: Installation Start',
         integration: this.props.provider.key,
         integration_type: 'first_party',
         ...this.props.analyticsParams,
@@ -115,9 +114,8 @@ export default class AddIntegration extends React.Component<Props> {
       return;
     }
     trackIntegrationEvent(
+      'integrations.installation_complete',
       {
-        eventKey: 'integrations.installation_complete',
-        eventName: 'Integrations: Installation Complete',
         integration: this.props.provider.key,
         integration_type: 'first_party',
         ...this.props.analyticsParams,

@@ -41,9 +41,8 @@ class IntegrationServerlessRow extends React.Component<Props, State> {
 
   recordAction = (action: 'enable' | 'disable' | 'updateVersion') => {
     trackIntegrationEvent(
+      'integrations.serverless_function_action',
       {
-        eventKey: 'integrations.serverless_function_action',
-        eventName: 'Integrations: Serverless Function Action',
         integration: this.props.integration.provider.key,
         integration_type: 'first_party',
         action,
