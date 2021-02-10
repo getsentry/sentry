@@ -18,7 +18,7 @@ query_big_sur() {
 }
 
 get_shell_startup_script() {
-  _startup_script=''
+  local _startup_script=''
   if [ -n "$SHELL" ]; then
     case "$SHELL" in
       */bash)
@@ -38,6 +38,7 @@ get_shell_startup_script() {
     echo "The environment variable \$SHELL needs to be defined."
     exit 1
   fi
+  echo "$_startup_script"
 }
 
 _append_to_startup_script() {
@@ -61,21 +62,19 @@ _append_to_startup_script() {
 }
 
 append_to_config() {
-  get_shell_startup_script
-  if [ -n "$_startup_script" ]; then
-    echo "Adding pyenv init (if missing) to ${_startup_script}..."
+  if [ -n "$1" ]; then
+    echo "Adding pyenv init (if missing) to ${1}..."
     # shellcheck disable=SC2016
-    if ! grep -qF 'eval "$(pyenv init -)"' "${_startup_script}"; then
+    if ! grep -qF 'eval "$(pyenv init -)"' "${1}"; then
       # pyenv init - is needed to include the pyenv shims in your PATH
       # The first \n is very important since on Github workers the output was being appended to
       # the last line rather than on a new line. I never figured out why
-      _append_to_startup_script "${_startup_script}"
+      _append_to_startup_script "${1}"
     fi
   fi
 }
 
-# Setup pyenv of path
-setup_pyenv() {
+install_pyenv() {
   if command -v pyenv &>/dev/null; then
     echo "Installing Python (if missing) via pyenv"
     local pyenv_version
@@ -99,16 +98,26 @@ setup_pyenv() {
     echo "!!! pyenv not found, try running bootstrap script again or run \`brew bundle\` in the sentry repo"
     exit 1
   fi
+}
 
-  append_to_config
+# Setup pyenv of path
+setup_pyenv() {
+  install_pyenv
+  _startup_script=$(get_shell_startup_script)
+  append_to_config "$_startup_script"
 
-  # If the script is called with the "dot space right" approach (. ./scripts/pyenv_setup.sh),
-  # the effects of this will be persistent outside of this script
-  # shellcheck disable=SC1090
-  source "${_startup_script}"
-  # The Python version installed via pyenv does not come with wheel pre-installed
-  # Installing wheel will speed up installation of Python dependencies
-  PIP_DISABLE_PIP_VERSION_CHECK=on pip install wheel
+  if [ -n "$_startup_script" ]; then
+    echo "Activating ${_startup_script}"
+    direnv hook zsh
+    # If the script is called with the "dot space right" approach (. ./scripts/pyenv_setup.sh),
+    # the effects of this will be persistent outside of this script
+    set -x
+    # shellcheck disable=SC1090
+    source "${_startup_script}"
+    # The Python version installed via pyenv does not come with wheel pre-installed
+    # Installing wheel will speed up installation of Python dependencies
+    PIP_DISABLE_PIP_VERSION_CHECK=on pip install wheel
+  fi
 }
 
 setup_pyenv
