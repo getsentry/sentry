@@ -643,7 +643,20 @@ def series_map(function, series):
     return [(timestamp, function(value)) for timestamp, value in series]
 
 
-colors = ["#696dc3", "#6288ba", "#59aca4", "#99d59a", "#daeca9"]
+project_breakdown_colors = ["#422C6E", "#895289", "#D6567F", "#F38150", "#F2B713"]
+
+total_color = """
+linear-gradient(
+    -45deg,
+    #ccc 25%,
+    transparent 25%,
+    transparent 50%,
+    #ccc 50%,
+    #ccc 75%,
+    transparent 75%,
+    transparent
+);
+"""
 
 
 def build_project_breakdown_series(reports):
@@ -668,7 +681,7 @@ def build_project_breakdown_series(reports):
             ),
             reverse=True,
         ),
-    )[: len(colors)]
+    )[: len(project_breakdown_colors)]
 
     # Starting building the list of items to include in the report chart. This
     # is a list of [Key, Report] pairs, in *ascending* order of the total sum
@@ -685,7 +698,7 @@ def build_project_breakdown_series(reports):
             ),
             reports[instance__color[0]],
         ),
-        zip(instances, colors),
+        zip(instances, project_breakdown_colors),
     )[::-1]
 
     # Collect any reports that weren't in the selection set, merge them
@@ -715,7 +728,9 @@ def build_project_breakdown_series(reports):
         "maximum": max(sum(count for key, count in value) for timestamp, value in series),
         "legend": {
             "rows": legend,
-            "total": Key("Total", None, None, reduce(merge_mappings, [key.data for key in legend])),
+            "total": Key(
+                "Total", None, total_color, reduce(merge_mappings, [key.data for key in legend])
+            ),
         },
     }
 
@@ -734,9 +749,9 @@ def to_context(organization, interval, reports):
             "types": list(
                 zip(
                     (
-                        DistributionType("New", "#8477e0"),
-                        DistributionType("Reopened", "#6C5FC7"),
-                        DistributionType("Existing", "#534a92"),
+                        DistributionType("New", "#DF5120"),
+                        DistributionType("Reopened", "#FF7738"),
+                        DistributionType("Existing", "#F9C7B9"),
                     ),
                     report.issue_summaries,
                 )
