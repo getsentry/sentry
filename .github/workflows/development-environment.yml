@@ -56,10 +56,11 @@ jobs:
       - name: Install Python (via Pyenv)
         id: python-version
         # XXX: Can we cache the installed Python environments?
-        # We source the startup script once in order for pyenv to be activated
+        # We echo to $GITHUB_ENV to make the PATH changes by pyenv init permanent for the rest of the execution
         run: |
           make setup-pyenv
-          source "$HOME/.zshrc"
+          eval "$(pyenv init -)"
+          echo "PATH=$PATH" >> $GITHUB_ENV
           echo "::set-output name=python-version::$(python -V  | sed s/Python\ //g)"
 
       - name: Setup pip
@@ -90,9 +91,6 @@ jobs:
 
       - name: Set up development environment (as per docs)
         run: |
-          python -V
-          source "$HOME/.zshrc"
-          python -V
           python -m venv .venv
           source .venv/bin/activate
           pip install wheel  # GitHub Actions does not have `wheel` installed by default
