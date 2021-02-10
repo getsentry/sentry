@@ -22,8 +22,8 @@ import {
   SentryAppInstallation,
 } from 'app/types';
 import {Hooks} from 'app/types/hooks';
-import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
-import {AnalyticsKey, EventParameters} from 'app/utils/integrationEvents';
+import {EventParameters, trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import {AnalyticsKey} from 'app/utils/integrationEvents';
 
 const mapIntegrationParams = analyticsParams => {
   //Reload expects integration_status even though it's not relevant for non-sentry apps
@@ -35,6 +35,8 @@ const mapIntegrationParams = analyticsParams => {
   return fullParams;
 };
 
+//wrapper around trackAdvancedAnalyticsEvent which has some extra
+//data massaging above
 export function trackIntegrationEvent<T extends AnalyticsKey>(
   eventKey: T,
   analyticsParams: EventParameters[T],
