@@ -402,6 +402,8 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                     "end": timezone.now(),
                 },
             )
+            if any(cond[0] == "project_id" for cond in snuba_filter.conditions):
+                raise serializers.ValidationError({"query": "Project is an invalid search term"})
         except (InvalidSearchQuery, ValueError) as e:
             raise serializers.ValidationError("Invalid Query or Metric: {}".format(force_text(e)))
         else:
