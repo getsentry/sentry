@@ -6,13 +6,16 @@ import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
 import withProjects from 'app/utils/withProjects';
 
 const MOBILE_PLATFORMS = [
+  'react-native',
   'android',
-  'csharp',
+  'cordova',
   'cocoa',
   'cocoa-swift',
   'apple-ios',
   'swift',
   'flutter',
+  'xamarin',
+  'dotnet-xamarin',
 ];
 
 const MOBILE_USER_AGENTS = ['okhttp/', 'CFNetwork/', 'Alamofire/', 'Dalvik/'];
@@ -59,6 +62,7 @@ class SuggestProjectCTA extends React.Component<Props> {
       ) ?? ''
     );
   }
+  //check our projects to see if there is a mobile project
   get hasMobileProject() {
     return this.props.projects.some(project =>
       MOBILE_PLATFORMS.includes(project.platform || '')

@@ -6,6 +6,7 @@ import isEqual from 'lodash/isEqual';
 
 import {fetchSentryAppComponents} from 'app/actionCreators/sentryAppComponents';
 import {Client} from 'app/api';
+import ErrorBoundary from 'app/components/errorBoundary';
 import GroupEventDetailsLoadingError from 'app/components/errors/groupEventDetailsLoadingError';
 import EventEntries from 'app/components/events/eventEntries';
 import {withMeta} from 'app/components/events/meta/metaProxy';
@@ -221,7 +222,11 @@ class GroupEventDetails extends React.Component<Props, State> {
 
     return (
       <div className={className}>
-        {event && <SuggestProjectCTA event={event} organization={organization} />}
+        {event && (
+          <ErrorBoundary hide>
+            <SuggestProjectCTA event={event} organization={organization} />
+          </ErrorBoundary>
+        )}
         <div className="event-details-container">
           {hasReprocessingV2Feature &&
           reprocessStatus === ReprocessingStatus.REPROCESSING &&

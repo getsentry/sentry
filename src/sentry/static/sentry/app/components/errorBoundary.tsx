@@ -21,6 +21,8 @@ type Props = DefaultProps & {
 
   // To add context for better error reporting
   errorTag?: Record<string, string>;
+  // show nothing at all if there is an error
+  hide?: boolean;
 };
 
 type State = {
@@ -86,7 +88,10 @@ class ErrorBoundary extends React.Component<Props, State> {
       return this.props.children;
     }
 
-    const {customComponent, mini, message, className} = this.props;
+    const {customComponent, mini, message, className, hide} = this.props;
+    if (hide) {
+      return null;
+    }
 
     if (customComponent) {
       return customComponent;
