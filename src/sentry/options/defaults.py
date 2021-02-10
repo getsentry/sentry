@@ -119,14 +119,9 @@ register("cloudflare.secret-key", default="")
 # Slack Integration
 register("slack.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("slack.client-secret", flags=FLAG_PRIORITIZE_DISK)
+# signing-secret is preferred, but need to keep verification-token for apps that use it
 register("slack.verification-token", flags=FLAG_PRIORITIZE_DISK)
 register("slack.signing-secret", flags=FLAG_PRIORITIZE_DISK)
-register("slack.legacy-app", flags=FLAG_PRIORITIZE_DISK, type=Bool, default=True)
-
-# Slack V2 Integration
-register("slack-v2.client-id", flags=FLAG_PRIORITIZE_DISK)
-register("slack-v2.client-secret", flags=FLAG_PRIORITIZE_DISK)
-register("slack-v2.signing-secret", flags=FLAG_PRIORITIZE_DISK)
 
 # GitHub Integration
 register("github-app.id", default=0)

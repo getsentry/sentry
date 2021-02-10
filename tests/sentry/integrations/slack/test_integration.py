@@ -13,7 +13,6 @@ from sentry.models import (
     OrganizationIntegration,
 )
 from sentry.testutils import IntegrationTestCase, TestCase
-from sentry.testutils.helpers import override_options
 
 
 class SlackIntegrationTest(IntegrationTestCase):
@@ -148,16 +147,6 @@ class SlackIntegrationTest(IntegrationTestCase):
         self.assert_setup_flow(authorizing_user_id="UXXXXXXX2")
         identity = Identity.objects.get()
         assert identity.external_id == "UXXXXXXX2"
-
-    @responses.activate
-    def test_install_v2(self):
-        with override_options(
-            {"slack-v2.client-id": "other-id", "slack-v2.client-secret": "other-secret"}
-        ):
-            self.assert_setup_flow(
-                expected_client_id="other-id",
-                expected_client_secret="other-secret",
-            )
 
 
 class SlackIntegrationConfigTest(TestCase):

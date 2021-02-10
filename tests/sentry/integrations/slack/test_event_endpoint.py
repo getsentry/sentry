@@ -1,7 +1,7 @@
 import responses
 from urllib.parse import parse_qsl
+from sentry.utils.compat.mock import patch
 
-from sentry import options
 from sentry.utils import json
 from sentry.integrations.slack.utils import build_group_attachment, build_incident_attachment
 from sentry.models import Integration, OrganizationIntegration
@@ -79,13 +79,19 @@ class BaseEventTest(APITestCase):
         )
         OrganizationIntegration.objects.create(organization=self.org, integration=self.integration)
 
+    @patch(
+        "sentry.integrations.slack.requests.SlackRequest._check_signing_secret", return_value=True
+    )
     def post_webhook(
-        self, event_data=None, type="event_callback", data=None, token=UNSET, team_id="TXXXXXXX1"
+        self,
+        check_signing_secret_mock,
+        event_data=None,
+        type="event_callback",
+        data=None,
+        token=UNSET,
+        team_id="TXXXXXXX1",
     ):
-        if token is UNSET:
-            token = options.get("slack.verification-token")
         payload = {
-            "token": token,
             "team_id": team_id,
             "api_app_id": "AXXXXXXXX1",
             "type": type,
@@ -97,30 +103,26 @@ class BaseEventTest(APITestCase):
             payload.update(data)
         if event_data:
             payload.setdefault("event", {}).update(event_data)
+
         return self.client.post("/extensions/slack/event/", payload)
 
 
 class UrlVerificationEventTest(BaseEventTest):
     challenge = "3eZbrw1aBm2rZgRNFdxV2595E9CY3gmdALWMmHkvFXO7tYXAYM8P"
 
-    def test_valid_token(self):
+    @patch(
+        "sentry.integrations.slack.requests.SlackRequest._check_signing_secret", return_value=True
+    )
+    def test_valid_event(self, check_signing_secret_mock):
         resp = self.client.post(
             "/extensions/slack/event/",
             {
                 "type": "url_verification",
                 "challenge": self.challenge,
-                "token": options.get("slack.verification-token"),
             },
         )
         assert resp.status_code == 200, resp.content
         assert resp.data["challenge"] == self.challenge
-
-    def test_invalid_token(self):
-        resp = self.client.post(
-            "/extensions/slack/event/",
-            {"type": "url_verification", "challenge": self.challenge, "token": "fizzbuzz"},
-        )
-        assert resp.status_code == 401, resp.content
 
 
 class LinkSharedEventTest(BaseEventTest):

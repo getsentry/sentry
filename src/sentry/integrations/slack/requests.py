@@ -93,19 +93,18 @@ class SlackRequest:
             raise SlackRequestError(status=400)
 
     def _authorize(self):
-        # check v1 then v2
+        # XXX(meredith): Signing secrets are the prefered way
+        # but self-hosted could still have an older slack bot
+        # app that just has the verification token.
         signing_secret = options.get("slack.signing-secret")
         verification_token = options.get("slack.verification-token")
-        # for v1, only check the verification_token if we don't have a signing_secret
+
         if signing_secret:
             if self._check_signing_secret(signing_secret):
                 return
         elif verification_token and self._check_verification_token(verification_token):
             return
-        # for v2, only check signing secret
-        signing_secret = options.get("slack-v2.signing-secret")
-        if signing_secret and self._check_signing_secret(signing_secret):
-            return
+
         # unfortunately, we can't know which auth was supposed to succeed
         self._error("slack.action.auth")
         raise SlackRequestError(status=401)
