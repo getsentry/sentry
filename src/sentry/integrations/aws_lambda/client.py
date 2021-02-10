@@ -45,9 +45,7 @@ def gen_aws_client(account_number, region, aws_external_id, service_name="lambda
                     {
                         "Effect": "Allow",
                         "Action": ["lambda:UpdateFunctionConfiguration", "lambda:GetFunction"],
-                        "Resource": "arn:aws:lambda:{}:{}:function:*".format(
-                            region, account_number
-                        ),
+                        "Resource": f"arn:aws:lambda:{region}:{account_number}:function:*",
                     },
                     {
                         "Effect": "Allow",

@@ -28,7 +28,7 @@ def build_incident_attachment(incident, integration_key, metric_value=None):
     return {
         "routing_key": integration_key,
         "event_action": event_action,
-        "dedup_key": "incident_{}_{}".format(incident.organization_id, incident.identifier),
+        "dedup_key": f"incident_{incident.organization_id}_{incident.identifier}",
         "payload": {
             "summary": incident.alert_rule.name,
             "severity": severity,

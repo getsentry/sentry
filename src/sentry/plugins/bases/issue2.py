@@ -160,7 +160,7 @@ class IssueTrackingPlugin2(Plugin):
         """
         if isinstance(issue, dict):
             return "#{}".format(issue["id"])
-        return "#{}".format(issue)
+        return f"#{issue}"
 
     def create_issue(self, request, group, form_data, **kwargs):
         """
@@ -197,8 +197,8 @@ class IssueTrackingPlugin2(Plugin):
         # XXX(dcramer): legacy support
         conf_key = self.get_conf_key()
         if self.issue_fields is None:
-            return {"id": "{}:tid".format(conf_key)}
-        return {key: "{}:issue_{}".format(conf_key, key) for key in self.issue_fields}
+            return {"id": f"{conf_key}:tid"}
+        return {key: f"{conf_key}:issue_{key}" for key in self.issue_fields}
 
     def build_issue(self, group):
         issue_field_map = self.get_issue_field_map()

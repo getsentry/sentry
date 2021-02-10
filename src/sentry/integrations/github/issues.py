@@ -11,7 +11,7 @@ class GitHubIssueBasic(IssueBasicMixin):
     def get_issue_url(self, key):
         domain_name, user = self.model.metadata["domain_name"].split("/")
         repo, issue_id = key.split("#")
-        return "https://{}/{}/issues/{}".format(domain_name, repo, issue_id)
+        return f"https://{domain_name}/{repo}/issues/{issue_id}"
 
     def after_link_issue(self, external_issue, **kwargs):
         data = kwargs["data"]

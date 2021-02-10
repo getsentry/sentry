@@ -41,8 +41,8 @@ class GitlabIssueSearchEndpoint(IntegrationEndpoint):
             return Response(
                 [
                     {
-                        "label": "(#%s) %s" % (i["iid"], i["title"]),
-                        "value": "%s#%s" % (i["project_id"], i["iid"]),
+                        "label": "(#{}) {}".format(i["iid"], i["title"]),
+                        "value": "{}#{}".format(i["project_id"], i["iid"]),
                     }
                     for i in response
                 ]

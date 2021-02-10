@@ -175,7 +175,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     },
                 )
 
-        key = "slack:{}:{}".format(integration.id, channel)
+        key = f"slack:{integration.id}:{channel}"
 
         metrics.incr("notifications.sent", instance="slack.notification", skip_internal=False)
         yield self.future(send_notification, key=key)

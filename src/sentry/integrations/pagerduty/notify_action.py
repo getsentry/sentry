@@ -118,7 +118,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                 },
             )
 
-        key = "pagerduty:{}".format(integration.id)
+        key = f"pagerduty:{integration.id}"
         yield self.future(send_notification, key=key)
 
     def get_services(self):
