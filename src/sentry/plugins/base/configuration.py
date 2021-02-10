@@ -15,12 +15,12 @@ from sentry.web.helpers import render_to_string
 
 def react_plugin_config(plugin, project, request):
     response = client.get(
-        "/projects/{}/{}/plugins/{}/".format(project.organization.slug, project.slug, plugin.slug),
+        f"/projects/{project.organization.slug}/{project.slug}/plugins/{plugin.slug}/",
         request=request,
     )
     nonce = ""
     if hasattr(request, "csp_nonce"):
-        nonce = ' nonce="{}"'.format(request.csp_nonce)
+        nonce = f' nonce="{request.csp_nonce}"'
 
     return mark_safe(
         """
@@ -69,7 +69,7 @@ def default_plugin_config(plugin, project, request):
             test_results = plugin.test_configuration_and_get_test_results(project)
         else:
             for field, value in form.cleaned_data.items():
-                key = "%s:%s" % (plugin_key, field)
+                key = f"{plugin_key}:{field}"
                 if project:
                     ProjectOption.objects.set_value(project, key, value)
                 else:
@@ -105,7 +105,7 @@ def default_plugin_config(plugin, project, request):
 def default_issue_plugin_config(plugin, project, form_data):
     plugin_key = plugin.get_conf_key()
     for field, value in form_data.items():
-        key = "%s:%s" % (plugin_key, field)
+        key = f"{plugin_key}:{field}"
         if project:
             ProjectOption.objects.set_value(project, key, value)
         else:
@@ -121,7 +121,7 @@ def default_plugin_options(plugin, project):
     plugin_key = plugin.get_conf_key()
     initials = plugin.get_form_initial(project)
     for field in form_class.base_fields:
-        key = "%s:%s" % (plugin_key, field)
+        key = f"{plugin_key}:{field}"
         if project is not None:
             value = ProjectOption.objects.get_value(project, key, NOTSET)
         else:

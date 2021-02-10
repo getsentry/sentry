@@ -42,7 +42,7 @@ class JiraSearchEndpoint(IntegrationEndpoint):
                 return Response({"detail": str(e)}, status=400)
             return Response(
                 [
-                    {"label": "(%s) %s" % (i["key"], i["fields"]["summary"]), "value": i["key"]}
+                    {"label": "({}) {}".format(i["key"], i["fields"]["summary"]), "value": i["key"]}
                     for i in resp.get("issues", [])
                 ]
             )
@@ -65,7 +65,7 @@ class JiraSearchEndpoint(IntegrationEndpoint):
             response = jira_client.get_field_autocomplete(name=field, value=query)
         except (ApiUnauthorized, ApiError):
             return Response(
-                {"detail": "Unable to fetch autocomplete for {} from Jira".format(field)},
+                {"detail": f"Unable to fetch autocomplete for {field} from Jira"},
                 status=400,
             )
         choices = [

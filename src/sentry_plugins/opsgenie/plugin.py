@@ -93,7 +93,7 @@ class OpsGeniePlugin(CorePluginMixin, notify.NotificationPlugin):
         }
 
         payload["tags"] = [
-            "%s:%s" % (str(x).replace(",", ""), str(y).replace(",", "")) for x, y in event.tags
+            "{}:{}".format(str(x).replace(",", ""), str(y).replace(",", "")) for x, y in event.tags
         ]
 
         return payload

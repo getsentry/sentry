@@ -96,7 +96,7 @@ class JiraClient(ApiClient):
             jql = 'id="{}"'.format(query.replace('"', '\\"'))
         else:
             jql = 'text ~ "{}"'.format(query.replace('"', '\\"'))
-        jql = 'project="{project}" AND {jql}'.format(project=project, jql=jql)
+        jql = f'project="{project}" AND {jql}'
         return self.get(self.SEARCH_URL, params={"jql": jql})
 
     # Steve(XXX): Might consider moving this method to the base plugin API client

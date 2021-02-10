@@ -127,7 +127,7 @@ class GitlabRepositoryProvider(providers.IntegrationRepositoryProvider):
         return file_changes
 
     def pull_request_url(self, repo, pull_request):
-        return "{}/merge_requests/{}".format(repo.url, pull_request.key)
+        return f"{repo.url}/merge_requests/{pull_request.key}"
 
     def repository_external_slug(self, repo):
         return repo.config["project_id"]

@@ -318,5 +318,5 @@ class JiraServerIntegrationProvider(IntegrationProvider):
                 details = next(x for x in err.json["messages"][0].values())
             except (KeyError, TypeError, StopIteration):
                 details = ""
-            message = "Could not create issue webhook in Jira. {}".format(details)
+            message = f"Could not create issue webhook in Jira. {details}"
             raise IntegrationError(message)

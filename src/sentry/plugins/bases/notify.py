@@ -126,7 +126,7 @@ class NotificationPlugin(Plugin):
         if not (
             hasattr(self, "notify_digest") and digests.enabled(project)
         ) and self.__is_rate_limited(group, event):
-            logger = logging.getLogger("sentry.plugins.{}".format(self.get_conf_key()))
+            logger = logging.getLogger(f"sentry.plugins.{self.get_conf_key()}")
             logger.info("notification.rate_limited", extra={"project_id": project.id})
             return False
 
@@ -144,9 +144,9 @@ class NotificationPlugin(Plugin):
             test_results = self.test_configuration(project)
         except Exception as exc:
             if isinstance(exc, HTTPError) and hasattr(exc.response, "text"):
-                test_results = "%s\n%s" % (exc, exc.response.text[:256])
+                test_results = "{}\n{}".format(exc, exc.response.text[:256])
             elif hasattr(exc, "read") and callable(exc.read):
-                test_results = "%s\n%s" % (exc, exc.read()[:256])
+                test_results = "{}\n{}".format(exc, exc.read()[:256])
             else:
                 logging.exception("Plugin(%s) raised an error during test, %s", self.slug, str(exc))
                 if str(exc).lower().startswith("error communicating with"):

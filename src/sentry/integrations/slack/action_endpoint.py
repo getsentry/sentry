@@ -86,9 +86,7 @@ class SlackActionEndpoint(Endpoint):
         )
 
         return client.put(
-            path="/projects/{}/{}/issues/".format(
-                group.project.organization.slug, group.project.slug
-            ),
+            path=f"/projects/{group.project.organization.slug}/{group.project.slug}/issues/",
             params={"id": group.id},
             data=data,
             user=identity.user,

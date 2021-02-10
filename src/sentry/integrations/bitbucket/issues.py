@@ -22,7 +22,7 @@ PRIORITIES = (
 class BitbucketIssueBasicMixin(IssueBasicMixin):
     def get_issue_url(self, key):
         repo, issue_id = key.split("#")
-        return "https://bitbucket.org/{}/issues/{}".format(repo, issue_id)
+        return f"https://bitbucket.org/{repo}/issues/{issue_id}"
 
     def get_persisted_default_config_fields(self):
         return ["repo"]

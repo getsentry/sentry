@@ -41,13 +41,13 @@ def incident_attachment_info(incident, metric_value=None):
         ]
     time_window = alert_rule.snuba_query.time_window // 60
 
-    text = "{} {} in the last {} minutes".format(metric_value, agg_text, time_window)
+    text = f"{metric_value} {agg_text} in the last {time_window} minutes"
     if alert_rule.snuba_query.query != "":
-        text += "\nFilter: {}".format(alert_rule.snuba_query.query)
+        text += f"\nFilter: {alert_rule.snuba_query.query}"
 
     ts = incident.date_started
 
-    title = "{}: {}".format(status, alert_rule.name)
+    title = f"{status}: {alert_rule.name}"
 
     title_link = absolute_uri(
         reverse(

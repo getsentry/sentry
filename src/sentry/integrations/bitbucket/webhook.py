@@ -61,7 +61,7 @@ class Webhook:
         # see https://confluence.atlassian.com/bitbucket/event-payloads-740262817.html#EventPayloads-entity_repository
         # and click on 'Repository property' underneath the table for example data
         # (all entries are from the `api` subdomain, rather than bitbucket.org)
-        url_from_event = "https://bitbucket.org/{}".format(name_from_event)
+        url_from_event = f"https://bitbucket.org/{name_from_event}"
 
         if (
             repo.name != name_from_event

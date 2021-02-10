@@ -95,7 +95,7 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
 
         # Must format the url ourselves since `check_file` is a head request
         # "https://gitlab.com/gitlab-org/gitlab/blob/master/README.md"
-        return "{}/{}/blob/{}/{}".format(base_url, repo_name, branch, filepath)
+        return f"{base_url}/{repo_name}/blob/{branch}/{filepath}"
 
     def search_projects(self, query):
         client = self.get_client()

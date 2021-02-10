@@ -38,7 +38,7 @@ class RedmineOptionsForm(forms.Form):
                 has_credentials = False
             else:
                 project_choices = [
-                    (p["id"], "%s (%s)" % (p["name"], p["identifier"]))
+                    (p["id"], "{} ({})".format(p["name"], p["identifier"]))
                     for p in projects["projects"]
                 ]
                 self.fields["project_id"].choices = project_choices

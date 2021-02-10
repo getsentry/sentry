@@ -164,7 +164,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
         return self.get(
             VstsApiPath.repository.format(
                 instance=instance,
-                project="{}/".format(project) if project else "",
+                project=f"{project}/" if project else "",
                 repo_id=name_or_id,
             )
         )
@@ -172,7 +172,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
     def get_repos(self, instance, project=None):
         return self.get(
             VstsApiPath.repositories.format(
-                instance=instance, project="{}/".format(project) if project else ""
+                instance=instance, project=f"{project}/" if project else ""
             ),
             timeout=5,
         )

@@ -31,6 +31,6 @@ class ClubhouseClient(ApiClient):
         return self.get("/search/stories", data={"query": query})
 
     def add_comment(self, story_id, comment):
-        story_url = "/stories/{}/comments".format(story_id)
+        story_url = f"/stories/{story_id}/comments"
         comment_data = {"text": comment}
         return self.post(story_url, data=comment_data)

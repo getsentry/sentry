@@ -25,7 +25,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
             # https://developer.github.com/v3/repos/hooks/#list-hooks
             client.repo_hooks(repo)
         except ApiError:
-            raise IntegrationError("You must grant Sentry access to {}".format(repo))
+            raise IntegrationError(f"You must grant Sentry access to {repo}")
 
         return repo_data
 
@@ -127,7 +127,7 @@ class GitHubRepositoryProvider(providers.IntegrationRepositoryProvider):
         return changes
 
     def pull_request_url(self, repo, pull_request):
-        return "{}/pull/{}".format(repo.url, pull_request.key)
+        return f"{repo.url}/pull/{pull_request.key}"
 
     def repository_external_slug(self, repo):
         return repo.name

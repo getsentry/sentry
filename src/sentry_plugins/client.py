@@ -33,7 +33,7 @@ class AuthApiClient(ApiClient):
 
     def bind_auth(self, **kwargs):
         token = self.auth.tokens["access_token"]
-        kwargs["headers"]["Authorization"] = "Bearer {}".format(token)
+        kwargs["headers"]["Authorization"] = f"Bearer {token}"
         return kwargs
 
     def _request(self, method, path, **kwargs):

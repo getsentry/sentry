@@ -123,7 +123,7 @@ class TeamworkPlugin(CorePluginMixin, IssuePlugin):
 
     def get_issue_url(self, group, issue_id, **kwargs):
         url = self.get_option("url", group.project)
-        return "%s/tasks/%s" % (url.rstrip("/"), issue_id)
+        return "{}/tasks/{}".format(url.rstrip("/"), issue_id)
 
     def get_new_issue_title(self, **kwargs):
         return _("Create Teamwork Task")

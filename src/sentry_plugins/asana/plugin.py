@@ -256,7 +256,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
             )
         else:
             results = [
-                {"text": "(#%s) %s" % (i["gid"], i["name"]), "id": i["gid"]}
+                {"text": "(#{}) {}".format(i["gid"], i["name"]), "id": i["gid"]}
                 for i in response.get("data", [])
             ]
 
