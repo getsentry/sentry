@@ -41,10 +41,6 @@ type MappedSelectors = Record<string, Partial<SelectControlProps>>;
 
 export type ChoiceMapperProps = {
   /**
-   * The label to show above the row name selected from the dropdown.
-   */
-  mappedColumnLabel?: React.ReactNode;
-  /**
    * A list of column labels (headers) for the multichoice table. This should
    * have the same mapping keys as the mappedSelectors prop.
    */
@@ -82,6 +78,10 @@ export type ChoiceMapperProps = {
    * the message.
    */
   formatMessageValue: boolean;
+  /**
+   * The label to show above the row name selected from the dropdown.
+   */
+  mappedColumnLabel?: React.ReactNode;
   /**
    * Field controls get a boolean.
    */
