@@ -35,18 +35,18 @@ class EventOrGroupTitle extends React.Component<Props> {
     return subtitle ? (
       <span style={this.props.style}>
         <GuideAnchor disabled={!hasGuideAnchor} target="issue_title" position="bottom">
-          <Title>{titleWithHoverStacktrace}</Title>
+          <span>{titleWithHoverStacktrace}</span>
         </GuideAnchor>
         <Spacer />
         <Subtitle title={subtitle}>{subtitle}</Subtitle>
         <br />
       </span>
     ) : (
-      <Title style={this.props.style}>
+      <span style={this.props.style}>
         <GuideAnchor disabled={!hasGuideAnchor} target="issue_title" position="bottom">
           {titleWithHoverStacktrace}
         </GuideAnchor>
-      </Title>
+      </span>
     );
   }
 }
@@ -61,11 +61,5 @@ export default withOrganization(EventOrGroupTitle);
 const Spacer = () => <span style={{display: 'inline-block', width: 10}}>&nbsp;</span>;
 
 const Subtitle = styled('span')`
-  font-weight: 400;
-  color: #625471;
-  font-size: 90%;
-`;
-
-const Title = styled('span')`
-  font-weight: 600;
+  color: ${p => p.theme.gray300};
 `;
