@@ -32,9 +32,6 @@ class ExternalTeamDetailsEndpoint(TeamEndpoint):
         Update an External Team
         `````````````
 
-        Update various attributes and configurable settings for the given
-        team.
-
         :pparam string organization_slug: the slug of the organization the
                                           team belongs to.
         :pparam string team_slug: the slug of the team to get.
