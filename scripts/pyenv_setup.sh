@@ -106,18 +106,15 @@ setup_pyenv() {
   _startup_script=$(get_shell_startup_script)
   append_to_config "$_startup_script"
 
-  if [ -n "$_startup_script" ]; then
-    echo "Activating ${_startup_script}"
-    direnv hook zsh
-    # If the script is called with the "dot space right" approach (. ./scripts/pyenv_setup.sh),
-    # the effects of this will be persistent outside of this script
-    set -x
-    # shellcheck disable=SC1090
-    source "${_startup_script}"
-    # The Python version installed via pyenv does not come with wheel pre-installed
-    # Installing wheel will speed up installation of Python dependencies
-    PIP_DISABLE_PIP_VERSION_CHECK=on pip install wheel
-  fi
+
+  # If the script is called with the "dot space right" approach (. ./scripts/pyenv_setup.sh),
+  # the effects of this will be persistent outside of this script
+  echo "Activating pyenv"
+  eval "$(pyenv init -)"
+  [[ $(python -V | sed s/Python\ //g) != $(cat .python-version) ]] && echo "Wrong Python version: $(python -V)" && exit 1
+  # The Python version installed via pyenv does not come with wheel pre-installed
+  # Installing wheel will speed up installation of Python dependencies
+  PIP_DISABLE_PIP_VERSION_CHECK=on pip install wheel
 }
 
 setup_pyenv
