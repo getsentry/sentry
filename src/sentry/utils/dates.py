@@ -1,4 +1,3 @@
-import six
 import re
 
 from datetime import datetime, timedelta
@@ -68,7 +67,7 @@ def parse_timestamp(value):
     # TODO(mitsuhiko): merge this code with coreapis date parser
     if isinstance(value, datetime):
         return value
-    elif isinstance(value, six.integer_types + (float,)):
+    elif isinstance(value, (int, float)):
         return datetime.utcfromtimestamp(value).replace(tzinfo=pytz.utc)
     value = (value or "").rstrip("Z").encode("ascii", "replace").split(b".", 1)
     if not value:
@@ -90,7 +89,7 @@ def parse_stats_period(period):
     Convert a value such as 1h into a
     proper timedelta.
     """
-    m = re.match("^(\d+)([hdmsw]?)$", period)
+    m = re.match(r"^(\d+)([hdmsw]?)$", period)
     if not m:
         return None
     value, unit = m.groups()
@@ -102,13 +101,17 @@ def parse_stats_period(period):
     )
 
 
-def get_rollup_from_request(request, params, default_interval, error):
+def get_rollup_from_request(request, params, default_interval, error, top_events=0):
     interval = parse_stats_period(request.GET.get("interval", default_interval))
     if interval is None:
         interval = timedelta(hours=1)
     if interval.total_seconds() <= 0:
         raise error.__class__("Interval cannot result in a zero duration.")
     date_range = params["end"] - params["start"]
-    if date_range.total_seconds() / interval.total_seconds() > MAX_ROLLUP_POINTS:
+
+    # When top events are present, there can be up to 5x as many points
+    max_rollup_points = MAX_ROLLUP_POINTS if top_events == 0 else MAX_ROLLUP_POINTS / top_events
+
+    if date_range.total_seconds() / interval.total_seconds() > max_rollup_points:
         raise error
     return int(interval.total_seconds())

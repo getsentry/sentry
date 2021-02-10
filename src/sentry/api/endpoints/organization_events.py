@@ -131,7 +131,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
 
 class OrganizationEventsGeoEndpoint(OrganizationEventsV2EndpointBase):
     def has_feature(self, request, organization):
-        return features.has("organizations:dashboards-v2", organization, actor=request.user)
+        return features.has("organizations:dashboards-basic", organization, actor=request.user)
 
     def get(self, request, organization):
         if not self.has_feature(request, organization):
@@ -153,7 +153,7 @@ class OrganizationEventsGeoEndpoint(OrganizationEventsV2EndpointBase):
         def data_fn(offset, limit):
             return discover.query(
                 selected_columns=["geo.country_code", maybe_aggregate],
-                query=request.GET.get("query"),
+                query=f"{request.GET.get('query', '')} has:geo.country_code",
                 params=params,
                 offset=offset,
                 limit=limit,

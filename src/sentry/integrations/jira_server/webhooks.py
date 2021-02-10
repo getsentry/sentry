@@ -1,6 +1,5 @@
 import jwt
 import logging
-import six
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry.api.base import Endpoint
@@ -45,15 +44,13 @@ class JiraIssueUpdatedWebhook(Endpoint):
 
     @csrf_exempt
     def dispatch(self, request, *args, **kwargs):
-        return super(JiraIssueUpdatedWebhook, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     def post(self, request, token, *args, **kwargs):
         try:
             integration = get_integration_from_token(token)
         except ValueError as err:
-            logger.info(
-                "token-validation-error", extra={"token": token, "error": six.text_type(err)}
-            )
+            logger.info("token-validation-error", extra={"token": token, "error": str(err)})
             return self.respond(status=400)
 
         data = request.data
@@ -66,7 +63,7 @@ class JiraIssueUpdatedWebhook(Endpoint):
             handle_assignee_change(integration, data)
             handle_status_change(integration, data)
         except ApiError as err:
-            logger.info("sync-failed", extra={"token": token, "error": six.text_type(err)})
+            logger.info("sync-failed", extra={"token": token, "error": str(err)})
             return self.respond(status=400)
         else:
             return self.respond()

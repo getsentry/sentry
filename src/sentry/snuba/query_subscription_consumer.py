@@ -3,7 +3,6 @@ import logging
 import jsonschema
 import pytz
 import sentry_sdk
-import six
 from confluent_kafka import Consumer, KafkaException, OFFSET_INVALID, TopicPartition
 from confluent_kafka.admin import AdminClient
 from dateutil.parser import parse as parse_date
@@ -39,7 +38,7 @@ class InvalidSchemaError(InvalidMessageError):
     pass
 
 
-class QuerySubscriptionConsumer(object):
+class QuerySubscriptionConsumer:
     """
     A Kafka consumer that processes query subscription update messages. Each message has
     a related subscription id and the latest values related to the subscribed query.
@@ -120,8 +119,8 @@ class QuerySubscriptionConsumer(object):
             logger.info(
                 "query-subscription-consumer.on_assign",
                 extra={
-                    "offsets": six.text_type(self.offsets),
-                    "partitions": six.text_type(partitions),
+                    "offsets": str(self.offsets),
+                    "partitions": str(partitions),
                 },
             )
 
@@ -133,8 +132,8 @@ class QuerySubscriptionConsumer(object):
             logger.info(
                 "query-subscription-consumer.on_revoke",
                 extra={
-                    "offsets": six.text_type(self.offsets),
-                    "partitions": six.text_type(partitions),
+                    "offsets": str(self.offsets),
+                    "partitions": str(partitions),
                 },
             )
 
@@ -181,7 +180,7 @@ class QuerySubscriptionConsumer(object):
     def commit_offsets(self, partitions=None):
         logger.info(
             "query-subscription-consumer.commit_offsets",
-            extra={"offsets": six.text_type(self.offsets), "partitions": six.text_type(partitions)},
+            extra={"offsets": str(self.offsets), "partitions": str(partitions)},
         )
 
         if self.offsets and self.consumer:
@@ -266,28 +265,23 @@ class QuerySubscriptionConsumer(object):
                 )
                 return
 
-            logger.info(
-                "query-subscription-consumer.handle_message",
-                extra={
-                    "timestamp": contents["timestamp"],
-                    "query_subscription_id": contents["subscription_id"],
-                    "project_id": subscription.project_id,
-                    "subscription_dataset": subscription.snuba_query.dataset,
-                    "subscription_query": subscription.snuba_query.query,
-                    "subscription_aggregation": subscription.snuba_query.aggregate,
-                    "subscription_time_window": subscription.snuba_query.time_window,
-                    "subscription_resolution": subscription.snuba_query.resolution,
-                    "offset": message.offset(),
-                    "partition": message.partition(),
-                    "value": message.value(),
-                },
-            )
+            sentry_sdk.set_tag("project_id", subscription.project_id)
+            sentry_sdk.set_tag("query_subscription_id", contents["subscription_id"])
 
             callback = subscriber_registry[subscription.type]
             with sentry_sdk.start_span(op="process_message") as span, metrics.timer(
                 "snuba_query_subscriber.callback.duration", instance=subscription.type
             ):
                 span.set_data("payload", contents)
+                span.set_data("subscription_dataset", subscription.snuba_query.dataset)
+                span.set_data("subscription_query", subscription.snuba_query.query)
+                span.set_data("subscription_aggregation", subscription.snuba_query.aggregate)
+                span.set_data("subscription_time_window", subscription.snuba_query.time_window)
+                span.set_data("subscription_resolution", subscription.snuba_query.resolution)
+                span.set_data("message_offset", message.offset())
+                span.set_data("message_partition", message.partition())
+                span.set_data("message_value", message.value())
+
                 callback(contents, subscription)
 
     def parse_message_value(self, value):

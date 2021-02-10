@@ -1,7 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import cloneDeep from 'lodash/cloneDeep';
-import set from 'lodash/set';
 
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import AbstractExternalIssueForm from 'app/components/externalIssues/abstractExternalIssueForm';
@@ -30,7 +28,6 @@ type Props = {
 
 type State = {
   issueConfigFieldsCache: IssueConfigField[];
-  fetchedFieldOptionsCache: Record<string, Choices>;
 } & AbstractExternalIssueForm['state'];
 
 class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
@@ -47,7 +44,7 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {instance, organization} = this.props;
+    const {instance} = this.props;
     const query = (instance.dynamic_form_fields || [])
       .filter(field => field.updatesForm)
       .filter(field => instance.hasOwnProperty(field.name))
@@ -58,13 +55,7 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
         },
         {action: 'create'}
       );
-    return [
-      [
-        'integrationDetails',
-        `/organizations/${organization.slug}/integrations/${instance.integration}/`,
-        {query},
-      ],
-    ];
+    return [['integrationDetails', this.getEndPointString(), {query}]];
   }
 
   handleReceiveIntegrationDetails = (integrationDetails: any) => {
@@ -83,10 +74,10 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
       .map(field => field.name);
   };
 
-  getEndPointString = (): string => {
+  getEndPointString(): string {
     const {instance, organization} = this.props;
     return `/organizations/${organization.slug}/integrations/${instance.integration}/`;
-  };
+  }
 
   /**
    * Clean up the form data before saving it to state.
@@ -131,18 +122,6 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
     }
   };
 
-  updateFetchedFieldOptionsCache = (
-    field: IssueConfigField,
-    result: {value: string; label: string}[]
-  ): void => {
-    const fetchedFieldOptionsCache = result.map(obj => [obj.value, obj.label]);
-    this.setState(prevState => {
-      const newState = cloneDeep(prevState);
-      set(newState, `fetchedFieldOptionsCache[${field.name}]`, fetchedFieldOptionsCache);
-      return newState;
-    });
-  };
-
   getFormProps = (): Form['props'] => {
     const {closeModal} = this.props;
 
@@ -161,7 +140,6 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
    */
   cleanFields = (): IssueConfigField[] => {
     const {instance} = this.props;
-    const {fetchedFieldOptionsCache, integrationDetails} = this.state;
 
     const fields: IssueConfigField[] = [
       {
@@ -180,9 +158,8 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
       } as IssueConfigField,
     ];
 
-    const configsFromAPI = (integrationDetails || {})[this.getConfigName()];
     return fields.concat(
-      (configsFromAPI || [])
+      this.getCleanedFields()
         // Skip fields if they already exist.
         .filter(field => !fields.map(f => f.name).includes(field.name))
         .map(field => {
@@ -190,12 +167,6 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
           if (instance.hasOwnProperty(field.name)) {
             field.default = instance[field.name] || field.default;
           }
-
-          // Overwrite choices from cache.
-          if (fetchedFieldOptionsCache?.hasOwnProperty(field.name)) {
-            field.choices = fetchedFieldOptionsCache[field.name];
-          }
-
           return field;
         })
     );

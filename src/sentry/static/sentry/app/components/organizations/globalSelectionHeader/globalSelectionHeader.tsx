@@ -2,7 +2,6 @@ import React from 'react';
 import {WithRouterProps} from 'react-router/lib/withRouter';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
-import PropTypes from 'prop-types';
 
 import {
   updateDateTime,
@@ -21,7 +20,6 @@ import Tooltip from 'app/components/tooltip';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {IconArrow} from 'app/icons';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {
@@ -137,7 +135,7 @@ type Props = {
 
   // Callbacks //
   onChangeProjects?: (val: number[]) => void;
-  onUpdateProjects?: () => void;
+  onUpdateProjects?: (selectedProjects: number[]) => void;
   onChangeEnvironments?: (environments: Environment[]) => void;
   onUpdateEnvironments?: (environments: Environment[]) => void;
   onChangeTime?: (datetime: any) => void;
@@ -176,47 +174,6 @@ type State = {
 };
 
 class GlobalSelectionHeader extends React.Component<Props, State> {
-  static propTypes: any = {
-    organization: SentryTypes.Organization,
-    router: PropTypes.object,
-    projects: PropTypes.arrayOf(SentryTypes.Project).isRequired,
-
-    memberProjects: PropTypes.arrayOf(SentryTypes.Project).isRequired,
-
-    nonMemberProjects: PropTypes.arrayOf(SentryTypes.Project).isRequired,
-
-    /**
-     * Slugs of projects to display in project selector (this affects the ^^^projects returned from HoC)
-     */
-    specificProjectSlugs: PropTypes.arrayOf(PropTypes.string),
-    disableMultipleProjectSelection: PropTypes.bool,
-    isGlobalSelectionReady: PropTypes.bool,
-    loadingProjects: PropTypes.bool,
-    shouldForceProject: PropTypes.bool,
-    forceProject: SentryTypes.Project,
-    selection: SentryTypes.GlobalSelection,
-    showEnvironmentSelector: PropTypes.bool,
-    showDateSelector: PropTypes.bool,
-    hasCustomRouting: PropTypes.bool,
-    resetParamsOnChange: PropTypes.arrayOf(PropTypes.string),
-    showAbsolute: PropTypes.bool,
-    showRelative: PropTypes.bool,
-    timeRangeHint: PropTypes.string,
-
-    // Callbacks //
-    onChangeProjects: PropTypes.func,
-    onUpdateProjects: PropTypes.func,
-    onChangeEnvironments: PropTypes.func,
-    onUpdateEnvironments: PropTypes.func,
-    onChangeTime: PropTypes.func,
-    onUpdateTime: PropTypes.func,
-
-    showIssueStreamLink: PropTypes.bool,
-    showProjectSettingsLink: PropTypes.bool,
-    lockedMessageSubject: PropTypes.string,
-    projectsFooterMessage: PropTypes.node,
-  };
-
   static defaultProps = defaultProps;
 
   state = {

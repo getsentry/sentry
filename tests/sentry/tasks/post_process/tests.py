@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from datetime import timedelta
 from django.utils import timezone
 
@@ -25,7 +22,7 @@ from sentry.tasks.post_process import post_process_group
 from sentry.utils.compat.mock import Mock, patch, ANY
 
 
-class EventMatcher(object):
+class EventMatcher:
     def __init__(self, expected, group=None):
         self.expected = expected
         self.expected_group = group
@@ -97,6 +94,22 @@ class PostProcessGroupTest(TestCase):
         event = self.store_event(data={}, project_id=self.project.id)
         cache_key = write_event_to_cache(event)
 
+        post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            cache_key=cache_key,
+            group_id=event.group_id,
+        )
+        assert event_processing_store.get(cache_key) is None
+
+    def test_processing_cache_cleared_with_commits(self):
+        # Regression test to guard against suspect commit calculations breaking the
+        # cache
+        event = self.store_event(data={}, project_id=self.project.id)
+        cache_key = write_event_to_cache(event)
+
+        self.create_commit(repo=self.create_repo())
         post_process_group(
             is_new=True,
             is_regression=False,
@@ -262,110 +275,103 @@ class PostProcessGroupTest(TestCase):
         )
 
     def test_owner_assignment_path_precedence(self):
-        with self.feature("organizations:workflow-owners"):
-            self.make_ownership()
-            event = self.store_event(
-                data={
-                    "message": "oh no",
-                    "platform": "python",
-                    "stacktrace": {"frames": [{"filename": "src/app/example.py"}]},
-                },
-                project_id=self.project.id,
-            )
-            cache_key = write_event_to_cache(event)
-            post_process_group(
-                is_new=False,
-                is_regression=False,
-                is_new_group_environment=False,
-                cache_key=cache_key,
-                group_id=event.group_id,
-            )
-            assignee = event.group.assignee_set.first()
-            assert assignee.user is None
-            assert assignee.team == self.team
+        self.make_ownership()
+        event = self.store_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app/example.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        cache_key = write_event_to_cache(event)
+        post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            cache_key=cache_key,
+            group_id=event.group_id,
+        )
+        assignee = event.group.assignee_set.first()
+        assert assignee.user is None
+        assert assignee.team == self.team
 
-            owners = list(GroupOwner.objects.filter(group=event.group))
-            assert len(owners) == 2
-            assert set([(self.user.id, None), (None, self.team.id)]) == {
-                (o.user_id, o.team_id) for o in owners
-            }
+        owners = list(GroupOwner.objects.filter(group=event.group))
+        assert len(owners) == 2
+        assert {(self.user.id, None), (None, self.team.id)} == {
+            (o.user_id, o.team_id) for o in owners
+        }
 
     def test_owner_assignment_extra_groups(self):
-        with self.feature("organizations:workflow-owners"):
-            extra_user = self.create_user()
-            self.create_team_membership(self.team, user=extra_user)
-            self.make_ownership(
-                [Rule(Matcher("path", "src/app/things/in/*"), [Owner("user", extra_user.email)])],
-            )
-            event = self.store_event(
-                data={
-                    "message": "oh no",
-                    "platform": "python",
-                    "stacktrace": {
-                        "frames": [{"filename": "src/app/things/in/a/path/example2.py"}]
-                    },
-                },
-                project_id=self.project.id,
-            )
-            cache_key = write_event_to_cache(event)
-            post_process_group(
-                is_new=False,
-                is_regression=False,
-                is_new_group_environment=False,
-                cache_key=cache_key,
-                group_id=event.group_id,
-            )
-            assignee = event.group.assignee_set.first()
-            assert assignee.user == extra_user
-            assert assignee.team is None
+        extra_user = self.create_user()
+        self.create_team_membership(self.team, user=extra_user)
+        self.make_ownership(
+            [Rule(Matcher("path", "src/app/things/in/*"), [Owner("user", extra_user.email)])],
+        )
+        event = self.store_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app/things/in/a/path/example2.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        cache_key = write_event_to_cache(event)
+        post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            cache_key=cache_key,
+            group_id=event.group_id,
+        )
+        assignee = event.group.assignee_set.first()
+        assert assignee.user == extra_user
+        assert assignee.team is None
 
-            owners = list(GroupOwner.objects.filter(group=event.group))
-            assert len(owners) == 2
-            assert set([(extra_user.id, None), (None, self.team.id)]) == {
-                (o.user_id, o.team_id) for o in owners
-            }
+        owners = list(GroupOwner.objects.filter(group=event.group))
+        assert len(owners) == 2
+        assert {(extra_user.id, None), (None, self.team.id)} == {
+            (o.user_id, o.team_id) for o in owners
+        }
 
     def test_owner_assignment_existing_owners(self):
-        with self.feature("organizations:workflow-owners"):
-            extra_user = self.create_user()
-            self.create_team_membership(self.team, user=extra_user)
-            self.make_ownership(
-                [Rule(Matcher("path", "src/app/things/in/*"), [Owner("user", extra_user.email)])],
-            )
-            GroupOwner.objects.create(
-                group=self.group,
-                project=self.project,
-                organization=self.organization,
-                user=self.user,
-                type=GroupOwnerType.OWNERSHIP_RULE.value,
-            )
-            event = self.store_event(
-                data={
-                    "message": "oh no",
-                    "platform": "python",
-                    "stacktrace": {
-                        "frames": [{"filename": "src/app/things/in/a/path/example2.py"}]
-                    },
-                },
-                project_id=self.project.id,
-            )
-            cache_key = write_event_to_cache(event)
-            post_process_group(
-                is_new=False,
-                is_regression=False,
-                is_new_group_environment=False,
-                cache_key=cache_key,
-                group_id=event.group_id,
-            )
-            assignee = event.group.assignee_set.first()
-            assert assignee.user == extra_user
-            assert assignee.team is None
+        extra_user = self.create_user()
+        self.create_team_membership(self.team, user=extra_user)
+        self.make_ownership(
+            [Rule(Matcher("path", "src/app/things/in/*"), [Owner("user", extra_user.email)])],
+        )
+        GroupOwner.objects.create(
+            group=self.group,
+            project=self.project,
+            organization=self.organization,
+            user=self.user,
+            type=GroupOwnerType.OWNERSHIP_RULE.value,
+        )
+        event = self.store_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app/things/in/a/path/example2.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        cache_key = write_event_to_cache(event)
+        post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            cache_key=cache_key,
+            group_id=event.group_id,
+        )
+        assignee = event.group.assignee_set.first()
+        assert assignee.user == extra_user
+        assert assignee.team is None
 
-            owners = list(GroupOwner.objects.filter(group=event.group))
-            assert len(owners) == 2
-            assert set([(extra_user.id, None), (None, self.team.id)]) == {
-                (o.user_id, o.team_id) for o in owners
-            }
+        owners = list(GroupOwner.objects.filter(group=event.group))
+        assert len(owners) == 2
+        assert {(extra_user.id, None), (None, self.team.id)} == {
+            (o.user_id, o.team_id) for o in owners
+        }
 
     def test_owner_assignment_assign_user(self):
         self.make_ownership()

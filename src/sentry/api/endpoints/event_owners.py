@@ -1,4 +1,3 @@
-import six
 from rest_framework.response import Response
 
 from sentry import eventstore
@@ -37,7 +36,7 @@ class EventOwnersEndpoint(ProjectEndpoint):
         ordered_owners = []
         owner_by_id = {(o["id"], o["type"]): o for o in serialized_owners}
         for o in owners:
-            key = (six.text_type(o.id), "team" if o.type == Team else "user")
+            key = (str(o.id), "team" if o.type == Team else "user")
             if owner_by_id.get(key):
                 ordered_owners.append(owner_by_id[key])
 

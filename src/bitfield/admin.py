@@ -1,4 +1,3 @@
-import six
 from django.contrib.admin import FieldListFilter
 from django.contrib.admin.options import IncorrectLookupParameters
 from django.core.exceptions import ValidationError
@@ -15,12 +14,10 @@ class BitFieldListFilter(FieldListFilter):
         self.lookup_val = int(request.GET.get(self.lookup_kwarg, 0))
         self.flags = field.flags
         self.labels = field.labels
-        super(BitFieldListFilter, self).__init__(
-            field, request, params, model, model_admin, field_path
-        )
+        super().__init__(field, request, params, model, model_admin, field_path)
 
     def queryset(self, request, queryset):
-        _filter = dict((p, bitor(F(p), v)) for p, v in six.iteritems(self.used_parameters))
+        _filter = {p: bitor(F(p), v) for p, v in self.used_parameters.items()}
         try:
             return queryset.filter(**_filter)
         except ValidationError as e:

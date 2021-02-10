@@ -24,7 +24,7 @@ def serialize(data, projects):
     latest_sdks = chain.from_iterable(
         [
             {
-                "projectId": project_id,
+                "projectId": str(project_id),
                 "sdkName": sdk_name,
                 "sdkVersion": max((s["sdk.version"] for s in sdks), key=LooseVersion),
             }
@@ -36,7 +36,7 @@ def serialize(data, projects):
     # Determine suggested upgrades for each project
     index_state = SdkIndexState()
 
-    return [
+    updates_list = [
         dict(
             **latest,
             suggestions=list(
@@ -54,12 +54,17 @@ def serialize(data, projects):
         for latest in latest_sdks
     ]
 
+    # Filter out SDKs that have no update suggestions
+    return [update for update in updates_list if len(update["suggestions"]) > 0]
+
 
 class OrganizationSdkUpdatesEndpoint(OrganizationEventsEndpointBase):
     def get(self, request, organization):
 
         project_ids = self.get_requested_project_ids(request)
         projects = self.get_projects(request, organization, project_ids)
+        if len(projects) == 0:
+            return Response([])
 
         with self.handle_query_errors():
             result = discover.query(

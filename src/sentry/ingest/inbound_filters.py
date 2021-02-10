@@ -7,7 +7,7 @@ from sentry.models.projectoption import ProjectOption
 from sentry.signals import inbound_filter_toggled
 
 
-class FilterStatKeys(object):
+class FilterStatKeys:
     """
     NOTE: This enum also exists in Relay, check if alignment is needed when
     editing this.
@@ -40,7 +40,7 @@ FILTER_STAT_KEYS_TO_VALUES = {
 }
 
 
-class FilterTypes(object):
+class FilterTypes:
     ERROR_MESSAGES = "error_messages"
     RELEASES = "releases"
 
@@ -83,7 +83,7 @@ def set_filter_state(filter_id, project, state):
             option_val = set(state["subfilters"])
 
         ProjectOption.objects.set_value(
-            project=project, key="filters:{}".format(filter_id), value=option_val
+            project=project, key=f"filters:{filter_id}", value=option_val
         )
 
         return option_val == "1" if option_val in ("0", "1") else option_val
@@ -95,7 +95,7 @@ def set_filter_state(filter_id, project, state):
 
         ProjectOption.objects.set_value(
             project=project,
-            key="filters:{}".format(filter_id),
+            key=f"filters:{filter_id}",
             value="1" if state.get("active", False) else "0",
         )
 
@@ -120,11 +120,11 @@ def get_filter_state(filter_id, project):
     if flt is None:
         raise FilterNotRegistered(filter_id)
 
-    filter_state = ProjectOption.objects.get_value(project=project, key="filters:{}".format(flt.id))
+    filter_state = ProjectOption.objects.get_value(project=project, key=f"filters:{flt.id}")
 
     if filter_state is None:
         raise ValueError(
-            "Could not find filter state for filter {0}."
+            "Could not find filter state for filter {}."
             " You need to register default filter state in projectoptions.defaults.".format(
                 filter_id
             )
@@ -159,7 +159,7 @@ class _FilterSerializer(serializers.Serializer):
     active = serializers.BooleanField()
 
 
-class _FilterSpec(object):
+class _FilterSpec:
     """
     Data associated with a filter, it defines its name, id, default enable state and how its  state is serialized
     in the database

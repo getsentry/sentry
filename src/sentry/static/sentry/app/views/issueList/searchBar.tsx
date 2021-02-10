@@ -1,13 +1,11 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import {fetchRecentSearches} from 'app/actionCreators/savedSearches';
 import {Client} from 'app/api';
 import SmartSearchBar from 'app/components/smartSearchBar';
 import {SearchItem} from 'app/components/smartSearchBar/types';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import {Organization, SavedSearch, SavedSearchType, Tag} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -62,12 +60,6 @@ type State = {
 };
 
 class IssueListSearchBar extends React.Component<Props, State> {
-  static propTypes = {
-    savedSearch: SentryTypes.SavedSearch,
-    tagValueLoader: PropTypes.func.isRequired,
-    onSidebarToggle: PropTypes.func,
-  };
-
   state: State = {
     defaultSearchItems: [SEARCH_ITEMS, []],
     recentSearches: [],
@@ -153,8 +145,12 @@ class IssueListSearchBar extends React.Component<Props, State> {
 }
 
 const SmartSearchBarNoLeftCorners = styled(SmartSearchBar)<{isInbox?: boolean}>`
-  border-radius: ${p =>
-    p.isInbox ? null : `0 ${p.theme.borderRadius} ${p.theme.borderRadius} 0`};
+  ${p =>
+    !p.isInbox &&
+    `
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+    `}
 
   flex-grow: 1;
 `;

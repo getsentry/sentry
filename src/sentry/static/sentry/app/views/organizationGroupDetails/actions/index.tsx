@@ -2,6 +2,7 @@ import React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
+import {bulkDelete, bulkUpdate} from 'app/actionCreators/group';
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -15,7 +16,7 @@ import IgnoreActions from 'app/components/actions/ignore';
 import ResolveActions from 'app/components/actions/resolve';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Tooltip from 'app/components/tooltip';
-import {IconRefresh, IconStar} from 'app/icons';
+import {IconStar} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {
@@ -25,6 +26,7 @@ import {
   SavedQueryVersions,
   UpdateResolutionStatus,
 } from 'app/types';
+import {Event} from 'app/types/event';
 import EventView from 'app/utils/discover/eventView';
 import {uniqueId} from 'app/utils/guid';
 import withApi from 'app/utils/withApi';
@@ -34,6 +36,7 @@ import ShareIssue from 'app/views/organizationGroupDetails/actions/shareIssue';
 import ReprocessingDialogForm from 'app/views/organizationGroupDetails/reprocessingDialogForm';
 
 import DeleteAction from './deleteAction';
+import ReprocessAction from './reprocessAction';
 import SubscribeAction from './subscribeAction';
 
 type Props = {
@@ -42,6 +45,7 @@ type Props = {
   project: Project;
   organization: Organization;
   disabled: boolean;
+  event?: Event;
 };
 
 type State = {
@@ -93,7 +97,8 @@ class Actions extends React.Component<Props, State> {
 
     addLoadingMessage(t('Delete event\u2026'));
 
-    api.bulkDelete(
+    bulkDelete(
+      api,
       {
         orgId: organization.slug,
         projectId: project.slug,
@@ -120,7 +125,8 @@ class Actions extends React.Component<Props, State> {
 
     addLoadingMessage(t('Saving changes\u2026'));
 
-    api.bulkUpdate(
+    bulkUpdate(
+      api,
       {
         orgId: organization.slug,
         projectId: project.slug,
@@ -152,7 +158,8 @@ class Actions extends React.Component<Props, State> {
     this.setState({shareBusy: true});
 
     // not sure why this is a bulkUpdate
-    api.bulkUpdate(
+    bulkUpdate(
+      api,
       {
         orgId: organization.slug,
         projectId: project.slug,
@@ -218,7 +225,7 @@ class Actions extends React.Component<Props, State> {
   }
 
   render() {
-    const {group, project, organization, disabled} = this.props;
+    const {group, project, organization, disabled, event} = this.props;
     const {status, isBookmarked} = group;
 
     const orgFeatures = new Set(organization.features);
@@ -298,11 +305,9 @@ class Actions extends React.Component<Props, State> {
         />
 
         {orgFeatures.has('reprocessing-v2') && (
-          <ActionButton
+          <ReprocessAction
+            event={event}
             disabled={disabled}
-            icon={<IconRefresh size="xs" />}
-            title={t('Reprocess this issue')}
-            label={t('Reprocess this issue')}
             onClick={this.handleClick(disabled, this.onReprocess)}
           />
         )}

@@ -1,18 +1,19 @@
 import React from 'react';
+import round from 'lodash/round';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import Count from 'app/components/count';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {parseStatsPeriod} from 'app/components/organizations/timeRangeSelector/utils';
 import ScoreCard from 'app/components/scoreCard';
+import {IconArrow} from 'app/icons';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization} from 'app/types';
 import {defined} from 'app/utils';
 import {TableData} from 'app/utils/discover/discoverQuery';
 import {getAggregateAlias} from 'app/utils/discover/fields';
-import {formatAbbreviatedNumber} from 'app/utils/formatters';
 import {getPeriod} from 'app/utils/getPeriod';
-import {getTermHelp} from 'app/views/performance/data';
+import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 
 import MissingPerformanceButtons from '../missingFeatureButtons/missingPerformanceButtons';
 import {shouldFetchPreviousPeriod} from '../utils';
@@ -20,6 +21,7 @@ import {shouldFetchPreviousPeriod} from '../utils';
 type Props = AsyncComponent['props'] & {
   organization: Organization;
   selection: GlobalSelection;
+  isProjectStabilized: boolean;
 };
 
 type State = AsyncComponent['state'] & {
@@ -39,9 +41,9 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
   }
 
   getEndpoints() {
-    const {organization, selection} = this.props;
+    const {organization, selection, isProjectStabilized} = this.props;
 
-    if (!this.hasFeature()) {
+    if (!this.hasFeature() || !isProjectStabilized) {
       return [];
     }
 
@@ -86,8 +88,12 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
    * If there's no apdex in the time frame, check if there is one in the last 90 days (empty message differs then)
    */
   async onLoadAllEndpointsSuccess() {
-    const {organization, selection} = this.props;
+    const {organization, selection, isProjectStabilized} = this.props;
     const {projects} = selection;
+
+    if (!isProjectStabilized) {
+      return;
+    }
 
     if (defined(this.currentApdex) || defined(this.previousApdex)) {
       this.setState({noApdexEver: false});
@@ -115,7 +121,12 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (prevProps.selection !== this.props.selection) {
+    const {selection, isProjectStabilized} = this.props;
+
+    if (
+      prevProps.selection !== selection ||
+      prevProps.isProjectStabilized !== isProjectStabilized
+    ) {
       this.remountComponent();
     }
   }
@@ -125,11 +136,14 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
   }
 
   get cardTitle() {
-    return t('Apdex Score');
+    return t('Apdex');
   }
 
   get cardHelp() {
-    return getTermHelp(this.props.organization, 'apdex');
+    return (
+      getTermHelp(this.props.organization, PERFORMANCE_TERM.APDEX) +
+      t(' This shows how it has changed since the last period.')
+    );
   }
 
   get currentApdex() {
@@ -156,18 +170,18 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
 
   get trend() {
     if (this.currentApdex && this.previousApdex) {
-      return Number(formatAbbreviatedNumber(this.currentApdex - this.previousApdex));
+      return round(this.currentApdex - this.previousApdex, 3);
     }
 
     return null;
   }
 
-  get trendStyle(): React.ComponentProps<typeof ScoreCard>['trendStyle'] {
+  get trendStatus(): React.ComponentProps<typeof ScoreCard>['trendStatus'] {
     if (!this.trend) {
       return undefined;
     }
 
-    return this.trend > 0 ? 'bad' : 'good';
+    return this.trend > 0 ? 'good' : 'bad';
   }
 
   renderLoading() {
@@ -193,7 +207,11 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
     // we want to show trend only after currentApdex has loaded to prevent jumping
     return defined(this.currentApdex) && defined(this.trend) ? (
       <React.Fragment>
-        {this.trend >= 0 ? '+' : '-'}
+        {this.trend >= 0 ? (
+          <IconArrow direction="up" size="xs" />
+        ) : (
+          <IconArrow direction="down" size="xs" />
+        )}
         <Count value={Math.abs(this.trend)} />
       </React.Fragment>
     ) : null;
@@ -210,7 +228,7 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
         help={this.cardHelp}
         score={this.renderScore()}
         trend={this.renderTrend()}
-        trendStyle={this.trendStyle}
+        trendStatus={this.trendStatus}
       />
     );
   }

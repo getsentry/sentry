@@ -15,10 +15,10 @@ class OAuth2CallbackViewTest(TestCase):
         self.org = self.create_organization(owner=self.user)
         self.user = self.create_user("foo@example.com")
         sentry.identity.register(DummyProvider)
-        super(OAuth2CallbackViewTest, self).setUp()
+        super().setUp()
 
     def tearDown(self):
-        super(OAuth2CallbackViewTest, self).tearDown()
+        super().tearDown()
         sentry.identity.unregister(DummyProvider)
 
     @fixture

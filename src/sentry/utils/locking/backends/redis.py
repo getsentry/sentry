@@ -1,5 +1,3 @@
-import six
-
 from uuid import uuid4
 
 from sentry.utils import redis
@@ -28,7 +26,7 @@ class RedisLockBackend(LockBackend):
         # *digest* key, even though a digest is composed of multiple values at
         # different keys that would otherwise be placed on different
         # partitions.)
-        if isinstance(routing_key, six.integer_types):
+        if isinstance(routing_key, int):
             index = routing_key % len(self.cluster.hosts)
             return self.cluster.get_local_client(index)
 
@@ -40,13 +38,13 @@ class RedisLockBackend(LockBackend):
         return self.cluster.get_local_client_for_key(key)
 
     def prefix_key(self, key):
-        return "{}{}".format(self.prefix, key)
+        return f"{self.prefix}{key}"
 
     def acquire(self, key, duration, routing_key=None):
         client = self.get_client(key, routing_key)
         full_key = self.prefix_key(key)
         if client.set(full_key, self.uuid, ex=duration, nx=True) is not True:
-            raise Exception("Could not set key: {!r}".format(full_key))
+            raise Exception(f"Could not set key: {full_key!r}")
 
     def release(self, key, routing_key=None):
         client = self.get_client(key, routing_key)

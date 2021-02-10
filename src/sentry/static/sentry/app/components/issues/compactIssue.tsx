@@ -1,9 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import createReactClass from 'create-react-class';
-import PropTypes from 'prop-types';
 import Reflux from 'reflux';
 
+import {bulkUpdate} from 'app/actionCreators/group';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {openModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
@@ -16,7 +16,6 @@ import {PanelItem} from 'app/components/panels';
 import GroupChart from 'app/components/stream/groupChart';
 import {IconChat, IconCheckmark, IconEllipsis, IconMute, IconStar} from 'app/icons';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import GroupStore from 'app/stores/groupStore';
 import space from 'app/styles/space';
 import {Group, LightWeightOrganization} from 'app/types';
@@ -95,16 +94,6 @@ type State = {
 const CompactIssue = createReactClass<Props, State>({
   displayName: 'CompactIssue',
 
-  propTypes: {
-    api: PropTypes.object,
-    data: PropTypes.object,
-    id: PropTypes.string,
-    eventId: PropTypes.string,
-    statsPeriod: PropTypes.string,
-    showActions: PropTypes.bool,
-    organization: SentryTypes.Organization.isRequired,
-  },
-
   mixins: [Reflux.listenTo(GroupStore, 'onGroupChange') as any],
 
   getInitialState() {
@@ -148,7 +137,8 @@ const CompactIssue = createReactClass<Props, State>({
     const issue = this.state.issue;
     addLoadingMessage(t('Saving changes\u2026'));
 
-    this.props.api.bulkUpdate(
+    bulkUpdate(
+      this.props.api,
       {
         orgId: this.props.organization.slug,
         projectId: issue.project.slug,

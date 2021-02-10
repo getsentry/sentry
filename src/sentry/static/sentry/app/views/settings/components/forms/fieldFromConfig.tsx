@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 
 import {Scope} from 'app/types';
 
@@ -36,58 +35,6 @@ type Props = {
 };
 
 export default class FieldFromConfig extends React.Component<Props> {
-  static propTypes = {
-    field: PropTypes.shape({
-      name: PropTypes.string,
-      type: PropTypes.oneOf([
-        'array',
-        'boolean',
-        'choice',
-        'choice_mapper',
-        'custom',
-        'email',
-        'hidden',
-        'multichoice',
-        'number',
-        'radio',
-        'range',
-        'rich_list',
-        'secret',
-        'select',
-        'separator',
-        'string',
-        'text',
-        'textarea',
-        'url',
-        'table',
-        'project_mapper',
-        'sentry_project_selector',
-      ]),
-      required: PropTypes.bool,
-      multiline: PropTypes.bool,
-      label: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
-      placeholder: PropTypes.oneOfType([PropTypes.string, PropTypes.func]),
-      help: PropTypes.oneOfType([PropTypes.node, PropTypes.func]),
-      visible: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
-      disabled: PropTypes.oneOfType([PropTypes.bool, PropTypes.func]),
-      /**
-       * Function to format the value displayed in the undo toast. May also be
-       * specified as false to disable showing the changed fields in the toast.
-       */
-      formatMessageValue: PropTypes.oneOfType([PropTypes.func, PropTypes.oneOf([false])]),
-      /**
-       * Should show a "return key" icon in input?
-       */
-      showReturnButton: PropTypes.bool,
-      /**
-       * Iff false, disable saveOnBlur for field, instead show a save/cancel button
-       */
-      saveOnBlur: PropTypes.bool,
-      getValue: PropTypes.func,
-      setValue: PropTypes.func,
-    }).isRequired,
-  };
-
   render() {
     const {field, ...otherProps} = this.props;
 
@@ -102,7 +49,9 @@ export default class FieldFromConfig extends React.Component<Props> {
       case 'secret':
         return <InputField {...props} type="password" />;
       case 'range':
-        return <RangeField {...props} />;
+        // TODO(ts) The switch on field.type is not resolving
+        // the Field union for this component. The union might be 'too big'.
+        return <RangeField {...(props as any)} />;
       case 'bool':
       case 'boolean':
         return <BooleanField {...props} />;
@@ -135,7 +84,9 @@ export default class FieldFromConfig extends React.Component<Props> {
 
         return <SelectField deprecatedSelectControl {...props} />;
       case 'choice_mapper':
-        return <ChoiceMapperField {...props} />;
+        // TODO(ts) The switch on field.type is not resolving
+        // the Field union for this component. The union might be 'too big'.
+        return <ChoiceMapperField {...(props as any)} />;
       case 'radio':
         const choices = props.choices;
         if (!Array.isArray(choices)) {
@@ -143,9 +94,13 @@ export default class FieldFromConfig extends React.Component<Props> {
         }
         return <RadioField {...props} choices={choices} />;
       case 'rich_list':
-        return <RichListField {...props} />;
+        // TODO(ts) The switch on field.type is not resolving
+        // the Field union for this component. The union might be 'too big'.
+        return <RichListField {...(props as any)} />;
       case 'table':
-        return <TableField {...props} />;
+        // TODO(ts) The switch on field.type is not resolving
+        // the Field union for this component. The union might be 'too big'.
+        return <TableField {...(props as any)} />;
       case 'project_mapper':
         return <ProjectMapperField {...props} />;
       case 'sentry_project_selector':

@@ -7,13 +7,13 @@ from sentry.utils.query import bulk_delete_objects
 _leaf_re = re.compile(r"^(UserReport|Event|Group)(.+)")
 
 
-class BaseRelation(object):
+class BaseRelation:
     def __init__(self, params, task):
         self.task = task
         self.params = params
 
     def __repr__(self):
-        return "<%s: task=%s params=%s>" % (type(self), self.task, self.params)
+        return "<{}: task={} params={}>".format(type(self), self.task, self.params)
 
 
 class ModelRelation(BaseRelation):
@@ -23,10 +23,10 @@ class ModelRelation(BaseRelation):
         if partition_key:
             params["partition_key"] = partition_key
 
-        super(ModelRelation, self).__init__(params=params, task=task)
+        super().__init__(params=params, task=task)
 
 
-class BaseDeletionTask(object):
+class BaseDeletionTask:
     logger = logging.getLogger("sentry.deletions.async")
 
     DEFAULT_CHUNK_SIZE = 100
@@ -41,7 +41,7 @@ class BaseDeletionTask(object):
         self.chunk_size = chunk_size if chunk_size is not None else self.DEFAULT_CHUNK_SIZE
 
     def __repr__(self):
-        return "<%s: skip_models=%s transaction_id=%s actor_id=%s>" % (
+        return "<{}: skip_models={} transaction_id={} actor_id={}>".format(
             type(self),
             self.skip_models,
             self.transaction_id,
@@ -138,14 +138,14 @@ class ModelDeletionTask(BaseDeletionTask):
     manager_name = "objects"
 
     def __init__(self, manager, model, query, query_limit=None, order_by=None, **kwargs):
-        super(ModelDeletionTask, self).__init__(manager, **kwargs)
+        super().__init__(manager, **kwargs)
         self.model = model
         self.query = query
         self.query_limit = query_limit or self.DEFAULT_QUERY_LIMIT or self.chunk_size
         self.order_by = order_by
 
     def __repr__(self):
-        return "<%s: model=%s query=%s order_by=%s transaction_id=%s actor_id=%s>" % (
+        return "<{}: model={} query={} order_by={} transaction_id={} actor_id={}>".format(
             type(self),
             self.model,
             self.query,
@@ -181,13 +181,7 @@ class ModelDeletionTask(BaseDeletionTask):
             if num_shards:
                 assert num_shards > 1
                 assert shard_id < num_shards
-                queryset = queryset.extra(
-                    where=[
-                        "id %% {num_shards} = {shard_id}".format(
-                            num_shards=num_shards, shard_id=shard_id
-                        )
-                    ]
-                )
+                queryset = queryset.extra(where=[f"id %% {num_shards} = {shard_id}"])
 
             queryset = list(queryset[:query_limit])
             if not queryset:
@@ -248,7 +242,7 @@ class BulkModelDeletionTask(ModelDeletionTask):
     DEFAULT_CHUNK_SIZE = 10000
 
     def __init__(self, manager, model, query, partition_key=None, **kwargs):
-        super(BulkModelDeletionTask, self).__init__(manager, model, query, **kwargs)
+        super().__init__(manager, model, query, **kwargs)
 
         self.partition_key = partition_key
 

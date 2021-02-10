@@ -1,5 +1,3 @@
-import six
-
 from datetime import datetime, timedelta
 from django.core.urlresolvers import reverse
 from django.utils import timezone
@@ -34,7 +32,7 @@ from sentry.testutils import TestCase
 from sentry.utils.http import absolute_uri
 
 
-class BaseIncidentActivityTest(object):
+class BaseIncidentActivityTest:
     @property
     def incident(self):
         return self.create_incident(title="hello")
@@ -84,9 +82,7 @@ class TestGenerateIncidentActivityEmail(BaseIncidentActivityTest, TestCase):
         incident = activity.incident
         recipient = self.create_user()
         message = generate_incident_activity_email(activity, recipient)
-        assert message.subject == "Activity on Alert {} (#{})".format(
-            incident.title, incident.identifier
-        )
+        assert message.subject == f"Activity on Alert {incident.title} (#{incident.identifier})"
         assert message.type == "incident.activity"
         assert message.context == build_activity_context(activity, recipient)
 
@@ -98,10 +94,9 @@ class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
         incident = activity.incident
         context = build_activity_context(activity, expected_recipient)
         assert context["user_name"] == expected_username
-        assert context["action"] == "%s on alert %s (#%s)" % (
-            expected_action,
-            activity.incident.title,
-            activity.incident.identifier,
+        assert (
+            context["action"]
+            == f"{expected_action} on alert {activity.incident.title} (#{activity.incident.identifier})"
         )
         assert (
             context["link"]
@@ -132,8 +127,8 @@ class TestBuildActivityContext(BaseIncidentActivityTest, TestCase):
             expected_recipient=recipient,
         )
         activity.type = IncidentActivityType.STATUS_CHANGE
-        activity.value = six.text_type(IncidentStatus.CLOSED.value)
-        activity.previous_value = six.text_type(IncidentStatus.WARNING.value)
+        activity.value = str(IncidentStatus.CLOSED.value)
+        activity.previous_value = str(IncidentStatus.WARNING.value)
         self.run_test(
             activity,
             expected_username=activity.user.name,

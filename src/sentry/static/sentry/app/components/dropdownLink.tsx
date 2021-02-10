@@ -2,7 +2,6 @@ import React from 'react';
 import {css} from '@emotion/core';
 import classNames from 'classnames';
 import {withTheme} from 'emotion-theming';
-import PropTypes from 'prop-types';
 
 import DropdownMenu from 'app/components/dropdownMenu';
 import {IconChevron} from 'app/icons';
@@ -142,17 +141,6 @@ DropdownLink.defaultProps = {
   disabled: false,
   anchorRight: false,
   caret: true,
-};
-
-DropdownLink.propTypes = {
-  ...DropdownMenu.propTypes,
-  title: PropTypes.node,
-  caret: PropTypes.bool,
-  disabled: PropTypes.bool,
-  anchorRight: PropTypes.bool,
-  alwaysRenderMenu: PropTypes.bool,
-  topLevelClasses: PropTypes.string,
-  menuClasses: PropTypes.string,
 };
 
 DropdownLink.displayName = 'DropdownLink';

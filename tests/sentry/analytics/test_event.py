@@ -17,14 +17,14 @@ class ExampleEvent(Event):
     )
 
 
-class DummyType(object):
+class DummyType:
     key = "value"
 
 
 class EventTest(TestCase):
     @patch("sentry.analytics.event.uuid1")
     def test_simple(self, mock_uuid1):
-        class uuid(object):
+        class uuid:
             bytes = b"\x00\x01\x02"
 
         mock_uuid1.return_value = uuid

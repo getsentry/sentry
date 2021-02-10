@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {selectByValue} from 'sentry-test/select-new';
 
 import Orderby from 'app/views/discover/sidebar/orderby';
 
@@ -22,37 +23,29 @@ describe('orderBy', function () {
   });
 
   it('Renders correct initial value options', function () {
-    expect(wrapper.find('StyledSelect').at(0).prop('options')).toEqual([
+    expect(wrapper.find('SelectControl').at(0).prop('options')).toEqual([
       {value: 'timestamp', label: 'timestamp'},
       {value: 'id', label: 'id'},
     ]);
 
-    expect(wrapper.find('StyledSelect').at(1).prop('options')).toEqual([
+    expect(wrapper.find('SelectControl').at(1).prop('options')).toEqual([
       {value: 'asc', label: 'asc'},
       {value: 'desc', label: 'desc'},
     ]);
 
-    expect(wrapper.find('StyledSelect').at(0).props().value).toEqual('timestamp');
+    expect(wrapper.find('SelectControl').at(0).props().value).toEqual('timestamp');
 
-    expect(wrapper.find('StyledSelect').at(1).props().value).toEqual('desc');
+    expect(wrapper.find('SelectControl').at(1).props().value).toEqual('desc');
   });
 
   it('Changes field, preserves direction', function () {
-    wrapper
-      .find('input')
-      .at(1)
-      .simulate('change', {target: {value: 'id'}})
-      .simulate('keyDown', {key: 'Enter', keyCode: 13});
+    selectByValue(wrapper, 'id', {name: 'orderbyField', control: true});
 
     expect(onChangeMock).toHaveBeenCalledWith('-id');
   });
 
   it('Changes direction, preserves field', function () {
-    wrapper
-      .find('input')
-      .at(3)
-      .simulate('change', {target: {value: 'asc'}})
-      .simulate('keyDown', {key: 'Enter', keyCode: 13});
+    selectByValue(wrapper, 'asc', {name: 'orderbyDirection', control: true});
 
     expect(onChangeMock).toHaveBeenCalledWith('timestamp');
   });

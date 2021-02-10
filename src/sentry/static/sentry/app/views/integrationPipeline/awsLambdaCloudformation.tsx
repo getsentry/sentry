@@ -1,14 +1,16 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 import * as qs from 'query-string';
 
 import {addErrorMessage, addLoadingMessage} from 'app/actionCreators/indicator';
-import Button from 'app/components/actions/button';
+import ExternalLink from 'app/components/links/externalLink';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
+import {Organization} from 'app/types';
 import {uniqueId} from 'app/utils/guid';
+import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import TextField from 'app/views/settings/components/forms/textField';
 
@@ -36,6 +38,7 @@ type Props = {
   stackName: string;
   regionList: string[];
   initialStepNumber: number;
+  organization: Organization;
   accountNumber?: string;
   region?: string;
   error?: string;
@@ -123,6 +126,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
   };
 
   handleChangeArn = (accountNumber: string) => {
+    this.debouncedTrackValueChanged('accountNumber');
     // reset the error if we ever get a valid account number
     if (testAccountNumber(accountNumber)) {
       this.setState({accountNumberError: ''});
@@ -131,10 +135,12 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
   };
 
   hanldeChangeRegion = (region: string) => {
+    this.debouncedTrackValueChanged('region');
     this.setState({region});
   };
 
   handleChangeExternalId = (awsExternalId: string) => {
+    this.debouncedTrackValueChanged('awsExternalId');
     awsExternalId = awsExternalId.trim();
     window.localStorage.setItem(ID_NAME, awsExternalId);
     this.setState({awsExternalId});
@@ -144,6 +150,30 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
     const {accountNumber, region, awsExternalId} = this.state;
     return !!region && testAccountNumber(accountNumber || '') && !!awsExternalId;
   }
+
+  //debounce so we don't send a request on every input change
+  debouncedTrackValueChanged = debounce((fieldName: string) => {
+    trackIntegrationEvent(
+      'integrations.installation_input_value_changed',
+      {
+        integration: 'aws_lambda',
+        integration_type: 'first_party',
+        field_name: fieldName,
+      },
+      this.props.organization
+    );
+  }, 200);
+
+  trackOpenCloudFormation = () => {
+    trackIntegrationEvent(
+      'integrations.cloudformation_link_clicked',
+      {
+        integration: 'aws_lambda',
+        integration_type: 'first_party',
+      },
+      this.props.organization
+    );
+  };
 
   render = () => {
     const {initialStepNumber} = this.props;
@@ -156,19 +186,21 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
     } = this.state;
     return (
       <React.Fragment>
-        <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws_lambda/" />
+        <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws-lambda/" />
         <StyledList symbol="colored-numeric" initialCounterValue={initialStepNumber}>
           <ListItem>
-            <h4>{t("Add Sentry's CloudFormation to your AWS")}</h4>
-            <StyledButton priority="primary" external href={this.cloudformationUrl}>
-              {t('Configure AWS')}
-            </StyledButton>
+            <ExternalLink
+              onClick={this.trackOpenCloudFormation}
+              href={this.cloudformationUrl}
+            >
+              <h3>{t("Add Sentry's CloudFormation to your AWS")}</h3>
+            </ExternalLink>
+            <p>{t('After the stack has been created, continue to the next step')}</p>
           </ListItem>
           <ListItem>
             <h4>{t('Add AWS Account Information')}</h4>
             <TextField
               name="accountNumber"
-              placeholder="599817902985"
               value={accountNumber}
               onChange={this.handleChangeArn}
               onBlur={this.validateAccountNumber}
@@ -176,10 +208,13 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
               inline={false}
               stacked
               label={t('AWS Account Number')}
+              showHelpInTooltip
+              help={t(
+                'Your account number can be found on the right side of the header in AWS'
+              )}
             />
             <SelectField
               name="region"
-              placeholder="us-east-2"
               value={region}
               onChange={this.hanldeChangeRegion}
               options={this.regionOptions}
@@ -187,6 +222,10 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
               inline={false}
               stacked
               label={t('AWS Region')}
+              showHelpInTooltip
+              help={t(
+                'Your current region can be found on the right side of the header in AWS'
+              )}
             />
             <TextField
               name="awsExternalId"
@@ -196,6 +235,10 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
               stacked
               error={awsExternalId ? '' : t('External ID Required')}
               label={t('External ID')}
+              showHelpInTooltip
+              help={t(
+                'Do not edit unless you are copying from a previously created CloudFormation stack'
+              )}
             />
           </ListItem>
         </StyledList>
@@ -209,10 +252,6 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
   };
 }
 
-const StyledButton = styled(Button)`
-  margin: 0 0 ${space(2)} 0;
-`;
-
 const StyledList = styled(List)`
-  margin: 100px 50px 50px 50px;
+  padding: 100px 50px 50px 50px;
 `;

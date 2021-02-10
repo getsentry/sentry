@@ -7,6 +7,7 @@ import space from 'app/styles/space';
 
 export default {
   title: 'UI/ScoreCard',
+  component: ScoreCard,
 };
 
 export const Default = () => (
@@ -16,14 +17,14 @@ export const Default = () => (
       help={t('First score is used to ...')}
       score="94.1%"
       trend="+13.5%"
-      trendStyle="good"
+      trendStatus="good"
     />
     <ScoreCard
       title={t('Velocity Score')}
       help={t('Velocity score is used to ...')}
       score="16"
       trend="-2 releases / 2 wks"
-      trendStyle="bad"
+      trendStatus="bad"
     />
     <ScoreCard
       title={t('Other Score')}
@@ -34,7 +35,7 @@ export const Default = () => (
     <ScoreCard title={t('Minimal')} />
   </Wrapper>
 );
-Default.story = {name: 'default'};
+Default.storyName = 'default';
 
 const Wrapper = styled('div')`
   display: grid;

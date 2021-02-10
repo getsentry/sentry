@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import createReactClass from 'create-react-class';
-import PropTypes from 'prop-types';
+import {Query} from 'history';
 import Reflux from 'reflux';
 
 import {
@@ -26,6 +26,10 @@ type Props = {
   position?: string;
   disabled?: boolean;
   offset?: string;
+  to?: {
+    pathname: string;
+    query: Query;
+  };
 };
 
 type State = {
@@ -42,13 +46,6 @@ type State = {
  * be shown on the page.
  */
 const GuideAnchor = createReactClass<Props, State>({
-  propTypes: {
-    target: PropTypes.string,
-    position: PropTypes.string,
-    disabled: PropTypes.bool,
-    offset: PropTypes.string,
-  },
-
   mixins: [Reflux.listenTo(GuideStore, 'onGuideStateChange') as any],
 
   getInitialState() {
@@ -120,6 +117,7 @@ const GuideAnchor = createReactClass<Props, State>({
   },
 
   getHovercardBody() {
+    const {to} = this.props;
     const {currentGuide, step} = this.state;
 
     const totalStepCount = currentGuide.steps.length;
@@ -131,31 +129,47 @@ const GuideAnchor = createReactClass<Props, State>({
     return (
       <GuideContainer>
         <GuideContent>
-          <GuideTitle>{currentStep.title}</GuideTitle>
+          {currentStep.title && <GuideTitle>{currentStep.title}</GuideTitle>}
           <GuideDescription>{currentStep.description}</GuideDescription>
         </GuideContent>
         <GuideAction>
           <div>
             {lastStep ? (
-              <StyledButton
-                size="small"
-                href="#" // to clear `#assistant` from the url
-                onClick={this.handleFinish}
-              >
-                {hasManySteps ? t('Enough Already') : t('Got It')}
-              </StyledButton>
+              <React.Fragment>
+                {currentStep.hasNextGuide && (
+                  <DismissButton
+                    size="small"
+                    href="#" // to clear `#assistant` from the url
+                    onClick={this.handleFinish}
+                  >
+                    {currentStep.dismissText || t('Dismiss')}
+                  </DismissButton>
+                )}
+                <StyledButton
+                  size="small"
+                  href={currentGuide.carryAssistantForward ? '#assistant' : '#'} // to clear `#assistant` from the url
+                  to={to}
+                  onClick={this.handleFinish}
+                >
+                  {currentStep.nextText ||
+                    (hasManySteps ? t('Enough Already') : t('Got It'))}
+                </StyledButton>
+              </React.Fragment>
             ) : (
               <React.Fragment>
-                <DismissButton
-                  priority="primary"
-                  size="small"
-                  href="#" // to clear `#assistant` from the url
-                  onClick={this.handleDismiss}
-                >
-                  {t('Dismiss')}
-                </DismissButton>
-                <StyledButton size="small" onClick={this.handleNextStep}>
-                  {t('Next')}
+                {!currentStep.cantDismiss && (
+                  <DismissButton
+                    priority="primary"
+                    size="small"
+                    href="#" // to clear `#assistant` from the url
+                    to={to}
+                    onClick={this.handleDismiss}
+                  >
+                    {currentStep.dismissText || t('Dismiss')}
+                  </DismissButton>
+                )}
+                <StyledButton size="small" onClick={this.handleNextStep} to={to}>
+                  {currentStep.nextText || t('Next')}
                 </StyledButton>
               </React.Fragment>
             )}

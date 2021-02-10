@@ -1,5 +1,4 @@
 import logging
-import six
 
 from confluent_kafka import OFFSET_INVALID, TopicPartition
 from django.conf import settings
@@ -50,7 +49,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         self.producer.poll(0.0)
 
         assert isinstance(extra_data, tuple)
-        key = six.text_type(project_id)
+        key = str(project_id)
 
         try:
             self.producer.produce(
@@ -99,7 +98,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
             errors = [i for i in results if i.error is not None]
             if errors:
                 raise Exception(
-                    "Failed to commit %s/%s partitions: %r" % (len(errors), len(partitions), errors)
+                    "Failed to commit {}/{} partitions: {!r}".format(
+                        len(errors), len(partitions), errors
+                    )
                 )
 
             return results
@@ -112,7 +113,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
                     updated_offset = None
                 elif i.offset < 0:
                     raise Exception(
-                        "Received unexpected negative offset during partition assignment: %r" % (i,)
+                        f"Received unexpected negative offset during partition assignment: {i!r}"
                     )
                 else:
                     updated_offset = i.offset

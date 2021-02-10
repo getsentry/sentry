@@ -1,5 +1,3 @@
-import six
-
 from collections import defaultdict
 from datetime import timedelta
 from django.db import connection
@@ -105,7 +103,7 @@ class ProjectSerializer(Serializer):
 
     def get_attrs(self, item_list, user):
         def measure_span(op_tag):
-            span = sentry_sdk.start_span(op="serialize.get_attrs.project.{}".format(op_tag))
+            span = sentry_sdk.start_span(op=f"serialize.get_attrs.project.{op_tag}")
             span.set_data("Object Count", len(item_list))
             return span
 
@@ -186,7 +184,7 @@ class ProjectSerializer(Serializer):
             "end": now,
         }
         if self.environment_id:
-            query = "{} environment:{}".format(query, self.environment_id)
+            query = f"{query} environment:{self.environment_id}"
 
         # Generate a query result to skip the top_events.find query
         top_events = {"data": [{"project_id": p} for p in project_ids]}
@@ -205,7 +203,7 @@ class ProjectSerializer(Serializer):
         results = {}
         for project_id in project_ids:
             serialized = []
-            str_id = six.text_type(project_id)
+            str_id = str(project_id)
             if str_id in stats:
                 for item in stats[str_id].data["data"]:
                     serialized.append((item["time"], item.get("count", 0)))
@@ -237,7 +235,7 @@ class ProjectSerializer(Serializer):
             if batch_features:
                 for project in projects:
                     for feature_name, active in batch_features.get(
-                        "project:{}".format(project.id), {}
+                        f"project:{project.id}", {}
                     ).items():
                         if active:
                             features_by_project[project].append(
@@ -274,7 +272,7 @@ class ProjectSerializer(Serializer):
             avatar = {"avatarType": "letter_avatar", "avatarUuid": None}
 
         context = {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "slug": obj.slug,
             "name": obj.name,
             "isPublic": obj.public,
@@ -300,22 +298,22 @@ class ProjectSerializer(Serializer):
 
 class ProjectWithOrganizationSerializer(ProjectSerializer):
     def get_attrs(self, item_list, user):
-        attrs = super(ProjectWithOrganizationSerializer, self).get_attrs(item_list, user)
+        attrs = super().get_attrs(item_list, user)
 
-        orgs = {d["id"]: d for d in serialize(list(set(i.organization for i in item_list)), user)}
+        orgs = {d["id"]: d for d in serialize(list({i.organization for i in item_list}), user)}
         for item in item_list:
-            attrs[item]["organization"] = orgs[six.text_type(item.organization_id)]
+            attrs[item]["organization"] = orgs[str(item.organization_id)]
         return attrs
 
     def serialize(self, obj, attrs, user):
-        data = super(ProjectWithOrganizationSerializer, self).serialize(obj, attrs, user)
+        data = super().serialize(obj, attrs, user)
         data["organization"] = attrs["organization"]
         return data
 
 
 class ProjectWithTeamSerializer(ProjectSerializer):
     def get_attrs(self, item_list, user):
-        attrs = super(ProjectWithTeamSerializer, self).get_attrs(item_list, user)
+        attrs = super().get_attrs(item_list, user)
 
         project_teams = list(
             ProjectTeam.objects.filter(project__in=item_list).select_related("team")
@@ -323,7 +321,7 @@ class ProjectWithTeamSerializer(ProjectSerializer):
 
         teams = {
             pt.team_id: {
-                "id": six.text_type(pt.team.id),
+                "id": str(pt.team.id),
                 "slug": pt.team.slug,
                 "name": pt.team.name,
             }
@@ -339,7 +337,7 @@ class ProjectWithTeamSerializer(ProjectSerializer):
         return attrs
 
     def serialize(self, obj, attrs, user):
-        data = super(ProjectWithTeamSerializer, self).serialize(obj, attrs, user)
+        data = super().serialize(obj, attrs, user)
         # TODO(jess): remove this when this is deprecated
         try:
             data["team"] = attrs["teams"][0]
@@ -411,7 +409,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         return deploys_by_project
 
     def get_attrs(self, item_list, user):
-        attrs = super(ProjectSummarySerializer, self).get_attrs(item_list, user)
+        attrs = super().get_attrs(item_list, user)
 
         projects_with_user_reports = set(
             UserReport.objects.filter(project_id__in=[item.id for item in item_list]).values_list(
@@ -461,7 +459,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         context = {
             "team": attrs["teams"][0] if attrs["teams"] else None,
             "teams": attrs["teams"],
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "name": obj.name,
             "slug": obj.slug,
             "isBookmarked": attrs["is_bookmarked"],
@@ -513,13 +511,13 @@ def bulk_fetch_project_latest_releases(projects):
 
     return list(
         Release.objects.raw(
-            """
+            f"""
         SELECT lr.project_id as actual_project_id, r.*
         FROM (
             SELECT (
                 SELECT lrr.id
                 FROM sentry_release lrr
-                {}
+                {release_project_join_sql}
                 WHERE lrp.project_id = p.id
                 ORDER BY COALESCE(lrr.date_released, lrr.date_added) DESC
                 LIMIT 1
@@ -530,11 +528,9 @@ def bulk_fetch_project_latest_releases(projects):
         ) as lr
         JOIN sentry_release r
         ON r.id = lr.release_id
-            """.format(
-                release_project_join_sql
-            ),
+            """,
             # formatting tuples works specifically in psycopg2
-            (tuple(six.text_type(i.id) for i in projects),),
+            (tuple(str(i.id) for i in projects),),
         )
     )
 
@@ -570,6 +566,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:grouping_enhancements_base",
             "sentry:fingerprinting_rules",
             "sentry:relay_pii_config",
+            "sentry:dynamic_sampling",
             "feedback:branding",
             "digests:mail:minimum_delay",
             "digests:mail:maximum_delay",
@@ -579,7 +576,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
     )
 
     def get_attrs(self, item_list, user):
-        attrs = super(DetailedProjectSerializer, self).get_attrs(item_list, user)
+        attrs = super().get_attrs(item_list, user)
 
         project_ids = [i.id for i in item_list]
 
@@ -598,7 +595,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         for option in queryset.iterator():
             options_by_project[option.project_id][option.key] = option.value
 
-        orgs = {d["id"]: d for d in serialize(list(set(i.organization for i in item_list)), user)}
+        orgs = {d["id"]: d for d in serialize(list({i.organization for i in item_list}), user)}
 
         latest_release_list = bulk_fetch_project_latest_releases(item_list)
         latest_releases = {
@@ -610,7 +607,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             attrs[item].update(
                 {
                     "latest_release": latest_releases.get(item.id),
-                    "org": orgs[six.text_type(item.organization_id)],
+                    "org": orgs[str(item.organization_id)],
                     "options": options_by_project[item.id],
                     "processing_issues": processing_issues_by_project.get(item.id, 0),
                 }
@@ -628,7 +625,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 key, epoch=attrs["options"].get("sentry:option-epoch")
             )
 
-        data = super(DetailedProjectSerializer, self).serialize(obj, attrs, user)
+        data = super().serialize(obj, attrs, user)
         data.update(
             {
                 "latestRelease": attrs["latest_release"],
@@ -645,11 +642,11 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                     "filters:blacklisted_ips": "\n".join(
                         attrs["options"].get("sentry:blacklisted_ips", [])
                     ),
-                    "filters:{}".format(FilterTypes.RELEASES): "\n".join(
-                        attrs["options"].get("sentry:{}".format(FilterTypes.RELEASES), [])
+                    f"filters:{FilterTypes.RELEASES}": "\n".join(
+                        attrs["options"].get(f"sentry:{FilterTypes.RELEASES}", [])
                     ),
-                    "filters:{}".format(FilterTypes.ERROR_MESSAGES): "\n".join(
-                        attrs["options"].get("sentry:{}".format(FilterTypes.ERROR_MESSAGES), [])
+                    f"filters:{FilterTypes.ERROR_MESSAGES}": "\n".join(
+                        attrs["options"].get(f"sentry:{FilterTypes.ERROR_MESSAGES}", [])
                     ),
                     "feedback:branding": attrs["options"].get("feedback:branding", "1") == "1",
                 },
@@ -700,6 +697,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
                 "builtinSymbolSources": get_value_with_default("sentry:builtin_symbol_sources"),
                 "symbolSources": attrs["options"].get("sentry:symbol_sources"),
+                "dynamicSampling": get_value_with_default("sentry:dynamic_sampling"),
             }
         )
         return data

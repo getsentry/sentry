@@ -4,7 +4,6 @@ import {WithRouterProps} from 'react-router/lib/withRouter';
 
 import {Client} from 'app/api';
 import ChartZoom from 'app/components/charts/chartZoom';
-import Legend from 'app/components/charts/components/legend';
 import LineChart from 'app/components/charts/lineChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 import TransitionChart from 'app/components/charts/transitionChart';
@@ -22,7 +21,9 @@ import {YAxis} from 'app/views/releases/detail/overview/chart/releaseChartContro
 
 import {NormalizedTrendsTransaction, TrendChangeType, TrendsStats} from './types';
 import {
+  generateTrendFunctionAsString,
   getCurrentTrendFunction,
+  getCurrentTrendParameter,
   getUnselectedSeries,
   transformEventStatsSmoothed,
   trendToColor,
@@ -64,17 +65,11 @@ function transformEventStats(data: EventsStatsData, seriesName?: string): Series
 }
 
 function getLegend(trendFunction: string) {
-  const legend = Legend({
+  return {
     right: 10,
     top: 0,
     itemGap: 12,
     align: 'left' as const,
-    textStyle: {
-      verticalAlign: 'top',
-      fontSize: 11,
-      fontFamily: 'Rubik',
-    },
-    theme,
     data: [
       {
         name: 'Baseline',
@@ -90,8 +85,7 @@ function getLegend(trendFunction: string) {
         icon: 'line',
       },
     ],
-  });
-  return legend;
+  };
 }
 
 function getIntervalLine(
@@ -247,24 +241,29 @@ class Chart extends React.Component<Props> {
     const data = events?.data ?? [];
 
     const trendFunction = getCurrentTrendFunction(location);
-    const results = transformEventStats(data, trendFunction.chartLabel);
+    const trendParameter = getCurrentTrendParameter(location);
+    const chartLabel = generateTrendFunctionAsString(
+      trendFunction.field,
+      trendParameter.column
+    );
+    const results = transformEventStats(data, chartLabel);
     const {smoothedResults, minValue, maxValue} = transformEventStatsSmoothed(
       results,
-      trendFunction.chartLabel
+      chartLabel
     );
 
     const start = props.start ? getUtcToLocalDateObject(props.start) : null;
     const end = props.end ? getUtcToLocalDateObject(props.end) : null;
     const utc = decodeScalar(router.location.query.utc) !== 'false';
 
-    const seriesSelection = (
-      decodeList(location.query[getUnselectedSeries(trendChangeType)]) ?? []
+    const seriesSelection = decodeList(
+      location.query[getUnselectedSeries(trendChangeType)]
     ).reduce((selection, metric) => {
       selection[metric] = false;
       return selection;
     }, {});
     const legend = {
-      ...getLegend(trendFunction.chartLabel),
+      ...getLegend(chartLabel),
       selected: seriesSelection,
     };
 
@@ -312,7 +311,7 @@ class Chart extends React.Component<Props> {
     };
 
     return (
-      <ChartZoom router={router} period={statsPeriod}>
+      <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
         {zoomRenderProps => {
           const smoothedSeries = smoothedResults
             ? smoothedResults.map(values => {

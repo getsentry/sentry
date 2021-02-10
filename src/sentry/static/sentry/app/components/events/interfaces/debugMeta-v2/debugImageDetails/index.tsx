@@ -1,6 +1,8 @@
 import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
+import partition from 'lodash/partition';
+import sortBy from 'lodash/sortBy';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
@@ -18,7 +20,7 @@ import NotAvailable from '../notAvailable';
 import {getFileName} from '../utils';
 
 import Candidates from './candidates';
-import {INTERNAL_SOURCE} from './utils';
+import {INTERNAL_SOURCE, INTERNAL_SOURCE_LOCATION} from './utils';
 
 type Candidates = Image['candidates'];
 
@@ -26,7 +28,7 @@ type Props = AsyncComponent['props'] &
   ModalRenderProps & {
     projectId: Project['id'];
     organization: Organization;
-    image: Image;
+    image?: Image;
   };
 
 type State = AsyncComponent['state'] & {
@@ -34,7 +36,7 @@ type State = AsyncComponent['state'] & {
   builtinSymbolSources: Array<BuiltinSymbolSource> | null;
 };
 
-class DebugFileDetails extends AsyncComponent<Props, State> {
+class DebugImageDetails extends AsyncComponent<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -49,6 +51,11 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, projectId, image} = this.props;
+
+    if (!image) {
+      return [];
+    }
+
     const {debug_id, candidates = []} = image;
     const {builtinSymbolSources} = this.state || {};
 
@@ -79,35 +86,79 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
     return endpoints;
   }
 
+  sortCandidates(candidates: Candidates, unAppliedCandidates: Candidates): Candidates {
+    const [noPermissionCandidates, restNoPermissionCandidates] = partition(
+      candidates,
+      candidate => candidate.download.status === CandidateDownloadStatus.NO_PERMISSION
+    );
+
+    const [malFormedCandidates, restMalFormedCandidates] = partition(
+      restNoPermissionCandidates,
+      candidate => candidate.download.status === CandidateDownloadStatus.MALFORMED
+    );
+
+    const [errorCandidates, restErrorCandidates] = partition(
+      restMalFormedCandidates,
+      candidate => candidate.download.status === CandidateDownloadStatus.ERROR
+    );
+
+    const [okCandidates, restOKCandidates] = partition(
+      restErrorCandidates,
+      candidate => candidate.download.status === CandidateDownloadStatus.OK
+    );
+
+    const [deletedCandidates, notFoundCandidates] = partition(
+      restOKCandidates,
+      candidate => candidate.download.status === CandidateDownloadStatus.DELETED
+    );
+
+    return [
+      ...sortBy(noPermissionCandidates, ['source_name', 'location']),
+      ...sortBy(malFormedCandidates, ['source_name', 'location']),
+      ...sortBy(errorCandidates, ['source_name', 'location']),
+      ...sortBy(okCandidates, ['source_name', 'location']),
+      ...sortBy(deletedCandidates, ['source_name', 'location']),
+      ...sortBy(unAppliedCandidates, ['source_name', 'location']),
+      ...sortBy(notFoundCandidates, ['source_name', 'location']),
+    ];
+  }
+
   getCandidates() {
     const {debugFiles, loading} = this.state;
     const {image} = this.props;
-    const {candidates = []} = image;
+    const {candidates = []} = image ?? {};
 
     if (!debugFiles || loading) {
       return candidates;
     }
 
-    // Check for unapplied debug files
+    const imageCandidates = candidates.map(({location, ...candidate}) => ({
+      ...candidate,
+      location: location?.includes(INTERNAL_SOURCE_LOCATION)
+        ? location.split(INTERNAL_SOURCE_LOCATION)[1]
+        : location,
+    }));
+
+    // Check for unapplied candidates (debug files)
     const candidateLocations = new Set(
-      candidates.map(candidate => candidate.location).filter(location => !!location)
+      imageCandidates.map(({location}) => location).filter(location => !!location)
     );
 
-    const unAppliedDebugFiles = debugFiles
+    const unAppliedCandidates = debugFiles
       .filter(debugFile => !candidateLocations.has(debugFile.id))
       .map(debugFile => ({
         download: {
           status: CandidateDownloadStatus.UNAPPLIED,
         },
-        location: debugFile.id,
+        location: `${INTERNAL_SOURCE_LOCATION}${debugFile.id}`,
         source: INTERNAL_SOURCE,
         source_name: debugFile.objectName,
-      }));
+      })) as Candidates;
 
-    // Check for deleted debug files
+    // Check for deleted candidates (debug files)
     const debugFileIds = new Set(debugFiles.map(debugFile => debugFile.id));
 
-    const convertedCandidates = candidates.map(candidate => {
+    const convertedCandidates = imageCandidates.map(candidate => {
       if (
         candidate.source === INTERNAL_SOURCE &&
         candidate.location &&
@@ -117,14 +168,15 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
         return {
           ...candidate,
           download: {
+            ...candidate.download,
             status: CandidateDownloadStatus.DELETED,
           },
         };
       }
       return candidate;
-    });
+    }) as Candidates;
 
-    return [...convertedCandidates, ...unAppliedDebugFiles] as Candidates;
+    return this.sortCandidates(convertedCandidates, unAppliedCandidates);
   }
 
   handleDelete = async (debugId: string) => {
@@ -152,17 +204,19 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
     const {Header, Body, Footer, image, organization, projectId} = this.props;
     const {loading, builtinSymbolSources} = this.state;
 
-    const {debug_id, debug_file, code_file, code_id, arch: architecture} = image;
+    const {debug_id, debug_file, code_file, code_id, arch: architecture} = image ?? {};
 
     const candidates = this.getCandidates();
     const baseUrl = this.api.baseUrl;
 
     const title = getFileName(code_file);
-    const imageAddress = <Address image={image} />;
+    const imageAddress = image ? <Address image={image} /> : undefined;
 
     return (
       <React.Fragment>
-        <Header closeButton>{title ?? t('Unknown')}</Header>
+        <Header closeButton>
+          <span data-test-id="modal-title">{title ?? t('Unknown')}</span>
+        </Header>
         <Body>
           <Content>
             <GeneralInfo>
@@ -173,13 +227,13 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
               <Value coloredBg>{debug_id ?? <NotAvailable />}</Value>
 
               <Label>{t('Debug File')}</Label>
-              <Value>{debug_file}</Value>
+              <Value>{debug_file ?? <NotAvailable />}</Value>
 
               <Label coloredBg>{t('Code ID')}</Label>
-              <Value coloredBg>{code_id}</Value>
+              <Value coloredBg>{code_id ?? <NotAvailable />}</Value>
 
               <Label>{t('Code File')}</Label>
-              <Value>{code_file}</Value>
+              <Value>{code_file ?? <NotAvailable />}</Value>
 
               <Label coloredBg>{t('Architecture')}</Label>
               <Value coloredBg>{architecture ?? <NotAvailable />}</Value>
@@ -208,7 +262,7 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
   }
 }
 
-export default DebugFileDetails;
+export default DebugImageDetails;
 
 const Content = styled('div')`
   display: grid;

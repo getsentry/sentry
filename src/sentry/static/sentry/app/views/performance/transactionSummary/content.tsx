@@ -6,6 +6,7 @@ import omit from 'lodash/omit';
 
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import TransactionsList, {DropdownOption} from 'app/components/discover/transactionsList';
+import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
 import * as Layout from 'app/components/layouts/thirds';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {t} from 'app/locale';
@@ -155,7 +156,7 @@ class SummaryContent extends React.Component<Props, State> {
       totalValues,
     } = this.props;
     const {incompatibleAlertNotice} = this.state;
-    const query = decodeScalar(location.query.query) || '';
+    const query = decodeScalar(location.query.query, '');
     const totalCount = totalValues.count;
     const slowDuration = totalValues?.p95;
 
@@ -185,6 +186,7 @@ class SummaryContent extends React.Component<Props, State> {
           handleIncompatibleQuery={this.handleIncompatibleQuery}
         />
         <Layout.Body>
+          <StyledSdkUpdatesAlert />
           {incompatibleAlertNotice && (
             <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
           )}
@@ -297,8 +299,10 @@ function getTransactionsListSort(
   options: {p95: number}
 ): {selectedSort: DropdownOption; sortOptions: DropdownOption[]} {
   const sortOptions = getFilterOptions(options);
-  const urlParam =
-    decodeScalar(location.query.showTransactions) || TransactionFilterOptions.SLOW;
+  const urlParam = decodeScalar(
+    location.query.showTransactions,
+    TransactionFilterOptions.SLOW
+  );
   const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0];
   return {selectedSort, sortOptions};
 }
@@ -306,5 +310,15 @@ function getTransactionsListSort(
 const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(3)};
 `;
+
+const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    margin-bottom: 0;
+  }
+`;
+
+StyledSdkUpdatesAlert.defaultProps = {
+  Wrapper: p => <Layout.Main fullWidth {...p} />,
+};
 
 export default withProjects(SummaryContent);

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from django.db import migrations
 
 
@@ -25,6 +23,6 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AlterUniqueTogether(
             name="pagerdutyservice",
-            unique_together=set([]),
+            unique_together=set(),
         ),
     ]

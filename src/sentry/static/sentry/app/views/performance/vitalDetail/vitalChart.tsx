@@ -5,7 +5,6 @@ import {Location} from 'history';
 
 import {Client} from 'app/api';
 import ChartZoom from 'app/components/charts/chartZoom';
-import Legend from 'app/components/charts/components/legend';
 import MarkLine from 'app/components/charts/components/markLine';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import EventsRequest from 'app/components/charts/eventsRequest';
@@ -87,12 +86,11 @@ class VitalChart extends React.Component<Props> {
 
     const yAxis = [`p75(${vitalName})`];
 
-    const legend = Legend({
+    const legend = {
       right: 10,
       top: 0,
       selected: getSeriesSelection(location),
-      theme,
-    });
+    };
 
     const datetimeSelection = {
       start,
@@ -189,7 +187,13 @@ class VitalChart extends React.Component<Props> {
               title={t(`The durations shown should fall under the vital threshold.`)}
             />
           </HeaderTitleLegend>
-          <ChartZoom router={router} period={statsPeriod}>
+          <ChartZoom
+            router={router}
+            period={statsPeriod}
+            start={start}
+            end={end}
+            utc={utc}
+          >
             {zoomRenderProps => (
               <EventsRequest
                 api={api}

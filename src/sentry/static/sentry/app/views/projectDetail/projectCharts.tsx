@@ -14,6 +14,7 @@ import {
 } from 'app/components/charts/styles';
 import {Panel} from 'app/components/panels';
 import CHART_PALETTE from 'app/constants/chartPalette';
+import NOT_AVAILABLE_MESSAGES from 'app/constants/notAvailableMessages';
 import {t} from 'app/locale';
 import {Organization, SelectValue} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -21,7 +22,7 @@ import {decodeScalar} from 'app/utils/queryString';
 import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 
-import {getTermHelp} from '../performance/data';
+import {getTermHelp, PERFORMANCE_TERM} from '../performance/data';
 import {ChartContainer} from '../performance/styles';
 
 import ProjectBaseEventsChart from './charts/projectBaseEventsChart';
@@ -33,7 +34,7 @@ enum DisplayModes {
   TPM = 'tpm',
   ERRORS = 'errors',
   TRANSACTIONS = 'transactions',
-  STABILITY = 'stability',
+  STABILITY = 'crash_free',
 }
 
 const DISPLAY_URL_KEY = ['display1', 'display2'];
@@ -61,8 +62,8 @@ class ProjectCharts extends React.Component<Props, State> {
     const {location, index} = this.props;
 
     return DISPLAY_URL_KEY.filter((_, idx) => idx !== index).map(urlKey => {
-      return (
-        decodeScalar(location.query[urlKey]) ??
+      return decodeScalar(
+        location.query[urlKey],
         DEFAULT_DISPLAY_MODES[DISPLAY_URL_KEY.findIndex(value => value === urlKey)]
       );
     });
@@ -85,10 +86,8 @@ class ProjectCharts extends React.Component<Props, State> {
     const {organization} = this.props;
     const hasPerformance = organization.features.includes('performance-view');
     const hasDiscover = organization.features.includes('discover-basic');
-    const noPerformanceTooltip = t(
-      'This view is only available with Performance Monitoring.'
-    );
-    const noDiscoverTooltip = t('This view is only available with Discover.');
+    const noPerformanceTooltip = NOT_AVAILABLE_MESSAGES.performance;
+    const noDiscoverTooltip = NOT_AVAILABLE_MESSAGES.discover;
 
     return [
       {
@@ -97,7 +96,7 @@ class ProjectCharts extends React.Component<Props, State> {
         disabled:
           this.otherActiveDisplayModes.includes(DisplayModes.APDEX) || !hasPerformance,
         tooltip: hasPerformance
-          ? getTermHelp(organization, 'apdex')
+          ? getTermHelp(organization, PERFORMANCE_TERM.APDEX)
           : noPerformanceTooltip,
       },
       {
@@ -107,7 +106,7 @@ class ProjectCharts extends React.Component<Props, State> {
           this.otherActiveDisplayModes.includes(DisplayModes.FAILURE_RATE) ||
           !hasPerformance,
         tooltip: hasPerformance
-          ? getTermHelp(organization, 'failureRate')
+          ? getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE)
           : noPerformanceTooltip,
       },
       {
@@ -115,7 +114,9 @@ class ProjectCharts extends React.Component<Props, State> {
         label: t('Transactions Per Minute'),
         disabled:
           this.otherActiveDisplayModes.includes(DisplayModes.TPM) || !hasPerformance,
-        tooltip: hasPerformance ? getTermHelp(organization, 'tpm') : noPerformanceTooltip,
+        tooltip: hasPerformance
+          ? getTermHelp(organization, PERFORMANCE_TERM.TPM)
+          : noPerformanceTooltip,
       },
       {
         value: DisplayModes.ERRORS,
@@ -134,7 +135,7 @@ class ProjectCharts extends React.Component<Props, State> {
       },
       {
         value: DisplayModes.STABILITY,
-        label: t('Stability'),
+        label: t('Crash Free Sessions'),
         disabled: this.otherActiveDisplayModes.includes(DisplayModes.STABILITY),
       },
     ];
@@ -188,7 +189,7 @@ class ProjectCharts extends React.Component<Props, State> {
           {displayMode === DisplayModes.APDEX && (
             <ProjectBaseEventsChart
               title={t('Apdex')}
-              help={getTermHelp(organization, 'apdex')}
+              help={getTermHelp(organization, PERFORMANCE_TERM.APDEX)}
               query="event.type:transaction"
               yAxis={`apdex(${organization.apdexThreshold})`}
               field={[`apdex(${organization.apdexThreshold})`]}
@@ -202,7 +203,7 @@ class ProjectCharts extends React.Component<Props, State> {
           {displayMode === DisplayModes.FAILURE_RATE && (
             <ProjectBaseEventsChart
               title={t('Failure Rate')}
-              help={getTermHelp(organization, 'failureRate')}
+              help={getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE)}
               query="event.type:transaction"
               yAxis="failure_rate()"
               field={[`failure_rate()`]}
@@ -216,7 +217,7 @@ class ProjectCharts extends React.Component<Props, State> {
           {displayMode === DisplayModes.TPM && (
             <ProjectBaseEventsChart
               title={t('Transactions Per Minute')}
-              help={getTermHelp(organization, 'tpm')}
+              help={getTermHelp(organization, PERFORMANCE_TERM.TPM)}
               query="event.type:transaction"
               yAxis="tpm()"
               field={[`tpm()`]}
@@ -240,6 +241,7 @@ class ProjectCharts extends React.Component<Props, State> {
               onTotalValuesChange={this.handleTotalValuesChange}
               colors={[theme.purple300, theme.purple200]}
               showDaily
+              disableReleases
             />
           )}
           {displayMode === DisplayModes.TRANSACTIONS && (
@@ -254,6 +256,7 @@ class ProjectCharts extends React.Component<Props, State> {
               onTotalValuesChange={this.handleTotalValuesChange}
               colors={[theme.gray200, theme.purple200]}
               showDaily
+              disableReleases
             />
           )}
           {displayMode === DisplayModes.STABILITY && (

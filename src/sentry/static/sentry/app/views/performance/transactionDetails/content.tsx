@@ -1,23 +1,24 @@
 import React from 'react';
 import {Params} from 'react-router/lib/Router';
 import {Location} from 'history';
-import PropTypes from 'prop-types';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import NotFound from 'app/components/errors/notFound';
 import {BorderlessEventEntries} from 'app/components/events/eventEntries';
 import EventMetadata from 'app/components/events/eventMetadata';
+import EventVitals from 'app/components/events/eventVitals';
 import * as SpanEntryContext from 'app/components/events/interfaces/spans/context';
 import OpsBreakdown from 'app/components/events/opsBreakdown';
-import RealUserMonitoring from 'app/components/events/realUserMonitoring';
 import RootSpanStatus from 'app/components/events/rootSpanStatus';
+import FileSize from 'app/components/fileSize';
 import * as Layout from 'app/components/layouts/thirds';
 import LoadingError from 'app/components/loadingError';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import TagsTable from 'app/components/tagsTable';
+import {IconOpen} from 'app/icons';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import {Organization, Project} from 'app/types';
 import {Event, EventTag} from 'app/types/event';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -27,6 +28,8 @@ import Breadcrumb from 'app/views/performance/breadcrumb';
 
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 import {getTransactionDetailsUrl} from '../utils';
+
+import EventMetas from './eventMetas';
 
 type Props = {
   organization: Organization;
@@ -41,12 +44,6 @@ type State = {
 } & AsyncComponent['state'];
 
 class EventDetailsContent extends AsyncComponent<Props, State> {
-  static propTypes: any = {
-    organization: SentryTypes.Organization.isRequired,
-    eventSlug: PropTypes.string.isRequired,
-    location: PropTypes.object.isRequired,
-  };
-
   state: State = {
     // AsyncComponent state
     loading: true,
@@ -82,7 +79,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     if (!event) {
       return '';
     }
-    const query = decodeScalar(location.query.query) || '';
+    const query = decodeScalar(location.query.query, '');
     const newQuery = {
       ...location.query,
       query: appendTagCondition(query, tag.key, tag.value),
@@ -118,7 +115,13 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
 
     const {isSidebarVisible} = this.state;
     const transactionName = event.title;
-    const query = decodeScalar(location.query.query) || '';
+    const query = decodeScalar(location.query.query, '');
+
+    const hasQuickTraceView =
+      organization.features.includes('trace-view-quick') &&
+      organization.features.includes('trace-view-summary');
+
+    const eventJsonUrl = `/api/0/projects/${organization.slug}/${this.projectId}/events/${event.eventID}/json/`;
 
     return (
       <React.Fragment>
@@ -133,13 +136,27 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
             <Layout.Title data-test-id="event-header">{event.title}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
-            <Button onClick={this.toggleSidebar}>
-              {isSidebarVisible ? 'Hide Details' : 'Show Details'}
-            </Button>
+            <ButtonBar gap={1}>
+              <Button onClick={this.toggleSidebar}>
+                {isSidebarVisible ? 'Hide Details' : 'Show Details'}
+              </Button>
+              {hasQuickTraceView && (
+                <Button icon={<IconOpen />} href={eventJsonUrl} external>
+                  {t('JSON')} (<FileSize bytes={event.size} />)
+                </Button>
+              )}
+            </ButtonBar>
           </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>
           <Layout.Main fullWidth={!isSidebarVisible}>
+            {hasQuickTraceView && (
+              <EventMetas
+                event={event}
+                organization={organization}
+                projectId={this.projectId}
+              />
+            )}
             <Projects orgId={organization.slug} slugs={[this.projectId]}>
               {({projects}) => (
                 <SpanEntryContext.Provider
@@ -168,14 +185,18 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
           </Layout.Main>
           {isSidebarVisible && (
             <Layout.Side>
-              <EventMetadata
-                event={event}
-                organization={organization}
-                projectId={this.projectId}
-              />
-              <RootSpanStatus event={event} />
+              {!hasQuickTraceView && (
+                <React.Fragment>
+                  <EventMetadata
+                    event={event}
+                    organization={organization}
+                    projectId={this.projectId}
+                  />
+                  <RootSpanStatus event={event} />
+                </React.Fragment>
+              )}
               <OpsBreakdown event={event} />
-              <RealUserMonitoring event={event} />
+              <EventVitals event={event} />
               <TagsTable event={event} query={query} generateUrl={this.generateTagUrl} />
             </Layout.Side>
           )}

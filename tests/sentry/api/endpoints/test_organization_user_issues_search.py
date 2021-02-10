@@ -1,4 +1,4 @@
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from django.core.urlresolvers import reverse
 
@@ -9,7 +9,7 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 
 class OrganizationUserIssuesSearchTest(APITestCase, SnubaTestCase):
     def setUp(self):
-        super(OrganizationUserIssuesSearchTest, self).setUp()
+        super().setUp()
         self.org = self.create_organization(owner=None)
         self.org.flags.allow_joinleave = False
         self.org.save()
@@ -53,7 +53,7 @@ class OrganizationUserIssuesSearchTest(APITestCase, SnubaTestCase):
         self.create_member(user=user, organization=self.org)
         self.login_as(user=user)
 
-        url = "%s?%s" % (self.get_url(), urlencode({"email": "foo@example.com"}))
+        url = "{}?{}".format(self.get_url(), urlencode({"email": "foo@example.com"}))
 
         response = self.client.get(url, format="json")
         assert response.status_code == 200
@@ -68,7 +68,7 @@ class OrganizationUserIssuesSearchTest(APITestCase, SnubaTestCase):
             team=self.team1, organizationmember=member, is_active=True
         )
 
-        url = "%s?%s" % (self.get_url(), urlencode({"email": "foo@example.com"}))
+        url = "{}?{}".format(self.get_url(), urlencode({"email": "foo@example.com"}))
         response = self.client.get(url, format="json")
         # result shouldn't include results from team2/project2 or bar@example.com
         assert response.status_code == 200
@@ -84,6 +84,7 @@ class OrganizationUserIssuesSearchTest(APITestCase, SnubaTestCase):
         # now result should include results from team2/project2
         assert response.status_code == 200
         assert len(response.data) == 2
-        assert set([r["project"]["slug"] for r in response.data]) == set(
-            [self.project1.slug, self.project2.slug]
-        )
+        assert {r["project"]["slug"] for r in response.data} == {
+            self.project1.slug,
+            self.project2.slug,
+        }

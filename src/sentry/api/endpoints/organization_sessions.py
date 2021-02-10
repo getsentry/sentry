@@ -3,7 +3,6 @@ from contextlib import contextmanager
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
-import six
 import sentry_sdk
 
 from sentry.api.bases import OrganizationEventsEndpointBase, NoProjects
@@ -33,7 +32,7 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
 
     def build_sessions_query(self, request, organization):
         # validate and default all `project` params.
-        projects = self.get_projects(request, organization, include_all_accessible=True)
+        projects = self.get_projects(request, organization)
         if projects is None or len(projects) == 0:
             raise NoProjects("No projects available")
         project_ids = [p.id for p in projects]
@@ -44,7 +43,7 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
     def handle_query_errors(self):
         try:
             # TODO: this context manager should be decoupled from `OrganizationEventsEndpointBase`?
-            with super(OrganizationSessionsEndpoint, self).handle_query_errors():
+            with super().handle_query_errors():
                 yield
         except (InvalidField, NoProjects) as error:
-            raise ParseError(detail=six.text_type(error))
+            raise ParseError(detail=str(error))

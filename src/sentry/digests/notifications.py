@@ -1,10 +1,9 @@
 import functools
+from functools import reduce
 import itertools
 import logging
-import six
 
 from collections import OrderedDict, defaultdict, namedtuple
-from six.moves import reduce
 
 from sentry.app import tsdb
 from sentry.digests import Record
@@ -73,26 +72,26 @@ def fetch_state(project, records):
 
 
 def attach_state(project, groups, rules, event_counts, user_counts):
-    for id, group in six.iteritems(groups):
+    for id, group in groups.items():
         assert group.project_id == project.id, "Group must belong to Project"
         group.project = project
         group.event_count = 0
         group.user_count = 0
 
-    for id, rule in six.iteritems(rules):
+    for id, rule in rules.items():
         assert rule.project_id == project.id, "Rule must belong to Project"
         rule.project = project
 
-    for id, event_count in six.iteritems(event_counts):
+    for id, event_count in event_counts.items():
         groups[id].event_count = event_count
 
-    for id, user_count in six.iteritems(user_counts):
+    for id, user_count in user_counts.items():
         groups[id].user_count = user_count
 
     return {"project": project, "groups": groups, "rules": rules}
 
 
-class Pipeline(object):
+class Pipeline:
     def __init__(self):
         self.operations = []
 
@@ -167,7 +166,7 @@ def group_records(groups, record):
 
 
 def sort_group_contents(rules):
-    for key, groups in six.iteritems(rules):
+    for key, groups in rules.items():
         rules[key] = OrderedDict(
             sorted(
                 groups.items(),

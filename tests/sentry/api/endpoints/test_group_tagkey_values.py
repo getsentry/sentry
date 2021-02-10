@@ -16,7 +16,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        url = "/api/0/issues/{}/tags/{}/values/".format(group.id, key)
+        url = f"/api/0/issues/{group.id}/tags/{key}/values/"
 
         response = self.client.get(url)
 
@@ -43,7 +43,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        url = "/api/0/issues/{}/tags/user/values/".format(group.id)
+        url = f"/api/0/issues/{group.id}/tags/user/values/"
 
         response = self.client.get(url)
 

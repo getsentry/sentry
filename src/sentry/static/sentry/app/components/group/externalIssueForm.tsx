@@ -8,7 +8,7 @@ import AbstractExternalIssueForm, {
 } from 'app/components/externalIssues/abstractExternalIssueForm';
 import NavTabs from 'app/components/navTabs';
 import {t, tct} from 'app/locale';
-import {Group, Integration, IntegrationExternalIssue, IssueConfigField} from 'app/types';
+import {Group, Integration, IntegrationExternalIssue} from 'app/types';
 import Form from 'app/views/settings/components/forms/form';
 
 const MESSAGES_BY_ACTION = {
@@ -37,16 +37,13 @@ export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, 
     this.loadTransaction = this.startTransaction('load');
   }
 
-  getEndpoints = (): ReturnType<AsyncComponent['getEndpoints']> => {
-    const {group, integration} = this.props;
-    const {action} = this.state;
-    return [
-      [
-        'integrationDetails',
-        `/groups/${group.id}/integrations/${integration.id}/?action=${action}`,
-      ],
-    ];
-  };
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+    const query: {action?: ExternalIssueAction} = {};
+    if (this.state?.hasOwnProperty('action')) {
+      query.action = this.state.action;
+    }
+    return [['integrationDetails', this.getEndPointString(), {query}]];
+  }
 
   handleClick = (action: ExternalIssueAction) => {
     this.setState({action}, () => this.reloadData());
@@ -89,10 +86,10 @@ export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, 
     this.loadTransaction?.finish();
   };
 
-  getEndPointString = () => {
+  getEndPointString() {
     const {group, integration} = this.props;
     return `/groups/${group.id}/integrations/${integration.id}/`;
-  };
+  }
 
   getTitle = () => {
     const {integration} = this.props;
@@ -127,9 +124,6 @@ export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, 
   };
 
   renderBody() {
-    const {integrationDetails} = this.state;
-    const config: IssueConfigField[] =
-      (integrationDetails || {})[this.getConfigName()] || [];
-    return this.renderForm(config);
+    return this.renderForm(this.getCleanedFields());
   }
 }

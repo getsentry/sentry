@@ -1,11 +1,13 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import DateTime from 'app/components/dateTime';
 import Tag from 'app/components/tag';
-import {getRelativeDate} from 'app/components/timeSince';
-import {t} from 'app/locale';
+import TimeSince, {getRelativeDate} from 'app/components/timeSince';
+import {t, tct} from 'app/locale';
 import {InboxDetails} from 'app/types';
 import {getDuration} from 'app/utils/formatters';
+import {Theme} from 'app/utils/theme';
 
 const GroupInboxReason = {
   NEW: 0,
@@ -18,11 +20,13 @@ const GroupInboxReason = {
 type Props = {
   inbox: InboxDetails;
   fontSize?: 'sm' | 'md';
+  /** Displays the time an issue was added to inbox */
+  showDateAdded?: boolean;
 };
 
 const EVENT_ROUND_LIMIT = 1000;
 
-function InboxReason({inbox, fontSize = 'sm'}: Props) {
+function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
   const {reason, reason_details, date_added: dateAdded} = inbox;
 
   const getCountText = (count: number) =>
@@ -30,11 +34,55 @@ function InboxReason({inbox, fontSize = 'sm'}: Props) {
       ? `More than ${Math.round(count / EVENT_ROUND_LIMIT)}k`
       : `${count}`;
 
+  function getTooltipDescription() {
+    const {until, count, window, user_count, user_window} = reason_details;
+    if (until) {
+      // Was ignored until `until` has passed.
+      //`until` format: "2021-01-20T03:59:03+00:00"
+      return tct('Was ignored until [window]', {
+        window: <DateTime date={until} dateOnly />,
+      });
+    }
+
+    if (count) {
+      // Was ignored until `count` events occurred
+      // If `window` is defined, than `count` events occurred in `window` minutes.
+      // else `count` events occurred since it was ignored.
+      if (window) {
+        return tct('Was ignored until it occurred [count] time(s) in [duration]', {
+          count: getCountText(count),
+          duration: getDuration(window * 60, 0, true),
+        });
+      }
+
+      return tct('Was ignored until it occurred [count] time(s)', {
+        count: getCountText(count),
+      });
+    }
+
+    if (user_count) {
+      // Was ignored until `user_count` users were affected
+      // If `user_window` is defined, than `user_count` users affected in `user_window` minutes.
+      // else `user_count` events occurred since it was ignored.
+      if (user_window) {
+        return t('Was ignored until it affected [count] user(s) in [duration]', {
+          count: getCountText(user_count),
+          duration: getDuration(user_window * 60, 0, true),
+        });
+      }
+      return t('Was ignored until it affected [count] user(s)', {
+        count: getCountText(user_count),
+      });
+    }
+
+    return undefined;
+  }
+
   function getReasonDetails(): {
     tagType: React.ComponentProps<typeof Tag>['type'];
     reasonBadgeText: string;
     tooltipText?: string;
-    tooltipDescription?: string;
+    tooltipDescription?: string | React.ReactElement;
   } {
     switch (reason) {
       case GroupInboxReason.UNIGNORED:
@@ -46,10 +94,7 @@ function InboxReason({inbox, fontSize = 'sm'}: Props) {
             t('Unignored %(relative)s', {
               relative: getRelativeDate(dateAdded, 'ago', true),
             }),
-          tooltipDescription: t('%(count)s events in %(window)s', {
-            count: getCountText(reason_details?.count || 0),
-            window: getDuration((reason_details?.window || 0) * 60, 0, true),
-          }),
+          tooltipDescription: getTooltipDescription(),
         };
       case GroupInboxReason.REGRESSION:
         return {
@@ -84,6 +129,7 @@ function InboxReason({inbox, fontSize = 'sm'}: Props) {
               relative: getRelativeDate(dateAdded, 'ago', true),
             }),
         };
+      case GroupInboxReason.NEW:
       default:
         return {
           tagType: 'warning',
@@ -105,12 +151,19 @@ function InboxReason({inbox, fontSize = 'sm'}: Props) {
       {tooltipDescription && (
         <TooltipDescription>{tooltipDescription}</TooltipDescription>
       )}
+      <TooltipDescription>Mark Reviewed to remove this label</TooltipDescription>
     </TooltipWrapper>
   );
 
   return (
     <StyledTag type={tagType} tooltipText={tooltip} fontSize={fontSize}>
       {reasonBadgeText}
+      {showDateAdded && inbox.date_added && (
+        <React.Fragment>
+          <Separator type={tagType ?? 'default'}>{' | '}</Separator>
+          <TimeSince date={inbox.date_added} suffix="" shorten disabledAbsoluteTooltip />
+        </React.Fragment>
+      )}
     </StyledTag>
   );
 }
@@ -125,7 +178,14 @@ const TooltipDescription = styled('div')`
   color: ${p => p.theme.gray200};
 `;
 
-const StyledTag = styled(Tag)<{fontSize: 'sm' | 'md'}>`
+const Separator = styled('span')<{type: keyof Theme['tag']}>`
+  color: ${p => p.theme.tag[p.type].iconColor};
+  opacity: 80%;
+`;
+
+const StyledTag = styled(Tag, {
+  shouldForwardProp: p => p !== 'fontSize',
+})<{fontSize: 'sm' | 'md'}>`
   font-size: ${p =>
     p.fontSize === 'sm' ? p.theme.fontSizeSmall : p.theme.fontSizeMedium};
 `;

@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from symbolic import SourceMapView, SourceMapTokenMatch
 from unittest import TestCase
 

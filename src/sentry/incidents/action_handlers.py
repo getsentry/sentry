@@ -1,6 +1,5 @@
 import abc
 
-import six
 from django.core.urlresolvers import reverse
 from django.template.defaultfilters import pluralize
 
@@ -17,8 +16,7 @@ from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 
 
-@six.add_metaclass(abc.ABCMeta)
-class ActionHandler(object):
+class ActionHandler(metaclass=abc.ABCMeta):
     status_display = {TriggerStatus.ACTIVE: "Fired", TriggerStatus.RESOLVED: "Resolved"}
 
     def __init__(self, action, incident, project):
@@ -54,7 +52,7 @@ class EmailActionHandler(ActionHandler):
                 targets = [(target.id, target.email)]
             elif self.action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
                 users = self.project.filter_to_subscribed_users(
-                    set(member.user for member in target.member_set)
+                    {member.user for member in target.member_set}
                 )
                 targets = [(user.id, user.email) for user in users]
         # TODO: We need some sort of verification system to make sure we're not being
@@ -84,7 +82,7 @@ class EmailActionHandler(ActionHandler):
             ),
             template="sentry/emails/incidents/trigger.txt",
             html_template="sentry/emails/incidents/trigger.html",
-            type="incident.alert_rule_{}".format(display.lower()),
+            type=f"incident.alert_rule_{display.lower()}",
             context=context,
             headers={"X-SMTPAPI": json.dumps({"category": "metric_alert_email"})},
         )

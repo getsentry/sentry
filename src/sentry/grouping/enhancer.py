@@ -1,6 +1,4 @@
-import io
 import os
-import six
 import zlib
 import base64
 import msgpack
@@ -14,7 +12,6 @@ from sentry.stacktraces.functions import set_in_app
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.utils import get_rule_bool
-from sentry.utils.compat import implements_to_string
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
 from sentry.utils.compat import zip
@@ -67,7 +64,7 @@ _        = space*
 
 
 FAMILIES = {"native": "N", "javascript": "J", "all": "a"}
-REVERSE_FAMILIES = dict((v, k) for k, v in six.iteritems(FAMILIES))
+REVERSE_FAMILIES = {v: k for k, v in FAMILIES.items()}
 
 VERSION = 1
 MATCH_KEYS = {
@@ -78,7 +75,7 @@ MATCH_KEYS = {
     "package": "P",
     "app": "a",
 }
-SHORT_MATCH_KEYS = dict((v, k) for k, v in six.iteritems(MATCH_KEYS))
+SHORT_MATCH_KEYS = {v: k for k, v in MATCH_KEYS.items()}
 
 ACTIONS = ["group", "app"]
 ACTION_FLAGS = {
@@ -89,7 +86,7 @@ ACTION_FLAGS = {
     (False, "up"): 4,
     (False, "down"): 5,
 }
-REVERSE_ACTION_FLAGS = dict((v, k) for k, v in six.iteritems(ACTION_FLAGS))
+REVERSE_ACTION_FLAGS = {v: k for k, v in ACTION_FLAGS.items()}
 
 
 MATCHERS = {
@@ -113,7 +110,7 @@ class InvalidEnhancerConfig(Exception):
     pass
 
 
-class Match(object):
+class Match:
     def __init__(self, key, pattern, negated=False):
         try:
             self.key = MATCHERS[key]
@@ -124,7 +121,7 @@ class Match(object):
 
     @property
     def description(self):
-        return "%s:%s" % (
+        return "{}:{}".format(
             self.key,
             self.pattern.split() != [self.pattern] and '"%s"' % self.pattern or self.pattern,
         )
@@ -202,7 +199,7 @@ class Match(object):
         return cls(key, arg, negated)
 
 
-class Action(object):
+class Action:
     def apply_modifications_to_frame(self, frames, idx):
         pass
 
@@ -220,7 +217,6 @@ class Action(object):
         return FlagAction(ACTIONS[val & 0xF], flag, range)
 
 
-@implements_to_string
 class FlagAction(Action):
     def __init__(self, key, flag, range):
         self.key = key
@@ -228,7 +224,7 @@ class FlagAction(Action):
         self.range = range
 
     def __str__(self):
-        return "%s%s%s" % (
+        return "{}{}{}".format(
             {"up": "^", "down": "v"}.get(self.range, ""),
             self.flag and "+" or "-",
             self.key,
@@ -267,7 +263,7 @@ class FlagAction(Action):
     def update_frame_components_contributions(self, components, frames, idx, rule=None):
         rule_hint = "stack trace rule"
         if rule:
-            rule_hint = "%s (%s)" % (rule_hint, rule.matcher_description)
+            rule_hint = f"{rule_hint} ({rule.matcher_description})"
 
         sliced_components = self._slice_to_range(components, idx)
         sliced_frames = self._slice_to_range(frames, idx)
@@ -275,17 +271,16 @@ class FlagAction(Action):
             if self.key == "group" and self.flag != component.contributes:
                 component.update(
                     contributes=self.flag,
-                    hint="%s by %s" % (self.flag and "un-ignored" or "ignored", rule_hint),
+                    hint="{} by {}".format(self.flag and "un-ignored" or "ignored", rule_hint),
                 )
             # The in app flag was set by `apply_modifications_to_frame`
             # but we want to add a hint if there is none yet.
             elif self.key == "app" and self._in_app_changed(frame, component):
                 component.update(
-                    hint="marked %s by %s" % (self.flag and "in-app" or "out of app", rule_hint)
+                    hint="marked {} by {}".format(self.flag and "in-app" or "out of app", rule_hint)
                 )
 
 
-@implements_to_string
 class VarAction(Action):
     range = None
 
@@ -294,7 +289,7 @@ class VarAction(Action):
         self.value = value
 
     def __str__(self):
-        return "%s=%s" % (self.var, self.value)
+        return f"{self.var}={self.value}"
 
     def _to_config_structure(self):
         return [self.var, self.value]
@@ -303,7 +298,7 @@ class VarAction(Action):
         state.set(self.var, self.value, rule)
 
 
-class StacktraceState(object):
+class StacktraceState:
     def __init__(self):
         self.vars = {"max-frames": 0, "min-frames": 0}
         self.setters = {}
@@ -325,10 +320,10 @@ class StacktraceState(object):
         description = self.describe_var_rule(var)
         if description is None:
             return hint
-        return "%s by stack trace rule (%s)" % (hint, description)
+        return f"{hint} by stack trace rule ({description})"
 
 
-class Enhancements(object):
+class Enhancements:
     def __init__(self, rules, changelog=None, version=None, bases=None, id=None):
         self.id = id
         self.rules = rules
@@ -436,10 +431,8 @@ class Enhancements(object):
         for base in self.bases:
             base = ENHANCEMENT_BASES.get(base)
             if base:
-                for rule in base.iter_rules():
-                    yield rule
-        for rule in self.rules:
-            yield rule
+                yield from base.iter_rules()
+        yield from self.rules
 
     @classmethod
     def _from_config_structure(cls, data):
@@ -452,7 +445,7 @@ class Enhancements(object):
 
     @classmethod
     def loads(cls, data):
-        if isinstance(data, six.text_type):
+        if isinstance(data, str):
             data = data.encode("ascii", "ignore")
         padded = data + b"=" * (4 - (len(data) % 4))
         try:
@@ -471,12 +464,12 @@ class Enhancements(object):
             if len(context) == 33:
                 context = context[:-1] + "..."
             raise InvalidEnhancerConfig(
-                'Invalid syntax near "%s" (line %s, column %s)' % (context, e.line(), e.column())
+                f'Invalid syntax near "{context}" (line {e.line()}, column {e.column()})'
             )
         return EnhancmentsVisitor(bases, id).visit(tree)
 
 
-class Rule(object):
+class Rule:
     def __init__(self, matchers, actions):
         self.matchers = matchers
         self.actions = actions
@@ -485,14 +478,14 @@ class Rule(object):
     def matcher_description(self):
         rv = " ".join(x.description for x in self.matchers)
         for action in self.actions:
-            rv = "%s %s" % (rv, action)
+            rv = f"{rv} {action}"
         return rv
 
     def as_dict(self):
         matchers = {}
         for matcher in self.matchers:
             matchers[matcher.key] = matcher.pattern
-        return {"match": matchers, "actions": [six.text_type(x) for x in self.actions]}
+        return {"match": matchers, "actions": [str(x) for x in self.actions]}
 
     def get_matching_frame_actions(self, frame_data, platform):
         """Given a frame returns all the matching actions based on this rule.
@@ -531,7 +524,7 @@ class EnhancmentsVisitor(NodeVisitor):
         rules = []
         in_header = True
         for child in children:
-            if isinstance(child, six.string_types):
+            if isinstance(child, str):
                 if in_header and child[:2] == "##":
                     changelog.append(child[2:].rstrip())
                 else:
@@ -623,7 +616,7 @@ def _load_configs():
     base = os.path.join(os.path.abspath(os.path.dirname(__file__)), "enhancement-configs")
     for fn in os.listdir(base):
         if fn.endswith(".txt"):
-            with io.open(os.path.join(base, fn), "rt", encoding="utf-8") as f:
+            with open(os.path.join(base, fn), encoding="utf-8") as f:
                 # We cannot use `:` in filenames on Windows but we already have ids with
                 # `:` in their names hence this trickery.
                 fn = fn.replace("@", ":")

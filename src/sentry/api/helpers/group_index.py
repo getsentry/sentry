@@ -1,5 +1,4 @@
 import logging
-import six
 
 from collections import defaultdict
 from datetime import timedelta
@@ -46,7 +45,7 @@ from sentry.models import (
     User,
     UserOption,
 )
-from sentry.models.groupinbox import add_group_to_inbox
+from sentry.models.groupinbox import add_group_to_inbox, GroupInboxRemoveAction
 from sentry.models.group import looks_like_short_id, STATUS_UPDATE_CHOICES
 from sentry.api.issue_search import convert_query_values, InvalidSearchQuery, parse_search_query
 from sentry.signals import (
@@ -98,9 +97,7 @@ def build_query_params_from_request(request, organization, projects, environment
                 parse_search_query(query), projects, request.user, environments
             )
         except InvalidSearchQuery as e:
-            raise ValidationError(
-                "Your search query could not be parsed: {}".format(six.text_type(e))
-            )
+            raise ValidationError("Your search query could not be parsed: {}".format(str(e)))
 
         validate_search_filter_permissions(organization, search_filters, request.user)
         query_kwargs["search_filters"] = search_filters
@@ -137,7 +134,7 @@ def validate_search_filter_permissions(organization, search_filters, user):
                     user=user, organization=organization, sender=validate_search_filter_permissions
                 )
                 raise ValidationError(
-                    "You need access to the advanced search feature to use {}".format(feature_name)
+                    f"You need access to the advanced search feature to use {feature_name}"
                 )
 
 
@@ -162,7 +159,7 @@ class InCommitValidator(serializers.Serializer):
         return value
 
     def validate(self, attrs):
-        attrs = super(InCommitValidator, self).validate(attrs)
+        attrs = super().validate(attrs)
         repository = attrs.get("repository")
         commit = attrs.get("commit")
         if not repository:
@@ -288,7 +285,7 @@ class GroupValidator(serializers.Serializer):
         return value
 
     def validate(self, attrs):
-        attrs = super(GroupValidator, self).validate(attrs)
+        attrs = super().validate(attrs)
         if len(attrs) > 1 and "discard" in attrs:
             raise serializers.ValidationError("Other attributes cannot be updated when discarding")
         return attrs
@@ -398,7 +395,7 @@ def delete_groups(request, projects, organization_id, search_fn):
             # a bit too complicated right now
             cursor_result, _ = search_fn({"limit": 1000, "paginator_options": {"max_limit": 1000}})
         except ValidationError as exc:
-            return Response({"detail": six.text_type(exc)}, status=400)
+            return Response({"detail": str(exc)}, status=400)
 
         group_list = list(cursor_result)
 
@@ -482,9 +479,7 @@ def rate_limit_endpoint(limit=1, window=1):
             ):
                 return Response(
                     {
-                        "detail": "You are attempting to use this endpoint too quickly. Limit is {}/{}s".format(
-                            limit, window
-                        )
+                        "detail": f"You are attempting to use this endpoint too quickly. Limit is {limit}/{window}s"
                     },
                     status=429,
                 )
@@ -536,7 +531,7 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
             # a bit too complicated right now
             cursor_result, _ = search_fn({"limit": 1000, "paginator_options": {"max_limit": 1000}})
         except ValidationError as exc:
-            return Response({"detail": six.text_type(exc)}, status=400)
+            return Response({"detail": str(exc)}, status=400)
 
         group_list = list(cursor_result)
         group_ids = [g.id for g in group_list]
@@ -687,7 +682,9 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
 
                 group.status = GroupStatus.RESOLVED
                 group.resolved_at = now
-                remove_group_from_inbox(group, action="resolved", user=acting_user)
+                remove_group_from_inbox(
+                    group, action=GroupInboxRemoveAction.RESOLVED, user=acting_user
+                )
                 if has_inbox:
                     result["inbox"] = None
 
@@ -734,7 +731,9 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
             if new_status == GroupStatus.IGNORED:
                 metrics.incr("group.ignored", skip_internal=True)
                 for group in group_ids:
-                    remove_group_from_inbox(group, action="ignored", user=acting_user)
+                    remove_group_from_inbox(
+                        group, action=GroupInboxRemoveAction.IGNORED, user=acting_user
+                    )
                 if has_inbox:
                     result["inbox"] = None
 
@@ -988,8 +987,8 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
         )
 
         result["merge"] = {
-            "parent": six.text_type(primary_group.id),
-            "children": [six.text_type(g.id) for g in groups_to_merge],
+            "parent": str(primary_group.id),
+            "children": [str(g.id) for g in groups_to_merge],
         }
 
     # Support moving groups in or out of the inbox
@@ -1000,7 +999,9 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
                 add_group_to_inbox(group, GroupInboxReason.MANUAL)
         elif not inbox:
             for group in group_list:
-                remove_group_from_inbox(group, action="mark_reviewed", user=acting_user)
+                remove_group_from_inbox(
+                    group, action=GroupInboxRemoveAction.MARK_REVIEWED, user=acting_user
+                )
                 issue_mark_reviewed.send_robust(
                     project=project,
                     user=acting_user,

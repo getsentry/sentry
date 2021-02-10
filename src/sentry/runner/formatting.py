@@ -1,10 +1,7 @@
-# -*- coding: utf8 -*-
-
-
 import re
 
 # Sentry colors taken from our design system. Might not look good on all
-# termianl themes tbh
+# terminal themes tbh
 COLORS = {
     "white": (255, 255, 255),
     "green": (77, 199, 13),
@@ -102,4 +99,4 @@ def monkeypatch_honcho_write(self, message):
     )
 
     for line in string.splitlines():
-        self.output.write("{}{}\n".format(prefix, line))
+        self.output.write(f"{prefix}{line}\n")

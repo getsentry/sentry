@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-import six
-
 from datetime import datetime
 from django.utils import timezone
 from sentry.models import (
@@ -30,7 +26,7 @@ class WebhookTest(APITestCase):
     def test_get(self):
         project = self.project  # force creation
 
-        url = "/plugins/github/organizations/{}/webhook/".format(project.organization.id)
+        url = f"/plugins/github/organizations/{project.organization.id}/webhook/"
 
         response = self.client.get(url)
 
@@ -38,7 +34,7 @@ class WebhookTest(APITestCase):
 
     def test_unregistered_event(self):
         project = self.project  # force creation
-        url = "/plugins/github/organizations/{}/webhook/".format(project.organization.id)
+        url = f"/plugins/github/organizations/{project.organization.id}/webhook/"
 
         secret = "b3002c3e321d4b7880360d397db2ccfd"
 
@@ -52,7 +48,7 @@ class WebhookTest(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="UnregisteredEvent",
             HTTP_X_HUB_SIGNATURE="sha1=98196e70369945ffa6b248cf70f7dc5e46dff241",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
         assert response.status_code == 204
@@ -60,7 +56,7 @@ class WebhookTest(APITestCase):
     def test_invalid_signature_event(self):
         project = self.project  # force creation
 
-        url = "/plugins/github/organizations/{}/webhook/".format(project.organization.id)
+        url = f"/plugins/github/organizations/{project.organization.id}/webhook/"
 
         secret = "2d7565c3537847b789d6995dca8d9f84"
 
@@ -74,7 +70,7 @@ class WebhookTest(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
             HTTP_X_HUB_SIGNATURE="sha1=33521abeaaf9a57c2abf486e0ccd54d23cf36fec",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
         assert response.status_code == 401
@@ -84,7 +80,7 @@ class PushEventWebhookTest(APITestCase):
     def test_simple(self):
         project = self.project  # force creation
 
-        url = "/plugins/github/organizations/{}/webhook/".format(project.organization.id)
+        url = f"/plugins/github/organizations/{project.organization.id}/webhook/"
 
         secret = "b3002c3e321d4b7880360d397db2ccfd"
 
@@ -105,7 +101,7 @@ class PushEventWebhookTest(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
             HTTP_X_HUB_SIGNATURE="sha1=98196e70369945ffa6b248cf70f7dc5e46dff241",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
         assert response.status_code == 204
@@ -139,7 +135,7 @@ class PushEventWebhookTest(APITestCase):
     def test_anonymous_lookup(self):
         project = self.project  # force creation
 
-        url = "/plugins/github/organizations/{}/webhook/".format(project.organization.id)
+        url = f"/plugins/github/organizations/{project.organization.id}/webhook/"
 
         secret = "b3002c3e321d4b7880360d397db2ccfd"
 
@@ -167,7 +163,7 @@ class PushEventWebhookTest(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
             HTTP_X_HUB_SIGNATURE="sha1=98196e70369945ffa6b248cf70f7dc5e46dff241",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
         assert response.status_code == 204
@@ -223,7 +219,7 @@ class InstallationPushEventWebhookTest(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="push",
             HTTP_X_HUB_SIGNATURE="sha1=56a3df597e02adbc17fb617502c70e19d96a6136",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
         assert response.status_code == 204
@@ -265,7 +261,7 @@ class InstallationInstallEventWebhookTest(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="installation",
             HTTP_X_HUB_SIGNATURE="sha1=348e46312df2901e8cb945616ee84ce30d9987c9",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
         assert response.status_code == 204
@@ -293,7 +289,7 @@ class InstallationRepoInstallEventWebhookTest(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="installation_repositories",
             HTTP_X_HUB_SIGNATURE="sha1=6899797a97dc5bb6aab3af927e92e881d03a3bd2",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
         assert response.status_code == 204
@@ -330,7 +326,7 @@ class InstallationRepoInstallEventWebhookTest(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="installation_repositories",
             HTTP_X_HUB_SIGNATURE="sha1=6899797a97dc5bb6aab3af927e92e881d03a3bd2",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
         assert response.status_code == 204
@@ -344,7 +340,7 @@ class PullRequestEventWebhook(APITestCase):
     def test_opened(self):
         project = self.project  # force creation
 
-        url = "/plugins/github/organizations/{}/webhook/".format(project.organization.id)
+        url = f"/plugins/github/organizations/{project.organization.id}/webhook/"
 
         secret = "b3002c3e321d4b7880360d397db2ccfd"
 
@@ -365,7 +361,7 @@ class PullRequestEventWebhook(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
             HTTP_X_HUB_SIGNATURE="sha1=aa5b11bc52b9fac082cb59f9ee8667cb222c3aff",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
         assert response.status_code == 204
@@ -386,7 +382,7 @@ class PullRequestEventWebhook(APITestCase):
     def test_edited(self):
         project = self.project  # force creation
 
-        url = "/plugins/github/organizations/{}/webhook/".format(project.organization.id)
+        url = f"/plugins/github/organizations/{project.organization.id}/webhook/"
 
         secret = "b3002c3e321d4b7880360d397db2ccfd"
 
@@ -411,7 +407,7 @@ class PullRequestEventWebhook(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
             HTTP_X_HUB_SIGNATURE="sha1=b50a13afd33b514e8e62e603827ea62530f0690e",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
         assert response.status_code == 204
@@ -426,7 +422,7 @@ class PullRequestEventWebhook(APITestCase):
     def test_closed(self):
         project = self.project  # force creation
 
-        url = "/plugins/github/organizations/{}/webhook/".format(project.organization.id)
+        url = f"/plugins/github/organizations/{project.organization.id}/webhook/"
 
         secret = "b3002c3e321d4b7880360d397db2ccfd"
 
@@ -447,7 +443,7 @@ class PullRequestEventWebhook(APITestCase):
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="pull_request",
             HTTP_X_HUB_SIGNATURE="sha1=dff1c803cf1e48c1b9aefe4a17952ea132758806",
-            HTTP_X_GITHUB_DELIVERY=six.text_type(uuid4()),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
         assert response.status_code == 204

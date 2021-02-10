@@ -1,5 +1,3 @@
-import six
-
 from django.core.urlresolvers import reverse
 
 from sentry.models import Organization, OrganizationStatus, User, UserOption
@@ -20,7 +18,7 @@ class UserDetailsTest(APITestCase):
     #     resp = self.client.get(url, format='json')
 
     #     assert resp.status_code == 200, resp.content
-    #     assert resp.data['id'] == six.text_type(user.id)
+    #     assert resp.data['id'] == str(user.id)
     #     assert 'identities' not in resp.data
 
     def test_lookup_self(self):
@@ -32,7 +30,7 @@ class UserDetailsTest(APITestCase):
         resp = self.client.get(url, format="json")
 
         assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == six.text_type(user.id)
+        assert resp.data["id"] == str(user.id)
         assert resp.data["options"]["theme"] == "light"
         assert resp.data["options"]["timezone"] == "UTC"
         assert resp.data["options"]["language"] == "en"
@@ -49,7 +47,7 @@ class UserDetailsTest(APITestCase):
 
         resp = self.client.get(url)
         assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == six.text_type(user.id)
+        assert resp.data["id"] == str(user.id)
         assert "identities" in resp.data
         assert len(resp.data["identities"]) == 0
 
@@ -76,7 +74,7 @@ class UserUpdateTest(APITestCase):
             },
         )
         assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == six.text_type(self.user.id)
+        assert resp.data["id"] == str(self.user.id)
 
         user = User.objects.get(id=self.user.id)
         assert user.name == "hello world"
@@ -111,7 +109,7 @@ class UserUpdateTest(APITestCase):
             url, data={"name": "hello world", "email": "c@example.com", "isActive": "false"}
         )
         assert resp.status_code == 200, resp.content
-        assert resp.data["id"] == six.text_type(self.user.id)
+        assert resp.data["id"] == str(self.user.id)
 
         user = User.objects.get(id=self.user.id)
         assert user.name == "hello world"
@@ -160,8 +158,8 @@ class UserUpdateTest(APITestCase):
 
 class UserDeleteTest(APITestCase):
     def setUp(self):
-        super(UserDeleteTest, self).setUp()
-        self.path = "/api/0/users/{}/".format(self.user.id)
+        super().setUp()
+        self.path = f"/api/0/users/{self.user.id}/"
 
     def test_close_account(self):
         self.login_as(user=self.user)

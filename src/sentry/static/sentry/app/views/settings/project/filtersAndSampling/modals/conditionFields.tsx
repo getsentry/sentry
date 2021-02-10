@@ -5,21 +5,23 @@ import Button from 'app/components/button';
 import {IconAdd, IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {DynamicSamplingInnerName} from 'app/types/dynamicSampling';
+import Field from 'app/views/settings/components/forms/field';
+import FieldHelp from 'app/views/settings/components/forms/field/fieldHelp';
 import SelectField from 'app/views/settings/components/forms/selectField';
-import TextField from 'app/views/settings/components/forms/textField';
+import TextareaField from 'app/views/settings/components/forms/textareaField';
 
 import LegacyBrowsersField from './legacyBrowsersField';
-import {Category} from './utils';
 
 type Condition = {
-  category: Category;
+  category: DynamicSamplingInnerName;
   match: string;
   legacyBrowsers?: Array<string>;
 };
 
 type Props = {
   conditions: Array<Condition>;
-  categoryOptions: Array<[string, string]>;
+  categoryOptions: Array<[DynamicSamplingInnerName, string]>;
   onAdd: () => void;
   onDelete: (index: number) => () => void;
   onChange: <T extends keyof Condition>(
@@ -37,41 +39,62 @@ function ConditionFields({
   onChange,
 }: Props) {
   return (
-    <React.Fragment>
+    <Wrapper>
       {conditions.map(({match, category}, index) => {
-        const displayDescription = index === 0;
-        const showLegacyBrowsers = category === Category.LEGACY_BROWSERS;
+        const showLegacyBrowsers = category === DynamicSamplingInnerName.LEGACY_BROWSERS;
         return (
-          <Fields key={index}>
-            <SelectField
-              label={displayDescription ? t('Category') : undefined}
-              help={displayDescription ? t('This is a description') : undefined}
-              name="category"
-              value={category}
-              onChange={value => onChange(index, 'category', value)}
-              choices={categoryOptions}
-              inline={false}
-              hideControlState
-              showHelpInTooltip
-              required
-              stacked
-            />
-            <TextField
-              label={displayDescription ? t('Match Conditions') : undefined}
-              help={displayDescription ? t('This is a description') : undefined}
-              placeholder={
-                showLegacyBrowsers ? t('No match condition') : 'ex. 1* or [I3].[0-9].*'
-              }
-              name="match"
-              value={match}
-              onChange={value => onChange(index, 'match', value)}
-              disabled={showLegacyBrowsers}
-              inline={false}
-              hideControlState
-              showHelpInTooltip
-              required
-              stacked
-            />
+          <FieldsWrapper key={index}>
+            <Fields>
+              <SelectField
+                label={t('Category')}
+                // help={t('This is a description')} // TODO(PRISCILA): Add correct description
+                name={`category-${index}`}
+                value={category}
+                onChange={value => onChange(index, 'category', value)}
+                choices={categoryOptions}
+                inline={false}
+                hideControlState
+                showHelpInTooltip
+                required
+                stacked
+              />
+              <StyledField
+                label={t('Match Conditions')}
+                // help={t('This is a description')} // TODO(PRISCILA): Add correct description
+                inline={false}
+                hideControlState
+                showHelpInTooltip
+                flexibleControlStateSize
+                required
+                stacked
+              >
+                <StyledTextareaField
+                  placeholder={
+                    showLegacyBrowsers
+                      ? t('No match condition')
+                      : 'ex. 1* or [I3].[0-9].*'
+                  }
+                  name={`match-${index}`}
+                  value={match}
+                  onChange={value => onChange(index, 'match', value)}
+                  disabled={showLegacyBrowsers}
+                  inline={false}
+                  autosize
+                  hideControlState
+                  stacked
+                />
+                <FieldHelp>
+                  {t(
+                    'You can include multiple values by putting each value on a separate line'
+                  )}
+                </FieldHelp>
+              </StyledField>
+              <ButtonDeleteWrapper>
+                <Button onClick={onDelete(index)} size="small">
+                  {t('Delete Condition')}
+                </Button>
+              </ButtonDeleteWrapper>
+            </Fields>
             <IconDeleteWrapper onClick={onDelete(index)}>
               <IconDelete aria-label={t('Delete Condition')} />
             </IconDeleteWrapper>
@@ -82,33 +105,85 @@ function ConditionFields({
                 }}
               />
             )}
-          </Fields>
+          </FieldsWrapper>
         );
       })}
       <StyledButton icon={<IconAdd isCircled />} onClick={onAdd} size="small">
         {t('Add Condition')}
       </StyledButton>
-    </React.Fragment>
+    </Wrapper>
   );
 }
 
 export default ConditionFields;
 
+const IconDeleteWrapper = styled('div')`
+  height: 40px;
+  margin-top: 24px;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    display: flex;
+  }
+`;
+
+const FieldsWrapper = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-gap: ${space(2)};
+  margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: 1fr max-content;
+  }
+`;
+
 const Fields = styled('div')`
   display: grid;
-  grid-template-columns: 1fr 1fr max-content;
-  grid-gap: ${space(2)};
-  align-items: flex-end;
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: 1fr 1fr;
+    grid-gap: ${space(2)};
+  }
+`;
+
+const Wrapper = styled('div')`
+  > * :not(:first-child) {
+    label {
+      display: none;
+    }
+    ${IconDeleteWrapper} {
+      margin-top: 0;
+    }
+
+    ${Fields} {
+      @media (max-width: ${p => p.theme.breakpoints[0]}) {
+        border-top: 1px solid ${p => p.theme.border};
+        padding-top: ${space(2)};
+      }
+    }
+  }
+`;
+
+const StyledField = styled(Field)`
+  padding-bottom: 0;
+`;
+
+const StyledTextareaField = styled(TextareaField)`
+  padding-bottom: 0;
 `;
 
 const StyledButton = styled(Button)`
   margin-bottom: ${space(2)};
 `;
 
-const IconDeleteWrapper = styled('div')`
-  height: 40px;
+const ButtonDeleteWrapper = styled('div')`
   display: flex;
-  align-items: center;
-  margin-bottom: ${space(2)};
-  cursor: pointer;
+  justify-content: flex-end;
+  padding-top: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
 `;

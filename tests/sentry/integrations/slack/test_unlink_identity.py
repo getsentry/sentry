@@ -26,7 +26,10 @@ class SlackIntegrationLinkIdentityTest(TestCase):
         self.integration = Integration.objects.create(
             provider="slack",
             external_id="TXXXXXXX1",
-            metadata={"access_token": "xoxa-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+            metadata={
+                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
         )
         OrganizationIntegration.objects.create(organization=self.org, integration=self.integration)
 

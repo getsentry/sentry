@@ -7,7 +7,7 @@ from sentry.testutils.helpers.faux import Mock
 
 cloudformation_arn = (
     "arn:aws:cloudformation:us-east-2:599817902985:stack/"
-    "Sentry-Monitoring-Stack-Filter/e42083d0-3e3f-11eb-b66a-0ac9b5db7f30"
+    "Sentry-Monitoring-Stack/e42083d0-3e3f-11eb-b66a-0ac9b5db7f30"
 )
 
 
@@ -15,7 +15,7 @@ class AbstractServerlessTest(APITestCase):
     endpoint = "sentry-api-0-organization-integration-serverless-functions"
 
     def setUp(self):
-        super(AbstractServerlessTest, self).setUp()
+        super().setUp()
         self.project = self.create_project(organization=self.organization)
         self.integration = Integration.objects.create(
             provider="aws_lambda",
@@ -31,9 +31,7 @@ class AbstractServerlessTest(APITestCase):
         self.login_as(self.user)
 
     def get_response(self, **kwargs):
-        return super(AbstractServerlessTest, self).get_response(
-            self.organization.slug, self.integration.id, **kwargs
-        )
+        return super().get_response(self.organization.slug, self.integration.id, **kwargs)
 
     @property
     def sentry_dsn(self):

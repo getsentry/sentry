@@ -1,5 +1,5 @@
 from django.core.urlresolvers import reverse
-from six import BytesIO
+from io import BytesIO
 
 from sentry.models import File, OrganizationAvatar
 from sentry.testutils import TestCase

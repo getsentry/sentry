@@ -18,7 +18,7 @@ from sentry.testutils.helpers.datetime import iso_format, before_now
 
 class GroupTest(TestCase, SnubaTestCase):
     def setUp(self):
-        super(GroupTest, self).setUp()
+        super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
         self.two_min_ago = iso_format(before_now(minutes=2))
         self.just_over_one_min_ago = iso_format(before_now(seconds=61))
@@ -208,7 +208,7 @@ class GroupTest(TestCase, SnubaTestCase):
         project = self.create_project()
         group = self.create_group(project=project)
 
-        expect = "{} - {}".format(group.qualified_short_id, group.title)
+        expect = f"{group.qualified_short_id} - {group.title}"
         assert group.get_email_subject() == expect
 
     def test_get_absolute_url(self):
@@ -239,7 +239,5 @@ class GroupTest(TestCase, SnubaTestCase):
             data={"fingerprint": ["group1"], "timestamp": self.min_ago}, project_id=project.id
         )
         group = event.group
-        url = "http://testserver/organizations/{}/issues/{}/events/{}/".format(
-            project.organization.slug, group.id, event.event_id
-        )
+        url = f"http://testserver/organizations/{project.organization.slug}/issues/{group.id}/events/{event.event_id}/"
         assert url == group.get_absolute_url(event_id=event.event_id)

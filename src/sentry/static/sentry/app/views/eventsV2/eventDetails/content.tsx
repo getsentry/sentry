@@ -2,7 +2,6 @@ import React from 'react';
 import {Params} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import PropTypes from 'prop-types';
 
 import Feature from 'app/components/acl/feature';
 import AsyncComponent from 'app/components/asyncComponent';
@@ -11,9 +10,9 @@ import ButtonBar from 'app/components/buttonBar';
 import NotFound from 'app/components/errors/notFound';
 import {BorderlessEventEntries} from 'app/components/events/eventEntries';
 import EventMetadata from 'app/components/events/eventMetadata';
+import EventVitals from 'app/components/events/eventVitals';
 import * as SpanEntryContext from 'app/components/events/interfaces/spans/context';
 import OpsBreakdown from 'app/components/events/opsBreakdown';
-import RealUserMonitoring from 'app/components/events/realUserMonitoring';
 import RootSpanStatus from 'app/components/events/rootSpanStatus';
 import * as Layout from 'app/components/layouts/thirds';
 import LoadingError from 'app/components/loadingError';
@@ -21,7 +20,6 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import TagsTable from 'app/components/tagsTable';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {Event, EventTag} from 'app/types/event';
@@ -38,20 +36,6 @@ import {generateTitle, getExpandedResults} from '../utils';
 
 import LinkedIssue from './linkedIssue';
 
-const slugValidator = function (
-  props: {[key: string]: any},
-  propName: string,
-  componentName: string
-) {
-  const value = props[propName];
-  // Accept slugs that look like:
-  // * project-slug:deadbeef
-  if (value && typeof value === 'string' && !/^(?:[^:]+):(?:[a-f0-9-]+)$/.test(value)) {
-    return new Error(`Invalid value for ${propName} provided to ${componentName}.`);
-  }
-  return null;
-};
-
 type Props = {
   organization: Organization;
   location: Location;
@@ -66,12 +50,6 @@ type State = {
 } & AsyncComponent['state'];
 
 class EventDetailsContent extends AsyncComponent<Props, State> {
-  static propTypes: any = {
-    organization: SentryTypes.Organization.isRequired,
-    eventSlug: slugValidator,
-    location: PropTypes.object.isRequired,
-  };
-
   state: State = {
     // AsyncComponent state
     loading: true,
@@ -243,7 +221,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               />
               <RootSpanStatus event={event} />
               <OpsBreakdown event={event} />
-              <RealUserMonitoring event={event} />
+              <EventVitals event={event} />
               {event.groupID && (
                 <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
               )}

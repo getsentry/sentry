@@ -1,5 +1,3 @@
-import six
-
 from rest_framework import serializers
 
 from sentry import features
@@ -14,7 +12,7 @@ ValidationError = serializers.ValidationError
 
 class RuleNodeField(serializers.Field):
     def __init__(self, type):
-        super(RuleNodeField, self).__init__()
+        super().__init__()
         self.type_name = type
 
     def to_representation(self, value):
@@ -44,7 +42,7 @@ class RuleNodeField(serializers.Field):
             # XXX(epurkhiser): Very hacky, but we really just want validation
             # errors that are more specific, not just 'this wasn't filled out',
             # give a more generic error for those.
-            first_error = next(six.itervalues(form.errors))[0]
+            first_error = next(iter(form.errors.values()))[0]
 
             if first_error != "This field is required.":
                 raise ValidationError(first_error)

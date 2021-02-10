@@ -169,8 +169,8 @@ register("msteams.app-id")
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK)
 register("aws-lambda.secret-access-key", flags=FLAG_PRIORITIZE_DISK)
 register("aws-lambda.cloudformation-url")
-register("aws-lambda.account-number")
-register("aws-lambda.node.layer-name")
+register("aws-lambda.account-number", default="943013980633")
+register("aws-lambda.node.layer-name", default="SentryNodeServerlessSDK")
 register("aws-lambda.node.layer-version")
 # the region of the host account we use for assuming the role
 register("aws-lambda.host-region", default="us-east-2")
@@ -254,9 +254,6 @@ register("eventstore.use-nodestore", default=False, flags=FLAG_PRIORITIZE_DISK)
 # Alerts / Workflow incremental rollout rate. Tied to feature handlers in getsentry
 register("workflow.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
 
-# Incremental rollout rate for Workflow Owners related features.
-register("workflow-owners.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
-
 # Performance metric alerts incremental rollout rate. Tied to feature handlers
 # in getsentry
 register("incidents-performance.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
@@ -282,4 +279,7 @@ register("store.use-relay-dsn-sample-rate", default=1)
 register("mocks.jira", default=False)
 
 # Record statistics about event payloads and their compressability
-register("store.nodestore-stats-sample-rate", default=0.0)
+register("store.nodestore-stats-sample-rate", default=0.0)  # unused
+
+# Killswitch to stop storing any reprocessing payloads.
+register("store.reprocessing-force-disable", default=False)

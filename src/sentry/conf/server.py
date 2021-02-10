@@ -16,7 +16,7 @@ from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
 
 from datetime import timedelta
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 
 def gettext_noop(s):
@@ -68,6 +68,8 @@ ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
 IS_DEV = ENVIRONMENT == "development"
 
 DEBUG = IS_DEV
+
+ADMIN_ENABLED = DEBUG
 
 MAINTENANCE = False
 
@@ -533,6 +535,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.digests",
     "sentry.tasks.email",
     "sentry.tasks.files",
+    "sentry.tasks.groupowner",
     "sentry.tasks.integrations",
     "sentry.tasks.members",
     "sentry.tasks.merge",
@@ -579,6 +582,9 @@ CELERY_QUEUES = [
     Queue("events.reprocess_events", routing_key="events.reprocess_events"),
     Queue("events.save_event", routing_key="events.save_event"),
     Queue("files.delete", routing_key="files.delete"),
+    Queue(
+        "group_owners.process_suspect_commits", routing_key="group_owners.process_suspect_commits"
+    ),
     Queue("incidents", routing_key="incidents"),
     Queue("incident_snapshots", routing_key="incident_snapshots"),
     Queue("integrations", routing_key="integrations"),
@@ -604,7 +610,7 @@ CELERY_ROUTES = ("sentry.queue.routers.SplitQueueRouter",)
 def create_partitioned_queues(name):
     exchange = Exchange(name, type="direct")
     for num in range(1):
-        CELERY_QUEUES.append(Queue("{0}-{1}".format(name, num), exchange=exchange))
+        CELERY_QUEUES.append(Queue(f"{name}-{num}", exchange=exchange))
 
 
 create_partitioned_queues("counters")
@@ -835,10 +841,10 @@ SENTRY_FEATURES = {
     "organizations:discover": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
+    # Enable inline preview of attachments.
+    "organizations:event-attachments-viewer": True,
     # Enable Filters & Sampling in the org settings
     "organizations:filters-and-sampling": False,
-    # Enable inline preview of attachments.
-    "organizations:event-attachments-viewer": False,
     # Allow organizations to configure built-in symbol sources.
     "organizations:symbol-sources": True,
     # Allow organizations to configure custom external symbol sources.
@@ -851,6 +857,10 @@ SENTRY_FEATURES = {
     "organizations:discover-query": True,
     # Enable Performance view
     "organizations:performance-view": False,
+    # Enable the quick trace view on event details and errors
+    "organizations:trace-view-quick": False,
+    # Enable the trace view summary
+    "organizations:trace-view-summary": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Lets organizations manage grouping configs
@@ -863,8 +873,6 @@ SENTRY_FEATURES = {
     "organizations:incidents": False,
     # Enable metric aggregate in metric alert rule builder
     "organizations:metric-alert-builder-aggregate": False,
-    # Enable new GUI filters in the metric alert rule builder
-    "organizations:metric-alert-gui-filters": False,
     # Enable integration functionality to create and link groups to issues on
     # external services.
     "organizations:integrations-issue-basic": True,
@@ -886,15 +894,15 @@ SENTRY_FEATURES = {
     "organizations:integrations-vsts-limited-scopes": False,
     # Allow orgs to use the stacktrace linking feature
     "organizations:integrations-stacktrace-link": False,
-    # Enables aws lambda integration
-    "organizations:integrations-aws_lambda": False,
     # Temporary safety measure, turned on for specific orgs only if
     # absolutely necessary, to be removed shortly
     "organizations:slack-allow-workspace": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
-    # Enable custom dashboards (dashboards 2)
-    "organizations:dashboards-v2": False,
+    # Enable readonly dashboards (dashboards 2)
+    "organizations:dashboards-basic": False,
+    # Enable custom editable dashboards (dashboards 2)
+    "organizations:dashboards-edit": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Special feature flag primarily used on the sentry.io SAAS product for
@@ -939,6 +947,8 @@ SENTRY_FEATURES = {
     "organizations:stacktrace-hover-preview": False,
     # Enable transaction comparison view for performance.
     "organizations:transaction-comparison": False,
+    # Return unhandled information on the issue level
+    "organizations:unhandled-issue-flag": True,
     # Enable graph for subscription quota for errors, transactions and
     # attachments
     "organizations:usage-stats-graph": False,
@@ -946,16 +956,12 @@ SENTRY_FEATURES = {
     "organizations:inbox": False,
     # Set default tab to inbox
     "organizations:inbox-tab-default": False,
-    # Add `owner:me_or_none` to inbox tab query
+    # Add `assigned_or_suggested:me_or_none` to inbox tab query
     "organizations:inbox-owners-query": False,
     # Enable the new alert details ux design
     "organizations:alert-details-redesign": False,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": False,
-    # Return unhandled information on the issue level
-    "organizations:unhandled-issue-flag": False,
-    # Enable "owner"/"suggested assignee" features.
-    "organizations:workflow-owners": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1282,29 +1288,27 @@ SENTRY_CACHE_MAX_VALUE_SIZE = None
 # 'name' in SENTRY_MANAGED_USER_FIELDS.
 SENTRY_MANAGED_USER_FIELDS = ()
 
-SENTRY_SCOPES = set(
-    [
-        "org:read",
-        "org:write",
-        "org:admin",
-        "org:integrations",
-        "member:read",
-        "member:write",
-        "member:admin",
-        "team:read",
-        "team:write",
-        "team:admin",
-        "project:read",
-        "project:write",
-        "project:admin",
-        "project:releases",
-        "event:read",
-        "event:write",
-        "event:admin",
-        "alerts:write",
-        "alerts:read",
-    ]
-)
+SENTRY_SCOPES = {
+    "org:read",
+    "org:write",
+    "org:admin",
+    "org:integrations",
+    "member:read",
+    "member:write",
+    "member:admin",
+    "team:read",
+    "team:write",
+    "team:admin",
+    "project:read",
+    "project:write",
+    "project:admin",
+    "project:releases",
+    "event:read",
+    "event:write",
+    "event:admin",
+    "alerts:write",
+    "alerts:read",
+}
 
 SENTRY_SCOPE_SETS = (
     (
@@ -1351,20 +1355,18 @@ SENTRY_ROLES = (
         "id": "member",
         "name": "Member",
         "desc": "Members can view and act on events, as well as view most other data within the organization.",
-        "scopes": set(
-            [
-                "event:read",
-                "event:write",
-                "event:admin",
-                "project:releases",
-                "project:read",
-                "org:read",
-                "member:read",
-                "team:read",
-                "alerts:read",
-                "alerts:write",
-            ]
-        ),
+        "scopes": {
+            "event:read",
+            "event:write",
+            "event:admin",
+            "project:releases",
+            "project:read",
+            "org:read",
+            "member:read",
+            "team:read",
+            "alerts:read",
+            "alerts:write",
+        },
     },
     {
         "id": "admin",
@@ -1373,53 +1375,49 @@ SENTRY_ROLES = (
         "as well as remove teams and projects which they already hold membership on (or all teams, "
         "if open membership is on). Additionally, they can manage memberships of teams that they are members "
         "of.",
-        "scopes": set(
-            [
-                "event:read",
-                "event:write",
-                "event:admin",
-                "org:read",
-                "member:read",
-                "project:read",
-                "project:write",
-                "project:admin",
-                "project:releases",
-                "team:read",
-                "team:write",
-                "team:admin",
-                "org:integrations",
-                "alerts:read",
-                "alerts:write",
-            ]
-        ),
+        "scopes": {
+            "event:read",
+            "event:write",
+            "event:admin",
+            "org:read",
+            "member:read",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "project:releases",
+            "team:read",
+            "team:write",
+            "team:admin",
+            "org:integrations",
+            "alerts:read",
+            "alerts:write",
+        },
     },
     {
         "id": "manager",
         "name": "Manager",
         "desc": "Gains admin access on all teams as well as the ability to add and remove members.",
         "is_global": True,
-        "scopes": set(
-            [
-                "event:read",
-                "event:write",
-                "event:admin",
-                "member:read",
-                "member:write",
-                "member:admin",
-                "project:read",
-                "project:write",
-                "project:admin",
-                "project:releases",
-                "team:read",
-                "team:write",
-                "team:admin",
-                "org:read",
-                "org:write",
-                "org:integrations",
-                "alerts:read",
-                "alerts:write",
-            ]
-        ),
+        "scopes": {
+            "event:read",
+            "event:write",
+            "event:admin",
+            "member:read",
+            "member:write",
+            "member:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "project:releases",
+            "team:read",
+            "team:write",
+            "team:admin",
+            "org:read",
+            "org:write",
+            "org:integrations",
+            "alerts:read",
+            "alerts:write",
+        },
     },
     {
         "id": "owner",
@@ -1427,29 +1425,27 @@ SENTRY_ROLES = (
         "desc": "Unrestricted access to the organization, its data, and its settings. Can add, modify, and delete "
         "projects and members, as well as make billing and plan changes.",
         "is_global": True,
-        "scopes": set(
-            [
-                "org:read",
-                "org:write",
-                "org:admin",
-                "org:integrations",
-                "member:read",
-                "member:write",
-                "member:admin",
-                "team:read",
-                "team:write",
-                "team:admin",
-                "project:read",
-                "project:write",
-                "project:admin",
-                "project:releases",
-                "event:read",
-                "event:write",
-                "event:admin",
-                "alerts:read",
-                "alerts:write",
-            ]
-        ),
+        "scopes": {
+            "org:read",
+            "org:write",
+            "org:admin",
+            "org:integrations",
+            "member:read",
+            "member:write",
+            "member:admin",
+            "team:read",
+            "team:write",
+            "team:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "project:releases",
+            "event:read",
+            "event:write",
+            "event:admin",
+            "alerts:read",
+            "alerts:write",
+        },
     },
 )
 

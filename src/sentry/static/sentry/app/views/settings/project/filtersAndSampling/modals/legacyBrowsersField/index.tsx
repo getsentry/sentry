@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import BulkController from 'app/components/bulkController';
 import {PanelTable} from 'app/components/panels';
-import Switch from 'app/components/switch';
+import Switch from 'app/components/switchButton';
 
 import {LEGACY_BROWSER_LIST} from '../utils';
 

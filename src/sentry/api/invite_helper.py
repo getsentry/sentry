@@ -1,4 +1,4 @@
-from six.moves.urllib.parse import urlencode, parse_qsl
+from urllib.parse import urlencode, parse_qsl
 from django.utils.crypto import constant_time_compare
 from django.core.urlresolvers import reverse
 
@@ -42,7 +42,7 @@ def get_invite_cookie(request):
     return invite_data
 
 
-class ApiInviteHelper(object):
+class ApiInviteHelper:
     @classmethod
     def from_cookie_or_email(cls, request, organization, email, instance=None, logger=None):
         """

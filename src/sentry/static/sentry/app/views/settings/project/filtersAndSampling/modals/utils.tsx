@@ -1,7 +1,6 @@
 import {css} from '@emotion/core';
 
 import {t} from 'app/locale';
-import {DynamicSamplingConditionOperator} from 'app/types/dynamicSampling';
 import theme from 'app/utils/theme';
 
 export const modalCss = css`
@@ -11,24 +10,25 @@ export const modalCss = css`
 
   @media (min-width: ${theme.breakpoints[0]}) {
     .modal-dialog {
-      width: 35%;
-      margin-left: -17.5%;
+      width: 70%;
+      margin-left: -35%;
+    }
+  }
+
+  @media (min-width: ${theme.breakpoints[1]}) {
+    .modal-dialog {
+      width: 55%;
+      margin-left: -27.5%;
+    }
+  }
+
+  @media (min-width: ${theme.breakpoints[4]}) {
+    .modal-dialog {
+      width: 30%;
+      margin-left: -15%;
     }
   }
 `;
-
-export function getMatchFieldDescription(condition: DynamicSamplingConditionOperator) {
-  switch (condition) {
-    case DynamicSamplingConditionOperator.STR_EQUAL_NO_CASE:
-      return {label: t('Match Environments'), description: 'this is a description'};
-    case DynamicSamplingConditionOperator.GLOB_MATCH:
-      return {label: t('Match Releases'), description: 'this is a description'};
-    case DynamicSamplingConditionOperator.EQUAL:
-      return {label: t('Match Users'), description: 'this is a description'};
-    default:
-      return {};
-  }
-}
 
 export const LEGACY_BROWSER_LIST = {
   ie_pre_9: {
@@ -65,12 +65,7 @@ export const LEGACY_BROWSER_LIST = {
   },
 };
 
-export enum Category {
-  RELEASES = 'releases',
-  ENVIRONMENTS = 'environments',
-  USERS = 'users',
-  BROWSER_EXTENSIONS = 'browser_extensions',
-  LOCALHOST = 'localhost',
-  WEB_CRAWLERS = 'web_crawlers',
-  LEGACY_BROWSERS = 'legacy_browsers',
+export enum Transaction {
+  ALL = 'all',
+  MATCH_CONDITIONS = 'match-conditions',
 }

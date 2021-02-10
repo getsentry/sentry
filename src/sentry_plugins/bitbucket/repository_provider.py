@@ -1,5 +1,3 @@
-import six
-
 from uuid import uuid4
 
 from sentry.app import locks
@@ -44,11 +42,11 @@ class BitbucketRepositoryProvider(BitbucketMixin, providers.RepositoryProvider):
             except Exception as e:
                 self.raise_error(e, identity=client.auth)
             else:
-                config["external_id"] = six.text_type(repo["uuid"])
+                config["external_id"] = str(repo["uuid"])
         return config
 
     def get_webhook_secret(self, organization):
-        lock = locks.get("bitbucket:webhook-secret:{}".format(organization.id), duration=60)
+        lock = locks.get(f"bitbucket:webhook-secret:{organization.id}", duration=60)
         with lock.acquire():
             secret = OrganizationOption.objects.get_value(
                 organization=organization, key="bitbucket:webhook_secret"
@@ -71,7 +69,7 @@ class BitbucketRepositoryProvider(BitbucketMixin, providers.RepositoryProvider):
                 {
                     "description": "sentry-bitbucket-repo-hook",
                     "url": absolute_uri(
-                        "/plugins/bitbucket/organizations/{}/webhook/".format(organization.id)
+                        f"/plugins/bitbucket/organizations/{organization.id}/webhook/"
                     ),
                     "active": True,
                     "events": ["repo:push"],

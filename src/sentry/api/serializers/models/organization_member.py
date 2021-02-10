@@ -1,4 +1,3 @@
-import six
 from collections import defaultdict
 
 from sentry import roles
@@ -10,16 +9,15 @@ from sentry.models import OrganizationMember, OrganizationMemberTeam, Team, Team
 class OrganizationMemberSerializer(Serializer):
     def get_attrs(self, item_list, user):
         # TODO(dcramer): assert on relations
-        users = {d["id"]: d for d in serialize(set(i.user for i in item_list if i.user_id), user)}
+        users = {d["id"]: d for d in serialize({i.user for i in item_list if i.user_id}, user)}
 
         return {
-            item: {"user": users[six.text_type(item.user_id)] if item.user_id else None}
-            for item in item_list
+            item: {"user": users[str(item.user_id)] if item.user_id else None} for item in item_list
         }
 
     def serialize(self, obj, attrs, user):
         d = {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "email": obj.get_email(),
             "name": obj.user.get_display_name() if obj.user else obj.get_email(),
             "user": attrs["user"],
@@ -40,7 +38,7 @@ class OrganizationMemberSerializer(Serializer):
 
 class OrganizationMemberWithTeamsSerializer(OrganizationMemberSerializer):
     def get_attrs(self, item_list, user):
-        attrs = super(OrganizationMemberWithTeamsSerializer, self).get_attrs(item_list, user)
+        attrs = super().get_attrs(item_list, user)
 
         member_team_map = list(
             OrganizationMemberTeam.objects.filter(
@@ -68,7 +66,7 @@ class OrganizationMemberWithTeamsSerializer(OrganizationMemberSerializer):
         return attrs
 
     def serialize(self, obj, attrs, user):
-        d = super(OrganizationMemberWithTeamsSerializer, self).serialize(obj, attrs, user)
+        d = super().serialize(obj, attrs, user)
 
         d["teams"] = attrs.get("teams", [])
 
@@ -78,10 +76,10 @@ class OrganizationMemberWithTeamsSerializer(OrganizationMemberSerializer):
 class OrganizationMemberWithProjectsSerializer(OrganizationMemberSerializer):
     def __init__(self, *args, **kwargs):
         self.project_ids = set(kwargs.pop("project_ids", []))
-        super(OrganizationMemberWithProjectsSerializer, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def get_attrs(self, item_list, user):
-        attrs = super(OrganizationMemberWithProjectsSerializer, self).get_attrs(item_list, user)
+        attrs = super().get_attrs(item_list, user)
         # Note: For this to be efficient, call
         # `.prefetch_related(
         #       'teams',
@@ -109,6 +107,6 @@ class OrganizationMemberWithProjectsSerializer(OrganizationMemberSerializer):
         return attrs
 
     def serialize(self, obj, attrs, user):
-        d = super(OrganizationMemberWithProjectsSerializer, self).serialize(obj, attrs, user)
+        d = super().serialize(obj, attrs, user)
         d["projects"] = attrs.get("projects", [])
         return d

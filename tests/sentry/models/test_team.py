@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,

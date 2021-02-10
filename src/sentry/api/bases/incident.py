@@ -24,7 +24,7 @@ class IncidentPermission(OrganizationPermission):
 
 class IncidentEndpoint(OrganizationEndpoint):
     def convert_args(self, request, incident_identifier, *args, **kwargs):
-        args, kwargs = super(IncidentEndpoint, self).convert_args(request, *args, **kwargs)
+        args, kwargs = super().convert_args(request, *args, **kwargs)
         organization = kwargs["organization"]
 
         if not features.has("organizations:incidents", organization, actor=request.user):

@@ -1,5 +1,4 @@
 import logging
-import six
 
 from rest_framework.response import Response
 from social_auth.backends import get_backend
@@ -29,7 +28,7 @@ class UserSocialIdentityDetailsEndpoint(UserEndpoint):
 
         backend = get_backend(auth.provider, request, "/")
         if backend is None:
-            raise Exception("Backend was not found for request: {}".format(auth.provider))
+            raise Exception(f"Backend was not found for request: {auth.provider}")
 
         # stop this from bubbling up errors to social-auth's middleware
         # XXX(dcramer): IM SO MAD ABOUT THIS
@@ -39,7 +38,7 @@ class UserSocialIdentityDetailsEndpoint(UserEndpoint):
             import sys
 
             exc_tb = sys.exc_info()[2]
-            six.reraise(Exception, exc, exc_tb)
+            raise exc.with_traceback(exc_tb)
             del exc_tb
 
         # XXX(dcramer): we experienced an issue where the identity still existed,

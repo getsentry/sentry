@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {withInfo} from '@storybook/addon-info';
 
 import Button from 'app/components/button';
 import GridEditable from 'app/components/gridEditable';
@@ -98,31 +97,41 @@ export default {
   title: 'Core/Tables/GridEditable',
 };
 
-export const Default = withInfo('Render a simple resizable table')(() => (
+export const Default = () => (
   <React.Fragment>
     <div className="section">
       <h2>Basic Table</h2>
       <GridParent />
     </div>
   </React.Fragment>
-));
+);
 
-Default.story = {
-  name: 'default',
+Default.storyName = 'default';
+Default.parameters = {
+  docs: {
+    description: {
+      story: 'Render a simple resizable table',
+    },
+  },
 };
 
-export const WithAHeader = withInfo('Include a header and action buttons')(() => (
+export const WithAHeader = () => (
   <div className="section">
     <h2>Table with title & header buttons</h2>
     <GridParent withHeader title="Results" />
   </div>
-));
+);
 
-WithAHeader.story = {
-  name: 'with a header',
+WithAHeader.storyName = 'with a header';
+WithAHeader.parameters = {
+  docs: {
+    description: {
+      story: 'Include a header and action buttons',
+    },
+  },
 };
 
-export const IsLoading = withInfo('')(() => (
+export const IsLoading = () => (
   <div className="section">
     <h2>Loading</h2>
     <GridEditable
@@ -135,13 +144,11 @@ export const IsLoading = withInfo('')(() => (
       grid={{}}
     />
   </div>
-));
+);
 
-IsLoading.story = {
-  name: 'isLoading',
-};
+IsLoading.storyName = 'isLoading';
 
-export const IsError = withInfo('')(() => (
+export const IsError = () => (
   <div className="section">
     <h2>Error</h2>
     <GridEditable
@@ -154,8 +161,6 @@ export const IsError = withInfo('')(() => (
       grid={{}}
     />
   </div>
-));
+);
 
-IsError.story = {
-  name: 'isError',
-};
+IsError.storyName = 'isError';

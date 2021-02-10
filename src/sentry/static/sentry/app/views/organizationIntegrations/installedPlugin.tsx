@@ -12,12 +12,12 @@ import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
-import Switch from 'app/components/switch';
+import Switch from 'app/components/switchButton';
 import {IconDelete, IconFlag, IconSettings} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {AvatarProject, Organization, PluginNoProject, PluginProjectItem} from 'app/types';
-import {SingleIntegrationEvent} from 'app/utils/integrationUtil';
+import {AnalyticsKey} from 'app/utils/integrationEvents';
 import withApi from 'app/utils/withApi';
 
 export type Props = {
@@ -27,9 +27,7 @@ export type Props = {
   organization: Organization;
   onResetConfiguration: (projectId: string) => void;
   onPluginEnableStatusChange: (projectId: string, status: boolean) => void;
-  trackIntegrationEvent: (
-    options: Pick<SingleIntegrationEvent, 'eventKey' | 'eventName'> & {project_id: string}
-  ) => void; //analytics callback
+  trackIntegrationEvent: (eventKey: AnalyticsKey) => void; //analytics callback
   className?: string;
 };
 
@@ -75,22 +73,14 @@ export class InstalledPlugin extends React.Component<Props> {
       await this.pluginUpdate({reset: true});
       addSuccessMessage(t('Configuration was removed'));
       this.props.onResetConfiguration(this.projectId);
-      this.props.trackIntegrationEvent({
-        eventKey: 'integrations.uninstall_completed',
-        eventName: 'Integrations: Uninstall Completed',
-        project_id: this.projectId,
-      });
+      this.props.trackIntegrationEvent('integrations.uninstall_completed');
     } catch (_err) {
       addErrorMessage(t('Unable to remove configuration'));
     }
   };
 
   handleUninstallClick = () => {
-    this.props.trackIntegrationEvent({
-      eventKey: 'integrations.uninstall_clicked',
-      eventName: 'Integrations: Uninstall Clicked',
-      project_id: this.projectId,
-    });
+    this.props.trackIntegrationEvent('integrations.uninstall_clicked');
   };
 
   toggleEnablePlugin = async (projectId: string, status: boolean = true) => {
@@ -101,11 +91,9 @@ export class InstalledPlugin extends React.Component<Props> {
         status ? t('Configuration was enabled.') : t('Configuration was disabled.')
       );
       this.props.onPluginEnableStatusChange(projectId, status);
-      this.props.trackIntegrationEvent({
-        eventKey: status ? 'integrations.enabled' : 'integrations.disabled',
-        eventName: status ? 'Integrations: Enabled' : 'Integrations: Disabled',
-        project_id: projectId,
-      });
+      this.props.trackIntegrationEvent(
+        status ? 'integrations.enabled' : 'integrations.disabled'
+      );
     } catch (_err) {
       addErrorMessage(
         status

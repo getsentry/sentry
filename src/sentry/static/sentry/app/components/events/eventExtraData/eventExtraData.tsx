@@ -2,7 +2,6 @@ import React from 'react';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import {Event} from 'app/types/event';
 
 import EventDataContent from './eventDataContent';
@@ -16,10 +15,6 @@ type State = {
 };
 
 class EventExtraData extends React.Component<Props, State> {
-  static propTypes = {
-    event: SentryTypes.Event.isRequired,
-  };
-
   state: State = {
     raw: false,
   };

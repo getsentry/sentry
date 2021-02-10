@@ -1,5 +1,3 @@
-import six
-
 from sentry import analytics
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators import Mediator, Param
@@ -15,8 +13,8 @@ class Refresher(Mediator):
     """
 
     install = Param("sentry.models.SentryAppInstallation")
-    refresh_token = Param(six.string_types)
-    client_id = Param(six.string_types)
+    refresh_token = Param((str,))
+    client_id = Param((str,))
     user = Param("sentry.models.User")
 
     def call(self):

@@ -1,5 +1,4 @@
 import sentry_plugins
-import six
 import sys
 
 from sentry.exceptions import InvalidIdentity, PluginError
@@ -17,7 +16,7 @@ from sentry.shared_integrations.exceptions import (
 )
 
 
-class CorePluginMixin(object):
+class CorePluginMixin:
     author = "Sentry Team"
     author_url = "https://github.com/getsentry/sentry"
     version = sentry_plugins.VERSION
@@ -47,21 +46,19 @@ class CorePluginMixin(object):
                 msg = self.error_message_from_json(exc.json) or "unknown error"
             else:
                 msg = getattr(exc, "text", "unknown error")
-            return "Error Communicating with %s (HTTP %s): %s" % (self.title, exc.code, msg)
+            return f"Error Communicating with {self.title} (HTTP {exc.code}): {msg}"
         else:
             return ERR_INTERNAL
 
     def raise_error(self, exc, identity=None):
         if isinstance(exc, ApiUnauthorized):
-            six.reraise(
-                InvalidIdentity,
-                InvalidIdentity(self.message_from_error(exc), identity=identity),
-                sys.exc_info()[2],
+            raise InvalidIdentity(self.message_from_error(exc), identity=identity).with_traceback(
+                sys.exc_info()[2]
             )
         elif isinstance(exc, ApiError):
-            six.reraise(PluginError, PluginError(self.message_from_error(exc)), sys.exc_info()[2])
+            raise PluginError(self.message_from_error(exc)).with_traceback(sys.exc_info()[2])
         elif isinstance(exc, PluginError):
             raise
         else:
-            self.logger.exception(six.text_type(exc))
-            six.reraise(PluginError, PluginError(self.message_from_error(exc)), sys.exc_info()[2])
+            self.logger.exception(str(exc))
+            raise PluginError(self.message_from_error(exc)).with_traceback(sys.exc_info()[2])

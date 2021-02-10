@@ -3,7 +3,7 @@ import responses
 from rest_framework.serializers import ValidationError
 
 
-from six.moves.urllib.parse import parse_qs
+from urllib.parse import parse_qs
 from sentry.integrations.vercel import VercelIntegrationProvider
 from sentry.models import (
     Integration,
@@ -205,7 +205,10 @@ class VercelIntegrationTest(IntegrationTestCase):
             responses.GET,
             "https://api.vercel.com/v5/projects/%s/env"
             % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
-            json={"envs": []},
+            json={
+                "envs": [],
+                "pagination": {"count": 0},
+            },
         )
 
         for i, name in enumerate(secret_names):
@@ -331,6 +334,7 @@ class VercelIntegrationTest(IntegrationTestCase):
                 % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
                 json={
                     "envs": [{"value": "sec_%s" % i, "target": "production", "key": env_var_name}],
+                    "pagination": {"count": 4},
                 },
             )
         for i, env_var_name in enumerate(env_var_names):
@@ -477,7 +481,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         assert resp.status_code == 200
         assert (
             absolute_uri(
-                "/settings/%s/integrations/vercel/%s/" % (self.organization.slug, integration.id)
+                f"/settings/{self.organization.slug}/integrations/vercel/{integration.id}/"
             ).encode("utf-8")
             in resp.content
         )

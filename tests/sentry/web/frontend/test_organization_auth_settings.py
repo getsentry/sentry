@@ -17,7 +17,7 @@ from sentry.testutils import AuthProviderTestCase, PermissionTestCase
 
 class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
     def setUp(self):
-        super(OrganizationAuthSettingsPermissionTest, self).setUp()
+        super().setUp()
         self.auth_provider = AuthProvider.objects.create(
             organization=self.organization, provider="dummy"
         )

@@ -39,13 +39,9 @@ type RenderFunctionBaggage = {
   location: Location;
 };
 
-type FieldFormatterRenderFunction = (
-  field: string,
-  data: EventData,
-  baggage: RenderFunctionBaggage
-) => React.ReactNode;
+type FieldFormatterRenderFunction = (field: string, data: EventData) => React.ReactNode;
 
-export type FieldFormatterRenderFunctionPartial = (
+type FieldFormatterRenderFunctionPartial = (
   data: EventData,
   baggage: RenderFunctionBaggage
 ) => React.ReactNode;
@@ -447,6 +443,29 @@ export function getFieldRenderer(
       return SPECIAL_FUNCTIONS[alias];
     }
   }
+
+  if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
+    return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
+  }
+  return partial(FIELD_FORMATTERS.string.renderFunc, fieldName);
+}
+
+type FieldTypeFormatterRenderFunctionPartial = (data: EventData) => React.ReactNode;
+
+/**
+ * Get the field renderer for the named field only based on its type from the given
+ * metadata.
+ *
+ * @param {String} field name
+ * @param {object} metadata mapping.
+ * @returns {Function}
+ */
+export function getFieldFormatter(
+  field: string,
+  meta: MetaType
+): FieldTypeFormatterRenderFunctionPartial {
+  const fieldName = getAggregateAlias(field);
+  const fieldType = meta[fieldName];
 
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
     return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);

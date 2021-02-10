@@ -63,7 +63,7 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
     ]
 
     def get_group_urls(self):
-        return super(BitbucketPlugin, self).get_group_urls() + [
+        return super().get_group_urls() + [
             url(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
@@ -77,7 +77,7 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
         return bool(self.get_option("repo", project))
 
     def get_new_issue_fields(self, request, group, event, **kwargs):
-        fields = super(BitbucketPlugin, self).get_new_issue_fields(request, group, event, **kwargs)
+        fields = super().get_new_issue_fields(request, group, event, **kwargs)
         return (
             [
                 {
@@ -133,7 +133,7 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
     def message_from_error(self, exc):
         if isinstance(exc, ApiError) and exc.code == 404:
             return ERR_404
-        return super(BitbucketPlugin, self).message_from_error(exc)
+        return super().message_from_error(exc)
 
     def create_issue(self, request, group, form_data, **kwargs):
         client = self.get_client(request.user)
@@ -169,7 +169,7 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
 
     def get_issue_url(self, group, issue_id, **kwargs):
         repo = self.get_option("repo", group.project)
-        return "https://bitbucket.org/%s/issue/%s/" % (repo, issue_id)
+        return f"https://bitbucket.org/{repo}/issue/{issue_id}/"
 
     def view_autocomplete(self, request, group, **kwargs):
         field = request.GET.get("autocomplete_field")
@@ -189,7 +189,7 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
             )
 
         issues = [
-            {"text": "(#%s) %s" % (i["local_id"], i["title"]), "id": i["local_id"]}
+            {"text": "(#{}) {}".format(i["local_id"], i["title"]), "id": i["local_id"]}
             for i in response.get("issues", [])
         ]
 
