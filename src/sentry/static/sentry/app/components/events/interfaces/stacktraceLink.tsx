@@ -104,9 +104,8 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     const provider = this.config?.provider;
     if (provider) {
       trackIntegrationEvent(
+        'integrations.stacktrace_link_clicked',
         {
-          eventKey: 'integrations.stacktrace_link_clicked',
-          eventName: 'Integrations: Stacktrace Link Clicked',
           view: 'stacktrace_issue_details',
           provider: provider.key,
         },
@@ -121,9 +120,8 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     const error = this.match.error;
     if (provider) {
       trackIntegrationEvent(
+        'integrations.reconfigure_stacktrace_setup',
         {
-          eventKey: 'integrations.reconfigure_stacktrace_setup',
-          eventName: 'Integrations: Reconfigure Stacktrace Setup',
           view: 'stacktrace_issue_details',
           provider: provider.key,
           error_reason: error,
@@ -160,9 +158,8 @@ class StacktraceLink extends AsyncComponent<Props, State> {
           <Button
             onClick={() => {
               trackIntegrationEvent(
+                'integrations.stacktrace_start_setup',
                 {
-                  eventKey: 'integrations.stacktrace_start_setup',
-                  eventName: 'Integrations: Stacktrace Start Setup',
                   view: 'stacktrace_issue_details',
                   platform,
                 },
