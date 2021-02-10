@@ -89,7 +89,6 @@ jobs:
             ${{ runner.os }}-yarn-
 
       - name: Set up development environment (as per docs)
-        # XXX: I don't understand why we need to source again when we already do in a previous step
         run: |
           python -V
           source "$HOME/.zshrc"

@@ -19,7 +19,7 @@ query_big_sur() {
 
 get_shell_startup_script() {
   local _startup_script=''
-  if [ -n "$SHELL" ]; then
+  if [[ -n "$SHELL" ]]; then
     case "$SHELL" in
       */bash)
         _startup_script="${HOME}/.bash_profile"
@@ -42,7 +42,7 @@ get_shell_startup_script() {
 }
 
 _append_to_startup_script() {
-  if [ -n "$SHELL" ]; then
+  if [[ -n "$SHELL" ]]; then
     case "$SHELL" in
       */bash)
         # shellcheck disable=SC2016
@@ -56,16 +56,16 @@ _append_to_startup_script() {
         echo -e '\n\n# pyenv init\nif command -v pyenv 1>/dev/null 2>&1\n  pyenv init - | source\nend' >> "$1"
     esac
 
-    echo "  --> Tail of ${1}"
+    echo "--> Tail of ${1}"
     tail -n 3 "${1}"
   fi
 }
 
 append_to_config() {
-  if [ -n "$1" ]; then
+  if [[ -n "$1" ]]; then
     echo "Adding pyenv init (if missing) to ${1}..."
     # shellcheck disable=SC2016
-    if ! grep -qF 'eval "$(pyenv init -)"' "${1}"; then
+    if ! grep -qF "pyenv init" "${1}"; then
       # pyenv init - is needed to include the pyenv shims in your PATH
       # The first \n is very important since on Github workers the output was being appended to
       # the last line rather than on a new line. I never figured out why
@@ -110,7 +110,8 @@ setup_pyenv() {
   # the effects of this will be persistent outside of this script
   echo "Activating pyenv"
   eval "$(pyenv init -)"
-  [[ $(python -V | sed s/Python\ //g) != $(cat .python-version) ]] && echo "Wrong Python version: $(python -V)" && exit 1
+  python_version=$(python -V | sed s/Python\ //g)
+  [[ $python_version != $(cat .python-version) ]] && echo "Wrong Python version: $python_version" && exit 1
   # The Python version installed via pyenv does not come with wheel pre-installed
   # Installing wheel will speed up installation of Python dependencies
   PIP_DISABLE_PIP_VERSION_CHECK=on pip install wheel
