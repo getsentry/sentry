@@ -24,6 +24,7 @@ import {shouldFetchPreviousPeriod} from '../utils';
 type Props = AsyncComponent['props'] & {
   organization: Organization;
   selection: GlobalSelection;
+  isProjectStabilized: boolean;
 };
 
 type State = AsyncComponent['state'] & {
@@ -43,7 +44,11 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
   }
 
   getEndpoints() {
-    const {organization, selection} = this.props;
+    const {organization, selection, isProjectStabilized} = this.props;
+
+    if (!isProjectStabilized) {
+      return [];
+    }
 
     const {projects, environments: environment, datetime} = selection;
     const {period} = datetime;
@@ -97,7 +102,11 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
    * If there are no sessions in the time frame, check if there are any in the last 90 days (empty message differs then)
    */
   async onLoadAllEndpointsSuccess() {
-    const {organization, selection} = this.props;
+    const {organization, selection, isProjectStabilized} = this.props;
+
+    if (!isProjectStabilized) {
+      return;
+    }
 
     if (defined(this.score) || defined(this.trend)) {
       this.setState({noSessionEver: false});
@@ -158,7 +167,12 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (prevProps.selection !== this.props.selection) {
+    const {selection, isProjectStabilized} = this.props;
+
+    if (
+      prevProps.selection !== selection ||
+      prevProps.isProjectStabilized !== isProjectStabilized
+    ) {
       this.remountComponent();
     }
   }
@@ -225,7 +239,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
         ) : (
           <IconArrow direction="down" size="xs" />
         )}
-        {formatAbbreviatedNumber(Math.abs(this.trend))}
+        {`${formatAbbreviatedNumber(Math.abs(this.trend))}\u0025`}
       </div>
     );
   }

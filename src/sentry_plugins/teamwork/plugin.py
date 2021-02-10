@@ -1,4 +1,3 @@
-import six
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 from django.http import HttpResponse
@@ -46,21 +45,17 @@ class TeamworkTaskForm(NewIssueForm):
         try:
             project_list = client.list_projects()
         except RequestException as e:
-            raise forms.ValidationError(_("Error contacting Teamwork API: %s") % six.text_type(e))
+            raise forms.ValidationError(_("Error contacting Teamwork API: %s") % str(e))
 
-        self.fields["project"].choices = [(six.text_type(i["id"]), i["name"]) for i in project_list]
+        self.fields["project"].choices = [(str(i["id"]), i["name"]) for i in project_list]
         self.fields["project"].widget.choices = self.fields["project"].choices
 
         if self.data.get("project"):
             try:
                 tasklist_list = client.list_tasklists(data["project"])
             except RequestException as e:
-                raise forms.ValidationError(
-                    _("Error contacting Teamwork API: %s") % six.text_type(e)
-                )
-            self.fields["tasklist"].choices = [
-                (six.text_type(i["id"]), i["name"]) for i in tasklist_list
-            ]
+                raise forms.ValidationError(_("Error contacting Teamwork API: %s") % str(e))
+            self.fields["tasklist"].choices = [(str(i["id"]), i["name"]) for i in tasklist_list]
             self.fields["tasklist"].widget.choices = self.fields["tasklist"].choices
 
 
@@ -128,7 +123,7 @@ class TeamworkPlugin(CorePluginMixin, IssuePlugin):
 
     def get_issue_url(self, group, issue_id, **kwargs):
         url = self.get_option("url", group.project)
-        return "%s/tasks/%s" % (url.rstrip("/"), issue_id)
+        return "{}/tasks/{}".format(url.rstrip("/"), issue_id)
 
     def get_new_issue_title(self, **kwargs):
         return _("Create Teamwork Task")
@@ -142,7 +137,7 @@ class TeamworkPlugin(CorePluginMixin, IssuePlugin):
                 tasklist_id=form_data["tasklist"],
             )
         except RequestException as e:
-            raise forms.ValidationError(_("Error creating Teamwork task: %s") % six.text_type(e))
+            raise forms.ValidationError(_("Error creating Teamwork task: %s") % str(e))
 
         return task_id
 

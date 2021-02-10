@@ -29,6 +29,15 @@ repos:
       language: python
       types: [python]
       log_file: '.artifacts/flake8.pycodestyle.log'
+-   repo: https://github.com/asottile/pyupgrade
+    rev: v2.10.0
+    hooks:
+    -   id: pyupgrade
+        types: [python]
+        # We can't change this mock to unittest.mock until Python 3.8,
+        # refer to the comment in this file.
+        exclude: 'src/sentry/utils/compat/mock.py'
+        args: ['--py36-plus']
 -   repo: https://github.com/sirosen/check-jsonschema
     rev: 0.3.0
     hooks:
@@ -38,6 +47,7 @@ repos:
     rev: v0.7.1.1
     hooks:
       - id: shellcheck
+        exclude: 'src/sentry/templates/sentry/reprocessing-script.sh'
         types: [shell]
 -   repo: git://github.com/pre-commit/pre-commit-hooks
     rev: v3.4.0

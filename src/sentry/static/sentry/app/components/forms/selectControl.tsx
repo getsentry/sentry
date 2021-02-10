@@ -173,13 +173,13 @@ function SelectControl(props: ControlProps) {
       ...provided,
       color: theme.formPlaceholder,
     }),
-    multiValue: () => ({
+    multiValue: (provided: React.CSSProperties) => ({
+      ...provided,
       color: '#007eff',
       backgroundColor: '#ebf5ff',
       borderRadius: '2px',
       border: '1px solid #c2e0ff',
       display: 'flex',
-      marginRight: '4px',
     }),
     multiValueLabel: (provided: React.CSSProperties) => ({
       ...provided,
@@ -353,12 +353,11 @@ function SelectPicker({async, creatable, forwardedRef, ...props}: PickerProps) {
 
 SelectPicker.propTypes = SelectControl.propTypes;
 
-const RefForwardedSelectControl = React.forwardRef(function RefForwardedSelectControl(
-  props: ControlProps,
-  ref: React.Ref<ReactSelect>
-) {
-  return <SelectControlWithTheme forwardedRef={ref} {...props} />;
-});
+const RefForwardedSelectControl = React.forwardRef<ReactSelect, ControlProps>(
+  function RefForwardedSelectControl(props, ref) {
+    return <SelectControlWithTheme forwardedRef={ref} {...props} />;
+  }
+);
 
 // TODO(ts): Needed because <SelectField> uses this
 RefForwardedSelectControl.propTypes = SelectControl.propTypes;

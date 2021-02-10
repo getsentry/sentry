@@ -21,6 +21,7 @@ import {shouldFetchPreviousPeriod} from '../utils';
 type Props = AsyncComponent['props'] & {
   organization: Organization;
   selection: GlobalSelection;
+  isProjectStabilized: boolean;
 };
 
 type State = AsyncComponent['state'] & {
@@ -40,9 +41,9 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
   }
 
   getEndpoints() {
-    const {organization, selection} = this.props;
+    const {organization, selection, isProjectStabilized} = this.props;
 
-    if (!this.hasFeature()) {
+    if (!this.hasFeature() || !isProjectStabilized) {
       return [];
     }
 
@@ -87,8 +88,12 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
    * If there's no apdex in the time frame, check if there is one in the last 90 days (empty message differs then)
    */
   async onLoadAllEndpointsSuccess() {
-    const {organization, selection} = this.props;
+    const {organization, selection, isProjectStabilized} = this.props;
     const {projects} = selection;
+
+    if (!isProjectStabilized) {
+      return;
+    }
 
     if (defined(this.currentApdex) || defined(this.previousApdex)) {
       this.setState({noApdexEver: false});
@@ -116,7 +121,12 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (prevProps.selection !== this.props.selection) {
+    const {selection, isProjectStabilized} = this.props;
+
+    if (
+      prevProps.selection !== selection ||
+      prevProps.isProjectStabilized !== isProjectStabilized
+    ) {
       this.remountComponent();
     }
   }

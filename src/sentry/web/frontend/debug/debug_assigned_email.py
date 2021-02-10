@@ -1,5 +1,3 @@
-import six
-
 from sentry.models import Activity
 
 from .mail import ActivityMailDebugView
@@ -24,7 +22,7 @@ class DebugSelfAssignedEmailView(ActivityMailDebugView):
             "type": Activity.ASSIGNED,
             "user": request.user,
             "data": {
-                "assignee": six.text_type(request.user.id),
+                "assignee": str(request.user.id),
                 "assigneeEmail": request.user.email,
                 "assigneeType": "user",
             },

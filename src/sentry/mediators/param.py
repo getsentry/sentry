@@ -1,4 +1,3 @@
-import six
 import sys
 import types
 
@@ -14,7 +13,7 @@ class Param:
 
     Example Usage:
         >>> class Creator(Mediator):
-        >>>     name = Param(six.binary_type, default='example')
+        >>>     name = Param(str, default='example')
         >>>
         >>> c = Creator(name='foo')
         >>> c.name
@@ -27,7 +26,7 @@ class Param:
         >>> c = Creator(name=False)
         Traceback (most recent call last):
             ...
-        TypeError: `name` must be a <type 'six.binary_type'>
+        TypeError: `name` must be a <type 'str'>
 
     Type Validation:
         When a Mediator is instantiated, it validates each of it's Params. This
@@ -35,12 +34,12 @@ class Param:
         expected.
 
         >>> class Creator(Mediator):
-        >>>     name = Param(six.binary_type)
+        >>>     name = Param(str)
         >>>
         >>> c = Creator(name=False)
         Traceback (most recent call last):
             ...
-        TypeError: `name` must be a <type 'six.binary_type'>
+        TypeError: `name` must be a <type 'str'>
 
     Presence Validation:
         Without specifying otherwise, Params are assumed to be required. If
@@ -63,7 +62,7 @@ class Param:
         Declaration order DOES matter.
 
         >>> class Creator(Mediator):
-        >>>     name = Param(six.binary_type, default='Pete')
+        >>>     name = Param(str, default='Pete')
         >>>
         >>> c = Creator()
         >>> c.name
@@ -71,7 +70,7 @@ class Param:
 
         >>> class Creator(Mediator):
         >>>     user = Param(dict)
-        >>>     name = Param(six.binary_type, default=lambda self: self.user['name'])
+        >>>     name = Param(str, default=lambda self: self.user['name'])
     """
 
     def __init__(self, type, **kwargs):
@@ -80,7 +79,7 @@ class Param:
 
     def setup(self, target, name):
         delattr(target, name)
-        setattr(target, "_{}".format(name), self)
+        setattr(target, f"_{name}", self)
 
     def validate(self, target, name, value):
         """
@@ -91,7 +90,7 @@ class Param:
             value = self.default(target)
 
         if self._missing_value(value):
-            raise AttributeError("Missing required param: `{}`".format(name))
+            raise AttributeError(f"Missing required param: `{name}`")
 
         if self.is_required and not isinstance(value, self.type):
             raise TypeError("`{}` must be a {}, received {}".format(name, self.type, type(value)))
@@ -111,7 +110,7 @@ class Param:
 
     @memoize
     def type(self):
-        if isinstance(self._type, six.string_types):
+        if isinstance(self._type, str):
             return self._eval_string_type()
         return self._type
 

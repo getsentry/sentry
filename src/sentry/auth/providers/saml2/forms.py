@@ -81,13 +81,13 @@ def process_metadata(form_cls, request, helper):
     saml_form = SAMLForm(data)
     if not saml_form.is_valid():
         field_errors = [
-            "%s: %s" % (k, ", ".join([force_text(i) for i in v]))
+            "{}: {}".format(k, ", ".join([force_text(i) for i in v]))
             for k, v in saml_form.errors.items()
         ]
         error_list = ", ".join(field_errors)
 
         errors = form._errors.setdefault("__all__", ErrorList())
-        errors.append("Invalid metadata: {}".format(error_list))
+        errors.append(f"Invalid metadata: {error_list}")
         return form
 
     helper.bind_state("idp", data)

@@ -1,4 +1,5 @@
-import {Client, mergeMock} from 'app/api';
+import * as GroupActionCreators from 'app/actionCreators/group';
+import {Client} from 'app/api';
 import GroupingStore from 'app/stores/groupingStore';
 
 describe('Grouping Store', function () {
@@ -323,6 +324,8 @@ describe('Grouping Store', function () {
       afterEach(function () {});
 
       it('disables rows to be merged', async function () {
+        const mergeMock = jest.spyOn(GroupActionCreators, 'mergeGroups');
+
         trigger.mockReset();
         GroupingStore.onToggleMerge('1');
         mergeList = ['1'];
@@ -356,6 +359,7 @@ describe('Grouping Store', function () {
         await promise;
 
         expect(mergeMock).toHaveBeenCalledWith(
+          expect.anything(),
           {
             orgId: 'orgId',
             projectId: 'projectId',

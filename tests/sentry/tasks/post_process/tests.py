@@ -330,7 +330,7 @@ class PostProcessGroupTest(TestCase):
 
         owners = list(GroupOwner.objects.filter(group=event.group))
         assert len(owners) == 2
-        assert set([(extra_user.id, None), (None, self.team.id)]) == {
+        assert {(extra_user.id, None), (None, self.team.id)} == {
             (o.user_id, o.team_id) for o in owners
         }
 
@@ -369,7 +369,7 @@ class PostProcessGroupTest(TestCase):
 
         owners = list(GroupOwner.objects.filter(group=event.group))
         assert len(owners) == 2
-        assert set([(extra_user.id, None), (None, self.team.id)]) == {
+        assert {(extra_user.id, None), (None, self.team.id)} == {
             (o.user_id, o.team_id) for o in owners
         }
 

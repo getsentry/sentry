@@ -24,7 +24,7 @@ logger = logging.getLogger("sentry.accounts")
 
 
 def get_template(mode, name):
-    return "sentry/account/{}/{}.html".format(mode, name)
+    return f"sentry/account/{mode}/{name}.html"
 
 
 @login_required
@@ -146,7 +146,7 @@ def start_confirm_email(request):
     from sentry.app import ratelimiter
 
     if ratelimiter.is_limited(
-        "auth:confirm-email:{}".format(request.user.id),
+        f"auth:confirm-email:{request.user.id}",
         limit=10,
         window=60,  # 10 per minute should be enough for anyone
     ):

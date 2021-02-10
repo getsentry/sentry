@@ -1,5 +1,3 @@
-import six
-
 import sentry
 
 from django.conf import settings
@@ -19,7 +17,7 @@ class SystemOptionsEndpoint(Endpoint):
         if query == "is:required":
             option_list = options.filter(flag=options.FLAG_REQUIRED)
         elif query:
-            return Response("{} is not a supported search query".format(query), status=400)
+            return Response(f"{query} is not a supported search query", status=400)
         else:
             option_list = options.all()
 
@@ -54,8 +52,8 @@ class SystemOptionsEndpoint(Endpoint):
 
     def put(self, request):
         # TODO(dcramer): this should validate options before saving them
-        for k, v in six.iteritems(request.data):
-            if v and isinstance(v, six.string_types):
+        for k, v in request.data.items():
+            if v and isinstance(v, str):
                 v = v.strip()
             try:
                 option = options.lookup_key(k)
@@ -77,7 +75,7 @@ class SystemOptionsEndpoint(Endpoint):
                 return Response(
                     {
                         "error": "invalid_type" if type(e) is TypeError else "immutable_option",
-                        "errorDetail": {"option": k, "message": six.text_type(e)},
+                        "errorDetail": {"option": k, "message": str(e)},
                     },
                     status=400,
                 )

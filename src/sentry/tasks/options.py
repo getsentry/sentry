@@ -1,5 +1,4 @@
 import logging
-import six
 
 from datetime import timedelta
 from django.utils import timezone
@@ -29,4 +28,4 @@ def sync_options(cutoff=ONE_HOUR):
             opt = default_manager.lookup_key(option.key)
             default_manager.store.set_cache(opt, option.value)
         except UnknownOption as e:
-            logger.exception(six.text_type(e))
+            logger.exception(str(e))

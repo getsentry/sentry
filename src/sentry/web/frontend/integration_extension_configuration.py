@@ -20,11 +20,8 @@ class ExternalIntegrationPipeline(IntegrationPipeline):
         if "next" in self.request.GET:
             param_string = "?%s" % urlencode({"next": self.request.GET["next"]})
 
-        redirect_uri = "/settings/%s/integrations/%s/%s/%s" % (
-            org_slug,
-            provider,
-            integration_id,
-            param_string,
+        redirect_uri = (
+            f"/settings/{org_slug}/integrations/{provider}/{integration_id}/{param_string}"
         )
         return HttpResponseRedirect(redirect_uri)
 
@@ -98,9 +95,7 @@ class IntegrationExtensionConfigurationView(BaseView):
 
     def has_one_required_feature(self, org, user):
         provider = integrations.get(self.provider)
-        integration_features = [
-            "organizations:integrations-{}".format(f.value) for f in provider.features
-        ]
+        integration_features = [f"organizations:integrations-{f.value}" for f in provider.features]
         for flag_name in integration_features:
             try:
                 if features.has(flag_name, org, actor=user):

@@ -1,6 +1,5 @@
 import dateutil.parser
 import logging
-import six
 import re
 
 import ipaddress
@@ -62,7 +61,7 @@ class Webhook:
         # see https://confluence.atlassian.com/bitbucket/event-payloads-740262817.html#EventPayloads-entity_repository
         # and click on 'Repository property' underneath the table for example data
         # (all entries are from the `api` subdomain, rather than bitbucket.org)
-        url_from_event = "https://bitbucket.org/{}".format(name_from_event)
+        url_from_event = f"https://bitbucket.org/{name_from_event}"
 
         if (
             repo.name != name_from_event
@@ -85,7 +84,7 @@ class PushEventWebhook(Webhook):
             repo = Repository.objects.get(
                 organization_id=organization.id,
                 provider=PROVIDER_NAME,
-                external_id=six.text_type(event["repository"]["uuid"]),
+                external_id=str(event["repository"]["uuid"]),
             )
         except Repository.DoesNotExist:
             raise Http404()
@@ -153,7 +152,7 @@ class BitbucketWebhookEndpoint(View):
             )
             return HttpResponse(status=400)
 
-        body = six.binary_type(request.body)
+        body = bytes(request.body)
         if not body:
             logger.error(
                 PROVIDER_NAME + ".webhook.missing-body", extra={"organization_id": organization.id}
@@ -171,7 +170,7 @@ class BitbucketWebhookEndpoint(View):
         if not handler:
             return HttpResponse(status=204)
 
-        address_string = six.text_type(request.META["REMOTE_ADDR"])
+        address_string = str(request.META["REMOTE_ADDR"])
         ip = ipaddress.ip_address(address_string)
         valid_ip = False
         for ip_range in BITBUCKET_IP_RANGES:

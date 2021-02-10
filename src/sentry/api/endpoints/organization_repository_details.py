@@ -67,7 +67,7 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
                 return Response({"detail": "Invalid integration id"}, status=400)
 
             update_kwargs["integration_id"] = integration.id
-            update_kwargs["provider"] = "integrations:%s" % (integration.provider,)
+            update_kwargs["provider"] = f"integrations:{integration.provider}"
 
         if update_kwargs:
             old_status = repo.status

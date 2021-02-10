@@ -1,7 +1,6 @@
 import hashlib
 import hmac
 import logging
-import six
 
 from django.http import HttpResponse
 from django.utils.crypto import constant_time_compare
@@ -84,7 +83,7 @@ class GitHubEnterpriseWebhookBase(View):
 
     def is_valid_signature(self, method, body, secret, signature):
         if method != "sha1":
-            raise NotImplementedError("signature method %s is not supported" % (method,))
+            raise NotImplementedError(f"signature method {method} is not supported")
         expected = hmac.new(
             key=secret.encode("utf-8"), msg=body, digestmod=hashlib.sha1
         ).hexdigest()
@@ -108,7 +107,7 @@ class GitHubEnterpriseWebhookBase(View):
             return None
 
     def handle(self, request):
-        body = six.binary_type(request.body)
+        body = bytes(request.body)
         if not body:
             logger.warning("github_enterprise.webhook.missing-body", extra=self.get_logging_data())
             return HttpResponse(status=400)
@@ -155,7 +154,7 @@ class GitHubEnterpriseWebhookBase(View):
         except (KeyError, IndexError) as e:
             logger.info(
                 "github_enterprise.webhook.missing-signature",
-                extra={"host": host, "error": six.text_type(e)},
+                extra={"host": host, "error": str(e)},
             )
         handler()(event, host)
         return HttpResponse(status=204)

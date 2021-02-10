@@ -1,11 +1,13 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {PanelTable} from 'app/components/panels';
 import {t} from 'app/locale';
-import {DynamicSamplingRule} from 'app/types/dynamicSampling';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
+import {DynamicSamplingRule, DynamicSamplingRuleType} from 'app/types/dynamicSampling';
 
-import DraggableList from './draggableList';
+import DraggableList, {UpdateItemsProps} from './draggableList';
 import Rule from './rule';
 import {layout} from './utils';
 
@@ -46,11 +48,38 @@ class Rules extends React.PureComponent<Props, State> {
     onUpdateRules(reordered);
   }
 
-  handleUpdateRules = (ruleIds: Array<string>) => {
+  handleUpdateRules = ({
+    activeIndex,
+    overIndex,
+    reorderedItems: ruleIds,
+  }: UpdateItemsProps) => {
     const {rules} = this.state;
     const reorderedRules = ruleIds
       .map(ruleId => rules.find(rule => rule.id === ruleId))
       .filter(rule => !!rule) as RulesWithId;
+
+    const activeRuleType = rules[activeIndex].type;
+    const overRuleType = rules[overIndex].type;
+
+    if (
+      activeRuleType === DynamicSamplingRuleType.TRACE &&
+      overRuleType === DynamicSamplingRuleType.TRANSACTION
+    ) {
+      addErrorMessage(
+        t('Transaction traces rules cannot be under individual transactions rules')
+      );
+      return;
+    }
+
+    if (
+      activeRuleType === DynamicSamplingRuleType.TRANSACTION &&
+      overRuleType === DynamicSamplingRuleType.TRACE
+    ) {
+      addErrorMessage(
+        t('Individual transactions rules cannot be above transaction traces rules')
+      );
+      return;
+    }
 
     this.setState({rules: reorderedRules}, this.handleUpdateRulesParent);
   };
@@ -67,15 +96,35 @@ class Rules extends React.PureComponent<Props, State> {
 
     return (
       <StyledPanelTable
-        headers={['', t('Type'), t('Category'), t('Sampling Rate'), '']}
+        headers={['', t('Type'), t('Conditions'), t('Rate'), '']}
         isEmpty={!rules.length}
         emptyMessage={t('There are no rules to display')}
       >
         <DraggableList
+          disabled={disabled}
           items={rules.map(rule => rule.id)}
           onUpdateItems={this.handleUpdateRules}
-          disabled={disabled}
-          renderItem={({value, listeners, attributes, style: grabStyle}) => {
+          wrapperStyle={({isDragging, isSorting, index}) => {
+            if (isDragging) {
+              return {
+                cursor: 'grabbing',
+              };
+            }
+            if (isSorting) {
+              return {};
+            }
+            return {
+              transform: 'none',
+              transformOrigin: '0',
+              '--box-shadow': 'none',
+              '--box-shadow-picked-up': 'none',
+              overflow: 'visible',
+              position: 'relative',
+              zIndex: rules.length - index,
+              cursor: 'default',
+            };
+          }}
+          renderItem={({value, listeners, attributes, dragging, sorting}) => {
             const currentRule = rules.find(rule => rule.id === value);
 
             if (!currentRule) {
@@ -90,9 +139,10 @@ class Rules extends React.PureComponent<Props, State> {
                 onEditRule={onEditRule(rule)}
                 onDeleteRule={onDeleteRule(rule)}
                 disabled={disabled}
-                grabStyle={grabStyle}
                 listeners={listeners}
                 grabAttributes={attributes}
+                dragging={dragging}
+                sorting={sorting}
               />
             );
           }}
@@ -112,8 +162,8 @@ const StyledPanelTable = styled(PanelTable)`
   border-bottom-left-radius: 0;
   ${p => layout(p.theme)}
   > * {
-    :not(:last-child),
-    :nth-child(-n + 6):not(:last-child) {
+    ${overflowEllipsis};
+    :not(:last-child) {
       border-bottom: 1px solid ${p => p.theme.border};
     }
     :nth-child(n + 6) {

@@ -1,7 +1,6 @@
 import hashlib
 import hmac
 import logging
-import six
 
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.crypto import constant_time_compare
@@ -31,7 +30,7 @@ def verify_signature(request):
     secret = options.get("vercel.client-secret")
 
     expected = hmac.new(
-        key=secret.encode("utf-8"), msg=six.binary_type(request.body), digestmod=hashlib.sha1
+        key=secret.encode("utf-8"), msg=bytes(request.body), digestmod=hashlib.sha1
     ).hexdigest()
     return constant_time_compare(expected, signature)
 
@@ -84,15 +83,15 @@ class VercelWebhookEndpoint(Endpoint):
         # contruct the repo depeding what provider we use
         if meta.get("githubCommitSha"):
             # we use these instead of githubOrg and githubRepo since it's the repo the user has access to
-            repository = "%s/%s" % (meta["githubCommitOrg"], meta["githubCommitRepo"])
+            repository = "{}/{}".format(meta["githubCommitOrg"], meta["githubCommitRepo"])
         elif meta.get("gitlabCommitSha"):
             # gitlab repos are formatted with a space for some reason
-            repository = "%s / %s" % (
+            repository = "{} / {}".format(
                 meta["gitlabProjectNamespace"],
                 meta["gitlabProjectName"],
             )
         elif meta.get("bitbucketCommitSha"):
-            repository = "%s/%s" % (meta["bitbucketRepoOwner"], meta["bitbucketRepoName"])
+            repository = "{}/{}".format(meta["bitbucketRepoOwner"], meta["bitbucketRepoName"])
         else:
             # this can happen with manual builds
             raise NoCommitFoundError("No commit found")
@@ -180,7 +179,7 @@ class VercelWebhookEndpoint(Endpoint):
                 headers = {
                     "Accept": "application/json",
                     "Authorization": "Bearer %s" % token,
-                    "User-Agent": "sentry_vercel/{}".format(VERSION),
+                    "User-Agent": f"sentry_vercel/{VERSION}",
                 }
                 json_error = None
 
@@ -194,7 +193,7 @@ class VercelWebhookEndpoint(Endpoint):
                 except RequestException as e:
                     # errors here should be uncommon but we should be aware of them
                     logger.error(
-                        "Error creating release: %s - %s" % (e, json_error),
+                        f"Error creating release: {e} - {json_error}",
                         extra=logging_params,
                         exc_info=True,
                     )
@@ -213,7 +212,7 @@ class VercelWebhookEndpoint(Endpoint):
                 except RequestException as e:
                     # errors will probably be common if the user doesn't have repos set up
                     logger.info(
-                        "Error setting refs: %s - %s" % (e, json_error),
+                        f"Error setting refs: {e} - {json_error}",
                         extra=logging_params,
                         exc_info=True,
                     )

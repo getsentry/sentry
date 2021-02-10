@@ -39,15 +39,15 @@ import os
 import posixpath
 import mimetypes
 import threading
+from io import BytesIO
 from gzip import GzipFile
+from urllib import parse as urlparse
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, SuspiciousOperation
 from django.core.files.base import File
 from django.core.files.storage import Storage
 from django.utils.encoding import force_text, smart_str, filepath_to_uri, force_bytes
-from django.utils.six.moves.urllib import parse as urlparse
-from django.utils.six import BytesIO
 from django.utils.timezone import localtime
 
 from boto3.session import Session
@@ -486,7 +486,7 @@ class S3Boto3Storage(Storage):
             f = self.file_class(name, mode, self)
         except self.connection_response_error as err:
             if err.response["ResponseMetadata"]["HTTPStatusCode"] == 404:
-                raise IOError("File does not exist: %s" % name)
+                raise OSError("File does not exist: %s" % name)
             raise  # Let it bubble up if it was some other error
         return f
 
@@ -633,7 +633,7 @@ class S3Boto3Storage(Storage):
         # TODO: Handle force_http=not self.secure_urls like in s3boto
         name = self._normalize_name(self._clean_name(name))
         if self.custom_domain:
-            return "%s//%s/%s" % (self.url_protocol, self.custom_domain, filepath_to_uri(name))
+            return "{}//{}/{}".format(self.url_protocol, self.custom_domain, filepath_to_uri(name))
         if expire is None:
             expire = self.querystring_expire
 

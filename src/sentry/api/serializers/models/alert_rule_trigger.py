@@ -1,6 +1,5 @@
 from collections import defaultdict
 
-import six
 
 from sentry.api.serializers import register, serialize, Serializer
 from sentry.incidents.models import (
@@ -34,8 +33,8 @@ class AlertRuleTriggerSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         return {
-            "id": six.text_type(obj.id),
-            "alertRuleId": six.text_type(obj.alert_rule_id),
+            "id": str(obj.id),
+            "alertRuleId": str(obj.alert_rule_id),
             "label": obj.label,
             "thresholdType": obj.alert_rule.threshold_type,
             "alertThreshold": obj.alert_threshold,

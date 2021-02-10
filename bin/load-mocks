@@ -11,7 +11,6 @@ from hashlib import sha1
 from random import randint
 from uuid import uuid4
 
-import six
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db.models import F
@@ -110,7 +109,7 @@ def create_sample_event(*args, **kwargs):
     try:
         event = _create_sample_event(*args, **kwargs)
     except HashDiscarded as e:
-        print("> Skipping Event: {}".format(e.message))  # NOQA
+        print(f"> Skipping Event: {e.message}")  # NOQA
     else:
         if event is not None:
             features.record([event])
@@ -135,7 +134,7 @@ def generate_commits(user):
         commits.append(
             {
                 "key": sha1(uuid4().bytes).hexdigest(),
-                "message": "feat: Do something to {}\n{}".format(filename, make_sentence()),
+                "message": f"feat: Do something to {filename}\n{make_sentence()}",
                 "author": author,
                 "files": [(filename, "M")],
             }
@@ -349,7 +348,7 @@ def main(num_events=1, extra_events=False, load_transactions=False):
 
     if settings.SENTRY_SINGLE_ORGANIZATION:
         org = Organization.get_default()
-        print("Mocking org {}".format(org.name))  # NOQA
+        print(f"Mocking org {org.name}")  # NOQA
     else:
         print("Mocking org {}".format("Default"))  # NOQA
         org, _ = Organization.objects.get_or_create(slug="default")
@@ -363,11 +362,11 @@ def main(num_events=1, extra_events=False, load_transactions=False):
     )
 
     for team_name, project_names in mocks:
-        print("> Mocking team {}".format(team_name))  # NOQA
+        print(f"> Mocking team {team_name}")  # NOQA
         team, _ = Team.objects.get_or_create(name=team_name, defaults={"organization": org})
 
         for project_name in project_names:
-            print("  > Mocking project {}".format(project_name))  # NOQA
+            print(f"  > Mocking project {project_name}")  # NOQA
             project, _ = Project.objects.get_or_create(
                 name=project_name,
                 defaults={
@@ -514,7 +513,7 @@ def main(num_events=1, extra_events=False, load_transactions=False):
                 data={"version": release.version},
             )
 
-            environment = Environment.get_or_create(project=project, name=six.next(ENVIRONMENTS))
+            environment = Environment.get_or_create(project=project, name=next(ENVIRONMENTS))
 
             deploy = Deploy.objects.create(
                 organization_id=project.organization_id,
@@ -527,7 +526,7 @@ def main(num_events=1, extra_events=False, load_transactions=False):
                 last_commit_id=commit.id,
                 total_deploys=Deploy.objects.filter(release=release).count(),
                 last_deploy_id=deploy.id,
-                authors=[six.text_type(a.id) for a in authors],
+                authors=[str(a.id) for a in authors],
             )
 
             ReleaseProjectEnvironment.objects.create_or_update(
@@ -552,16 +551,16 @@ def main(num_events=1, extra_events=False, load_transactions=False):
             # Add a bunch of additional dummy events to support pagination
             if extra_events:
                 for _ in range(45):
-                    platform = six.next(PLATFORMS)
+                    platform = next(PLATFORMS)
 
                     create_sample_event(
                         project=project,
                         platform=platform,
                         release=release.version,
-                        level=six.next(LEVELS),
-                        environment=six.next(ENVIRONMENTS),
+                        level=next(LEVELS),
+                        environment=next(ENVIRONMENTS),
                         message="This is a mostly useless example %s exception" % platform,
-                        checksum=md5_text(platform + six.text_type(_)).hexdigest(),
+                        checksum=md5_text(platform + str(_)).hexdigest(),
                         user=generate_user(),
                     )
 
@@ -617,7 +616,7 @@ def main(num_events=1, extra_events=False, load_transactions=False):
                     project=project,
                     platform="python",
                     release=release.version,
-                    environment=six.next(ENVIRONMENTS),
+                    environment=next(ENVIRONMENTS),
                     user=generate_user(),
                 )
 
@@ -637,7 +636,7 @@ def main(num_events=1, extra_events=False, load_transactions=False):
                     project=project,
                     platform="javascript",
                     release=release.version,
-                    environment=six.next(ENVIRONMENTS),
+                    environment=next(ENVIRONMENTS),
                     sdk={"name": "raven-js", "version": "2.1.0"},
                     user=generate_user(),
                 )
@@ -648,7 +647,7 @@ def main(num_events=1, extra_events=False, load_transactions=False):
                     project=project,
                     platform="ruby",
                     release=release.version,
-                    environment=six.next(ENVIRONMENTS),
+                    environment=next(ENVIRONMENTS),
                     user=generate_user(),
                 )
 
@@ -656,7 +655,7 @@ def main(num_events=1, extra_events=False, load_transactions=False):
                     project=project,
                     platform="cocoa",
                     release=release.version,
-                    environment=six.next(ENVIRONMENTS),
+                    environment=next(ENVIRONMENTS),
                     user=generate_user(),
                 )
 
@@ -664,7 +663,7 @@ def main(num_events=1, extra_events=False, load_transactions=False):
                     project=project,
                     platform="php",
                     release=release.version,
-                    environment=six.next(ENVIRONMENTS),
+                    environment=next(ENVIRONMENTS),
                     message=LONG_MESSAGE,
                     user=generate_user(),
                 )
@@ -674,7 +673,7 @@ def main(num_events=1, extra_events=False, load_transactions=False):
                     platform="cocoa",
                     sample_name="react-native",
                     release=release.version,
-                    environment=six.next(ENVIRONMENTS),
+                    environment=next(ENVIRONMENTS),
                     user=generate_user(),
                 )
 
@@ -682,7 +681,7 @@ def main(num_events=1, extra_events=False, load_transactions=False):
                     project=project,
                     platform="pii",
                     release=release.version,
-                    environment=six.next(ENVIRONMENTS),
+                    environment=next(ENVIRONMENTS),
                     user=generate_user(),
                 )
             if event5:
@@ -694,11 +693,11 @@ def main(num_events=1, extra_events=False, load_transactions=False):
                         "author": CommitAuthor.objects.get_or_create(
                             organization_id=org.id, email=user.email, defaults={"name": user.name}
                         )[0],
-                        "message": "Ooops!\nFixes {}".format(event5.group.qualified_short_id),
+                        "message": f"Ooops!\nFixes {event5.group.qualified_short_id}",
                     },
                 )[0]
 
-            create_sample_event(project=project, environment=six.next(ENVIRONMENTS), platform="csp")
+            create_sample_event(project=project, environment=next(ENVIRONMENTS), platform="csp")
 
             if event3:
                 UserReport.objects.create(
@@ -734,7 +733,7 @@ def main(num_events=1, extra_events=False, load_transactions=False):
             except AlertRuleNameAlreadyUsedError:
                 pass
 
-            print("    > Loading time series data".format(project_name))  # NOQA
+            print(f"    > Loading time series data")  # NOQA
             create_sample_time_series(event1, release=release)
             create_sample_time_series(event2, release=release)
             create_sample_time_series(event3)

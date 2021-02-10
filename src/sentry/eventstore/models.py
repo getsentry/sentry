@@ -1,5 +1,4 @@
 import pytz
-import six
 import string
 
 from collections import OrderedDict
@@ -263,7 +262,7 @@ class Event:
         be saved under this key in nodestore so it can be retrieved using the
         same generated id when we only have project_id and event_id.
         """
-        return md5("{}:{}".format(project_id, event_id).encode("utf-8")).hexdigest()
+        return md5(f"{project_id}:{event_id}".encode("utf-8")).hexdigest()
 
     # TODO We need a better way to cache these properties. functools
     # doesn't quite do the trick as there is a reference bug with unsaved
@@ -364,7 +363,7 @@ class Event:
         # config ID is given in which case it's merged with the stored or
         # default config dictionary
         if force_config is not None:
-            if isinstance(force_config, six.string_types):
+            if isinstance(force_config, str):
                 stored_config = self.get_grouping_config()
                 config = dict(stored_config)
                 config["id"] = force_config
@@ -429,11 +428,11 @@ class Event:
         data["message"] = self.message
         data["datetime"] = self.datetime
         data["tags"] = [(k.split("sentry:", 1)[-1], v) for (k, v) in self.tags]
-        for k, v in sorted(six.iteritems(self.data)):
+        for k, v in sorted(self.data.items()):
             if k in data:
                 continue
             if k == "sdk":
-                v = {v_k: v_v for v_k, v_v in six.iteritems(v) if v_k != "client_ip"}
+                v = {v_k: v_v for v_k, v_v in v.items() if v_k != "client_ip"}
             data[k] = v
 
         # for a long time culprit was not persisted.  In those cases put
@@ -467,14 +466,14 @@ class Event:
             message += data["logentry"].get("formatted") or data["logentry"].get("message") or ""
 
         if event_metadata:
-            for value in six.itervalues(event_metadata):
+            for value in event_metadata.values():
                 value_u = force_text(value, errors="replace")
                 if value_u not in message:
-                    message = "{} {}".format(message, value_u)
+                    message = f"{message} {value_u}"
 
         if culprit and culprit not in message:
             culprit_u = force_text(culprit, errors="replace")
-            message = "{} {}".format(message, culprit_u)
+            message = f"{message} {culprit_u}"
 
         return trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH)
 
@@ -499,7 +498,7 @@ class EventSubjectTemplateData:
             value = self.event.get_tag(self.tag_aliases.get(name, name))
             if value is None:
                 raise KeyError
-            return six.text_type(value)
+            return str(value)
         elif name == "project":
             return self.event.project.get_full_name()
         elif name == "projectID":

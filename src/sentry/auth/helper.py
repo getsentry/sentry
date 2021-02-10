@@ -2,7 +2,6 @@ import logging
 
 from uuid import uuid4
 
-import six
 from django.conf import settings
 from django.contrib import messages
 from django.core.urlresolvers import reverse
@@ -73,7 +72,7 @@ class RedisBackedState:
         return self.request.session.get("auth_key")
 
     def regenerate(self, initial_state):
-        auth_key = "auth:pipeline:{}".format(uuid4().hex)
+        auth_key = f"auth:pipeline:{uuid4().hex}"
 
         self.request.session["auth_key"] = auth_key
         self.request.session.modified = True
@@ -651,7 +650,7 @@ class AuthHelper:
         try:
             identity = self.provider.build_identity(data)
         except IdentityNotValid as error:
-            return self.error(six.text_type(error) or ERR_INVALID_IDENTITY)
+            return self.error(str(error) or ERR_INVALID_IDENTITY)
 
         if self.state.flow == self.FLOW_LOGIN:
             # create identity and authenticate the user
@@ -842,9 +841,7 @@ class AuthHelper:
             sample_rate=1.0,
         )
 
-        messages.add_message(
-            self.request, messages.ERROR, "Authentication error: {}".format(message)
-        )
+        messages.add_message(self.request, messages.ERROR, f"Authentication error: {message}")
 
         return HttpResponseRedirect(redirect_uri)
 

@@ -1,4 +1,3 @@
-import six
 from collections import defaultdict
 
 from sentry import roles
@@ -13,13 +12,12 @@ class OrganizationMemberSerializer(Serializer):
         users = {d["id"]: d for d in serialize({i.user for i in item_list if i.user_id}, user)}
 
         return {
-            item: {"user": users[six.text_type(item.user_id)] if item.user_id else None}
-            for item in item_list
+            item: {"user": users[str(item.user_id)] if item.user_id else None} for item in item_list
         }
 
     def serialize(self, obj, attrs, user):
         d = {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "email": obj.get_email(),
             "name": obj.user.get_display_name() if obj.user else obj.get_email(),
             "user": attrs["user"],

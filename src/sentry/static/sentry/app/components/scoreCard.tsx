@@ -71,6 +71,7 @@ const ScoreWrapper = styled('div')`
 
 const Score = styled('span')`
   font-size: 32px;
+  line-height: 1;
 `;
 
 type TrendProps = {trendStatus: Props['trendStatus']};
@@ -78,6 +79,7 @@ type TrendProps = {trendStatus: Props['trendStatus']};
 const Trend = styled('span')<TrendProps>`
   color: ${getTrendColor};
   margin-left: ${space(1)};
+  line-height: 1;
   ${overflowEllipsis};
 `;
 

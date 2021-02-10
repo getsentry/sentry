@@ -489,7 +489,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupStoreInterface = {
         };
       }
     });
-    this.trigger(new Set(itemIds));
+    this.trigger(new Set(this.items.map(item => item.id)));
   },
 };
 

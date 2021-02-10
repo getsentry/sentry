@@ -17,7 +17,7 @@ logger = logging.getLogger("sentry")
 def _get_service_hooks(project_id):
     from sentry.models import ServiceHook
 
-    cache_key = "servicehooks:1:{}".format(project_id)
+    cache_key = f"servicehooks:1:{project_id}"
     result = cache.get(cache_key)
 
     if result is None:
@@ -30,7 +30,7 @@ def _get_service_hooks(project_id):
 def _should_send_error_created_hooks(project):
     from sentry.models import ServiceHook, Organization
 
-    cache_key = "servicehooks-error-created:1:{}".format(project.id)
+    cache_key = f"servicehooks-error-created:1:{project.id}"
     result = cache.get(cache_key)
 
     if result is None:
@@ -64,7 +64,7 @@ def _capture_stats(event, is_new):
         metrics.incr("events.unique", tags=tags, skip_internal=False)
 
     metrics.incr("events.processed", tags=tags, skip_internal=False)
-    metrics.incr("events.processed.{platform}".format(platform=platform), skip_internal=False)
+    metrics.incr(f"events.processed.{platform}", skip_internal=False)
     metrics.timing("events.size.data", event.size, tags=tags)
 
     # This is an experiment to understand whether we have, in production,
@@ -266,11 +266,11 @@ def post_process_group(
 
             try:
                 lock = locks.get(
-                    "w-o:{}-d-l".format(event.group_id),
+                    f"w-o:{event.group_id}-d-l",
                     duration=10,
                 )
                 with lock.acquire():
-                    has_commit_key = "w-o:{}-h-c".format(event.project.organization_id)
+                    has_commit_key = f"w-o:{event.project.organization_id}-h-c"
                     org_has_commit = cache.get(has_commit_key)
                     if org_has_commit is None:
                         org_has_commit = Commit.objects.filter(
@@ -279,7 +279,7 @@ def post_process_group(
                         cache.set(has_commit_key, org_has_commit, 3600)
 
                     if org_has_commit:
-                        group_cache_key = "w-o-i:g-{}".format(event.group_id)
+                        group_cache_key = f"w-o-i:g-{event.group_id}"
                         if cache.get(group_cache_key):
                             metrics.incr(
                                 "sentry.tasks.process_suspect_commits.debounce",
