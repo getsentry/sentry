@@ -12,12 +12,13 @@ export const Container = styled('div')`
   ${overflowEllipsis};
 `;
 
-export const VersionContainer = styled('div')`
+export const VersionContainer = styled('div')<{align?: 'left' | 'right'}>`
+  text-align: ${p => p.align ?? 'left'};
   display: flex;
 `;
 
-export const NumberContainer = styled('div')<{alignNumbers?: boolean}>`
-  text-align: ${p => (p.alignNumbers === false ? 'left' : 'right')};
+export const NumberContainer = styled('div')<{align?: 'left' | 'right'}>`
+  text-align: ${p => p.align ?? 'right'};
   ${overflowEllipsis};
 `;
 

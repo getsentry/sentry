@@ -41,7 +41,7 @@ type RenderFunctionBaggage = {
 type FieldFormatterRenderFunctionProps = {
   field: string;
   data: EventData;
-  alignNumbers?: boolean;
+  align?: 'left' | 'right';
 };
 
 type FieldFormatterRenderFunction = (
@@ -86,9 +86,9 @@ const emptyValue = <EmptyValueContainer>{t('n/a')}</EmptyValueContainer>;
 const FIELD_FORMATTERS: FieldFormatters = {
   boolean: {
     isSortable: true,
-    renderFunc: ({field, data}) => {
+    renderFunc: ({field, data, align}) => {
       const value = data[field] ? t('true') : t('false');
-      return <Container>{value}</Container>;
+      return <Container align={align}>{value}</Container>;
     },
   },
   date: {
@@ -106,8 +106,8 @@ const FIELD_FORMATTERS: FieldFormatters = {
   },
   duration: {
     isSortable: true,
-    renderFunc: ({field, data, alignNumbers}) => (
-      <NumberContainer alignNumbers={alignNumbers}>
+    renderFunc: ({field, data, align}) => (
+      <NumberContainer align={align}>
         {typeof data[field] === 'number' ? (
           <Duration seconds={data[field] / 1000} fixedDigits={2} abbreviation />
         ) : (
@@ -118,38 +118,38 @@ const FIELD_FORMATTERS: FieldFormatters = {
   },
   integer: {
     isSortable: true,
-    renderFunc: ({field, data, alignNumbers}) => (
-      <NumberContainer alignNumbers={alignNumbers}>
+    renderFunc: ({field, data, align}) => (
+      <NumberContainer align={align}>
         {typeof data[field] === 'number' ? <Count value={data[field]} /> : emptyValue}
       </NumberContainer>
     ),
   },
   number: {
     isSortable: true,
-    renderFunc: ({field, data, alignNumbers}) => (
-      <NumberContainer alignNumbers={alignNumbers}>
+    renderFunc: ({field, data, align}) => (
+      <NumberContainer align={align}>
         {typeof data[field] === 'number' ? formatFloat(data[field], 4) : emptyValue}
       </NumberContainer>
     ),
   },
   percentage: {
     isSortable: true,
-    renderFunc: ({field, data, alignNumbers}) => (
-      <NumberContainer alignNumbers={alignNumbers}>
+    renderFunc: ({field, data, align}) => (
+      <NumberContainer align={align}>
         {typeof data[field] === 'number' ? formatPercentage(data[field]) : emptyValue}
       </NumberContainer>
     ),
   },
   string: {
     isSortable: true,
-    renderFunc: ({field, data}) => {
+    renderFunc: ({field, data, align}) => {
       // Some fields have long arrays in them, only show the tail of the data.
       const value = Array.isArray(data[field])
         ? data[field].slice(-1)
         : defined(data[field])
         ? data[field]
         : emptyValue;
-      return <Container>{value}</Container>;
+      return <Container align={align}>{value}</Container>;
     },
   },
   array: {
