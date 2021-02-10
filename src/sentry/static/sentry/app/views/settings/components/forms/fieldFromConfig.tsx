@@ -49,7 +49,9 @@ export default class FieldFromConfig extends React.Component<Props> {
       case 'secret':
         return <InputField {...props} type="password" />;
       case 'range':
-        return <RangeField {...props} />;
+        // TODO(ts) The switch on field.type is not resolving
+        // the Field union for this component. The union might be 'too big'.
+        return <RangeField {...(props as any)} />;
       case 'bool':
       case 'boolean':
         return <BooleanField {...props} />;
@@ -82,7 +84,9 @@ export default class FieldFromConfig extends React.Component<Props> {
 
         return <SelectField deprecatedSelectControl {...props} />;
       case 'choice_mapper':
-        return <ChoiceMapperField {...props} />;
+        // TODO(ts) The switch on field.type is not resolving
+        // the Field union for this component. The union might be 'too big'.
+        return <ChoiceMapperField {...(props as any)} />;
       case 'radio':
         const choices = props.choices;
         if (!Array.isArray(choices)) {
@@ -91,11 +95,12 @@ export default class FieldFromConfig extends React.Component<Props> {
         return <RadioField {...props} choices={choices} />;
       case 'rich_list':
         // TODO(ts) The switch on field.type is not resolving
-        // the Field union for this component. It isn't clear why the spread
-        // works for project_mapper but not this component.
+        // the Field union for this component. The union might be 'too big'.
         return <RichListField {...(props as any)} />;
       case 'table':
-        return <TableField {...props} />;
+        // TODO(ts) The switch on field.type is not resolving
+        // the Field union for this component. The union might be 'too big'.
+        return <TableField {...(props as any)} />;
       case 'project_mapper':
         return <ProjectMapperField {...props} />;
       case 'sentry_project_selector':

@@ -3,6 +3,7 @@ import {createFilter} from 'react-select';
 
 import Alert from 'app/components/alert';
 import {AvatarProject, Project} from 'app/types';
+import {ChoiceMapperProps} from 'app/views/settings/components/forms/choiceMapperField';
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 import {RichListProps} from 'app/views/settings/components/forms/richListField';
 
@@ -161,6 +162,10 @@ export type ProjectMapperType = {
   iconType: string;
 };
 
+export type ChoiceMapperType = {
+  type: 'choice_mapper';
+} & ChoiceMapperProps;
+
 //selects a sentry project with avatars
 export type SentryProjectSelectorType = {
   type: 'sentry_project_selector';
@@ -196,6 +201,7 @@ export type Field = (
   | ProjectMapperType
   | SentryProjectSelectorType
   | RichListType
+  | ChoiceMapperType
   | {type: typeof FieldType[number]}
 ) &
   BaseField;
