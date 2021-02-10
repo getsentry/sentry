@@ -34,7 +34,6 @@ jobs:
         # Xcode CLI & brew are already installed, thus, no need to call xcode-select install
         # XXX: Can the Brew set up be cached?
         run: |
-          brew list --versions
           brew bundle
 
       - name: Install Python (via Pyenv)
@@ -77,6 +76,7 @@ jobs:
       - name: Set up development environment (as per docs)
         shell: bash
         run: |
+          set +x
           python -m venv .venv
           source .venv/bin/activate
           pip install wheel  # GitHub Actions does not have `wheel` installed by default
