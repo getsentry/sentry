@@ -374,7 +374,7 @@ export class Client {
     };
 
     /**
-     * Called when the request complets
+     * Called when the request completes
      */
     const completeHandler = (jqXHR: JQueryXHR, textStatus: string) =>
       this.wrapCallback<[JQueryXHR, string]>(
