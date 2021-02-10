@@ -45,7 +45,7 @@ class ExternalTeamDetailsEndpoint(TeamEndpoint):
         """
 
         serializer = ExternalTeamSerializer(
-            context={"team": team}, instance=external_team, data=request.data, partial=True
+            instance=external_team, data={**request.data, "team_id": team.id}, partial=True
         )
         if serializer.is_valid():
             updated_external_team = serializer.save()

@@ -213,9 +213,9 @@ class ExternalTeamSerializer(Serializer):
         provider = self.get_provider_string(obj.provider)
         return {
             "id": obj.id,
-            "team_id": obj.team_id,
+            "teamId": obj.team_id,
             "provider": provider,
-            "external_id": obj.external_id,
+            "externalId": obj.external_id,
         }
 
     def get_provider_string(self, provider):
