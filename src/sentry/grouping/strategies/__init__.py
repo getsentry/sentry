@@ -6,7 +6,6 @@ def _import_all():
         "template",
         "legacy",
         "newstyle",
-        "combined",
         "configurations",
     ]
     for module in strategy_modules:
