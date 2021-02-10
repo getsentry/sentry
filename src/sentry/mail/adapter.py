@@ -123,7 +123,7 @@ class MailAdapter:
         subject = force_text(subject)
 
         msg = MessageBuilder(
-            subject="%s%s" % (subject_prefix, subject),
+            subject="{}{}".format(subject_prefix, subject),
             template=template,
             html_template=html_template,
             body=body,
@@ -302,7 +302,9 @@ class MailAdapter:
 
         rules = []
         for rule in notification.rules:
-            rule_link = "/organizations/%s/alerts/rules/%s/%s/" % (org.slug, project.slug, rule.id)
+            rule_link = "/organizations/{}/alerts/rules/{}/{}/".format(
+                org.slug, project.slug, rule.id
+            )
 
             rules.append((rule.label, rule_link))
 

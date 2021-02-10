@@ -14,7 +14,7 @@ def summarize_issues(issues):
         if "image_path" in issue["data"]:
             extra_info = issue["data"]["image_path"].rsplit("/", 1)[-1]
             if "image_arch" in issue["data"]:
-                extra_info = "%s (%s)" % (extra_info, issue["data"]["image_arch"])
+                extra_info = "{} ({})".format(extra_info, issue["data"]["image_arch"])
 
         rv.append({"message": EventError(msg_d).message, "extra_info": extra_info})
     return rv

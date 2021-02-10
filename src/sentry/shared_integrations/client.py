@@ -25,7 +25,7 @@ class BaseApiResponse:
         self.status_code = status_code
 
     def __repr__(self):
-        return "<%s: code=%s, content_type=%s>" % (
+        return "<{}: code={}, content_type={}>".format(
             type(self).__name__,
             self.status_code,
             self.headers.get("Content-Type", "") if self.headers else "",
@@ -173,7 +173,7 @@ class BaseApiClient(TrackResponseMixin):
         self.logging_context = logging_context
 
     def get_cache_prefix(self):
-        return "%s.%s.client:" % (self.integration_type, self.name)
+        return "{}.{}.client:".format(self.integration_type, self.name)
 
     def build_url(self, path):
         if path.startswith("/"):

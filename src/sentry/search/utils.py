@@ -504,4 +504,4 @@ def convert_user_tag_to_query(key, value):
     if key == "user" and ":" in value:
         sub_key, value = value.split(":", 1)
         if KEYWORD_MAP.get_key(sub_key, None):
-            return 'user.%s:"%s"' % (sub_key, value.replace('"', '\\"'))
+            return 'user.{}:"{}"'.format(sub_key, value.replace('"', '\\"'))

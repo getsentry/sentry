@@ -17,7 +17,7 @@ class RedisProjectConfigCache(ProjectConfigCache):
         validate_dynamic_cluster(self.is_redis_cluster, self.cluster)
 
     def __get_redis_key(self, project_id):
-        return "relayconfig:%s" % (project_id,)
+        return "relayconfig:{}".format(project_id)
 
     def __get_redis_client(self, routing_key):
         if self.is_redis_cluster:

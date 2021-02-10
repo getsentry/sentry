@@ -126,7 +126,7 @@ def safe_create_connection(
             # suspicious.
             if host == ip:
                 raise RestrictedIPAddress("(%s) matches the URL blacklist" % ip)
-            raise RestrictedIPAddress("(%s/%s) matches the URL blacklist" % (host, ip))
+            raise RestrictedIPAddress("({}/{}) matches the URL blacklist".format(host, ip))
 
         sock = None
         try:

@@ -27,7 +27,7 @@ def patch_httprequest_repr():
     # logged. This was yanked out of Django master anyhow.
     # https://code.djangoproject.com/ticket/12098
     def safe_httprequest_repr(self):
-        return "<%s: %s %r>" % (self.__class__.__name__, self.method, self.get_full_path())
+        return "<{}: {} {!r}>".format(self.__class__.__name__, self.method, self.get_full_path())
 
     HttpRequest.__repr__ = safe_httprequest_repr
 

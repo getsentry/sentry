@@ -286,7 +286,7 @@ def get_internal_source(project):
             ).replace("127.0.0.1", "host.docker.internal")
 
     assert internal_url_prefix
-    sentry_source_url = "%s%s" % (
+    sentry_source_url = "{}{}".format(
         internal_url_prefix.rstrip("/"),
         reverse(
             "sentry-api-0-dsym-files",
@@ -321,7 +321,9 @@ def normalize_user_source(source):
         username = source.pop("username", None)
         password = source.pop("password", None)
         if username or password:
-            auth = base64.b64encode(("%s:%s" % (username or "", password or "")).encode("utf-8"))
+            auth = base64.b64encode(
+                ("{}:{}".format(username or "", password or "")).encode("utf-8")
+            )
             source["headers"] = {
                 "authorization": "Basic %s" % auth.decode("ascii"),
             }
@@ -351,7 +353,7 @@ def parse_sources(config):
         if is_internal_source_id(source["id"]):
             raise InvalidSourcesError('Source ids must not start with "sentry:"')
         if source["id"] in ids:
-            raise InvalidSourcesError("Duplicate source id: %s" % (source["id"],))
+            raise InvalidSourcesError("Duplicate source id: {}".format(source["id"]))
         ids.add(source["id"])
 
     return sources
@@ -569,7 +571,7 @@ class SymbolicatorSession:
         )
 
     def query_task(self, task_id):
-        task_url = "requests/%s" % (task_id,)
+        task_url = "requests/{}".format(task_id)
 
         params = {
             "timeout": 0,  # Only wait when creating, but not when querying tasks

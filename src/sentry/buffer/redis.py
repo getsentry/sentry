@@ -74,10 +74,10 @@ class RedisBuffer(Buffer):
         """
         Returns a Redis-compatible key for the model given filters.
         """
-        return "b:k:%s:%s" % (
+        return "b:k:{}:{}".format(
             model._meta,
             md5_text(
-                "&".join("%s=%s" % (k, self._coerce_val(v)) for k, v in sorted(filters.items()))
+                "&".join("{}={}".format(k, self._coerce_val(v)) for k, v in sorted(filters.items()))
             ).hexdigest(),
         )
 
@@ -103,7 +103,7 @@ class RedisBuffer(Buffer):
         return self._make_pending_key(crc32(key) % self.pending_partitions)
 
     def _make_lock_key(self, key):
-        return "l:%s" % (key,)
+        return "l:{}".format(key)
 
     def _dump_values(self, values):
         result = {}
@@ -164,7 +164,7 @@ class RedisBuffer(Buffer):
         conn = self.cluster.get_local_client_for_key(key)
 
         pipe = conn.pipeline()
-        pipe.hsetnx(key, "m", "%s.%s" % (model.__module__, model.__name__))
+        pipe.hsetnx(key, "m", "{}.{}".format(model.__module__, model.__name__))
         # TODO(dcramer): once this goes live in production, we can kill the pickle path
         # (this is to ensure a zero downtime deploy where we can transition event processing)
         pipe.hsetnx(key, "f", pickle.dumps(filters))

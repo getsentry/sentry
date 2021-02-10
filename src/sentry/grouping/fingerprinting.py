@@ -212,7 +212,9 @@ class FingerprintingRules:
             if len(context) == 33:
                 context = context[:-1] + "..."
             raise InvalidFingerprintingConfig(
-                'Invalid syntax near "%s" (line %s, column %s)' % (context, e.line(), e.column())
+                'Invalid syntax near "{}" (line {}, column {})'.format(
+                    context, e.line(), e.column()
+                )
             )
         return FingerprintingVisitor().visit(tree)
 
@@ -338,7 +340,7 @@ class Match:
 
     @property
     def text(self):
-        return '%s%s:"%s"' % (
+        return '{}{}:"{}"'.format(
             self.negated and "!" or "",
             self.key,
             self.pattern,
@@ -394,7 +396,7 @@ class Rule:
             % (
                 " ".join(x.text for x in self.matchers),
                 "".join(x for x in self.fingerprint),
-                " ".join('%s="%s"' % (k, v) for (k, v) in sorted(self.attributes.items())),
+                " ".join('{}="{}"'.format(k, v) for (k, v) in sorted(self.attributes.items())),
             )
         ).rstrip()
 

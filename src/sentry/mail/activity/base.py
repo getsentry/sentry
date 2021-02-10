@@ -99,7 +99,7 @@ class ActivityEmail:
     def get_subject(self):
         group = self.group
 
-        return "%s - %s" % (group.qualified_short_id, group.title)
+        return "{} - {}".format(group.qualified_short_id, group.title)
 
     def get_subject_with_prefix(self):
         return "{}{}".format(self._get_subject_prefix(), self.get_subject()).encode("utf-8")

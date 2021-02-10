@@ -443,7 +443,7 @@ class EventManager:
         _materialize_event_metrics(jobs)
 
         for attachment in attachments:
-            key = "bytes.stored.%s" % (attachment.type,)
+            key = "bytes.stored.{}".format(attachment.type)
             old_bytes = job["event_metrics"].get(key) or 0
             job["event_metrics"][key] = old_bytes + attachment.size
 
@@ -1398,7 +1398,7 @@ def _materialize_event_metrics(jobs):
 
         for metric_name in ("flag.processing.error", "flag.processing.fatal"):
             if event_metrics.get(metric_name):
-                metrics.incr("event_manager.save.event_metrics.%s" % (metric_name,))
+                metrics.incr("event_manager.save.event_metrics.{}".format(metric_name))
 
         job["event_metrics"] = event_metrics
 

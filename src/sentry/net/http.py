@@ -70,7 +70,8 @@ class SafeConnectionMixin:
 
         except SocketTimeout:
             raise ConnectTimeoutError(
-                self, "Connection to %s timed out. (connect timeout=%s)" % (self.host, self.timeout)
+                self,
+                "Connection to {} timed out. (connect timeout={})".format(self.host, self.timeout),
             )
 
         except SocketError as e:
@@ -191,7 +192,7 @@ class UnixHTTPConnectionPool(HTTPConnectionPool):
     ConnectionCls = UnixHTTPConnection
 
     def __str__(self):
-        return "%s(host=%r)" % (type(self).__name__, self.host)
+        return "{}(host={!r})".format(type(self).__name__, self.host)
 
 
 def connection_from_url(endpoint, **kw):

@@ -21,12 +21,12 @@ def get_interface(name):
         name = get_canonical_name(name)
         import_path = settings.SENTRY_INTERFACES[name]
     except KeyError:
-        raise ValueError("Invalid interface name: %s" % (name,))
+        raise ValueError("Invalid interface name: {}".format(name))
 
     try:
         interface = import_string(import_path)
     except Exception:
-        raise ValueError("Unable to load interface: %s" % (name,))
+        raise ValueError("Unable to load interface: {}".format(name))
 
     return interface
 
@@ -149,7 +149,7 @@ class Interface:
         body = self.to_string(event)
         if not body:
             return ""
-        return "<pre>%s</pre>" % (escape(body),)
+        return "<pre>{}</pre>".format(escape(body))
 
     # deprecated stuff.  These were deprecated in late 2018, once
     # determined they are unused we can kill them.

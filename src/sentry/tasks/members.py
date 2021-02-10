@@ -51,7 +51,7 @@ def send_invite_request_notification_email(member_id):
     )
 
     msg = MessageBuilder(
-        subject="Access request to %s" % (om.organization.name,),
+        subject="Access request to {}".format(om.organization.name),
         type="organization.invite-request",
         context=context,
         **email_args,

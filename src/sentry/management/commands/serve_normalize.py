@@ -206,12 +206,12 @@ class Command(BaseCommand):
             server_type = "forking"
         else:
             server_type = "single-threaded"
-        self.stdout.write("Server type: %s\n" % (server_type,))
+        self.stdout.write("Server type: {}\n".format(server_type))
 
         if socket_file:
             self.socket_file = os.path.abspath(socket_file)
             self._check_socket_path(socket_file)
-            self.stdout.write("Binding to unix socket: %s\n" % (socket_file,))
+            self.stdout.write("Binding to unix socket: {}\n".format(socket_file))
             if threading:
                 server = SocketServer.ThreadingUnixStreamServer(socket_file, EventNormalizeHandler)
                 server.daemon_threads = True
@@ -222,7 +222,7 @@ class Command(BaseCommand):
         elif network_socket:
             host, port = network_socket.split(":")
             port = int(port)
-            self.stdout.write("Binding to network socket: %s:%s\n" % (host, port))
+            self.stdout.write("Binding to network socket: {}:{}\n".format(host, port))
             if threading:
                 server = SocketServer.ThreadingTCPServer((host, port), EventNormalizeHandler)
                 server.daemon_threads = True
