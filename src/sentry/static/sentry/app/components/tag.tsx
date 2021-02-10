@@ -123,7 +123,7 @@ const TagWrapper = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const Background = styled('div')<{type: keyof Theme['tag']}>`
+export const Background = styled('div')<{type: keyof Theme['tag']}>`
   display: inline-flex;
   align-items: center;
   height: ${TAG_HEIGHT};
@@ -137,7 +137,7 @@ const IconWrapper = styled('span')`
   display: inline-flex;
 `;
 
-const Text = styled('span')<{maxWidth: number}>`
+export const Text = styled('span')<{maxWidth: number}>`
   color: ${p => p.theme.gray500};
   max-width: ${p => p.maxWidth}px;
   overflow: hidden;
