@@ -144,7 +144,7 @@ function buildRequestUrl(baseUrl: string, path: string, query: RequestOptions['q
  * Check if the API response says project has been renamed.  If so, redirect
  * user to new project slug
  */
-// TODO: refine this type later
+// TODO(ts): refine this type later
 export function hasProjectBeenRenamed(response: JQueryXHR) {
   const code = response?.responseJSON?.detail?.code;
 
