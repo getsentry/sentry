@@ -32,4 +32,4 @@ class Command(BaseCommand):
                 password_hash.date_added = timezone.now()
                 password_hash.set_hash()
                 password_hash.save()
-            echo("{} ({}) - {}".format(user.username, user.email, password_hash.get_absolute_url()))
+            echo(f"{user.username} ({user.email}) - {password_hash.get_absolute_url()}")

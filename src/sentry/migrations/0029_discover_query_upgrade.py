@@ -39,16 +39,16 @@ def convert_field(fieldname, unique, reverse):
     if fieldname == "count":
         fieldname = "count()"
     elif unique:
-        fieldname = "count_unique({})".format(fieldname)
+        fieldname = f"count_unique({fieldname})"
 
-    fieldname = "-{}".format(fieldname) if reverse else fieldname
+    fieldname = f"-{fieldname}" if reverse else fieldname
     return fieldname
 
 
 def prepare_value(value):
     value = value.replace("%", "*")
     if " " in value and not value.startswith('"'):
-        value = '"{}"'.format(value)
+        value = f'"{value}"'
     return value
 
 
@@ -112,9 +112,9 @@ def convert(
         if column == "environment" and operator == "=":
             updated_query["environment"].append(value.strip('"'))
         elif operator == "IS NOT NULL":
-            updated_query["query"].append("has:{}".format(column))
+            updated_query["query"].append(f"has:{column}")
         elif operator == "IS NULL":
-            updated_query["query"].append("!has:{}".format(column))
+            updated_query["query"].append(f"!has:{column}")
         elif column in OPERATOR_KEYS:
             updated_query["query"].append(
                 "{}:{}{}".format(column, operator if operator != "=" else "", value)

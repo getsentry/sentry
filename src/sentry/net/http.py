@@ -70,7 +70,8 @@ class SafeConnectionMixin:
 
         except SocketTimeout:
             raise ConnectTimeoutError(
-                self, "Connection to %s timed out. (connect timeout=%s)" % (self.host, self.timeout)
+                self,
+                f"Connection to {self.host} timed out. (connect timeout={self.timeout})",
             )
 
         except SocketError as e:
@@ -139,7 +140,7 @@ class TimeoutAdapter(HTTPAdapter):
         return HTTPAdapter.send(self, *args, **kwargs)
 
 
-USER_AGENT = "sentry/{version} (https://sentry.io)".format(version=SENTRY_VERSION)
+USER_AGENT = f"sentry/{SENTRY_VERSION} (https://sentry.io)"
 
 
 class Session(_Session):
@@ -191,7 +192,7 @@ class UnixHTTPConnectionPool(HTTPConnectionPool):
     ConnectionCls = UnixHTTPConnection
 
     def __str__(self):
-        return "%s(host=%r)" % (type(self).__name__, self.host)
+        return "{}(host={!r})".format(type(self).__name__, self.host)
 
 
 def connection_from_url(endpoint, **kw):

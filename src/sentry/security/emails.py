@@ -26,7 +26,7 @@ def generate_security_email(account, type, actor, ip_address, context=None, curr
         template = "sentry/emails/api-token-generated.txt"
         html_template = "sentry/emails/api-token-generated.html"
     else:
-        raise ValueError("unknown type: {}".format(type))
+        raise ValueError(f"unknown type: {type}")
 
     new_context = {
         "account": account,

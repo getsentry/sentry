@@ -54,14 +54,14 @@ class HumanRenderer:
     def __call__(self, logger, name, event_dict):
         level = event_dict.pop("level")
         real_level = level.upper() if isinstance(level, str) else logging.getLevelName(level)
-        base = "%s [%s] %s: %s" % (
+        base = "{} [{}] {}: {}".format(
             now().strftime("%H:%M:%S"),
             real_level,
             event_dict.pop("name", "root"),
             event_dict.pop("event", ""),
         )
         join = " ".join(k + "=" + repr(v) for k, v in event_dict.items())
-        return "%s%s" % (base, (" (%s)" % join if join else ""))
+        return "{}{}".format(base, (" (%s)" % join if join else ""))
 
 
 class StructLogHandler(logging.StreamHandler):

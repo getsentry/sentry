@@ -24,7 +24,7 @@ def get_all_languages():
             continue
         if "_" in path:
             pre, post = path.split("_", 1)
-            path = "{}-{}".format(pre, post.lower())
+            path = f"{pre}-{post.lower()}"
         results.append(path)
     return results
 
@@ -384,7 +384,7 @@ def get_integration_id_for_event(platform, sdk_name, integrations):
                 return PLATFORM_INTEGRATION_TO_INTEGRATION_ID[platform][integration]
 
             # try <platform>-<integration>, for example "java-log4j"
-            integration_id = "%s-%s" % (platform, integration)
+            integration_id = f"{platform}-{integration}"
             if integration_id in INTEGRATION_ID_TO_PLATFORM_DATA:
                 return integration_id
 

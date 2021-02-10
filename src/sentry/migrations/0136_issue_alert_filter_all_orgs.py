@@ -162,7 +162,7 @@ def migrate_all_orgs(apps, schema_editor):
                 # If a project fails we'll just log and continue. We shouldn't see any
                 # failures, but if we do we can analyze them and re-run this migration,
                 # since it is idempotent.
-                logging.exception("Error migrating project {}".format(project.id))
+                logging.exception(f"Error migrating project {project.id}")
 
 
 class Migration(migrations.Migration):

@@ -23,7 +23,7 @@ class ReleaseWebhookView(View):
             signature,
             hmac.new(
                 key=token.encode("utf-8"),
-                msg=("{}-{}".format(plugin_id, project_id)).encode("utf-8"),
+                msg=(f"{plugin_id}-{project_id}").encode("utf-8"),
                 digestmod=sha256,
             ).hexdigest(),
         )
@@ -33,7 +33,7 @@ class ReleaseWebhookView(View):
         return super().dispatch(*args, **kwargs)
 
     def _handle_builtin(self, request, project):
-        endpoint = "/projects/{}/{}/releases/".format(project.organization.slug, project.slug)
+        endpoint = f"/projects/{project.organization.slug}/{project.slug}/releases/"
 
         try:
             data = json.loads(request.body)

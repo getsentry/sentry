@@ -11,9 +11,9 @@ class TagType:
     _sort_key = None
 
     def __repr__(self):
-        return "<%s: %s>" % (
+        return "<{}: {}>".format(
             type(self).__name__,
-            ", ".join("%s=%r" % (name, getattr(self, name)) for name in self.__slots__),
+            ", ".join("{}={!r}".format(name, getattr(self, name)) for name in self.__slots__),
         )
 
     def __hash__(self):

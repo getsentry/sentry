@@ -633,7 +633,7 @@ class S3Boto3Storage(Storage):
         # TODO: Handle force_http=not self.secure_urls like in s3boto
         name = self._normalize_name(self._clean_name(name))
         if self.custom_domain:
-            return "%s//%s/%s" % (self.url_protocol, self.custom_domain, filepath_to_uri(name))
+            return "{}//{}/{}".format(self.url_protocol, self.custom_domain, filepath_to_uri(name))
         if expire is None:
             expire = self.querystring_expire
 

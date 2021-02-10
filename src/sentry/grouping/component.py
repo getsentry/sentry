@@ -168,9 +168,4 @@ class GroupingComponent:
         return rv
 
     def __repr__(self):
-        return "GroupingComponent(%r, hint=%r, contributes=%r, values=%r)" % (
-            self.id,
-            self.hint,
-            self.contributes,
-            self.values,
-        )
+        return f"GroupingComponent({self.id!r}, hint={self.hint!r}, contributes={self.contributes!r}, values={self.values!r})"

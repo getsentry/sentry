@@ -68,7 +68,7 @@ class Strategy:
         self.variant_processor_func = None
 
     def __repr__(self):
-        return "<%s id=%r variants=%r>" % (self.__class__.__name__, self.id, self.variants)
+        return f"<{self.__class__.__name__} id={self.id!r} variants={self.variants!r}>"
 
     def _invoke(self, func, *args, **kwargs):
         # We forcefully override strategy here.  This lets a strategy
@@ -180,7 +180,7 @@ class StrategyConfiguration:
         self.enhancements = enhancements
 
     def __repr__(self):
-        return "<%s %r>" % (self.__class__.__name__, self.id)
+        return f"<{self.__class__.__name__} {self.id!r}>"
 
     def iter_strategies(self):
         """Iterates over all strategies by highest score to lowest."""
@@ -247,7 +247,7 @@ def create_strategy_configuration(
     for strategy_id in strategies or {}:
         strategy = lookup_strategy(strategy_id)
         if strategy.score is None:
-            raise RuntimeError("Unscored strategy %s added to %s" % (strategy_id, id))
+            raise RuntimeError(f"Unscored strategy {strategy_id} added to {id}")
         for old_id in by_class.get(strategy.strategy_class) or ():
             NewStrategyConfiguration.strategies.pop(old_id, None)
         NewStrategyConfiguration.strategies[strategy_id] = strategy

@@ -220,13 +220,13 @@ class QueryDefinition:
         self.fields = {}
         for key in raw_fields:
             if key not in COLUMN_MAP:
-                raise InvalidField('Invalid field: "{}"'.format(key))
+                raise InvalidField(f'Invalid field: "{key}"')
             self.fields[key] = COLUMN_MAP[key]
 
         self.groupby = []
         for key in raw_groupby:
             if key not in GROUPBY_MAP:
-                raise InvalidField('Invalid groupBy: "{}"'.format(key))
+                raise InvalidField(f'Invalid groupBy: "{key}"')
             self.groupby.append(GROUPBY_MAP[key])
 
         start, end, rollup = get_date_range_rollup_from_params(query, "1h", round_range=True)

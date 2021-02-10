@@ -59,7 +59,7 @@ class ExportedData(Model):
         date = self.date_added.strftime("%Y-%B-%d")
         export_type = ExportQueryType.as_str(self.query_type)
         # Example: Discover_2020-July-21_27.csv
-        return "{}_{}_{}.csv".format(export_type, date, self.id)
+        return f"{export_type}_{date}_{self.id}.csv"
 
     @staticmethod
     def format_date(date):

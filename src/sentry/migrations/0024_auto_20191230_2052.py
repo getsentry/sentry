@@ -68,14 +68,14 @@ def backfill_eventstream(apps, schema_editor):
         print("Nothing to do, skipping migration.\n")  # noqa: B314
         return
 
-    print("Events to process: {}\n".format(count))  # noqa: B314
+    print(f"Events to process: {count}\n")  # noqa: B314
 
     processed = 0
     for e in RangeQuerySetWrapper(events, step=100, callbacks=(_attach_related,)):
         event_data = e.data.data
         if e.project is None or e.group is None or len(event_data) == 0:
             print(  # noqa: B314
-                "Skipped {} as group, project or node data information is invalid.\n".format(e)
+                f"Skipped {e} as group, project or node data information is invalid.\n"
             )
             continue
 
@@ -113,9 +113,7 @@ def backfill_eventstream(apps, schema_editor):
             processed += 1
         except Exception as error:
             print(  # noqa: B314
-                "An error occured while trying to migrate the following event: {}\n.----\n{}".format(
-                    event, error
-                )
+                f"An error occured while trying to migrate the following event: {event}\n.----\n{error}"
             )
 
     if processed == 0:
@@ -123,9 +121,7 @@ def backfill_eventstream(apps, schema_editor):
             "Cannot migrate any event. If this is okay, re-run migrations with SENTRY_SKIP_EVENTS_BACKFILL_FOR_10 environment variable set to skip this step."
         )
 
-    print(  # noqa: B314
-        "Event migration done. Migrated {} of {} events.\n".format(processed, count)
-    )
+    print(f"Event migration done. Migrated {processed} of {count} events.\n")  # noqa: B314
 
 
 class Migration(migrations.Migration):

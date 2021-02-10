@@ -14,7 +14,7 @@ def summarize_issues(issues):
         if "image_path" in issue["data"]:
             extra_info = issue["data"]["image_path"].rsplit("/", 1)[-1]
             if "image_arch" in issue["data"]:
-                extra_info = "%s (%s)" % (extra_info, issue["data"]["image_arch"])
+                extra_info = "{} ({})".format(extra_info, issue["data"]["image_arch"])
 
         rv.append({"message": EventError(msg_d).message, "extra_info": extra_info})
     return rv
@@ -37,14 +37,12 @@ class NewProcessingIssuesActivityEmail(ActivityEmail):
             "issues": self.issues,
             "reprocessing_active": self.activity.data["reprocessing_active"],
             "info_url": absolute_uri(
-                "/settings/{}/projects/{}/processing-issues/".format(
-                    self.organization.slug, self.project.slug
-                )
+                f"/settings/{self.organization.slug}/projects/{self.project.slug}/processing-issues/"
             ),
         }
 
     def get_subject(self):
-        return "Processing Issues on {}".format(self.project.slug)
+        return f"Processing Issues on {self.project.slug}"
 
     def get_template(self):
         return "sentry/emails/activity/new_processing_issues.txt"

@@ -18,8 +18,6 @@ class CeleryAppVersionCheck(StatusCheck):
             return []
         return [
             Problem(
-                "Celery workers are referencing a different version of Sentry ({version1} vs {version2})".format(
-                    version1=sentry.VERSION, version2=version
-                )
+                f"Celery workers are referencing a different version of Sentry ({sentry.VERSION} vs {version})"
             )
         ]

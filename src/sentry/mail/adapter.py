@@ -123,7 +123,7 @@ class MailAdapter:
         subject = force_text(subject)
 
         msg = MessageBuilder(
-            subject="%s%s" % (subject_prefix, subject),
+            subject=f"{subject_prefix}{subject}",
             template=template,
             html_template=html_template,
             body=body,
@@ -257,7 +257,7 @@ class MailAdapter:
         return {user.id}
 
     def get_send_to_all_in_project(self, project):
-        cache_key = "mail:send_to:{}".format(project.pk)
+        cache_key = f"mail:send_to:{project.pk}"
         send_to_list = cache.get(cache_key)
         if send_to_list is None:
             send_to_list = [s for s in self.get_sendable_users(project) if s]
@@ -302,7 +302,7 @@ class MailAdapter:
 
         rules = []
         for rule in notification.rules:
-            rule_link = "/organizations/%s/alerts/rules/%s/%s/" % (org.slug, project.slug, rule.id)
+            rule_link = f"/organizations/{org.slug}/alerts/rules/{project.slug}/{rule.id}/"
 
             rules.append((rule.label, rule_link))
 
@@ -467,9 +467,7 @@ class MailAdapter:
 
         email_cls = emails.get(activity.type)
         if not email_cls:
-            logger.debug(
-                "No email associated with activity type `{}`".format(activity.get_type_display())
-            )
+            logger.debug(f"No email associated with activity type `{activity.get_type_display()}`")
             return
 
         email = email_cls(activity)
@@ -489,7 +487,7 @@ class MailAdapter:
 
         context = {
             "project": project,
-            "project_link": absolute_uri("/{}/{}/".format(project.organization.slug, project.slug)),
+            "project_link": absolute_uri(f"/{project.organization.slug}/{project.slug}/"),
             "issue_link": absolute_uri(
                 "/{}/{}/issues/{}/".format(
                     project.organization.slug, project.slug, payload["report"]["issue"]["id"]

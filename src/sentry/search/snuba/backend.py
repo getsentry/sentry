@@ -230,7 +230,7 @@ class QCallbackCondition(Condition):
         q = self.callback(value)
         if search_filter.operator not in ("=", "!="):
             raise InvalidSearchQuery(
-                "Operator {} not valid for search {}".format(search_filter.operator, search_filter)
+                f"Operator {search_filter.operator} not valid for search {search_filter}"
             )
         queryset_method = queryset.filter if search_filter.operator == "=" else queryset.exclude
         queryset = queryset_method(q)
@@ -252,14 +252,14 @@ class ScalarCondition(Condition):
     def _get_operator(self, search_filter):
         django_operator = self.OPERATOR_TO_DJANGO.get(search_filter.operator, "")
         if django_operator:
-            django_operator = "__{}".format(django_operator)
+            django_operator = f"__{django_operator}"
         return django_operator
 
     def apply(self, queryset, search_filter):
         django_operator = self._get_operator(search_filter)
         qs_method = queryset.exclude if search_filter.operator == "!=" else queryset.filter
 
-        q_dict = {"{}{}".format(self.field, django_operator): search_filter.value.raw_value}
+        q_dict = {f"{self.field}{django_operator}": search_filter.value.raw_value}
         if self.extra:
             q_dict.update(self.extra)
 
@@ -330,7 +330,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
 
         # ensure sort strategy is supported by executor
         if not query_executor.has_sort_strategy(sort_by):
-            raise InvalidSearchQuery("Sort key '{}' not supported.".format(sort_by))
+            raise InvalidSearchQuery(f"Sort key '{sort_by}' not supported.")
 
         return query_executor.query(
             projects=projects,

@@ -20,13 +20,13 @@ oauth = OAuth()
 sentry = oauth.remote_app(
     "sentry",
     base_url=BASE_URL,
-    authorize_url="{}/oauth/authorize/".format(BASE_URL),
+    authorize_url=f"{BASE_URL}/oauth/authorize/",
     request_token_url=None,
     request_token_params={
         "scope": "project:releases event:read org:read org:write",
         "response_type": "code",
     },
-    access_token_url="{}/oauth/token/".format(BASE_URL),
+    access_token_url=f"{BASE_URL}/oauth/token/",
     access_token_method="POST",
     access_token_params={"grant_type": "authorization_code"},
     consumer_key=CLIENT_ID,
@@ -44,8 +44,8 @@ def index():
 
     from urllib2 import Request, urlopen, URLError
 
-    headers = {"Authorization": "Bearer {}".format(access_token)}
-    req = Request("{}/api/0/organizations/".format(BASE_URL), None, headers)
+    headers = {"Authorization": f"Bearer {access_token}"}
+    req = Request(f"{BASE_URL}/api/0/organizations/", None, headers)
     try:
         res = urlopen(req)
     except URLError as e:

@@ -308,8 +308,7 @@ def digest(request):
     project = Project(id=1, slug="example", name="Example Project", organization=org)
 
     rules = {
-        i: Rule(id=i, project=project, label="Rule #%s" % (i,))
-        for i in range(1, random.randint(2, 4))
+        i: Rule(id=i, project=project, label=f"Rule #{i}") for i in range(1, random.randint(2, 4))
     }
 
     state = {

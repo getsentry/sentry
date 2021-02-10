@@ -125,7 +125,7 @@ def handle_remaining_events(project_id, new_group_id, event_ids, remaining_event
     elif remaining_events == "keep":
         eventstream.replace_group_unsafe(project_id, event_ids, new_group_id=new_group_id)
     else:
-        raise ValueError("Invalid value for remaining_events: {}".format(remaining_events))
+        raise ValueError(f"Invalid value for remaining_events: {remaining_events}")
 
 
 @instrumented_task(

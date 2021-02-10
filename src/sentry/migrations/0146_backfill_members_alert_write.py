@@ -22,7 +22,7 @@ def backfill_existing_orgs(apps, schema_editor):
                 organization=org, key="sentry:alerts_member_write", value=False
             )
         except Exception:
-            logging.exception("Error backfilling organization {}".format(org.id))
+            logging.exception(f"Error backfilling organization {org.id}")
 
 
 class Migration(migrations.Migration):

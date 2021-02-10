@@ -433,7 +433,7 @@ class Exception(Interface):
             if not exc:
                 continue
 
-            output.append("{}: {}\n".format(exc.type, exc.value))
+            output.append(f"{exc.type}: {exc.value}\n")
             if exc.stacktrace:
                 output.append(
                     exc.stacktrace.get_stacktrace(

@@ -15,7 +15,7 @@ def get_payload_v0(event):
     group_context["url"] = group.get_absolute_url()
 
     event_context = serialize(event)
-    event_context["url"] = "{}events/{}/".format(group.get_absolute_url(), event.event_id)
+    event_context["url"] = f"{group.get_absolute_url()}events/{event.event_id}/"
     data = {
         "project": {"slug": project.slug, "name": project.name},
         "group": group_context,

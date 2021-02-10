@@ -72,7 +72,7 @@ class JavaStacktraceProcessor(StacktraceProcessor):
         if not ty or not mod:
             return False
 
-        key = "%s.%s" % (mod, ty)
+        key = f"{mod}.{ty}"
 
         for view in self.mapping_views:
             mapped = view.remap_class(key)

@@ -45,8 +45,7 @@ class Command(makemigrations.Command):
             )
 
         result = "\n".join(
-            "{}: {}".format(app_label, name)
-            for app_label, name in sorted(latest_migration_by_app.items())
+            f"{app_label}: {name}" for app_label, name in sorted(latest_migration_by_app.items())
         )
 
         with open(

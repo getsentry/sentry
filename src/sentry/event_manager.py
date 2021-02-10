@@ -443,7 +443,7 @@ class EventManager:
         _materialize_event_metrics(jobs)
 
         for attachment in attachments:
-            key = "bytes.stored.%s" % (attachment.type,)
+            key = f"bytes.stored.{attachment.type}"
             old_bytes = job["event_metrics"].get(key) or 0
             job["event_metrics"][key] = old_bytes + attachment.size
 
@@ -849,7 +849,7 @@ def _get_event_user_impl(project, data, metrics_tags):
     if not euser.hash:
         return
 
-    cache_key = "euserid:1:{}:{}".format(project.id, euser.hash)
+    cache_key = f"euserid:1:{project.id}:{euser.hash}"
     euser_id = cache.get(cache_key)
     if euser_id is None:
         metrics_tags["cache_hit"] = "false"
@@ -1398,7 +1398,7 @@ def _materialize_event_metrics(jobs):
 
         for metric_name in ("flag.processing.error", "flag.processing.fatal"):
             if event_metrics.get(metric_name):
-                metrics.incr("event_manager.save.event_metrics.%s" % (metric_name,))
+                metrics.incr(f"event_manager.save.event_metrics.{metric_name}")
 
         job["event_metrics"] = event_metrics
 

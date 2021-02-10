@@ -18,7 +18,7 @@ def convert_options_to_env(options):
         elif isinstance(v, int):
             value = str(v)
         else:
-            raise TypeError("Unknown option type: %r (%s)" % (k, type(v)))
+            raise TypeError("Unknown option type: {!r} ({})".format(k, type(v)))
         yield key, value
 
 
@@ -69,7 +69,7 @@ class SentryHTTPServer(Service):
             '%(addr) - %(user) [%(ltime)] "%(method) %(uri) %(proto)" %(status) %(size) "%(referer)" "%(uagent)"',
         )
 
-        options.setdefault("%s-socket" % options["protocol"], "%s:%s" % (host, port))
+        options.setdefault("%s-socket" % options["protocol"], f"{host}:{port}")
 
         # We only need to set uid/gid when stepping down from root, but if
         # we are trying to run as root, then ignore it entirely.
@@ -151,7 +151,7 @@ class SentryHTTPServer(Service):
         virtualenv_path = os.path.dirname(os.path.abspath(sys.argv[0]))
         current_path = env.get("PATH", "")
         if virtualenv_path not in current_path:
-            env["PATH"] = "%s:%s" % (virtualenv_path, current_path)
+            env["PATH"] = f"{virtualenv_path}:{current_path}"
 
     def run(self):
         self.prepare_environment()

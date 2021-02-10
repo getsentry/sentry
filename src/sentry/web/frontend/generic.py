@@ -42,7 +42,7 @@ def static_media(request, **kwargs):
     version = kwargs.get("version")
 
     if module:
-        path = "%s/%s" % (module, path)
+        path = f"{module}/{path}"
 
     try:
         document_root, path = resolve(path)

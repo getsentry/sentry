@@ -63,7 +63,7 @@ class RestoreOrganizationView(OrganizationView):
         ).update(status=OrganizationStatus.VISIBLE)
         if updated:
             client.put(
-                "/organizations/{}/".format(organization.slug),
+                f"/organizations/{organization.slug}/",
                 data={"cancelDeletion": True},
                 request=request,
             )
