@@ -212,7 +212,7 @@ def discover_sourcemap(result):
 
 
 def get_release_file_cache_key(release_id, releasefile_ident):
-    return "releasefile:v1:%s:%s" % (release_id, releasefile_ident)
+    return "releasefile:v1:{}:{}".format(release_id, releasefile_ident)
 
 
 def get_release_file_cache_key_meta(release_id, releasefile_ident):
@@ -360,7 +360,7 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
 
     # otherwise, try the web-scraping cache and then the web itself
 
-    cache_key = "source:cache:v4:%s" % (md5_text(url).hexdigest(),)
+    cache_key = "source:cache:v4:{}".format(md5_text(url).hexdigest())
 
     if result is None:
         if not allow_scraping or not url.startswith(("http:", "https:")):

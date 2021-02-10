@@ -195,11 +195,11 @@ def _merge_full_response(data, response):
     # Extract the crash reason and infos
     data_exception = get_path(data, "exception", "values", 0)
     if response.get("assertion"):
-        data_exception["value"] = "Assertion Error: %s" % (response["assertion"],)
+        data_exception["value"] = "Assertion Error: {}".format(response["assertion"])
     elif response.get("crash_details"):
         data_exception["value"] = response["crash_details"]
     elif response.get("crash_reason"):
-        data_exception["value"] = "Fatal Error: %s" % (response["crash_reason"],)
+        data_exception["value"] = "Fatal Error: {}".format(response["crash_reason"])
     else:
         # We're merging a full response, so there was no initial payload
         # submitted. Assuming that this still contains the placeholder, remove

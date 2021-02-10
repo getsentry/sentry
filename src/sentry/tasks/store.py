@@ -384,7 +384,7 @@ def retry_process_event(process_task_name, task_kwargs, **kwargs):
 
     process_task = tasks.get(process_task_name)
     if not process_task:
-        raise ValueError("Invalid argument for process_task_name: %s" % (process_task_name,))
+        raise ValueError("Invalid argument for process_task_name: {}".format(process_task_name))
 
     process_task.delay(**task_kwargs)
 

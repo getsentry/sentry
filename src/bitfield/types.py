@@ -135,9 +135,9 @@ class BitHandler:
         return cmp(self._value, other)
 
     def __repr__(self):
-        return "<%s: %s>" % (
+        return "<{}: {}>".format(
             self.__class__.__name__,
-            ", ".join("%s=%s" % (k, self.get_bit(n).is_set) for n, k in enumerate(self._keys)),
+            ", ".join("{}={}".format(k, self.get_bit(n).is_set) for n, k in enumerate(self._keys)),
         )
 
     def __str__(self):

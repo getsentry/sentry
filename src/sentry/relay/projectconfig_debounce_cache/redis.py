@@ -7,9 +7,9 @@ REDIS_CACHE_TIMEOUT = 3600  # 1 hr
 
 def _get_redis_key(project_id, organization_id):
     if organization_id:
-        return "relayconfig-debounce:o:%s" % (organization_id,)
+        return "relayconfig-debounce:o:{}".format(organization_id)
     elif project_id:
-        return "relayconfig-debounce:p:%s" % (project_id,)
+        return "relayconfig-debounce:p:{}".format(project_id)
     else:
         raise ValueError()
 

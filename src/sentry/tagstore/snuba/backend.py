@@ -768,7 +768,7 @@ class SnubaTagStorage(TagStorage):
                 snuba_name = FIELD_ALIASES[USER_DISPLAY_ALIAS].get_field()
                 snuba.resolve_complex_column(snuba_name, resolver)
             elif snuba_name in BLACKLISTED_COLUMNS:
-                snuba_name = "tags[%s]" % (key,)
+                snuba_name = "tags[{}]".format(key)
 
             if query:
                 conditions.append([snuba_name, "LIKE", "%{}%".format(query)])

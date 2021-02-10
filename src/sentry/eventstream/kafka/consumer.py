@@ -261,7 +261,7 @@ class SynchronizedConsumer:
         elif current_state is SynchronizedPartitionState.LOCAL_BEHIND:
             self.__consumer.resume([TopicPartition(topic, partition, current_offsets.local)])
         else:
-            raise NotImplementedError("Unexpected partition state: %s" % (current_state,))
+            raise NotImplementedError("Unexpected partition state: {}".format(current_state))
 
     def subscribe(self, topics, on_assign=None, on_revoke=None):
         """

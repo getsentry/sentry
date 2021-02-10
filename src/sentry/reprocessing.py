@@ -66,7 +66,7 @@ def report_processing_issue(event_data, scope, object=None, type=None, data=None
         logger.error("processing_issue.bad_report", extra={"platform": event_data.get("platform")})
         return
 
-    uid = "%s:%s" % (scope, object)
+    uid = "{}:{}".format(scope, object)
     event_data.setdefault("processing_issues", {})[uid] = {
         "scope": scope,
         "object": object,

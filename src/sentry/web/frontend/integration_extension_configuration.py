@@ -20,7 +20,7 @@ class ExternalIntegrationPipeline(IntegrationPipeline):
         if "next" in self.request.GET:
             param_string = "?%s" % urlencode({"next": self.request.GET["next"]})
 
-        redirect_uri = "/settings/%s/integrations/%s/%s/%s" % (
+        redirect_uri = "/settings/{}/integrations/{}/{}/{}".format(
             org_slug,
             provider,
             integration_id,

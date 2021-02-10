@@ -188,7 +188,7 @@ def _create_in_snuba(subscription):
     )
     response = _snuba_pool.urlopen(
         "POST",
-        "/%s/subscriptions" % (snuba_query.dataset,),
+        "/{}/subscriptions".format(snuba_query.dataset),
         body=json.dumps(
             {
                 "project_id": subscription.project_id,
@@ -207,7 +207,7 @@ def _create_in_snuba(subscription):
 
 def _delete_from_snuba(dataset, subscription_id):
     response = _snuba_pool.urlopen(
-        "DELETE", "/%s/subscriptions/%s" % (dataset.value, subscription_id)
+        "DELETE", "/{}/subscriptions/{}".format(dataset.value, subscription_id)
     )
     if response.status != 202:
         raise SnubaError("HTTP %s response from Snuba!" % response.status)

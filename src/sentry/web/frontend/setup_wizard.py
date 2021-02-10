@@ -24,7 +24,7 @@ class SetupWizardView(BaseView):
         Redirects to organization whenever cache has been deleted
         """
         context = {"hash": wizard_hash}
-        key = "%s%s" % (SETUP_WIZARD_CACHE_KEY, wizard_hash)
+        key = "{}{}".format(SETUP_WIZARD_CACHE_KEY, wizard_hash)
 
         wizard_data = default_cache.get(key)
         if wizard_data is None:
@@ -76,7 +76,7 @@ class SetupWizardView(BaseView):
 
         result = {"apiKeys": serialize(token), "projects": filled_projects}
 
-        key = "%s%s" % (SETUP_WIZARD_CACHE_KEY, wizard_hash)
+        key = "{}{}".format(SETUP_WIZARD_CACHE_KEY, wizard_hash)
         default_cache.set(key, result, SETUP_WIZARD_CACHE_TIMEOUT)
 
         return render_to_response("sentry/setup-wizard.html", context, request)

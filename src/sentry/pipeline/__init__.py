@@ -280,4 +280,4 @@ class Pipeline:
         return data if key is None else data.get(key)
 
     def get_logger(self):
-        return logging.getLogger("sentry.integration.%s" % (self.provider.key,))
+        return logging.getLogger("sentry.integration.{}".format(self.provider.key))

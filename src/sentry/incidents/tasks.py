@@ -78,13 +78,13 @@ def build_activity_context(activity, user):
     if activity.type == IncidentActivityType.COMMENT.value:
         action = "left a comment"
     else:
-        action = "changed status from %s to %s" % (
+        action = "changed status from {} to {}".format(
             INCIDENT_STATUS[IncidentStatus(int(activity.previous_value))],
             INCIDENT_STATUS[IncidentStatus(int(activity.value))],
         )
     incident = activity.incident
 
-    action = "%s on alert %s (#%s)" % (action, incident.title, incident.identifier)
+    action = "{} on alert {} (#{})".format(action, incident.title, incident.identifier)
 
     return {
         "user_name": activity.user.name if activity.user else "Sentry",
