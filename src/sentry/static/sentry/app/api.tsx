@@ -37,6 +37,9 @@ export class Request {
   }
 }
 
+/**
+ * Setup the CSRF + other client early initalization.
+ */
 export function initApiClient() {
   jQuery.ajaxSetup({
     // jQuery won't allow using the ajaxCsrfSetup function directly
@@ -96,6 +99,67 @@ export function initApiClientErrorHandling() {
   });
 }
 
+/**
+ * Construct a full request URL
+ */
+function buildRequestUrl(baseUrl: string, path: string, query: RequestOptions['query']) {
+  let params: string;
+  try {
+    params = jQuery.param(query ?? [], true);
+  } catch (err) {
+    run(Sentry =>
+      Sentry.withScope(scope => {
+        scope.setExtra('path', path);
+        scope.setExtra('query', query);
+        Sentry.captureException(err);
+      })
+    );
+    throw err;
+  }
+
+  let fullUrl: string;
+
+  // Append the baseUrl
+  if (path.indexOf(baseUrl) === -1) {
+    fullUrl = baseUrl + path;
+  } else {
+    fullUrl = path;
+  }
+
+  if (!params) {
+    return fullUrl;
+  }
+
+  // Append query parameters
+  if (fullUrl.indexOf('?') !== -1) {
+    fullUrl += '&' + params;
+  } else {
+    fullUrl += '?' + params;
+  }
+
+  return fullUrl;
+}
+
+/**
+ * Check if the API response says project has been renamed.  If so, redirect
+ * user to new project slug
+ */
+// TODO(ts): refine this type later
+export function hasProjectBeenRenamed(response: JQueryXHR) {
+  const code = response?.responseJSON?.detail?.code;
+
+  // XXX(billy): This actually will never happen because we can't intercept the 302
+  // jQuery ajax will follow the redirect by default...
+  if (code !== PROJECT_MOVED) {
+    return false;
+  }
+
+  const slug = response?.responseJSON?.detail?.extra?.slug;
+
+  redirectToProject(slug);
+  return true;
+}
+
 // TODO: move this somewhere
 export type APIRequestMethod = 'POST' | 'GET' | 'DELETE' | 'PUT';
 
@@ -108,43 +172,52 @@ export type RequestCallbacks = {
   error?: FunctionCallback;
 };
 
-export type RequestOptions = {
+export type RequestOptions = RequestCallbacks & {
+  /**
+   * The HTTP method to use when making the API request
+   */
   method?: APIRequestMethod;
+  /**
+   * Values to attach to the body of the request.
+   */
   data?: any;
+  /**
+   * Query parameters to add to the requested URL.
+   */
   query?: Array<any> | object;
+  /**
+   * Because of the async nature of API requests, errors will happen outside of
+   * the stack that initated the request. a preservedError can be passed to
+   * coalesce the stacks together.
+   */
   preservedError?: Error;
-} & RequestCallbacks;
+};
 
+type ClientOptions = {
+  /**
+   * The base URL path to prepend to API request URIs.
+   */
+  baseUrl?: string;
+};
+
+type HandleRequestErrorOptions = {
+  id: string;
+  path: string;
+  requestOptions: Readonly<RequestOptions>;
+};
+
+/**
+ * The API client is used to make HTTP requests to Sentry's backend.
+ *
+ * This is the prefered way to talk to the backend.
+ */
 export class Client {
   baseUrl: string;
-  activeRequests: {[ids: string]: Request};
+  activeRequests: Record<string, Request>;
 
-  constructor(options: {baseUrl?: string} = {}) {
-    if (isUndefined(options)) {
-      options = {};
-    }
-    this.baseUrl = options.baseUrl || '/api/0';
+  constructor(options: ClientOptions = {}) {
+    this.baseUrl = options.baseUrl ?? '/api/0';
     this.activeRequests = {};
-  }
-
-  /**
-   * Check if the API response says project has been renamed.
-   * If so, redirect user to new project slug
-   */
-  // TODO: refine this type later
-  hasProjectBeenRenamed(response: JQueryXHR) {
-    const code = response?.responseJSON?.detail?.code;
-
-    // XXX(billy): This actually will never happen because we can't intercept the 302
-    // jQuery ajax will follow the redirect by default...
-    if (code !== PROJECT_MOVED) {
-      return false;
-    }
-
-    const slug = response?.responseJSON?.detail?.extra?.slug;
-
-    redirectToProject(slug);
-    return true;
   }
 
   wrapCallback<T extends any[]>(
@@ -162,7 +235,7 @@ export class Client {
         // Check if API response is a 302 -- means project slug was renamed and user
         // needs to be redirected
         // @ts-expect-error
-        if (this.hasProjectBeenRenamed(...args)) {
+        if (hasProjectBeenRenamed(...args)) {
           return;
         }
 
@@ -179,18 +252,12 @@ export class Client {
   /**
    * Attempt to cancel all active XHR requests
    */
-  clear(): void {
-    for (const id in this.activeRequests) {
-      this.activeRequests[id].cancel();
-    }
+  clear() {
+    Object.values(this.activeRequests).forEach(r => r.cancel());
   }
 
   handleRequestError(
-    {
-      id,
-      path,
-      requestOptions,
-    }: {id: string; path: string; requestOptions: Readonly<RequestOptions>},
+    {id, path, requestOptions}: HandleRequestErrorOptions,
     response: JQueryXHR,
     textStatus: string,
     errorThrown: string
@@ -202,28 +269,17 @@ export class Client {
       openSudo({
         superuser: code === SUPERUSER_REQUIRED,
         sudo: code === SUDO_REQUIRED,
-        retryRequest: () =>
-          this.requestPromise(path, requestOptions)
-            .then(data => {
-              if (typeof requestOptions.success !== 'function') {
-                return;
-              }
-
-              requestOptions.success(data);
-            })
-            .catch(err => {
-              if (typeof requestOptions.error !== 'function') {
-                return;
-              }
-              requestOptions.error(err);
-            }),
-        onClose: () => {
-          if (typeof requestOptions.error !== 'function') {
-            return;
+        retryRequest: async () => {
+          try {
+            const data = await this.requestPromise(path, requestOptions);
+            requestOptions.success?.(data);
+          } catch (err) {
+            requestOptions.error?.(err);
           }
-          // If modal was closed, then forward the original response
-          requestOptions.error(response);
         },
+        onClose: () =>
+          // If modal was closed, then forward the original response
+          requestOptions.error?.(response),
       });
       return;
     }
@@ -233,12 +289,14 @@ export class Client {
       id,
       requestOptions.error
     );
-    if (typeof errorCb !== 'function') {
-      return;
-    }
-    errorCb(response, textStatus, errorThrown);
+    errorCb?.(response, textStatus, errorThrown);
   }
 
+  /**
+   * Initate a request to the backend API.
+   *
+   * Consider using `requestPromise` for the async Promise version of this method.
+   */
   request(path: string, options: Readonly<RequestOptions> = {}): Request {
     const method = options.method || (options.data ? 'POST' : 'GET');
     let data = options.data;
@@ -247,117 +305,101 @@ export class Client {
       data = JSON.stringify(data);
     }
 
-    let query: string;
-    try {
-      query = jQuery.param(options.query || [], true);
-    } catch (err) {
-      run(Sentry =>
-        Sentry.withScope(scope => {
-          scope.setExtra('path', path);
-          scope.setExtra('query', options.query);
-          Sentry.captureException(err);
-        })
-      );
-      throw err;
-    }
+    const fullUrl = buildRequestUrl(this.baseUrl, path, options.query);
 
-    const id: string = uniqueId();
-    metric.mark({name: `api-request-start-${id}`});
+    const id = uniqueId();
+    const startMarker = `api-request-start-${id}`;
 
-    let fullUrl: string;
-    if (path.indexOf(this.baseUrl) === -1) {
-      fullUrl = this.baseUrl + path;
-    } else {
-      fullUrl = path;
-    }
-    if (query) {
-      if (fullUrl.indexOf('?') !== -1) {
-        fullUrl += '&' + query;
-      } else {
-        fullUrl += '?' + query;
-      }
-    }
+    metric.mark({name: startMarker});
 
     const errorObject = new Error();
 
-    this.activeRequests[id] = new Request(
-      jQuery.ajax({
-        url: fullUrl,
-        method,
-        data,
-        contentType: 'application/json',
-        headers: {
-          Accept: 'application/json; charset=utf-8',
-        },
-        success: (responseData: any, textStatus: string, xhr: JQueryXHR) => {
-          metric.measure({
-            name: 'app.api.request-success',
-            start: `api-request-start-${id}`,
-            data: {
-              status: xhr && xhr.status,
-            },
-          });
-          if (!isUndefined(options.success)) {
-            this.wrapCallback<[any, string, JQueryXHR]>(id, options.success)(
-              responseData,
-              textStatus,
-              xhr
+    /**
+     * Called when the request completes with a 2xx status
+     */
+    const successHandler = (responseData: any, textStatus: string, xhr: JQueryXHR) => {
+      metric.measure({
+        name: 'app.api.request-success',
+        start: startMarker,
+        data: {status: xhr?.status},
+      });
+      if (!isUndefined(options.success)) {
+        this.wrapCallback<[any, string, JQueryXHR]>(id, options.success)(
+          responseData,
+          textStatus,
+          xhr
+        );
+      }
+    };
+
+    /**
+     * Called when the request is non-2xx
+     */
+    const errorHandler = (resp: JQueryXHR, textStatus: string, errorThrown: string) => {
+      metric.measure({
+        name: 'app.api.request-error',
+        start: startMarker,
+        data: {status: resp?.status},
+      });
+
+      if (resp && resp.status !== 0 && resp.status !== 404) {
+        run(Sentry =>
+          Sentry.withScope(scope => {
+            // `requestPromise` can pass its error object
+            const preservedError = options.preservedError ?? errorObject;
+
+            const errorObjectToUse = createRequestError(
+              resp,
+              preservedError.stack,
+              method,
+              path
             );
-          }
-        },
-        error: (resp: JQueryXHR, textStatus: string, errorThrown: string) => {
-          metric.measure({
-            name: 'app.api.request-error',
-            start: `api-request-start-${id}`,
-            data: {
-              status: resp && resp.status,
-            },
-          });
 
-          if (resp && resp.status !== 0 && resp.status !== 404) {
-            run(Sentry =>
-              Sentry.withScope(scope => {
-                // `requestPromise` can pass its error object
-                const preservedError = options.preservedError || errorObject;
+            errorObjectToUse.removeFrames(3);
 
-                const errorObjectToUse = createRequestError(
-                  resp,
-                  preservedError.stack,
-                  method,
-                  path
-                );
+            // Setting this to warning because we are going to capture all failed requests
+            scope.setLevel(Severity.Warning);
+            scope.setTag('http.statusCode', String(resp.status));
+            Sentry.captureException(errorObjectToUse);
+          })
+        );
+      }
 
-                errorObjectToUse.removeFrames(3);
+      this.handleRequestError(
+        {id, path, requestOptions: options},
+        resp,
+        textStatus,
+        errorThrown
+      );
+    };
 
-                // Setting this to warning because we are going to capture all failed requests
-                scope.setLevel(Severity.Warning);
-                scope.setTag('http.statusCode', String(resp.status));
-                Sentry.captureException(errorObjectToUse);
-              })
-            );
-          }
+    /**
+     * Called when the request completes
+     */
+    const completeHandler = (jqXHR: JQueryXHR, textStatus: string) =>
+      this.wrapCallback<[JQueryXHR, string]>(
+        id,
+        options.complete,
+        true
+      )(jqXHR, textStatus);
 
-          this.handleRequestError(
-            {
-              id,
-              path,
-              requestOptions: options,
-            },
-            resp,
-            textStatus,
-            errorThrown
-          );
-        },
-        complete: (jqXHR: JQueryXHR, textStatus: string) =>
-          this.wrapCallback<[JQueryXHR, string]>(
-            id,
-            options.complete,
-            true
-          )(jqXHR, textStatus),
-      })
-    );
+    const xhrRequest = jQuery.ajax({
+      url: fullUrl,
+      method,
+      data,
+      contentType: 'application/json',
+      headers: {
+        Accept: 'application/json; charset=utf-8',
+      },
+      success: successHandler,
+      error: errorHandler,
+      complete: completeHandler,
+    });
 
-    return this.activeRequests[id];
+    const request = new Request(xhrRequest);
+    this.activeRequests[id] = request;
+
+    return request;
   }
 
   requestPromise<IncludeAllArgsType extends boolean>(
