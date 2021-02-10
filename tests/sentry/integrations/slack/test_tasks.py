@@ -211,6 +211,7 @@ class SlackTasksTest(TestCase):
             "data": alert_rule_data,
             "uuid": self.uuid,
             "organization_id": self.org.id,
+            "user_id": self.user.id,
         }
 
         with self.tasks():
@@ -218,6 +219,7 @@ class SlackTasksTest(TestCase):
                 find_channel_id_for_alert_rule(**data)
 
         rule = AlertRule.objects.get(name="New Rule")
+        assert rule.created_by == self.user
         mock_set_value.assert_called_with("success", rule.id)
         mock_get_channel_id.assert_called_with(self.integration, "my-channel", 180)
 
