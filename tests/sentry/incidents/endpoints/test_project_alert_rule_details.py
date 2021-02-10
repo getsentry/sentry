@@ -240,6 +240,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
             "uuid": "abc123",
             "alert_rule_id": self.alert_rule.id,
             "data": test_params,
+            "user_id": self.user.id,
         }
         mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
 
