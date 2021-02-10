@@ -41,12 +41,12 @@ class Migration(migrations.Migration):
             ),
             preserve_default=False,
         ),
-        migrations.RemoveField(
-            model_name="externaluser",
-            name="user",
-        ),
         migrations.AlterUniqueTogether(
             name="externaluser",
             unique_together=set([("organizationmember", "provider", "external_id")]),
+        ),
+        migrations.RemoveField(
+            model_name="externaluser",
+            name="user",
         ),
     ]
