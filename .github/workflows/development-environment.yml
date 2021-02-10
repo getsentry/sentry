@@ -19,6 +19,8 @@ jobs:
         os: [ macos-latest ]
     env:
       PIP_DISABLE_PIP_VERSION_CHECK: on
+      # Make the environment more similar to what Mac defaults to
+      SHELL: /bin/zsh
 
     steps:
       - uses: actions/checkout@v2
@@ -29,6 +31,7 @@ jobs:
           echo "HOMEBREW_CACHE=`brew --cache`" >> $GITHUB_ENV
           echo "VOLTA_HOME=$HOME/.volta" >> $GITHUB_ENV
           echo "PATH=$HOME/.volta/bin:$PATH" >> $GITHUB_ENV
+          touch "$HOME/.zshrc"
 
       - name: Cache (brew)
         uses: actions/cache@v2
@@ -56,7 +59,7 @@ jobs:
         # We source the startup script once in order for pyenv to be activated
         run: |
           make setup-pyenv
-          source "$HOME/.bashrc"
+          source "$HOME/.zshrc"
           echo "::set-output name=python-version::$(python -V  | sed s/Python\ //g)"
 
       - name: Setup pip
@@ -89,7 +92,7 @@ jobs:
         # XXX: I don't understand why we need to source again when we already do in a previous step
         run: |
           python -V
-          source "$HOME/.bashrc"
+          source "$HOME/.zshrc"
           python -V
           python -m venv .venv
           source .venv/bin/activate
