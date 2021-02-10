@@ -106,7 +106,6 @@ setup_pyenv() {
   _startup_script=$(get_shell_startup_script)
   append_to_config "$_startup_script"
 
-
   # If the script is called with the "dot space right" approach (. ./scripts/pyenv_setup.sh),
   # the effects of this will be persistent outside of this script
   echo "Activating pyenv"

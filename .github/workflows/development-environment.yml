@@ -53,10 +53,10 @@ jobs:
       - name: Install Python (via Pyenv)
         id: python-version
         # XXX: Can we cache the installed Python environments?
+        # We source the startup script once in order for pyenv to be activated
         run: |
           make setup-pyenv
           source "$HOME/.bashrc"
-          [[ $(python -V | sed s/Python\ //g) != $(cat .python-version) ]] && echo "Wrong Python version: $(python -V)" && exit 1
           echo "::set-output name=python-version::$(python -V  | sed s/Python\ //g)"
 
       - name: Setup pip
@@ -90,7 +90,7 @@ jobs:
         run: |
           python -V
           source "$HOME/.bashrc"
-          [[ $(python -V | sed s/Python\ //g) != $(cat .python-version) ]] && echo "Wrong Python version: $(python -V)" && exit 1
+          python -V
           python -m venv .venv
           source .venv/bin/activate
           pip install wheel  # GitHub Actions does not have `wheel` installed by default
