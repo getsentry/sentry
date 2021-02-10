@@ -38,6 +38,7 @@ from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerpri
 from sentry.tasks.deletion import delete_project
 from sentry.utils import json
 from sentry.utils.compat import filter
+from sentry_relay import validate_dynamic_rule_condition
 
 delete_logger = logging.getLogger("sentry.deletions.api")
 
@@ -66,86 +67,14 @@ class DynamicSamplingConditionSerializer(serializers.Serializer):
         This validation needs to evolve with the new types of conditions supported in
         the dynamic-sampling conditions
         """
-        if data is None:
-            raise serializers.ValidationError("Invalid dynamic rule condition")
 
-        op = data.get("op")
+        condition_string = json.dumps(data)
 
-        if op in ["and", "or", "not"]:
-            inner = data.get("inner")
-            if inner is None:
-                raise serializers.ValidationError(
-                    f"Missing inner field from  rule condition '{op}' "
-                )
-            if op == "not":
-                self.validate(inner)
-            else:
-                for child in inner:
-                    self.validate(child)
-        elif op == "eq":
-            for key in data.keys():
-                if key not in ["op", "name", "value", "ignoreCase"]:
-                    raise serializers.ValidationError(f"Invalid filed {key} for eq condition")
-            name = data.get("name")
-            if type(name) not in (str,):
-                raise serializers.ValidationError(
-                    "Invalid field value {} for name, expected string", format(name)
-                )
-            ignore_case = data.get("ignoreCase", False)
-            if type(ignore_case) != bool:
-                raise serializers.ValidationError(
-                    "Invalid field value {} for ignoreCase, expected bool", format(name)
-                )
-            if data.get("value") is None:
-                raise serializers.ValidationError("Missing field 'value'")
-        elif op == "glob":
-            for key in data.keys():
-                if key not in ["op", "name", "value", "ignoreCase"]:
-                    raise serializers.ValidationError(f"Invalid filed {key} for eq condition")
-            name = data.get("name")
-            if type(name) not in (str,):
-                raise serializers.ValidationError(
-                    "Invalid field value {} for name, expected string", format(name)
-                )
-            if data.get("value") is None:
-                raise serializers.ValidationError("Missing field 'value'")
-        elif op == "has":
-            for key in data.keys():
-                if key not in ["op", "name"]:
-                    raise serializers.ValidationError(
-                        f"Invalid filed {key} for has condition"
-                    )
-            name = data.get("name")
-            if type(name) not in (str,):
-                raise serializers.ValidationError(
-                    "Invalid field value {} for name, expected string", format(name)
-                )
-        elif op == "legacyBrowser":
-            for key in data.keys():
-                if key not in ["op", "value"]:
-                    raise serializers.ValidationError(
-                        f"Invalid filed {key} for has condition"
-                    )
-            value = data.get("value")
-            if type(value) != list:
-                raise serializers.ValidationError(
-                    "Invalid field type for value expected array got {} ", format(type(value))
-                )
-            for val in value:
-                if type(val) not in (str,):
-                    raise serializers.ValidationError(
-                        "Invalid field value {} for browser type expected string", format(val)
-                    )
-        elif op in ["csp", "clientIp", "errorMessages"]:
-            for key in data.keys():
-                if key not in ["op", "value"]:
-                    raise serializers.ValidationError(
-                        f"Invalid filed {key} for {op} condition"
-                    )
-            if data.get("value") is None:
-                raise serializers.ValidationError(f"Missing field 'value' in operator:{op}")
-        else:
-            raise serializers.ValidationError(f"Invalid dynamic rule condition operator:'{op}'")
+        try:
+            validate_dynamic_rule_condition(condition_string)
+        except ValueError as err:
+            reason = err.args[0] if len(err.args) > 0 else "invalid condition"
+            raise serializers.ValidationError(reason)
 
         return data
 

@@ -884,6 +884,28 @@ def test_condition_serializer_ok(condition):
 @pytest.mark.parametrize(
     "condition",
     (
+        {"op": "eq", "value": ["UPPER", "lower"]},
+        {"op": "eq", "name": "field_1"},
+        {"op": "invalid", "name": "field_1", "value": ["UPPER", "lower", 4], "ignoreCase": True},
+        {"op": "not", "inner": {"op": "invalid"}},
+        {"op": "and"},
+        {"op": "or"},
+        {"op": "has"},
+        {"op": "legacyBrowser"},
+        {"op": "csp"},
+        {"op": "clientIp"},
+        {"op": "errorMessages"},
+    ),
+)
+def test_serialization_errors(condition):
+    serializer = DynamicSamplingConditionSerializer(data=condition)
+    assert not serializer.is_valid()
+    assert serializer.errors is not None
+
+
+@pytest.mark.parametrize(
+    "condition",
+    (
         {"inner": []},
         {"op": "and"},
         {"op": "or"},
@@ -913,3 +935,20 @@ def test_rule_serializer():
     serializer = DynamicSamplingRuleSerializer(data=data)
     assert serializer.is_valid()
     assert data == serializer.validated_data
+
+
+def test_bad_rule_serializer():
+    data = {
+        "sampleRate": 0.7,
+        "type": "trace",
+        "condition": {
+            "op": "and",
+            "inner": [
+                {"op": "eq", "ignoreCase": True, "name": "field1", "value": ["val"]},
+                {"op": "globa", "name": "field1", "value": ["val"]},
+            ],
+        },
+    }
+    serializer = DynamicSamplingRuleSerializer(data=data)
+    assert not serializer.is_valid()
+    assert serializer.errors is not None
