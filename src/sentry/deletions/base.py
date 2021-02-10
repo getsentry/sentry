@@ -181,13 +181,7 @@ class ModelDeletionTask(BaseDeletionTask):
             if num_shards:
                 assert num_shards > 1
                 assert shard_id < num_shards
-                queryset = queryset.extra(
-                    where=[
-                        "id %% {num_shards} = {shard_id}".format(
-                            num_shards=num_shards, shard_id=shard_id
-                        )
-                    ]
-                )
+                queryset = queryset.extra(where=[f"id %% {num_shards} = {shard_id}"])
 
             queryset = list(queryset[:query_limit])
             if not queryset:

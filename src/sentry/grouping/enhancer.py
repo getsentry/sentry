@@ -464,9 +464,7 @@ class Enhancements:
             if len(context) == 33:
                 context = context[:-1] + "..."
             raise InvalidEnhancerConfig(
-                'Invalid syntax near "{}" (line {}, column {})'.format(
-                    context, e.line(), e.column()
-                )
+                f'Invalid syntax near "{context}" (line {e.line()}, column {e.column()})'
             )
         return EnhancmentsVisitor(bases, id).visit(tree)
 

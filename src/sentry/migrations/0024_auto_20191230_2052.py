@@ -113,9 +113,7 @@ def backfill_eventstream(apps, schema_editor):
             processed += 1
         except Exception as error:
             print(  # noqa: B314
-                "An error occured while trying to migrate the following event: {}\n.----\n{}".format(
-                    event, error
-                )
+                f"An error occured while trying to migrate the following event: {event}\n.----\n{error}"
             )
 
     if processed == 0:

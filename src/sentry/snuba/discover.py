@@ -831,12 +831,7 @@ def get_histogram_column(fields, key_column, histogram_params):
     """
 
     field = fields[0] if key_column is None else "measurements_value"
-    return "histogram({}, {:d}, {:d}, {:d})".format(
-        field,
-        histogram_params.bucket_size,
-        histogram_params.start_offset,
-        histogram_params.multiplier,
-    )
+    return f"histogram({field}, {histogram_params.bucket_size:d}, {histogram_params.start_offset:d}, {histogram_params.multiplier:d})"
 
 
 def find_histogram_params(num_buckets, min_value, max_value, multiplier):

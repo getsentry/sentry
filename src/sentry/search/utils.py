@@ -57,9 +57,7 @@ def parse_duration(value, interval):
         delta = timedelta(days=value * 7)
     else:
         raise InvalidQuery(
-            "{} is not a valid duration type, must be ms, s, min, m, hr, h, day, d, wk or w".format(
-                interval
-            )
+            f"{interval} is not a valid duration type, must be ms, s, min, m, hr, h, day, d, wk or w"
         )
 
     return delta.total_seconds() * 1000.0

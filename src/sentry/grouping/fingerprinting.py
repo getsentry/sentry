@@ -212,9 +212,7 @@ class FingerprintingRules:
             if len(context) == 33:
                 context = context[:-1] + "..."
             raise InvalidFingerprintingConfig(
-                'Invalid syntax near "{}" (line {}, column {})'.format(
-                    context, e.line(), e.column()
-                )
+                f'Invalid syntax near "{context}" (line {e.line()}, column {e.column()})'
             )
         return FingerprintingVisitor().visit(tree)
 

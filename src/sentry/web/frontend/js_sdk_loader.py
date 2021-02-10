@@ -73,10 +73,7 @@ class JavaScriptSdkLoader(BaseView):
         response["Access-Control-Allow-Origin"] = "*"
         response["Cache-Control"] = CACHE_CONTROL
         if sdk_version and key:
-            response["Surrogate-Key"] = "project/{} sdk/{} sdk-loader".format(
-                key.project_id,
-                sdk_version,
-            )
+            response["Surrogate-Key"] = f"project/{key.project_id} sdk/{sdk_version} sdk-loader"
 
         ms = int((time.time() - start_time) * 1000)
         metrics.timing("js-sdk-loader.duration", ms, instance=instance)

@@ -302,9 +302,7 @@ class MailAdapter:
 
         rules = []
         for rule in notification.rules:
-            rule_link = "/organizations/{}/alerts/rules/{}/{}/".format(
-                org.slug, project.slug, rule.id
-            )
+            rule_link = f"/organizations/{org.slug}/alerts/rules/{project.slug}/{rule.id}/"
 
             rules.append((rule.label, rule_link))
 

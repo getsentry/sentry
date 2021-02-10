@@ -155,9 +155,7 @@ def build_description(event, rule_id, installation, generate_footer):
     Format the description of the ticket/work item
     """
     project = event.group.project
-    rule_url = "/organizations/{}/alerts/rules/{}/{}/".format(
-        project.organization.slug, project.slug, rule_id
-    )
+    rule_url = f"/organizations/{project.organization.slug}/alerts/rules/{project.slug}/{rule_id}/"
 
     return installation.get_group_description(event.group, event) + generate_footer(rule_url)
 

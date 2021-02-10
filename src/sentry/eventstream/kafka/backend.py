@@ -113,9 +113,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
                     updated_offset = None
                 elif i.offset < 0:
                     raise Exception(
-                        "Received unexpected negative offset during partition assignment: {!r}".format(
-                            i
-                        )
+                        f"Received unexpected negative offset during partition assignment: {i!r}"
                     )
                 else:
                     updated_offset = i.offset
