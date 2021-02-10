@@ -35,6 +35,7 @@ class ExternalTeamSerializer(CamelSnakeModelSerializer):
             return ExternalTeam.objects.create(**validated_data)
         except IntegrityError:
             # swallow the error and find and return the object.
+            # we currently expect this endpoint to be hit by start-up scripts, so if the association already exists, we'll just return it.
             return list(ExternalTeam.objects.filter(**validated_data))
 
     def update(self, instance, validated_data):
