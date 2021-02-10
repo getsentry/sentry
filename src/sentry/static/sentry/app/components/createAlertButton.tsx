@@ -89,7 +89,7 @@ function IncompatibleQueryAlert({
       <Link
         to={{
           pathname,
-          query: eventTypeError.generateQueryStringObject(),
+          query: eventTypeDefault.generateQueryStringObject(),
         }}
       />
     ),
@@ -97,7 +97,7 @@ function IncompatibleQueryAlert({
       <Link
         to={{
           pathname,
-          query: eventTypeDefault.generateQueryStringObject(),
+          query: eventTypeTransaction.generateQueryStringObject(),
         }}
       />
     ),
