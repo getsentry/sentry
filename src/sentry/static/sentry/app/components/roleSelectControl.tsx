@@ -2,22 +2,26 @@ import React from 'react';
 import {components, OptionProps} from 'react-select';
 import styled from '@emotion/styled';
 
-import SelectControl from 'app/components/forms/selectControl';
+import SelectControl, {ControlProps} from 'app/components/forms/selectControl';
 import space from 'app/styles/space';
 import {MemberRole} from 'app/types';
 import theme from 'app/utils/theme';
-
-type Props = React.ComponentProps<typeof SelectControl> & {
-  roles: MemberRole[];
-  disableUnallowed: boolean;
-  value?: string;
-};
 
 type OptionType = {
   label: string;
   value: string;
   disabled: boolean;
   description: string;
+};
+
+type Props = Omit<ControlProps<OptionType>, 'onChange' | 'value'> & {
+  roles: MemberRole[];
+  disableUnallowed: boolean;
+  value?: string;
+  /**
+   * Narrower type than SelectControl because there is no empty value
+   */
+  onChange?: (value: OptionType) => void;
 };
 
 function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {

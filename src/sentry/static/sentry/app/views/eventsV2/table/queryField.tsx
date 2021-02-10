@@ -1,17 +1,16 @@
 import React, {CSSProperties} from 'react';
-// eslint import checks can't find types in the flow code.
-// eslint-disable-next-line import/named
 import {components, OptionProps, SingleValueProps} from 'react-select';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import SelectControl from 'app/components/forms/selectControl';
+import SelectControl, {ControlProps} from 'app/components/forms/selectControl';
 import Tag from 'app/components/tag';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {SelectValue} from 'app/types';
 import {
   AggregateParameter,
+  AggregationKey,
   ColumnType,
   QueryFieldValue,
   ValidateColumnTypes,
@@ -20,7 +19,9 @@ import Input from 'app/views/settings/components/forms/controls/input';
 
 import {FieldValue, FieldValueColumns, FieldValueKind} from './types';
 
-type FieldOptions = Record<string, SelectValue<FieldValue>>;
+type FieldValueOption = SelectValue<FieldValue>;
+
+type FieldOptions = Record<string, FieldValueOption>;
 
 // Intermediate type that combines the current column
 // data with the AggregateParameter type.
@@ -34,7 +35,7 @@ type ParameterDescription =
   | {
       kind: 'column';
       value: FieldValue | null;
-      options: SelectValue<FieldValue>[];
+      options: FieldValueOption[];
       required: boolean;
     };
 
@@ -55,7 +56,7 @@ type Props = {
    * NOTE: This is different from passing an already filtered fieldOptions
    * list, as tag items in the list may be used as parameters to functions.
    */
-  filterPrimaryOptions?: (option: SelectValue<FieldValue>) => boolean;
+  filterPrimaryOptions?: (option: FieldValueOption) => boolean;
   /**
    * Whether or not to add labels inside of the input fields, currently only
    * used for the metric alert builder.
@@ -76,7 +77,11 @@ type OptionType = {
 };
 
 class QueryField extends React.Component<Props> {
-  handleFieldChange = ({value}) => {
+  handleFieldChange = (selected: FieldValueOption | null | undefined) => {
+    if (!selected) {
+      return;
+    }
+    const {value} = selected;
     const current = this.props.fieldValue;
     let fieldValue: QueryFieldValue = cloneDeep(this.props.fieldValue);
 
@@ -88,11 +93,18 @@ class QueryField extends React.Component<Props> {
         break;
       case FieldValueKind.FUNCTION:
         if (current.kind === 'field') {
-          fieldValue = {kind: 'function', function: [value.meta.name, '', undefined]};
+          fieldValue = {
+            kind: 'function',
+            function: [value.meta.name as AggregationKey, '', undefined],
+          };
         } else if (current.kind === 'function') {
           fieldValue = {
             kind: 'function',
-            function: [value.meta.name, current.function[1], current.function[2]],
+            function: [
+              value.meta.name as AggregationKey,
+              current.function[1],
+              current.function[2],
+            ],
           };
         }
         break;
@@ -407,7 +419,7 @@ class QueryField extends React.Component<Props> {
       ? Object.values(fieldOptions).filter(filterPrimaryOptions)
       : Object.values(fieldOptions);
 
-    const selectProps: React.ComponentProps<typeof SelectControl> = {
+    const selectProps: ControlProps<FieldValueOption> = {
       name: 'field',
       options: Object.values(allFieldOptions),
       placeholder: t('(Required)'),

@@ -10,6 +10,8 @@ import {MemberRole, SelectValue, Team} from 'app/types';
 import renderEmailValue from './renderEmailValue';
 import {InviteStatus} from './types';
 
+type SelectOption = SelectValue<string>;
+
 type Props = {
   className?: string;
   disabled: boolean;
@@ -23,9 +25,9 @@ type Props = {
   inviteStatus: InviteStatus;
   onRemove: () => void;
 
-  onChangeEmails: (emails: SelectValue<string>[]) => void;
-  onChangeRole: (role: SelectValue<string>) => void;
-  onChangeTeams: (teams: null | SelectValue<string>[]) => void;
+  onChangeEmails: (emails: SelectOption[]) => void;
+  onChangeRole: (role: SelectOption) => void;
+  onChangeTeams: (teams: SelectOption[] | null | undefined) => void;
 };
 
 const InviteRowControl = ({
