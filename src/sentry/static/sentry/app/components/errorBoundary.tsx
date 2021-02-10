@@ -88,7 +88,7 @@ class ErrorBoundary extends React.Component<Props, State> {
 
     const {customComponent, mini, message, className} = this.props;
 
-    if (customComponent) {
+    if (typeof customComponent !== 'undefined') {
       return customComponent;
     }
 
