@@ -27,7 +27,7 @@ class BaseVariant:
         raise NotImplementedError()
 
     def __repr__(self):
-        return "<{} {!r} ({})>".format(self.__class__.__name__, self.get_hash(), self.type)
+        return f"<{self.__class__.__name__} {self.get_hash()!r} ({self.type})>"
 
 
 class ChecksumVariant(BaseVariant):

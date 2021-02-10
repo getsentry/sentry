@@ -75,7 +75,7 @@ class ContextType:
                     if not field:
                         yield (self.alias, value)
                     else:
-                        yield ("{}.{}".format(self.alias, field), value)
+                        yield (f"{self.alias}.{field}", value)
 
 
 # TODO(dcramer): contexts need to document/describe expected (optional) fields

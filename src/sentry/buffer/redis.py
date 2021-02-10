@@ -103,7 +103,7 @@ class RedisBuffer(Buffer):
         return self._make_pending_key(crc32(key) % self.pending_partitions)
 
     def _make_lock_key(self, key):
-        return "l:{}".format(key)
+        return f"l:{key}"
 
     def _dump_values(self, values):
         result = {}
@@ -142,7 +142,7 @@ class RedisBuffer(Buffer):
         elif type_ == "f":
             return float(value)
         else:
-            raise TypeError("invalid type: {}".format(type_))
+            raise TypeError(f"invalid type: {type_}")
 
     def incr(self, model, columns, filters, extra=None, signal_only=None):
         """
@@ -164,7 +164,7 @@ class RedisBuffer(Buffer):
         conn = self.cluster.get_local_client_for_key(key)
 
         pipe = conn.pipeline()
-        pipe.hsetnx(key, "m", "{}.{}".format(model.__module__, model.__name__))
+        pipe.hsetnx(key, "m", f"{model.__module__}.{model.__name__}")
         # TODO(dcramer): once this goes live in production, we can kill the pickle path
         # (this is to ensure a zero downtime deploy where we can transition event processing)
         pipe.hsetnx(key, "f", pickle.dumps(filters))

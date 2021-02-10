@@ -212,7 +212,7 @@ def discover_sourcemap(result):
 
 
 def get_release_file_cache_key(release_id, releasefile_ident):
-    return "releasefile:v1:{}:{}".format(release_id, releasefile_ident)
+    return f"releasefile:v1:{release_id}:{releasefile_ident}"
 
 
 def get_release_file_cache_key_meta(release_id, releasefile_ident):

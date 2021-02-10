@@ -683,7 +683,7 @@ def get_facets(query, params, limit=10, referrer=None):
     ) as span:
         span.set_data("tag_count", len(individual_tags))
         for tag_name in individual_tags:
-            tag = "tags[{}]".format(tag_name)
+            tag = f"tags[{tag_name}]"
             tag_values = raw_query(
                 aggregations=[["count", None, "count"]],
                 conditions=snuba_filter.conditions,
@@ -787,9 +787,7 @@ def histogram_query(
         for f in fields:
             measurement = get_measurement_name(f)
             if measurement is None:
-                raise InvalidSearchQuery(
-                    "multihistogram expected all measurements, received: {}".format(f)
-                )
+                raise InvalidSearchQuery(f"multihistogram expected all measurements, received: {f}")
             measurements.append(measurement)
         conditions.append([key_alias, "IN", measurements])
 
@@ -907,12 +905,12 @@ def find_histogram_min_max(fields, min_value, max_value, user_query, params, dat
     quartiles = []
     for field in fields:
         if min_value is None:
-            min_columns.append("min({})".format(field))
+            min_columns.append(f"min({field})")
         if max_value is None:
-            max_columns.append("max({})".format(field))
+            max_columns.append(f"max({field})")
         if data_filter == "exclude_outliers":
-            quartiles.append("percentile({}, 0.25)".format(field))
-            quartiles.append("percentile({}, 0.75)".format(field))
+            quartiles.append(f"percentile({field}, 0.25)")
+            quartiles.append(f"percentile({field}, 0.75)")
 
     results = query(
         selected_columns=min_columns + max_columns + quartiles,
@@ -944,8 +942,8 @@ def find_histogram_min_max(fields, min_value, max_value, user_query, params, dat
         fences = []
         if data_filter == "exclude_outliers":
             for field in fields:
-                q1_alias = get_function_alias("percentile({}, 0.25)".format(field))
-                q3_alias = get_function_alias("percentile({}, 0.75)".format(field))
+                q1_alias = get_function_alias(f"percentile({field}, 0.25)")
+                q3_alias = get_function_alias(f"percentile({field}, 0.75)")
 
                 first_quartile = row[q1_alias]
                 third_quartile = row[q3_alias]

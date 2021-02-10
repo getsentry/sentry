@@ -173,13 +173,13 @@ class BaseApiClient(TrackResponseMixin):
         self.logging_context = logging_context
 
     def get_cache_prefix(self):
-        return "{}.{}.client:".format(self.integration_type, self.name)
+        return f"{self.integration_type}.{self.name}.client:"
 
     def build_url(self, path):
         if path.startswith("/"):
             if not self.base_url:
-                raise ValueError("Invalid URL: {}".format(path))
-            return "{}{}".format(self.base_url, path)
+                raise ValueError(f"Invalid URL: {path}")
+            return f"{self.base_url}{path}"
         return path
 
     def _request(
@@ -225,8 +225,8 @@ class BaseApiClient(TrackResponseMixin):
             trace_id = None
 
         with sentry_sdk.start_transaction(
-            op="{}.http".format(self.integration_type),
-            name="{}.http_response.{}".format(self.integration_type, self.name),
+            op=f"{self.integration_type}.http",
+            name=f"{self.integration_type}.http_response.{self.name}",
             parent_span_id=parent_span_id,
             trace_id=trace_id,
             sampled=True,
@@ -357,8 +357,8 @@ class BaseInternalApiClient(ApiClient, TrackResponseMixin):
             trace_id = None
 
         with sentry_sdk.start_transaction(
-            op="{}.http".format(self.integration_type),
-            name="{}.http_response.{}".format(self.integration_type, self.name),
+            op=f"{self.integration_type}.http",
+            name=f"{self.integration_type}.http_response.{self.name}",
             parent_span_id=parent_span_id,
             trace_id=trace_id,
             sampled=True,

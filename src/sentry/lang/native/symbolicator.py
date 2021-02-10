@@ -99,7 +99,7 @@ SOURCES_SCHEMA = {
 
 
 def _task_id_cache_key_for_event(project_id, event_id):
-    return "symbolicator:{1}:{0}".format(project_id, event_id)
+    return f"symbolicator:{event_id}:{project_id}"
 
 
 class Symbolicator:
@@ -571,7 +571,7 @@ class SymbolicatorSession:
         )
 
     def query_task(self, task_id):
-        task_url = "requests/{}".format(task_id)
+        task_url = f"requests/{task_id}"
 
         params = {
             "timeout": 0,  # Only wait when creating, but not when querying tasks

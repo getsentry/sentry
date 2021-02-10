@@ -262,7 +262,7 @@ class Event:
         be saved under this key in nodestore so it can be retrieved using the
         same generated id when we only have project_id and event_id.
         """
-        return md5("{}:{}".format(project_id, event_id).encode("utf-8")).hexdigest()
+        return md5(f"{project_id}:{event_id}".encode("utf-8")).hexdigest()
 
     # TODO We need a better way to cache these properties. functools
     # doesn't quite do the trick as there is a reference bug with unsaved
@@ -469,11 +469,11 @@ class Event:
             for value in event_metadata.values():
                 value_u = force_text(value, errors="replace")
                 if value_u not in message:
-                    message = "{} {}".format(message, value_u)
+                    message = f"{message} {value_u}"
 
         if culprit and culprit not in message:
             culprit_u = force_text(culprit, errors="replace")
-            message = "{} {}".format(message, culprit_u)
+            message = f"{message} {culprit_u}"
 
         return trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH)
 

@@ -396,7 +396,7 @@ class Rule:
             % (
                 " ".join(x.text for x in self.matchers),
                 "".join(x for x in self.fingerprint),
-                " ".join('{}="{}"'.format(k, v) for (k, v) in sorted(self.attributes.items())),
+                " ".join(f'{k}="{v}"' for (k, v) in sorted(self.attributes.items())),
             )
         ).rstrip()
 

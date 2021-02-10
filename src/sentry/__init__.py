@@ -37,7 +37,7 @@ def get_revision():
 
 def get_version():
     if __build__:
-        return "{}.{}".format(__version__, __build__)
+        return f"{__version__}.{__build__}"
     return __version__
 
 

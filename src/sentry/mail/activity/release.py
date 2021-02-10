@@ -195,9 +195,7 @@ class ReleaseActivityEmail(ActivityEmail):
             "release": self.release,
             "deploy": self.deploy,
             "environment": self.environment,
-            "setup_repo_link": absolute_uri(
-                "/organizations/{}/repos/".format(self.organization.slug)
-            ),
+            "setup_repo_link": absolute_uri(f"/organizations/{self.organization.slug}/repos/"),
         }
 
     def get_user_context(self, user):
@@ -228,7 +226,7 @@ class ReleaseActivityEmail(ActivityEmail):
         }
 
     def get_subject(self):
-        return "Deployed version {} to {}".format(self.release.version, self.environment)
+        return f"Deployed version {self.release.version} to {self.environment}"
 
     def get_template(self):
         return "sentry/emails/activity/release.txt"

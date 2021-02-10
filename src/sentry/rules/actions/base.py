@@ -193,7 +193,7 @@ def create_issue(event, futures):
 
         if has_linked_issue(event, integration):
             logger.info(
-                "{}.rule_trigger.link_already_exists".format(integration.provider),
+                f"{integration.provider}.rule_trigger.link_already_exists",
                 extra={
                     "rule_id": rule_id,
                     "project_id": event.group.project.id,
@@ -260,14 +260,14 @@ class TicketEventAction(IntegrationEventAction):
 
     @property
     def prompt(self):
-        return "Create {}".format(self.ticket_type)
+        return f"Create {self.ticket_type}"
 
     def generate_footer(self, rule_url):
         raise NotImplementedError
 
     def after(self, event, state):
         integration_id = self.get_integration_id()
-        key = "{}:{}".format(self.provider, integration_id)
+        key = f"{self.provider}:{integration_id}"
         return self.future(
             create_issue,
             key=key,

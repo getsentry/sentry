@@ -21,12 +21,12 @@ def get_interface(name):
         name = get_canonical_name(name)
         import_path = settings.SENTRY_INTERFACES[name]
     except KeyError:
-        raise ValueError("Invalid interface name: {}".format(name))
+        raise ValueError(f"Invalid interface name: {name}")
 
     try:
         interface = import_string(import_path)
     except Exception:
-        raise ValueError("Unable to load interface: {}".format(name))
+        raise ValueError(f"Unable to load interface: {name}")
 
     return interface
 

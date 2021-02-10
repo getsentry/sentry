@@ -334,7 +334,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         for query_term in query_terms:
             if query_term in unsupported_queries:
                 raise serializers.ValidationError(
-                    "Unsupported Query: We do not currently support the {} query".format(query_term)
+                    f"Unsupported Query: We do not currently support the {query_term} query"
                 )
         return query
 
