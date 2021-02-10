@@ -2,6 +2,10 @@ import * as qs from 'query-string';
 
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {
+  eventNameMap as growthEventMap,
+  EventParameters as GrowthEventParameters,
+} from 'app/utils/growthAnalyticsEvents';
 import {uniqueId} from 'app/utils/guid';
 import {
   eventNameMap as integrationEventMap,
@@ -25,10 +29,9 @@ export const getAnalyticsSessionId = () =>
 
 const hasAnalyticsDebug = () => window.localStorage.getItem('DEBUG_ANALYTICS') === '1';
 
-//TODO: add more types/sources
-type EventParameters = IntegrationEventParameters;
+export type EventParameters = IntegrationEventParameters & GrowthEventParameters;
 
-const allEventMap = {...integrationEventMap};
+const allEventMap = {...integrationEventMap, ...growthEventMap};
 
 type AnalyticsKey = keyof EventParameters;
 
