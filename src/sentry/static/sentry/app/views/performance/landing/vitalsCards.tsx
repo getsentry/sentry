@@ -23,6 +23,7 @@ import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {decodeList} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
+import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
 import VitalsCardsDiscoverQuery, {
   VitalData,
   VitalsData,
@@ -32,7 +33,6 @@ import {HeaderTitle} from '../styles';
 import ColorBar from '../vitalDetail/colorBar';
 import {
   vitalAbbreviations,
-  vitalDescription,
   vitalDetailRouteWithQuery,
   vitalMap,
   VitalState,
@@ -104,7 +104,7 @@ export function FrontendCards(props: FrontendCardsProps) {
                 >
                   <VitalCard
                     title={vitalMap[vital] ?? ''}
-                    tooltip={vitalDescription[vital] ?? ''}
+                    tooltip={WEB_VITAL_DETAILS[vital].description ?? ''}
                     value={isLoading ? '\u2014' : value}
                     chart={chart}
                     minHeight={150}
