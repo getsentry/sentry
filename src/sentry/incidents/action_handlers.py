@@ -82,7 +82,7 @@ class EmailActionHandler(ActionHandler):
             ),
             template="sentry/emails/incidents/trigger.txt",
             html_template="sentry/emails/incidents/trigger.html",
-            type="incident.alert_rule_{}".format(display.lower()),
+            type=f"incident.alert_rule_{display.lower()}",
             context=context,
             headers={"X-SMTPAPI": json.dumps({"category": "metric_alert_email"})},
         )

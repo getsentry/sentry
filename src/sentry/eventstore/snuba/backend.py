@@ -14,7 +14,7 @@ EVENT_ID = Columns.EVENT_ID.value.alias
 PROJECT_ID = Columns.PROJECT_ID.value.alias
 TIMESTAMP = Columns.TIMESTAMP.value.alias
 
-DESC_ORDERING = ["-{}".format(TIMESTAMP), "-{}".format(EVENT_ID)]
+DESC_ORDERING = [f"-{TIMESTAMP}", f"-{EVENT_ID}"]
 ASC_ORDERING = [TIMESTAMP, EVENT_ID]
 DEFAULT_LIMIT = 100
 DEFAULT_OFFSET = 0

@@ -13,7 +13,7 @@ class BaseRelation:
         self.params = params
 
     def __repr__(self):
-        return "<%s: task=%s params=%s>" % (type(self), self.task, self.params)
+        return "<{}: task={} params={}>".format(type(self), self.task, self.params)
 
 
 class ModelRelation(BaseRelation):
@@ -41,7 +41,7 @@ class BaseDeletionTask:
         self.chunk_size = chunk_size if chunk_size is not None else self.DEFAULT_CHUNK_SIZE
 
     def __repr__(self):
-        return "<%s: skip_models=%s transaction_id=%s actor_id=%s>" % (
+        return "<{}: skip_models={} transaction_id={} actor_id={}>".format(
             type(self),
             self.skip_models,
             self.transaction_id,
@@ -145,7 +145,7 @@ class ModelDeletionTask(BaseDeletionTask):
         self.order_by = order_by
 
     def __repr__(self):
-        return "<%s: model=%s query=%s order_by=%s transaction_id=%s actor_id=%s>" % (
+        return "<{}: model={} query={} order_by={} transaction_id={} actor_id={}>".format(
             type(self),
             self.model,
             self.query,
@@ -181,13 +181,7 @@ class ModelDeletionTask(BaseDeletionTask):
             if num_shards:
                 assert num_shards > 1
                 assert shard_id < num_shards
-                queryset = queryset.extra(
-                    where=[
-                        "id %% {num_shards} = {shard_id}".format(
-                            num_shards=num_shards, shard_id=shard_id
-                        )
-                    ]
-                )
+                queryset = queryset.extra(where=[f"id %% {num_shards} = {shard_id}"])
 
             queryset = list(queryset[:query_limit])
             if not queryset:

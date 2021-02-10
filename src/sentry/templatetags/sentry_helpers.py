@@ -158,7 +158,7 @@ def small_count(v, precision=1):
         if o:
             if len(str(o)) > 2 or not p:
                 return "%d%s" % (o, y)
-            return ("%.{}f%s".format(precision)) % (v / float(x), y)
+            return (f"%.{precision}f%s") % (v / float(x), y)
     return v
 
 

@@ -27,9 +27,9 @@ class RedisRateLimiter(RateLimiter):
         bucket = int(time() / window)
 
         if project:
-            key = "rl:%s:%s:%s" % (key_hex, project.id, bucket)
+            key = f"rl:{key_hex}:{project.id}:{bucket}"
         else:
-            key = "rl:%s:%s" % (key_hex, bucket)
+            key = f"rl:{key_hex}:{bucket}"
 
         with self.cluster.map() as client:
             result = client.incr(key)

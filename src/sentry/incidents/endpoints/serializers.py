@@ -334,7 +334,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         for query_term in query_terms:
             if query_term in unsupported_queries:
                 raise serializers.ValidationError(
-                    "Unsupported Query: We do not currently support the {} query".format(query_term)
+                    f"Unsupported Query: We do not currently support the {query_term} query"
                 )
         return query
 
@@ -502,9 +502,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
         if alert_op(critical["alert_threshold"], warning["alert_threshold"]):
             raise serializers.ValidationError(
-                "Critical trigger must have an alert threshold {} warning trigger".format(
-                    threshold_type
-                )
+                f"Critical trigger must have an alert threshold {threshold_type} warning trigger"
             )
 
     def create(self, validated_data):
