@@ -85,7 +85,7 @@ class Form extends React.Component<Props<Values, KeysOfUnion<Values>>, State> {
                 value,
               }))}
               value={method}
-              onChange={({value}) => onChange('method', value)}
+              onChange={value => onChange('method', value?.value)}
             />
           </Field>
           {values.method === MethodType.REPLACE && (
@@ -128,7 +128,7 @@ class Form extends React.Component<Props<Values, KeysOfUnion<Values>>, State> {
                 value,
               }))}
               value={type}
-              onChange={({value}) => onChange('type', value)}
+              onChange={value => onChange('type', value?.value)}
             />
           </Field>
           {values.type === RuleType.PATTERN && (

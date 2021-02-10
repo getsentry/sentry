@@ -42,9 +42,9 @@ describe('convertFromSelect2Choices', function () {
   });
 
   it('returns null on invalid values', function () {
-    expect(convertFromSelect2Choices('test')).toEqual(null);
-    expect(convertFromSelect2Choices(1)).toEqual(null);
-    expect(convertFromSelect2Choices({})).toEqual(null);
-    expect(convertFromSelect2Choices(undefined)).toEqual(null);
+    expect(convertFromSelect2Choices('test')).toBeUndefined();
+    expect(convertFromSelect2Choices(1)).toBeUndefined();
+    expect(convertFromSelect2Choices({})).toBeUndefined();
+    expect(convertFromSelect2Choices(undefined)).toBeUndefined();
   });
 });

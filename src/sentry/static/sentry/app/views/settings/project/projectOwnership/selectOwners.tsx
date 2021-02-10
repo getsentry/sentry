@@ -71,7 +71,7 @@ class SelectOwners extends React.Component<Props, State> {
     }
   }
 
-  private selectRef = React.createRef<React.ReactInstance>();
+  private selectRef = React.createRef<any>();
 
   renderUserBadge = (user: User) => (
     <IdBadge avatarSize={24} user={user} hideEmail useLink={false} />

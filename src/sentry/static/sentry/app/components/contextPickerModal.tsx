@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import ReactSelect, {components, StylesConfig} from 'react-select';
+import {components, StylesConfig} from 'react-select';
 import styled from '@emotion/styled';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
@@ -100,8 +100,10 @@ class ContextPickerModal extends React.Component<Props> {
     }
   }
 
-  orgSelect: ReactSelect | null = null;
-  projectSelect: ReactSelect | null = null;
+  // TODO(ts) The various generics in react-select types make getting this
+  // right hard.
+  orgSelect: any | null = null;
+  projectSelect: any | null = null;
 
   // Performs checks to see if we need to prompt user
   // i.e. When there is only 1 org and no project is needed or
@@ -148,7 +150,7 @@ class ContextPickerModal extends React.Component<Props> {
     );
   };
 
-  doFocus = (ref: ReactSelect | null) => {
+  doFocus = (ref: any | null) => {
     if (!ref || this.props.loading) {
       return;
     }
@@ -264,7 +266,7 @@ class ContextPickerModal extends React.Component<Props> {
     }
     return (
       <StyledSelectControl
-        ref={(ref: ReactSelect) => {
+        ref={(ref: any) => {
           this.projectSelect = ref;
           this.focusProjectSelector();
         }}
@@ -310,7 +312,7 @@ class ContextPickerModal extends React.Component<Props> {
           {loading && <StyledLoadingIndicator overlay />}
           {needOrg && (
             <StyledSelectControl
-              ref={(ref: ReactSelect) => {
+              ref={(ref: any) => {
                 this.orgSelect = ref;
                 if (shouldShowProjectSelector) {
                   return;

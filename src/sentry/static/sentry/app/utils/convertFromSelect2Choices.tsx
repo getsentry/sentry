@@ -8,12 +8,14 @@ function isStringList(maybe: string[] | Choices): maybe is string[] {
 
 /**
  * Converts arg from a `select2` choices array to a `react-select` `options` array
+ * This contains some any hacks as this is creates type errors with the generics
+ * used in SelectControl as the generics conflict with the concrete types here.
  */
-const convertFromSelect2Choices = (choices: Input): SelectValue<any>[] | null => {
+const convertFromSelect2Choices = (choices: Input): SelectValue<any>[] | undefined => {
   // TODO(ts): This is to make sure that this function is backwards compatible, ideally,
   // this function only accepts arrays
   if (!Array.isArray(choices)) {
-    return null;
+    return undefined;
   }
   if (isStringList(choices)) {
     return choices.map(choice => ({value: choice, label: choice}));
