@@ -77,8 +77,11 @@ def process_suspect_commits(event_id, event_platform, event_frames, group_id, pr
                     if created:
                         owner_count += 1
                         if owner_count > PREFERRED_GROUP_OWNERS:
-                            owner = owners.first()
-                            if owner:
+                            try:
+                                owner = owners.pop(0)
+                            except IndexError:
+                                pass
+                            else:
                                 owner.delete()
 
         except Commit.DoesNotExist:
