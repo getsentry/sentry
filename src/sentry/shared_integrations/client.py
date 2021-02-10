@@ -53,9 +53,7 @@ class BaseApiResponse:
                 raise ValueError("Not a valid response type: {}".format(response.text[:128]))
             elif response.status_code < 200 or response.status_code >= 300:
                 raise ValueError(
-                    "Received unexpected plaintext response for code {}".format(
-                        response.status_code
-                    )
+                    f"Received unexpected plaintext response for code {response.status_code}"
                 )
             return TextApiResponse(response.text, response.headers, response.status_code)
 

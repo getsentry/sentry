@@ -500,9 +500,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
         if alert_op(critical["alert_threshold"], warning["alert_threshold"]):
             raise serializers.ValidationError(
-                "Critical trigger must have an alert threshold {} warning trigger".format(
-                    threshold_type
-                )
+                f"Critical trigger must have an alert threshold {threshold_type} warning trigger"
             )
 
     def create(self, validated_data):

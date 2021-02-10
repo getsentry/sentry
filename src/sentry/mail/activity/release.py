@@ -212,9 +212,7 @@ class ReleaseActivityEmail(ActivityEmail):
 
         release_links = [
             absolute_uri(
-                "/organizations/{}/releases/{}/?project={}".format(
-                    self.organization.slug, self.release.version, p.id
-                )
+                f"/organizations/{self.organization.slug}/releases/{self.release.version}/?project={p.id}"
             )
             for p in projects
         ]

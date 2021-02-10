@@ -111,9 +111,7 @@ class AppleCrashReport:
         thread_name_string = " name: %s" % (thread_name) if thread_name else ""
         thread_crashed = thread_info.get("crashed") or is_exception
         thread_crashed_thread = " Crashed:" if thread_crashed else ""
-        thread_string = "Thread {}{}{}\n".format(
-            thread_id, thread_name_string, thread_crashed_thread
-        )
+        thread_string = f"Thread {thread_id}{thread_name_string}{thread_crashed_thread}\n"
         return thread_string + "\n".join(rv)
 
     def _convert_frame_to_apple_string(self, frame, next=None, number=0):
