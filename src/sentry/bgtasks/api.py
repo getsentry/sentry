@@ -1,4 +1,3 @@
-import six
 import time
 import random
 import logging
@@ -28,7 +27,7 @@ class BgTask:
 
     @property
     def name(self):
-        return "%s:%s" % (self.callback.__module__, self.callback.__name__)
+        return f"{self.callback.__module__}:{self.callback.__name__}"
 
     def run(self):
         if self.running:
@@ -72,7 +71,7 @@ def get_task(task_name):
 
 
 def spawn_bgtasks(role):
-    for import_name, cfg in six.iteritems(settings.BGTASKS):
+    for import_name, cfg in settings.BGTASKS.items():
         task = get_task(import_name)
         # This is already running
         if task.name in tasks:
@@ -85,7 +84,7 @@ def spawn_bgtasks(role):
 
 
 def shutdown_bgtasks():
-    for task_name, task in list(six.iteritems(tasks)):
+    for task_name, task in list(tasks.items()):
         task.stop()
         tasks.pop(task_name, None)
 

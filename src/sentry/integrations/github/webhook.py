@@ -2,7 +2,6 @@ import dateutil.parser
 import hashlib
 import hmac
 import logging
-import six
 
 from django.db import IntegrityError, transaction
 from django.http import HttpResponse
@@ -53,7 +52,7 @@ class Webhook:
                 extra={
                     "action": event.get("action"),
                     "repository": event.get("repository", {}).get("full_name", None),
-                    "external_id": six.text_type(external_id),
+                    "external_id": str(external_id),
                 },
             )
             return
@@ -65,7 +64,7 @@ class Webhook:
             repos = Repository.objects.filter(
                 organization_id__in=orgs.keys(),
                 provider="integrations:%s" % self.provider,
-                external_id=six.text_type(event["repository"]["id"]),
+                external_id=str(event["repository"]["id"]),
             )
             for repo in repos:
                 self._handle(integration, event, orgs[repo.organization_id], repo)
@@ -116,7 +115,7 @@ class InstallationEventWebhook(Webhook):
                     extra={
                         "action": event["action"],
                         "installation_name": installation["account"]["login"],
-                        "external_id": six.text_type(external_id),
+                        "external_id": str(external_id),
                     },
                 )
 
@@ -206,7 +205,7 @@ class PushEventWebhook(Webhook):
                             try:
                                 gh_user = client.get_user(gh_username)
                             except ApiError as exc:
-                                logger.exception(six.text_type(exc))
+                                logger.exception(str(exc))
                             else:
                                 # even if we can't find a user, set to none so we
                                 # don't re-query
@@ -386,7 +385,7 @@ class GitHubWebhookBase(View):
         if method == "sha1":
             mod = hashlib.sha1
         else:
-            raise NotImplementedError("signature method %s is not supported" % (method,))
+            raise NotImplementedError(f"signature method {method} is not supported")
         expected = hmac.new(key=secret.encode("utf-8"), msg=body, digestmod=mod).hexdigest()
         return constant_time_compare(expected, signature)
 
@@ -410,7 +409,7 @@ class GitHubWebhookBase(View):
             logger.error("github.webhook.missing-secret", extra=self.get_logging_data())
             return HttpResponse(status=401)
 
-        body = six.binary_type(request.body)
+        body = bytes(request.body)
         if not body:
             logger.error("github.webhook.missing-body", extra=self.get_logging_data())
             return HttpResponse(status=400)

@@ -1,5 +1,6 @@
 import React from 'react';
 import * as ReactRouter from 'react-router';
+import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
@@ -13,7 +14,6 @@ import {IconDelete, IconEdit, IconGrabbable} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
-import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
@@ -24,6 +24,8 @@ import {Widget} from './types';
 import WidgetCardChart from './widgetCardChart';
 import WidgetQueries from './widgetQueries';
 
+type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
+
 type Props = ReactRouter.WithRouterProps & {
   api: Client;
   organization: Organization;
@@ -33,12 +35,11 @@ type Props = ReactRouter.WithRouterProps & {
   selection: GlobalSelection;
   onDelete: () => void;
   onEdit: () => void;
-  renderErrorMessage?: (errorMessage: string | undefined) => React.ReactNode;
-  isDragging: boolean;
+  isSorting: boolean;
+  currentWidgetDragging: boolean;
   hideToolbar?: boolean;
-  startWidgetDrag: (
-    event: React.MouseEvent<SVGElement> | React.TouchEvent<SVGElement>
-  ) => void;
+  draggableProps?: DraggableProps;
+  renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
 };
 
 class WidgetCard extends React.Component<Props> {
@@ -47,7 +48,7 @@ class WidgetCard extends React.Component<Props> {
       !isEqual(nextProps.widget, this.props.widget) ||
       !isSelectionEqual(nextProps.selection, this.props.selection) ||
       this.props.isEditing !== nextProps.isEditing ||
-      this.props.isDragging !== nextProps.isDragging ||
+      this.props.isSorting !== nextProps.isSorting ||
       this.props.hideToolbar !== nextProps.hideToolbar
     ) {
       return true;
@@ -56,25 +57,21 @@ class WidgetCard extends React.Component<Props> {
   }
 
   renderToolbar() {
-    if (!this.props.isEditing) {
+    const {onEdit, onDelete, draggableProps, hideToolbar, isEditing} = this.props;
+
+    if (!isEditing) {
       return null;
     }
 
-    if (this.props.hideToolbar) {
-      return <ToolbarPanel />;
-    }
-
-    const {onEdit, onDelete, startWidgetDrag} = this.props;
-
     return (
       <ToolbarPanel>
-        <IconContainer data-component="icon-container">
+        <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
           <IconClick>
             <StyledIconGrabbable
               color="gray500"
               size="md"
-              onMouseDown={event => startWidgetDrag(event)}
-              onTouchStart={event => startWidgetDrag(event)}
+              {...draggableProps?.listeners}
+              {...draggableProps?.attributes}
             />
           </IconClick>
           <IconClick
@@ -101,7 +98,6 @@ class WidgetCard extends React.Component<Props> {
   render() {
     const {
       widget,
-      isDragging,
       api,
       organization,
       selection,
@@ -113,43 +109,36 @@ class WidgetCard extends React.Component<Props> {
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
       >
-        <div
-          style={{
-            backgroundColor: isDragging ? theme.innerBorder : undefined,
-            borderRadius: isDragging ? theme.borderRadius : undefined,
-          }}
-        >
-          <StyledPanel isDragging={isDragging}>
-            <WidgetTitle>{widget.title}</WidgetTitle>
-            <WidgetQueries
-              api={api}
-              organization={organization}
-              widget={widget}
-              selection={selection}
-            >
-              {({tableResults, timeseriesResults, errorMessage, loading}) => {
-                return (
-                  <React.Fragment>
-                    {typeof renderErrorMessage === 'function'
-                      ? renderErrorMessage(errorMessage)
-                      : null}
-                    <WidgetCardChart
-                      timeseriesResults={timeseriesResults}
-                      tableResults={tableResults}
-                      errorMessage={errorMessage}
-                      loading={loading}
-                      location={location}
-                      widget={widget}
-                      selection={selection}
-                      router={router}
-                    />
-                    {this.renderToolbar()}
-                  </React.Fragment>
-                );
-              }}
-            </WidgetQueries>
-          </StyledPanel>
-        </div>
+        <StyledPanel isDragging={false}>
+          <WidgetTitle>{widget.title}</WidgetTitle>
+          <WidgetQueries
+            api={api}
+            organization={organization}
+            widget={widget}
+            selection={selection}
+          >
+            {({tableResults, timeseriesResults, errorMessage, loading}) => {
+              return (
+                <React.Fragment>
+                  {typeof renderErrorMessage === 'function'
+                    ? renderErrorMessage(errorMessage)
+                    : null}
+                  <WidgetCardChart
+                    timeseriesResults={timeseriesResults}
+                    tableResults={tableResults}
+                    errorMessage={errorMessage}
+                    loading={loading}
+                    location={location}
+                    widget={widget}
+                    selection={selection}
+                    router={router}
+                  />
+                  {this.renderToolbar()}
+                </React.Fragment>
+              );
+            }}
+          </WidgetQueries>
+        </StyledPanel>
       </ErrorBoundary>
     );
   }
@@ -179,7 +168,7 @@ const StyledPanel = styled(Panel, {
   visibility: ${p => (p.isDragging ? 'hidden' : 'visible')};
   /* If a panel overflows due to a long title stretch its grid sibling */
   height: 100%;
-  min-height: 110px;
+  min-height: 96px;
 `;
 
 const ToolbarPanel = styled('div')`
@@ -204,6 +193,8 @@ const IconContainer = styled('div')`
   > * + * {
     margin-left: 50px;
   }
+
+  touch-action: none;
 `;
 
 const IconClick = styled('div')`
@@ -224,6 +215,6 @@ const StyledIconGrabbable = styled(IconGrabbable)`
 `;
 
 const WidgetTitle = styled(HeaderTitle)`
-  padding: ${space(1)} ${space(2)};
+  padding: ${space(2)} ${space(3)} 0 ${space(3)};
   width: 100%;
 `;

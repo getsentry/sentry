@@ -1,5 +1,4 @@
 import re
-import six
 
 from django.utils.translation import ugettext_lazy as _
 from functools import wraps
@@ -77,7 +76,7 @@ def get_option_value(function, option):
     if option == OPTION_ACCOUNT_NUMBER:
         option_field = "aws-lambda.account-number"
     else:
-        option_field = "aws-lambda.{}.{}".format(prefix, option)
+        option_field = f"aws-lambda.{prefix}.{option}"
 
     # if we don't have the settings set, read from our options
     if not settings.SENTRY_RELEASE_REGISTRY_BASEURL:
@@ -85,11 +84,11 @@ def get_option_value(function, option):
 
     # otherwise, read from the cache
     cache_options = cache.get(LAYER_INDEX_CACHE_KEY) or {}
-    key = "aws-layer:{}".format(prefix)
+    key = f"aws-layer:{prefix}"
     cache_value = cache_options.get(key)
 
     if cache_value is None:
-        raise IntegrationError("Could not find cache value with key {}".format(key))
+        raise IntegrationError(f"Could not find cache value with key {key}")
 
     # special lookup for the version since it depends on the region
     if option == OPTION_VERSION:
@@ -100,7 +99,7 @@ def get_option_value(function, option):
             version = matched_regions[0]["version"]
             return version
         else:
-            raise IntegrationError("Unsupported region {}".format(region))
+            raise IntegrationError(f"Unsupported region {region}")
 
     # we use - in options but _ in the registry
     registry_field = option.replace("-", "_")
@@ -278,7 +277,7 @@ def wrap_lambda_updater():
             try:
                 return func(*args, **kwargs)
             except Exception as e:
-                err_message = six.text_type(e)
+                err_message = str(e)
                 invalid_layer = get_invalid_layer_name(err_message)
                 # only have one specific error to catch
                 if invalid_layer:

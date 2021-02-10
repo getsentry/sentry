@@ -1,5 +1,3 @@
-import six
-
 from collections import Counter, defaultdict, OrderedDict
 from sentry.models import OrganizationMemberTeam, ProjectOwnership, Team, User
 from sentry.api.fields.actor import Actor
@@ -11,10 +9,10 @@ def get_digest_metadata(digest):
     end = None
 
     counts = Counter()
-    for rule, groups in six.iteritems(digest):
+    for rule, groups in digest.items():
         counts.update(groups.keys())
 
-        for group, records in six.iteritems(groups):
+        for group, records in groups.items():
             for record in records:
                 if start is None or record.datetime < start:
                     start = record.datetime
@@ -42,7 +40,7 @@ def get_personalized_digests(target_type, project_id, digest, user_ids):
         events = get_event_from_groups_in_digest(digest)
         events_by_actor = build_events_by_actor(project_id, events, user_ids)
         events_by_user = convert_actors_to_users(events_by_actor, user_ids)
-        for user_id, user_events in six.iteritems(events_by_user):
+        for user_id, user_events in events_by_user.items():
             yield user_id, build_custom_digest(digest, user_events)
     else:
         for user_id in user_ids:
@@ -56,8 +54,8 @@ def get_event_from_groups_in_digest(digest):
     Gets the first event from each group in the digest
     """
     events = []
-    for rule_groups in six.itervalues(digest):
-        for group_records in six.itervalues(rule_groups):
+    for rule_groups in digest.values():
+        for group_records in rule_groups.values():
             events.append(group_records[0].value.event)
     return set(events)
 
@@ -67,9 +65,9 @@ def build_custom_digest(original_digest, events):
     build_custom_digest(original_digest: Digest, events: Set[Events]) -> Digest
     """
     user_digest = OrderedDict()
-    for rule, rule_groups in six.iteritems(original_digest):
+    for rule, rule_groups in original_digest.items():
         user_rule_groups = OrderedDict()
-        for group, group_records in six.iteritems(rule_groups):
+        for group, group_records in rule_groups.items():
             user_group_records = [
                 record for record in group_records if record.value.event in events
             ]
@@ -103,9 +101,9 @@ def convert_actors_to_users(events_by_actor, user_ids):
     convert_actors_to_user_set(events_by_actor: Map[Actor, Set(Events)], user_ids: List(Int)) -> Map[user_id: Int, Set(Events)]
     """
     events_by_user = defaultdict(set)
-    team_actors = [actor for actor in six.iterkeys(events_by_actor) if actor.type == Team]
+    team_actors = [actor for actor in events_by_actor.keys() if actor.type == Team]
     teams_to_user_ids = team_actors_to_user_ids(team_actors, user_ids)
-    for actor, events in six.iteritems(events_by_actor):
+    for actor, events in events_by_actor.items():
         if actor.type == Team:
             try:
                 team_user_ids = teams_to_user_ids[actor.id]

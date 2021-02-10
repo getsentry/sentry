@@ -1,4 +1,3 @@
-import six
 import logging
 
 from django.conf import settings
@@ -61,14 +60,14 @@ def get_frame_attributes(frame):
 
 
 def _make_index_backend(cluster, namespace="sim:1"):
-    if isinstance(cluster, six.string_types):
+    if isinstance(cluster, str):
         cluster_id = cluster
 
         try:
             cluster = redis.redis_clusters.get(cluster_id)
         except KeyError:
             index = DummyIndexBackend()
-            logger.info("No redis cluster provided for similarity, using {!r}.".format(index))
+            logger.info(f"No redis cluster provided for similarity, using {index!r}.")
             return index
 
     return MetricsWrapper(

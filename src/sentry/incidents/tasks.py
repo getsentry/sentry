@@ -3,7 +3,7 @@ import logging
 from django.db import transaction
 from django.core.urlresolvers import reverse
 from django.utils import timezone
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from sentry.auth.access import from_user
 from sentry.incidents.models import (
@@ -66,7 +66,7 @@ def send_subscriber_notifications(activity_id):
 def generate_incident_activity_email(activity, user):
     incident = activity.incident
     return MessageBuilder(
-        subject="Activity on Alert {} (#{})".format(incident.title, incident.identifier),
+        subject=f"Activity on Alert {incident.title} (#{incident.identifier})",
         template="sentry/emails/incidents/activity.txt",
         html_template="sentry/emails/incidents/activity.html",
         type="incident.activity",
@@ -78,13 +78,13 @@ def build_activity_context(activity, user):
     if activity.type == IncidentActivityType.COMMENT.value:
         action = "left a comment"
     else:
-        action = "changed status from %s to %s" % (
+        action = "changed status from {} to {}".format(
             INCIDENT_STATUS[IncidentStatus(int(activity.previous_value))],
             INCIDENT_STATUS[IncidentStatus(int(activity.value))],
         )
     incident = activity.incident
 
-    action = "%s on alert %s (#%s)" % (action, incident.title, incident.identifier)
+    action = f"{action} on alert {incident.title} (#{incident.identifier})"
 
     return {
         "user_name": activity.user.name if activity.user else "Sentry",
