@@ -517,7 +517,7 @@ class SymbolicatorSession:
                     json = {"status": "failed", "message": "internal server error"}
 
                 return self._process_response(json)
-            except (IOError, RequestException) as e:
+            except (OSError, RequestException) as e:
                 metrics.incr(
                     "events.symbolicator.request_error",
                     tags={

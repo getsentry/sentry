@@ -142,7 +142,7 @@ def safe_create_connection(
             sock.connect(sa)
             return sock
 
-        except socket.error as e:
+        except OSError as e:
             err = e
             if sock is not None:
                 sock.close()
@@ -151,7 +151,7 @@ def safe_create_connection(
     if err is not None:
         raise err
 
-    raise socket.error("getaddrinfo returns an empty list")
+    raise OSError("getaddrinfo returns an empty list")
 
 
 def safe_socket_connect(address, timeout=30, ssl=False):

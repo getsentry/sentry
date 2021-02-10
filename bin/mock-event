@@ -28,7 +28,7 @@ def main(project, sample_type):
     if not project.first_event:
         project.update(first_event=timezone.now())
 
-    sys.stdout.write("> Created event {}\n".format(event.event_id))
+    sys.stdout.write(f"> Created event {event.event_id}\n")
 
 
 if __name__ == "__main__":

@@ -186,7 +186,7 @@ class FileBlob(Model):
                     # go which would let us deadlock otherwise.
                     size, checksum = _get_size_and_checksum(fileobj)
                     if reference_checksum is not None and checksum != reference_checksum:
-                        raise IOError("Checksum mismatch")
+                        raise OSError("Checksum mismatch")
                     if checksum in checksums_seen:
                         continue
                     checksums_seen.add(checksum)
@@ -560,7 +560,7 @@ class ChunkedFileBlobIndexWrapper:
             return self._curfile.seek(pos)
 
         if pos < 0:
-            raise IOError("Invalid argument")
+            raise OSError("Invalid argument")
         if pos == 0 and not self._indexes:
             # Empty file, there's no seeking to be done.
             return

@@ -23,7 +23,7 @@ def load_registry(path):
     try:
         with open(fn, "rb") as f:
             return json.load(f)
-    except IOError:
+    except OSError:
         return None
 
 

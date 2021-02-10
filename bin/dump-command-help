@@ -59,7 +59,7 @@ def write_page(out, data):
         body.append(" :maxdepth: 1")
         body.append("")
         for subcmd in data["subcommands"]:
-            body.append(" %s <%s/index>" % (subcmd, subcmd))
+            body.append(f" {subcmd} <{subcmd}/index>")
         body.append("")
 
     with open(filename, "w") as f:

@@ -69,6 +69,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterUniqueTogether(
             name="externaluser",
-            unique_together=set([("user", "provider", "external_id")]),
+            unique_together={("user", "provider", "external_id")},
         ),
     ]
