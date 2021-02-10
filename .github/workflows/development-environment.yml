@@ -25,19 +25,9 @@ jobs:
         if: ${{ runner.os == 'macOS' }}
         shell: bash
         run: |
-          echo "HOMEBREW_CACHE=`brew --cache`" >> $GITHUB_ENV
           echo "PYENV_ROOT=$HOME/.pyenv" >> $GITHUB_ENV
           echo "VOLTA_HOME=$HOME/.volta" >> $GITHUB_ENV
           echo "PATH=$HOME/.pyenv/shims:$HOME/.volta/bin:$PATH" >> $GITHUB_ENV
-
-      - name: Cache (brew)
-        uses: actions/cache@v2
-        if: ${{ runner.os == 'macOS' }}
-        with:
-          path: $HOMEBREW_CACHE
-          key: ${{ runner.os }}-brew-${{ hashFiles('Brewfile') }}
-          restore-keys: |
-            ${{ runner.os }}-brew
 
       - name: Install prerequisites
         if: ${{ runner.os == 'macOS' }}
