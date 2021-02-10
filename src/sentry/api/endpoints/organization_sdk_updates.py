@@ -63,6 +63,8 @@ class OrganizationSdkUpdatesEndpoint(OrganizationEventsEndpointBase):
 
         project_ids = self.get_requested_project_ids(request)
         projects = self.get_projects(request, organization, project_ids)
+        if len(projects) == 0:
+            return Response([])
 
         with self.handle_query_errors():
             result = discover.query(
