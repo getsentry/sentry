@@ -37,6 +37,7 @@ class GroupingComponent:
         contributes=None,
         contributes_to_similarity=None,
         values=None,
+        variant_provider=False,
         similarity_encoder=None,
         similarity_self_encoder=None,
     ):
@@ -46,6 +47,7 @@ class GroupingComponent:
         self.hint = DEFAULT_HINTS.get(id)
         self.contributes = None
         self.contributes_to_similarity = None
+        self.variant_provider = variant_provider
         self.values = []
 
         self.update(
