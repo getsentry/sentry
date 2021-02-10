@@ -3,7 +3,7 @@ from django.core.urlresolvers import reverse
 from sentry.integrations.client import ApiClient
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.utils.http import absolute_uri
-from six.moves.urllib.parse import quote
+from urllib.parse import quote
 
 
 API_VERSION = "/api/v4"
@@ -30,7 +30,7 @@ class GitLabApiClientPath:
 
     @staticmethod
     def build_api_url(base_url, path):
-        return "{base_url}{api}{path}".format(base_url=base_url, api=API_VERSION, path=path)
+        return f"{base_url}{API_VERSION}{path}"
 
 
 class GitLabSetupClient(ApiClient):
@@ -58,7 +58,7 @@ class GitLabSetupClient(ApiClient):
         return self.get(path)
 
     def request(self, method, path, data=None, params=None):
-        headers = {"Authorization": "Bearer {}".format(self.token)}
+        headers = {"Authorization": f"Bearer {self.token}"}
         return self._request(
             method,
             GitLabApiClientPath.build_api_url(self.base_url, path),
@@ -87,7 +87,7 @@ class GitLabApiClient(ApiClient):
 
     def request(self, method, path, data=None, params=None):
         access_token = self.identity.data["access_token"]
-        headers = {"Authorization": "Bearer {}".format(access_token)}
+        headers = {"Authorization": f"Bearer {access_token}"}
         url = GitLabApiClientPath.build_api_url(self.metadata["base_url"], path)
         try:
             return self._request(method, url, headers=headers, data=data, params=params)
@@ -109,7 +109,9 @@ class GitLabApiClient(ApiClient):
         """
         self.identity.get_provider().refresh_identity(
             self.identity,
-            refresh_token_url="%s%s" % (self.metadata["base_url"], GitLabApiClientPath.oauth_token),
+            refresh_token_url="{}{}".format(
+                self.metadata["base_url"], GitLabApiClientPath.oauth_token
+            ),
         )
 
     def get_user(self):

@@ -1,6 +1,5 @@
 import dateutil.parser
 import logging
-import six
 
 from django.db import IntegrityError, transaction
 from django.http import HttpResponse, Http404
@@ -110,7 +109,7 @@ class MergeEventWebhook(Webhook):
         except KeyError as e:
             logger.info(
                 "gitlab.webhook.invalid-merge-data",
-                extra={"integration_id": integration.id, "error": six.string_type(e)},
+                extra={"integration_id": integration.id, "error": str(e)},
             )
 
         if not author_email:
@@ -212,7 +211,7 @@ class GitlabWebhookEndpoint(View):
             # to find data on our side so we embed one in the token.
             token = request.META["HTTP_X_GITLAB_TOKEN"]
             instance, group_path, secret = token.split(":")
-            external_id = "{}:{}".format(instance, group_path)
+            external_id = f"{instance}:{group_path}"
         except Exception:
             logger.info("gitlab.webhook.invalid-token", extra={"token": token})
             return HttpResponse(status=400)

@@ -19,7 +19,7 @@ class DebugNewUserFeedbackEmailView(View):
 
         group = event.group
         link = absolute_uri(
-            "/{}/{}/issues/{}/feedback/".format(project.organization.slug, project.slug, group.id)
+            f"/{project.organization.slug}/{project.slug}/issues/{group.id}/feedback/"
         )
 
         return MailPreview(

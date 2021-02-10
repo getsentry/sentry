@@ -1,6 +1,5 @@
 import itertools
 import logging
-import six
 import time
 import traceback
 import uuid
@@ -42,13 +41,12 @@ from sentry.utils.samples import load_data
 from sentry.web.decorators import login_required
 from sentry.web.helpers import render_to_response, render_to_string
 
-from six.moves import xrange
 
 logger = logging.getLogger(__name__)
 
 
 def get_random(request):
-    seed = request.GET.get("seed", six.text_type(time.time()))
+    seed = request.GET.get("seed", str(time.time()))
     return Random(seed)
 
 
@@ -245,7 +243,7 @@ def alert(request):
     # XXX: this interface_list code needs to be the same as in
     #      src/sentry/mail/adapter.py
     interface_list = []
-    for interface in six.itervalues(event.interfaces):
+    for interface in event.interfaces.values():
         body = interface.to_email_html(event)
         if not body:
             continue
@@ -310,8 +308,7 @@ def digest(request):
     project = Project(id=1, slug="example", name="Example Project", organization=org)
 
     rules = {
-        i: Rule(id=i, project=project, label="Rule #%s" % (i,))
-        for i in range(1, random.randint(2, 4))
+        i: Rule(id=i, project=project, label=f"Rule #{i}") for i in range(1, random.randint(2, 4))
     }
 
     state = {
@@ -409,7 +406,7 @@ def report(request):
     organization = Organization(id=1, slug="example", name="Example")
 
     projects = []
-    for i in xrange(0, random.randint(1, 8)):
+    for i in range(0, random.randint(1, 8)):
         name = " ".join(random.sample(loremipsum.words, random.randint(1, 4)))
         projects.append(
             Project(
@@ -470,12 +467,12 @@ def report(request):
                 timestamp + (i * rollup),
                 (random.randint(0, daily_maximum), random.randint(0, daily_maximum)),
             )
-            for i in xrange(0, 7)
+            for i in range(0, 7)
         ]
 
         aggregates = [
             random.randint(0, daily_maximum * 7) if random.random() < 0.9 else None
-            for _ in xrange(0, 4)
+            for _ in range(0, 4)
         ]
 
         return reports.Report(

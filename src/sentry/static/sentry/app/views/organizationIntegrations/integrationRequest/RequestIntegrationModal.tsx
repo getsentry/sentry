@@ -38,9 +38,8 @@ export default class RequestIntegrationModal extends AsyncComponent<Props, State
     const {message} = this.state;
 
     trackIntegrationEvent(
+      'integrations.request_install',
       {
-        eventKey: 'integrations.request_install',
-        eventName: 'Integrations: Request Install',
         integration_type: type,
         integration: slug,
       },

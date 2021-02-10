@@ -1,5 +1,3 @@
-import six
-
 import pickle
 import threading
 from time import time
@@ -65,7 +63,7 @@ class RedisBuffer(Buffer):
             with self.cluster.all() as client:
                 client.ping()
         except Exception as e:
-            raise InvalidConfiguration(six.text_type(e))
+            raise InvalidConfiguration(str(e))
 
     def _coerce_val(self, value):
         if isinstance(value, models.Model):
@@ -76,12 +74,10 @@ class RedisBuffer(Buffer):
         """
         Returns a Redis-compatible key for the model given filters.
         """
-        return "b:k:%s:%s" % (
+        return "b:k:{}:{}".format(
             model._meta,
             md5_text(
-                "&".join(
-                    "%s=%s" % (k, self._coerce_val(v)) for k, v in sorted(six.iteritems(filters))
-                )
+                "&".join("{}={}".format(k, self._coerce_val(v)) for k, v in sorted(filters.items()))
             ).hexdigest(),
         )
 
@@ -107,16 +103,16 @@ class RedisBuffer(Buffer):
         return self._make_pending_key(crc32(key) % self.pending_partitions)
 
     def _make_lock_key(self, key):
-        return "l:%s" % (key,)
+        return f"l:{key}"
 
     def _dump_values(self, values):
         result = {}
-        for k, v in six.iteritems(values):
+        for k, v in values.items():
             result[k] = self._dump_value(v)
         return result
 
     def _dump_value(self, value):
-        if isinstance(value, six.string_types):
+        if isinstance(value, str):
             type_ = "s"
         elif isinstance(value, datetime):
             type_ = "d"
@@ -127,11 +123,11 @@ class RedisBuffer(Buffer):
             type_ = "f"
         else:
             raise TypeError(type(value))
-        return (type_, six.text_type(value))
+        return (type_, str(value))
 
     def _load_values(self, payload):
         result = {}
-        for k, (t, v) in six.iteritems(payload):
+        for k, (t, v) in payload.items():
             result[k] = self._load_value((t, v))
         return result
 
@@ -146,7 +142,7 @@ class RedisBuffer(Buffer):
         elif type_ == "f":
             return float(value)
         else:
-            raise TypeError("invalid type: {}".format(type_))
+            raise TypeError(f"invalid type: {type_}")
 
     def incr(self, model, columns, filters, extra=None, signal_only=None):
         """
@@ -168,19 +164,19 @@ class RedisBuffer(Buffer):
         conn = self.cluster.get_local_client_for_key(key)
 
         pipe = conn.pipeline()
-        pipe.hsetnx(key, "m", "%s.%s" % (model.__module__, model.__name__))
+        pipe.hsetnx(key, "m", f"{model.__module__}.{model.__name__}")
         # TODO(dcramer): once this goes live in production, we can kill the pickle path
         # (this is to ensure a zero downtime deploy where we can transition event processing)
         pipe.hsetnx(key, "f", pickle.dumps(filters))
         # pipe.hsetnx(key, 'f', json.dumps(self._dump_values(filters)))
-        for column, amount in six.iteritems(columns):
+        for column, amount in columns.items():
             pipe.hincrby(key, "i+" + column, amount)
 
         if extra:
             # Group tries to serialize 'score', so we'd need some kind of processing
             # hook here
             # e.g. "update score if last_seen or times_seen is changed"
-            for column, value in six.iteritems(extra):
+            for column, value in extra.items():
                 # TODO(dcramer): once this goes live in production, we can kill the pickle path
                 # (this is to ensure a zero downtime deploy where we can transition event processing)
                 pipe.hset(key, "e+" + column, pickle.dumps(value))
@@ -224,7 +220,7 @@ class RedisBuffer(Buffer):
                 results = conn.zrange(pending_key, 0, -1)
 
             with self.cluster.all() as conn:
-                for host_id, keys in six.iteritems(results.value):
+                for host_id, keys in results.value.items():
                     if not keys:
                         continue
                     keycount += len(keys)
@@ -275,7 +271,7 @@ class RedisBuffer(Buffer):
             # XXX(python3): In python2 this isn't as important since redis will
             # return string tyes (be it, byte strings), but in py3 we get bytes
             # back, and really we just want to deal with keys as strings.
-            values = {force_text(k): v for k, v in six.iteritems(values)}
+            values = {force_text(k): v for k, v in values.items()}
 
             if not values:
                 metrics.incr("buffer.revoked", tags={"reason": "empty"}, skip_internal=False)
@@ -296,7 +292,7 @@ class RedisBuffer(Buffer):
             incr_values = {}
             extra_values = {}
             signal_only = None
-            for k, v in six.iteritems(values):
+            for k, v in values.items():
                 if k.startswith("i+"):
                     incr_values[k[2:]] = int(v)
                 elif k.startswith("e+"):

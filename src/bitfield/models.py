@@ -1,5 +1,3 @@
-import six
-
 from django.db.models.fields import BigIntegerField
 
 from bitfield.query import BitQueryExactLookupStub
@@ -132,7 +130,7 @@ class BitField(BigIntegerField):
             # Regression for #1425: fix bad data that was created resulting
             # in negative values for flags.  Compute the value that would
             # have been visible ot the application to preserve compatibility.
-            if isinstance(value, six.integer_types) and value < 0:
+            if isinstance(value, int) and value < 0:
                 new_value = 0
                 for bit_number, _ in enumerate(self.flags):
                     new_value |= value & (2 ** bit_number)

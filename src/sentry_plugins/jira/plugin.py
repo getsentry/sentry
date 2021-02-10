@@ -1,11 +1,10 @@
 import logging
 import re
-import six
 
 from django.conf import settings
 from django.conf.urls import url
 from rest_framework.response import Response
-from six.moves.urllib.parse import (
+from urllib.parse import (
     parse_qs,
     quote_plus,
     unquote_plus,
@@ -95,8 +94,8 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             schema.get("items") == "user" or schema["type"] == "user"
         ):
             fieldtype = "select"
-            sentry_url = "/api/0/issues/%s/plugins/%s/autocomplete" % (group.id, self.slug)
-            fkwargs["url"] = "%s?jira_url=%s" % (
+            sentry_url = f"/api/0/issues/{group.id}/plugins/{self.slug}/autocomplete"
+            fkwargs["url"] = "{}?jira_url={}".format(
                 sentry_url,
                 quote_plus(field_meta["autoCompleteUrl"]),
             )
@@ -150,7 +149,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             meta = client.get_create_meta_for_project(jira_project_key)
         except ApiError as e:
             raise PluginError(
-                "JIRA responded with an error. We received a status code of {}".format(e.code)
+                f"JIRA responded with an error. We received a status code of {e.code}"
             )
         except ApiUnauthorized:
             raise PluginError(
@@ -279,10 +278,10 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
 
     def get_issue_url(self, group, issue_id, **kwargs):
         instance = self.get_option("instance_url", group.project)
-        return "%s/browse/%s" % (instance, issue_id)
+        return f"{instance}/browse/{issue_id}"
 
     def _get_formatted_user(self, user):
-        display = "%s %s(%s)" % (
+        display = "{} {}({})".format(
             user.get("displayName", user["name"]),
             "- %s " % user.get("emailAddress") if user.get("emailAddress") else "",
             user["name"],
@@ -308,7 +307,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
                 )
             else:
                 issues = [
-                    {"text": "(%s) %s" % (i["key"], i["fields"]["summary"]), "id": i["key"]}
+                    {"text": "({}) {}".format(i["key"], i["fields"]["summary"]), "id": i["key"]}
                     for i in response.get("issues", [])
                 ]
                 return Response({field: issues})
@@ -404,7 +403,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         if data.get("errors"):
             if message:
                 message += " "
-            message += " ".join(["%s: %s" % (k, v) for k, v in data.get("errors").items()])
+            message += " ".join([f"{k}: {v}" for k, v in data.get("errors").items()])
         return message
 
     def create_issue(self, request, group, form_data, **kwargs):
@@ -539,7 +538,8 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             else:
                 if projects:
                     project_choices = [
-                        (p.get("key"), "%s (%s)" % (p.get("name"), p.get("key"))) for p in projects
+                        (p.get("key"), "{} ({})".format(p.get("name"), p.get("key")))
+                        for p in projects
                     ]
                     jira_project = jira_project or projects[0]["key"]
 
@@ -672,7 +672,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         try:
             issue_id = self.create_issue(request={}, group=group, form_data=post_data)
         except PluginError as e:
-            logger.info("post_process.fail", extra={"error": six.text_type(e)})
+            logger.info("post_process.fail", extra={"error": str(e)})
         else:
             prefix = self.get_conf_key()
             GroupMeta.objects.set_value(group, "%s:tid" % prefix, issue_id)

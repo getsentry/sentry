@@ -83,7 +83,7 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
             client = MsTeamsClient(integration)
             client.send_card(channel, card)
 
-        key = "msteams:{}:{}".format(integration.id, channel)
+        key = f"msteams:{integration.id}:{channel}"
 
         metrics.incr("notifications.sent", instance="msteams.notification", skip_internal=False)
         yield self.future(send_notification, key=key)

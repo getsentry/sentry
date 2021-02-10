@@ -2302,7 +2302,7 @@ FUNCTIONS = {
         Function(
             "to_other",
             required_args=[
-                ColumnNoLookup("column", allowed_columns=["release"]),
+                ColumnNoLookup("column", allowed_columns=["release", "trace.parent_span"]),
                 StringArg("value", unquote=True, unescape_quotes=True),
             ],
             optional_args=[
@@ -2496,7 +2496,10 @@ def resolve_function(field, match=None, params=None, functions_acl=False):
         if isinstance(addition[1], (list, tuple)):
             format_column_arguments(addition[1], arguments)
         if len(addition) < 3:
-            addition.append(get_function_alias_with_columns(function.name, columns))
+            if alias is not None:
+                addition.append(alias)
+            else:
+                addition.append(get_function_alias_with_columns(function.name, columns))
         elif len(addition) == 3:
             if alias is not None:
                 addition[2] = alias

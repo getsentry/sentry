@@ -1,7 +1,7 @@
 import hashlib
 import jwt
 
-from six.moves.urllib.parse import quote
+from urllib.parse import quote
 
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -27,9 +27,9 @@ def get_query_hash(uri, method, query_params=None):
                 param_val = [percent_encode(val) for val in v].join(",")
             else:
                 param_val = percent_encode(v)
-            sorted_query.append("%s=%s" % (percent_encode(k), param_val))
+            sorted_query.append("{}={}".format(percent_encode(k), param_val))
 
-    query_string = "%s&%s&%s" % (method, uri, "&".join(sorted_query))
+    query_string = "{}&{}&{}".format(method, uri, "&".join(sorted_query))
     return hashlib.sha256(query_string.encode("utf8")).hexdigest()
 
 

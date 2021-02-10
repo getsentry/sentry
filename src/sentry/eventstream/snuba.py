@@ -3,7 +3,6 @@ from datetime import datetime
 from uuid import uuid4
 
 import pytz
-import six
 import urllib3
 
 from sentry import quotas
@@ -125,7 +124,7 @@ class SnubaProtocolEventStream(EventStream):
                     "skip_consume": skip_consume,
                 },
             ),
-            headers={"Received-Timestamp": six.text_type(received_timestamp)},
+            headers={"Received-Timestamp": str(received_timestamp)},
         )
 
     def start_delete_groups(self, project_id, group_ids):
@@ -294,9 +293,9 @@ class SnubaEventStream(SnubaProtocolEventStream):
             for dataset in datasets:
                 resp = snuba._snuba_pool.urlopen(
                     "POST",
-                    "/tests/{}/eventstream".format(dataset),
+                    f"/tests/{dataset}/eventstream",
                     body=json.dumps(data),
-                    headers={"X-Sentry-{}".format(k): v for k, v in headers.items()},
+                    headers={f"X-Sentry-{k}": v for k, v in headers.items()},
                 )
                 if resp.status != 200:
                     raise snuba.SnubaError("HTTP %s response from Snuba!" % resp.status)

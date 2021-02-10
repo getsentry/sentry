@@ -1,6 +1,4 @@
 from datetime import datetime
-
-import six
 import itertools
 
 from sentry.api.event_search import get_filter
@@ -222,13 +220,13 @@ class QueryDefinition:
         self.fields = {}
         for key in raw_fields:
             if key not in COLUMN_MAP:
-                raise InvalidField('Invalid field: "{}"'.format(key))
+                raise InvalidField(f'Invalid field: "{key}"')
             self.fields[key] = COLUMN_MAP[key]
 
         self.groupby = []
         for key in raw_groupby:
             if key not in GROUPBY_MAP:
-                raise InvalidField('Invalid groupBy: "{}"'.format(key))
+                raise InvalidField(f'Invalid groupBy: "{key}"')
             self.groupby.append(GROUPBY_MAP[key])
 
         start, end, rollup = get_date_range_rollup_from_params(query, "1h", round_range=True)
@@ -390,10 +388,7 @@ def _get_timestamps(query):
     rollup = query.rollup
     start = int(to_timestamp(query.start))
     end = int(to_timestamp(query.end))
-    return [
-        datetime.utcfromtimestamp(ts).isoformat() + "Z"
-        for ts in six.moves.xrange(start, end, rollup)
-    ]
+    return [datetime.utcfromtimestamp(ts).isoformat() + "Z" for ts in range(start, end, rollup)]
 
 
 def _split_rows_groupby(rows, groupby):

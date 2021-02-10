@@ -1,7 +1,6 @@
 import logging
 import requests
 import sentry_sdk
-import six
 
 from collections import OrderedDict
 
@@ -26,7 +25,7 @@ class BaseApiResponse:
         self.status_code = status_code
 
     def __repr__(self):
-        return "<%s: code=%s, content_type=%s>" % (
+        return "<{}: code={}, content_type={}>".format(
             type(self).__name__,
             self.status_code,
             self.headers.get("Content-Type", "") if self.headers else "",
@@ -54,9 +53,7 @@ class BaseApiResponse:
                 raise ValueError("Not a valid response type: {}".format(response.text[:128]))
             elif response.status_code < 200 or response.status_code >= 300:
                 raise ValueError(
-                    "Received unexpected plaintext response for code {}".format(
-                        response.status_code
-                    )
+                    f"Received unexpected plaintext response for code {response.status_code}"
                 )
             return TextApiResponse(response.text, response.headers, response.status_code)
 
@@ -143,8 +140,8 @@ class TrackResponseMixin:
 
         extra = {
             self.integration_type: self.name,
-            "status_string": six.text_type(code),
-            "error": six.text_type(error)[:256] if error else None,
+            "status_string": str(code),
+            "error": str(error)[:256] if error else None,
         }
         extra.update(getattr(self, "logging_context", None) or {})
         self.logger.info("%s.http_response" % (self.integration_type), extra=extra)
@@ -174,13 +171,13 @@ class BaseApiClient(TrackResponseMixin):
         self.logging_context = logging_context
 
     def get_cache_prefix(self):
-        return "%s.%s.client:" % (self.integration_type, self.name)
+        return f"{self.integration_type}.{self.name}.client:"
 
     def build_url(self, path):
         if path.startswith("/"):
             if not self.base_url:
-                raise ValueError("Invalid URL: {}".format(path))
-            return "{}{}".format(self.base_url, path)
+                raise ValueError(f"Invalid URL: {path}")
+            return f"{self.base_url}{path}"
         return path
 
     def _request(
@@ -226,8 +223,8 @@ class BaseApiClient(TrackResponseMixin):
             trace_id = None
 
         with sentry_sdk.start_transaction(
-            op="{}.http".format(self.integration_type),
-            name="{}.http_response.{}".format(self.integration_type, self.name),
+            op=f"{self.integration_type}.http",
+            name=f"{self.integration_type}.http_response.{self.name}",
             parent_span_id=parent_span_id,
             trace_id=trace_id,
             sampled=True,
@@ -358,8 +355,8 @@ class BaseInternalApiClient(ApiClient, TrackResponseMixin):
             trace_id = None
 
         with sentry_sdk.start_transaction(
-            op="{}.http".format(self.integration_type),
-            name="{}.http_response.{}".format(self.integration_type, self.name),
+            op=f"{self.integration_type}.http",
+            name=f"{self.integration_type}.http_response.{self.name}",
             parent_span_id=parent_span_id,
             trace_id=trace_id,
             sampled=True,

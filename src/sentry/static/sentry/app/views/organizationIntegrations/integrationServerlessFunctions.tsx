@@ -46,9 +46,8 @@ class IntegrationServerlessFunctions extends AsyncComponent<Props, State> {
 
   onLoadAllEndpointsSuccess() {
     trackIntegrationEvent(
+      'integrations.serverless_functions_viewed',
       {
-        eventKey: 'integrations.serverless_functions_viewed',
-        eventName: 'Integrations: Serverless Functions Viewed',
         integration: this.props.integration.provider.key,
         integration_type: 'first_party',
         num_functions: this.serverlessFunctions.length,

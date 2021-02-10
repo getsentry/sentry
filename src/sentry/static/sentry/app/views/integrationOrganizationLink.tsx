@@ -14,9 +14,9 @@ import NarrowLayout from 'app/components/narrowLayout';
 import {IconFlag} from 'app/icons';
 import {t, tct} from 'app/locale';
 import {Integration, IntegrationProvider, Organization} from 'app/types';
+import {AnalyticsKey} from 'app/utils/integrationEvents';
 import {
   getIntegrationFeatureGate,
-  SingleIntegrationEvent,
   trackIntegrationEvent,
 } from 'app/utils/integrationUtil';
 import {singleLineRenderer} from 'app/utils/marked';
@@ -42,10 +42,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
     return t('Choose Installation Organization');
   }
 
-  trackIntegrationEvent = (
-    options: Pick<SingleIntegrationEvent, 'eventKey' | 'eventName'>,
-    startSession?: boolean
-  ) => {
+  trackIntegrationEvent = (eventName: AnalyticsKey, startSession?: boolean) => {
     const {organization, provider} = this.state;
     //should have these set but need to make TS happy
     if (!organization || !provider) {
@@ -53,8 +50,8 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
     }
 
     trackIntegrationEvent(
+      eventName,
       {
-        ...options,
         integration_type: 'first_party',
         integration: provider.key,
         //We actually don't know if it's installed but neither does the user in the view and multiple installs is possible
@@ -67,20 +64,11 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
   };
 
   trackOpened() {
-    this.trackIntegrationEvent(
-      {
-        eventKey: 'integrations.integration_viewed',
-        eventName: 'Integrations: Integration Viewed',
-      },
-      true
-    );
+    this.trackIntegrationEvent('integrations.integration_viewed', true);
   }
 
   trackInstallationStart() {
-    this.trackIntegrationEvent({
-      eventKey: 'integrations.installation_start',
-      eventName: 'Integrations: Installation Start',
-    });
+    this.trackIntegrationEvent('integrations.installation_start');
   }
 
   get integrationSlug() {
