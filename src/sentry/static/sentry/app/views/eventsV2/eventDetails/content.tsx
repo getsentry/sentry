@@ -293,6 +293,9 @@ const StyledHeaderActions = styled(Layout.HeaderActions)`
 const TitleWrapper = styled('h3')`
   margin-bottom: ${space(1)};
   font-size: ${p => p.theme.headerFontSize};
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 `;
 
 const EventHeaderContainer = styled('div')`
