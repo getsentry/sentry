@@ -193,6 +193,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
             "organization_id": self.organization.id,
             "uuid": "abc123",
             "data": valid_alert_rule,
+            "user_id": self.user.id,
         }
         mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
 
