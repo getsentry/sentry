@@ -223,7 +223,7 @@ class GroupEventDetails extends React.Component<Props, State> {
     return (
       <div className={className}>
         {event && (
-          <ErrorBoundary customComponent={null}>
+          <ErrorBoundary customComponent={<React.Fragment />}>
             <SuggestProjectCTA event={event} organization={organization} />
           </ErrorBoundary>
         )}
