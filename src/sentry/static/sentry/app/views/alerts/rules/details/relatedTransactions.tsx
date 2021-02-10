@@ -1,12 +1,13 @@
 import React from 'react';
-import {Location, LocationDescriptorObject} from 'history';
+import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
-import SortLink from 'app/components/gridEditable/sortLink';
+import {Alignments} from 'app/components/gridEditable/sortLink';
 import Link from 'app/components/links/link';
 import {NewQuery, Organization, Project} from 'app/types';
 import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
-import EventView, {EventData, isFieldSortable} from 'app/utils/discover/eventView';
+import EventView, {EventData} from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'app/utils/discover/fields';
 import {TableColumn} from 'app/views/eventsV2/table/types';
@@ -39,9 +40,7 @@ type TableProps = {
   organization: Organization;
   location: Location;
   summaryConditions: string;
-
   projects: Project[];
-  columnTitles?: string[];
 };
 
 type TableState = {
@@ -98,36 +97,10 @@ class Table extends React.Component<TableProps, TableState> {
     column: TableColumn<keyof TableDataRow>,
     title: React.ReactNode
   ): React.ReactNode {
-    const {eventView, location} = this.props;
-
     const align = fieldAlignment(column.name, column.type, tableMeta);
     const field = {field: column.name, width: column.width};
 
-    function generateSortLink(): LocationDescriptorObject | undefined {
-      if (!tableMeta) {
-        return undefined;
-      }
-
-      const nextEventView = eventView.sortOnField(field, tableMeta);
-      const queryStringObject = nextEventView.generateQueryStringObject();
-
-      return {
-        ...location,
-        query: {...location.query, sort: queryStringObject.sort},
-      };
-    }
-    const currentSort = eventView.sortForField(field, tableMeta);
-    const canSort =
-      isFieldSortable(field, tableMeta) && field.field !== 'key_transaction';
-    return (
-      <SortLink
-        align={align}
-        title={title || field.field}
-        direction={currentSort ? currentSort.kind : undefined}
-        canSort={canSort}
-        generateSortLink={generateSortLink}
-      />
-    );
+    return <HeaderCell align={align}>{title || field.field}</HeaderCell>;
   }
 
   renderHeadCellWithMeta = (tableMeta: TableData['meta']) => {
@@ -145,14 +118,7 @@ class Table extends React.Component<TableProps, TableState> {
 
   getSortedEventView() {
     const {eventView} = this.props;
-
-    return eventView.withSorts([
-      {
-        field: 'key_transaction',
-        kind: 'desc',
-      },
-      ...eventView.sorts,
-    ]);
+    return eventView.withSorts([...eventView.sorts]);
   }
 
   render() {
@@ -161,9 +127,6 @@ class Table extends React.Component<TableProps, TableState> {
     const {widths} = this.state;
     const columnOrder = eventView
       .getColumns()
-      // remove key_transactions from the column order as we'll be rendering it
-      // via a prepended column
-      .filter((col: TableColumn<React.ReactText>) => col.name !== 'key_transaction')
       .map((col: TableColumn<React.ReactText>, i: number) => {
         if (typeof widths[i] === 'number') {
           return {...col, width: widths[i]};
@@ -249,3 +212,10 @@ class RelatedTransactions extends React.Component<Props> {
 }
 
 export default RelatedTransactions;
+
+const HeaderCell = styled('div')<{align: Alignments}>`
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  ${(p: {align: Alignments}) => (p.align ? `text-align: ${p.align};` : '')}
+`;
