@@ -64,7 +64,7 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'eventsMemberAdmin',
         type: 'boolean',
-        label: t('Grant Members Events Admin'),
+        label: t('Let Members Delete Events'),
         help: t(
           'Allow members to delete events (including the delete & discard action) by granting them the `event:admin` scope.'
         ),
