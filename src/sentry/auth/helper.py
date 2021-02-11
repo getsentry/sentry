@@ -450,6 +450,7 @@ def handle_unknown_identity(request, organization, auth_provider, provider, stat
                 request,
                 {
                     "identity": identity,
+                    "provider": auth_provider.provider.capitalize() if auth_provider else " ",
                     "existing_user": request.user,
                     "identity_display_name": get_display_name(identity),
                     "identity_identifier": get_identifier(identity),
@@ -463,6 +464,7 @@ def handle_unknown_identity(request, organization, auth_provider, provider, stat
             {
                 "existing_user": acting_user,
                 "identity": identity,
+                "provider": auth_provider.provider.capitalize() if auth_provider else " ",
                 "login_form": login_form,
                 "identity_display_name": get_display_name(identity),
                 "identity_identifier": get_identifier(identity),
