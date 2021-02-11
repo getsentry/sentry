@@ -53,16 +53,7 @@ apply-migrations: ensure-venv
 reset-db: drop-db create-db apply-migrations
 
 setup-pyenv:
-ifdef BIG_SUR
-	# NOTE: Once we have a new release of pyenv and once a newer Python version we can remove these
-	# https://github.com/pyenv/pyenv/pull/1711
-	# cat is used since pyenv would finish to soon when the Python version is already installed
-	curl -sSL https://github.com/python/cpython/commit/8ea6353.patch | cat | \
-		LDFLAGS="-L$(shell xcrun --show-sdk-path)/usr/lib ${LDFLAGS}" \
-		pyenv install --skip-existing --patch 3.6.10
-else
-	@cat .python-version | xargs -n1 pyenv install --skip-existing
-endif
+	./scripts/pyenv_setup.sh
 
 ensure-venv:
 	@./scripts/ensure-venv.sh
