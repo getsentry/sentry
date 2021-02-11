@@ -45,7 +45,7 @@ class EventOrGroupHeader extends React.Component<Props> {
   trackClickEvent = () => {
     if (isForReviewQuery(this.props.query)) {
       trackAnalyticsEvent({
-        eventKey: 'inbox_tab.clicked_issue',
+        eventKey: 'inbox_tab.issue_clicked',
         eventName: 'Clicked Issue from Inbox Tab',
         organization_id: this.props.organization.id,
         group_id: this.props.data.id,
