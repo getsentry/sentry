@@ -1,13 +1,13 @@
 {
   "post": {
     "tags": ["Integration"],
-    "description": "Create an external issue from an internal integration.",
+    "description": "Create an external issue from an integration platform integration.",
     "operationId": "Create an External Issue",
     "parameters": [
       {
         "name": "uuid",
         "in": "path",
-        "description": "The uuid of the internal integration.",
+        "description": "The uuid of the integration platform integration.",
         "required": true,
         "schema": {
           "type": "string"
