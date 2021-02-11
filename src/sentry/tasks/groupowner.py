@@ -78,7 +78,7 @@ def process_suspect_commits(event_id, event_platform, event_frames, group_id, pr
                         owner_count += 1
                         if owner_count > PREFERRED_GROUP_OWNERS:
                             try:
-                                owner = owners.pop(0)
+                                owner = owners[0]
                             except IndexError:
                                 pass
                             else:
