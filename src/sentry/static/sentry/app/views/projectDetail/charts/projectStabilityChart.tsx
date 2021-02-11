@@ -85,10 +85,6 @@ function ProjectStabilityChart({
 
                       onTotalValuesChange(totalSessions);
 
-                      if (totalSessions === 0) {
-                        return <ErrorPanel>{t('No session data')}</ErrorPanel>;
-                      }
-
                       return (
                         <TransitionChart loading={loading} reloading={reloading}>
                           <TransparentLoadingMask visible={reloading} />
