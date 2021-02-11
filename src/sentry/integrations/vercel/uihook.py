@@ -2,7 +2,7 @@ import logging
 
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 
 from sentry.api.base import Endpoint, allow_cors_options
@@ -70,7 +70,7 @@ class VercelUIHook(Endpoint):
             return HttpResponse("The requested integration does not exist.")
 
         connect_projects_link = absolute_uri(
-            "/settings/%s/integrations/vercel/%s/" % (organization.slug, integration.id)
+            f"/settings/{organization.slug}/integrations/vercel/{integration.id}/"
         )
         doc_link = "https://docs.sentry.io/product/integrations/vercel/"
         source_code_link = absolute_uri(

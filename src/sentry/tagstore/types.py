@@ -1,6 +1,5 @@
 from sentry.api.serializers import Serializer, register, serialize
 
-import six
 import functools
 
 from sentry.search.utils import convert_user_tag_to_query
@@ -8,13 +7,13 @@ from sentry.tagstore.base import TagKeyStatus
 
 
 @functools.total_ordering
-class TagType(object):
+class TagType:
     _sort_key = None
 
     def __repr__(self):
-        return "<%s: %s>" % (
+        return "<{}: {}>".format(
             type(self).__name__,
-            ", ".join("%s=%r" % (name, getattr(self, name)) for name in self.__slots__),
+            ", ".join("{}={!r}".format(name, getattr(self, name)) for name in self.__slots__),
         )
 
     def __hash__(self):
@@ -32,7 +31,7 @@ class TagType(object):
         return {name: getattr(self, name) for name in self.__slots__}
 
     def __setstate__(self, state):
-        for name, value in six.iteritems(state):
+        for name, value in state.items():
             setattr(self, name, value)
 
 

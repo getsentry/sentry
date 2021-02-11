@@ -62,6 +62,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterUniqueTogether(
             name="sentryappinstallationforprovider",
-            unique_together=set([("provider", "organization")]),
+            unique_together={("provider", "organization")},
         ),
     ]

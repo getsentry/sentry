@@ -3,10 +3,11 @@ import styled from '@emotion/styled';
 
 import DateTime from 'app/components/dateTime';
 import Tag from 'app/components/tag';
-import {getRelativeDate} from 'app/components/timeSince';
+import TimeSince, {getRelativeDate} from 'app/components/timeSince';
 import {t, tct} from 'app/locale';
 import {InboxDetails} from 'app/types';
 import {getDuration} from 'app/utils/formatters';
+import {Theme} from 'app/utils/theme';
 
 const GroupInboxReason = {
   NEW: 0,
@@ -19,11 +20,13 @@ const GroupInboxReason = {
 type Props = {
   inbox: InboxDetails;
   fontSize?: 'sm' | 'md';
+  /** Displays the time an issue was added to inbox */
+  showDateAdded?: boolean;
 };
 
 const EVENT_ROUND_LIMIT = 1000;
 
-function InboxReason({inbox, fontSize = 'sm'}: Props) {
+function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
   const {reason, reason_details, date_added: dateAdded} = inbox;
 
   const getCountText = (count: number) =>
@@ -126,6 +129,7 @@ function InboxReason({inbox, fontSize = 'sm'}: Props) {
               relative: getRelativeDate(dateAdded, 'ago', true),
             }),
         };
+      case GroupInboxReason.NEW:
       default:
         return {
           tagType: 'warning',
@@ -147,12 +151,19 @@ function InboxReason({inbox, fontSize = 'sm'}: Props) {
       {tooltipDescription && (
         <TooltipDescription>{tooltipDescription}</TooltipDescription>
       )}
+      <TooltipDescription>Mark Reviewed to remove this label</TooltipDescription>
     </TooltipWrapper>
   );
 
   return (
     <StyledTag type={tagType} tooltipText={tooltip} fontSize={fontSize}>
       {reasonBadgeText}
+      {showDateAdded && inbox.date_added && (
+        <React.Fragment>
+          <Separator type={tagType ?? 'default'}>{' | '}</Separator>
+          <TimeSince date={inbox.date_added} suffix="" shorten disabledAbsoluteTooltip />
+        </React.Fragment>
+      )}
     </StyledTag>
   );
 }
@@ -167,7 +178,14 @@ const TooltipDescription = styled('div')`
   color: ${p => p.theme.gray200};
 `;
 
-const StyledTag = styled(Tag)<{fontSize: 'sm' | 'md'}>`
+const Separator = styled('span')<{type: keyof Theme['tag']}>`
+  color: ${p => p.theme.tag[p.type].iconColor};
+  opacity: 80%;
+`;
+
+const StyledTag = styled(Tag, {
+  shouldForwardProp: p => p !== 'fontSize',
+})<{fontSize: 'sm' | 'md'}>`
   font-size: ${p =>
     p.fontSize === 'sm' ? p.theme.fontSizeSmall : p.theme.fontSizeMedium};
 `;

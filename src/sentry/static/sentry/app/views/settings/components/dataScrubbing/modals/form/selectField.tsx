@@ -1,16 +1,12 @@
 import React from 'react';
-// eslint import checks can't find types in the flow code.
-// eslint-disable-next-line import/named
 import {components, OptionProps} from 'react-select';
 import styled from '@emotion/styled';
 
-import SelectControl from 'app/components/forms/selectControl';
+import SelectControl, {ControlProps} from 'app/components/forms/selectControl';
 import space from 'app/styles/space';
 
-type SelectControlProps = React.ComponentProps<typeof SelectControl>;
-
 type Props = Pick<
-  SelectControlProps,
+  ControlProps,
   'value' | 'placeholder' | 'name' | 'onChange' | 'options'
 >;
 
@@ -25,7 +21,8 @@ class SelectField extends React.Component<Props> {
     }
   }
 
-  selectRef = React.createRef<typeof SelectControl>();
+  // TODO(ts) The generics in react-select make getting a good type here hard.
+  selectRef = React.createRef<any>();
 
   render() {
     return (

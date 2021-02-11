@@ -1,8 +1,13 @@
+import $ from 'jquery';
+
 import * as ImportedClient from 'app/api';
 
 const RealClient: typeof ImportedClient = jest.requireActual('app/api');
 
 export class Request {}
+
+export const initApiClient = RealClient.initApiClient;
+export const initApiClientErrorHandling = RealClient.initApiClientErrorHandling;
 
 const respond = (isAsync: boolean, fn, ...args): void => {
   if (fn) {
@@ -17,8 +22,6 @@ const respond = (isAsync: boolean, fn, ...args): void => {
 const DEFAULT_MOCK_RESPONSE_OPTIONS = {
   predicate: () => true,
 };
-
-const mergeMock = jest.fn();
 
 type ResponseType = JQueryXHR & {
   url: string;
@@ -83,7 +86,7 @@ class Client {
   wrapCallback(_id, error) {
     return (...args) => {
       // @ts-expect-error
-      if (this.hasProjectBeenRenamed(...args)) {
+      if (RealClient.hasProjectBeenRenamed(...args)) {
         return;
       }
       respond(Client.mockAsync, error, ...args);
@@ -191,17 +194,7 @@ class Client {
     respond(Client.mockAsync, options.complete);
   }
 
-  hasProjectBeenRenamed = RealClient.Client.prototype.hasProjectBeenRenamed;
   handleRequestError = RealClient.Client.prototype.handleRequestError;
-  bulkUpdate = RealClient.Client.prototype.bulkUpdate;
-  _chain = RealClient.Client.prototype._chain;
-  _wrapRequest = RealClient.Client.prototype._wrapRequest;
-
-  merge(params, options) {
-    mergeMock(params, options);
-
-    return RealClient.Client.prototype.merge.call(this, params, options);
-  }
 }
 
-export {Client, mergeMock};
+export {Client};

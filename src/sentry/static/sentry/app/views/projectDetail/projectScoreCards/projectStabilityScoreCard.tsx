@@ -1,10 +1,12 @@
 import React from 'react';
+import round from 'lodash/round';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import {getDiffInMinutes} from 'app/components/charts/utils';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import ScoreCard from 'app/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import {IconArrow} from 'app/icons';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization, SessionApiResponse} from 'app/types';
 import {defined, percent} from 'app/utils';
@@ -22,6 +24,7 @@ import {shouldFetchPreviousPeriod} from '../utils';
 type Props = AsyncComponent['props'] & {
   organization: Organization;
   selection: GlobalSelection;
+  isProjectStabilized: boolean;
 };
 
 type State = AsyncComponent['state'] & {
@@ -41,7 +44,11 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
   }
 
   getEndpoints() {
-    const {organization, selection} = this.props;
+    const {organization, selection, isProjectStabilized} = this.props;
+
+    if (!isProjectStabilized) {
+      return [];
+    }
 
     const {projects, environments: environment, datetime} = selection;
     const {period} = datetime;
@@ -95,7 +102,11 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
    * If there are no sessions in the time frame, check if there are any in the last 90 days (empty message differs then)
    */
   async onLoadAllEndpointsSuccess() {
-    const {organization, selection} = this.props;
+    const {organization, selection, isProjectStabilized} = this.props;
+
+    if (!isProjectStabilized) {
+      return;
+    }
 
     if (defined(this.score) || defined(this.trend)) {
       this.setState({noSessionEver: false});
@@ -122,7 +133,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
   }
 
   get cardTitle() {
-    return t('Crash Free Rate');
+    return t('Crash Free Sessions');
   }
 
   get cardHelp() {
@@ -144,7 +155,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
       return undefined;
     }
 
-    return this.score - previousScore;
+    return round(this.score - previousScore, 3);
   }
 
   get trendStatus(): React.ComponentProps<typeof ScoreCard>['trendStatus'] {
@@ -156,7 +167,12 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (prevProps.selection !== this.props.selection) {
+    const {selection, isProjectStabilized} = this.props;
+
+    if (
+      prevProps.selection !== selection ||
+      prevProps.isProjectStabilized !== isProjectStabilized
+    ) {
       this.remountComponent();
     }
   }
@@ -194,7 +210,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
       <ScoreCard
         title={this.cardTitle}
         help={this.cardHelp}
-        score={<MissingReleasesButtons organization={organization} />}
+        score={<MissingReleasesButtons organization={organization} health />}
       />
     );
   }
@@ -216,9 +232,16 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
       return null;
     }
 
-    return `${this.trend >= 0 ? '+' : '-'}${formatAbbreviatedNumber(
-      Math.abs(this.trend)
-    )}\u0025`;
+    return (
+      <div>
+        {this.trend >= 0 ? (
+          <IconArrow direction="up" size="xs" />
+        ) : (
+          <IconArrow direction="down" size="xs" />
+        )}
+        {`${formatAbbreviatedNumber(Math.abs(this.trend))}\u0025`}
+      </div>
+    );
   }
 
   renderBody() {

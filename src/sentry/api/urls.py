@@ -107,6 +107,7 @@ from .endpoints.organization_events_trends import (
     OrganizationEventsTrendsEndpoint,
     OrganizationEventsTrendsStatsEndpoint,
 )
+from .endpoints.organization_events_trace import OrganizationEventsTraceLightEndpoint
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from .endpoints.organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
@@ -271,8 +272,14 @@ from .endpoints.sentry_app_details import SentryAppDetailsEndpoint
 from .endpoints.sentry_app_features import SentryAppFeaturesEndpoint
 from .endpoints.sentry_app_publish_request import SentryAppPublishRequestEndpoint
 from .endpoints.sentry_app_installation_details import SentryAppInstallationDetailsEndpoint
+from .endpoints.sentry_app_installation_external_issues import (
+    SentryAppInstallationExternalIssuesEndpoint,
+)
 from .endpoints.sentry_app_installation_external_issue_actions import (
     SentryAppInstallationExternalIssueActionsEndpoint,
+)
+from .endpoints.sentry_app_installation_external_issue_details import (
+    SentryAppInstallationExternalIssueDetailsEndpoint,
 )
 from .endpoints.sentry_app_installation_external_requests import (
     SentryAppInstallationExternalRequestsEndpoint,
@@ -889,6 +896,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-event-baseline",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/events-trace-light/(?P<trace_id>[^\/]+)/$",
+                    OrganizationEventsTraceLightEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-trace-light",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/issues/new/$",
                     OrganizationIssuesNewEndpoint.as_view(),
                 ),
@@ -1223,6 +1235,16 @@ urlpatterns = [
         r"^sentry-app-installations/(?P<uuid>[^\/]+)/external-issue-actions/$",
         SentryAppInstallationExternalIssueActionsEndpoint.as_view(),
         name="sentry-api-0-sentry-app-installation-external-issue-actions",
+    ),
+    url(
+        r"^sentry-app-installations/(?P<uuid>[^\/]+)/external-issues/$",
+        SentryAppInstallationExternalIssuesEndpoint.as_view(),
+        name="sentry-api-0-sentry-app-installation-external-issues",
+    ),
+    url(
+        r"^sentry-app-installations/(?P<uuid>[^\/]+)/external-issues/(?P<external_issue_id>[^\/]+)/$",
+        SentryAppInstallationExternalIssueDetailsEndpoint.as_view(),
+        name="sentry-api-0-sentry-app-installation-external-issue-details",
     ),
     # Teams
     url(

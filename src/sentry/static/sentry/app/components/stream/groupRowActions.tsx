@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {bulkDelete, bulkUpdate} from 'app/actionCreators/group';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import ResolveActions from 'app/components/actions/resolve';
@@ -36,7 +37,8 @@ class GroupRowActions extends React.Component<Props> {
       onMarkReviewed?.([group.id]);
     }
 
-    api.bulkUpdate(
+    bulkUpdate(
+      api,
       {
         orgId,
         itemIds: [group.id],
@@ -59,7 +61,8 @@ class GroupRowActions extends React.Component<Props> {
 
     addLoadingMessage(t('Removing events\u2026'));
 
-    api.bulkDelete(
+    bulkDelete(
+      api,
       {
         orgId,
         itemIds: [group.id],

@@ -168,7 +168,11 @@ type Props = {
   onRestore?: EChartRestoreHandler;
   onFinished?: EChartFinishedHandler;
   onRendered?: EChartRenderedHandler;
-  onLegendSelectChanged?: EChartEventHandler<{}>;
+  onLegendSelectChanged?: EChartEventHandler<{
+    name: string;
+    selected: Record<string, boolean>;
+    type: 'legendselectchanged';
+  }>;
   /**
    * Forwarded Ref
    */

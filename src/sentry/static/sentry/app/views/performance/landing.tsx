@@ -9,6 +9,7 @@ import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import PageHeading from 'app/components/pageHeading';
@@ -322,6 +323,7 @@ class PerformanceLanding extends React.Component<Props, State> {
                 <PageHeading>{t('Performance')}</PageHeading>
                 {!showOnboarding && <div>{this.renderHeaderButtons()}</div>}
               </PageHeader>
+              <GlobalSdkUpdateAlert />
               {this.renderError()}
               {showOnboarding ? (
                 <Onboarding organization={organization} />

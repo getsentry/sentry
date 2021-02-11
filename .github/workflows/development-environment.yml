@@ -16,10 +16,21 @@ jobs:
     timeout-minutes: 20
     strategy:
       matrix:
-        os: [ macos-11.0 ]
+        os: [ macos-latest ]
+    env:
+      PIP_DISABLE_PIP_VERSION_CHECK: on
+      # Make the environment more similar to what Mac defaults to
+      SHELL: /bin/zsh
 
     steps:
       - uses: actions/checkout@v2
+
+      - name: Set environment variables & others
+        if: ${{ runner.os == 'macOS' }}
+        run: |
+          echo "VOLTA_HOME=$HOME/.volta" >> $GITHUB_ENV
+          echo "PATH=$HOME/.volta/bin:$PATH" >> $GITHUB_ENV
+          touch "$HOME/.zshrc"
 
       - name: Install prerequisites
         if: ${{ runner.os == 'macOS' }}
@@ -28,25 +39,18 @@ jobs:
         continue-on-error: true
         # Xcode CLI & brew are already installed, thus, no need to call xcode-select install
         # XXX: Can the Brew set up be cached?
+        # If you want to speed up the CI for your PR, you can use --no-upgrade and HOMEBREW_NO_AUTO_UPDATE=1
         run: |
           brew bundle
 
-      - name: Set environment variables
-        shell: bash
-        run: |
-          echo "PYENV_ROOT=$HOME/.pyenv" >> $GITHUB_ENV
-          echo "VOLTA_HOME=$HOME/.volta" >> $GITHUB_ENV
-          echo "PATH=$HOME/.pyenv/shims:$HOME/.volta/bin:$PATH" >> $GITHUB_ENV
-
       - name: Install Python (via Pyenv)
         id: python-version
-        shell: bash
-        # XXX: Locally, pyenv makes 3.6.10 be the selected version in use,
-        # however, in here it selects /usr/local/bin/python. I'm using `pyenv global` to work around it
         # XXX: Can we cache the installed Python environments?
+        # We echo to $GITHUB_ENV to make the PATH changes by pyenv init permanent for the rest of the execution
         run: |
           make setup-pyenv
-          pyenv global 3.6.10
+          eval "$(pyenv init -)"
+          echo "PATH=$PATH" >> $GITHUB_ENV
           echo "::set-output name=python-version::$(python -V  | sed s/Python\ //g)"
 
       - name: Setup pip
@@ -62,6 +66,18 @@ jobs:
           key: ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ hashFiles('**/requirements-*.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}
+
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: echo "::set-output name=dir::$(yarn cache dir)"
+
+      - uses: actions/cache@v2
+        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
 
       - name: Set up development environment (as per docs)
         run: |

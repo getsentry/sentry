@@ -1,6 +1,3 @@
-import six
-
-
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.constants import LOG_LEVELS
 from sentry.models import GroupTombstone, User
@@ -20,7 +17,7 @@ class GroupTombstoneSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "level": LOG_LEVELS.get(obj.level, "unknown"),
             "message": obj.message,
             "culprit": obj.culprit,

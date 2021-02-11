@@ -3,7 +3,7 @@ import jwt
 from django.core.urlresolvers import reverse
 from oauthlib.oauth1 import SIGNATURE_RSA
 from requests_oauthlib import OAuth1
-from six.moves.urllib.parse import parse_qsl
+from urllib.parse import parse_qsl
 
 from sentry.integrations.jira.client import JiraApiClient
 from sentry.integrations.client import ApiClient
@@ -104,7 +104,7 @@ class JiraServerSetupClient(ApiClient):
         return self._request(*args, **kwargs)
 
 
-class JiraServer(object):
+class JiraServer:
     """
     Contains the jira-server specifics that a JiraClient needs
     in order to communicate with jira

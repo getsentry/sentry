@@ -1,5 +1,4 @@
-import six
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 from django.utils.translation import ugettext_lazy as _
 from django import forms
 
@@ -62,7 +61,7 @@ metadata = IntegrationMetadata(
     features=FEATURES,
     author="The Sentry Team",
     noun=_("Installation"),
-    issue_url="https://github.com/getsentry/sentry/issues/",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=GitLab%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/gitlab",
     aspects={},
 )
@@ -72,7 +71,7 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
     repo_search = True
 
     def __init__(self, *args, **kwargs):
-        super(GitlabIntegration, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.default_identity = None
 
     def get_group_id(self):
@@ -96,7 +95,7 @@ class GitlabIntegration(IntegrationInstallation, GitlabIssueBasic, RepositoryMix
 
         # Must format the url ourselves since `check_file` is a head request
         # "https://gitlab.com/gitlab-org/gitlab/blob/master/README.md"
-        return "{}/{}/blob/{}/{}".format(base_url, repo_name, branch, filepath)
+        return f"{base_url}/{repo_name}/blob/{branch}/{filepath}"
 
     def search_projects(self, query):
         client = self.get_client()
@@ -288,7 +287,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
                     "verify_ssl": installation_data["verify_ssl"],
                     "group": installation_data["group"],
                     "include_subgroups": installation_data["include_subgroups"],
-                    "error_message": six.text_type(e),
+                    "error_message": str(e),
                     "error_status": e.code,
                 },
             )

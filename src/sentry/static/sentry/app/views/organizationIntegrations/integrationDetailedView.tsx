@@ -3,14 +3,11 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {RequestOptions} from 'app/api';
-import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import {IconFlag, IconOpen, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Integration, IntegrationProvider} from 'app/types';
-import {getReauthAlertText, isSlackWorkspaceApp} from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
@@ -160,10 +157,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   };
 
   handleExternalInstall = () => {
-    this.trackIntegrationEvent({
-      eventKey: 'integrations.installation_start',
-      eventName: 'Integrations: Installation Start',
-    });
+    this.trackIntegrationEvent('integrations.installation_start');
   };
 
   renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
@@ -222,39 +216,25 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     const {configurations} = this.state;
     const {organization} = this.props;
     const provider = this.provider;
-    if (configurations.length) {
-      // check if we have a workspace app to render the alert
-      const hasWorkspaceApp = configurations.some(isSlackWorkspaceApp);
 
-      return (
-        <Feature organization={organization} features={['slack-migration']}>
-          {({hasFeature}) => (
-            <div>
-              {hasFeature && hasWorkspaceApp && (
-                <Alert type="warning" icon={<IconWarning size="sm" />}>
-                  {getReauthAlertText(provider)}
-                </Alert>
-              )}
-              {configurations.map(integration => (
-                <InstallWrapper key={integration.id}>
-                  <InstalledIntegration
-                    organization={organization}
-                    provider={provider}
-                    integration={integration}
-                    onRemove={this.onRemove}
-                    onDisable={this.onDisable}
-                    onReAuthIntegration={this.onInstall}
-                    data-test-id={integration.id}
-                    trackIntegrationEvent={this.trackIntegrationEvent}
-                    showReauthMessage={hasFeature && isSlackWorkspaceApp(integration)}
-                  />
-                </InstallWrapper>
-              ))}
-            </div>
-          )}
-        </Feature>
-      );
+    if (configurations.length) {
+      return configurations.map(integration => {
+        return (
+          <InstallWrapper key={integration.id}>
+            <InstalledIntegration
+              organization={organization}
+              provider={provider}
+              integration={integration}
+              onRemove={this.onRemove}
+              onDisable={this.onDisable}
+              data-test-id={integration.id}
+              trackIntegrationEvent={this.trackIntegrationEvent}
+            />
+          </InstallWrapper>
+        );
+      });
     }
+
     return this.renderEmptyConfigurations();
   }
 }

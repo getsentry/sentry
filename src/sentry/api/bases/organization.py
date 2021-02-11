@@ -20,7 +20,7 @@ from sentry.models import (
 )
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
-from sentry.utils.sdk import bind_organization_context, configure_scope
+from sentry.utils.sdk import bind_organization_context
 from sentry.utils.compat import map
 
 
@@ -241,7 +241,7 @@ class OrganizationEndpoint(Endpoint):
                     func = request.access.has_project_membership
                 projects = [p for p in qs if func(p)]
 
-        project_ids = set(p.id for p in projects)
+        project_ids = {p.id for p in projects}
 
         if requested_projects and project_ids != requested_projects:
             raise PermissionDenied
@@ -276,10 +276,21 @@ class OrganizationEndpoint(Endpoint):
         try:
             start, end = get_date_range_from_params(request.GET, optional=date_filter_optional)
             if start and end:
-                with configure_scope() as scope:
-                    scope.set_tag("query.period", (end - start).total_seconds())
+                total_seconds = (end - start).total_seconds()
+                sentry_sdk.set_tag("query.period", total_seconds)
+                one_day = 86400
+                grouped_period = ">30d"
+                if total_seconds <= one_day:
+                    grouped_period = "<=1d"
+                elif total_seconds <= one_day * 7:
+                    grouped_period = "<=7d"
+                elif total_seconds <= one_day * 14:
+                    grouped_period = "<=14d"
+                elif total_seconds <= one_day * 30:
+                    grouped_period = "<=30d"
+                sentry_sdk.set_tag("query.period.grouped", grouped_period)
         except InvalidParams as e:
-            raise ParseError(detail="Invalid date range: {}".format(e))
+            raise ParseError(detail=f"Invalid date range: {e}")
 
         try:
             projects = self.get_projects(request, organization, project_ids)
@@ -288,6 +299,13 @@ class OrganizationEndpoint(Endpoint):
 
         if not projects:
             raise NoProjects
+
+        len_projects = len(projects)
+        sentry_sdk.set_tag("query.num_projects", len_projects)
+        sentry_sdk.set_tag(
+            "query.num_projects.grouped",
+            "<10" if len_projects < 10 else "<100" if len_projects < 100 else ">100",
+        )
 
         environments = self.get_environments(request, organization)
         params = {
@@ -350,7 +368,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         ):
             return []
 
-        return super(OrganizationReleasesBaseEndpoint, self).get_projects(
+        return super().get_projects(
             request,
             organization,
             force_global_perms=has_valid_api_key,

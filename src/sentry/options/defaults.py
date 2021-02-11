@@ -119,14 +119,9 @@ register("cloudflare.secret-key", default="")
 # Slack Integration
 register("slack.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("slack.client-secret", flags=FLAG_PRIORITIZE_DISK)
+# signing-secret is preferred, but need to keep verification-token for apps that use it
 register("slack.verification-token", flags=FLAG_PRIORITIZE_DISK)
 register("slack.signing-secret", flags=FLAG_PRIORITIZE_DISK)
-register("slack.legacy-app", flags=FLAG_PRIORITIZE_DISK, type=Bool, default=True)
-
-# Slack V2 Integration
-register("slack-v2.client-id", flags=FLAG_PRIORITIZE_DISK)
-register("slack-v2.client-secret", flags=FLAG_PRIORITIZE_DISK)
-register("slack-v2.signing-secret", flags=FLAG_PRIORITIZE_DISK)
 
 # GitHub Integration
 register("github-app.id", default=0)
@@ -169,8 +164,8 @@ register("msteams.app-id")
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK)
 register("aws-lambda.secret-access-key", flags=FLAG_PRIORITIZE_DISK)
 register("aws-lambda.cloudformation-url")
-register("aws-lambda.account-number")
-register("aws-lambda.node.layer-name")
+register("aws-lambda.account-number", default="943013980633")
+register("aws-lambda.node.layer-name", default="SentryNodeServerlessSDK")
 register("aws-lambda.node.layer-version")
 # the region of the host account we use for assuming the role
 register("aws-lambda.host-region", default="us-east-2")

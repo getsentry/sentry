@@ -1,4 +1,7 @@
-import {t} from 'app/locale';
+import React from 'react';
+
+import ExternalLink from 'app/components/links/externalLink';
+import {t, tct} from 'app/locale';
 import {Organization} from 'app/types';
 
 export enum Query {
@@ -17,6 +20,10 @@ type OverviewTab = {
   count: boolean;
   /** Tabs can be disabled via flag */
   enabled: boolean;
+  /** Tooltip text for each tab */
+  tooltipTitle: React.ReactNode;
+  /** Tooltip text to be hoverable when text has links */
+  tooltipHoverable?: boolean;
 };
 
 /**
@@ -31,6 +38,7 @@ export function getTabs(organization: Organization) {
         analyticsName: 'unresolved',
         count: true,
         enabled: true,
+        tooltipTitle: t(`All unresolved issues, including those that need review.`),
       },
     ],
     [
@@ -40,6 +48,9 @@ export function getTabs(organization: Organization) {
         analyticsName: 'needs_review',
         count: true,
         enabled: organization.features.includes('inbox-owners-query'),
+        tooltipTitle: t(`New and reopened issues that you can review, ignore, or resolve
+        to move them out of this list. After seven days these issues are
+        automatically marked as reviewed.`),
       },
     ],
     [
@@ -49,6 +60,9 @@ export function getTabs(organization: Organization) {
         analyticsName: 'needs_review',
         count: true,
         enabled: !organization.features.includes('inbox-owners-query'),
+        tooltipTitle: t(`New and reopened issues that you can review, ignore, or resolve
+        to move them out of this list. After seven days these issues are
+        automatically marked as reviewed.`),
       },
     ],
     [
@@ -58,6 +72,8 @@ export function getTabs(organization: Organization) {
         analyticsName: 'ignored',
         count: true,
         enabled: true,
+        tooltipTitle: t(`Ignored issues don’t trigger alerts. When their ignore
+        conditions are met they become Unresolved and are flagged for review.`),
       },
     ],
     [
@@ -67,6 +83,16 @@ export function getTabs(organization: Organization) {
         analyticsName: 'reprocessing',
         count: true,
         enabled: organization.features.includes('reprocessing-v2'),
+        tooltipTitle: tct(
+          `These [link:reprocessing issues] will take some time to complete.
+        Any new issues that are created during reprocessing will be flagged for review.`,
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/error-monitoring/reprocessing/" />
+            ),
+          }
+        ),
+        tooltipHoverable: true,
       },
     ],
   ];
@@ -82,6 +108,13 @@ export function getTabsWithCounts(organization: Organization) {
   return tabs.filter(([_query, tab]) => tab.count).map(([query]) => query);
 }
 
+export function isForReviewQuery(query: string | undefined) {
+  return (
+    query !== undefined &&
+    (query === Query.FOR_REVIEW || query === Query.FOR_REVIEW_OWNER)
+  );
+}
+
 // the tab counts will look like 99+
 export const TAB_MAX_COUNT = 99;
 
@@ -91,3 +124,13 @@ type QueryCount = {
 };
 
 export type QueryCounts = Partial<Record<Query, QueryCount>>;
+
+export enum IssueSortOptions {
+  DATE = 'date',
+  NEW = 'new',
+  PRIORITY = 'priority',
+  FREQ = 'freq',
+  USER = 'user',
+  TREND = 'trend',
+  INBOX = 'inbox',
+}

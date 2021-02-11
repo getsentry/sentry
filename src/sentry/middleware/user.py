@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.utils import timezone
 
 
-class UserActiveMiddleware(object):
+class UserActiveMiddleware:
     disallowed_paths = (
         "sentry.web.frontend.generic.static_media",
         "sentry.web.frontend.organization_avatar",
@@ -19,7 +19,7 @@ class UserActiveMiddleware(object):
             view = view.__class__
 
         try:
-            path = "%s.%s" % (view.__module__, view.__name__)
+            path = f"{view.__module__}.{view.__name__}"
         except AttributeError:
             return
 

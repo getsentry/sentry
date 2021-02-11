@@ -1,9 +1,7 @@
-import six
-
 from collections import OrderedDict
 
 
-class Role(object):
+class Role:
     def __init__(self, priority, id, name, desc="", scopes=(), is_global=False):
         assert len(id) <= 32, "Role id must be no more than 32 characters"
 
@@ -15,19 +13,16 @@ class Role(object):
         self.is_global = bool(is_global)
 
     def __str__(self):
-        return self.name.encode("utf-8")
-
-    def __unicode__(self):
-        return six.text_type(self.name)
+        return str(self.name)
 
     def __repr__(self):
-        return "<Role: {}>".format(self.id)
+        return f"<Role: {self.id}>"
 
     def has_scope(self, scope):
         return scope in self.scopes
 
 
-class RoleManager(object):
+class RoleManager:
     def __init__(self, config, default=None):
         role_list = []
         self._roles = OrderedDict()
@@ -46,7 +41,7 @@ class RoleManager(object):
         self._top_dog = role_list[-1]
 
     def __iter__(self):
-        return six.itervalues(self._roles)
+        return self._roles.values()
 
     def can_manage(self, role, other):
         return self.get(role).priority >= self.get(other).priority

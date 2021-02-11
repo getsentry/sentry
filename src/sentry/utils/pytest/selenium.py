@@ -14,7 +14,7 @@ from selenium.common.exceptions import NoSuchElementException, WebDriverExceptio
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.common.action_chains import ActionChains
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.compat import map
@@ -22,7 +22,7 @@ from sentry.utils.compat import map
 logger = logging.getLogger("sentry.testutils")
 
 
-class Browser(object):
+class Browser:
     def __init__(self, driver, live_server):
         self.driver = driver
         self.live_server_url = live_server.url
@@ -362,7 +362,7 @@ class Browser(object):
         Retrieve key from local storage, this will fail if you use single quotes in your keys.
         """
 
-        return self.driver.execute_script("window.localStorage.getItem('{}')".format(key))
+        return self.driver.execute_script(f"window.localStorage.getItem('{key}')")
 
     def save_cookie(
         self,
@@ -401,7 +401,7 @@ class Browser(object):
         # http://stackoverflow.com/questions/37103621/adding-cookies-working-with-firefox-webdriver-but-not-in-phantomjs
 
         # TODO(dcramer): this should be escaped, but idgaf
-        logger.info("selenium.set-cookie.{}".format(name), extra={"value": value})
+        logger.info(f"selenium.set-cookie.{name}", extra={"value": value})
         if isinstance(self.driver, webdriver.PhantomJS):
             self.driver.execute_script(
                 "document.cookie = '{name}={value}; path={path}; domain={domain}; expires={expires}'; max-age={max_age}\n".format(
@@ -463,7 +463,7 @@ def browser(request, live_server):
         options.add_argument("no-sandbox")
         options.add_argument("disable-gpu")
         options.add_argument("disable-dev-shm-usage")
-        options.add_argument("window-size={}".format(window_size))
+        options.add_argument(f"window-size={window_size}")
         if headless:
             options.add_argument("headless")
         chrome_path = request.config.getoption("chrome_path")
@@ -541,20 +541,20 @@ def _gather_url(item, report, driver, summary, extra):
     try:
         url = driver.current_url
     except Exception as e:
-        summary.append("WARNING: Failed to gather URL: {0}".format(e))
+        summary.append(f"WARNING: Failed to gather URL: {e}")
         return
     pytest_html = item.config.pluginmanager.getplugin("html")
     if pytest_html is not None:
         # add url to the html report
         extra.append(pytest_html.extras.url(url))
-    summary.append("URL: {0}".format(url))
+    summary.append(f"URL: {url}")
 
 
 def _gather_screenshot(item, report, driver, summary, extra):
     try:
         screenshot = driver.get_screenshot_as_base64()
     except Exception as e:
-        summary.append("WARNING: Failed to gather screenshot: {0}".format(e))
+        summary.append(f"WARNING: Failed to gather screenshot: {e}")
         return
     pytest_html = item.config.pluginmanager.getplugin("html")
     if pytest_html is not None:
@@ -566,7 +566,7 @@ def _gather_html(item, report, driver, summary, extra):
     try:
         html = driver.page_source.encode("utf-8")
     except Exception as e:
-        summary.append("WARNING: Failed to gather HTML: {0}".format(e))
+        summary.append(f"WARNING: Failed to gather HTML: {e}")
         return
     pytest_html = item.config.pluginmanager.getplugin("html")
     if pytest_html is not None:
@@ -579,13 +579,13 @@ def _gather_logs(item, report, driver, summary, extra):
         types = driver.log_types
     except Exception as e:
         # note that some drivers may not implement log types
-        summary.append("WARNING: Failed to gather log types: {0}".format(e))
+        summary.append(f"WARNING: Failed to gather log types: {e}")
         return
     for name in types:
         try:
             log = driver.get_log(name)
         except Exception as e:
-            summary.append("WARNING: Failed to gather {0} log: {1}".format(name, e))
+            summary.append(f"WARNING: Failed to gather {name} log: {e}")
             return
         pytest_html = item.config.pluginmanager.getplugin("html")
         if pytest_html is not None:

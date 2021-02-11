@@ -37,16 +37,13 @@ export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, 
     this.loadTransaction = this.startTransaction('load');
   }
 
-  getEndpoints = (): ReturnType<AsyncComponent['getEndpoints']> => {
-    const {group, integration} = this.props;
-    const {action} = this.state;
-    return [
-      [
-        'integrationDetails',
-        `/groups/${group.id}/integrations/${integration.id}/?action=${action}`,
-      ],
-    ];
-  };
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+    const query: {action?: ExternalIssueAction} = {};
+    if (this.state?.hasOwnProperty('action')) {
+      query.action = this.state.action;
+    }
+    return [['integrationDetails', this.getEndPointString(), {query}]];
+  }
 
   handleClick = (action: ExternalIssueAction) => {
     this.setState({action}, () => this.reloadData());
@@ -89,10 +86,10 @@ export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, 
     this.loadTransaction?.finish();
   };
 
-  getEndPointString = () => {
+  getEndPointString() {
     const {group, integration} = this.props;
     return `/groups/${group.id}/integrations/${integration.id}/`;
-  };
+  }
 
   getTitle = () => {
     const {integration} = this.props;

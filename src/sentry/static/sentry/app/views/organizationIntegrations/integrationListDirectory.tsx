@@ -8,7 +8,6 @@ import startCase from 'lodash/startCase';
 import uniq from 'lodash/uniq';
 import * as queryString from 'query-string';
 
-import Feature from 'app/components/acl/feature';
 import AsyncComponent from 'app/components/asyncComponent';
 import SelectControl from 'app/components/forms/selectControl';
 import {Panel, PanelBody} from 'app/components/panels';
@@ -29,12 +28,10 @@ import {
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 import {
   getCategoriesForIntegration,
-  getReauthAlertText,
   getSentryAppInstallStatus,
   isDocumentIntegration,
   isPlugin,
   isSentryApp,
-  isSlackWorkspaceApp,
   trackIntegrationEvent,
 } from 'app/utils/integrationUtil';
 import withOrganization from 'app/utils/withOrganization';
@@ -142,9 +139,8 @@ export class IntegrationListDirectory extends AsyncComponent<
       }
     });
     trackIntegrationEvent(
+      'integrations.index_viewed',
       {
-        eventKey: 'integrations.index_viewed',
-        eventName: 'Integrations: Index Page Viewed',
         integrations_installed: integrationsInstalled.size,
         view: 'integrations_directory',
       },
@@ -269,9 +265,8 @@ export class IntegrationListDirectory extends AsyncComponent<
 
   debouncedTrackIntegrationSearch = debounce((search: string, numResults: number) => {
     trackIntegrationEvent(
+      'integrations.directory_item_searched',
       {
-        eventKey: 'integrations.directory_item_searched',
-        eventName: 'Integrations: Directory Item Searched',
         view: 'integrations_directory',
         search_term: search,
         num_results: numResults,
@@ -351,9 +346,8 @@ export class IntegrationListDirectory extends AsyncComponent<
 
       if (category) {
         trackIntegrationEvent(
+          'integrations.directory_category_selected',
           {
-            eventKey: 'integrations.directory_category_selected',
-            eventName: 'Integrations: Directory Category Selected',
             view: 'integrations_directory',
             category,
           },
@@ -371,32 +365,19 @@ export class IntegrationListDirectory extends AsyncComponent<
       i => i.provider.key === provider.key
     );
 
-    const hasWorkspaceApp = integrations.some(isSlackWorkspaceApp);
-
     return (
-      <Feature
+      <IntegrationRow
         key={`row-${provider.key}`}
+        data-test-id="integration-row"
         organization={organization}
-        features={['slack-migration']}
-      >
-        {({hasFeature}) => (
-          <IntegrationRow
-            key={`row-${provider.key}`}
-            data-test-id="integration-row"
-            organization={organization}
-            type="firstParty"
-            slug={provider.slug}
-            displayName={provider.name}
-            status={integrations.length ? 'Installed' : 'Not Installed'}
-            publishStatus="published"
-            configurations={integrations.length}
-            categories={getCategoriesForIntegration(provider)}
-            alertText={
-              hasFeature && hasWorkspaceApp ? getReauthAlertText(provider) : undefined
-            }
-          />
-        )}
-      </Feature>
+        type="firstParty"
+        slug={provider.slug}
+        displayName={provider.name}
+        status={integrations.length ? 'Installed' : 'Not Installed'}
+        publishStatus="published"
+        configurations={integrations.length}
+        categories={getCategoriesForIntegration(provider)}
+      />
     );
   };
 

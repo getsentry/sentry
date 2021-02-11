@@ -5,7 +5,6 @@ from hashlib import md5
 from django.conf import settings
 from sentry_sdk import Hub
 
-import six
 
 TEST_ROOT = os.path.normpath(
     os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir, os.pardir, "tests")
@@ -117,7 +116,7 @@ def pytest_configure(config):
             "slack.client-id": "slack-client-id",
             "slack.client-secret": "slack-client-secret",
             "slack.verification-token": "slack-verification-token",
-            "slack.legacy-app": True,
+            "slack.signing-secret": "slack-signing-secret",
             "github-app.name": "sentry-test-app",
             "github-app.client-id": "github-client-id",
             "github-app.client-secret": "github-client-secret",
@@ -274,10 +273,8 @@ def pytest_collection_modifyitems(config, items):
 
         # In the case where we group by round robin (e.g. TEST_GROUP_STRATEGY is not `file`),
         # we want to only include items in `accepted` list
-
-        # TODO(joshuarli): six 1.12.0 adds ensure_binary: six.ensure_binary(item.location[0])
         item_to_group = (
-            int(md5(six.text_type(item.location[0]).encode("utf-8")).hexdigest(), 16)
+            int(md5(str(item.location[0]).encode("utf-8")).hexdigest(), 16)
             if grouping_strategy == "file"
             else len(accepted) - 1
         )

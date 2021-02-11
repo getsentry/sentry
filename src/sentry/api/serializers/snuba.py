@@ -1,4 +1,3 @@
-import six
 import itertools
 from functools import reduce, partial
 from operator import or_
@@ -15,7 +14,7 @@ HEALTH_ID_KEY = "_health_id"
 def make_health_id(lookup, value):
     # Convert a lookup and value into
     # a string that can be used back in a request query.
-    return "%s:%s" % (lookup.name, lookup.encoder(value))
+    return "{}:{}".format(lookup.name, lookup.encoder(value))
 
 
 def serialize_releases(organization, item_list, user, lookup):
@@ -42,7 +41,7 @@ def geo_by_addr(ip):
     rv = {}
     for k in "country_code", "city", "region":
         d = geo.get(k)
-        if isinstance(d, six.binary_type):
+        if isinstance(d, bytes):
             d = d.decode("ISO-8859-1")
         rv[k] = d
 
@@ -75,7 +74,7 @@ def serialize_eventusers(organization, item_list, user, lookup):
         rv[(tag, project)] = {
             HEALTH_ID_KEY: make_health_id(lookup, [eu.tag_value, eu.project_id]),
             "value": {
-                "id": six.text_type(eu.id) if eu.id else None,
+                "id": str(eu.id) if eu.id else None,
                 "project": projects.get(eu.project_id),
                 "hash": eu.hash,
                 "tagValue": eu.tag_value,
@@ -135,7 +134,7 @@ def zerofill(data, start, end, rollup):
     if rollup_end - rollup_start == rollup:
         rollup_end += 1
     i = 0
-    for key in six.moves.xrange(rollup_start, rollup_end, rollup):
+    for key in range(rollup_start, rollup_end, rollup):
         try:
             while data[i][0] < key:
                 rv.append(data[i])
@@ -156,7 +155,7 @@ def zerofill(data, start, end, rollup):
     return rv
 
 
-class SnubaLookup(object):
+class SnubaLookup:
     """
     A SnubaLookup consists of all of the attributes needed to facilitate making
     a query for a column in Snuba. This covers which columns are selected, the extra conditions
@@ -244,7 +243,7 @@ for _tag in ("transaction", "os", "os.name", "browser", "browser.name", "device"
     SnubaLookup(_tag, "tags[%s]" % _tag)
 
 
-class BaseSnubaSerializer(object):
+class BaseSnubaSerializer:
     def __init__(self, organization, lookup, user):
         self.organization = organization
         self.lookup = lookup

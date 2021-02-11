@@ -1,6 +1,7 @@
 import React from 'react';
 import orderBy from 'lodash/orderBy';
 
+import {bulkUpdate} from 'app/actionCreators/group';
 import {Client} from 'app/api';
 import {t, tct} from 'app/locale';
 import {Group, GroupActivity} from 'app/types';
@@ -43,7 +44,8 @@ export function markEventSeen(
   projectId: string,
   groupId: string
 ) {
-  api.bulkUpdate(
+  bulkUpdate(
+    api,
     {
       orgId,
       projectId,

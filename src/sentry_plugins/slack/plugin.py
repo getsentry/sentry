@@ -146,7 +146,7 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
         option = self.get_option(name, project)
         if not option:
             return None
-        return set(tag.strip().lower() for tag in option.split(","))
+        return {tag.strip().lower() for tag in option.split(",")}
 
     def notify(self, notification, raise_exception=False):
         event = notification.event
@@ -186,10 +186,8 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
         if self.get_option("include_rules", project):
             rules = []
             for rule in notification.rules:
-                rule_link = "/%s/%s/settings/alerts/rules/%s/" % (
-                    group.organization.slug,
-                    project.slug,
-                    rule.id,
+                rule_link = (
+                    f"/{group.organization.slug}/{project.slug}/settings/alerts/rules/{rule.id}/"
                 )
 
                 # Make sure it's an absolute uri since we're sending this

@@ -1,6 +1,5 @@
 from collections import defaultdict
 
-import six
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.incidents.models import Incident, IncidentProject, IncidentSubscription
@@ -22,22 +21,22 @@ class IncidentSerializer(Serializer):
 
         alert_rules = {
             d["id"]: d
-            for d in serialize(set(i.alert_rule for i in item_list if i.alert_rule.id), user)
+            for d in serialize({i.alert_rule for i in item_list if i.alert_rule.id}, user)
         }
 
         results = {}
         for incident in item_list:
             results[incident] = {"projects": incident_projects.get(incident.id, [])}
-            results[incident]["alert_rule"] = alert_rules.get(six.text_type(incident.alert_rule.id))
+            results[incident]["alert_rule"] = alert_rules.get(str(incident.alert_rule.id))
 
         return results
 
     def serialize(self, obj, attrs, user):
         date_closed = obj.date_closed.replace(second=0, microsecond=0) if obj.date_closed else None
         return {
-            "id": six.text_type(obj.id),
-            "identifier": six.text_type(obj.identifier),
-            "organizationId": six.text_type(obj.organization_id),
+            "id": str(obj.id),
+            "identifier": str(obj.identifier),
+            "organizationId": str(obj.organization_id),
             "projects": attrs["projects"],
             "alertRule": attrs["alert_rule"],
             "status": obj.status,
@@ -53,7 +52,7 @@ class IncidentSerializer(Serializer):
 
 class DetailedIncidentSerializer(IncidentSerializer):
     def get_attrs(self, item_list, user, **kwargs):
-        results = super(DetailedIncidentSerializer, self).get_attrs(item_list, user=user, **kwargs)
+        results = super().get_attrs(item_list, user=user, **kwargs)
         subscribed_incidents = set()
         if user.is_authenticated():
             subscribed_incidents = set(
@@ -78,7 +77,7 @@ class DetailedIncidentSerializer(IncidentSerializer):
         return {"seen_by": serialize(seen_by_list), "has_seen": has_seen}
 
     def serialize(self, obj, attrs, user):
-        context = super(DetailedIncidentSerializer, self).serialize(obj, attrs, user)
+        context = super().serialize(obj, attrs, user)
         seen_list = self._get_incident_seen_list(obj, user)
 
         context["isSubscribed"] = attrs["is_subscribed"]

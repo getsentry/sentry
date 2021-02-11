@@ -31,16 +31,19 @@ import {Widget, WidgetQuery} from './types';
 const MAX_BIN_COUNT = 4000;
 
 function getWidgetInterval(
-  desired: string,
+  widget: Widget,
   datetimeObj: Partial<GlobalSelection['datetime']>
 ): string {
-  const desiredPeriod = parsePeriodToHours(desired);
+  // Bars charts are daily totals to aligned with discover. It also makes them
+  // usefully different from line/area charts until we expose the interval control, or remove it.
+  const interval = widget.displayType === 'bar' ? '1d' : widget.interval;
+  const desiredPeriod = parsePeriodToHours(interval);
   const selectedRange = getDiffInMinutes(datetimeObj);
 
   if (selectedRange / desiredPeriod > MAX_BIN_COUNT) {
     return getInterval(datetimeObj, true);
   }
-  return desired;
+  return interval;
 }
 
 type RawResult = EventsStats | MultiSeriesEventsStats;
@@ -214,7 +217,7 @@ class WidgetQueries extends React.Component<Props, State> {
 
     const {environments, projects} = selection;
     const {start, end, period: statsPeriod} = selection.datetime;
-    const interval = getWidgetInterval(widget.interval, {
+    const interval = getWidgetInterval(widget, {
       start,
       end,
       period: statsPeriod,

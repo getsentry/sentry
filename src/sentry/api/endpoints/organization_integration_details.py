@@ -1,6 +1,5 @@
 from uuid import uuid4
 
-import six
 
 from sentry.api.bases.organization import OrganizationIntegrationsPermission
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
@@ -59,6 +58,6 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         try:
             installation.update_organization_config(request.data)
         except IntegrationError as e:
-            return self.respond({"detail": six.text_type(e)}, status=400)
+            return self.respond({"detail": str(e)}, status=400)
 
         return self.respond(status=200)

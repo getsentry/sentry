@@ -1,10 +1,9 @@
 from uuid import uuid4
-import six
 import logging
 
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.serializers import ValidationError
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 
 from sentry.integrations import (
@@ -84,7 +83,7 @@ metadata = IntegrationMetadata(
     features=FEATURES,
     author="The Sentry Team",
     noun=_("Installation"),
-    issue_url="https://github.com/getsentry/sentry/issues/new?title=Vercel%20Integration:%20&labels=Component%3A%20Integrations",
+    issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug_report.md&title=Vercel%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/vercel",
     aspects={
         "externalInstall": external_install,
@@ -130,7 +129,7 @@ class VercelIntegration(IntegrationInstallation):
                 dashboard_url = "https://vercel.com/dashboard/%s/" % slug
             else:
                 dashboard_url = "https://vercel.com/dashboard/"
-            return "%sintegrations/%s" % (dashboard_url, configuration_id)
+            return f"{dashboard_url}integrations/{configuration_id}"
         return None
 
     def get_client(self):
@@ -167,7 +166,7 @@ class VercelIntegration(IntegrationInstallation):
         slug = self.get_slug()
         base_url = "https://vercel.com/%s" % slug
         vercel_projects = [
-            {"value": p["id"], "label": p["name"], "url": "%s/%s" % (base_url, p["name"])}
+            {"value": p["id"], "label": p["name"], "url": "{}/{}".format(base_url, p["name"])}
             for p in vercel_client.get_projects()
         ]
 
@@ -289,7 +288,7 @@ class VercelIntegration(IntegrationInstallation):
         return any(
             [
                 env_var
-                for env_var in client.get_env_vars(vercel_project_id)["envs"]
+                for env_var in client.get_env_vars(vercel_project_id)
                 if env_var["key"] == name
             ]
         )
@@ -356,13 +355,13 @@ class VercelIntegrationProvider(IntegrationProvider):
         except ApiError as err:
             logger.info(
                 "vercel.create_webhook.failed",
-                extra={"error": six.text_type(err), "external_id": external_id},
+                extra={"error": str(err), "external_id": external_id},
             )
             try:
                 details = list(err.json["messages"][0].values()).pop()
             except Exception:
                 details = "Unknown Error"
-            message = "Could not create deployment webhook in Vercel: {}".format(details)
+            message = f"Could not create deployment webhook in Vercel: {details}"
             raise IntegrationError(message)
 
         configurations = self.get_configuration_metadata(external_id)

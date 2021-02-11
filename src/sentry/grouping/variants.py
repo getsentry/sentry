@@ -1,7 +1,7 @@
 from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
 
 
-class BaseVariant(object):
+class BaseVariant:
     # The type of the variant that is reported to the UI.
     type = None
 
@@ -27,7 +27,7 @@ class BaseVariant(object):
         raise NotImplementedError()
 
     def __repr__(self):
-        return "<%s %r (%s)>" % (self.__class__.__name__, self.get_hash(), self.type)
+        return f"<{self.__class__.__name__} {self.get_hash()!r} ({self.type})>"
 
 
 class ChecksumVariant(BaseVariant):
@@ -164,8 +164,7 @@ class SaltedComponentVariant(ComponentVariant):
         return hash_from_values(final_values)
 
     def encode_for_similarity(self):
-        for x in ComponentVariant.encode_for_similarity(self):
-            yield x
+        yield from ComponentVariant.encode_for_similarity(self)
 
         for value in self.values:
             if not is_default_fingerprint_var(value):

@@ -1,6 +1,6 @@
 from django.core import signing
 from django.core.urlresolvers import reverse
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from sentry import options
 from sentry.models import User
@@ -27,9 +27,9 @@ def generate_signed_link(user, viewname, referrer=None, args=None, kwargs=None):
         user_id = user
 
     path = reverse(viewname, args=args, kwargs=kwargs)
-    item = "%s|%s|%s" % (options.get("system.url-prefix"), path, base36_encode(user_id))
+    item = "{}|{}|{}".format(options.get("system.url-prefix"), path, base36_encode(user_id))
     signature = ":".join(get_signer().sign(item).rsplit(":", 2)[1:])
-    signed_link = "%s?_=%s:%s" % (absolute_uri(path), base36_encode(user_id), signature)
+    signed_link = "{}?_={}:{}".format(absolute_uri(path), base36_encode(user_id), signature)
     if referrer:
         signed_link = signed_link + "&" + urlencode({"referrer": referrer})
     return signed_link
@@ -43,7 +43,7 @@ def process_signature(request, max_age=60 * 60 * 24 * 10):
     if not sig or sig.count(":") < 2:
         return None
 
-    signed_data = "%s|%s|%s" % (request.build_absolute_uri("/").rstrip("/"), request.path, sig)
+    signed_data = "{}|{}|{}".format(request.build_absolute_uri("/").rstrip("/"), request.path, sig)
     try:
         data = get_signer().unsign(signed_data, max_age=max_age)
     except signing.BadSignature:

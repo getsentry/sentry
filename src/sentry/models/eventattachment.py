@@ -18,7 +18,7 @@ def get_crashreport_key(group_id):
     Returns the ``django.core.cache`` key for groups that have exceeded their
     configured crash report limit.
     """
-    return "cr:%s" % (group_id,)
+    return f"cr:{group_id}"
 
 
 class EventAttachment(Model):
@@ -53,7 +53,7 @@ class EventAttachment(Model):
     def delete(self, *args, **kwargs):
         from sentry.models import File
 
-        rv = super(EventAttachment, self).delete(*args, **kwargs)
+        rv = super().delete(*args, **kwargs)
 
         # Always prune the group cache. Even if there are more crash reports
         # stored than the now configured limit, the cache will be repopulated

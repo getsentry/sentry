@@ -111,16 +111,103 @@ class GroupListTest(APITestCase, SnubaTestCase):
         inbox_2.update(date_added=inbox_1.date_added - timedelta(hours=1))
 
         self.login_as(user=self.user)
-        response = self.get_valid_response(sort="inbox", query="is:for_review", limit=1)
-        print([rd["id"] for rd in response.data])
+        response = self.get_valid_response(
+            sort="inbox", query="is:unresolved is:for_review", limit=1
+        )
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group_1.id)
 
         header_links = parse_link_header(response["Link"])
         cursor = [link for link in header_links.values() if link["rel"] == "next"][0]["cursor"]
-        response = self.get_response(sort="inbox", cursor=cursor, query="is:for_review", limit=1)
-        assert len(response.data) == 1
-        assert response.data[0]["id"] == str(group_2.id)
+        response = self.get_response(
+            sort="inbox", cursor=cursor, query="is:unresolved is:for_review", limit=1
+        )
+        assert [item["id"] for item in response.data] == [str(group_2.id)]
+
+    def test_sort_by_inbox_me_or_none(self):
+        group_1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        ).group
+        inbox_1 = add_group_to_inbox(group_1, GroupInboxReason.NEW)
+        group_2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        ).group
+        inbox_2 = add_group_to_inbox(group_2, GroupInboxReason.NEW)
+        inbox_2.update(date_added=inbox_1.date_added - timedelta(hours=1))
+        GroupOwner.objects.create(
+            group=group_2,
+            project=self.project,
+            organization=self.organization,
+            type=GroupOwnerType.OWNERSHIP_RULE.value,
+            user=self.user,
+        )
+        owner_by_other = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "fingerprint": ["group-3"],
+            },
+            project_id=self.project.id,
+        ).group
+        inbox_3 = add_group_to_inbox(owner_by_other, GroupInboxReason.NEW)
+        inbox_3.update(date_added=inbox_1.date_added - timedelta(hours=1))
+        other_user = self.create_user()
+        GroupOwner.objects.create(
+            group=owner_by_other,
+            project=self.project,
+            organization=self.organization,
+            type=GroupOwnerType.OWNERSHIP_RULE.value,
+            user=other_user,
+        )
+
+        owned_me_assigned_to_other = self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "fingerprint": ["group-4"],
+            },
+            project_id=self.project.id,
+        ).group
+        inbox_4 = add_group_to_inbox(owned_me_assigned_to_other, GroupInboxReason.NEW)
+        inbox_4.update(date_added=inbox_1.date_added - timedelta(hours=1))
+        GroupAssignee.objects.assign(owned_me_assigned_to_other, other_user)
+        GroupOwner.objects.create(
+            group=owned_me_assigned_to_other,
+            project=self.project,
+            organization=self.organization,
+            type=GroupOwnerType.OWNERSHIP_RULE.value,
+            user=self.user,
+        )
+
+        unowned_assigned_to_other = self.store_event(
+            data={
+                "event_id": "e" * 32,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "fingerprint": ["group-5"],
+            },
+            project_id=self.project.id,
+        ).group
+        inbox_5 = add_group_to_inbox(unowned_assigned_to_other, GroupInboxReason.NEW)
+        inbox_5.update(date_added=inbox_1.date_added - timedelta(hours=1))
+        GroupAssignee.objects.assign(unowned_assigned_to_other, other_user)
+
+        self.login_as(user=self.user)
+        response = self.get_valid_response(
+            sort="inbox",
+            query="is:unresolved is:for_review assigned_or_suggested:me_or_none",
+            limit=10,
+        )
+        assert [item["id"] for item in response.data] == [str(group_1.id), str(group_2.id)]
 
     def test_trace_search(self):
         event = self.store_event(
@@ -571,17 +658,22 @@ class GroupListTest(APITestCase, SnubaTestCase):
             ag.update(status=GroupStatus.RESOLVED, resolved_at=before_now(seconds=5))
             GroupAssignee.objects.assign(ag, self.user)
 
-        patched_params_update.side_effect = [
-            (self.organization.id, {"project": [self.project.id]}),
-            (self.organization.id, {"project": [self.project.id]}),
-            (self.organization.id, {"project": [self.project.id]}),
-            (self.organization.id, {"project": [self.project.id]}),
-            (self.organization.id, {"project": [self.project.id], "orderby": ["-last_seen"]}),
-            (self.organization.id, {"project": [self.project.id]}),
-            (self.organization.id, {"project": [self.project.id]}),
-            (self.organization.id, {"project": [self.project.id]}),
-            (self.organization.id, {"project": [self.project.id]}),
-        ]
+        # This side_effect is meant to override the `calculate_hits` snuba query specifically.
+        # If this test is failing it's because the -last_seen override is being applied to
+        # different snuba query.
+        def _my_patched_params(query_params, **kwargs):
+            if query_params.aggregations == [
+                ["uniq", "group_id", "total"],
+                ["multiply(toUInt64(max(timestamp)), 1000)", "", "last_seen"],
+            ]:
+                return (
+                    self.organization.id,
+                    {"project": [self.project.id], "orderby": ["-last_seen"]},
+                )
+            else:
+                return (self.organization.id, {"project": [self.project.id]})
+
+        patched_params_update.side_effect = _my_patched_params
 
         response = self.get_response(limit=1, query=f"assigned:{self.user.email}")
         assert len(response.data) == 1
@@ -594,6 +686,33 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["id"] == str(assigned_groups[0].id)
 
         assert options.set("snuba.search.hits-sample-size", old_sample_size)
+
+    def test_assigned_me_or_none(self):
+        self.login_as(user=self.user)
+        groups = []
+        for i in range(5):
+            group = self.store_event(
+                data={
+                    "timestamp": iso_format(before_now(minutes=10, days=i)),
+                    "fingerprint": [f"group-{i}"],
+                },
+                project_id=self.project.id,
+            ).group
+            groups.append(group)
+
+        assigned_groups = groups[:2]
+        for ag in assigned_groups:
+            GroupAssignee.objects.assign(ag, self.user)
+
+        response = self.get_response(limit=10, query="assigned:me")
+        assert len(response.data) == 2
+
+        response = self.get_response(limit=10, query="assigned:me_or_none")
+        assert len(response.data) == 5
+
+        GroupAssignee.objects.assign(assigned_groups[1], self.create_user("other@user.com"))
+        response = self.get_response(limit=10, query="assigned:me_or_none")
+        assert len(response.data) == 4
 
     def test_seen_stats(self):
         self.store_event(
@@ -1162,7 +1281,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def test_has_unhandled_flag_bug(self):
         # There was a bug where we tried to access attributes on seen_stats if this feature is active
         # but seen_stats could be null when we collapse stats.
-        with self.feature(["organizations:unhandled-issue-flag", "organizations:inbox"]):
+        with self.feature(["organizations:inbox"]):
             self.test_collapse_stats()
 
     def test_collapse_stats_group_snooze_bug(self):

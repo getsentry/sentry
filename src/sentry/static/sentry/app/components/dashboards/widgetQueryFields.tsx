@@ -2,7 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
-import {IconAdd, IconDelete} from 'app/icons';
+import {IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {
@@ -85,7 +85,7 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
     );
   }
 
-  const showAddOverlay = !(
+  const showAddYAxisButton = !(
     ['world_map', 'big_number'].includes(displayType) && fields.length === 1
   );
 
@@ -115,16 +115,16 @@ function WidgetQueryFields({displayType, errors, fields, fieldOptions, onChange}
               borderless
               onClick={event => handleRemove(event, i)}
               icon={<IconDelete />}
-              title={t('Remove this overlay')}
-              label={t('Remove this overlay')}
+              title={t('Remove this Y-Axis')}
+              label={t('Remove this Y-Axis')}
             />
           )}
         </QueryFieldWrapper>
       ))}
       <div>
-        {showAddOverlay && (
-          <Button size="small" onClick={handleAdd} icon={<IconAdd isCircled />}>
-            {t('Add an overlay')}
+        {showAddYAxisButton && (
+          <Button size="small" onClick={handleAdd}>
+            {t('Add Overlay')}
           </Button>
         )}
       </div>

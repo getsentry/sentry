@@ -23,7 +23,7 @@ class CommentDetailsEndpoint(IncidentEndpoint):
         if not request.user.is_authenticated():
             raise PermissionDenied(detail="Key doesn't have permission to delete Note")
 
-        args, kwargs = super(CommentDetailsEndpoint, self).convert_args(request, *args, **kwargs)
+        args, kwargs = super().convert_args(request, *args, **kwargs)
 
         try:
             # Superusers may mutate any comment

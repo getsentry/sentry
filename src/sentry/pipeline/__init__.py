@@ -10,8 +10,11 @@ from sentry.utils.hashlib import md5_text
 from sentry.web.helpers import render_to_response
 from sentry import analytics
 
+# give users an hour to complete
+INTEGRATION_EXPIRATION_TTL = 60 * 60
 
-class PipelineProvider(object):
+
+class PipelineProvider:
     """
     A class implementing the PipelineProvider interface provides the pipeline
     views that the Pipeline will traverse through.
@@ -104,7 +107,7 @@ class NestedPipelineView(PipelineView):
         return nested_pipeline.current_step()
 
 
-class Pipeline(object):
+class Pipeline:
     """
     Pipeline provides a mechanism to guide the user through a request
     'pipeline', where each view may be completed by calling the ``next_step``
@@ -136,7 +139,7 @@ class Pipeline(object):
 
     @classmethod
     def get_for_request(cls, request):
-        state = RedisSessionStore(request, cls.pipeline_name)
+        state = RedisSessionStore(request, cls.pipeline_name, ttl=INTEGRATION_EXPIRATION_TTL)
         if not state.is_valid():
             return None
 
@@ -165,7 +168,7 @@ class Pipeline(object):
 
         self.request = request
         self.organization = organization
-        self.state = RedisSessionStore(request, self.pipeline_name)
+        self.state = RedisSessionStore(request, self.pipeline_name, ttl=INTEGRATION_EXPIRATION_TTL)
         self.provider = self.provider_manager.get(provider_key)
         self.provider_model = provider_model
 
@@ -277,4 +280,4 @@ class Pipeline(object):
         return data if key is None else data.get(key)
 
     def get_logger(self):
-        return logging.getLogger("sentry.integration.%s" % (self.provider.key,))
+        return logging.getLogger(f"sentry.integration.{self.provider.key}")

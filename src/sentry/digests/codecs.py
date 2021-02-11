@@ -1,9 +1,8 @@
+import pickle
 import zlib
 
-from sentry.utils.compat import pickle
 
-
-class Codec(object):
+class Codec:
     def encode(self, value):
         raise NotImplementedError
 

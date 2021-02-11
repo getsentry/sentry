@@ -12,13 +12,11 @@ class VictorOpsClient(ApiClient):
 
         if routing_key:
             self.routing_key = routing_key
-        super(VictorOpsClient, self).__init__()
+        super().__init__()
 
     def build_url(self, path):
         # http://victorops.force.com/knowledgebase/articles/Integration/Alert-Ingestion-API-Documentation/
-        return "https://alert.victorops.com/integrations/generic/20131114/alert/{}/{}".format(
-            self.api_key, self.routing_key
-        )
+        return f"https://alert.victorops.com/integrations/generic/20131114/alert/{self.api_key}/{self.routing_key}"
 
     def request(self, data):
         return self._request(path="", method="post", data=data)

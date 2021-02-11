@@ -1,6 +1,5 @@
 import progressbar
 import re
-import six
 
 from django.db import connections, router
 from sentry import eventstore
@@ -62,7 +61,7 @@ def celery_run_batch_query(filter, batch_size, referrer, state=None, fetch_event
     return state, events
 
 
-class RangeQuerySetWrapper(object):
+class RangeQuerySetWrapper:
     """
     Iterates through a queryset by chunking results by ``step`` and using GREATER THAN
     and LESS THAN queries on the primary key.
@@ -156,23 +155,23 @@ class RangeQuerySetWrapperWithProgressBar(RangeQuerySetWrapper):
         total_count = self.queryset.count()
         if not total_count:
             return iter([])
-        iterator = super(RangeQuerySetWrapperWithProgressBar, self).__iter__()
+        iterator = super().__iter__()
         label = self.queryset.model._meta.verbose_name_plural.title()
         return iter(WithProgressBar(iterator, total_count, label))
 
 
-class WithProgressBar(object):
+class WithProgressBar:
     def __init__(self, iterator, count=None, caption=None):
         if count is None and hasattr(iterator, "__len__"):
             count = len(iterator)
         self.iterator = iterator
         self.count = count
-        self.caption = six.text_type(caption or "Progress")
+        self.caption = str(caption or "Progress")
 
     def __iter__(self):
         if self.count != 0:
             widgets = [
-                "%s: " % (self.caption,),
+                f"{self.caption}: ",
                 progressbar.Percentage(),
                 " ",
                 progressbar.Bar(),
@@ -204,11 +203,11 @@ def bulk_delete_objects(
 
     if partition_key:
         for column, value in partition_key.items():
-            partition_query.append("%s = %%s" % (quote_name(column),))
+            partition_query.append("{} = %s".format(quote_name(column)))
             params.append(value)
 
     for column, value in filters.items():
-        query.append("%s = %%s" % (quote_name(column),))
+        query.append("{} = %s".format(quote_name(column)))
         params.append(value)
 
     query = """

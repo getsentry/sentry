@@ -2,7 +2,6 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 from itertools import chain
 
-import six
 from django.db import transaction
 from django.db.models.signals import post_save
 from django.utils import timezone
@@ -51,7 +50,6 @@ from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import bulk_raw_query, is_measurement, SnubaQueryParams, SnubaTSResult
 from sentry.shared_integrations.exceptions import (
     DuplicateDisplayNameError,
-    DeprecatedIntegrationError,
 )
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
@@ -229,8 +227,8 @@ def create_incident_activity(
 ):
     if activity_type == IncidentActivityType.COMMENT and user:
         subscribe_to_incident(incident, user)
-    value = six.text_type(value) if value is not None else value
-    previous_value = six.text_type(previous_value) if previous_value is not None else previous_value
+    value = str(value) if value is not None else value
+    previous_value = str(previous_value) if previous_value is not None else previous_value
     kwargs = {}
     if date_added:
         kwargs["date_added"] = date_added
@@ -846,7 +844,7 @@ def update_alert_rule(
                 AlertRuleExcludedProjects.objects.bulk_create(new_exclusions)
 
                 new_projects = Project.objects.filter(organization=alert_rule.organization).exclude(
-                    id__in=set([sub.project_id for sub in existing_subs]) | excluded_project_ids
+                    id__in={sub.project_id for sub in existing_subs} | excluded_project_ids
                 )
                 # If we're subscribed to any of the excluded projects then we want to
                 # remove those subscriptions
@@ -1117,9 +1115,9 @@ def get_subscriptions_from_alert_rule(alert_rule, projects):
     """
     excluded_subscriptions = alert_rule.snuba_query.subscriptions.filter(project__in=projects)
     if len(excluded_subscriptions) != len(projects):
-        invalid_slugs = set([p.slug for p in projects]) - set(
-            [s.project.slug for s in excluded_subscriptions]
-        )
+        invalid_slugs = {p.slug for p in projects} - {
+            s.project.slug for s in excluded_subscriptions
+        }
         raise ProjectsNotAssociatedWithAlertRuleError(invalid_slugs)
     return excluded_subscriptions
 
@@ -1266,13 +1264,6 @@ def get_alert_rule_trigger_action_slack_channel_id(
         _prefix, channel_id, timed_out = get_channel_id(
             organization, integration, name, use_async_lookup
         )
-
-    # XXX(meredith): Will be removed when we rip out workspace app support completely.
-    except DeprecatedIntegrationError:
-        raise InvalidTriggerActionError(
-            "This workspace is using the deprecated Slack integration. Please re-install your integration to enable Slack alerting again."
-        )
-
     except DuplicateDisplayNameError as e:
         domain = integration.metadata["domain_name"]
 

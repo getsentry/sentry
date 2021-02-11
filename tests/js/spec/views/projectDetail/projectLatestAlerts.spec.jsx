@@ -34,6 +34,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
         organization={organization}
         projectSlug={project.slug}
         location={router.location}
+        isProjectStabilized
       />
     );
 
@@ -82,6 +83,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
         organization={organization}
         projectSlug={project.slug}
         location={router.location}
+        isProjectStabilized
       />
     );
 
@@ -95,7 +97,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
       })
     ); // if there are no alerts, we check if any rules are set
 
-    expect(wrapper.text()).toContain('No alert triggered so far.');
+    expect(wrapper.text()).toContain('No alerts found');
   });
 
   it('shows configure alerts buttons', async function () {
@@ -113,6 +115,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
         organization={organization}
         projectSlug={project.slug}
         location={router.location}
+        isProjectStabilized
       />
     );
 
@@ -142,6 +145,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
           query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
         }}
         projectId={project.slug}
+        isProjectStabilized
       />
     );
 
@@ -168,9 +172,23 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
         organization={organization}
         projectSlug={project.slug}
         location={router.location}
+        isProjectStabilized
       />
     );
 
     expect(wrapper.find('AlertRowLink AlertDate').at(2).text()).toBe('Resolved ');
+  });
+
+  it('does not call API if project is not stabilized yet', function () {
+    mountWithTheme(
+      <ProjectLatestAlerts
+        organization={organization}
+        projectSlug={project.slug}
+        location={router.location}
+        isProjectStabilized={false}
+      />
+    );
+
+    expect(endpointMock).toHaveBeenCalledTimes(0);
   });
 });
