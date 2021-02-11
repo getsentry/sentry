@@ -29,7 +29,7 @@ type Props = {
   listClassName?: string;
   listProps?: React.HTMLProps<HTMLDivElement>;
   noAutoFilter?: boolean;
-  category?: Category;
+  defaultCategory?: Category;
 };
 
 type State = {
@@ -43,7 +43,7 @@ class PlatformPicker extends React.Component<Props, State> {
   };
 
   state: State = {
-    category: this.props.category ?? PLATFORM_CATEGORIES[0].id,
+    category: this.props.defaultCategory ?? PLATFORM_CATEGORIES[0].id,
     filter: this.props.noAutoFilter ? '' : (this.props.platform || '').split('-')[0],
   };
 

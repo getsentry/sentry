@@ -60,7 +60,6 @@ type State = {
   platform: PlatformName | null;
   inFlight: boolean;
   dataFragment: IssueAlertFragment | undefined;
-  category: ReturnType<typeof getCategoryName>;
 };
 
 class CreateProject extends React.Component<Props, State> {
@@ -77,17 +76,20 @@ class CreateProject extends React.Component<Props, State> {
 
     const team = query.team || (accessTeams.length && accessTeams[0].slug);
     const platform = getPlatformName(query.platform) ? query.platform : '';
-    const category = getCategoryName(query.category);
 
     this.state = {
       error: false,
       projectName: getPlatformName(platform) || '',
       team,
       platform,
-      category,
       inFlight: false,
       dataFragment: undefined,
     };
+  }
+
+  get defaultCategory() {
+    const {query} = this.context.location;
+    return getCategoryName(query.category);
   }
 
   renderProjectForm() {
@@ -294,7 +296,7 @@ class CreateProject extends React.Component<Props, State> {
     }));
 
   render() {
-    const {platform, category, error} = this.state;
+    const {platform, error} = this.state;
 
     return (
       <React.Fragment>
@@ -312,7 +314,7 @@ class CreateProject extends React.Component<Props, State> {
           <PageHeading withMargins>{t('Choose a platform')}</PageHeading>
           <PlatformPicker
             platform={platform}
-            category={category}
+            defaultCategory={this.defaultCategory}
             setPlatform={this.setPlatform}
             showOther
           />
