@@ -23,7 +23,7 @@ import {
 } from 'app/types';
 import {Hooks} from 'app/types/hooks';
 import {EventParameters, trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
-import {AnalyticsKey} from 'app/utils/integrationEvents';
+import {IntegrationAnalyticsKey} from 'app/utils/integrationEvents';
 
 const mapIntegrationParams = analyticsParams => {
   //Reload expects integration_status even though it's not relevant for non-sentry apps
@@ -37,7 +37,7 @@ const mapIntegrationParams = analyticsParams => {
 
 //wrapper around trackAdvancedAnalyticsEvent which has some extra
 //data massaging above
-export function trackIntegrationEvent<T extends AnalyticsKey>(
+export function trackIntegrationEvent<T extends IntegrationAnalyticsKey>(
   eventKey: T,
   analyticsParams: EventParameters[T],
   org?: Organization,
