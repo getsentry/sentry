@@ -1,11 +1,12 @@
 __all__ = ["timing", "incr"]
 
-import logging
-import time
-import typing as t
 
 import functools
+import logging
+import time
 from contextlib import contextmanager
+from typing import Mapping, Optional
+
 from django.conf import settings
 from random import random
 from threading import Thread, local
@@ -126,8 +127,8 @@ internal = InternalMetrics()
 def incr(
     key: str,
     amount: int = 1,
-    instance: t.Optional[str] = None,
-    tags: t.Optional[t.Mapping[str, str]] = None,
+    instance: Optional[str] = None,
+    tags: Optional[Mapping[str, str]] = None,
     skip_internal: bool = True,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
 ) -> None:

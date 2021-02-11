@@ -1,9 +1,8 @@
 import logging
+from typing import Any, Callable, cast, Dict, Iterable, List, Optional
 
 import jsonschema
 import pytz
-import typing as t
-
 import sentry_sdk
 from confluent_kafka import Consumer, KafkaException, Message, OFFSET_INVALID, TopicPartition
 from confluent_kafka.admin import AdminClient
@@ -18,14 +17,14 @@ from sentry.utils.batching_kafka_consumer import wait_for_topics
 
 logger = logging.getLogger(__name__)
 
-TQuerySubscriptionCallable = t.Callable[[t.Dict[str, t.Any], QuerySubscription], None]
+TQuerySubscriptionCallable = Callable[[Dict[str, Any], QuerySubscription], None]
 
-subscriber_registry: t.Dict[str, TQuerySubscriptionCallable] = {}
+subscriber_registry: Dict[str, TQuerySubscriptionCallable] = {}
 
 
 def register_subscriber(
     subscriber_key: str,
-) -> t.Callable[[TQuerySubscriptionCallable], TQuerySubscriptionCallable]:
+) -> Callable[[TQuerySubscriptionCallable], TQuerySubscriptionCallable]:
     def inner(func: TQuerySubscriptionCallable) -> TQuerySubscriptionCallable:
         if subscriber_key in subscriber_registry:
             raise Exception("Handler already registered for %s" % subscriber_key)
@@ -50,7 +49,7 @@ class QuerySubscriptionConsumer:
     These values are passed along to a callback associated with the subscription.
     """
 
-    topic_to_dataset: t.Dict[str, QueryDatasets] = {
+    topic_to_dataset: Dict[str, QueryDatasets] = {
         settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: QueryDatasets.EVENTS,
         settings.KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: QueryDatasets.TRANSACTIONS,
     }
@@ -58,21 +57,21 @@ class QuerySubscriptionConsumer:
     def __init__(
         self,
         group_id: str,
-        topic: t.Optional[str] = None,
+        topic: Optional[str] = None,
         commit_batch_size: int = 100,
         initial_offset_reset: str = "earliest",
-        force_offset_reset: t.Optional[str] = None,
+        force_offset_reset: Optional[str] = None,
     ):
         self.group_id = group_id
         if not topic:
             # TODO(typing): Need a way to get the actual value of settings to avoid this
-            topic = t.cast(str, settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS)
+            topic = cast(str, settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS)
 
         self.topic = topic
         cluster_name: str = settings.KAFKA_TOPICS[topic]["cluster"]
         self.commit_batch_size = commit_batch_size
         self.initial_offset_reset = initial_offset_reset
-        self.offsets: t.Dict[int, t.Optional[int]] = {}
+        self.offsets: Dict[int, Optional[int]] = {}
         self.consumer: Consumer = None
         self.cluster_options = kafka_config.get_kafka_consumer_cluster_options(
             cluster_name,
@@ -92,8 +91,8 @@ class QuerySubscriptionConsumer:
         self.resolve_partition_force_offset = self.offset_reset_name_to_func(force_offset_reset)
 
     def offset_reset_name_to_func(
-        self, offset_reset: t.Optional[str]
-    ) -> t.Optional[t.Callable[[TopicPartition], TopicPartition]]:
+        self, offset_reset: Optional[str]
+    ) -> Optional[Callable[[TopicPartition], TopicPartition]]:
         if offset_reset in {"smallest", "earliest", "beginning"}:
             return self.resolve_partition_offset_earliest
         elif offset_reset in {"largest", "latest", "end"}:
@@ -112,8 +111,8 @@ class QuerySubscriptionConsumer:
         logger.debug("Starting snuba query subscriber")
         self.offsets.clear()
 
-        def on_assign(consumer: Consumer, partitions: t.List[TopicPartition]) -> None:
-            updated_partitions: t.List[TopicPartition] = []
+        def on_assign(consumer: Consumer, partitions: List[TopicPartition]) -> None:
+            updated_partitions: List[TopicPartition] = []
             for partition in partitions:
                 if self.resolve_partition_force_offset:
                     partition = self.resolve_partition_force_offset(partition)
@@ -134,7 +133,7 @@ class QuerySubscriptionConsumer:
                 },
             )
 
-        def on_revoke(consumer: Consumer, partitions: t.List[TopicPartition]) -> None:
+        def on_revoke(consumer: Consumer, partitions: List[TopicPartition]) -> None:
             partition_numbers = [partition.partition for partition in partitions]
             self.commit_offsets(partition_numbers)
             for partition_number in partition_numbers:
@@ -187,7 +186,7 @@ class QuerySubscriptionConsumer:
 
         self.shutdown()
 
-    def commit_offsets(self, partitions: t.Optional[t.Iterable[int]] = None) -> None:
+    def commit_offsets(self, partitions: Optional[Iterable[int]] = None) -> None:
         logger.info(
             "query-subscription-consumer.commit_offsets",
             extra={"offsets": str(self.offsets), "partitions": str(partitions)},
@@ -294,7 +293,7 @@ class QuerySubscriptionConsumer:
 
                 callback(contents, subscription)
 
-    def parse_message_value(self, value: str) -> t.Dict[str, t.Any]:
+    def parse_message_value(self, value: str) -> Dict[str, Any]:
         """
         Parses the value received via the Kafka consumer and verifies that it
         matches the expected schema.
@@ -302,7 +301,7 @@ class QuerySubscriptionConsumer:
         :return: A dict with the parsed message
         """
         with metrics.timer("snuba_query_subscriber.parse_message_value.json_parse"):
-            wrapper: t.Dict[str, t.Any] = json.loads(value)
+            wrapper: Dict[str, Any] = json.loads(value)
 
         with metrics.timer("snuba_query_subscriber.parse_message_value.json_validate_wrapper"):
             try:
@@ -316,7 +315,7 @@ class QuerySubscriptionConsumer:
             metrics.incr("snuba_query_subscriber.message_wrapper_invalid_version")
             raise InvalidMessageError("Version specified in wrapper has no schema")
 
-        payload: t.Dict[str, t.Any] = wrapper["payload"]
+        payload: Dict[str, Any] = wrapper["payload"]
         with metrics.timer("snuba_query_subscriber.parse_message_value.json_validate_payload"):
             try:
                 jsonschema.validate(payload, SUBSCRIPTION_PAYLOAD_VERSIONS[schema_version])
