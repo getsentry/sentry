@@ -25,6 +25,7 @@ export {IconDelete} from './iconDelete';
 export {IconDocs} from './iconDocs';
 export {IconDownload} from './iconDownload';
 export {IconEdit} from './iconEdit';
+export {IconEllipse} from './iconEllipse';
 export {IconEllipsis} from './iconEllipsis';
 export {IconEvent} from './iconEvent';
 export {IconFile} from './iconFile';

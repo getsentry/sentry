@@ -47,7 +47,8 @@ class RuleListRow extends React.Component<Props, State> {
       isIssueAlert(rule) ? 'rules' : 'metric-rules'
     }/${slug}/${rule.id}/`;
 
-    const hasRedesign = organization.features.includes('alert-details-redesign');
+    const hasRedesign =
+      !isIssueAlert(rule) && organization.features.includes('alert-details-redesign');
     const detailsLink = `/organizations/${orgId}/alerts/rules/details/${rule.id}/`;
 
     return (

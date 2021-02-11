@@ -26,6 +26,7 @@ import {defined} from 'app/utils';
 import {getUtcDateString} from 'app/utils/dates';
 import Projects from 'app/utils/projects';
 import {Theme} from 'app/utils/theme';
+import Timeline from 'app/views/alerts/rules/details/timeline';
 import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/settings/incidentRules/constants';
 import {makeDefaultCta} from 'app/views/settings/incidentRules/incidentRulePresets';
 import {
@@ -439,6 +440,7 @@ class DetailsBody extends React.Component<Props> {
                         filter={DATASET_EVENT_TYPE_FILTERS[rule.dataset]}
                       />
                     )}
+                    <Timeline api={api} orgId={orgId} rule={rule} incidents={incidents} />
                   </ActivityWrapper>
                 </DetailWrapper>
               </Layout.Main>

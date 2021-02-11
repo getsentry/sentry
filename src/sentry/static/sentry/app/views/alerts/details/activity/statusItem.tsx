@@ -104,7 +104,7 @@ const StatusValue = styled('span')`
   font-weight: bold;
 `;
 
-function getTriggerName(value: string | null) {
+export function getTriggerName(value: string | null) {
   if (value === `${IncidentStatus.WARNING}`) {
     return t('Warning');
   }
