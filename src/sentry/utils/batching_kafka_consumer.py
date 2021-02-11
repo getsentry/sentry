@@ -1,6 +1,7 @@
 import abc
 import logging
 import time
+from typing import List
 
 from confluent_kafka import (
     Consumer,
@@ -23,7 +24,7 @@ DEFAULT_QUEUED_MAX_MESSAGE_KBYTES = 50000
 DEFAULT_QUEUED_MIN_MESSAGES = 10000
 
 
-def wait_for_topics(admin_client, topics, timeout=10):
+def wait_for_topics(admin_client: AdminClient, topics: List[str], timeout: int = 10) -> None:
     """
     Make sure that the provided topics exist and have non-zero partitions in them.
     """
@@ -73,7 +74,6 @@ class AbstractBatchWorker(metaclass=abc.ABCMeta):
         A simple example would be decoding the JSON value and extracting a few
         fields.
         """
-        pass
 
     @abc.abstractmethod
     def flush_batch(self, batch):
@@ -83,7 +83,6 @@ class AbstractBatchWorker(metaclass=abc.ABCMeta):
 
         A simple example would be writing the batch to another Kafka topic.
         """
-        pass
 
     @abc.abstractmethod
     def shutdown(self):
@@ -92,7 +91,6 @@ class AbstractBatchWorker(metaclass=abc.ABCMeta):
         cleanup.
 
         A simple example would be closing any remaining backend connections."""
-        pass
 
 
 class BatchingKafkaConsumer:

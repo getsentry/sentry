@@ -364,13 +364,8 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
                 i
               )
             }
-            onChangeRole={({value}) => this.setRole(value, i)}
-            onChangeTeams={opts =>
-              this.setTeams(
-                opts.map(v => v.value),
-                i
-              )
-            }
+            onChangeRole={value => this.setRole(value?.value, i)}
+            onChangeTeams={opts => this.setTeams(opts ? opts.map(v => v.value) : [], i)}
             disableRemove={disableInputs || pendingInvites.length === 1}
           />
         ))}

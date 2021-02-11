@@ -12,8 +12,8 @@ field, check OAuthBackend class for details on how to extend it.
 """
 
 from django.conf import settings
-from six.moves.urllib.error import HTTPError
-from six.moves.urllib.request import Request
+from urllib.error import HTTPError
+from urllib.request import Request
 from social_auth.utils import dsa_urlopen
 from social_auth.backends import BaseOAuth2, OAuthBackend
 from social_auth.exceptions import AuthFailed
@@ -24,9 +24,9 @@ from sentry.utils import json
 # GitHub configuration
 GITHUB_BASE_DOMAIN = getattr(settings, "GITHUB_BASE_DOMAIN", "github.com")
 GITHUB_API_DOMAIN = getattr(settings, "GITHUB_API_DOMAIN", "api.github.com")
-GITHUB_AUTHORIZATION_URL = "https://{}/login/oauth/authorize".format(GITHUB_BASE_DOMAIN)
-GITHUB_ACCESS_TOKEN_URL = "https://{}/login/oauth/access_token".format(GITHUB_BASE_DOMAIN)
-GITHUB_USER_DATA_URL = "https://{}/user".format(GITHUB_API_DOMAIN)
+GITHUB_AUTHORIZATION_URL = f"https://{GITHUB_BASE_DOMAIN}/login/oauth/authorize"
+GITHUB_ACCESS_TOKEN_URL = f"https://{GITHUB_BASE_DOMAIN}/login/oauth/access_token"
+GITHUB_USER_DATA_URL = f"https://{GITHUB_API_DOMAIN}/user"
 
 # GitHub organization configuration
 GITHUB_ORGANIZATION_MEMBER_OF_URL = "https://%s/orgs/{org}/members/{username}" % GITHUB_API_DOMAIN

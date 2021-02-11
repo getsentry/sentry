@@ -1,10 +1,17 @@
 from collections import defaultdict
 
-import six
 
 from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import ExternalIssue, GroupLink, Integration, OrganizationIntegration
+from sentry.models import (
+    ExternalIssue,
+    GroupLink,
+    Integration,
+    OrganizationIntegration,
+    ExternalTeam,
+    EXTERNAL_PROVIDERS,
+    ExternalProviders,
+)
 
 
 # converts the provider to JSON
@@ -25,7 +32,7 @@ class IntegrationSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         provider = obj.get_provider()
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "name": obj.name,
             "icon": obj.metadata.get("icon"),
             "domainName": obj.metadata.get("domain_name"),
@@ -119,7 +126,7 @@ class IntegrationProviderSerializer(Serializer):
             "canDisable": obj.can_disable,
             "features": [f.value for f in obj.features],
             "setupDialog": dict(
-                url="/organizations/{}/integrations/{}/setup/".format(organization.slug, obj.key),
+                url=f"/organizations/{organization.slug}/integrations/{obj.key}/setup/",
                 **obj.setup_dialog_config,
             ),
         }
@@ -181,7 +188,7 @@ class IntegrationIssueSerializer(IntegrationSerializer):
             )
             issues_by_integration[ei.integration_id].append(
                 {
-                    "id": six.text_type(ei.id),
+                    "id": str(ei.id),
                     "key": ei.key,
                     "url": installation.get_issue_url(ei.key),
                     "title": ei.title,
@@ -198,3 +205,18 @@ class IntegrationIssueSerializer(IntegrationSerializer):
         data = super().serialize(obj, attrs, user)
         data["externalIssues"] = attrs.get("external_issues", [])
         return data
+
+
+@register(ExternalTeam)
+class ExternalTeamSerializer(Serializer):
+    def serialize(self, obj, attrs, user):
+        provider = self.get_provider_string(obj.provider)
+        return {
+            "id": obj.id,
+            "team_id": obj.team_id,
+            "provider": provider,
+            "external_id": obj.external_id,
+        }
+
+    def get_provider_string(self, provider):
+        return EXTERNAL_PROVIDERS.get(ExternalProviders(provider), "unknown")

@@ -1,5 +1,3 @@
-import six
-
 from collections import defaultdict, namedtuple
 from rest_framework import serializers
 from sentry.models import User, Team
@@ -26,7 +24,7 @@ class Actor(namedtuple("Actor", "id type")):
             "maisey@dogsrule.com" -> look up User by primary email
         """
         # If we have an integer, fall back to assuming it's a User
-        if isinstance(actor_identifier, six.integer_types):
+        if isinstance(actor_identifier, int):
             return Actor(actor_identifier, User)
 
         # If the actor_identifier is a simple integer as a string,

@@ -1,7 +1,10 @@
 import React from 'react';
 import ReactSelect, {
   components as selectComponents,
+  GroupedOptionsType,
   mergeStyles,
+  OptionsType,
+  Props as ReactSelectProps,
   StylesConfig,
 } from 'react-select';
 import Async from 'react-select/async';
@@ -11,11 +14,24 @@ import {withTheme} from 'emotion-theming';
 
 import {IconChevron, IconClose} from 'app/icons';
 import space from 'app/styles/space';
-import {Choices} from 'app/types';
+import {Choices, SelectValue} from 'app/types';
 import convertFromSelect2Choices from 'app/utils/convertFromSelect2Choices';
 import {Theme} from 'app/utils/theme';
 
 import SelectControlLegacy from './selectControlLegacy';
+
+function isGroupedOptions<OptionType>(
+  maybe:
+    | ReturnType<typeof convertFromSelect2Choices>
+    | GroupedOptionsType<OptionType>
+    | OptionType[]
+    | OptionsType<OptionType>
+): maybe is GroupedOptionsType<OptionType> {
+  if (!maybe || maybe.length === 0) {
+    return false;
+  }
+  return (maybe as GroupedOptionsType<OptionType>)[0].options !== undefined;
+}
 
 const ClearIndicator = (
   props: React.ComponentProps<typeof selectComponents.ClearIndicator>
@@ -41,13 +57,10 @@ const MultiValueRemove = (
   </selectComponents.MultiValueRemove>
 );
 
-type ControlProps = React.ComponentProps<typeof ReactSelect> & {
-  theme: Theme;
-  /**
-   * Ref forwarded into ReactSelect component.
-   * The any is inherited from react-select.
-   */
-  forwardedRef: React.Ref<ReactSelect>;
+export type ControlProps<OptionType = GeneralSelectValue> = Omit<
+  ReactSelectProps<OptionType>,
+  'onChange' | 'value'
+> & {
   /**
    * Set to true to prefix selected values with content
    */
@@ -55,16 +68,51 @@ type ControlProps = React.ComponentProps<typeof ReactSelect> & {
   /**
    * Backwards compatible shim to work with select2 style choice type.
    */
-  choices?: Choices | ((props: ControlProps) => Choices);
+  choices?: Choices | ((props: ControlProps<OptionType>) => Choices);
   /**
    * Use react-select v2. Deprecated, don't make more of this.
    */
   deprecatedSelectControl?: boolean;
+  /**
+   * Used by MultiSelectControl.
+   */
+  multiple?: boolean;
+  /**
+   * Handler for changes. Narrower than the types in react-select.
+   */
+  onChange?: (value?: OptionType | null) => void;
+  /**
+   * Unlike react-select which expects an OptionType as its value
+   * we accept the option.value and resolve the option object.
+   * Because this type is embedded in the OptionType generic we
+   * can't have a good type here.
+   */
+  value?: any;
+};
+
+/**
+ * Additional props provided by forwardRef and withTheme()
+ */
+type WrappedControlProps<OptionType> = ControlProps<OptionType> & {
+  theme: Theme;
+  /**
+   * Ref forwarded into ReactSelect component.
+   * The any is inherited from react-select.
+   */
+  forwardedRef: React.Ref<ReactSelect>;
 };
 
 type LegacyProps = React.ComponentProps<typeof SelectControlLegacy>;
 
-function SelectControl(props: ControlProps) {
+// TODO(ts) The exported component uses forwardRef.
+// This means we cannot fill the SelectValue generic
+// at the call site. We use `any` here to avoid type errors with select
+// controls that have custom option structures
+type GeneralSelectValue = SelectValue<any>;
+
+function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValue>(
+  props: WrappedControlProps<OptionType>
+) {
   // TODO(epurkhiser): We should remove all SelectControls (and SelectFields,
   // SelectAsyncFields, etc) that are using this prop, before we can remove the
   // v1 react-select component.
@@ -173,13 +221,13 @@ function SelectControl(props: ControlProps) {
       ...provided,
       color: theme.formPlaceholder,
     }),
-    multiValue: () => ({
+    multiValue: (provided: React.CSSProperties) => ({
+      ...provided,
       color: '#007eff',
       backgroundColor: '#ebf5ff',
       borderRadius: '2px',
       border: '1px solid #c2e0ff',
       display: 'flex',
-      marginRight: '4px',
     }),
     multiValueLabel: (provided: React.CSSProperties) => ({
       ...provided,
@@ -262,7 +310,15 @@ function SelectControl(props: ControlProps) {
      * because the select component fetches the options finding the mappedValue will fail
      * and the component won't work
      */
-    const flatOptions = choicesOrOptions.flatMap(option => option.options || option);
+    let flatOptions: any[] = [];
+    if (isGroupedOptions<OptionType>(choicesOrOptions)) {
+      flatOptions = choicesOrOptions.flatMap(option => option.options);
+    } else {
+      // @ts-ignore The types used in react-select generics (OptionType) don't
+      // line up well with our option type (SelectValue). We need to do more work
+      // to get these types to align.
+      flatOptions = choicesOrOptions.flatMap(option => option);
+    }
     mappedValue =
       props.multiple && Array.isArray(value)
         ? value.map(val => flatOptions.find(option => option.value === val))
@@ -299,7 +355,7 @@ function SelectControl(props: ControlProps) {
   };
 
   return (
-    <SelectPicker
+    <SelectPicker<OptionType>
       styles={mappedStyles}
       components={{...replacedComponents, ...components}}
       async={async}
@@ -309,7 +365,7 @@ function SelectControl(props: ControlProps) {
       value={mappedValue}
       isMulti={props.multiple || props.multi}
       isDisabled={props.isDisabled || props.disabled}
-      options={choicesOrOptions}
+      options={options || (choicesOrOptions as OptionsType<OptionType>)}
       openMenuOnFocus={props.openMenuOnFocus === undefined ? true : props.openMenuOnFocus}
       {...rest}
     />
@@ -319,7 +375,7 @@ SelectControl.propTypes = SelectControlLegacy.propTypes;
 
 const SelectControlWithTheme = withTheme(SelectControl);
 
-type PickerProps = ControlProps & {
+type PickerProps<OptionType> = ControlProps<OptionType> & {
   /**
    * Enable async option loading.
    */
@@ -334,7 +390,12 @@ type PickerProps = ControlProps & {
   clearable?: boolean;
 };
 
-function SelectPicker({async, creatable, forwardedRef, ...props}: PickerProps) {
+function SelectPicker<OptionType>({
+  async,
+  creatable,
+  forwardedRef,
+  ...props
+}: PickerProps<OptionType>) {
   // Pick the right component to use
   // Using any here as react-select types also use any
   let Component: React.ComponentType<any> | undefined;
@@ -353,10 +414,11 @@ function SelectPicker({async, creatable, forwardedRef, ...props}: PickerProps) {
 
 SelectPicker.propTypes = SelectControl.propTypes;
 
-const RefForwardedSelectControl = React.forwardRef(function RefForwardedSelectControl(
-  props: ControlProps,
-  ref: React.Ref<ReactSelect>
-) {
+// The generics need to be filled here as forwardRef can't expose generics.
+const RefForwardedSelectControl = React.forwardRef<
+  ReactSelect<GeneralSelectValue>,
+  ControlProps<GeneralSelectValue>
+>(function RefForwardedSelectControl(props, ref) {
   return <SelectControlWithTheme forwardedRef={ref} {...props} />;
 });
 

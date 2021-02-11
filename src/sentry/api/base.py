@@ -1,6 +1,5 @@
 import functools
 import logging
-import six
 import time
 import sentry_sdk
 
@@ -98,18 +97,18 @@ class Endpoint(APIView):
     def build_cursor_link(self, request, name, cursor):
         querystring = "&".join(
             "{}={}".format(urlquote(k), urlquote(v))
-            for k, v in six.iteritems(request.GET)
+            for k, v in request.GET.items()
             if k != "cursor"
         )
         base_url = absolute_uri(urlquote(request.path))
         if querystring:
-            base_url = "{}?{}".format(base_url, querystring)
+            base_url = f"{base_url}?{querystring}"
         else:
             base_url = base_url + "?"
 
         return LINK_HEADER.format(
             uri=base_url,
-            cursor=six.text_type(cursor),
+            cursor=str(cursor),
             name=name,
             has_results="true" if bool(cursor) else "false",
         )
@@ -208,7 +207,7 @@ class Endpoint(APIView):
                 if origin and request.auth:
                     allowed_origins = request.auth.get_allowed_origins()
                     if not is_valid_origin(origin, allowed=allowed_origins):
-                        response = Response("Invalid origin: %s" % (origin,), status=400)
+                        response = Response(f"Invalid origin: {origin}", status=400)
                         self.response = self.finalize_response(request, response, *args, **kwargs)
                         return self.response
 
@@ -282,9 +281,7 @@ class Endpoint(APIView):
 
         max_per_page = max(max_per_page, default_per_page)
         if per_page > max_per_page:
-            raise ParseError(
-                detail="Invalid per_page value. Cannot exceed {}.".format(max_per_page)
-            )
+            raise ParseError(detail=f"Invalid per_page value. Cannot exceed {max_per_page}.")
 
         return per_page
 
@@ -320,7 +317,7 @@ class Endpoint(APIView):
                 span.set_data("Limit", per_page)
                 cursor_result = paginator.get_result(limit=per_page, cursor=input_cursor)
         except BadPaginationError as e:
-            raise ParseError(detail=six.text_type(e))
+            raise ParseError(detail=str(e))
 
         # map results based on callback
         if on_results:

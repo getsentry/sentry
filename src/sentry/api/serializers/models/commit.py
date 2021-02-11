@@ -1,5 +1,3 @@
-import six
-
 from collections import defaultdict
 
 from sentry.api.serializers import Serializer, register, serialize
@@ -43,10 +41,8 @@ class CommitSerializer(Serializer):
         result = {}
         for item in item_list:
             result[item] = {
-                "repository": repository_objs.get(six.text_type(item.repository_id), {}),
-                "user": users_by_author.get(six.text_type(item.author_id), {})
-                if item.author_id
-                else {},
+                "repository": repository_objs.get(str(item.repository_id), {}),
+                "user": users_by_author.get(str(item.author_id), {}) if item.author_id else {},
             }
 
         return result

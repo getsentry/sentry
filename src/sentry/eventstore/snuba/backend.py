@@ -1,5 +1,3 @@
-import six
-
 from copy import deepcopy
 from datetime import timedelta
 import logging
@@ -16,7 +14,7 @@ EVENT_ID = Columns.EVENT_ID.value.alias
 PROJECT_ID = Columns.PROJECT_ID.value.alias
 TIMESTAMP = Columns.TIMESTAMP.value.alias
 
-DESC_ORDERING = ["-{}".format(TIMESTAMP), "-{}".format(EVENT_ID)]
+DESC_ORDERING = [f"-{TIMESTAMP}", f"-{EVENT_ID}"]
 ASC_ORDERING = [TIMESTAMP, EVENT_ID]
 DEFAULT_LIMIT = 100
 DEFAULT_OFFSET = 0
@@ -292,7 +290,7 @@ class SnubaEventStorage(EventStorage):
 
         row = result["data"][0]
 
-        return (six.text_type(row["project_id"]), six.text_type(row["event_id"]))
+        return (str(row["project_id"]), str(row["event_id"]))
 
     def __make_event(self, snuba_data):
         event_id = snuba_data[Columns.EVENT_ID.value.event_name]

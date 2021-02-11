@@ -16,7 +16,7 @@ import {SectionHeadingLink, SectionHeadingWrapper, SidebarSection} from './style
 
 type Props = {
   organization: Organization;
-  project?: Project | null;
+  project?: Project;
 };
 
 function ProjectTeamAccess({organization, project}: Props) {
@@ -56,14 +56,16 @@ function ProjectTeamAccess({organization, project}: Props) {
           </Button>
         )}
       >
-        {project.teams.map(team => (
-          <StyledLink
-            to={`/settings/${organization.slug}/teams/${team.slug}/`}
-            key={team.slug}
-          >
-            <IdBadge team={team} hideAvatar />
-          </StyledLink>
-        ))}
+        {project.teams
+          .sort((a, b) => a.slug.localeCompare(b.slug))
+          .map(team => (
+            <StyledLink
+              to={`/settings/${organization.slug}/teams/${team.slug}/`}
+              key={team.slug}
+            >
+              <IdBadge team={team} hideAvatar />
+            </StyledLink>
+          ))}
       </Collapsible>
     );
   }

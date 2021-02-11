@@ -1,5 +1,3 @@
-import six
-
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators import Mediator, Param, external_requests, external_issues
 from sentry.utils.cache import memoize
@@ -8,9 +6,9 @@ from sentry.utils.cache import memoize
 class IssueLinkCreator(Mediator):
     install = Param("sentry.models.SentryAppInstallation")
     group = Param("sentry.models.Group")
-    action = Param(six.string_types)
+    action = Param((str,))
     fields = Param(object)
-    uri = Param(six.string_types)
+    uri = Param((str,))
     user = Param("sentry.models.User")
 
     def call(self):
@@ -21,7 +19,7 @@ class IssueLinkCreator(Mediator):
 
     def _verify_action(self):
         if self.action not in ["link", "create"]:
-            raise APIUnauthorized("Invalid action '{}'".format(self.action))
+            raise APIUnauthorized(f"Invalid action '{self.action}'")
 
     def _make_external_request(self):
         self.response = external_requests.IssueLinkRequester.run(

@@ -1,8 +1,7 @@
-import six
 import logging
 from uuid import uuid4
 
-from six.moves.urllib.parse import urlparse
+from urllib.parse import urlparse
 from sentry.http import safe_urlread
 from sentry.coreapi import APIError
 from sentry.mediators import Mediator, Param
@@ -44,18 +43,18 @@ class IssueLinkRequester(Mediator):
     """
 
     install = Param("sentry.models.SentryAppInstallation")
-    uri = Param(six.string_types)
+    uri = Param((str,))
     group = Param("sentry.models.Group")
     fields = Param(object)
     user = Param("sentry.models.User")
-    action = Param(six.string_types)
+    action = Param((str,))
 
     def call(self):
         return self._make_request()
 
     def _build_url(self):
         urlparts = urlparse(self.sentry_app.webhook_url)
-        return "{}://{}{}".format(urlparts.scheme, urlparts.netloc, self.uri)
+        return f"{urlparts.scheme}://{urlparts.netloc}{self.uri}"
 
     def _make_request(self):
         action_to_past_tense = {"create": "created", "link": "linked"}
@@ -81,7 +80,7 @@ class IssueLinkRequester(Mediator):
                     "project": self.group.project.slug,
                     "group": self.group.id,
                     "uri": self.uri,
-                    "error_message": six.text_type(e),
+                    "error_message": str(e),
                 },
             )
             response = {}
@@ -106,7 +105,7 @@ class IssueLinkRequester(Mediator):
     @memoize
     def body(self):
         body = {"fields": {}}
-        for name, value in six.iteritems(self.fields):
+        for name, value in self.fields.items():
             body["fields"][name] = value
 
         body["issueId"] = self.group.id

@@ -26,10 +26,10 @@ class SlackIdentityProvider(OAuth2Provider):
         return "https://slack.com/api/oauth.v2.access"
 
     def get_oauth_client_id(self):
-        return options.get("slack-v2.client-id") or options.get("slack.client-id")
+        return options.get("slack.client-id")
 
     def get_oauth_client_secret(self):
-        return options.get("slack-v2.client-secret") or options.get("slack.client-secret")
+        return options.get("slack.client-secret")
 
     def get_user_scopes(self):
         return self.config.get("user_scopes", self.user_scopes)

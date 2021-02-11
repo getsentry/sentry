@@ -1,5 +1,4 @@
 import logging
-import six
 
 from django import forms
 
@@ -156,9 +155,7 @@ def build_description(event, rule_id, installation, generate_footer):
     Format the description of the ticket/work item
     """
     project = event.group.project
-    rule_url = "/organizations/{}/alerts/rules/{}/{}/".format(
-        project.organization.slug, project.slug, rule_id
-    )
+    rule_url = f"/organizations/{project.organization.slug}/alerts/rules/{project.slug}/{rule_id}/"
 
     return installation.get_group_description(event.group, event) + generate_footer(rule_url)
 
@@ -194,7 +191,7 @@ def create_issue(event, futures):
 
         if has_linked_issue(event, integration):
             logger.info(
-                "{}.rule_trigger.link_already_exists".format(integration.provider),
+                f"{integration.provider}.rule_trigger.link_already_exists",
                 extra={
                     "rule_id": rule_id,
                     "project_id": event.group.project.id,
@@ -223,7 +220,7 @@ class TicketEventAction(IntegrationEventAction):
         self.form_fields = {
             self.integration_key: {
                 "choices": integration_choices,
-                "initial": six.text_type(self.get_integration_id()),
+                "initial": str(self.get_integration_id()),
                 "type": "choice",
                 "resetsForm": True,
                 "updatesForm": True,
@@ -261,14 +258,14 @@ class TicketEventAction(IntegrationEventAction):
 
     @property
     def prompt(self):
-        return "Create {}".format(self.ticket_type)
+        return f"Create {self.ticket_type}"
 
     def generate_footer(self, rule_url):
         raise NotImplementedError
 
     def after(self, event, state):
         integration_id = self.get_integration_id()
-        key = "{}:{}".format(self.provider, integration_id)
+        key = f"{self.provider}:{integration_id}"
         return self.future(
             create_issue,
             key=key,

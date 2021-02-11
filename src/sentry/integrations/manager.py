@@ -1,6 +1,5 @@
 __all__ = ["IntegrationManager"]
 
-import six
 
 from sentry.exceptions import NotRegistered
 
@@ -15,7 +14,7 @@ class IntegrationManager:
         return iter(self.all())
 
     def all(self):
-        for key in six.iterkeys(self.__values):
+        for key in self.__values.keys():
             integration = self.get(key)
             if integration.visible:
                 yield integration

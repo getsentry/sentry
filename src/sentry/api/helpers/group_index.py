@@ -1,5 +1,4 @@
 import logging
-import six
 
 from collections import defaultdict
 from datetime import timedelta
@@ -98,9 +97,7 @@ def build_query_params_from_request(request, organization, projects, environment
                 parse_search_query(query), projects, request.user, environments
             )
         except InvalidSearchQuery as e:
-            raise ValidationError(
-                "Your search query could not be parsed: {}".format(six.text_type(e))
-            )
+            raise ValidationError("Your search query could not be parsed: {}".format(str(e)))
 
         validate_search_filter_permissions(organization, search_filters, request.user)
         query_kwargs["search_filters"] = search_filters
@@ -137,7 +134,7 @@ def validate_search_filter_permissions(organization, search_filters, user):
                     user=user, organization=organization, sender=validate_search_filter_permissions
                 )
                 raise ValidationError(
-                    "You need access to the advanced search feature to use {}".format(feature_name)
+                    f"You need access to the advanced search feature to use {feature_name}"
                 )
 
 
@@ -398,7 +395,7 @@ def delete_groups(request, projects, organization_id, search_fn):
             # a bit too complicated right now
             cursor_result, _ = search_fn({"limit": 1000, "paginator_options": {"max_limit": 1000}})
         except ValidationError as exc:
-            return Response({"detail": six.text_type(exc)}, status=400)
+            return Response({"detail": str(exc)}, status=400)
 
         group_list = list(cursor_result)
 
@@ -482,9 +479,7 @@ def rate_limit_endpoint(limit=1, window=1):
             ):
                 return Response(
                     {
-                        "detail": "You are attempting to use this endpoint too quickly. Limit is {}/{}s".format(
-                            limit, window
-                        )
+                        "detail": f"You are attempting to use this endpoint too quickly. Limit is {limit}/{window}s"
                     },
                     status=429,
                 )
@@ -536,7 +531,7 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
             # a bit too complicated right now
             cursor_result, _ = search_fn({"limit": 1000, "paginator_options": {"max_limit": 1000}})
         except ValidationError as exc:
-            return Response({"detail": six.text_type(exc)}, status=400)
+            return Response({"detail": str(exc)}, status=400)
 
         group_list = list(cursor_result)
         group_ids = [g.id for g in group_list]
@@ -992,8 +987,8 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
         )
 
         result["merge"] = {
-            "parent": six.text_type(primary_group.id),
-            "children": [six.text_type(g.id) for g in groups_to_merge],
+            "parent": str(primary_group.id),
+            "children": [str(g.id) for g in groups_to_merge],
         }
 
     # Support moving groups in or out of the inbox

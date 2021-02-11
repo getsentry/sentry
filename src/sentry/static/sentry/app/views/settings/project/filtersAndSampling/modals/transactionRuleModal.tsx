@@ -74,7 +74,7 @@ class TransactionRuleModal extends Form<Props, State> {
   geTransactionFieldDescription() {
     return {
       label: t('Transaction'),
-      help: t('This is a description'),
+      // help: t('This is a description'),  TODO(Priscila): Add correct descriptions
     };
   }
 
@@ -142,7 +142,7 @@ class TransactionRuleModal extends Form<Props, State> {
     return (
       <Field
         label={t('Tracing')}
-        help={t('this is a description')}
+        // help={t('this is a description')} // TODO(Priscila): Add correct descriptions
         inline={false}
         flexibleControlStateSize
         stacked

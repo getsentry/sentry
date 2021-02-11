@@ -1,5 +1,4 @@
 import functools
-import six
 from datetime import datetime, timedelta
 from typing import List, Mapping, Optional, Sequence
 
@@ -113,7 +112,7 @@ def inbox_search(
             .distinct()
         )
 
-    owner_search = get_search_filter(search_filters, "owner", "=")
+    owner_search = get_search_filter(search_filters, "assigned_or_suggested", "=")
     if owner_search:
         qs = qs.filter(
             assigned_or_suggested_filter(owner_search, projects, field_filter="group_id")
@@ -214,7 +213,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         try:
             start, end = get_date_range_from_params(request.GET)
         except InvalidParams as e:
-            raise ParseError(detail=six.text_type(e))
+            raise ParseError(detail=str(e))
 
         expand = request.GET.getlist("expand", [])
         collapse = request.GET.getlist("collapse", [])
@@ -305,7 +304,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 {"count_hits": True, "date_to": end, "date_from": start},
             )
         except (ValidationError, discover.InvalidSearchQuery) as exc:
-            return Response({"detail": six.text_type(exc)}, status=400)
+            return Response({"detail": str(exc)}, status=400)
 
         results = list(cursor_result)
 

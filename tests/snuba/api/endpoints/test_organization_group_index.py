@@ -122,8 +122,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         response = self.get_response(
             sort="inbox", cursor=cursor, query="is:unresolved is:for_review", limit=1
         )
-        assert len(response.data) == 1
-        assert response.data[0]["id"] == str(group_2.id)
+        assert [item["id"] for item in response.data] == [str(group_2.id)]
 
     def test_sort_by_inbox_me_or_none(self):
         group_1 = self.store_event(
@@ -137,7 +136,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         inbox_1 = add_group_to_inbox(group_1, GroupInboxReason.NEW)
         group_2 = self.store_event(
             data={
-                "event_id": "a" * 32,
+                "event_id": "b" * 32,
                 "timestamp": iso_format(before_now(seconds=1)),
                 "fingerprint": ["group-2"],
             },
@@ -154,21 +153,53 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
         owner_by_other = self.store_event(
             data={
-                "event_id": "a" * 32,
+                "event_id": "c" * 32,
                 "timestamp": iso_format(before_now(seconds=1)),
-                "fingerprint": ["group-2"],
+                "fingerprint": ["group-3"],
             },
             project_id=self.project.id,
         ).group
-        inbox_2 = add_group_to_inbox(owner_by_other, GroupInboxReason.NEW)
-        inbox_2.update(date_added=inbox_1.date_added - timedelta(hours=1))
+        inbox_3 = add_group_to_inbox(owner_by_other, GroupInboxReason.NEW)
+        inbox_3.update(date_added=inbox_1.date_added - timedelta(hours=1))
+        other_user = self.create_user()
         GroupOwner.objects.create(
             group=owner_by_other,
             project=self.project,
             organization=self.organization,
             type=GroupOwnerType.OWNERSHIP_RULE.value,
-            user=self.create_user(),
+            user=other_user,
         )
+
+        owned_me_assigned_to_other = self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "fingerprint": ["group-4"],
+            },
+            project_id=self.project.id,
+        ).group
+        inbox_4 = add_group_to_inbox(owned_me_assigned_to_other, GroupInboxReason.NEW)
+        inbox_4.update(date_added=inbox_1.date_added - timedelta(hours=1))
+        GroupAssignee.objects.assign(owned_me_assigned_to_other, other_user)
+        GroupOwner.objects.create(
+            group=owned_me_assigned_to_other,
+            project=self.project,
+            organization=self.organization,
+            type=GroupOwnerType.OWNERSHIP_RULE.value,
+            user=self.user,
+        )
+
+        unowned_assigned_to_other = self.store_event(
+            data={
+                "event_id": "e" * 32,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "fingerprint": ["group-5"],
+            },
+            project_id=self.project.id,
+        ).group
+        inbox_5 = add_group_to_inbox(unowned_assigned_to_other, GroupInboxReason.NEW)
+        inbox_5.update(date_added=inbox_1.date_added - timedelta(hours=1))
+        GroupAssignee.objects.assign(unowned_assigned_to_other, other_user)
 
         self.login_as(user=self.user)
         response = self.get_valid_response(
@@ -176,9 +207,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             query="is:unresolved is:for_review assigned_or_suggested:me_or_none",
             limit=10,
         )
-        assert len(response.data) == 2
-        assert response.data[0]["id"] == str(group_1.id)
-        assert response.data[1]["id"] == str(group_2.id)
+        assert [item["id"] for item in response.data] == [str(group_1.id), str(group_2.id)]
 
     def test_trace_search(self):
         event = self.store_event(
@@ -664,7 +693,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         for i in range(5):
             group = self.store_event(
                 data={
-                    "timestamp": iso_format(before_now(days=i)),
+                    "timestamp": iso_format(before_now(minutes=10, days=i)),
                     "fingerprint": [f"group-{i}"],
                 },
                 project_id=self.project.id,
