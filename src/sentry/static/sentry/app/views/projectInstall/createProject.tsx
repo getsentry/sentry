@@ -13,6 +13,7 @@ import SelectControl from 'app/components/forms/selectControl';
 import PageHeading from 'app/components/pageHeading';
 import PlatformPicker from 'app/components/platformPicker';
 import Tooltip from 'app/components/tooltip';
+import categoryList from 'app/data/platformCategories';
 import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
 import {inputStyles} from 'app/styles/input';
@@ -26,6 +27,11 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
 import IssueAlertOptions from 'app/views/projectInstall/issueAlertOptions';
+
+const getCategoryName = (category?: string) => {
+  const matched = categoryList.find(({id}) => id === category);
+  return matched?.id;
+};
 
 type RuleEventData = {
   eventKey: string;
@@ -54,6 +60,7 @@ type State = {
   platform: PlatformName | null;
   inFlight: boolean;
   dataFragment: IssueAlertFragment | undefined;
+  category: ReturnType<typeof getCategoryName>;
 };
 
 class CreateProject extends React.Component<Props, State> {
@@ -70,12 +77,14 @@ class CreateProject extends React.Component<Props, State> {
 
     const team = query.team || (accessTeams.length && accessTeams[0].slug);
     const platform = getPlatformName(query.platform) ? query.platform : '';
+    const category = getCategoryName(query.category);
 
     this.state = {
       error: false,
       projectName: getPlatformName(platform) || '',
       team,
       platform,
+      category,
       inFlight: false,
       dataFragment: undefined,
     };
@@ -285,7 +294,7 @@ class CreateProject extends React.Component<Props, State> {
     }));
 
   render() {
-    const {platform, error} = this.state;
+    const {platform, category, error} = this.state;
 
     return (
       <React.Fragment>
@@ -301,7 +310,12 @@ class CreateProject extends React.Component<Props, State> {
             )}
           </HelpText>
           <PageHeading withMargins>{t('Choose a platform')}</PageHeading>
-          <PlatformPicker platform={platform} setPlatform={this.setPlatform} showOther />
+          <PlatformPicker
+            platform={platform}
+            category={category}
+            setPlatform={this.setPlatform}
+            showOther
+          />
           <IssueAlertOptions
             onChange={updatedData => {
               this.setState({dataFragment: updatedData});

@@ -20,6 +20,8 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 const PLATFORM_CATEGORIES = [...categoryList, {id: 'all', name: t('All')}] as const;
 
+type Category = typeof PLATFORM_CATEGORIES[number]['id'];
+
 type Props = {
   setPlatform: (key: PlatformKey | null) => void;
   platform?: string | null;
@@ -27,10 +29,11 @@ type Props = {
   listClassName?: string;
   listProps?: React.HTMLProps<HTMLDivElement>;
   noAutoFilter?: boolean;
+  category?: Category;
 };
 
 type State = {
-  category: typeof PLATFORM_CATEGORIES[number]['id'];
+  category: Category;
   filter: string;
 };
 
@@ -40,7 +43,7 @@ class PlatformPicker extends React.Component<Props, State> {
   };
 
   state: State = {
-    category: PLATFORM_CATEGORIES[0].id,
+    category: this.props.category ?? PLATFORM_CATEGORIES[0].id,
     filter: this.props.noAutoFilter ? '' : (this.props.platform || '').split('-')[0],
   };
 
