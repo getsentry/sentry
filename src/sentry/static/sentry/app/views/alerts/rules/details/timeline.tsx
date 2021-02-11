@@ -76,7 +76,7 @@ class TimelineIncident extends React.Component<IncidentProps, IncidentState> {
     }
   }
 
-  renderActivity(activity: ActivityType, idx) {
+  renderActivity(activity: ActivityType, idx: number) {
     const {incident, rule} = this.props;
     const {activities} = this.state;
     const last = this.state.activities && idx === this.state.activities.length - 1;
