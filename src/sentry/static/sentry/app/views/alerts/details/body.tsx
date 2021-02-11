@@ -16,7 +16,7 @@ import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
-import {Project} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
 import Projects from 'app/utils/projects';
 import theme from 'app/utils/theme';
@@ -38,6 +38,7 @@ import Chart from './chart';
 
 type Props = {
   incident?: Incident;
+  organization: Organization;
   stats?: IncidentStats;
 } & RouteComponentProps<{alertId: string; orgId: string}, {}>;
 
@@ -209,7 +210,12 @@ export default class DetailsBody extends React.Component<Props> {
   }
 
   render() {
-    const {params, incident, stats} = this.props;
+    const {params, incident, organization, stats} = this.props;
+
+    const hasRedesign = organization.features.includes('alert-details-redesign');
+    const alertRuleLink = hasRedesign
+      ? `/organizations/${organization.slug}/alerts/rules/details/${incident?.alertRule?.id}/`
+      : `/organizations/${params.orgId}/alerts/metric-rules/${incident?.projects[0]}/${incident?.alertRule?.id}/`;
 
     return (
       <StyledPageContent>
@@ -271,13 +277,14 @@ export default class DetailsBody extends React.Component<Props> {
             <Sidebar>
               <SidebarHeading>
                 <span>{t('Alert Rule')}</span>
-                {incident?.alertRule?.status !== AlertRuleStatus.SNAPSHOT && (
+                {(incident?.alertRule?.status !== AlertRuleStatus.SNAPSHOT ||
+                  hasRedesign) && (
                   <SideHeaderLink
                     disabled={!!incident?.id}
                     to={
                       incident?.id
                         ? {
-                            pathname: `/organizations/${params.orgId}/alerts/metric-rules/${incident?.projects[0]}/${incident?.alertRule?.id}/`,
+                            pathname: alertRuleLink,
                           }
                         : ''
                     }

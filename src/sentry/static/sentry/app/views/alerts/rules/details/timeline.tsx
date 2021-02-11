@@ -369,7 +369,7 @@ const ActivityTime = styled('li')`
   align-items: center;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(0.75)};
 `;
 
 const StyledTimeSince = styled(TimeSince)`
@@ -377,13 +377,15 @@ const StyledTimeSince = styled(TimeSince)`
 `;
 
 const ActivityText = styled('div')`
-  margin-bottom: ${space(2)};
+  flex-direction: row;
+  margin-bottom: ${space(1.5)};
 `;
 
-const ActivitySubText = styled('div')`
-  display: flex;
+const ActivitySubText = styled('span')`
+  display: inline-block;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
+  margin-left: ${space(0.5)};
 `;
 
 const HorizontalDivider = styled('div')`
