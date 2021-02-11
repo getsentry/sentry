@@ -262,7 +262,7 @@ class BaseManager(Manager):
         super().contribute_to_class(model, name)
         class_prepared.connect(self.__class_prepared, sender=model)
 
-    def get_from_cache(self, **kwargs):
+    def get_from_cache(self, **kwargs) -> Model:  # TODO(typing): Properly type this
         """
         Wrapper around QuerySet.get which supports caching of the
         intermediate value.  Callee is responsible for making sure
