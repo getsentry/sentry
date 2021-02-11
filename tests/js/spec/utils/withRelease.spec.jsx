@@ -6,7 +6,8 @@ import ReleaseStore from 'app/stores/releaseStore';
 import withRelease from 'app/utils/withRelease';
 
 describe('withRelease HoC', function () {
-  const orgSlug = 'myOrg';
+  const organization = TestStubs.Organization();
+  const orgSlug = organization.slug;
   const projectSlug = 'myProject';
   const releaseVersion = 'myRelease';
 
@@ -41,7 +42,7 @@ describe('withRelease HoC', function () {
     const wrapper = mount(
       <Container
         api={api}
-        orgSlug={orgSlug}
+        organization={organization}
         projectSlug={projectSlug}
         releaseVersion={releaseVersion}
       />
@@ -76,7 +77,7 @@ describe('withRelease HoC', function () {
     mount(
       <Container
         api={api}
-        orgSlug={orgSlug}
+        organization={organization}
         projectSlug={projectSlug}
         releaseVersion={releaseVersion}
       />
@@ -88,7 +89,7 @@ describe('withRelease HoC', function () {
     mount(
       <Container
         api={api}
-        orgSlug={orgSlug}
+        organization={organization}
         projectSlug={projectSlug}
         releaseVersion={releaseVersion}
       />
@@ -97,7 +98,7 @@ describe('withRelease HoC', function () {
     mount(
       <Container
         api={api}
-        orgSlug={orgSlug}
+        organization={organization}
         projectSlug={projectSlug}
         releaseVersion={releaseVersion}
       />

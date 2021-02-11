@@ -181,7 +181,7 @@ class EventEntries extends React.Component<Props> {
         {showTagSummary && (
           <EventTags
             event={event}
-            orgId={organization.slug}
+            organization={organization as Organization}
             projectId={project.slug}
             location={location}
             hasQueryFeature={hasQueryFeature}

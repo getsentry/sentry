@@ -11,14 +11,14 @@ import VersionHoverCard from 'app/components/versionHoverCard';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Release} from 'app/types';
+import {Organization, Release} from 'app/types';
 import {defined, toTitleCase} from 'app/utils';
 import theme from 'app/utils/theme';
 
 type RelaxedDateType = React.ComponentProps<typeof TimeSince>['date'];
 
 type Props = {
-  orgSlug: string;
+  organization: Organization;
   projectSlug: string;
   projectId: string;
   hasRelease: boolean;
@@ -41,7 +41,8 @@ class SeenInfo extends React.Component<Props> {
   }
 
   getReleaseTrackingUrl() {
-    const {orgSlug, projectSlug} = this.props;
+    const {organization, projectSlug} = this.props;
+    const orgSlug = organization.slug;
 
     return `/settings/${orgSlug}/projects/${projectSlug}/release-tracking/`;
   }
@@ -52,10 +53,11 @@ class SeenInfo extends React.Component<Props> {
       dateGlobal,
       environment,
       release,
-      orgSlug,
+      organization,
       projectSlug,
       projectId,
     } = this.props;
+
     return (
       <HovercardWrapper>
         <StyledHovercard
@@ -107,7 +109,7 @@ class SeenInfo extends React.Component<Props> {
             <React.Fragment>
               {t('in release ')}
               <VersionHoverCard
-                orgSlug={orgSlug}
+                organization={organization}
                 projectSlug={projectSlug}
                 releaseVersion={release.version}
               >
