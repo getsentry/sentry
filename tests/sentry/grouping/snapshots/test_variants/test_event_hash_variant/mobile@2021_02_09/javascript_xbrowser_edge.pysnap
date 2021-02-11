@@ -1,5 +1,5 @@
 ---
-created: '2021-02-09T10:36:27.690313Z'
+created: '2020-02-26T19:54:42.181080Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,17 +10,17 @@ app:
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace
           frame (non app frame)
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
-            function*
+            function (ignored unknown function name)
               "Anonymous function"
           frame (non app frame)
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
-            function*
-              "Foo.prototype.testMethod"
+            function* (trimmed javascript function)
+              "testMethod"
           frame (non app frame)
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "aha"
@@ -30,32 +30,32 @@ app:
             function*
               "eval code"
           frame (non app frame)
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "test"
           frame (non app frame)
             filename*
               "native code"
-            function*
-              "Array.prototype.map"
+            function* (trimmed javascript function)
+              "map"
           frame (non app frame)
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
-            function*
+            function (ignored unknown function name)
               "Anonymous function"
           frame (non app frame)
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "callback"
           frame (non app frame)
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "callAnotherThing"
           frame (non app frame)
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "aha"
@@ -65,58 +65,58 @@ app:
           "bad"
 --------------------------------------------------------------------------
 system:
-  hash: "11b10a754e6caa4f763377efecb5505e"
+  hash: "c63e8727af1a8fe75872b6a762797113"
   component:
     system*
       exception*
         stacktrace*
           frame*
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
-            function*
+            function (ignored unknown function name)
               "Anonymous function"
           frame*
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
-            function*
-              "Foo.prototype.testMethod"
+            function* (trimmed javascript function)
+              "testMethod"
           frame*
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "aha"
-          frame*
+          frame (ignored low quality javascript frame)
             filename*
               "eval code"
             function*
               "eval code"
           frame*
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "test"
-          frame*
+          frame (ignored low quality javascript frame)
             filename*
               "native code"
-            function*
-              "Array.prototype.map"
+            function* (trimmed javascript function)
+              "map"
           frame*
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
-            function*
+            function (ignored unknown function name)
               "Anonymous function"
           frame*
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "callback"
           frame*
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "callAnotherThing"
           frame*
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "aha"

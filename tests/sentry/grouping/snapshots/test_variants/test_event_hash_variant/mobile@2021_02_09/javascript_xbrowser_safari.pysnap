@@ -1,5 +1,5 @@
 ---
-created: '2021-02-09T10:36:26.622317Z'
+created: '2020-02-26T19:54:42.344202Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,15 +10,15 @@ app:
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace
           frame (non app frame)
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
           frame (non app frame)
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "testMethod"
           frame (non app frame)
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "aha"
@@ -28,7 +28,7 @@ app:
             function*
               "eval"
           frame (non app frame)
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "test"
@@ -38,15 +38,15 @@ app:
             function*
               "map"
           frame (non app frame)
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
           frame (non app frame)
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "callback"
           frame (non app frame)
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "callAnotherThing"
@@ -56,7 +56,7 @@ app:
             function*
               "aha"
           frame (non app frame)
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "aha"
@@ -66,59 +66,59 @@ app:
           "bad"
 --------------------------------------------------------------------------
 system:
-  hash: "fc72313a47981f6b86536e727d84c2d4"
+  hash: "c63e8727af1a8fe75872b6a762797113"
   component:
     system*
       exception*
         stacktrace*
-          frame
-            filename (ignored because frame points to a URL)
+          frame*
+            filename*
               "test.html"
           frame*
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "testMethod"
           frame*
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "aha"
-          frame*
+          frame (ignored low quality javascript frame)
             filename (native code indicated by filename)
               "[native code]"
             function*
               "eval"
           frame*
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "test"
-          frame*
+          frame (ignored low quality javascript frame)
             filename (native code indicated by filename)
               "[native code]"
             function*
               "map"
-          frame
-            filename (ignored because frame points to a URL)
+          frame*
+            filename*
               "test.html"
           frame*
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "callback"
           frame*
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "callAnotherThing"
-          frame*
+          frame (ignored low quality javascript frame)
             filename (native code indicated by filename)
               "[native code]"
             function*
               "aha"
           frame*
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "aha"

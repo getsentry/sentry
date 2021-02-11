@@ -1,5 +1,5 @@
 ---
-created: '2021-02-09T10:36:26.463000Z'
+created: '2020-02-26T19:54:42.233368Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -19,8 +19,8 @@ app:
               "test"
             filename (ignored because frame points to a URL)
               "test.html"
-            function*
-              "Foo.testMethod"
+            function* (trimmed javascript function)
+              "testMethod"
           frame (non app frame)
             module*
               "test"
@@ -45,8 +45,8 @@ app:
           frame (non app frame)
             filename (anonymous filename discarded)
               "<anonymous>"
-            function*
-              "Array.map"
+            function* (trimmed javascript function)
+              "map"
           frame (non app frame)
             module*
               "test"
@@ -57,8 +57,8 @@ app:
               "test"
             filename (ignored because frame points to a URL)
               "test.html"
-            function*
-              "Object.callback"
+            function* (trimmed javascript function)
+              "callback"
           frame (non app frame)
             module*
               "test"
@@ -71,15 +71,15 @@ app:
               "test"
             filename (ignored because frame points to a URL)
               "test.html"
-            function*
-              "Object.aha"
+            function* (trimmed javascript function)
+              "aha"
         type*
           "Error"
         value*
           "bad"
 --------------------------------------------------------------------------
 system:
-  hash: "ae807192d4f922c3f0513ce4df585ce6"
+  hash: "b2602ad455472dede8e4c340d8a7eaba"
   component:
     system*
       exception*
@@ -94,8 +94,8 @@ system:
               "test"
             filename (ignored because frame points to a URL)
               "test.html"
-            function*
-              "Foo.testMethod"
+            function* (trimmed javascript function)
+              "testMethod"
           frame*
             module*
               "test"
@@ -103,7 +103,7 @@ system:
               "test.html"
             function*
               "aha"
-          frame*
+          frame (ignored low quality javascript frame)
             module*
               "test"
             filename (ignored because frame points to a URL)
@@ -117,11 +117,11 @@ system:
               "test.html"
             function*
               "test"
-          frame*
+          frame (ignored low quality javascript frame)
             filename (anonymous filename discarded)
               "<anonymous>"
-            function*
-              "Array.map"
+            function* (trimmed javascript function)
+              "map"
           frame*
             module*
               "test"
@@ -132,8 +132,8 @@ system:
               "test"
             filename (ignored because frame points to a URL)
               "test.html"
-            function*
-              "Object.callback"
+            function* (trimmed javascript function)
+              "callback"
           frame*
             module*
               "test"
@@ -146,8 +146,8 @@ system:
               "test"
             filename (ignored because frame points to a URL)
               "test.html"
-            function*
-              "Object.aha"
+            function* (trimmed javascript function)
+              "aha"
         type*
           "Error"
         value (ignored because stacktrace takes precedence)

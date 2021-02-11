@@ -148,11 +148,9 @@ class Strategy:
         if self.variants:
             for variant in self.variants:
                 with context:
-                # If a variant is passed put it into the context
-                    context["variant"] = variant
-                    for x in call_many_elements(
-                        *args, event=event, variant=variant.lstrip("!"), context=context    
-                    ):
+                    # If a variant is passed put it into the context
+                    context["variant"] = variant.lstrip("!")
+                    for x in call_many_elements(*args, event=event, context=context):
                         if not isinstance(x, tuple):
                             yield variant, x
                         else:

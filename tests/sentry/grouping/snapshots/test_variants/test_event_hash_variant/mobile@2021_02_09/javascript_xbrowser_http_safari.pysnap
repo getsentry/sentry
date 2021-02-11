@@ -1,5 +1,5 @@
 ---
-created: '2021-02-09T10:36:25.708432Z'
+created: '2020-02-26T19:54:42.315367Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -82,7 +82,7 @@ app:
           "bad"
 --------------------------------------------------------------------------
 system:
-  hash: "1c374ace6b13add91c6824b945dce4c3"
+  hash: "b2602ad455472dede8e4c340d8a7eaba"
   component:
     system*
       exception*
@@ -106,7 +106,7 @@ system:
               "test.html"
             function*
               "aha"
-          frame*
+          frame (ignored low quality javascript frame)
             filename (native code indicated by filename)
               "[native code]"
             function*
@@ -118,7 +118,7 @@ system:
               "test.html"
             function*
               "test"
-          frame*
+          frame (ignored low quality javascript frame)
             filename (native code indicated by filename)
               "[native code]"
             function*
@@ -142,7 +142,7 @@ system:
               "test.html"
             function*
               "callAnotherThing"
-          frame*
+          frame (ignored low quality javascript frame)
             filename (native code indicated by filename)
               "[native code]"
             function*

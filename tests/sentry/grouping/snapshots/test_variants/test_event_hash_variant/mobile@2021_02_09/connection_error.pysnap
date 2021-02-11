@@ -1,10 +1,10 @@
 ---
-created: '2021-02-09T10:36:26.863063Z'
+created: '2020-08-25T09:17:16.087810Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: "a3bcd79525a31922367598b0e6b6fda4"
+  hash: "6b059b9febc815ac18ac4d2082e38a9b"
   component:
     app*
       exception*
@@ -16,6 +16,8 @@ app:
               "safe.py"
             function*
               "safe_execute"
+            context-line*
+              "result = func(*args, **kwargs)"
           frame*
             module*
               "sentry.utils.services"
@@ -23,6 +25,8 @@ app:
               "services.py"
             function*
               "<lambda>"
+            context-line*
+              "context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)"
           frame*
             module*
               "getsentry.quotas"
@@ -30,6 +34,8 @@ app:
               "quotas.py"
             function*
               "is_rate_limited"
+            context-line*
+              "return super(SubscriptionQuota, self).is_rate_limited(project, key=key)"
           frame*
             module*
               "sentry.quotas.redis"
@@ -37,6 +43,8 @@ app:
               "redis.py"
             function*
               "is_rate_limited"
+            context-line*
+              "rejections = is_rate_limited(client, keys, args)"
           frame*
             module*
               "sentry.utils.redis"
@@ -44,6 +52,8 @@ app:
               "redis.py"
             function*
               "call_script"
+            context-line*
+              "return script(keys, args, client)"
           frame (non app frame)
             module*
               "redis.client"
@@ -51,6 +61,8 @@ app:
               "client.py"
             function*
               "__call__"
+            context-line*
+              "return client.evalsha(self.sha, len(keys), *args)"
           frame (non app frame)
             module*
               "redis.client"
@@ -58,6 +70,8 @@ app:
               "client.py"
             function*
               "evalsha"
+            context-line*
+              "return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"
           frame (non app frame)
             module*
               "redis.client"
@@ -65,6 +79,8 @@ app:
               "client.py"
             function*
               "execute_command"
+            context-line*
+              "return self.parse_response(connection, command_name, **options)"
           frame (non app frame)
             module*
               "redis.client"
@@ -72,6 +88,8 @@ app:
               "client.py"
             function*
               "parse_response"
+            context-line*
+              "response = connection.read_response()"
           frame (non app frame)
             module*
               "redis.connection"
@@ -79,6 +97,8 @@ app:
               "connection.py"
             function*
               "read_response"
+            context-line*
+              "response = self._parser.read_response()"
           frame (non app frame)
             module*
               "redis.connection"
@@ -86,6 +106,8 @@ app:
               "connection.py"
             function*
               "read_response"
+            context-line*
+              "(e.args,))"
         type*
           "ConnectionError"
         value (ignored because stacktrace takes precedence)
@@ -99,7 +121,7 @@ default:
         "%s.process_error"
 --------------------------------------------------------------------------
 system:
-  hash: "011c0e7a2decebaeb1897a7f08baeb1a"
+  hash: "013d3477a774fe20c468dc8accd516f1"
   component:
     system*
       exception*
@@ -111,6 +133,8 @@ system:
               "safe.py"
             function*
               "safe_execute"
+            context-line*
+              "result = func(*args, **kwargs)"
           frame*
             module*
               "sentry.utils.services"
@@ -118,6 +142,8 @@ system:
               "services.py"
             function*
               "<lambda>"
+            context-line*
+              "context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)"
           frame*
             module*
               "getsentry.quotas"
@@ -125,6 +151,8 @@ system:
               "quotas.py"
             function*
               "is_rate_limited"
+            context-line*
+              "return super(SubscriptionQuota, self).is_rate_limited(project, key=key)"
           frame*
             module*
               "sentry.quotas.redis"
@@ -132,6 +160,8 @@ system:
               "redis.py"
             function*
               "is_rate_limited"
+            context-line*
+              "rejections = is_rate_limited(client, keys, args)"
           frame*
             module*
               "sentry.utils.redis"
@@ -139,6 +169,8 @@ system:
               "redis.py"
             function*
               "call_script"
+            context-line*
+              "return script(keys, args, client)"
           frame*
             module*
               "redis.client"
@@ -146,6 +178,8 @@ system:
               "client.py"
             function*
               "__call__"
+            context-line*
+              "return client.evalsha(self.sha, len(keys), *args)"
           frame*
             module*
               "redis.client"
@@ -153,6 +187,8 @@ system:
               "client.py"
             function*
               "evalsha"
+            context-line*
+              "return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"
           frame*
             module*
               "redis.client"
@@ -160,6 +196,8 @@ system:
               "client.py"
             function*
               "execute_command"
+            context-line*
+              "return self.parse_response(connection, command_name, **options)"
           frame*
             module*
               "redis.client"
@@ -167,6 +205,8 @@ system:
               "client.py"
             function*
               "parse_response"
+            context-line*
+              "response = connection.read_response()"
           frame*
             module*
               "redis.connection"
@@ -174,6 +214,8 @@ system:
               "connection.py"
             function*
               "read_response"
+            context-line*
+              "response = self._parser.read_response()"
           frame*
             module*
               "redis.connection"
@@ -181,6 +223,8 @@ system:
               "connection.py"
             function*
               "read_response"
+            context-line*
+              "(e.args,))"
         type*
           "ConnectionError"
         value (ignored because stacktrace takes precedence)

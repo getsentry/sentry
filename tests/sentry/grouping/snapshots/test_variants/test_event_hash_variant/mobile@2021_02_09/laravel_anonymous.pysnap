@@ -1,10 +1,10 @@
 ---
-created: '2021-02-09T10:36:27.016500Z'
+created: '2020-02-26T19:54:42.536997Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: "6c99fc6b18e4fa4040a94e10729969db"
+  hash: "a728cdf5d62c8e017c35c3fe04051b6e"
   component:
     app*
       exception*
@@ -12,23 +12,29 @@ app:
           frame*
             filename*
               "server.php"
+            context-line*
+              "require_once __DIR__.'/public/index.php';"
           frame (non app frame)
             filename*
               "pipeline.php"
-            function (ignored anonymous function)
-              "class@anonymous\u0000/var/www/html/dummy.php0x7190ad3c35cf::run"
+            function* (anonymous class method)
+              "run"
+            context-line*
+              "return $callable($passable);"
           frame (non app frame)
             filename*
               "pipeline.php"
             function*
               "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+            context-line*
+              "? $pipe->{$this->method}(...$parameters)"
         type*
           "Exception"
         value (ignored because stacktrace takes precedence)
           "LARAVEL TEST"
 --------------------------------------------------------------------------
 system:
-  hash: "64809e005de3afd90f703a70e36a2591"
+  hash: "63c67781779781d9b0a442a5b2bdb976"
   component:
     system*
       exception*
@@ -36,16 +42,22 @@ system:
           frame*
             filename*
               "server.php"
+            context-line*
+              "require_once __DIR__.'/public/index.php';"
           frame*
             filename*
               "pipeline.php"
-            function (ignored anonymous function)
-              "class@anonymous\u0000/var/www/html/dummy.php0x7190ad3c35cf::run"
+            function* (anonymous class method)
+              "run"
+            context-line*
+              "return $callable($passable);"
           frame*
             filename*
               "pipeline.php"
             function*
               "Illuminate\\Pipeline\\Pipeline::Illuminate\\Pipeline\\{closure}"
+            context-line*
+              "? $pipe->{$this->method}(...$parameters)"
         type*
           "Exception"
         value (ignored because stacktrace takes precedence)

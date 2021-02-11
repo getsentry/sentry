@@ -1,5 +1,4 @@
 import re
-import copy
 
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import strategy
@@ -340,7 +339,7 @@ def get_contextline_component(frame, platform, function, context):
     return component
 
 
-@strategy(id="stacktrace:v1", interfaces=["stacktrace"], score=1800)
+@strategy(id="stacktrace:v1", interfaces=["stacktrace"], variants=["!system", "app"], score=1800)
 def stacktrace(stacktrace, context, **meta):
     variant = context["variant"]
     frames = stacktrace.frames
@@ -355,7 +354,7 @@ def stacktrace(stacktrace, context, **meta):
             frame_component.update(contributes=False, hint="non app frame")
         elif prev_frame is not None and is_recursion_v1(frame, prev_frame):
             frame_component.update(contributes=False, hint="ignored due to recursion")
-        elif variant != "system" and not frame.in_app and all_frames_considered_in_app:
+        elif variant == "app" and not frame.in_app and all_frames_considered_in_app:
             frame_component.update(hint="frame considered in-app because no frame is in-app")
         values.append(frame_component)
         frames_for_filtering.append(frame.get_raw_data())
@@ -374,7 +373,7 @@ def stacktrace(stacktrace, context, **meta):
     ):
         values[0].update(contributes=False, hint="ignored single non-URL JavaScript frame")
 
-    yield variant, context.config.enhancements.assemble_stacktrace_component(
+    return context.config.enhancements.assemble_stacktrace_component(
         values,
         frames_for_filtering,
         meta["event"].platform,
@@ -498,6 +497,7 @@ def threads(threads_interface, context, **meta):
     return GroupingComponent(
         id="threads", values=[context.get_grouping_component(stacktrace, **meta)]
     )
+
 
 @threads.variant_processor
 def threads_variant_processor(variants, context, **meta):

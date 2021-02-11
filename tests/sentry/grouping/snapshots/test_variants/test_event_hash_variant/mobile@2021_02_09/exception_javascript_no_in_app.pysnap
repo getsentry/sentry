@@ -1,5 +1,5 @@
 ---
-created: '2021-02-09T10:36:26.964743Z'
+created: '2020-02-26T19:54:41.149808Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -14,20 +14,24 @@ app:
               "app/components/modals/createTeamModal"
             filename (module takes precedence)
               "createteammodal.jsx"
+            context-line*
+              "onError(err);"
           frame (non app frame)
             module*
               "app/views/settings/components/forms/form"
             filename (module takes precedence)
               "form.jsx"
-            function*
+            function (ignored because sourcemap used and context line available)
               "onError"
+            context-line*
+              "this.model.submitError(error);"
         type*
           "TypeError"
         value*
           "Cannot read property 'submitError' of null"
 --------------------------------------------------------------------------
 system:
-  hash: "8717a0fb8a1ddcabdd21bc2b7ca9ebee"
+  hash: "26552f86ca2368e708afa1df6effc1c5"
   component:
     system*
       exception*
@@ -37,13 +41,17 @@ system:
               "app/components/modals/createTeamModal"
             filename (module takes precedence)
               "createteammodal.jsx"
+            context-line*
+              "onError(err);"
           frame*
             module*
               "app/views/settings/components/forms/form"
             filename (module takes precedence)
               "form.jsx"
-            function*
+            function (ignored because sourcemap used and context line available)
               "onError"
+            context-line*
+              "this.model.submitError(error);"
         type*
           "TypeError"
         value (ignored because stacktrace takes precedence)

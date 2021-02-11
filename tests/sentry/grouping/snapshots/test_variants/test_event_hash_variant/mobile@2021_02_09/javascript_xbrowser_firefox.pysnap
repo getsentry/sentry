@@ -1,5 +1,5 @@
 ---
-created: '2021-02-09T10:36:25.888880Z'
+created: '2020-02-26T19:54:42.207014Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -10,45 +10,45 @@ app:
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace
           frame (non app frame)
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
           frame (non app frame)
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "testMethod"
           frame (non app frame)
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "aha"
           frame (non app frame)
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "eval"
           frame (non app frame)
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "test"
           frame (non app frame)
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
-            function*
+            function (ignored unknown function name)
               "test/<"
           frame (non app frame)
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "callback"
           frame (non app frame)
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "callAnotherThing"
           frame (non app frame)
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "aha"
@@ -58,51 +58,51 @@ app:
           "bad"
 --------------------------------------------------------------------------
 system:
-  hash: "fe1acbd354c812ab2969a76083b84e7f"
+  hash: "c63e8727af1a8fe75872b6a762797113"
   component:
     system*
       exception*
         stacktrace*
-          frame
-            filename (ignored because frame points to a URL)
+          frame*
+            filename*
               "test.html"
           frame*
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "testMethod"
           frame*
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "aha"
-          frame*
-            filename (ignored because frame points to a URL)
+          frame (ignored low quality javascript frame)
+            filename*
               "test.html"
             function*
               "eval"
           frame*
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "test"
           frame*
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
-            function*
+            function (ignored unknown function name)
               "test/<"
           frame*
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "callback"
           frame*
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "callAnotherThing"
           frame*
-            filename (ignored because frame points to a URL)
+            filename*
               "test.html"
             function*
               "aha"

@@ -1,5 +1,5 @@
 ---
-created: '2021-02-09T10:36:28.078910Z'
+created: '2020-02-26T19:54:42.092360Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -57,25 +57,25 @@ app:
           frame (non app frame)
             filename*
               "react-dom.development.js"
-            function*
-              "Object.invokeGuardedCallbackDev"
+            function* (trimmed javascript function)
+              "invokeGuardedCallbackDev"
           frame (non app frame)
             filename*
               "index.js"
-            function*
-              "HTMLUnknownElement.sentryWrapped"
+            function* (trimmed javascript function)
+              "sentryWrapped"
           frame (non app frame)
             filename*
               "react-dom.development.js"
-            function*
-              "HTMLUnknownElement.callCallback"
+            function* (trimmed javascript function)
+              "callCallback"
         type*
           "ReferenceError"
         value*
           "varant is not defined"
 --------------------------------------------------------------------------
 system:
-  hash: "c792aaace0c1a534a115ece18c376538"
+  hash: "c0f3f7d6deb17aec9d07259ac684fad0"
   component:
     system*
       exception*
@@ -128,18 +128,18 @@ system:
           frame*
             filename*
               "react-dom.development.js"
-            function*
-              "Object.invokeGuardedCallbackDev"
+            function* (trimmed javascript function)
+              "invokeGuardedCallbackDev"
           frame*
             filename*
               "index.js"
-            function*
-              "HTMLUnknownElement.sentryWrapped"
+            function* (trimmed javascript function)
+              "sentryWrapped"
           frame*
             filename*
               "react-dom.development.js"
-            function*
-              "HTMLUnknownElement.callCallback"
+            function* (trimmed javascript function)
+              "callCallback"
         type*
           "ReferenceError"
         value (ignored because stacktrace takes precedence)

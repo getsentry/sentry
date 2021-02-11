@@ -1,10 +1,10 @@
 ---
-created: '2021-02-09T10:36:26.944953Z'
+created: '2020-08-25T09:17:16.122350Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: "86a7a80de1a3e572aeb20b28ae8d62c6"
+  hash: "d59239f5aad3304d60beb1fde3369b78"
   component:
     app*
       exception*
@@ -16,6 +16,8 @@ app:
               "safe.py"
             function*
               "safe_execute"
+            context-line*
+              "result = func(*args, **kwargs)"
           frame*
             module*
               "sentry.integrations.slack.notify_action"
@@ -23,6 +25,8 @@ app:
               "notify_action.py"
             function*
               "send_notification"
+            context-line*
+              "resp.raise_for_status()"
           frame (non app frame)
             module*
               "requests.models"
@@ -30,6 +34,8 @@ app:
               "models.py"
             function*
               "raise_for_status"
+            context-line*
+              "raise HTTPError(http_error_msg, response=self)"
         type*
           "HTTPError"
         value (ignored because stacktrace takes precedence)
@@ -43,7 +49,7 @@ default:
         "%s.process_error"
 --------------------------------------------------------------------------
 system:
-  hash: "07a725d19885057d03eccfa450a274f4"
+  hash: "133db3f366b1327dab4e661f66dfb961"
   component:
     system*
       exception*
@@ -55,6 +61,8 @@ system:
               "safe.py"
             function*
               "safe_execute"
+            context-line*
+              "result = func(*args, **kwargs)"
           frame*
             module*
               "sentry.integrations.slack.notify_action"
@@ -62,6 +70,8 @@ system:
               "notify_action.py"
             function*
               "send_notification"
+            context-line*
+              "resp.raise_for_status()"
           frame*
             module*
               "requests.models"
@@ -69,6 +79,8 @@ system:
               "models.py"
             function*
               "raise_for_status"
+            context-line*
+              "raise HTTPError(http_error_msg, response=self)"
         type*
           "HTTPError"
         value (ignored because stacktrace takes precedence)
