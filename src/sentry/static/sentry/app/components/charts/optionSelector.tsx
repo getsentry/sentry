@@ -123,6 +123,7 @@ const StyledDropdownBubble = styled(DropdownBubble)<{
 `;
 
 const StyledDropdownItem = styled(DropdownItem)`
+  line-height: ${p => p.theme.text.lineHeightBody};
   white-space: nowrap;
 `;
 
