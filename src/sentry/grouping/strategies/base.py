@@ -85,6 +85,8 @@ class GroupingContext:
             kwargs["call_id"] = (strategy.name, id(interface))
             rv = call_single_element(strategy, interface, *args, **kwargs)
             if isinstance(rv, tuple):
+                if rv[0] != self["variant"]:
+                    self["variant"] = f"self['variant']-{rv[0]}"
                 return rv[1]
             return rv
         return GroupingComponent(id=path, hint="grouping algorithm does not consider this value")

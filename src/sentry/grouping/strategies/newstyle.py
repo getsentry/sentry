@@ -341,7 +341,16 @@ def get_contextline_component(frame, platform, function, context):
 
 @strategy(id="stacktrace:v1", interfaces=["stacktrace"], score=1800)
 def stacktrace(stacktrace, context, **meta):
-    for v in [context["variant"]] if context["variant"] else ("!system", "app"):
+
+    if context["variant"] or context["hierarchical_grouping"]:
+        potential_variants = [(context["variant"], -1)]
+    else:
+        potential_variants = [("!system", -1), ("app", -1)]
+
+    if context["hierarchical_grouping"]:
+        potential_variants += [(f"{n}frames", n) for n in range(1, 5)]
+
+    for v, max_frames in potential_variants:
         with context:
             variant = context["variant"] = v.lstrip("!")
             frames = stacktrace.frames
@@ -382,6 +391,7 @@ def stacktrace(stacktrace, context, **meta):
                 frames_for_filtering,
                 meta["event"].platform,
                 similarity_self_encoder=_stacktrace_encoder,
+                max_frames=max_frames,
             )
 
 
