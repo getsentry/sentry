@@ -53,8 +53,6 @@ function beforeFetch(api: Client) {
 }
 
 function makeEventView(event: EventTransaction) {
-  // TODO: increase the time range here for a buffer around the start/end of
-  // the current transactions to find other transactions in the trace better
   const {start, end} = getTraceDateTimeRange({
     start: event.startTimestamp,
     end: event.endTimestamp,
@@ -111,9 +109,7 @@ function QuickTraceQuery({event, children, ...props}: QueryProps) {
       eventView={eventView}
       {...props}
     >
-      {({tableData, ...rest}) => {
-        return children({trace: tableData, ...rest});
-      }}
+      {({tableData, ...rest}) => children({trace: tableData ?? null, ...rest})}
     </GenericDiscoverQuery>
   );
 }
