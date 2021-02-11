@@ -1,0 +1,356 @@
+import React from 'react';
+import styled from '@emotion/styled';
+import moment from 'moment-timezone';
+
+import {fetchIncidentActivities} from 'app/actionCreators/incident';
+import {Client} from 'app/api';
+import {CreateError} from 'app/components/activity/note/types';
+import DateTime from 'app/components/dateTime';
+import Duration from 'app/components/duration';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
+import NavTabs from 'app/components/navTabs';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import SeenByList from 'app/components/seenByList';
+import TimeSince from 'app/components/timeSince';
+import {IconEllipse} from 'app/icons';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import {uniqueId} from 'app/utils/guid';
+import {getTriggerName} from 'app/views/alerts/details/activity/statusItem';
+import {
+  ActivityType,
+  Incident,
+  IncidentActivityType,
+  IncidentStatus,
+  IncidentStatusMethod,
+} from 'app/views/alerts/types';
+import {IncidentRule} from 'app/views/settings/incidentRules/types';
+
+type Activities = Array<ActivityType | ActivityType>;
+
+type IncidentProps = {
+  api: Client;
+  orgId: string;
+  incident: Incident;
+  rule: IncidentRule;
+};
+
+type IncidentState = {
+  loading: boolean;
+  error: boolean;
+  noteInputId: string;
+  noteInputText: string;
+  createBusy: boolean;
+  createError: boolean;
+  createErrorJSON: null | CreateError;
+  activities: null | Activities;
+};
+
+class TimelineIncident extends React.Component<IncidentProps, IncidentState> {
+  state: IncidentState = {
+    loading: true,
+    error: false,
+    noteInputId: uniqueId(),
+    noteInputText: '',
+    createBusy: false,
+    createError: false,
+    createErrorJSON: null,
+    activities: null,
+  };
+
+  componentDidMount() {
+    this.fetchData();
+  }
+
+  componentDidUpdate(prevProps: IncidentProps) {
+    // Only refetch if incidentStatus changes.
+    //
+    // This component can mount before incident details is fully loaded.
+    // In which case, `incidentStatus` is null and we will be fetching via `cDM`
+    // There's no need to fetch this gets updated due to incident details being loaded
+    if (
+      prevProps.incident.status !== null &&
+      prevProps.incident.status !== this.props.incident.status
+    ) {
+      this.fetchData();
+    }
+  }
+
+  async fetchData() {
+    const {api, orgId, incident} = this.props;
+
+    try {
+      const activities = await fetchIncidentActivities(api, orgId, incident.id);
+      this.setState({activities, loading: false});
+    } catch (err) {
+      this.setState({loading: false, error: !!err});
+    }
+  }
+
+  renderActivity(activity: ActivityType, idx) {
+    const {incident, rule} = this.props;
+    const {activities} = this.state;
+    const last = this.state.activities && idx === this.state.activities.length - 1;
+    const authorName = activity.user?.name ?? 'Sentry';
+
+    const isDetected = activity.type === IncidentActivityType.DETECTED;
+    const isStarted = activity.type === IncidentActivityType.STARTED;
+    const isClosed =
+      activity.type === IncidentActivityType.STATUS_CHANGE &&
+      activity.value === `${IncidentStatus.CLOSED}`;
+    const isTriggerChange =
+      activity.type === IncidentActivityType.STATUS_CHANGE && !isClosed;
+
+    // Unknown activity, don't render anything
+    if (
+      (!isStarted && !isDetected && !isClosed && !isTriggerChange) ||
+      !activities ||
+      !activities.length
+    ) {
+      return null;
+    }
+
+    const currentTrigger = getTriggerName(activity.value);
+    const previousTrigger = getTriggerName(activity.previousValue);
+
+    let title: React.ReactNode;
+    let subtext: React.ReactNode;
+    if (isTriggerChange) {
+      const previousActivity = previousTrigger
+        ? activities.find(({value}) => value === activity.previousValue)
+        : activity.previousValue &&
+          activity.previousValue === `${IncidentStatus.OPENED}` &&
+          activities.find(({type}) => type === IncidentActivityType.DETECTED);
+      const activityDuration = previousActivity
+        ? moment(activity.dateCreated).diff(
+            moment(previousActivity.dateCreated),
+            'milliseconds'
+          )
+        : null;
+
+      title = t('Alert status changed');
+      subtext =
+        activityDuration !== null &&
+        tct(`[currentTrigger]: [duration]`, {
+          currentTrigger,
+          duration: <Duration exact abbreviation seconds={activityDuration / 1000} />,
+        });
+    } else if (isClosed && incident?.statusMethod === IncidentStatusMethod.RULE_UPDATED) {
+      title = t('Alert auto-resolved');
+      subtext = t('Alert rule has been modified or deleted');
+    } else if (isClosed && incident?.statusMethod !== IncidentStatusMethod.RULE_UPDATED) {
+      title = t('Alert resolved');
+      subtext = tct('by [authorName]', {authorName});
+    } else if (isDetected) {
+      const startActivity =
+        activities && activities.find(({type}) => type === IncidentActivityType.STARTED);
+      const triggerEnd =
+        startActivity &&
+        moment(startActivity.dateCreated).add(rule.timeWindow, 'minutes');
+      const activeDuration =
+        triggerEnd && moment(activity.dateCreated).diff(triggerEnd, 'seconds');
+
+      title = incident?.alertRule
+        ? t('Alert was created')
+        : tct('[authorName] created an alert', {authorName});
+      subtext =
+        activeDuration &&
+        tct(`Critical: [duration]`, {
+          duration: <Duration exact abbreviation seconds={activeDuration} />,
+        });
+    } else if (isStarted) {
+      const dateEnded = moment(activity.dateCreated)
+        .add(rule.timeWindow, 'minutes')
+        .utc()
+        .format();
+      const timeOnly = Boolean(
+        dateEnded && moment(activity.dateCreated).date() === moment(dateEnded).date()
+      );
+
+      title = t('Trigger conditions were met');
+      subtext = (
+        <React.Fragment>
+          <DateTime
+            timeOnly={timeOnly}
+            timeAndDate={!timeOnly}
+            date={activity.dateCreated}
+          />
+          {' — '}
+          <DateTime timeOnly={timeOnly} timeAndDate={!timeOnly} date={dateEnded} />
+        </React.Fragment>
+      );
+    } else {
+      return null;
+    }
+
+    return (
+      <Activity key={activity.id}>
+        <ActivityTrack>
+          <IconEllipse size="sm" color="gray300" />
+          {!last && <VerticalDivider />}
+        </ActivityTrack>
+
+        <ActivityBody>
+          <ActivityTime>
+            <StyledTimeSince date={activity.dateCreated} suffix={t('ago')} />
+            <HorizontalDivider />
+          </ActivityTime>
+          <ActivityText>
+            {title}
+            {subtext && <ActivitySubText>{subtext}</ActivitySubText>}
+          </ActivityText>
+        </ActivityBody>
+      </Activity>
+    );
+  }
+
+  render() {
+    const {incident} = this.props;
+
+    return (
+      <StyledNavTabs key={incident.identifier}>
+        <IncidentHeader>
+          <li>Alert #{incident.identifier}</li>
+          <SeenByTab>
+            {incident && (
+              <StyledSeenByList
+                iconPosition="right"
+                seenBy={incident.seenBy}
+                iconTooltip={t('People who have viewed this alert')}
+              />
+            )}
+          </SeenByTab>
+        </IncidentHeader>
+        <IncidentBody>
+          {this.state.activities
+            ?.filter(activity => activity.type !== IncidentActivityType.COMMENT)
+            .map((activity, idx) => this.renderActivity(activity, idx))}
+        </IncidentBody>
+      </StyledNavTabs>
+    );
+  }
+}
+
+type Props = {
+  api: Client;
+  rule?: IncidentRule;
+  orgId: string;
+  incidents?: Incident[];
+};
+
+class Timeline extends React.Component<Props> {
+  renderEmptyMessage = () => {
+    return (
+      <EmptyStateWarning small withIcon={false}>
+        {t('No alerts have been triggered yet')}
+      </EmptyStateWarning>
+    );
+  };
+
+  render() {
+    const {api, incidents, orgId, rule} = this.props;
+
+    return (
+      <Panel>
+        <PanelHeader>TIMELINE</PanelHeader>
+        <PanelBody>
+          {incidents && rule && incidents.length
+            ? incidents.map(incident => (
+                <TimelineIncident
+                  key={incident.identifier}
+                  api={api}
+                  orgId={orgId}
+                  incident={incident}
+                  rule={rule}
+                />
+              ))
+            : this.renderEmptyMessage()}
+        </PanelBody>
+      </Panel>
+    );
+  }
+}
+
+export default Timeline;
+
+const StyledNavTabs = styled(NavTabs)`
+  display: flex;
+  flex-direction: column;
+  margin: ${space(2)};
+`;
+
+const IncidentHeader = styled('div')`
+  display: flex;
+`;
+
+const SeenByTab = styled('li')`
+  flex: 1;
+  margin-left: ${space(2)};
+  margin-right: 0;
+
+  .nav-tabs > & {
+    margin-right: 0;
+  }
+`;
+
+const StyledSeenByList = styled(SeenByList)`
+  margin-top: 0;
+`;
+
+const IncidentBody = styled('div')`
+  display: flex;
+  flex-direction: column;
+`;
+
+const Activity = styled('div')`
+  display: flex;
+`;
+
+const ActivityTrack = styled('div')`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const ActivityBody = styled('div')`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin-left: ${space(2)};
+`;
+
+const ActivityTime = styled('li')`
+  display: flex;
+  align-items: center;
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
+  margin-bottom: ${space(1)};
+`;
+
+const StyledTimeSince = styled(TimeSince)`
+  margin-right: ${space(1)};
+`;
+
+const ActivityText = styled('div')`
+  margin-bottom: ${space(2)};
+`;
+
+const ActivitySubText = styled('div')`
+  display: flex;
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const HorizontalDivider = styled('div')`
+  flex: 1;
+  height: 0;
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  margin: 5px 0;
+`;
+
+const VerticalDivider = styled('div')`
+  flex: 1;
+  width: 0;
+  margin: 0 5px;
+  border-left: 1px dashed ${p => p.theme.innerBorder};
+`;
