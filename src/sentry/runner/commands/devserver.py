@@ -5,7 +5,7 @@ import threading
 
 from sentry.runner.decorators import configuration, log_options
 
-DEFAULT_DAEMONS = {
+_DEFAULT_DAEMONS = {
     "worker": ["sentry", "run", "worker", "-c", "1", "--autoreload"],
     "cron": ["sentry", "run", "cron", "--autoreload"],
     "post-process-forwarder": [
@@ -30,12 +30,21 @@ DEFAULT_DAEMONS = {
 }
 
 
+def add_daemon(name, command):
+    """
+    Used by getsentry to add additional workers to the devserver setup.
+    """
+    if name in _DEFAULT_DAEMONS:
+        raise KeyError(f"The {name} worker has already been defined")
+    _DEFAULT_DAEMONS[name] = command
+
+
 def _get_daemon(name, *args, **kwargs):
     display_name = name
     if "suffix" in kwargs:
         display_name = "{}-{}".format(name, kwargs["suffix"])
 
-    return (display_name, DEFAULT_DAEMONS[name] + list(args))
+    return (display_name, _DEFAULT_DAEMONS[name] + list(args))
 
 
 @click.command()
