@@ -157,6 +157,7 @@ class Strategy:
                             yield x
         else:
             with context:
+                context["variant"] = None
                 yield from call_many_elements(*args, event=event, context=context)
 
     def get_grouping_component_variants(self, event, context):

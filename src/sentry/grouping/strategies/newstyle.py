@@ -339,46 +339,50 @@ def get_contextline_component(frame, platform, function, context):
     return component
 
 
-@strategy(id="stacktrace:v1", interfaces=["stacktrace"], variants=["!system", "app"], score=1800)
+@strategy(id="stacktrace:v1", interfaces=["stacktrace"], score=1800)
 def stacktrace(stacktrace, context, **meta):
-    variant = context["variant"]
-    frames = stacktrace.frames
-    all_frames_considered_in_app = False
+    for v in [context["variant"]] if context["variant"] else ("!system", "app"):
+        with context:
+            variant = context["variant"] = v.lstrip("!")
+            frames = stacktrace.frames
+            all_frames_considered_in_app = False
 
-    values = []
-    prev_frame = None
-    frames_for_filtering = []
-    for frame in frames:
-        frame_component = context.get_grouping_component(frame, **meta)
-        if variant == "app" and not frame.in_app and not all_frames_considered_in_app:
-            frame_component.update(contributes=False, hint="non app frame")
-        elif prev_frame is not None and is_recursion_v1(frame, prev_frame):
-            frame_component.update(contributes=False, hint="ignored due to recursion")
-        elif variant == "app" and not frame.in_app and all_frames_considered_in_app:
-            frame_component.update(hint="frame considered in-app because no frame is in-app")
-        values.append(frame_component)
-        frames_for_filtering.append(frame.get_raw_data())
-        prev_frame = frame
+            values = []
+            prev_frame = None
+            frames_for_filtering = []
+            for frame in frames:
+                frame_component = context.get_grouping_component(frame, **meta)
+                if variant == "app" and not frame.in_app and not all_frames_considered_in_app:
+                    frame_component.update(contributes=False, hint="non app frame")
+                elif prev_frame is not None and is_recursion_v1(frame, prev_frame):
+                    frame_component.update(contributes=False, hint="ignored due to recursion")
+                elif variant == "app" and not frame.in_app and all_frames_considered_in_app:
+                    frame_component.update(
+                        hint="frame considered in-app because no frame is in-app"
+                    )
+                values.append(frame_component)
+                frames_for_filtering.append(frame.get_raw_data())
+                prev_frame = frame
 
-    # Special case for JavaScript where we want to ignore single frame
-    # stacktraces in certain cases where those would be of too low quality
-    # for grouping.
-    if (
-        len(frames) == 1
-        and values[0].contributes
-        and get_behavior_family_for_platform(frames[0].platform or meta["event"].platform)
-        == "javascript"
-        and not frames[0].function
-        and frames[0].is_url()
-    ):
-        values[0].update(contributes=False, hint="ignored single non-URL JavaScript frame")
+            # Special case for JavaScript where we want to ignore single frame
+            # stacktraces in certain cases where those would be of too low quality
+            # for grouping.
+            if (
+                len(frames) == 1
+                and values[0].contributes
+                and get_behavior_family_for_platform(frames[0].platform or meta["event"].platform)
+                == "javascript"
+                and not frames[0].function
+                and frames[0].is_url()
+            ):
+                values[0].update(contributes=False, hint="ignored single non-URL JavaScript frame")
 
-    return context.config.enhancements.assemble_stacktrace_component(
-        values,
-        frames_for_filtering,
-        meta["event"].platform,
-        similarity_self_encoder=_stacktrace_encoder,
-    )
+            yield variant, context.config.enhancements.assemble_stacktrace_component(
+                values,
+                frames_for_filtering,
+                meta["event"].platform,
+                similarity_self_encoder=_stacktrace_encoder,
+            )
 
 
 @stacktrace.variant_processor
