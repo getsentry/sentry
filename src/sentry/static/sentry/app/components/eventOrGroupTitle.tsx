@@ -60,6 +60,7 @@ export default withOrganization(EventOrGroupTitle);
  */
 const Spacer = () => <span style={{display: 'inline-block', width: 10}}>&nbsp;</span>;
 
-const Subtitle = styled('span')`
+const Subtitle = styled('em')`
   color: ${p => p.theme.gray300};
+  font-style: normal;
 `;
