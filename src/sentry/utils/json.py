@@ -3,11 +3,13 @@
 # XXX(epurkhiser): We import JSONDecodeError just to have it be exported as
 # part of this module. We don't use it directly within the module, but modules
 # that import it from here will. Do not remove.
+
 from simplejson import JSONEncoder, JSONDecodeError, _default_decoder  # NOQA
 from enum import Enum
 import datetime
-import uuid
 import decimal
+import uuid
+from typing import Any
 
 from bitfield.types import BitHandler
 from django.utils.encoding import force_text
@@ -109,7 +111,7 @@ def load(fp, **kwargs):
     return loads(fp.read())
 
 
-def loads(value, **kwargs):
+def loads(value: str, **kwargs) -> Any:
     return _default_decoder.decode(value)
 
 
