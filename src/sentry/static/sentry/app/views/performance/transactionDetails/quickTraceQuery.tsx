@@ -14,7 +14,7 @@ import withApi from 'app/utils/withApi';
 
 import {isTransaction} from './utils';
 
-type TransactionLite = {
+export type EventLite = {
   event_id: string;
   span_id: string;
   transaction: string;
@@ -23,7 +23,7 @@ type TransactionLite = {
   is_root: boolean;
 };
 
-export type TraceLite = TransactionLite[];
+export type TraceLite = EventLite[];
 
 type QuickTraceProps = {
   event: Event;

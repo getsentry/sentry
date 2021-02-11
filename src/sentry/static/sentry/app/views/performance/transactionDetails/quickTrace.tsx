@@ -1,30 +1,38 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import {Location, LocationDescriptor} from 'history';
 
+import {getTraceDateTimeRange} from 'app/components/events/interfaces/spans/utils';
 import Placeholder from 'app/components/placeholder';
+import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {t, tn} from 'app/locale';
-import {OrganizationSummary} from 'app/types';
-import {Event} from 'app/types/event';
+import {OrganizationSummary, Project} from 'app/types';
+import {Event, EventTransaction} from 'app/types/event';
+import EventView from 'app/utils/discover/eventView';
+import {generateEventSlug} from 'app/utils/discover/urls';
 import {getShortEventId} from 'app/utils/events';
+import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import withProjects from 'app/utils/withProjects';
 
-import QuickTraceQuery, {TraceLite} from './quickTraceQuery';
+import {getTransactionDetailsUrl} from '../utils';
+
+import QuickTraceQuery, {EventLite, TraceLite} from './quickTraceQuery';
 import {EventNode, MetaData, NodesContainer} from './styles';
 import {isTransaction, parseTraceLite} from './utils';
 
 type Props = {
   event: Event;
-  organization: OrganizationSummary;
   location: Location;
+  organization: OrganizationSummary;
 };
 
-export default function QuickTrace({event, organization, location}: Props) {
+export default function QuickTrace({event, location, organization}: Props) {
   // non transaction events are currently unsupported
   if (!isTransaction(event)) {
     return null;
   }
 
-  const traceId = event.contexts?.trace?.trace_id ?? '';
+  const traceId = event.contexts?.trace?.trace_id ?? null;
 
   return (
     <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
@@ -34,15 +42,22 @@ export default function QuickTrace({event, organization, location}: Props) {
         ) : error || trace === null ? (
           '\u2014'
         ) : (
-          <QuickTraceLite event={event} trace={trace} />
+          <QuickTraceLite
+            event={event}
+            trace={trace}
+            location={location}
+            organization={organization}
+          />
         );
 
         return (
           <MetaData
             headingText={t('Quick Trace')}
-            tooltipText={t('The unique ID assigned to this transaction.')}
+            tooltipText={t('A minified version of the full trace.')}
             bodyText={body}
-            subtext={t('Trace ID: %s', getShortEventId(traceId))}
+            subtext={
+              trace === null ? '\u2014' : t('Trace ID: %s', getShortEventId(traceId!))
+            }
           />
         );
       }}
@@ -53,52 +68,158 @@ export default function QuickTrace({event, organization, location}: Props) {
 type QuickTraceLiteProps = {
   event: Event;
   trace: TraceLite;
+  location: Location;
+  organization: OrganizationSummary;
+  projects: Project[];
 };
 
-function QuickTraceLite({event, trace}: QuickTraceLiteProps) {
-  const {root, current, children} = parseTraceLite(trace, event);
-  const nodes: React.ReactNode[] = [];
+const QuickTraceLite = withProjects(
+  ({event, trace, location, organization, projects}: QuickTraceLiteProps) => {
+    // non transaction events are currently unsupported
+    if (!isTransaction(event)) {
+      return null;
+    }
 
-  if (root) {
+    const {root, current, children} = parseTraceLite(trace, event);
+    const nodes: React.ReactNode[] = [];
+
+    if (root) {
+      const target = generateSingleEventTarget(root, organization, projects, location);
+      nodes.push(
+        <EventNode key="root" type="white" icon={null} to={target}>
+          {t('Root')}
+        </EventNode>
+      );
+    }
+
+    const traceTarget = generateTraceTarget(event, organization);
+
+    if (root && current && root.event_id !== current.parent_event_id) {
+      nodes.push(
+        <EventNode key="ancestors" type="white" icon={null} to={traceTarget}>
+          {t('Ancestors')}
+        </EventNode>
+      );
+    }
+
     nodes.push(
-      <EventNode key="root" type="white">
-        {t('Root')}
+      <EventNode key="current" type="black">
+        {t('This Event')}
       </EventNode>
     );
-  }
 
-  if (root && current && root.event_id !== current.parent_event_id) {
-    nodes.push(
-      <EventNode key="ancestors" type="white">
-        {t('Ancestors')}
-      </EventNode>
+    if (children.length) {
+      const childrenTarget = generateChildrenEventTarget(
+        event,
+        children,
+        organization,
+        projects,
+        location
+      );
+      nodes.push(
+        <EventNode key="children" type="white" icon={null} to={childrenTarget}>
+          {tn('%s Child', '%s Children', children.length)}
+        </EventNode>
+      );
+
+      nodes.push(
+        <EventNode key="descendents" type="white" icon={null} to={traceTarget}>
+          {t('Descendents')}
+        </EventNode>
+      );
+    }
+
+    return (
+      <Container>
+        <NodesContainer>{nodes}</NodesContainer>
+      </Container>
     );
   }
+);
 
-  nodes.push(
-    <EventNode key="current" type="black">
-      {t('This Event')}
-    </EventNode>
+function generateSingleEventTarget(
+  event: EventLite,
+  organization: OrganizationSummary,
+  projects: Project[],
+  location: Location
+): LocationDescriptor | undefined {
+  const project = projects.find(p => parseInt(p.id, 10) === event.project_id);
+  if (project === undefined) {
+    return undefined;
+  }
+
+  const eventSlug = generateEventSlug({
+    id: event.event_id,
+    project: project.slug,
+  });
+  return getTransactionDetailsUrl(
+    organization,
+    eventSlug,
+    event.transaction,
+    location.query
   );
+}
 
-  if (children.length) {
-    nodes.push(
-      <EventNode key="children" type="white">
-        {tn('%s Child', '%s Children', children.length)}
-      </EventNode>
-    );
-    nodes.push(
-      <EventNode key="descendents" type="white">
-        {t('Descendents')}
-      </EventNode>
-    );
+function generateChildrenEventTarget(
+  event: EventTransaction,
+  children: EventLite[],
+  organization: OrganizationSummary,
+  projects: Project[],
+  location: Location
+): LocationDescriptor | undefined {
+  if (children.length === 1) {
+    return generateSingleEventTarget(children[0], organization, projects, location);
   }
 
-  return (
-    <Container>
-      <NodesContainer>{nodes}</NodesContainer>
-    </Container>
-  );
+  const queryResults = new QueryResults([]);
+  const eventIds = children.map(child => child.event_id);
+  for (let i = 0; i < eventIds.length; i++) {
+    queryResults.addOp(i === 0 ? '(' : 'OR');
+    queryResults.addQuery(`id:${eventIds[i]}`);
+    if (i === eventIds.length - 1) {
+      queryResults.addOp(')');
+    }
+  }
+
+  const {start, end} = getTraceDateTimeRange({
+    start: event.startTimestamp,
+    end: event.endTimestamp,
+  });
+  const traceEventView = EventView.fromSavedQuery({
+    id: undefined,
+    name: `Child Transactions of Event ID ${event.id}`,
+    fields: ['transaction', 'project', 'trace.span', 'transaction.duration', 'timestamp'],
+    orderby: '-timestamp',
+    query: stringifyQueryObject(queryResults),
+    projects: [...new Set(children.map(child => child.project_id))],
+    version: 2,
+    start,
+    end,
+  });
+  return traceEventView.getResultsViewUrlTarget(organization.slug);
+}
+
+function generateTraceTarget(
+  event: EventTransaction,
+  organization: OrganizationSummary
+): LocationDescriptor {
+  const traceId = event.contexts?.trace?.trace_id ?? '';
+  const {start, end} = getTraceDateTimeRange({
+    start: event.startTimestamp,
+    end: event.endTimestamp,
+  });
+  const eventView = EventView.fromSavedQuery({
+    id: undefined,
+    name: `Transactions with Trace ID ${traceId}`,
+    fields: ['transaction', 'project', 'trace.span', 'transaction.duration', 'timestamp'],
+    orderby: '-timestamp',
+    query: `event.type:transaction trace:${traceId}`,
+    projects: [ALL_ACCESS_PROJECTS],
+    version: 2,
+    start,
+    end,
+  });
+  return eventView.getResultsViewUrlTarget(organization.slug);
 }
 
 const Container = styled('div')`
