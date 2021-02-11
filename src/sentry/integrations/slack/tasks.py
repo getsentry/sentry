@@ -7,7 +7,15 @@ from sentry.auth.access import SystemAccess
 from sentry.utils import json
 from sentry.tasks.base import instrumented_task
 from sentry.mediators import project_rules
-from sentry.models import Integration, Project, Rule, Organization
+from sentry.models import (
+    Integration,
+    Project,
+    Rule,
+    RuleActivity,
+    RuleActivityType,
+    Organization,
+    User,
+)
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.incidents.models import AlertRule
 from sentry.incidents.logic import ChannelLookupTimeoutError
@@ -60,7 +68,7 @@ class RedisRuleStatus:
 
 
 @instrumented_task(name="sentry.integrations.slack.search_channel_id", queue="integrations")
-def find_channel_id_for_rule(project, actions, uuid, rule_id=None, **kwargs):
+def find_channel_id_for_rule(project, actions, uuid, rule_id=None, user_id=None, **kwargs):
     redis_rule_status = RedisRuleStatus(uuid)
 
     try:
@@ -68,6 +76,13 @@ def find_channel_id_for_rule(project, actions, uuid, rule_id=None, **kwargs):
     except Project.DoesNotExist:
         redis_rule_status.set_value("failed")
         return
+
+    user = None
+    if user_id:
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            pass
 
     organization = project.organization
     integration_id = None
@@ -118,6 +133,10 @@ def find_channel_id_for_rule(project, actions, uuid, rule_id=None, **kwargs):
             rule = project_rules.Updater.run(rule=rule, pending_save=False, **kwargs)
         else:
             rule = project_rules.Creator.run(pending_save=False, **kwargs)
+            if user:
+                RuleActivity.objects.create(
+                    rule=rule, user=user, type=RuleActivityType.CREATED.value
+                )
 
         redis_rule_status.set_value("success", rule.id)
         return
@@ -128,13 +147,20 @@ def find_channel_id_for_rule(project, actions, uuid, rule_id=None, **kwargs):
 @instrumented_task(
     name="sentry.integrations.slack.search_channel_id_metric_alerts", queue="integrations"
 )
-def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=None):
+def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=None, user_id=None):
     redis_rule_status = RedisRuleStatus(uuid)
     try:
         organization = Organization.objects.get(id=organization_id)
     except Organization.DoesNotExist:
         redis_rule_status.set_value("failed")
         return
+
+    user = None
+    if user_id:
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            pass
 
     alert_rule = None
     if alert_rule_id:
@@ -149,7 +175,12 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=No
     # however, we should only be calling this task after we tried saving the alert rule first
     # which will catch those kinds of validation errors
     serializer = AlertRuleSerializer(
-        context={"organization": organization, "access": SystemAccess(), "use_async_lookup": True},
+        context={
+            "organization": organization,
+            "access": SystemAccess(),
+            "user": user,
+            "use_async_lookup": True,
+        },
         data=data,
         instance=alert_rule,
     )

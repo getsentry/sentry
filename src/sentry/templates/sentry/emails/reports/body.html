@@ -141,10 +141,14 @@
       font-weight: 500;
     }
 
+    .project-breakdown .summary tr {
+      border-bottom: 1px solid #DEE7EB;
+    }
+
     .project-breakdown .summary th,
     .project-breakdown .summary td {
       font-size: 14px;
-      padding: 5px 0;
+      padding: 8px 0;
     }
 
     .project-breakdown .summary .numeric {
@@ -203,7 +207,8 @@
       padding: 0 5px 5px 0;
     }
 
-    .calendar .day span {
+    .calendar .day span,
+    .calendar .day a {
       display: inline-block;
       width: 100%;
       height: 20px;
@@ -350,6 +355,86 @@
 
 <div class="container">
 
+  <div class="project-breakdown">
+
+    {% with series=report.projects.series height=110 %}
+
+    <h4>Errors by Project</h4>
+
+    <table class="graph">
+      <tr>
+        {% for timestamp, values in series.points %}
+        <td valign="bottom" class="bar" style="height: {{ height }}px; width: {% widthratio 1 series.points|length 100 %}%">
+            <table class="bar">
+              {% for key, count in values %}
+                <tr>
+                  <td height="{% widthratio count series.maximum height %}" style="background-color: {{ key.color }};">&nbsp;</td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td height="1" style="background-color: #ebe9f7;"></td>
+                </tr>
+              {% endfor %}
+            </table>
+          </td>
+        {% endfor %}
+      </tr>
+      <tr>
+        {% for timestamp, values in series.points %}
+          <td class="label" style="width: {% widthratio 1 series.points|length 100 %}%">
+            {{ timestamp|date:duration.date_format }}
+          </td>
+        {% endfor %}
+      </tr>
+    </table>
+
+    <table class="summary">
+      <thead>
+        <tr>
+          <th style="width: 2em; padding-right: 0.5em"></th>
+          <th>Project</th>
+          <th style="width: 7em;" class="numeric">Errors</th>
+          <th style="width: 7em;" class="numeric col-filtered">Filtered</th>
+          <th style="width: 7em;" class="numeric col-rate-limited">Rate Limited</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for key in series.legend.rows %}
+        <tr>
+          <td>
+              {% if key.color %}<span style="background-color: {{ key.color }}; display: inline-block; height: 1em; width: 1em;">&nbsp;</span>{% endif %}
+          </td>
+          <td>
+              {% if key.url %}<a href="{{ key.url }}">{% endif %}{{ key.label }}{% if key.url %}</a>{% endif %}
+          </td>
+          <td class="numeric">{{ key.data.events|small_count:1 }}</td>
+          <td class="numeric col-filtered">{{ key.data.filtered|small_count:1 }}</td>
+          <td class="numeric col-rate-limited">{{ key.data.rate_limited|small_count:1 }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+      {% if series.legend.rows|length > 1 %}
+        <tfoot>
+          {% with key=series.legend.total %}
+            <tr>
+              <td>
+                  {% if key.color %}<span style="background: {{ key.color }}; background-size: 4px 4px; display: inline-block; height: 1em; width: 1em;">&nbsp;</span>{% endif %}
+              </td>
+              <td>
+                  {% if key.url %}<a href="{{ key.url }}">{% endif %}{{ key.label }}{% if key.url %}</a>{% endif %}
+              </td>
+              <td class="numeric">{{ key.data.events|small_count:1 }}</td>
+              <td class="numeric col-filtered">{{ key.data.filtered|small_count:1 }}</td>
+              <td class="numeric col-rate-limited">{{ key.data.rate_limited|small_count:1 }}</td>
+            </tr>
+          {% endwith %}
+        </tfoot>
+      {% endif %}
+    </table>
+    {% endwith %}
+
+  </div>
+
   <div id="events-seen">
 
     <table style="margin-bottom: 10px">
@@ -458,86 +543,6 @@
 
   </div>
 
-  <div class="project-breakdown">
-
-    {% with series=report.projects.series height=110 %}
-
-    <h4>Errors by Project</h4>
-
-    <table class="graph">
-      <tr>
-        {% for timestamp, values in series.points %}
-        <td valign="bottom" class="bar" style="height: {{ height }}px; width: {% widthratio 1 series.points|length 100 %}%">
-            <table class="bar">
-              {% for key, count in values %}
-                <tr>
-                  <td height="{% widthratio count series.maximum height %}" style="background-color: {{ key.color }};">&nbsp;</td>
-                </tr>
-              {% empty %}
-                <tr>
-                  <td height="1" style="background-color: #ebe9f7;"></td>
-                </tr>
-              {% endfor %}
-            </table>
-          </td>
-        {% endfor %}
-      </tr>
-      <tr>
-        {% for timestamp, values in series.points %}
-          <td class="label" style="width: {% widthratio 1 series.points|length 100 %}%">
-            {{ timestamp|date:duration.date_format }}
-          </td>
-        {% endfor %}
-      </tr>
-    </table>
-
-    <table class="summary">
-      <thead>
-        <tr>
-          <th style="width: 1em;"></th>
-          <th style="width: 7em;" class="numeric">Errors</th>
-          <th>Project</th>
-          <th style="width: 7em;" class="numeric col-filtered">Filtered</th>
-          <th style="width: 7em;" class="numeric col-rate-limited">Rate Limited</th>
-        </tr>
-      </thead>
-      <tbody>
-      {% for key in series.legend.rows %}
-        <tr>
-          <td>
-              {% if key.color %}<span style="background-color: {{ key.color }}; display: inline-block; height: 1em; width: 1em;">&nbsp;</span>{% endif %}
-          </td>
-          <td class="numeric">{{ key.data.events|small_count:1 }}</td>
-          <td>
-              {% if key.url %}<a href="{{ key.url }}">{% endif %}{{ key.label }}{% if key.url %}</a>{% endif %}
-          </td>
-          <td class="numeric col-filtered">{{ key.data.filtered|small_count:1 }}</td>
-          <td class="numeric col-rate-limited">{{ key.data.rate_limited|small_count:1 }}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-      {% if series.legend.rows|length > 1 %}
-        <tfoot>
-          {% with key=series.legend.total %}
-            <tr>
-              <td>
-                  {% if key.color %}<span style="background-color: {{ key.color }}; display: inline-block; height: 1em; width: 1em;">&nbsp;</span>{% endif %}
-              </td>
-              <td class="numeric">{{ key.data.events|small_count:1 }}</td>
-              <td>
-                  {% if key.url %}<a href="{{ key.url }}">{% endif %}{{ key.label }}{% if key.url %}</a>{% endif %}
-              </td>
-              <td class="numeric col-filtered">{{ key.data.filtered|small_count:1 }}</td>
-              <td class="numeric col-rate-limited">{{ key.data.rate_limited|small_count:1 }}</td>
-            </tr>
-          {% endwith %}
-        </tfoot>
-      {% endif %}
-    </table>
-    {% endwith %}
-
-  </div>
-
   {% if report.calendar %}
 
   <div id="history-calendars">
@@ -576,7 +581,11 @@
                     {% for day, data in week %}
                     {% if day.month == first_date.month %}
                       <td class="day" title="{{ day|date:"F jS, Y" }}: {{ data.value }}">
-                        <span style="background-color: {{ data.color }}">&nbsp;</span>
+                        {% if data.url %}
+                          <a href="{{ data.url }}" style="background-color: {{ data.color }}">&nbsp;</a>
+                        {% else %}
+                          <span  style="background-color: {{ data.color }}">&nbsp;</span>
+                        {% endif %}
                       </td>
                     {% else %}
                       <td class="day">&nbsp;</td>

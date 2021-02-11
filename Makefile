@@ -59,7 +59,7 @@ ensure-venv:
 	@./scripts/ensure-venv.sh
 
 ensure-pinned-pip: ensure-venv
-	$(PIP) install --no-cache-dir --upgrade "pip>=20.0.2,<20.3"
+	$(PIP) install --no-cache-dir --upgrade "pip>=20.0.2"
 
 setup-git-config:
 	@git config --local branch.autosetuprebase always

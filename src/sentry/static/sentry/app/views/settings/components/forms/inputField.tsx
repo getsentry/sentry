@@ -5,6 +5,9 @@ import Input from 'app/views/settings/components/forms/controls/input';
 import FormField from 'app/views/settings/components/forms/formField';
 
 type Props = {
+  // TODO(ts) Add base types for this. Each input field
+  // has different props, but we could use have a base type that contains
+  // the common properties.
   field?: (props) => React.ReactNode;
   value?: any;
 } & Omit<FormField['props'], 'children'> &

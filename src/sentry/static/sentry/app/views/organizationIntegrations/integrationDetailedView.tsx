@@ -157,10 +157,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   };
 
   handleExternalInstall = () => {
-    this.trackIntegrationEvent({
-      eventKey: 'integrations.installation_start',
-      eventName: 'Integrations: Installation Start',
-    });
+    this.trackIntegrationEvent('integrations.installation_start');
   };
 
   renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {

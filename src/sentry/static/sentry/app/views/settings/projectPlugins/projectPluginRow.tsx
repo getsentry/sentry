@@ -30,15 +30,12 @@ class ProjectPluginRow extends React.PureComponent<Props> {
     const {onChange, id, enabled} = this.props;
     onChange(id, !enabled);
     const eventKey = !enabled ? 'integrations.enabled' : 'integrations.disabled';
-    const eventName = !enabled ? 'Integrations: Enabled' : 'Integrations: Disabled';
     trackIntegrationEvent(
+      eventKey,
       {
-        eventKey,
-        eventName,
         integration: id,
         integration_type: 'plugin',
         view: 'legacy_integrations',
-        project_id: this.props.project.id,
       },
       this.props.organization
     );

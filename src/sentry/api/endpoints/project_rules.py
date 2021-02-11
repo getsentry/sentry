@@ -72,6 +72,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 "conditions": conditions,
                 "actions": data.get("actions", []),
                 "frequency": data.get("frequency"),
+                "user_id": request.user.id,
             }
 
             if data.get("pending_save"):
