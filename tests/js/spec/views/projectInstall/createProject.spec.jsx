@@ -125,6 +125,28 @@ describe('CreateProject', function () {
     expect(wrapper).toSnapshot();
   });
 
+  it('should fill in category name if its provided by url', function () {
+    const props = {
+      ...baseProps,
+    };
+
+    const wrapper = mountWithTheme(
+      <CreateProject {...props} />,
+      TestStubs.routerContext([
+        {
+          organization: {
+            id: '1',
+            slug: 'testOrg',
+            teams: [{slug: 'test', id: '1', name: 'test', hasAccess: true}],
+          },
+          location: {query: {category: 'mobile'}},
+        },
+      ])
+    );
+
+    expect(wrapper.find('PlatformPicker').state('category')).toBe('mobile');
+  });
+
   it('should deal with incorrect platform name if its provided by url', function () {
     const props = {
       ...baseProps,
