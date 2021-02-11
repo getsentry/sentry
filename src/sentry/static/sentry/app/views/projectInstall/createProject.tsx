@@ -28,10 +28,8 @@ import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
 import IssueAlertOptions from 'app/views/projectInstall/issueAlertOptions';
 
-const getCategoryName = (category?: string) => {
-  const matched = categoryList.find(({id}) => id === category);
-  return matched?.id;
-};
+const getCategoryName = (category?: string) =>
+  categoryList.find(({id}) => id === category)?.id;
 
 type RuleEventData = {
   eventKey: string;
