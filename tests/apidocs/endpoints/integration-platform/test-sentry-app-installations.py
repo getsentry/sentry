@@ -6,7 +6,7 @@ from tests.apidocs.util import APIDocsTestCase
 from sentry.models import SentryAppInstallation
 
 
-class OrganizationSentryAppInstallationDocs(APIDocsTestCase):
+class SentryAppInstallationDocs(APIDocsTestCase):
     def setUp(self):
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Jessla", owner=None)

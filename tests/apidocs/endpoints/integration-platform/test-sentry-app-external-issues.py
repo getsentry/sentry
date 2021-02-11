@@ -6,7 +6,7 @@ from tests.apidocs.util import APIDocsTestCase
 from sentry.models import SentryAppInstallation
 
 
-class OrganizationDetailsDocs(APIDocsTestCase):
+class SentryAppDocs(APIDocsTestCase):
     def setUp(self):
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.project = self.create_project(organization=self.org)
@@ -16,21 +16,21 @@ class OrganizationDetailsDocs(APIDocsTestCase):
         )
         self.install = SentryAppInstallation(sentry_app=self.sentry_app, organization=self.org)
         self.install.save()
-        self.external_issue = self.create_platform_external_issue(
-            group=self.group,
-            service_type=self.sentry_app.slug,
-            display_name="App#issue-1",
-            web_url=self.sentry_app.webhook_url,
-        )
         self.url = reverse(
-            "sentry-api-0-sentry-app-installation-external-issue-details",
-            kwargs={"uuid": self.install.uuid, "external_issue_id": self.external_issue.id},
+            "sentry-api-0-sentry-app-installation-external-issues",
+            kwargs={"uuid": self.install.uuid},
         )
 
         self.login_as(user=self.user)
 
-    def test_delete(self):
-        response = self.client.delete(self.url)
-        request = RequestFactory().delete(self.url)
+    def test_post(self):
+        data = {
+            "groupId": self.group.id,
+            "webUrl": "https://somerandom.io/project/issue-id",
+            "project": "ExternalProj",
+            "identifier": "issue-1",
+        }
+        response = self.client.post(self.url, data)
+        request = RequestFactory().post(self.url, data)
 
         self.validate_schema(request, response)

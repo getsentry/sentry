@@ -1,8 +1,8 @@
 {
   "get": {
     "tags": ["Integration"],
-    "description": "Return a list of internal integration installations for a given organization.",
-    "operationId": "List an Organization's Internal Integration Installations",
+    "description": "Return a list of integration platform installations for a given organization.",
+    "operationId": "List an Organization's Integration Platform Installations",
     "parameters": [
       {
         "name": "organization_slug",
