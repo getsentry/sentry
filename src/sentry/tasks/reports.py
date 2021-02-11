@@ -11,7 +11,10 @@ from datetime import datetime, timedelta
 
 import pytz
 from django.utils import dateformat, timezone
+from django.utils.http import urlencode
+from django.urls.base import reverse
 
+from sentry import features
 from sentry.app import tsdb
 from sentry.models import (
     Activity,
@@ -26,6 +29,7 @@ from sentry.models import (
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, redis
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
+from sentry.utils.http import absolute_uri
 from sentry.utils.email import MessageBuilder
 from sentry.utils.iterators import chunked
 from sentry.utils.math import mean
@@ -771,7 +775,7 @@ def to_context(organization, interval, reports):
             ),
         ],
         "projects": {"series": build_project_breakdown_series(reports)},
-        "calendar": to_calendar(interval, report.calendar_series),
+        "calendar": to_calendar(organization, interval, report.calendar_series),
     }
 
 
@@ -804,7 +808,7 @@ def colorize(spectrum, values):
     return legend, results
 
 
-def to_calendar(interval, series):
+def to_calendar(organization, interval, series):
     start, stop = get_calendar_range(interval, 3)
 
     legend, values = colorize(
@@ -832,11 +836,29 @@ def to_calendar(interval, series):
 
     series_value_map = dict(series)
 
+    # If global views are enabled we can generate a link to the day
+    has_global_views = features.has("organizations:global-views", organization)
+
     def get_data_for_date(date):
         dt = datetime(date.year, date.month, date.day, tzinfo=pytz.utc)
         ts = to_timestamp(dt)
         value = series_value_map.get(ts, None)
-        return (dt, {"value": value, "color": value_color_map[value]})
+
+        data = {"value": value, "color": value_color_map[value], "url": None}
+        if has_global_views:
+            url = reverse(
+                "sentry-organization-issue-list", kwargs={"organization_slug": organization.slug}
+            )
+            params = {
+                "project": -1,
+                "utc": True,
+                "start": dt.isoformat(),
+                "end": (dt + timedelta(days=1)).isoformat(),
+            }
+            url = f"{url}?{urlencode(params)}"
+            data["url"] = absolute_uri(url)
+
+        return (dt, data)
 
     calendar = Calendar(6)
     sheets = []

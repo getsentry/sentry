@@ -4,7 +4,6 @@ from urllib.parse import parse_qs
 from sentry.utils.compat.mock import patch
 
 from sentry.api import client
-from sentry import options
 from sentry.models import (
     Integration,
     OrganizationIntegration,
@@ -55,19 +54,20 @@ class BaseEventTest(APITestCase):
             "https://hooks.slack.com/actions/T47563693/6204672533/x7ZLaiVMoECAW50Gw1ZYAXEM"
         )
 
+    @patch(
+        "sentry.integrations.slack.requests.SlackRequest._check_signing_secret", return_value=True
+    )
     def post_webhook(
         self,
+        check_signing_secret_mock,
         action_data=None,
         type="event_callback",
         data=None,
-        token=None,
         team_id="TXXXXXXX1",
         callback_id=None,
         slack_user=None,
         original_message=None,
     ):
-        if token is None:
-            token = options.get("slack.verification-token")
 
         if slack_user is None:
             slack_user = {"id": self.identity.external_id, "domain": "example"}
@@ -79,7 +79,6 @@ class BaseEventTest(APITestCase):
             original_message = {}
 
         payload = {
-            "token": token,
             "team": {"id": team_id, "domain": "example.com"},
             "channel": {"id": "C065W1189", "domain": "forgotten-works"},
             "user": slack_user,
@@ -398,27 +397,32 @@ class StatusActionTest(BaseEventTest):
             associate_url=associate_url, user_email=self.user.email, org_name=self.org.name
         )
 
-    def test_invalid_token(self):
-        resp = self.post_webhook(token="invalid")
-        assert resp.status_code == 401
-
-    def test_no_integration(self):
+    @patch(
+        "sentry.integrations.slack.requests.SlackRequest._check_signing_secret", return_value=True
+    )
+    def test_no_integration(self, check_signing_secret_mock):
         self.integration.delete()
         resp = self.post_webhook()
         assert resp.status_code == 403
 
-    def test_slack_bad_payload(self):
+    @patch(
+        "sentry.integrations.slack.requests.SlackRequest._check_signing_secret", return_value=True
+    )
+    def test_slack_bad_payload(self, check_signing_secret_mock):
         resp = self.client.post("/extensions/slack/action/", data={"nopayload": 0})
         assert resp.status_code == 400
 
-    def test_sentry_docs_link_clicked(self):
+    @patch(
+        "sentry.integrations.slack.requests.SlackRequest._check_signing_secret", return_value=True
+    )
+    def test_sentry_docs_link_clicked(self, check_signing_secret_mock):
         payload = {
-            "token": options.get("slack.verification-token"),
             "team": {"id": "TXXXXXXX1", "domain": "example.com"},
             "user": {"id": self.identity.external_id, "domain": "example"},
             "type": "block_actions",
             "actions": [{"value": "sentry_docs_link_clicked"}],
         }
+
         payload = {"payload": json.dumps(payload)}
 
         resp = self.client.post("/extensions/slack/action/", data=payload)
