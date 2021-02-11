@@ -207,7 +207,8 @@
       padding: 0 5px 5px 0;
     }
 
-    .calendar .day span {
+    .calendar .day span,
+    .calendar .day a {
       display: inline-block;
       width: 100%;
       height: 20px;
@@ -580,7 +581,11 @@
                     {% for day, data in week %}
                     {% if day.month == first_date.month %}
                       <td class="day" title="{{ day|date:"F jS, Y" }}: {{ data.value }}">
-                        <span style="background-color: {{ data.color }}">&nbsp;</span>
+                        {% if data.url %}
+                          <a href="{{ data.url }}" style="background-color: {{ data.color }}">&nbsp;</a>
+                        {% else %}
+                          <span  style="background-color: {{ data.color }}">&nbsp;</span>
+                        {% endif %}
                       </td>
                     {% else %}
                       <td class="day">&nbsp;</td>
