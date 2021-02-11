@@ -171,6 +171,7 @@ from .endpoints.organization_releases import (
 from .endpoints.organization_repositories import OrganizationRepositoriesEndpoint
 from .endpoints.organization_repository_commits import OrganizationRepositoryCommitsEndpoint
 from .endpoints.organization_repository_details import OrganizationRepositoryDetailsEndpoint
+from .endpoints.organization_request_project_creation import OrganizationRequestProjectCreation
 from .endpoints.organization_join_request import OrganizationJoinRequestEndpoint
 from .endpoints.organization_search_details import OrganizationSearchDetailsEndpoint
 from .endpoints.organization_searches import OrganizationSearchesEndpoint
@@ -1216,6 +1217,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/relay_usage/$",
                     OrganizationRelayUsage.as_view(),
                     name="sentry-api-0-organization-relay-usage",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/request-project-creation/$",
+                    OrganizationRequestProjectCreation.as_view(),
+                    name="sentry-api-0-organization-request-project-creation",
                 ),
             ]
         ),
