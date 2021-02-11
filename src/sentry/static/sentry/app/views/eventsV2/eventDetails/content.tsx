@@ -277,7 +277,7 @@ const EventHeader = ({event}: {event: Event}) => {
   return (
     <EventHeaderContainer>
       <TitleWrapper>
-        <EventOrGroupTitle hasGuideAnchor data={event} />
+        <EventOrGroupTitle data={event} />
       </TitleWrapper>
       <MessageWrapper>
         <EventMessage message={getMessage(event)} />
