@@ -82,10 +82,6 @@ jobs:
 
       - name: Set up development environment (as per docs)
         run: |
-          set +x
-          python -V
-          pip -V
-          python -Im ensurepip --upgrade --default-pip
           python -m venv .venv
           source .venv/bin/activate
           make install-py-dev
