@@ -6,8 +6,6 @@ import {IconAdd, IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {DynamicSamplingInnerName} from 'app/types/dynamicSampling';
-import Field from 'app/views/settings/components/forms/field';
-import FieldHelp from 'app/views/settings/components/forms/field/fieldHelp';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import TextareaField from 'app/views/settings/components/forms/textareaField';
 
@@ -58,35 +56,26 @@ function ConditionFields({
                 required
                 stacked
               />
-              <Field
+              <TextareaField
                 label={t('Matches')}
                 // help={t('This is a description')} // TODO(PRISCILA): Add correct description
+                placeholder={
+                  showLegacyBrowsers
+                    ? t('No match')
+                    : t('%s (Multiline)', 'ex. 1* or [I3].[0-9].*')
+                }
+                name={`match-${index}`}
+                value={match}
+                onChange={value => onChange(index, 'match', value)}
+                disabled={showLegacyBrowsers}
                 inline={false}
+                autosize
                 hideControlState
                 showHelpInTooltip
                 flexibleControlStateSize
                 required
                 stacked
-              >
-                <StyledTextareaField
-                  placeholder={
-                    showLegacyBrowsers ? t('No match') : 'ex. 1* or [I3].[0-9].*'
-                  }
-                  name={`match-${index}`}
-                  value={match}
-                  onChange={value => onChange(index, 'match', value)}
-                  disabled={showLegacyBrowsers}
-                  inline={false}
-                  autosize
-                  hideControlState
-                  stacked
-                />
-                <FieldHelp>
-                  {t(
-                    'You can include multiple values by putting each value on a separate line'
-                  )}
-                </FieldHelp>
-              </Field>
+              />
               <ButtonDeleteWrapper>
                 <Button onClick={onDelete(index)} size="small">
                   {t('Delete Condition')}
@@ -162,10 +151,6 @@ const Wrapper = styled('div')`
       }
     }
   }
-`;
-
-const StyledTextareaField = styled(TextareaField)`
-  padding-bottom: 0;
 `;
 
 const StyledButton = styled(Button)`
