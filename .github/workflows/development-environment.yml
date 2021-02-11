@@ -18,7 +18,9 @@ jobs:
       matrix:
         # macosx-10.15 is Catalina
         # macosx-11.0 is Big Sur, however, it takes long for jobs to get started
-        os: [ macos-10.15, macos-11.0, ubuntu-20.04 ]
+        # Using Ubuntu 18 until I figure out this error:
+        # -> ImportError: libffi.so.6: cannot open shared object file: No such file or directory
+        os: [ macos-10.15, macos-11.0, ubuntu-18.04 ]
       fail-fast: false
     env:
       PIP_DISABLE_PIP_VERSION_CHECK: on
