@@ -1,4 +1,4 @@
-name: development environment
+name: dev env
 on:
   pull_request:
     paths:
@@ -11,7 +11,7 @@ on:
 
 jobs:
   dev-environment:
-    name: python set up
+    name: set up
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
     strategy:
@@ -37,9 +37,10 @@ jobs:
       - name: Install prerequisites
         # Xcode CLI & brew are already installed, thus, no need to call xcode-select install
         # XXX: Can the Brew set up be cached?
+        # Sometimes, brew needs to be updated before brew bundle would work
         # If you want to speed up the CI for your PR, you can use --no-upgrade and HOMEBREW_NO_AUTO_UPDATE=1
         run: |
-          brew bundle || brew update && brew update
+          brew bundle || brew update && brew bundle
 
       - name: Install Python (via Pyenv)
         id: python-version
