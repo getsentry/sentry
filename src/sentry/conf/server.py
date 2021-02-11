@@ -2101,3 +2101,6 @@ SENTRY_USE_UWSGI = True
 SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2 ** 20
 
 SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER = "default"
+
+# Implemented in getsentry to run additional devserver workers.
+SENTRY_EXTRA_WORKERS = None

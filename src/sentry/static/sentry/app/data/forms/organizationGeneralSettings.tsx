@@ -72,7 +72,7 @@ const formGroups: JsonFormObject[] = [
       {
         name: 'alertsMemberWrite',
         type: 'boolean',
-        label: t('Grant Members Alerts Write'),
+        label: t('Let Members Create and Edit Alerts'),
         help: t(
           'Allow members to create, edit, and delete alert rules by granting them the `alerts:write` scope.'
         ),

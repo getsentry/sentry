@@ -23,6 +23,10 @@ class StreamManager {
     this.limit = options.limit || 100;
   }
 
+  reset() {
+    this.idList = [];
+  }
+
   trim() {
     if (this.limit > this.idList.length) {
       return;

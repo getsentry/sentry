@@ -152,7 +152,7 @@ class Issues extends React.Component<Props, State> {
       : t('given timeframe');
 
     return (
-      <EmptyState withIcon={false}>
+      <EmptyState>
         <React.Fragment>
           {issuesType === IssuesType.NEW &&
             tct('No new issues in this release for the [timePeriod].', {

@@ -1,14 +1,12 @@
 import React from 'react';
-import ReactSelect, {components, OptionProps} from 'react-select';
+import {components, OptionProps} from 'react-select';
 import styled from '@emotion/styled';
 
-import SelectControl from 'app/components/forms/selectControl';
+import SelectControl, {ControlProps} from 'app/components/forms/selectControl';
 import space from 'app/styles/space';
 
-type SelectControlProps = React.ComponentProps<typeof SelectControl>;
-
 type Props = Pick<
-  SelectControlProps,
+  ControlProps,
   'value' | 'placeholder' | 'name' | 'onChange' | 'options'
 >;
 
@@ -19,12 +17,12 @@ class SelectField extends React.Component<Props> {
     }
 
     if (this.selectRef.current?.select?.inputRef) {
-      // @ts-ignore The react-select types have inputRef as any.
       this.selectRef.current.select.inputRef.autocomplete = 'off';
     }
   }
 
-  selectRef = React.createRef<ReactSelect>();
+  // TODO(ts) The generics in react-select make getting a good type here hard.
+  selectRef = React.createRef<any>();
 
   render() {
     return (

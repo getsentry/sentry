@@ -267,6 +267,10 @@ const tag = {
     background: colors.white,
     iconColor: colors.gray500,
   },
+  black: {
+    background: colors.gray500,
+    iconColor: colors.white,
+  },
 };
 
 const generateButtonTheme = alias => ({

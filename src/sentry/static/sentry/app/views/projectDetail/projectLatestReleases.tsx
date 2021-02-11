@@ -7,6 +7,7 @@ import {fetchAnyReleaseExistence} from 'app/actionCreators/projects';
 import AsyncComponent from 'app/components/asyncComponent';
 import {SectionHeading} from 'app/components/charts/styles';
 import DateTime from 'app/components/dateTime';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Placeholder from 'app/components/placeholder';
 import TextOverflow from 'app/components/textOverflow';
 import Version from 'app/components/version';
@@ -22,6 +23,8 @@ import {RELEASES_TOUR_STEPS} from 'app/views/releases/list/releaseLanding';
 import MissingReleasesButtons from './missingFeatureButtons/missingReleasesButtons';
 import {SectionHeadingLink, SectionHeadingWrapper, SidebarSection} from './styles';
 import {didProjectOrEnvironmentChange} from './utils';
+
+const PLACEHOLDER_AND_EMPTY_HEIGHT = '160px';
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
@@ -160,7 +163,7 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
       loading || checkingForOlderReleases || !isProjectStabilized;
 
     if (showLoadingIndicator) {
-      return <Placeholder height="160px" />;
+      return <Placeholder height={PLACEHOLDER_AND_EMPTY_HEIGHT} />;
     }
 
     if (!hasOlderReleases) {
@@ -168,7 +171,9 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
     }
 
     if (!releases || releases.length === 0) {
-      return t('No releases match the filter.');
+      return (
+        <StyledEmptyStateWarning small>{t('No releases found')}</StyledEmptyStateWarning>
+      );
     }
 
     return <ReleasesTable>{releases.map(this.renderReleaseRow)}</ReleasesTable>;
@@ -217,6 +222,11 @@ const ReleasesTable = styled('div')`
 
 const StyledVersion = styled(Version)`
   ${overflowEllipsis}
+`;
+
+const StyledEmptyStateWarning = styled(EmptyStateWarning)`
+  height: ${PLACEHOLDER_AND_EMPTY_HEIGHT};
+  justify-content: center;
 `;
 
 export default ProjectLatestReleases;
