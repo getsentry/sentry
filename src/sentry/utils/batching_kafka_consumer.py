@@ -1,6 +1,7 @@
 import abc
 import logging
 import time
+from typing import List
 
 from confluent_kafka import (
     Consumer,
@@ -23,7 +24,7 @@ DEFAULT_QUEUED_MAX_MESSAGE_KBYTES = 50000
 DEFAULT_QUEUED_MIN_MESSAGES = 10000
 
 
-def wait_for_topics(admin_client, topics, timeout=10):
+def wait_for_topics(admin_client: AdminClient, topics: List[str], timeout: int = 10) -> None:
     """
     Make sure that the provided topics exist and have non-zero partitions in them.
     """
