@@ -111,29 +111,26 @@ class TimelineIncident extends React.Component<IncidentProps, IncidentState> {
     }
 
     const currentTrigger = getTriggerName(activity.value);
-    const previousTrigger = getTriggerName(activity.previousValue);
 
     let title: React.ReactNode;
     let subtext: React.ReactNode;
     if (isTriggerChange) {
-      const previousActivity = previousTrigger
-        ? activities.find(({value}) => value === activity.previousValue)
-        : activity.previousValue &&
-          activity.previousValue === `${IncidentStatus.OPENED}` &&
-          activities.find(({type}) => type === IncidentActivityType.DETECTED);
-      const activityDuration = previousActivity
-        ? moment(activity.dateCreated).diff(
-            moment(previousActivity.dateCreated),
-            'milliseconds'
-          )
-        : null;
+      const nextActivity =
+        activities.find(({previousValue}) => previousValue === activity.value) ||
+        (activity.value &&
+          activity.value === `${IncidentStatus.OPENED}` &&
+          activities.find(({type}) => type === IncidentActivityType.DETECTED));
+      const activityDuration = (nextActivity
+        ? moment(nextActivity.dateCreated)
+        : moment()
+      ).diff(moment(activity.dateCreated), 'seconds');
 
       title = t('Alert status changed');
       subtext =
         activityDuration !== null &&
         tct(`[currentTrigger]: [duration]`, {
           currentTrigger,
-          duration: <Duration exact abbreviation seconds={activityDuration / 1000} />,
+          duration: <Duration abbreviation seconds={activityDuration} />,
         });
     } else if (isClosed && incident?.statusMethod === IncidentStatusMethod.RULE_UPDATED) {
       title = t('Alert auto-resolved');
@@ -142,21 +139,18 @@ class TimelineIncident extends React.Component<IncidentProps, IncidentState> {
       title = t('Alert resolved');
       subtext = tct('by [authorName]', {authorName});
     } else if (isDetected) {
-      const startActivity =
-        activities && activities.find(({type}) => type === IncidentActivityType.STARTED);
-      const triggerEnd =
-        startActivity &&
-        moment(startActivity.dateCreated).add(rule.timeWindow, 'minutes');
-      const activeDuration =
-        triggerEnd && moment(activity.dateCreated).diff(triggerEnd, 'seconds');
+      const nextActivity = activities.find(({previousValue}) => previousValue === '1');
+      const activityDuration = nextActivity
+        ? moment(nextActivity.dateCreated).diff(moment(activity.dateCreated), 'seconds')
+        : null;
 
       title = incident?.alertRule
         ? t('Alert was created')
         : tct('[authorName] created an alert', {authorName});
       subtext =
-        activeDuration &&
+        activityDuration &&
         tct(`Critical: [duration]`, {
-          duration: <Duration exact abbreviation seconds={activeDuration} />,
+          duration: <Duration abbreviation seconds={activityDuration} />,
         });
     } else if (isStarted) {
       const dateEnded = moment(activity.dateCreated)
@@ -252,7 +246,7 @@ class Timeline extends React.Component<Props> {
 
     return (
       <Panel>
-        <PanelHeader>TIMELINE</PanelHeader>
+        <PanelHeader>{t('Timeline')}</PanelHeader>
         <PanelBody>
           {incidents && rule && incidents.length
             ? incidents.map(incident => (
