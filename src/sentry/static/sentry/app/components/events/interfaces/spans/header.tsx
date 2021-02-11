@@ -8,6 +8,7 @@ import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import {DragManagerChildrenProps} from './dragManager';
 import MeasurementsPanel from './measurementsPanel';
+import * as ScrollbarManager from './scrollbarManager';
 import {zIndex} from './styles';
 import {
   ParsedTraceType,
@@ -358,7 +359,21 @@ class TraceViewHeader extends React.Component<PropType, State> {
                   // the width of this component is shrunk to compensate for half of the width of the divider line
                   width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
                 }}
-              />
+              >
+                <ScrollbarManager.Consumer>
+                  {({virtualScrollbarRef, onDragStart}) => {
+                    return (
+                      <VirtualScrollBar
+                        data-type="virtual-scrollbar"
+                        ref={virtualScrollbarRef}
+                        onMouseDown={onDragStart}
+                      >
+                        <VirtualScrollBarGrip />
+                      </VirtualScrollBar>
+                    );
+                  }}
+                </ScrollbarManager.Consumer>
+              </ScrollBarContainer>
               <DividerSpacer />
               {hasMeasurements ? (
                 <MeasurementsPanel
@@ -872,6 +887,25 @@ const RightSidePane = styled('div')`
   height: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px;
   position: absolute;
   top: 0;
+`;
+
+const VirtualScrollBar = styled('div')`
+  height: 8px;
+  width: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+  position: relative;
+  top: 0;
+  left: 0;
+  cursor: grab;
+`;
+
+const VirtualScrollBarGrip = styled('div')`
+  height: 8px;
+  width: 100%;
+  border-radius: 20px;
+  transition: background-color 150ms ease;
+  background-color: rgba(48, 40, 57, 0.5);
 `;
 
 export default TraceViewHeader;
