@@ -13,7 +13,7 @@ jobs:
   dev-environment:
     name: set up
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 25
+    timeout-minutes: 35
     strategy:
       matrix:
         # macosx-10.15 is Catalina
@@ -64,9 +64,9 @@ jobs:
           path: |
             ${{ steps.pip.outputs.pip-cache-dir }}
             ~/.pyenv
-          key: ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ hashFiles('**/requirements-*.txt') }}
+          key: ${{ matrix.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ steps.pip.outputs.pip-version }}-${{ hashFiles('**/requirements-*.txt') }}
           restore-keys: |
-            ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}
+            ${{ matrix.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ steps.pip.outputs.pip-version }}-
 
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path
