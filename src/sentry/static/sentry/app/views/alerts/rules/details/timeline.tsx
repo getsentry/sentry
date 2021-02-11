@@ -4,7 +4,6 @@ import moment from 'moment-timezone';
 
 import {fetchIncidentActivities} from 'app/actionCreators/incident';
 import {Client} from 'app/api';
-import {CreateError} from 'app/components/activity/note/types';
 import DateTime from 'app/components/dateTime';
 import Duration from 'app/components/duration';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -12,10 +11,10 @@ import NavTabs from 'app/components/navTabs';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import SeenByList from 'app/components/seenByList';
 import TimeSince from 'app/components/timeSince';
-import {IconEllipse} from 'app/icons';
+import {IconCheckmark, IconEllipse, IconFire, IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {uniqueId} from 'app/utils/guid';
+import theme from 'app/utils/theme';
 import {getTriggerName} from 'app/views/alerts/details/activity/statusItem';
 import {
   ActivityType,
@@ -26,7 +25,7 @@ import {
 } from 'app/views/alerts/types';
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
-type Activities = Array<ActivityType | ActivityType>;
+type Activities = Array<ActivityType>;
 
 type IncidentProps = {
   api: Client;
@@ -38,11 +37,6 @@ type IncidentProps = {
 type IncidentState = {
   loading: boolean;
   error: boolean;
-  noteInputId: string;
-  noteInputText: string;
-  createBusy: boolean;
-  createError: boolean;
-  createErrorJSON: null | CreateError;
   activities: null | Activities;
 };
 
@@ -50,11 +44,6 @@ class TimelineIncident extends React.Component<IncidentProps, IncidentState> {
   state: IncidentState = {
     loading: true,
     error: false,
-    noteInputId: uniqueId(),
-    noteInputText: '',
-    createBusy: false,
-    createError: false,
-    createErrorJSON: null,
     activities: null,
   };
 
@@ -123,14 +112,14 @@ class TimelineIncident extends React.Component<IncidentProps, IncidentState> {
       const activityDuration = (nextActivity
         ? moment(nextActivity.dateCreated)
         : moment()
-      ).diff(moment(activity.dateCreated), 'seconds');
+      ).diff(moment(activity.dateCreated), 'milliseconds');
 
       title = t('Alert status changed');
       subtext =
         activityDuration !== null &&
         tct(`[currentTrigger]: [duration]`, {
           currentTrigger,
-          duration: <Duration abbreviation seconds={activityDuration} />,
+          duration: <Duration abbreviation seconds={activityDuration / 1000} />,
         });
     } else if (isClosed && incident?.statusMethod === IncidentStatusMethod.RULE_UPDATED) {
       title = t('Alert auto-resolved');
@@ -141,16 +130,19 @@ class TimelineIncident extends React.Component<IncidentProps, IncidentState> {
     } else if (isDetected) {
       const nextActivity = activities.find(({previousValue}) => previousValue === '1');
       const activityDuration = nextActivity
-        ? moment(nextActivity.dateCreated).diff(moment(activity.dateCreated), 'seconds')
+        ? moment(nextActivity.dateCreated).diff(
+            moment(activity.dateCreated),
+            'milliseconds'
+          )
         : null;
 
       title = incident?.alertRule
         ? t('Alert was created')
         : tct('[authorName] created an alert', {authorName});
       subtext =
-        activityDuration &&
+        activityDuration !== null &&
         tct(`Critical: [duration]`, {
-          duration: <Duration abbreviation seconds={activityDuration} />,
+          duration: <Duration abbreviation seconds={activityDuration / 1000} />,
         });
     } else if (isStarted) {
       const dateEnded = moment(activity.dateCreated)
@@ -200,11 +192,44 @@ class TimelineIncident extends React.Component<IncidentProps, IncidentState> {
 
   render() {
     const {incident} = this.props;
+    const {activities} = this.state;
+
+    let Icon = IconCheckmark;
+    let color: string = theme.green300;
+
+    if (
+      activities &&
+      activities.find(
+        activity =>
+          activity.type === IncidentActivityType.DETECTED ||
+          (activity.type === IncidentActivityType.STATUS_CHANGE &&
+            activity.value === `${IncidentStatus.CRITICAL}`)
+      )
+    ) {
+      Icon = IconFire;
+      color = theme.red300;
+    } else if (
+      activities &&
+      activities.find(
+        activity =>
+          activity.type === IncidentActivityType.STARTED ||
+          (activity.type === IncidentActivityType.STATUS_CHANGE &&
+            activity.value === `${IncidentStatus.CRITICAL}`)
+      )
+    ) {
+      Icon = IconWarning;
+      color = theme.yellow300;
+    }
 
     return (
       <StyledNavTabs key={incident.identifier}>
         <IncidentHeader>
-          <li>Alert #{incident.identifier}</li>
+          <AlertBadge color={color} icon={Icon}>
+            <IconWrapper>
+              <Icon color="white" size="xs" />
+            </IconWrapper>
+          </AlertBadge>
+          <li>{tct('Alert #[id]', {id: incident.identifier})}</li>
           <SeenByTab>
             {incident && (
               <StyledSeenByList
@@ -215,11 +240,13 @@ class TimelineIncident extends React.Component<IncidentProps, IncidentState> {
             )}
           </SeenByTab>
         </IncidentHeader>
-        <IncidentBody>
-          {this.state.activities
-            ?.filter(activity => activity.type !== IncidentActivityType.COMMENT)
-            .map((activity, idx) => this.renderActivity(activity, idx))}
-        </IncidentBody>
+        {activities && (
+          <IncidentBody>
+            {activities
+              .filter(activity => activity.type !== IncidentActivityType.COMMENT)
+              .map((activity, idx) => this.renderActivity(activity, idx))}
+          </IncidentBody>
+        )}
       </StyledNavTabs>
     );
   }
@@ -275,6 +302,30 @@ const StyledNavTabs = styled(NavTabs)`
 
 const IncidentHeader = styled('div')`
   display: flex;
+  margin-bottom: ${space(1.5)};
+`;
+
+const AlertBadge = styled('div')<{color: string; icon: React.ReactNode}>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  /* icon warning needs to be treated differently to look visually centered */
+  line-height: ${p => (p.icon === IconWarning ? undefined : 1)};
+  margin-right: ${space(1.5)};
+
+  &:before {
+    content: '';
+    width: 16px;
+    height: 16px;
+    border-radius: ${p => p.theme.borderRadius};
+    background-color: ${p => p.color};
+    transform: rotate(45deg);
+  }
+`;
+
+const IconWrapper = styled('div')`
+  position: absolute;
 `;
 
 const SeenByTab = styled('li')`
@@ -304,13 +355,13 @@ const ActivityTrack = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: center;
+  margin-right: ${space(1.5)};
 `;
 
 const ActivityBody = styled('div')`
   flex: 1;
   display: flex;
   flex-direction: column;
-  margin-left: ${space(2)};
 `;
 
 const ActivityTime = styled('li')`
