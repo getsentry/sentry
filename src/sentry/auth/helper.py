@@ -444,7 +444,7 @@ def handle_unknown_identity(request, organization, auth_provider, provider, stat
 
     if not op:
         # A blank character is needed to prevent the HTML span from collapsing
-        provider_name = (auth_provider.get_provider().name if auth_provider else " ",)
+        provider_name = auth_provider.get_provider().name if auth_provider else " "
 
         if request.user.is_authenticated():
             return respond(

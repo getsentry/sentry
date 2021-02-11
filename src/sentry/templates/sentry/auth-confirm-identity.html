@@ -21,7 +21,7 @@
             <span class="icon-arrow-right"></span>
           </div>
           <div><strong>{{ provider }}</strong></div>
-          <div>{{ identity.email }}</div>
+          <div class="email-truncate">{{ identity.email }}</div>
         </div>
 
         <div class="column right-column">
@@ -30,7 +30,7 @@
             <span class="avatar">{% avatar existing_user %}</span>
           </div>
           <div><strong>Sentry</strong></div>
-          <div>{{ existing_user.email }}</div>
+          <div class="email-truncate">{{ existing_user.email }}</div>
         </div>
       </div>
     </div>
@@ -71,7 +71,7 @@
 
           <div class="column right-column">
             <div><strong>{{ provider }}</strong></div>
-            <div>{{ identity.email }}</div>
+            <div class="email-truncate">{{ identity.email }}</div>
           </div>
         </div>
       </div>
