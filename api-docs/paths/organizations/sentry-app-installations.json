@@ -1,8 +1,8 @@
 {
   "get": {
     "tags": ["Organizations"],
-    "description": "Return a list of internal integrations for a given organization.",
-    "operationId": "List an Organization's Internal Integrations",
+    "description": "Return a list of internal integration installations for a given organization.",
+    "operationId": "List an Organization's Internal Integration Installations",
     "parameters": [
       {
         "name": "organization_slug",
@@ -39,7 +39,14 @@
                       }
                   },
                   "organization": {
-                    "type": "string"
+                    "type": "object",
+                    "required": ["slug"],
+                    "properties":
+                      {
+                        "slug": {
+                          "type": "string"
+                        }
+                      }
                   },
                   "uuid": {
                     "type": "string"
