@@ -6,12 +6,12 @@ type MobilePromptBannerParams = {
 };
 
 //define the event key to payload mappings
-export type EventParameters = {
+export type GrowthEventParameters = {
   'growth.check_show_mobile_prompt_banner': MobilePromptBannerParams;
 };
 
-type AnalyticsKey = keyof EventParameters;
+type GrowthAnalyticsKey = keyof GrowthEventParameters;
 
-export const eventNameMap: Record<AnalyticsKey, string> = {
+export const growthEventMap: Record<GrowthAnalyticsKey, string> = {
   'growth.check_show_mobile_prompt_banner': 'Growth: Check Show Mobile Prompt Banner',
 };

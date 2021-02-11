@@ -20,7 +20,10 @@ import {
   IntegrationType,
   Organization,
 } from 'app/types';
-import {AnalyticsKey, EventParameters} from 'app/utils/integrationEvents';
+import {
+  IntegrationAnalyticsKey,
+  IntegrationEventParameters,
+} from 'app/utils/integrationEvents';
 import {
   getCategories,
   getIntegrationFeatureGate,
@@ -186,9 +189,9 @@ class AbstractIntegrationDetailedView<
   }
 
   //Wrapper around trackIntegrationEvent that automatically provides many fields and the org
-  trackIntegrationEvent = <T extends AnalyticsKey>(
-    eventKey: AnalyticsKey,
-    options?: Partial<EventParameters[T]>
+  trackIntegrationEvent = <T extends IntegrationAnalyticsKey>(
+    eventKey: IntegrationAnalyticsKey,
+    options?: Partial<IntegrationEventParameters[T]>
   ) => {
     options = options || {};
     //If we use this intermediate type we get type checking on the things we care about

@@ -8,7 +8,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {t, tct} from 'app/locale';
 import {Organization, Plugin, Project} from 'app/types';
 import {parseRepo} from 'app/utils';
-import {AnalyticsKey} from 'app/utils/integrationEvents';
+import {IntegrationAnalyticsKey} from 'app/utils/integrationEvents';
 import {trackIntegrationEvent} from 'app/utils/integrationUtil';
 
 type Props = {
@@ -50,7 +50,7 @@ class PluginSettings<
     });
   }
 
-  trackPluginEvent = (eventKey: AnalyticsKey) => {
+  trackPluginEvent = (eventKey: IntegrationAnalyticsKey) => {
     trackIntegrationEvent(
       eventKey,
       {

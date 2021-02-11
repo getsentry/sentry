@@ -17,7 +17,7 @@ import {IconDelete, IconFlag, IconSettings} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {AvatarProject, Organization, PluginNoProject, PluginProjectItem} from 'app/types';
-import {AnalyticsKey} from 'app/utils/integrationEvents';
+import {IntegrationAnalyticsKey} from 'app/utils/integrationEvents';
 import withApi from 'app/utils/withApi';
 
 export type Props = {
@@ -27,7 +27,7 @@ export type Props = {
   organization: Organization;
   onResetConfiguration: (projectId: string) => void;
   onPluginEnableStatusChange: (projectId: string, status: boolean) => void;
-  trackIntegrationEvent: (eventKey: AnalyticsKey) => void; //analytics callback
+  trackIntegrationEvent: (eventKey: IntegrationAnalyticsKey) => void; //analytics callback
   className?: string;
 };
 

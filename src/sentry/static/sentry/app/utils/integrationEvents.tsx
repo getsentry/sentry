@@ -57,7 +57,7 @@ type IntegrationInstalltionInputValueChangeEventParams = {
 } & SingleIntegrationEventParams;
 
 //define the event key to payload mappings
-export type EventParameters = {
+export type IntegrationEventParameters = {
   'integrations.install_modal_opened': SingleIntegrationEventParams;
   'integrations.integration_viewed': SingleIntegrationEventParams;
   'integrations.installation_start': SingleIntegrationEventParams;
@@ -90,10 +90,10 @@ export type EventParameters = {
   'integrations.switch_manual_sdk_setup': SingleIntegrationEventParams;
 };
 
-export type AnalyticsKey = keyof EventParameters;
+export type IntegrationAnalyticsKey = keyof IntegrationEventParameters;
 
 //define the event key to event name mappings
-export const eventNameMap: Record<AnalyticsKey, string> = {
+export const integrationEventMap: Record<IntegrationAnalyticsKey, string> = {
   'integrations.install_modal_opened': 'Integrations: Install Modal Opened',
   'integrations.integration_viewed': 'Integrations: Integration Viewed',
   'integrations.installation_start': 'Integrations: Installation Start',
