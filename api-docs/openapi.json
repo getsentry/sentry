@@ -199,6 +199,15 @@
     },
     "/api/0/organizations/{organization_slug}/releases/{version}/deploys/": {
       "$ref": "paths/releases/deploys.json"
+    },
+    "/api/0/organizations/{organization_slug}/sentry-app-installations/": {
+      "$ref": "paths/organizations/sentry-app-installations.json"
+    },
+    "/api/0/sentry-app-installations/{uuid}/external-issues/": {
+      "$ref": "paths/organizations/sentry-app-external-issues.json"
+    },
+    "/api/0/sentry-app-installations/{uuid}/external-issues/{external_issue_id}/": {
+      "$ref": "paths/organizations/sentry-app-external-issue-details.json"
     }
   },
   "components": {
