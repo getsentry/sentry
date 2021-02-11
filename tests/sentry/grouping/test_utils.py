@@ -37,8 +37,8 @@ def test_stacktrace_parametrization():
     def event(event_json):
         return {
             "exceptions": [
-                call_single_element(exception, exception_json)
-                for exception_json in event_json["exceptions"]
+                call_single_element(exception, exception_json, call_id=(i, exception))
+                for i, exception_json in enumerate(event_json["exceptions"])
             ]
         }
 

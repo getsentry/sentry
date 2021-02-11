@@ -82,6 +82,7 @@ class GroupingContext:
         strategy = self.config.delegates.get(path)
         if strategy is not None:
             kwargs["context"] = self
+            kwargs["call_id"] = (strategy.name, id(interface))
             rv = call_single_element(strategy, interface, *args, **kwargs)
             if isinstance(rv, tuple):
                 return rv[1]
@@ -107,8 +108,7 @@ class Strategy:
         self.id = id
         self.strategy_class = id.split(":", 1)[0]
 
-        # __name__ to make this behave more like a function
-        self.name = self.__name__ = name
+        self.name = name
         self.interfaces = interfaces
         self.variants = variants
         self.score = score

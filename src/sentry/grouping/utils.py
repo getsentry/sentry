@@ -158,6 +158,7 @@ def call_many_elements(
 def call_single_element(
     f: Callable[..., Union[Generator[_R, None, None], _R]],
     *args: Any,
+    call_id: Any = None,
     **kwargs: Any,
 ) -> _R:
     """
@@ -173,29 +174,37 @@ def call_single_element(
     >>> def bar(): return call_single_element(foo) * 2
     >>> assert list(call_many_elements(bar)) == [4, 6]
     """
-    if hasattr(_next_elem, "values"):
-        reverse_values = enumerate(_next_elem.values.get(f.__name__, ()))
-        for i, (stored_args, stored_kwargs, stored_items) in reverse_values:
-            if stored_args == args and stored_kwargs == kwargs:
-                if not stored_items:
-                    raise StopParametrization()
 
-                return stored_items.pop()
+    if call_id is None:
+        call_id = f
 
-    items = f(*args, **kwargs)
+    prev_call_id = getattr(_next_elem, "call_id", None)
+    call_id = (prev_call_id, call_id)
+    _next_elem.call_id = call_id
 
-    if inspect.isgenerator(items):
-        items = list(items)
-        if not items:
-            raise StopParametrization()
+    try:
+        # _next_elem.values needs to be initialized via call_many_elements
+        if call_id in _next_elem.values:
+            stored_items = _next_elem.values[call_id]
+            if not stored_items:
+                del _next_elem.values[call_id]
+                raise StopParametrization()
+            return stored_items.pop()
 
-        if not hasattr(_next_elem, "values"):
-            _next_elem.values = {}
+        items = f(*args, **kwargs)
 
-        items.reverse()
+        if inspect.isgenerator(items):
+            items = list(items)
+            if not items:
+                raise StopParametrization()
 
-        _next_elem.values.setdefault(f.__name__, []).append((args, kwargs, items))
+            items.reverse()
 
-        return items.pop()
-    else:
-        return items
+            _next_elem.values[call_id] = items
+
+            return items.pop()
+        else:
+            return items
+
+    finally:
+        _next_elem.call_id = prev_call_id
