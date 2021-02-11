@@ -198,23 +198,21 @@ class TimelineIncident extends React.Component<IncidentProps, IncidentState> {
     let color: string = theme.green300;
 
     if (
-      activities &&
-      activities.find(
-        activity =>
-          activity.type === IncidentActivityType.DETECTED ||
-          (activity.type === IncidentActivityType.STATUS_CHANGE &&
-            activity.value === `${IncidentStatus.CRITICAL}`)
+      activities?.find(
+        ({type, value}) =>
+          type === IncidentActivityType.DETECTED ||
+          (type === IncidentActivityType.STATUS_CHANGE &&
+            value === `${IncidentStatus.CRITICAL}`)
       )
     ) {
       Icon = IconFire;
       color = theme.red300;
     } else if (
-      activities &&
-      activities.find(
-        activity =>
-          activity.type === IncidentActivityType.STARTED ||
-          (activity.type === IncidentActivityType.STATUS_CHANGE &&
-            activity.value === `${IncidentStatus.CRITICAL}`)
+      activities?.find(
+        ({type, value}) =>
+          type === IncidentActivityType.STARTED ||
+          (type === IncidentActivityType.STATUS_CHANGE &&
+            value === `${IncidentStatus.CRITICAL}`)
       )
     ) {
       Icon = IconWarning;
