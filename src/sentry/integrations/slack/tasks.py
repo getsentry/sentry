@@ -7,7 +7,15 @@ from sentry.auth.access import SystemAccess
 from sentry.utils import json
 from sentry.tasks.base import instrumented_task
 from sentry.mediators import project_rules
-from sentry.models import Integration, Project, Rule, Organization, User
+from sentry.models import (
+    Integration,
+    Project,
+    Rule,
+    RuleActivity,
+    RuleActivityType,
+    Organization,
+    User,
+)
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.incidents.models import AlertRule
 from sentry.incidents.logic import ChannelLookupTimeoutError
@@ -60,7 +68,7 @@ class RedisRuleStatus:
 
 
 @instrumented_task(name="sentry.integrations.slack.search_channel_id", queue="integrations")
-def find_channel_id_for_rule(project, actions, uuid, rule_id=None, **kwargs):
+def find_channel_id_for_rule(project, actions, uuid, rule_id=None, user_id=None, **kwargs):
     redis_rule_status = RedisRuleStatus(uuid)
 
     try:
@@ -68,6 +76,13 @@ def find_channel_id_for_rule(project, actions, uuid, rule_id=None, **kwargs):
     except Project.DoesNotExist:
         redis_rule_status.set_value("failed")
         return
+
+    user = None
+    if user_id:
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            pass
 
     organization = project.organization
     integration_id = None
@@ -118,6 +133,10 @@ def find_channel_id_for_rule(project, actions, uuid, rule_id=None, **kwargs):
             rule = project_rules.Updater.run(rule=rule, pending_save=False, **kwargs)
         else:
             rule = project_rules.Creator.run(pending_save=False, **kwargs)
+            if user:
+                RuleActivity.objects.create(
+                    rule=rule, user=user, type=RuleActivityType.CREATED.value
+                )
 
         redis_rule_status.set_value("success", rule.id)
         return
