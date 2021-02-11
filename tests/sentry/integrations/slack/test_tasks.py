@@ -94,6 +94,7 @@ class SlackTasksTest(TestCase):
             ],
             "frequency": 5,
             "uuid": self.uuid,
+            "user_id": self.user.id,
         }
 
         with self.tasks():
@@ -113,6 +114,7 @@ class SlackTasksTest(TestCase):
                 "workspace": self.integration.id,
             }
         ]
+        assert rule.created_by == self.user
 
     @responses.activate
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
