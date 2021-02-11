@@ -67,7 +67,9 @@ function Tag({
       <Background type={type}>
         {tagIcon()}
 
-        <Text maxWidth={textMaxWidth}>{children}</Text>
+        <Text type={type} maxWidth={textMaxWidth}>
+          {children}
+        </Text>
 
         {defined(onDismiss) && (
           <DismissButton
@@ -137,8 +139,8 @@ const IconWrapper = styled('span')`
   display: inline-flex;
 `;
 
-export const Text = styled('span')<{maxWidth: number}>`
-  color: ${p => p.theme.gray500};
+export const Text = styled('span')<{maxWidth: number; type: keyof Theme['tag']}>`
+  color: ${p => (p.type === 'black' ? p.theme.white : p.theme.gray500)};
   max-width: ${p => p.maxWidth}px;
   overflow: hidden;
   white-space: nowrap;

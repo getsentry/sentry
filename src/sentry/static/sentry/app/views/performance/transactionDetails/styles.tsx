@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {SectionHeading} from 'app/components/charts/styles';
 import QuestionTooltip from 'app/components/questionTooltip';
-import Tag, {Background, Text} from 'app/components/tag';
+import Tag, {Background} from 'app/components/tag';
 import space from 'app/styles/space';
 import {Theme} from 'app/utils/theme';
 
@@ -75,9 +75,6 @@ export const EventNode = styled(Tag)<{type: keyof Theme['tag']}>`
   & ${/* sc-selector */ Background} {
     border: 1px solid ${p => p.theme.gray500};
     height: 24px;
-  }
-
-  & ${/* sc-selector */ Text} {
-    color: ${p => (p.type === 'black' ? p.theme.white : p.theme.gray500)};
+    border-radius: 24px;
   }
 `;
