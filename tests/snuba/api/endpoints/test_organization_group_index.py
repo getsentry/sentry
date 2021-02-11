@@ -693,7 +693,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         for i in range(5):
             group = self.store_event(
                 data={
-                    "timestamp": iso_format(before_now(days=i)),
+                    "timestamp": iso_format(before_now(minutes=10, days=i)),
                     "fingerprint": [f"group-{i}"],
                 },
                 project_id=self.project.id,
