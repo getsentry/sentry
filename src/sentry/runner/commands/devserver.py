@@ -30,6 +30,15 @@ _DEFAULT_DAEMONS = {
 }
 
 
+def add_daemon(name, command):
+    """
+    Used by getsentry to add additional workers to the devserver setup.
+    """
+    if name in _DEFAULT_DAEMONS:
+        raise KeyError(f"The {name} worker has already been defined")
+    _DEFAULT_DAEMONS[name] = command
+
+
 def _get_daemon(name, *args, **kwargs):
     display_name = name
     if "suffix" in kwargs:
@@ -225,6 +234,9 @@ def devserver(
 
     if settings.SENTRY_USE_RELAY:
         daemons += [_get_daemon("ingest")]
+
+    if settings.SENTRY_EXTRA_WORKERS:
+        daemons.extend([_get_daemon(name) for name in settings.SENTRY_EXTRA_WORKERS])
 
     if needs_https and has_https:
         https_port = str(parsed_url.port)
