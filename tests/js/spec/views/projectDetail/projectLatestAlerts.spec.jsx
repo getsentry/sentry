@@ -97,7 +97,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
       })
     ); // if there are no alerts, we check if any rules are set
 
-    expect(wrapper.text()).toContain('No alert triggered so far.');
+    expect(wrapper.text()).toContain('No alerts found');
   });
 
   it('shows configure alerts buttons', async function () {

@@ -475,7 +475,7 @@ def record_inbox_in(project, user, group, reason, **kwargs):
 
 
 @inbox_out.connect(weak=False)
-def record_inbox_out(project, user, group, action, inbox_date_added, **kwargs):
+def record_inbox_out(project, user, group, action, inbox_date_added, referrer, **kwargs):
     if user and user.is_authenticated():
         user_id = default_user_id = user.id
     else:
@@ -490,6 +490,7 @@ def record_inbox_out(project, user, group, action, inbox_date_added, **kwargs):
         group_id=group.id,
         action=action,
         inbox_in_ts=int(time.mktime(inbox_date_added.timetuple())),
+        referrer=referrer,
     )
 
 

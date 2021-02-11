@@ -149,14 +149,17 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
           </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>
-          <Layout.Main fullWidth={!isSidebarVisible}>
-            {hasQuickTraceView && (
+          {hasQuickTraceView && (
+            <Layout.Main fullWidth>
               <EventMetas
                 event={event}
                 organization={organization}
                 projectId={this.projectId}
+                location={location}
               />
-            )}
+            </Layout.Main>
+          )}
+          <Layout.Main fullWidth={!isSidebarVisible}>
             <Projects orgId={organization.slug} slugs={[this.projectId]}>
               {({projects}) => (
                 <SpanEntryContext.Provider
