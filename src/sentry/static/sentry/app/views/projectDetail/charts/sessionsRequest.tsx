@@ -188,6 +188,17 @@ class SessionsRequest extends React.Component<Props, State> {
       0
     );
 
+    const previousPeriodTotalSessions = fetchedWithPrevious
+      ? responseData.groups.reduce(
+          (acc, group) =>
+            acc +
+            group.series['sum(session)']
+              .slice(0, dataMiddleIndex)
+              .reduce((value, groupAcc) => groupAcc + value, 0),
+          0
+        )
+      : 0;
+
     // TODO(project-details): refactor this to avoid duplication as we add more session charts
     const timeseriesData = [
       {
@@ -219,7 +230,9 @@ class SessionsRequest extends React.Component<Props, State> {
             return {
               name: interval,
               value:
-                totalIntervalSessions === 0
+                totalSessions === 0 && previousPeriodTotalSessions === 0
+                  ? 0
+                  : totalIntervalSessions === 0
                   ? null
                   : getCrashFreePercent(100 - crashedSessionsPercent),
             };
@@ -250,7 +263,9 @@ class SessionsRequest extends React.Component<Props, State> {
             return {
               name: responseData.intervals[i + dataMiddleIndex],
               value:
-                totalIntervalSessions === 0
+                totalSessions === 0 && previousPeriodTotalSessions === 0
+                  ? 0
+                  : totalIntervalSessions === 0
                   ? null
                   : getCrashFreePercent(100 - crashedSessionsPercent),
             };

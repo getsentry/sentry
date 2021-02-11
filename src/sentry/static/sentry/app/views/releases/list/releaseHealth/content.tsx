@@ -360,7 +360,7 @@ const ChartWrapper = styled('div')`
 `;
 
 const StyledPlaceholder = styled(Placeholder)`
-  height: 20px;
+  height: 15px;
   display: inline-block;
   position: relative;
   top: ${space(0.25)};

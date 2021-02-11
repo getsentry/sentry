@@ -3,15 +3,15 @@ import React from 'react';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {Panel, PanelBody} from 'app/components/panels';
 
-type Props = Pick<React.ComponentProps<typeof EmptyStateWarning>, 'withIcon'> & {
+type Props = {
   children: React.ReactNode;
 };
 
-const EmptyState = ({withIcon, children}: Props) => (
+const EmptyState = ({children}: Props) => (
   <Panel>
     <PanelBody>
-      <EmptyStateWarning small withIcon={withIcon}>
-        {children}
+      <EmptyStateWarning>
+        <p>{children}</p>
       </EmptyStateWarning>
     </PanelBody>
   </Panel>
