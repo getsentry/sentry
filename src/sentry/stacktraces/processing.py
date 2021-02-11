@@ -35,7 +35,7 @@ class ProcessableFrame:
         self.processable_frames = processable_frames
 
     def __repr__(self):
-        return "<ProcessableFrame %r #%r at %r>" % (
+        return "<ProcessableFrame {!r} #{!r} at {!r}>".format(
             self.frame.get("function") or "unknown",
             self.idx,
             self.frame.get("instruction_addr"),

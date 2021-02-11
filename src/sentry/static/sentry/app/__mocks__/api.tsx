@@ -86,7 +86,7 @@ class Client {
   wrapCallback(_id, error) {
     return (...args) => {
       // @ts-expect-error
-      if (this.hasProjectBeenRenamed(...args)) {
+      if (RealClient.hasProjectBeenRenamed(...args)) {
         return;
       }
       respond(Client.mockAsync, error, ...args);
@@ -194,7 +194,6 @@ class Client {
     respond(Client.mockAsync, options.complete);
   }
 
-  hasProjectBeenRenamed = RealClient.Client.prototype.hasProjectBeenRenamed;
   handleRequestError = RealClient.Client.prototype.handleRequestError;
 }
 

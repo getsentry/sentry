@@ -110,7 +110,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
                 debug_file.file_extension,
             )
             return response
-        except IOError:
+        except OSError:
             raise Http404
 
     def get(self, request, project):

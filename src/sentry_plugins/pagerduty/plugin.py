@@ -35,7 +35,7 @@ class PagerDutyPlugin(CorePluginMixin, NotifyPlugin):
         message = data.get("message", "unknown error")
         errors = data.get("errors", None)
         if errors:
-            return "%s: %s" % (message, " ".join(errors))
+            return "{}: {}".format(message, " ".join(errors))
 
         return message
 

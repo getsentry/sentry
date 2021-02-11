@@ -58,10 +58,10 @@ def locale_js_include(context):
 
     nonce = ""
     if hasattr(request, "csp_nonce"):
-        nonce = ' nonce="{}"'.format(request.csp_nonce)
+        nonce = f' nonce="{request.csp_nonce}"'
 
     href = get_asset_url("sentry", "dist/locale/" + lang_code + ".js")
-    return mark_safe('<script src="{}"{}{}></script>'.format(href, crossorigin(), nonce))
+    return mark_safe(f'<script src="{href}"{crossorigin()}{nonce}></script>')
 
 
 @register.tag
@@ -83,7 +83,7 @@ def script(parser, token):
 
         return ScriptNode(nodelist, **kwargs)
     except ValueError as err:
-        raise template.TemplateSyntaxError("`script` tag failed to compile. : {}".format(err))
+        raise template.TemplateSyntaxError(f"`script` tag failed to compile. : {err}")
 
 
 class ScriptNode(template.Node):
@@ -108,18 +108,18 @@ class ScriptNode(template.Node):
         if "src" not in self.attrs:
             content = self.nodelist.render(context).strip()
             content = self._unwrap_content(content)
-        return "<script{}>{}</script>".format(attrs, content)
+        return f"<script{attrs}>{content}</script>"
 
     def _render_attrs(self, context):
         output = []
         for k, v in self.attrs.items():
             value = self._get_value(v, context)
             if value in (True, "True"):
-                output.append(" {}".format(k))
+                output.append(f" {k}")
             elif value in (None, False, "False"):
                 continue
             else:
-                output.append(' {}="{}"'.format(k, value))
+                output.append(f' {k}="{value}"')
         output = sorted(output)
         return "".join(output)
 

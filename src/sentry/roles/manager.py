@@ -16,7 +16,7 @@ class Role:
         return str(self.name)
 
     def __repr__(self):
-        return "<Role: {}>".format(self.id)
+        return f"<Role: {self.id}>"
 
     def has_scope(self, scope):
         return scope in self.scopes

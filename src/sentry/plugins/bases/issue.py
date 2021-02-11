@@ -187,9 +187,7 @@ class IssueTrackingPlugin(Plugin):
                     "project": group.project,
                     "has_auth_configured": has_auth_configured,
                     "required_auth_settings": required_auth_settings,
-                    "plugin_link": "/settings/{}/projects/{}/plugins/{}/".format(
-                        project.organization.slug, project.slug, self.slug
-                    ),
+                    "plugin_link": f"/settings/{project.organization.slug}/projects/{project.slug}/plugins/{self.slug}/",
                 },
             )
 

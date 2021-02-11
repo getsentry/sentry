@@ -129,7 +129,7 @@ class VercelIntegration(IntegrationInstallation):
                 dashboard_url = "https://vercel.com/dashboard/%s/" % slug
             else:
                 dashboard_url = "https://vercel.com/dashboard/"
-            return "%sintegrations/%s" % (dashboard_url, configuration_id)
+            return f"{dashboard_url}integrations/{configuration_id}"
         return None
 
     def get_client(self):
@@ -166,7 +166,7 @@ class VercelIntegration(IntegrationInstallation):
         slug = self.get_slug()
         base_url = "https://vercel.com/%s" % slug
         vercel_projects = [
-            {"value": p["id"], "label": p["name"], "url": "%s/%s" % (base_url, p["name"])}
+            {"value": p["id"], "label": p["name"], "url": "{}/{}".format(base_url, p["name"])}
             for p in vercel_client.get_projects()
         ]
 
@@ -288,7 +288,7 @@ class VercelIntegration(IntegrationInstallation):
         return any(
             [
                 env_var
-                for env_var in client.get_env_vars(vercel_project_id)["envs"]
+                for env_var in client.get_env_vars(vercel_project_id)
                 if env_var["key"] == name
             ]
         )
@@ -361,7 +361,7 @@ class VercelIntegrationProvider(IntegrationProvider):
                 details = list(err.json["messages"][0].values()).pop()
             except Exception:
                 details = "Unknown Error"
-            message = "Could not create deployment webhook in Vercel: {}".format(details)
+            message = f"Could not create deployment webhook in Vercel: {details}"
             raise IntegrationError(message)
 
         configurations = self.get_configuration_metadata(external_id)

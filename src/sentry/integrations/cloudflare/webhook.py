@@ -201,7 +201,7 @@ class CloudflareWebhookEndpoint(Endpoint):
             return Response(status=400)
 
         event = data.get("event")
-        logger.info("cloudflare.webhook.{}".format(event), extra=logging_data)
+        logger.info(f"cloudflare.webhook.{event}", extra=logging_data)
         if not signature:
             logger.error("cloudflare.webhook.invalid-signature", extra=logging_data)
             return Response(status=400)

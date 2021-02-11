@@ -499,6 +499,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
   fetchData = (selectionChanged?: boolean) => {
     GroupStore.loadInitialData([]);
+    this._streamManager.reset();
 
     this.setState({
       issuesLoading: true,

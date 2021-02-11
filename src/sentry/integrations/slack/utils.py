@@ -60,9 +60,9 @@ def get_integration_type(integration):
 
 def format_actor_option(actor):
     if isinstance(actor, User):
-        return {"text": actor.get_display_name(), "value": "user:{}".format(actor.id)}
+        return {"text": actor.get_display_name(), "value": f"user:{actor.id}"}
     if isinstance(actor, Team):
-        return {"text": "#{}".format(actor.slug), "value": "team:{}".format(actor.id)}
+        return {"text": f"#{actor.slug}", "value": f"team:{actor.id}"}
 
     raise NotImplementedError
 
@@ -132,21 +132,19 @@ def build_assigned_text(group, identity, assignee):
         return
 
     if actor.type == Team:
-        assignee_text = "#{}".format(assigned_actor.slug)
+        assignee_text = f"#{assigned_actor.slug}"
     elif actor.type == User:
         try:
             assignee_ident = Identity.objects.get(
                 user=assigned_actor, idp__type="slack", idp__external_id=identity.idp.external_id
             )
-            assignee_text = "<@{}>".format(assignee_ident.external_id)
+            assignee_text = f"<@{assignee_ident.external_id}>"
         except Identity.DoesNotExist:
             assignee_text = assigned_actor.get_display_name()
     else:
         raise NotImplementedError
 
-    return "*Issue assigned to {assignee_text} by <@{user_id}>*".format(
-        assignee_text=assignee_text, user_id=identity.external_id
-    )
+    return f"*Issue assigned to {assignee_text} by <@{identity.external_id}>*"
 
 
 def build_action_text(group, identity, action):
@@ -170,7 +168,7 @@ def build_action_text(group, identity, action):
 def build_rule_url(rule, group, project):
     org_slug = group.organization.slug
     project_slug = project.slug
-    rule_url = "/organizations/{}/alerts/rules/{}/{}/".format(org_slug, project_slug, rule.id)
+    rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule.id}/"
     return absolute_uri(rule_url)
 
 
@@ -280,7 +278,7 @@ def build_group_attachment(
         event_ts = event.datetime
         ts = max(ts, event_ts)
 
-    footer = "{}".format(group.qualified_short_id)
+    footer = f"{group.qualified_short_id}"
 
     if rules:
         rule_url = build_rule_url(rules[0], group, project)
@@ -296,7 +294,7 @@ def build_group_attachment(
         title_link = group.get_absolute_url(params={"referrer": "slack"})
 
     return {
-        "fallback": "[{}] {}".format(project.slug, obj.title),
+        "fallback": f"[{project.slug}] {obj.title}",
         "title": build_attachment_title(obj),
         "title_link": title_link,
         "text": text,
@@ -311,7 +309,7 @@ def build_group_attachment(
     }
 
 
-def build_incident_attachment(incident, metric_value=None):
+def build_incident_attachment(action, incident, metric_value=None, method=None):
     """
     Builds an incident attachment for slack unfurling
     :param incident: The `Incident` to build the attachment for
@@ -320,7 +318,7 @@ def build_incident_attachment(incident, metric_value=None):
     :return:
     """
 
-    data = incident_attachment_info(incident, metric_value)
+    data = incident_attachment_info(incident, metric_value, action=action, method=method)
 
     colors = {
         "Resolved": RESOLVED_COLOR,
@@ -451,8 +449,7 @@ def get_channel_id_with_timeout(integration, name, timeout):
     return (prefix, None, False)
 
 
-def send_incident_alert_notification(action, incident, metric_value):
-
+def send_incident_alert_notification(action, incident, metric_value, method):
     # Make sure organization integration is still active:
     try:
         integration = Integration.objects.get(
@@ -465,7 +462,7 @@ def send_incident_alert_notification(action, incident, metric_value):
         return
 
     channel = action.target_identifier
-    attachment = build_incident_attachment(incident, metric_value)
+    attachment = build_incident_attachment(action, incident, metric_value, method)
     payload = {
         "token": integration.metadata["access_token"],
         "channel": channel,

@@ -57,18 +57,14 @@ class OAuthAuthorizeView(AuthLoginView):
         if err_response:
             return self.respond(
                 "sentry/oauth-error.html",
-                {
-                    "error": mark_safe(
-                        "Missing or invalid <em>{}</em> parameter.".format(err_response)
-                    )
-                },
+                {"error": mark_safe(f"Missing or invalid <em>{err_response}</em> parameter.")},
                 status=400,
             )
 
         return self.redirect_response(response_type, redirect_uri, {"error": name, "state": state})
 
     def respond_login(self, request, context, application, **kwargs):
-        context["banner"] = "Connect Sentry to {}".format(application.name)
+        context["banner"] = f"Connect Sentry to {application.name}"
         return self.respond("sentry/login.html", context)
 
     def get(self, request, **kwargs):
@@ -197,9 +193,7 @@ class OAuthAuthorizeView(AuthLoginView):
                         pending_scopes.remove(scope)
 
             if pending_scopes:
-                raise NotImplementedError(
-                    "{} scopes did not have descriptions".format(pending_scopes)
-                )
+                raise NotImplementedError(f"{pending_scopes} scopes did not have descriptions")
 
         context = {
             "user": request.user,

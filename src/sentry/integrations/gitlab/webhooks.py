@@ -211,7 +211,7 @@ class GitlabWebhookEndpoint(View):
             # to find data on our side so we embed one in the token.
             token = request.META["HTTP_X_GITLAB_TOKEN"]
             instance, group_path, secret = token.split(":")
-            external_id = "{}:{}".format(instance, group_path)
+            external_id = f"{instance}:{group_path}"
         except Exception:
             logger.info("gitlab.webhook.invalid-token", extra={"token": token})
             return HttpResponse(status=400)

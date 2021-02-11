@@ -44,9 +44,9 @@ def to_hex_addr(addr):
             addr = int(addr[2:], 16)
         rv = "0x%x" % int(addr)
     else:
-        raise ValueError("Unsupported address format %r" % (addr,))
+        raise ValueError(f"Unsupported address format {addr!r}")
     if len(rv) > 24:
-        raise ValueError("Address too long %r" % (rv,))
+        raise ValueError(f"Address too long {rv!r}")
     return rv
 
 

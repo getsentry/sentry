@@ -57,7 +57,7 @@ def get_project_list(project_id):
 
 class SnubaTagStorage(TagStorage):
     def __get_tag_key(self, project_id, group_id, environment_id, key):
-        tag = "tags[{}]".format(key)
+        tag = f"tags[{key}]"
         filters = {"project_id": get_project_list(project_id)}
         if environment_id:
             filters["environment"] = [environment_id]
@@ -85,7 +85,7 @@ class SnubaTagStorage(TagStorage):
         self, project_id, group_id, environment_id, key, limit=3, raise_on_empty=True, **kwargs
     ):
 
-        tag = "tags[{}]".format(key)
+        tag = f"tags[{key}]"
         filters = {"project_id": get_project_list(project_id)}
         if environment_id:
             filters["environment"] = [environment_id]
@@ -216,7 +216,7 @@ class SnubaTagStorage(TagStorage):
         result = None
 
         if should_cache:
-            filtering_strings = ["{}={}".format(key, value) for key, value in filters.items()]
+            filtering_strings = [f"{key}={value}" for key, value in filters.items()]
             cache_key = "tagstore.__get_tag_keys:{}".format(
                 md5_text(*filtering_strings).hexdigest()
             )
@@ -231,7 +231,7 @@ class SnubaTagStorage(TagStorage):
             duration = (end - start).total_seconds()
             # Cause there's rounding to create this cache suffix, we want to update the query end so results match
             end = snuba.quantize_time(end, key_hash)
-            cache_key += ":{}@{}".format(duration, end.isoformat())
+            cache_key += f":{duration}@{end.isoformat()}"
             result = cache.get(cache_key, None)
             if result is not None:
                 metrics.incr("testing.tagstore.cache_tag_key.hit")
@@ -275,7 +275,7 @@ class SnubaTagStorage(TagStorage):
         return results
 
     def __get_tag_value(self, project_id, group_id, environment_id, key, value):
-        tag = "tags[{}]".format(key)
+        tag = f"tags[{key}]"
         filters = {"project_id": get_project_list(project_id)}
         if environment_id:
             filters["environment"] = [environment_id]
@@ -375,7 +375,7 @@ class SnubaTagStorage(TagStorage):
         return set(key.top_values)
 
     def get_group_list_tag_value(self, project_ids, group_id_list, environment_ids, key, value):
-        tag = "tags[{}]".format(key)
+        tag = f"tags[{key}]"
         filters = {"project_id": project_ids, "group_id": group_id_list}
         if environment_ids:
             filters["environment"] = environment_ids
@@ -426,7 +426,7 @@ class SnubaTagStorage(TagStorage):
         return {issue: fix_tag_value_data(data) for issue, data in result.items()}
 
     def get_group_tag_value_count(self, project_id, group_id, environment_id, key):
-        tag = "tags[{}]".format(key)
+        tag = f"tags[{key}]"
         filters = {"project_id": get_project_list(project_id), "group_id": [group_id]}
         if environment_id:
             filters["environment"] = [environment_id]
@@ -551,7 +551,7 @@ class SnubaTagStorage(TagStorage):
         # this method is already dealing with version strings rather than
         # release ids which would need to be translated by the snuba util.
         tag = "sentry:release"
-        col = "tags[{}]".format(tag)
+        col = f"tags[{tag}]"
         conditions = [[col, "IN", versions], DEFAULT_TYPE_CONDITION]
         aggregations = [
             ["count()", "", "times_seen"],
@@ -768,10 +768,10 @@ class SnubaTagStorage(TagStorage):
                 snuba_name = FIELD_ALIASES[USER_DISPLAY_ALIAS].get_field()
                 snuba.resolve_complex_column(snuba_name, resolver)
             elif snuba_name in BLACKLISTED_COLUMNS:
-                snuba_name = "tags[%s]" % (key,)
+                snuba_name = f"tags[{key}]"
 
             if query:
-                conditions.append([snuba_name, "LIKE", "%{}%".format(query)])
+                conditions.append([snuba_name, "LIKE", f"%{query}%"])
             else:
                 conditions.append([snuba_name, "!=", ""])
 
@@ -904,7 +904,7 @@ class SnubaTagStorage(TagStorage):
         conditions = []
         for tag_name, tag_val in tags.items():
             operator = "IN" if isinstance(tag_val, list) else "="
-            conditions.append(["tags[{}]".format(tag_name), operator, tag_val])
+            conditions.append([f"tags[{tag_name}]", operator, tag_val])
 
         result = snuba.raw_query(
             start=start,

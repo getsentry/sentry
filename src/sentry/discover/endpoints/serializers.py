@@ -93,9 +93,7 @@ class DiscoverQuerySerializer(serializers.Serializer):
         if not requested_functions.issubset(valid_functions):
             invalid_functions = ", ".join(requested_functions - valid_functions)
 
-            raise serializers.ValidationError(
-                "Invalid aggregate function - {}".format(invalid_functions)
-            )
+            raise serializers.ValidationError(f"Invalid aggregate function - {invalid_functions}")
 
         return value
 
@@ -125,7 +123,7 @@ class DiscoverQuerySerializer(serializers.Serializer):
             value = condition[2]
 
             if isinstance(value, str):
-                value = "'{}'".format(value)
+                value = f"'{value}'"
 
             bool_value = 1 if condition[1] == "=" else 0
 
@@ -215,7 +213,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
             try:
                 get_filter(query["query"], self.context["params"])
             except InvalidSearchQuery as err:
-                raise serializers.ValidationError("Cannot save invalid query: {}".format(err))
+                raise serializers.ValidationError(f"Cannot save invalid query: {err}")
 
         return {
             "name": data["name"],
@@ -246,6 +244,6 @@ class KeyTransactionSerializer(serializers.Serializer):
         # Limit the number of key transactions
         if KeyTransaction.objects.filter(**base_filter).count() >= MAX_KEY_TRANSACTIONS:
             raise serializers.ValidationError(
-                "At most {} Key Transactions can be added".format(MAX_KEY_TRANSACTIONS)
+                f"At most {MAX_KEY_TRANSACTIONS} Key Transactions can be added"
             )
         return data

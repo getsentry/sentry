@@ -59,7 +59,7 @@ class IssuesByTagProcessor:
 
     @staticmethod
     def get_lookup_key(key):
-        return str("sentry:{}".format(key)) if tagstore.is_reserved_key(key) else key
+        return str(f"sentry:{key}") if tagstore.is_reserved_key(key) else key
 
     @staticmethod
     def get_eventuser_callback(project_id):

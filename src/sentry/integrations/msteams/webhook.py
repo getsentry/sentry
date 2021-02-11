@@ -286,7 +286,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         elif action_type == ACTION_TYPE.ASSIGN:
             assignee = data["assignInput"]
             if assignee == "ME":
-                assignee = "user:{}".format(user_id)
+                assignee = f"user:{user_id}"
             action_data = {"assignedTo": assignee}
         elif action_type == ACTION_TYPE.UNASSIGN:
             action_data = {"assignedTo": ""}
@@ -316,9 +316,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         )
 
         return client.put(
-            path="/projects/{}/{}/issues/".format(
-                group.project.organization.slug, group.project.slug
-            ),
+            path=f"/projects/{group.project.organization.slug}/{group.project.slug}/issues/",
             params={"id": group.id},
             data=action_data,
             user=identity.user,

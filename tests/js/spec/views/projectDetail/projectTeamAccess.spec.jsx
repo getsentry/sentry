@@ -85,4 +85,24 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     wrapper.find('button[aria-label="Collapse"]').simulate('click');
     expect(wrapper.find('IdBadge').length).toBe(5);
   });
+
+  it('sorts teams alphabetically', function () {
+    const wrapper = mountWithTheme(
+      <ProjectTeamAccess
+        organization={organization}
+        project={TestStubs.Project({
+          teams: [
+            TestStubs.Team({slug: 'c'}),
+            TestStubs.Team({slug: 'z'}),
+            TestStubs.Team({slug: 'a'}),
+          ],
+        })}
+      />,
+      routerContext
+    );
+
+    expect(wrapper.find('IdBadge').at(0).text()).toBe('#a');
+    expect(wrapper.find('IdBadge').at(1).text()).toBe('#c');
+    expect(wrapper.find('IdBadge').at(2).text()).toBe('#z');
+  });
 });
