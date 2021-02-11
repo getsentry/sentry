@@ -65,5 +65,6 @@ class SignalsTest(TestCase, SnubaTestCase):
             sender="test_inbox_out",
             action="mark_reviewed",
             inbox_date_added=group_inbox.date_added,
+            referrer="https://sentry.io/inbox",
         )
         assert mock_record.called

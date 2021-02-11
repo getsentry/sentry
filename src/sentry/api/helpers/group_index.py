@@ -1000,7 +1000,10 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
         elif not inbox:
             for group in group_list:
                 remove_group_from_inbox(
-                    group, action=GroupInboxRemoveAction.MARK_REVIEWED, user=acting_user
+                    group,
+                    action=GroupInboxRemoveAction.MARK_REVIEWED,
+                    user=acting_user,
+                    referrer=request.META.get("HTTP_REFERER"),
                 )
                 issue_mark_reviewed.send_robust(
                     project=project,

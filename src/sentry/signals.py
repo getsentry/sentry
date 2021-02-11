@@ -95,7 +95,9 @@ issue_ignored = BetterSignal(providing_args=["project", "user", "group_list", "a
 issue_unignored = BetterSignal(providing_args=["project", "user", "group", "transition_type"])
 issue_mark_reviewed = BetterSignal(providing_args=["project", "user", "group"])
 inbox_in = BetterSignal(providing_args=["project", "user", "group", "reason"])
-inbox_out = BetterSignal(providing_args=["project", "user", "group", "action", "inbox_date_added"])
+inbox_out = BetterSignal(
+    providing_args=["project", "user", "group", "action", "inbox_date_added", "referrer"]
+)
 
 terms_accepted = BetterSignal(providing_args=["organization", "user", "ip_address"])
 team_created = BetterSignal(providing_args=["organization", "user", "team"])
