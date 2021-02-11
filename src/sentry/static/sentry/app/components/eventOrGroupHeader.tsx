@@ -11,8 +11,10 @@ import {IconMute, IconStar} from 'app/icons';
 import {tct} from 'app/locale';
 import {Group, GroupTombstone, Level, Organization} from 'app/types';
 import {Event} from 'app/types/event';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getLocation, getMessage} from 'app/utils/events';
 import withOrganization from 'app/utils/withOrganization';
+import {isForReviewQuery} from 'app/views/issueList/utils';
 import UnhandledTag, {
   TagAndMessageWrapper,
 } from 'app/views/organizationGroupDetails/unhandledTag';
@@ -38,6 +40,17 @@ class EventOrGroupHeader extends React.Component<Props> {
   static defaultProps: DefaultProps = {
     includeLink: true,
     size: 'normal',
+  };
+
+  trackClickEvent = () => {
+    if (isForReviewQuery(this.props.query)) {
+      trackAnalyticsEvent({
+        eventKey: 'inbox_tab.clicked_issue',
+        eventName: 'Clicked Issue from Inbox Tab',
+        organization_id: this.props.organization.id,
+        group_id: this.props.data.id,
+      });
+    }
   };
 
   getTitleChildren() {
@@ -99,6 +112,7 @@ class EventOrGroupHeader extends React.Component<Props> {
               ...(location.query.project !== undefined ? {} : {_allp: 1}), //This appends _allp to the URL parameters if they have no project selected ("all" projects included in results). This is so that when we enter the issue details page and lock them to a project, we can properly take them back to the issue list page with no project selected (and not the locked project selected)
             },
           }}
+          onClick={this.trackClickEvent}
         >
           {this.getTitleChildren()}
         </GlobalSelectionLink>
