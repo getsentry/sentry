@@ -116,6 +116,35 @@ const IconDeleteWrapper = styled('div')`
   }
 `;
 
+const Fields = styled('div')`
+  display: grid;
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: 1fr 1fr;
+    grid-gap: ${space(2)};
+  }
+`;
+
+const Wrapper = styled('div')`
+  > * {
+    :not(:first-child) {
+      label {
+        display: none;
+      }
+      ${IconDeleteWrapper} {
+        margin-top: 0;
+      }
+
+      ${Fields} {
+        @media (max-width: ${p => p.theme.breakpoints[0]}) {
+          border-top: 1px solid ${p => p.theme.border};
+          padding-top: ${space(2)};
+          margin-top: ${space(2)};
+        }
+      }
+    }
+  }
+`;
+
 const FieldsWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
@@ -126,42 +155,18 @@ const FieldsWrapper = styled('div')`
   }
 `;
 
-const Fields = styled('div')`
-  display: grid;
+const ButtonDeleteWrapper = styled('div')`
+  display: flex;
+  justify-content: flex-end;
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 1fr 1fr;
-    grid-gap: ${space(2)};
-  }
-`;
-
-const Wrapper = styled('div')`
-  > * :not(:first-child) {
-    label {
-      display: none;
-    }
-    ${IconDeleteWrapper} {
-      margin-top: 0;
-    }
-
-    ${Fields} {
-      @media (max-width: ${p => p.theme.breakpoints[0]}) {
-        border-top: 1px solid ${p => p.theme.border};
-        padding-top: ${space(2)};
-        margin-top: ${space(2)};
-      }
-    }
+    display: none;
   }
 `;
 
 const StyledButton = styled(Button)`
-  margin-bottom: ${space(2)};
-`;
+  margin: ${space(2)} 0;
 
-const ButtonDeleteWrapper = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: ${space(2)};
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    display: none;
+    margin-top: 0;
   }
 `;
