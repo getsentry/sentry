@@ -1,4 +1,4 @@
-name: development environment
+name: dev env
 on:
   pull_request:
     paths:
@@ -11,12 +11,17 @@ on:
 
 jobs:
   dev-environment:
-    name: python set up
+    name: set up
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    timeout-minutes: 25
     strategy:
       matrix:
-        os: [ macos-latest ]
+        # macosx-10.15 is Catalina
+        # macosx-11.0 is Big Sur, however, it takes long for jobs to get started
+        # Using Ubuntu 18 until I figure out this error:
+        # -> ImportError: libffi.so.6: cannot open shared object file: No such file or directory
+        os: [ macos-10.15, macos-11.0, ubuntu-18.04 ]
+      fail-fast: false
     env:
       PIP_DISABLE_PIP_VERSION_CHECK: on
       # Make the environment more similar to what Mac defaults to
@@ -26,22 +31,18 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Set environment variables & others
-        if: ${{ runner.os == 'macOS' }}
         run: |
           echo "VOLTA_HOME=$HOME/.volta" >> $GITHUB_ENV
           echo "PATH=$HOME/.volta/bin:$PATH" >> $GITHUB_ENV
           touch "$HOME/.zshrc"
 
       - name: Install prerequisites
-        if: ${{ runner.os == 'macOS' }}
-        # Depending on the host watchman will not install (read: intermittent issue),
-        # thus, we mark this as continue-on-error
-        continue-on-error: true
         # Xcode CLI & brew are already installed, thus, no need to call xcode-select install
         # XXX: Can the Brew set up be cached?
+        # Sometimes, brew needs to be updated before brew bundle would work
         # If you want to speed up the CI for your PR, you can use --no-upgrade and HOMEBREW_NO_AUTO_UPDATE=1
         run: |
-          brew bundle
+          brew bundle || brew update && brew bundle
 
       - name: Install Python (via Pyenv)
         id: python-version
