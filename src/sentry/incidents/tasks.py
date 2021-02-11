@@ -133,6 +133,7 @@ def handle_trigger_action(action_id, incident_id, project_id, method, metric_val
     except AlertRuleTriggerAction.DoesNotExist:
         metrics.incr("incidents.alert_rules.action.skipping_missing_action")
         return
+
     try:
         incident = Incident.objects.select_related("organization").get(id=incident_id)
     except Incident.DoesNotExist:
@@ -150,7 +151,7 @@ def handle_trigger_action(action_id, incident_id, project_id, method, metric_val
             AlertRuleTriggerAction.Type(action.type).name.lower(), method
         )
     )
-    getattr(action, method)(incident, project, metric_value=metric_value)
+    getattr(action, method)(action, incident, project, metric_value=metric_value)
 
 
 @instrumented_task(
