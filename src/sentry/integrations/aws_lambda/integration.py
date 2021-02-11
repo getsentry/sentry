@@ -293,7 +293,7 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
                     "AwsLambdaCloudFormationPipelineView.unexpected_error",
                     extra={"error": str(e)},
                 )
-                return render_response(_("Unkown errror"))
+                return render_response(_("Unknown errror"))
 
             # if no error, continue
             return pipeline.next_step()
