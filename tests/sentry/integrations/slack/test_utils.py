@@ -2,6 +2,7 @@ import responses
 from django.core.urlresolvers import reverse
 import pytest
 
+from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.integrations.slack.utils import (
     build_group_attachment,
     build_incident_attachment,
@@ -9,6 +10,7 @@ from sentry.integrations.slack.utils import (
     get_channel_id,
     MEMBER_PREFIX,
     RESOLVED_COLOR,
+    LEVEL_TO_COLOR,
     parse_link,
 )
 from sentry.models import Integration
@@ -97,8 +99,12 @@ class BuildIncidentAttachmentTest(TestCase):
         logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=2)
+        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=incident
+        )
         title = f"Resolved: {alert_rule.name}"
-        assert build_incident_attachment(incident) == {
+        assert build_incident_attachment(action, incident) == {
             "fallback": title,
             "title": title,
             "title_link": absolute_uri(
@@ -124,9 +130,16 @@ class BuildIncidentAttachmentTest(TestCase):
         logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=2)
-        title = f"Resolved: {alert_rule.name}"
+        title = f"Critical: {alert_rule.name}"  # This test will use the action/method and not the incident to build status
         metric_value = 5000
-        assert build_incident_attachment(incident, metric_value=metric_value) == {
+        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=incident
+        )
+        # This should fail because it pulls status from `action` instead of `incident`
+        assert build_incident_attachment(
+            action, incident, metric_value=metric_value, method="fire"
+        ) == {
             "fallback": title,
             "title": title,
             "title_link": absolute_uri(
@@ -144,7 +157,7 @@ class BuildIncidentAttachmentTest(TestCase):
             "footer_icon": logo_url,
             "footer": "Sentry Incident",
             "ts": to_timestamp(incident.date_started),
-            "color": RESOLVED_COLOR,
+            "color": LEVEL_TO_COLOR["fatal"],
             "actions": [],
         }
 

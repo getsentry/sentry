@@ -583,20 +583,20 @@ class AlertRuleTriggerAction(Model):
             # ok to contact this email.
             return self.target_identifier
 
-    def build_handler(self, incident, project):
+    def build_handler(self, action, incident, project):
         type = AlertRuleTriggerAction.Type(self.type)
         if type in self._type_registrations:
-            return self._type_registrations[type].handler(self, incident, project)
+            return self._type_registrations[type].handler(action, incident, project)
         else:
             metrics.incr(f"alert_rule_trigger.unhandled_type.{self.type}")
 
-    def fire(self, incident, project, metric_value):
-        handler = self.build_handler(incident, project)
+    def fire(self, action, incident, project, metric_value):
+        handler = self.build_handler(action, incident, project)
         if handler:
             return handler.fire(metric_value)
 
-    def resolve(self, incident, project, metric_value):
-        handler = self.build_handler(incident, project)
+    def resolve(self, action, incident, project, metric_value):
+        handler = self.build_handler(action, incident, project)
         if handler:
             return handler.resolve(metric_value)
 

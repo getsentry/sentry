@@ -693,8 +693,8 @@ def build_unlinked_card():
     }
 
 
-def build_incident_attachment(incident, metric_value=None):
-    data = incident_attachment_info(incident, metric_value)
+def build_incident_attachment(action, incident, metric_value=None, method=None):
+    data = incident_attachment_info(incident, metric_value, action=action, method=method)
 
     colors = {"Resolved": "good", "Warning": "warning", "Critical": "attention"}
 
