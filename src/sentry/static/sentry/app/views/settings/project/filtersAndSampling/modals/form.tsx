@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -7,6 +8,7 @@ import {Client} from 'app/api';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {
   DynamicSamplingConditionLogicalInner,
@@ -242,45 +244,47 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
           {this.getModalTitle()}
         </Header>
         <Body>
-          {this.getExtraFields()}
-          <RadioField
-            {...transactionField}
-            name="transaction"
-            choices={transactionChoices}
-            onChange={value => this.handleChange('transaction', value)}
-            value={transaction}
-            inline={false}
-            hideControlState
-            showHelpInTooltip
-            stacked
-          />
-          {transaction !== Transaction.ALL && (
-            <ConditionFields
-              conditions={conditions}
-              categoryOptions={categoryOptions}
-              onAdd={this.handleAddCondition}
-              onChange={this.handleChangeCondition}
-              onDelete={this.handleDeleteCondition}
+          <Fields>
+            {this.getExtraFields()}
+            <RadioField
+              {...transactionField}
+              name="transaction"
+              choices={transactionChoices}
+              onChange={value => this.handleChange('transaction', value)}
+              value={transaction}
+              inline={false}
+              hideControlState
+              showHelpInTooltip
+              stacked
             />
-          )}
-          <NumberField
-            label={t('Sampling Rate')}
-            // help={t('this is a description')}  TODO(Priscila): Add correct descriptions
-            name="sampleRate"
-            onChange={value => {
-              this.handleChange('sampleRate', value ? Number(value) : undefined);
-              if (!!errors.sampleRate) {
-                this.clearError('sampleRate');
-              }
-            }}
-            placeholder={'\u0025'}
-            value={!sampleRate ? undefined : sampleRate}
-            inline={false}
-            hideControlState={!errors.sampleRate}
-            error={errors.sampleRate}
-            showHelpInTooltip
-            stacked
-          />
+            {transaction !== Transaction.ALL && (
+              <ConditionFields
+                conditions={conditions}
+                categoryOptions={categoryOptions}
+                onAdd={this.handleAddCondition}
+                onChange={this.handleChangeCondition}
+                onDelete={this.handleDeleteCondition}
+              />
+            )}
+            <NumberField
+              label={t('Sampling Rate')}
+              // help={t('this is a description')}  TODO(Priscila): Add correct descriptions
+              name="sampleRate"
+              onChange={value => {
+                this.handleChange('sampleRate', value ? Number(value) : undefined);
+                if (!!errors.sampleRate) {
+                  this.clearError('sampleRate');
+                }
+              }}
+              placeholder={'\u0025'}
+              value={!sampleRate ? undefined : sampleRate}
+              inline={false}
+              hideControlState={!errors.sampleRate}
+              error={errors.sampleRate}
+              showHelpInTooltip
+              stacked
+            />
+          </Fields>
         </Body>
         <Footer>
           <ButtonBar gap={1}>
@@ -300,3 +304,8 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
 }
 
 export default Form;
+
+const Fields = styled('div')`
+  display: grid;
+  grid-gap: ${space(1)};
+`;
