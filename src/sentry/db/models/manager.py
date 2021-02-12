@@ -70,6 +70,13 @@ class BaseQuerySet(QuerySet):
         # deploy of a model with a new field, it'll likely fix itself post-deploy.
         raise NotImplementedError("Use ``values_list`` instead [performance].")
 
+    def first(self):
+        if not self.ordered:
+            if settings.DEBUG:
+                raise NotImplementedError("Don't use ``first()`` on un-ordered queries. [performance]")
+            logger.error("Unordered first() call")
+        return super().first()
+
 
 class BaseManager(Manager):
     lookup_handlers = {"iexact": lambda x: x.upper()}
