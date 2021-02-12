@@ -1,10 +1,10 @@
 import React from 'react';
-import styled from '@emotion/styled';
 import {Location, LocationDescriptor} from 'history';
 
 import {getTraceDateTimeRange} from 'app/components/events/interfaces/spans/utils';
 import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
+import Tooltip from 'app/components/tooltip';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {t, tn} from 'app/locale';
 import {OrganizationSummary, Project} from 'app/types';
@@ -18,7 +18,7 @@ import withProjects from 'app/utils/withProjects';
 import {getTransactionDetailsUrl} from '../utils';
 
 import QuickTraceQuery, {EventLite, TraceLite} from './quickTraceQuery';
-import {EventNode, MetaData, NodesContainer} from './styles';
+import {Dash, EventNode, MetaData} from './styles';
 import {isTransaction, parseTraceLite} from './utils';
 
 type Props = {
@@ -94,20 +94,38 @@ const QuickTraceLite = withProjects(
     if (root) {
       const target = generateSingleEventTarget(root, organization, projects, location);
       nodes.push(
-        <EventNode key="root" type="white" icon={null} to={target}>
-          {t('Root')}
-        </EventNode>
+        <Tooltip
+          position="top"
+          title={t('Navigate to the root transaction in this trace.')}
+        >
+          <EventNode key="root" type="white" pad="right" icon={null} to={target}>
+            {t('Root')}
+          </EventNode>
+        </Tooltip>
       );
+      nodes.push(<Dash />);
     }
 
     const traceTarget = generateTraceTarget(event, organization);
 
     if (root && current && root.event_id !== current.parent_event_id) {
       nodes.push(
-        <EventNode key="ancestors" type="white" icon={null} to={traceTarget}>
-          {t('Ancestors')}
-        </EventNode>
+        <Tooltip
+          position="top"
+          title={t('Navigate to other transactions in this trace.')}
+        >
+          <EventNode
+            key="ancestors"
+            type="white"
+            pad="right"
+            icon={null}
+            to={traceTarget}
+          >
+            {t('Ancestors')}
+          </EventNode>
+        </Tooltip>
       );
+      nodes.push(<Dash />);
     }
 
     nodes.push(
@@ -124,24 +142,48 @@ const QuickTraceLite = withProjects(
         projects,
         location
       );
+      nodes.push(<Dash />);
       nodes.push(
-        <EventNode key="children" type="white" icon={null} to={childrenTarget}>
-          {tn('%s Child', '%s Children', children.length)}
-        </EventNode>
+        <Tooltip
+          position="top"
+          title={tn(
+            'Navigate to the child transaction of this event.',
+            'Navigate to child transactions of this event.',
+            children.length
+          )}
+        >
+          <EventNode
+            key="children"
+            type="white"
+            pad="left"
+            icon={null}
+            to={childrenTarget}
+          >
+            {tn('%s Child', '%s Children', children.length)}
+          </EventNode>
+        </Tooltip>
       );
 
+      nodes.push(<Dash />);
       nodes.push(
-        <EventNode key="descendents" type="white" icon={null} to={traceTarget}>
-          &nbsp;&nbsp;.&nbsp;&nbsp;.&nbsp;&nbsp;.&nbsp;&nbsp;
-        </EventNode>
+        <Tooltip
+          position="top"
+          title={t('Navigate to other transactions in this trace.')}
+        >
+          <EventNode
+            key="descendents"
+            type="white"
+            pad="left"
+            icon={null}
+            to={traceTarget}
+          >
+            &nbsp;&nbsp;.&nbsp;&nbsp;.&nbsp;&nbsp;.&nbsp;&nbsp;
+          </EventNode>
+        </Tooltip>
       );
     }
 
-    return (
-      <Container>
-        <NodesContainer>{nodes}</NodesContainer>
-      </Container>
-    );
+    return <div>{nodes}</div>;
   }
 );
 
@@ -229,8 +271,3 @@ function generateTraceTarget(
   });
   return eventView.getResultsViewUrlTarget(organization.slug);
 }
-
-const Container = styled('div')`
-  position: relative;
-  height: 33px;
-`;
