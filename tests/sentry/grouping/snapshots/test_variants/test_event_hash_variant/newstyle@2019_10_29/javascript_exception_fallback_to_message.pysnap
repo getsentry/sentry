@@ -1,22 +1,12 @@
 ---
-created: '2020-02-26T19:54:42.037252Z'
+created: '2021-02-12T22:47:12.589376Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: null
-  component:
-    app (exception of system takes precedence)
-      exception (ignored because hash matches system variant)
-        type*
-          "Error"
-        value* (stripped common values)
-          "Loading chunk <int> failed.\n(timeout: <url>"
---------------------------------------------------------------------------
-system:
   hash: "10dfd81e2df31e96fae451b9e205ad81"
   component:
-    system*
+    app*
       exception*
         type*
           "Error"
