@@ -181,6 +181,7 @@ const TaskList = styled('div')`
   display: grid;
   grid-auto-flow: row;
   grid-gap: ${space(2)};
+  margin-bottom: ${space(2)};
 `;
 
 const CompleteList = styled('div')`

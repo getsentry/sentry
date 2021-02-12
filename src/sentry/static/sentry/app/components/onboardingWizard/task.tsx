@@ -157,6 +157,7 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
 
 const TaskCard = styled(Card)`
   position: relative;
+  min-height: 140px;
 `;
 
 const Title = styled('div')`
@@ -170,6 +171,7 @@ const Title = styled('div')`
 const Description = styled('p')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
+  margin: 0;
 `;
 
 const ActionBar = styled('div')`
