@@ -31,14 +31,6 @@ const ValueElement = ({value, meta}: Props) => {
     );
   }
 
-  if (!value) {
-    return (
-      <Redaction withoutBackground>
-        <i>{`<${t('invalid')}>`}</i>
-      </Redaction>
-    );
-  }
-
   if (React.isValidElement(value)) {
     return value;
   }
