@@ -1,11 +1,17 @@
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import status, serializers
+from django.http import Http404
+from rest_framework.response import Response
 
-from sentry.api.bases.organization import OrganizationIntegrationsPermission
-from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
+from sentry.api.bases.organization import OrganizationIntegrationsPermission, OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
-from sentry.models import RepositoryProjectPathConfig, Project, Repository
+from sentry.models import (
+    RepositoryProjectPathConfig,
+    Project,
+    Repository,
+    OrganizationIntegration,
+)
 from sentry.utils.compat import map
 
 
@@ -35,7 +41,13 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
 
     class Meta:
         model = RepositoryProjectPathConfig
-        fields = ["repository_id", "project_id", "stack_root", "source_root", "default_branch"]
+        fields = [
+            "repository_id",
+            "project_id",
+            "stack_root",
+            "source_root",
+            "default_branch",
+        ]
         extra_kwargs = {}
 
     @property
@@ -43,8 +55,8 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
         return self.context["organization_integration"]
 
     @property
-    def organization_id(self):
-        return self.org_integration.organization_id
+    def organization(self):
+        return self.context["organization"]
 
     def validate(self, attrs):
         query = RepositoryProjectPathConfig.objects.filter(
@@ -59,19 +71,24 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
         return attrs
 
     def validate_repository_id(self, repository_id):
-        # validate repo exists on this org and integration
-        repo_query = Repository.objects.filter(
-            id=repository_id,
-            organization_id=self.organization_id,
-            integration_id=self.org_integration.integration_id,
+        # validate repo exists on this org
+        repo_query = Repository.objects.all().filter(
+            id=repository_id, organization_id=self.organization.id
         )
+        # if there is an integration, validate that repo exists on integration
+        if self.org_integration:
+            repo_query = repo_query.filter(
+                integration_id=self.org_integration.integration_id,
+            )
         if not repo_query.exists():
             raise serializers.ValidationError("Repository does not exist")
         return repository_id
 
     def validate_project_id(self, project_id):
         # validate project exists on this org
-        project_query = Project.objects.filter(id=project_id, organization_id=self.organization_id)
+        project_query = Project.objects.all().filter(
+            id=project_id, organization_id=self.organization.id
+        )
         if not project_query.exists():
             raise serializers.ValidationError("Project does not exist")
         return project_id
@@ -90,38 +107,102 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
         return self.instance
 
 
+class NullableOrganizationIntegrationMixin:
+    def get_organization_integration(self, organization, integration_id):
+        try:
+            return OrganizationIntegration.objects.get(
+                integration_id=integration_id,
+                organization=organization,
+            )
+        except OrganizationIntegration.DoesNotExist:
+            raise Http404
+
+    def get_project(self, organization, project_id):
+        try:
+            return Project.objects.filter(organization=organization, id=project_id).get()
+
+        except Project.DoesNotExist:
+            raise Http404
+
+
 class OrganizationIntegrationRepositoryProjectPathConfigEndpoint(
-    OrganizationIntegrationBaseEndpoint
+    OrganizationEndpoint, NullableOrganizationIntegrationMixin
 ):
     permission_classes = (OrganizationIntegrationsPermission,)
 
-    def get(self, request, organization, integration_id):
+    def get(self, request, organization):
         """
-        Get the list of repository project path configs in an integration
+        Get the list of repository project path configs
+
+        :pparam string organization_slug: the slug of the organization the
+                                          team should be created for.
+        :queryparam int integrationId: the optional integration id.
+        :queryparam int projectId: the optional project id.
+        :auth: required
         """
-        org_integration = self.get_organization_integration(organization, integration_id)
+        integration_id = request.GET.get("integrationId")
+        project_id = request.GET.get("projectId")
+
+        if not integration_id and not project_id:
+            return Response(
+                {"detail": 'Missing valid "projectId" or "integrationId"'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        queryset = RepositoryProjectPathConfig.objects.all()
+
+        if integration_id:
+            # Return early with 404
+            org_integration = self.get_organization_integration(organization, integration_id)
+            queryset = queryset.filter(organization_integration=org_integration)
+
+        if project_id:
+            # Check that the project is apart of the organization.
+            project = self.get_project(organization, project_id)
+            queryset = queryset.filter(project=project)
 
         # front end handles ordering
-        repository_project_path_configs = RepositoryProjectPathConfig.objects.filter(
-            organization_integration=org_integration
-        )
-
         # TODO: Add pagination
-        data = map(lambda x: serialize(x, request.user), repository_project_path_configs)
+        data = map(lambda x: serialize(x, request.user), queryset)
         return self.respond(data)
 
-    def post(self, request, organization, integration_id):
-        org_integration = self.get_organization_integration(organization, integration_id)
+    def post(self, request, organization):
+        """
+        Create a new repository project path config
+        ``````````````````
+
+        :pparam string organization_slug: the slug of the organization the
+                                          team should be created for.
+        :param int repositoryId:
+        :param int projectId:
+        :param string stackRoot:
+        :param string sourceRoot:
+        :param string defaultBranch:
+        :param int optional integrationId:
+        :auth: required
+        """
+        integration_id = request.data.get("integrationId")
+        org_integration = None
+
+        if integration_id:
+            try:
+                org_integration = self.get_organization_integration(organization, integration_id)
+            except Http404:
+                # Human friendly error response.
+                return Response(
+                    "Could not find this integration installed on your organization",
+                    status=status.HTTP_404_NOT_FOUND,
+                )
 
         serializer = RepositoryProjectPathConfigSerializer(
-            context={"organization_integration": org_integration},
+            context={"organization": organization, "organization_integration": org_integration},
             data=request.data,
         )
         if serializer.is_valid():
             repository_project_path_config = serializer.save()
-            return self.respond(
+            return Response(
                 serialize(repository_project_path_config, request.user),
                 status=status.HTTP_201_CREATED,
             )
 
-        return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

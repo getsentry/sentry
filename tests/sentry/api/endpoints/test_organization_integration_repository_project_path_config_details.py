@@ -30,24 +30,24 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
         )
 
         self.url = reverse(
-            "sentry-api-0-organization-integration-repository-project-path-config-details",
-            args=[self.org.slug, self.integration.id, self.config.id],
+            "sentry-api-0-organization-repository-project-path-config-details",
+            args=[self.org.slug, self.config.id],
         )
 
     def make_put(self, data):
         # reconstruct the original object
         config_data = serialize(self.config, self.user)
-        config_data["repositoryId"] = str(self.repo.id)
-        # update with the new fields
-        config_data.update(data)
-        return self.client.put(self.url, config_data)
+        return self.client.put(
+            self.url,
+            {**config_data, **data, "repositoryId": self.repo.id},
+        )
 
     def test_basic_delete(self):
         resp = self.client.delete(self.url)
         assert resp.status_code == 204
         assert not RepositoryProjectPathConfig.objects.filter(id=str(self.config.id)).exists()
 
-    def test_basic_edit(self):
+    def test_basic_edit_(self):
         resp = self.make_put({"sourceRoot": "newRoot"})
         assert resp.status_code == 200
         assert resp.data["id"] == str(self.config.id)
