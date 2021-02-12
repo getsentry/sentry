@@ -52,6 +52,7 @@ type State = {
 class SuggestProjectCTA extends React.Component<Props, State> {
   state: State = {};
   componentDidMount() {
+    this.openModal();
     this.fetchData();
   }
 
