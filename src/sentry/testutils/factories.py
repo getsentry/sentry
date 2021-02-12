@@ -67,6 +67,7 @@ from sentry.models import (
     ExternalIssue,
     GroupLink,
     ReleaseFile,
+    RepositoryProjectPathConfig,
     Rule,
 )
 from sentry.models.integrationfeature import Feature, IntegrationFeature
@@ -425,6 +426,18 @@ class Factories:
                         zipfile.write(fullpath, relpath)
 
         return bundle.getvalue()
+
+    @staticmethod
+    def create_code_mapping(project, repo=None, **kwargs):
+        kwargs.setdefault("stack_root", "")
+        kwargs.setdefault("source_root", "")
+
+        if not repo:
+            repo = Factories.create_repo(project=project)
+
+        return RepositoryProjectPathConfig.objects.create(
+            project=project, repository=repo, **kwargs
+        )
 
     @staticmethod
     def create_repo(project, name=None, provider=None, integration_id=None, url=None):
