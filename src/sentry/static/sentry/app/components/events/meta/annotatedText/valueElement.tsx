@@ -10,6 +10,10 @@ type Props = {
   meta?: Meta;
 };
 
+// If you find yourself modifying this component to fix some tooltip bug,
+// consider that `meta` is not properly passed into this component in the
+// first place. It's much more likely that `withMeta` is buggy or improperly
+// used than that this component has a bug.
 const ValueElement = ({value, meta}: Props) => {
   if (value && meta) {
     return <Redaction>{value}</Redaction>;
