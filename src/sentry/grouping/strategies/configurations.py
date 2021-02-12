@@ -120,7 +120,7 @@ register_strategy_config(
         * Experimentally producing multiple variants.
     """,
     initial_context={
-        # "hierarchical_grouping": True,
+        "hierarchical_grouping": True,
     },
 )
 
