@@ -921,7 +921,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             # working, if that's the case). If they're not looking for it to be
             # mapped, then they shouldn't be uploading the source file in the
             # first place.
-            cache.add_error(filename, exc.data)
+            cache.add_error(sourcemap_url, exc.data)
             return
 
         sourcemaps.add(sourcemap_url, sourcemap_view)
