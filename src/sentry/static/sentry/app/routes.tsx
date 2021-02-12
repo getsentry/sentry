@@ -1,10 +1,19 @@
 import React from 'react';
-import {IndexRedirect, IndexRoute, Redirect, Route} from 'react-router';
+import {
+  EnterHook,
+  IndexRedirect,
+  IndexRoute as BaseIndexRoute,
+  IndexRouteProps,
+  Redirect,
+  Route as BaseRoute,
+  RouteProps,
+} from 'react-router';
 
 import LazyLoad from 'app/components/lazyLoad';
 import {EXPERIMENTAL_SPA} from 'app/constants';
 import {t} from 'app/locale';
 import HookStore from 'app/stores/hookStore';
+import {HookName} from 'app/types/hooks';
 import errorHandler from 'app/utils/errorHandler';
 import App from 'app/views/app';
 import AuthLayout from 'app/views/auth/layout';
@@ -22,12 +31,26 @@ import RouteNotFound from 'app/views/routeNotFound';
 import SettingsProjectProvider from 'app/views/settings/components/settingsProjectProvider';
 import SettingsWrapper from 'app/views/settings/components/settingsWrapper';
 
-function appendTrailingSlash(nextState, replace) {
+const appendTrailingSlash: EnterHook = (nextState, replace) => {
   const lastChar = nextState.location.pathname.slice(-1);
   if (lastChar !== '/') {
     replace(nextState.location.pathname + '/');
   }
-}
+};
+
+type CustomProps = {
+  name?: string;
+  componentPromise?: () => Promise<any>;
+};
+
+/**
+ * We add some additional props to our routes
+ */
+
+const Route = BaseRoute as React.ComponentClass<RouteProps & CustomProps>;
+const IndexRoute = BaseIndexRoute as React.ComponentClass<IndexRouteProps & CustomProps>;
+
+type ComponentCallback = Parameters<NonNullable<RouteProps['getComponent']>>[1];
 
 /**
  * Use react-router to lazy load a route. Use this for codesplitting containers (e.g. SettingsLayout)
@@ -36,9 +59,9 @@ function appendTrailingSlash(nextState, replace) {
  * The reason for this is because react-router handles the route tree better and if we use <LazyLoad> it will end
  * up having to re-render more components than necessary.
  */
-const lazyLoad = cb => m => cb(null, m.default);
+const lazyLoad = (cb: ComponentCallback) => (m: {default: any}) => cb(null, m.default);
 
-const hook = name => HookStore.get(name).map(cb => cb());
+const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
 
 function routes() {
   const accountSettingsRoutes = (
@@ -1659,11 +1682,11 @@ function routes() {
                 component={errorHandler(LazyLoad)}
               />
               <Redirect
-                path="new-events/"
+                from="new-events/"
                 to="/organizations/:orgId/releases/:release/"
               />
               <Redirect
-                path="all-events/"
+                from="all-events/"
                 to="/organizations/:orgId/releases/:release/"
               />
             </Route>
@@ -2010,7 +2033,7 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
             >
-              <Redirect path="saved/" to="/organizations/:orgId/discover/" />
+              <Redirect from="saved/" to="/organizations/:orgId/discover/" />
               <Route path="saved/:savedQueryId/" />
             </Route>
 
@@ -2053,56 +2076,56 @@ function routes() {
             <Route path="/organizations/:orgId/">
               {hook('routes:organization')}
               <Redirect
-                path="/organizations/:orgId/teams/"
+                from="/organizations/:orgId/teams/"
                 to="/settings/:orgId/teams/"
               />
               <Redirect
-                path="/organizations/:orgId/teams/your-teams/"
+                from="/organizations/:orgId/teams/your-teams/"
                 to="/settings/:orgId/teams/"
               />
               <Redirect
-                path="/organizations/:orgId/teams/all-teams/"
+                from="/organizations/:orgId/teams/all-teams/"
                 to="/settings/:orgId/teams/"
               />
               <Redirect
-                path="/organizations/:orgId/teams/:teamId/"
+                from="/organizations/:orgId/teams/:teamId/"
                 to="/settings/:orgId/teams/:teamId/"
               />
               <Redirect
-                path="/organizations/:orgId/teams/:teamId/members/"
+                from="/organizations/:orgId/teams/:teamId/members/"
                 to="/settings/:orgId/teams/:teamId/members/"
               />
               <Redirect
-                path="/organizations/:orgId/teams/:teamId/projects/"
+                from="/organizations/:orgId/teams/:teamId/projects/"
                 to="/settings/:orgId/teams/:teamId/projects/"
               />
               <Redirect
-                path="/organizations/:orgId/teams/:teamId/settings/"
+                from="/organizations/:orgId/teams/:teamId/settings/"
                 to="/settings/:orgId/teams/:teamId/settings/"
               />
-              <Redirect path="/organizations/:orgId/settings/" to="/settings/:orgId/" />
+              <Redirect from="/organizations/:orgId/settings/" to="/settings/:orgId/" />
               <Redirect
-                path="/organizations/:orgId/api-keys/"
+                from="/organizations/:orgId/api-keys/"
                 to="/settings/:orgId/api-keys/"
               />
               <Redirect
-                path="/organizations/:orgId/api-keys/:apiKey/"
+                from="/organizations/:orgId/api-keys/:apiKey/"
                 to="/settings/:orgId/api-keys/:apiKey/"
               />
               <Redirect
-                path="/organizations/:orgId/members/"
+                from="/organizations/:orgId/members/"
                 to="/settings/:orgId/members/"
               />
               <Redirect
-                path="/organizations/:orgId/members/:memberId/"
+                from="/organizations/:orgId/members/:memberId/"
                 to="/settings/:orgId/members/:memberId/"
               />
               <Redirect
-                path="/organizations/:orgId/rate-limits/"
+                from="/organizations/:orgId/rate-limits/"
                 to="/settings/:orgId/rate-limits/"
               />
               <Redirect
-                path="/organizations/:orgId/repos/"
+                from="/organizations/:orgId/repos/"
                 to="/settings/:orgId/repos/"
               />
             </Route>
