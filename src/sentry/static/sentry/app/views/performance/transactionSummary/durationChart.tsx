@@ -86,7 +86,7 @@ class DurationChart extends React.Component<Props> {
 
     const legend = {
       right: 10,
-      top: 0,
+      top: 5,
       selected: getSeriesSelection(location),
     };
 
