@@ -585,7 +585,7 @@ class SnubaTagStorage(TagStorage):
             rpe = rpe.filter(environment_id=environment_id)
 
         if rpe:
-            return rpe[0].first_seen
+            return rpe.first().first_seen
 
         return None
 
