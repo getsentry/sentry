@@ -40,7 +40,7 @@ const ReleaseHeader = ({
   refetchData,
 }: Props) => {
   const {version, url} = release;
-  const {commitCount, commitFilesChanged, releaseFileCount} = releaseMeta;
+  const {commitCount, commitFilesChanged} = releaseMeta;
 
   const releasePath = `/organizations/${organization.slug}/releases/${encodeURIComponent(
     version
@@ -64,15 +64,6 @@ const ReleaseHeader = ({
         </React.Fragment>
       ),
       to: `${releasePath}files-changed/`,
-    },
-    {
-      title: (
-        <React.Fragment>
-          {t('Artifacts')}
-          <NavTabsBadge text={formatAbbreviatedNumber(releaseFileCount)} />
-        </React.Fragment>
-      ),
-      to: `${releasePath}artifacts/`,
     },
   ];
 
