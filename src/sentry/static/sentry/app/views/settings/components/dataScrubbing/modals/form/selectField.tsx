@@ -48,7 +48,7 @@ class SelectField extends React.Component<Props> {
             description?: string;
           }>) => (
             <components.Option isSelected={isSelected} data={data} {...props}>
-              <Wrapper isSelected={isSelected}>
+              <Wrapper>
                 <div data-test-id="label">{label}</div>
                 {description && <Description>{`(${description})`}</Description>}
               </Wrapper>
@@ -67,17 +67,8 @@ const Description = styled('div')`
   color: ${p => p.theme.gray300};
 `;
 
-const Wrapper = styled('div')<{isSelected?: boolean}>`
+const Wrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
   grid-gap: ${space(1)};
-  ${p =>
-    p.isSelected &&
-    `
-      ${Description} {
-        :not(:hover) {
-          color: ${p.theme.white};
-        }
-      }
-    `}
 `;
