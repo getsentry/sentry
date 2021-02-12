@@ -495,15 +495,9 @@ def chained_exception(chained_exception, context, **meta):
     # Case 2: produce a component for each chained exception
     rv = {}
     for exception in exceptions:
-        component_or_variants = context.get_grouping_component(exception, **meta)
+        variants = context.get_grouping_component(exception, **meta)
 
-        variants = (
-            component_or_variants.variants
-            if isinstance(component_or_variants, MultipleVariants)
-            else {context["variant"]: component_or_variants}
-        )
-
-        for variant, component in variants.items():
+        for variant, component in variants.variants.items():
             rv.setdefault(variant, []).append(component)
 
     return MultipleVariants(
