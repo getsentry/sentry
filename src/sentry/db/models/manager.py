@@ -73,7 +73,9 @@ class BaseQuerySet(QuerySet):
     def first(self):
         if not self.ordered:
             if settings.DEBUG:
-                raise NotImplementedError("Don't use ``first()`` on un-ordered queries. [performance]")
+                raise NotImplementedError(
+                    "Don't use ``first()`` on un-ordered queries. [performance]"
+                )
             logger.error("Unordered first() call")
         return super().first()
 
