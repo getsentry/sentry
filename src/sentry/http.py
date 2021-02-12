@@ -151,7 +151,9 @@ def fetch_file(
         domain_key = "source:blacklist:v2:{}".format(md5_text(domain).hexdigest())
         domain_result = cache.get(domain_key)
         if domain_result:
+            domain_result = dict(domain_result)
             domain_result["url"] = url
+            domain_result["domain_blacklisted"] = True
             raise CannotFetch(domain_result)
 
     logger.debug("Fetching %r from the internet", url)
