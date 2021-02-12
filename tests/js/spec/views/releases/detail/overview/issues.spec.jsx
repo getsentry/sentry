@@ -65,26 +65,24 @@ describe('Release Issues', function () {
 
     wrapper.update();
     expect(wrapper.find('EmptyStateWarning').text()).toBe(
-      'No new issues in this release for the last 14 days.'
+      'No new issues for the last 14 days.'
     );
 
     wrapper2.update();
     expect(wrapper2.find('EmptyStateWarning').text()).toBe(
-      'No new issues in this release for the last 24 hours.'
+      'No new issues for the last 24 hours.'
     );
 
     filterIssues(wrapper, 'resolved');
     await tick();
     wrapper.update();
-    expect(wrapper.find('EmptyStateWarning').text()).toBe(
-      'No resolved issues in this release.'
-    );
+    expect(wrapper.find('EmptyStateWarning').text()).toBe('No resolved issues.');
 
     filterIssues(wrapper2, 'unhandled');
     await tick();
     wrapper2.update();
     expect(wrapper2.find('EmptyStateWarning').text()).toBe(
-      'No unhandled issues in this release for the last 24 hours.'
+      'No unhandled issues for the last 24 hours.'
     );
   });
 

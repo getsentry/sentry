@@ -35,7 +35,7 @@ const EmptyStateWarning = ({
 const EmptyStreamWrapper = styled('div')`
   text-align: center;
   font-size: 22px;
-  padding: 48px 0;
+  padding: 48px ${space(1)};
 
   p {
     line-height: 1.2;
