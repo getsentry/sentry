@@ -345,7 +345,7 @@ class Enhancements:
                 for action in actions or ():
                     action.apply_modifications_to_frame(frames, idx)
 
-    def update_frame_components_contributions(self, components, frames, platform):
+    def update_frame_components_contributions(self, components, frames, platform, max_frames=-1):
         stacktrace_state = StacktraceState()
 
         # Apply direct frame actions and update the stack state alongside
@@ -359,7 +359,9 @@ class Enhancements:
         # Use the stack state to update frame contributions again to trim
         # down to max-frames.  min-frames is handled on the other hand for
         # the entire stacktrace later.
-        max_frames = stacktrace_state.get("max-frames")
+        if max_frames == -1:
+            max_frames = stacktrace_state.get("max-frames")
+
         if max_frames > 0:
             ignored = 0
             for component in reversed(components):
@@ -377,7 +379,7 @@ class Enhancements:
 
         return stacktrace_state
 
-    def assemble_stacktrace_component(self, components, frames, platform, **kw):
+    def assemble_stacktrace_component(self, components, frames, platform, max_frames=-1, **kw):
         """This assembles a stacktrace grouping component out of the given
         frame components and source frames.  Internally this invokes the
         `update_frame_components_contributions` method but also handles cases
@@ -385,7 +387,9 @@ class Enhancements:
         """
         hint = None
         contributes = None
-        stacktrace_state = self.update_frame_components_contributions(components, frames, platform)
+        stacktrace_state = self.update_frame_components_contributions(
+            components, frames, platform, max_frames=max_frames
+        )
 
         min_frames = stacktrace_state.get("min-frames")
         if min_frames > 0:

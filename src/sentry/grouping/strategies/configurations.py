@@ -47,6 +47,7 @@ register_strategy_config(
     """,
     initial_context={
         "trim_message": False,
+        "hierarchical_grouping": False,
     },
 )
 
@@ -91,6 +92,7 @@ register_strategy_config(
         "with_context_line_file_origin_bug": True,
         "trim_message": True,
         "with_exception_value_fallback": True,
+        "hierarchical_grouping": False,
     },
 )
 
@@ -107,6 +109,18 @@ register_strategy_config(
     initial_context={
         "php_detect_anonymous_classes": True,
         "with_context_line_file_origin_bug": False,
+    },
+)
+
+register_strategy_config(
+    id="mobile:2021-02-12",
+    base="newstyle:2019-10-29",
+    risk=RISK_LEVEL_HIGH,
+    changelog="""
+        * Experimentally producing multiple variants.
+    """,
+    initial_context={
+        # "hierarchical_grouping": True,
     },
 )
 
@@ -143,6 +157,7 @@ register_strategy_config(
         "with_context_line_file_origin_bug": False,
         "trim_message": False,
         "with_exception_value_fallback": False,
+        "hierarchical_grouping": False,
     },
 )
 

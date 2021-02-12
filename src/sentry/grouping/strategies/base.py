@@ -1,7 +1,7 @@
 import inspect
 
 from sentry import projectoptions
-from sentry.grouping.component import GroupingComponent
+from sentry.grouping.component import GroupingComponent, MultipleVariants
 from sentry.grouping.enhancer import Enhancements
 
 
@@ -15,8 +15,8 @@ RISK_LEVEL_HIGH = 2
 
 def strategy(id=None, ids=None, variants=None, interfaces=None, name=None, score=None):
     """Registers a strategy"""
-    if interfaces is None or variants is None:
-        raise TypeError("interfaces and variants are required")
+    if interfaces is None:
+        raise TypeError("interfaces is required")
 
     if name is None:
         if len(interfaces) != 1:
@@ -95,21 +95,15 @@ class Strategy:
         self.strategy_class = id.split(":", 1)[0]
         self.name = name
         self.interfaces = interfaces
-        self.mandatory_variants = []
-        self.optional_variants = []
-        self.variants = []
-        for variant in variants:
-            if variant[:1] == "!":
-                self.mandatory_variants.append(variant[1:])
-            else:
-                self.optional_variants.append(variant)
-            self.variants.append(variant)
         self.score = score
-        self.func = func
+        if variants:
+            self.func = lambda *args, **kwargs: call_with_variants(func, variants, *args, **kwargs)
+        else:
+            self.func = func
         self.variant_processor_func = None
 
     def __repr__(self):
-        return f"<{self.__class__.__name__} id={self.id!r} variants={self.variants!r}>"
+        return f"<{self.__class__.__name__} id={self.id!r}>"
 
     def _invoke(self, func, *args, **kwargs):
         # We forcefully override strategy here.  This lets a strategy
@@ -146,61 +140,14 @@ class Strategy:
         """This returns a dictionary of all components by variant that this
         strategy can produce.
         """
-        rv = {}
-        # trivial case: we do not have mandatory variants and can handle
-        # them all the same.
-        if not self.mandatory_variants:
-            for variant in self.variants:
-                component = self.get_grouping_component(event, variant, context)
-                if component is not None:
-                    rv[variant] = component
 
-        else:
-            mandatory_component_hashes = {}
-            prevent_contribution = None
+        # strategy can decide on its own which variants to produce and which contribute
+        variants = self.get_grouping_component(event, variant=None, context=context)
+        if variants is None:
+            return {}
 
-            for variant in self.mandatory_variants:
-                component = self.get_grouping_component(event, variant, context)
-                if component is None:
-                    continue
-                if component.contributes:
-                    mandatory_component_hashes[component.get_hash()] = variant
-                rv[variant] = component
-
-            prevent_contribution = not mandatory_component_hashes
-
-            for variant in self.optional_variants:
-                # We also only want to create another variant if it
-                # produces different results than the mandatory components
-                component = self.get_grouping_component(event, variant, context)
-                if component is None:
-                    continue
-
-                # In case this variant contributes we need to check two things
-                # here: if we did not have a system match we need to prevent
-                # it from contributing.  Additionally if it matches the system
-                # component we also do not want the variant to contribute but
-                # with a different message.
-                if component.contributes:
-                    if prevent_contribution:
-                        component.update(
-                            contributes=False,
-                            hint="ignored because %s variant is not used"
-                            % (
-                                list(mandatory_component_hashes.values())[0]
-                                if len(mandatory_component_hashes) == 1
-                                else "other mandatory"
-                            ),
-                        )
-                    else:
-                        hash = component.get_hash()
-                        duplicate_of = mandatory_component_hashes.get(hash)
-                        if duplicate_of is not None:
-                            component.update(
-                                contributes=False,
-                                hint="ignored because hash matches %s variant" % duplicate_of,
-                            )
-                rv[variant] = component
+        assert isinstance(variants, MultipleVariants)
+        rv = variants.variants
 
         if self.variant_processor_func is not None:
             rv = self._invoke(self.variant_processor_func, rv, event=event, context=context)
@@ -312,3 +259,78 @@ def create_strategy_configuration(
     NewStrategyConfiguration.changelog = inspect.cleandoc(changelog or "")
     NewStrategyConfiguration.__name__ = "StrategyConfiguration(%s)" % id
     return NewStrategyConfiguration
+
+
+def _flatten_variants(component):
+    if isinstance(component, MultipleVariants):
+        for k, v in component.variants:
+            assert k is not None
+            for k2, v2 in _flatten_variants(v):
+                yield (f"{k}-{k2}" if k2 is not None and k2 != k else k), v2
+
+    else:
+        yield None, component
+
+
+def call_with_variants(f, variants, *args, **kwargs):
+    context = kwargs["context"]
+    if context["variant"] is not None:
+        return f(*args, **kwargs)
+
+    rv = {}
+    has_mandatory_hashes = False
+    mandatory_contributing_hashes = {}
+    optional_contributing_variants = []
+    prevent_contribution = None
+
+    for variant in variants:
+        with context:
+            context["variant"] = variant
+            component = f(*args, **kwargs)
+
+        if component is None:
+            continue
+
+        is_mandatory = variant[:1] == "!"
+        variant = variant.lstrip("!")
+        if is_mandatory:
+            has_mandatory_hashes = True
+
+        if component.contributes:
+            if is_mandatory:
+                mandatory_contributing_hashes[component.get_hash()] = variant
+            else:
+                optional_contributing_variants.append(variant)
+
+        rv[variant] = component
+
+    prevent_contribution = has_mandatory_hashes and not mandatory_contributing_hashes
+
+    for variant in optional_contributing_variants:
+        component = rv[variant]
+
+        # In case this variant contributes we need to check two things
+        # here: if we did not have a system match we need to prevent
+        # it from contributing.  Additionally if it matches the system
+        # component we also do not want the variant to contribute but
+        # with a different message.
+        if prevent_contribution:
+            component.update(
+                contributes=False,
+                hint="ignored because %s variant is not used"
+                % (
+                    list(mandatory_contributing_hashes.values())[0]
+                    if len(mandatory_contributing_hashes) == 1
+                    else "other mandatory"
+                ),
+            )
+        else:
+            hash = component.get_hash()
+            duplicate_of = mandatory_contributing_hashes.get(hash)
+            if duplicate_of is not None:
+                component.update(
+                    contributes=False,
+                    hint="ignored because hash matches %s variant" % duplicate_of,
+                )
+
+    return MultipleVariants(rv)

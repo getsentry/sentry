@@ -171,3 +171,25 @@ class GroupingComponent:
 
     def __repr__(self):
         return f"GroupingComponent({self.id!r}, hint={self.hint!r}, contributes={self.contributes!r}, values={self.values!r})"
+
+
+class MultipleVariants:
+    """
+    Instead of a grouping component, a strategy can choose to return this
+    collection of multiple components to generate multiple variants (=multiple
+    grouping hashes).
+
+    This can also be returned from delegate strategies (for example stacktrace
+    strategy called from exception strategy). Therefore it is important that
+    strategies, when calling other strategies, should try to avoid inspecting
+    or mutating the delegate's returned components, as otherwise they'd have to
+    deal with cases where this class is returned instead.
+    """
+
+    def __init__(self, variants):
+        if not isinstance(variants, dict):
+            raise TypeError(
+                "Variants must be a dictionary mapping from (part of a) variant name to root component."
+            )
+
+        self.variants = variants
