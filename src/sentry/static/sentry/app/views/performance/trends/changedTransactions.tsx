@@ -6,6 +6,7 @@ import {Location, Query} from 'history';
 import {Client} from 'app/api';
 import ProjectAvatar from 'app/components/avatar/projectAvatar';
 import Button from 'app/components/button';
+import {HeaderTitleLegend} from 'app/components/charts/styles';
 import Count from 'app/components/count';
 import DropdownLink from 'app/components/dropdownLink';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -30,7 +31,6 @@ import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 import {RadioLineItem} from 'app/views/settings/components/forms/controls/radioGroup';
 
-import {HeaderTitleLegend} from '../styles';
 import {DisplayModes} from '../transactionSummary/charts';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 

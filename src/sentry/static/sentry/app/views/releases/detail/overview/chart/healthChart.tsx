@@ -7,6 +7,7 @@ import AreaChart from 'app/components/charts/areaChart';
 import {ZoomRenderProps} from 'app/components/charts/chartZoom';
 import LineChart from 'app/components/charts/lineChart';
 import StackedAreaChart from 'app/components/charts/stackedAreaChart';
+import {HeaderTitleLegend} from 'app/components/charts/styles';
 import {getSeriesSelection} from 'app/components/charts/utils';
 import {parseStatsPeriod} from 'app/components/organizations/timeRangeSelector/utils';
 import QuestionTooltip from 'app/components/questionTooltip';
@@ -18,7 +19,6 @@ import {axisDuration} from 'app/utils/discover/charts';
 import {getExactDuration} from 'app/utils/formatters';
 import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
-import {HeaderTitleLegend} from 'app/views/performance/styles';
 
 import {
   getSessionTermDescription,

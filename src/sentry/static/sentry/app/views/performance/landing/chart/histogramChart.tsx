@@ -5,6 +5,7 @@ import {Location} from 'history';
 import BarChart from 'app/components/charts/barChart';
 import BarChartZoom from 'app/components/charts/barChartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
+import {HeaderTitleLegend} from 'app/components/charts/styles';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import Placeholder from 'app/components/placeholder';
 import QuestionTooltip from 'app/components/questionTooltip';
@@ -18,7 +19,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 import theme from 'app/utils/theme';
 
 import {computeBuckets, formatHistogramData} from '../../charts/utils';
-import {DoubleHeaderContainer, HeaderTitleLegend} from '../../styles';
+import {DoubleHeaderContainer} from '../../styles';
 import HistogramQuery from '../../transactionVitals/histogramQuery';
 
 const NUM_BUCKETS = 50;

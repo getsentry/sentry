@@ -5,6 +5,7 @@ import {Location} from 'history';
 
 import {Client} from 'app/api';
 import EventsChart from 'app/components/charts/eventsChart';
+import {ChartContainer, HeaderTitleLegend} from 'app/components/charts/styles';
 import {Panel} from 'app/components/panels';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {PlatformKey} from 'app/data/platformCategories';
@@ -15,7 +16,6 @@ import {WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {Theme} from 'app/utils/theme';
 import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
-import {ChartContainer, HeaderTitleLegend} from 'app/views/performance/styles';
 
 import {ReleaseStatsRequestRenderProps} from '../releaseStatsRequest';
 

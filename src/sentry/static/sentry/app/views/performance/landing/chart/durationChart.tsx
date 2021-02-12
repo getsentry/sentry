@@ -7,6 +7,7 @@ import {Location} from 'history';
 import {Client} from 'app/api';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import EventsRequest from 'app/components/charts/eventsRequest';
+import {HeaderTitleLegend} from 'app/components/charts/styles';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {getInterval} from 'app/components/charts/utils';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
@@ -21,7 +22,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 import withApi from 'app/utils/withApi';
 
 import Chart from '../../charts/chart';
-import {DoubleHeaderContainer, HeaderTitleLegend} from '../../styles';
+import {DoubleHeaderContainer} from '../../styles';
 
 type Props = {
   api: Client;

@@ -49,3 +49,26 @@ export const InlineContainer = styled('div')`
     margin-right: 0;
   }
 `;
+
+// Header element for charts within panels.
+export const HeaderTitle = styled('div')`
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1)};
+  font-size: ${p => p.theme.fontSizeLarge};
+  color: ${p => p.theme.textColor};
+  align-items: center;
+`;
+
+// Header element for charts within panels
+// This header can be rendered while the chart is still loading
+export const HeaderTitleLegend = styled(HeaderTitle)`
+  background-color: ${p => p.theme.background};
+  border-bottom-right-radius: ${p => p.theme.borderRadius};
+  position: absolute;
+  z-index: 1;
+`;
+
+export const ChartContainer = styled('div')`
+  padding: ${space(2)} ${space(3)};
+`;

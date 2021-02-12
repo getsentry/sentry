@@ -5,6 +5,7 @@ import {Location} from 'history';
 import {Client} from 'app/api';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import LoadingPanel from 'app/components/charts/loadingPanel';
+import {HeaderTitle} from 'app/components/charts/styles';
 import {getInterval} from 'app/components/charts/utils';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel} from 'app/components/panels';
@@ -18,7 +19,7 @@ import getDynamicText from 'app/utils/getDynamicText';
 import withApi from 'app/utils/withApi';
 
 import {getAxisOptions} from '../data';
-import {DoubleHeaderContainer, ErrorPanel, HeaderTitle} from '../styles';
+import {DoubleHeaderContainer, ErrorPanel} from '../styles';
 
 import Chart from './chart';
 import Footer from './footer';

@@ -4,6 +4,7 @@ import {Location} from 'history';
 
 import OptionSelector from 'app/components/charts/optionSelector';
 import {
+  ChartContainer,
   ChartControls,
   InlineContainer,
   SectionHeading,
@@ -17,7 +18,6 @@ import {decodeScalar} from 'app/utils/queryString';
 import {TransactionsListOption} from 'app/views/releases/detail/overview';
 import {YAxis} from 'app/views/releases/detail/overview/chart/releaseChartControls';
 
-import {ChartContainer} from '../styles';
 import {TrendColumnField, TrendFunctionField} from '../trends/types';
 import {
   generateTrendFunctionAsString,

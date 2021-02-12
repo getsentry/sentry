@@ -5,6 +5,7 @@ import BarChart from 'app/components/charts/barChart';
 import BarChartZoom from 'app/components/charts/barChartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import LoadingPanel from 'app/components/charts/loadingPanel';
+import {HeaderTitleLegend} from 'app/components/charts/styles';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
@@ -15,7 +16,6 @@ import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 
 import {computeBuckets, formatHistogramData} from '../charts/utils';
-import {HeaderTitleLegend} from '../styles';
 import HistogramQuery from '../transactionVitals/histogramQuery';
 import {HistogramData} from '../transactionVitals/types';
 
