@@ -231,7 +231,7 @@ class SlackActionHandlerTest(FireTest, TestCase):
         assert data["channel"] == [channel_id]
         assert data["token"] == [token]
         assert json.loads(data["attachments"][0])[0] == build_incident_attachment(
-            incident, metric_value
+            action, incident, metric_value, method
         )
 
     def test_fire_metric_alert(self):
@@ -287,7 +287,7 @@ class SlackWorkspaceActionHandlerTest(FireTest, TestCase):
         assert data["channel"] == [channel_id]
         assert data["token"] == [token]
         assert json.loads(data["attachments"][0])[0] == build_incident_attachment(
-            incident, metric_value
+            action, incident, metric_value, method
         )
 
     def test_fire_metric_alert(self):
@@ -372,7 +372,7 @@ class MsTeamsActionHandlerTest(FireTest, TestCase):
         data = json.loads(responses.calls[1].request.body)
 
         assert data["attachments"][0]["content"] == build_incident_attachment(
-            incident, metric_value
+            action, incident, metric_value, method
         )
 
     def test_fire_metric_alert(self):
@@ -382,10 +382,11 @@ class MsTeamsActionHandlerTest(FireTest, TestCase):
 @freeze_time()
 class PagerDutyActionHandlerTest(FireTest, TestCase):
     def setUp(self):
+        self.integration_key = "pfc73e8cb4s44d519f3d63d45b5q77g9"
         service = [
             {
                 "type": "service",
-                "integration_key": "pfc73e8cb4s44d519f3d63d45b5q77g9",
+                "integration_key": self.integration_key,
                 "service_id": "123",
                 "service_name": "hellboi",
             }
@@ -412,11 +413,16 @@ class PagerDutyActionHandlerTest(FireTest, TestCase):
         update_incident_status(
             incident, IncidentStatus.CRITICAL, status_method=IncidentStatusMethod.RULE_TRIGGERED
         )
-        integration_key = "pfc73e8cb4s44d519f3d63d45b5q77g9"
+        action = self.create_alert_rule_trigger_action(
+            target_identifier=self.service.id,
+            type=AlertRuleTriggerAction.Type.PAGERDUTY,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
+            integration=self.integration,
+        )
         metric_value = 1000
-        data = build_incident_attachment(incident, integration_key, metric_value)
+        data = build_incident_attachment(action, incident, self.integration_key, metric_value)
 
-        assert data["routing_key"] == "pfc73e8cb4s44d519f3d63d45b5q77g9"
+        assert data["routing_key"] == self.integration_key
         assert data["event_action"] == "trigger"
         assert data["dedup_key"] == f"incident_{incident.organization_id}_{incident.identifier}"
         assert data["payload"]["summary"] == alert_rule.name
@@ -453,7 +459,7 @@ class PagerDutyActionHandlerTest(FireTest, TestCase):
         data = responses.calls[0].request.body
 
         assert json.loads(data) == build_incident_attachment(
-            incident, self.service.integration_key, metric_value
+            action, incident, self.service.integration_key, metric_value, method
         )
 
     def test_fire_metric_alert(self):
@@ -516,8 +522,7 @@ class SentryAppActionHandlerTest(FireTest, TestCase):
         with self.tasks():
             getattr(handler, method)(metric_value)
         data = responses.calls[0].request.body
-
-        assert json.dumps(build_incident_attachment(incident, metric_value)) in data
+        assert json.dumps(build_incident_attachment(action, incident, metric_value, method)) in data
 
     def test_fire_metric_alert(self):
         self.run_fire_test()

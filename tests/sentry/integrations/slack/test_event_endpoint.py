@@ -3,6 +3,7 @@ from urllib.parse import parse_qsl
 from sentry.utils.compat.mock import patch
 
 from sentry.utils import json
+from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.integrations.slack.utils import build_group_attachment, build_incident_attachment
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
@@ -140,10 +141,16 @@ class LinkSharedEventTest(BaseEventTest):
         )
         group3 = event.group
         alert_rule = self.create_alert_rule()
+
         incident = self.create_incident(
             status=2, organization=self.org, projects=[project1], alert_rule=alert_rule
         )
         incident.update(identifier=123)
+        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=incident
+        )
+
         resp = self.post_webhook(
             event_data=json.loads(
                 LINK_SHARED_EVENT
@@ -169,7 +176,7 @@ class LinkSharedEventTest(BaseEventTest):
 
         assert unfurls == {
             issue_url: build_group_attachment(group1),
-            incident_url: build_incident_attachment(incident),
+            incident_url: build_incident_attachment(action, incident),
             event_url: build_group_attachment(group3, event=event, link_to_event=True),
         }
         assert data["token"] == "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
