@@ -19,6 +19,10 @@ type Props = {
    * Inline styles
    */
   style?: React.CSSProperties;
+  /**
+   * Click event (not for navigation)
+   */
+  onClick?: React.ComponentProps<typeof RouterLink>['onClick'];
 };
 
 /**
