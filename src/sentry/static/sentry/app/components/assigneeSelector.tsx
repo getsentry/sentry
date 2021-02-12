@@ -243,16 +243,27 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
   },
 
   renderSuggestedAssigneeNodes() {
-    return this.getSuggestedAssignees()?.map(({type, suggestedReason, assignee}) => {
-      const reason =
-        suggestedReason === 'suspectCommit' ? t('(Suspect Commit)') : t('(Issue Owner)');
-      if (type === 'user') {
-        return this.renderMemberNode(assignee, reason);
-      } else if (type === 'team') {
-        return this.renderTeamNode(assignee, reason);
-      }
-      return null;
-    });
+    const {assignedTo} = this.state;
+    return (
+      this.getSuggestedAssignees()
+        // filter out suggested assignees if one is already selected
+        ?.filter(
+          ({type, id}: SuggestedAssignee) =>
+            !(assignedTo && type === assignedTo.type && id === assignedTo.id)
+        )
+        .map(({type, suggestedReason, assignee}) => {
+          const reason =
+            suggestedReason === 'suspectCommit'
+              ? t('(Suspect Commit)')
+              : t('(Issue Owner)');
+          if (type === 'user') {
+            return this.renderMemberNode(assignee, reason);
+          } else if (type === 'team') {
+            return this.renderTeamNode(assignee, reason);
+          }
+          return null;
+        })
+    );
   },
 
   renderDropdownGroupLabel(label: string) {
