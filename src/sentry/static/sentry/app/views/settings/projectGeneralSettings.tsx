@@ -9,7 +9,6 @@ import {
   transferProject,
 } from 'app/actionCreators/projects';
 import ProjectActions from 'app/actions/projectActions';
-import AlertLink from 'app/components/alertLink';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import {Panel, PanelAlert, PanelHeader} from 'app/components/panels';
@@ -276,18 +275,6 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
             title={t('Event Settings')}
             fields={[fields.resolveAge]}
           />
-
-          <AlertLink
-            to={`/settings/${organization.slug}/projects/${project.slug}/issue-grouping/`}
-            priority="info"
-          >
-            {tct(
-              "Looking for Grouping Settings? You'll find those in [underline: Issue Grouping].",
-              {
-                underline: <u />,
-              }
-            )}
-          </AlertLink>
 
           <JsonForm
             {...jsonFormProps}
