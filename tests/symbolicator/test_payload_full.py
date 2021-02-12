@@ -247,26 +247,5 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
             event = self.post_and_retrieve_event(event_data)
         assert event.data["culprit"] == "main"
 
-        redact_location(event.data)
-        insta_snapshot_stacktrace_data(self, event.data)
-
-
-def redact_location(data):
-    """Redacts the sentry location URI to be independent of the specific ID.
-
-    This modifies the data passed in, returns None.
-    """
-    try:
-        candidates = data["debug_meta"]["images"]["candidates"]
-    except KeyError:
-        pass
-    else:
-        location_re = re.compile("^sentry://project_debug_file/[0-9]+$")
-        for candidate in candidates:
-            try:
-                location = candidate["location"]
-            except KeyError:
-                continue
-            else:
-                if location_re.search(location):
-                    candidate["location"] = "sentry://project_debug_file/x"
+        candidates = event.data["debug_meta"]["images"][0]["candidates"]
+        assert re.match("^sentry://project_debug_file/[0-9]+$", candidates[0]["location"])
