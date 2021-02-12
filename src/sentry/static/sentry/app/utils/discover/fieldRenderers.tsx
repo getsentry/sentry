@@ -285,7 +285,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   'user.display': {
     sortField: 'user.display',
-    renderFunc: data => {
+    renderFunc: ({data}) => {
       if (data['user.display']) {
         const userObj = {
           id: '',
