@@ -509,10 +509,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   renderTitle(
     scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps
   ) {
-    const {
-      generateContentSpanBarRef,
-      generateScrollableSpanBarRef,
-    } = scrollbarManagerChildrenProps;
+    const {generateContentSpanBarRef} = scrollbarManagerChildrenProps;
     const {span, treeDepth, spanErrors} = this.props;
 
     const operationName = getSpanOperation(span) ? (
@@ -528,22 +525,23 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 
     return (
-      <ScrollableSpanBar ref={generateScrollableSpanBarRef()}>
-        <SpanBarTitleContainer ref={generateContentSpanBarRef()}>
-          {this.renderSpanTreeToggler({left})}
-          <SpanBarTitle
-            style={{
-              left: `${left}px`,
-              width: '100%',
-            }}
-          >
-            <span>
-              {operationName}
-              {description}
-            </span>
-          </SpanBarTitle>
-        </SpanBarTitleContainer>
-      </ScrollableSpanBar>
+      <SpanBarTitleContainer
+        data-debug-id="SpanBarTitleContainer"
+        ref={generateContentSpanBarRef()}
+      >
+        {this.renderSpanTreeToggler({left})}
+        <SpanBarTitle
+          style={{
+            left: `${left}px`,
+            width: '100%',
+          }}
+        >
+          <span>
+            {operationName}
+            {description}
+          </span>
+        </SpanBarTitle>
+      </SpanBarTitleContainer>
     );
   }
 
@@ -1026,15 +1024,6 @@ export const SpanBarTitle = styled('div')`
   display: flex;
   flex: 1;
   align-items: center;
-`;
-
-const ScrollableSpanBar = styled('div')`
-  position: relative;
-  /* increase span bar height such that the horizontal scrollbar is out of view */
-  height: ${SPAN_ROW_HEIGHT + 50}px;
-  /* for virtual scrollbar */
-  overflow-y: hidden;
-  overflow-x: scroll;
 `;
 
 type TogglerTypes = OmitHtmlDivProps<{

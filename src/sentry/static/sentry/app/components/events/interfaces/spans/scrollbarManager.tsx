@@ -7,7 +7,6 @@ import {DragManagerChildrenProps} from './dragManager';
 import {clamp, rectOfContent, toPercent} from './utils';
 
 export type ScrollbarManagerChildrenProps = {
-  generateScrollableSpanBarRef: () => (instance: HTMLDivElement | null) => void;
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
   virtualScrollbarRef: React.RefObject<HTMLDivElement>;
   onDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
@@ -15,7 +14,6 @@ export type ScrollbarManagerChildrenProps = {
 };
 
 const ScrollbarManagerContext = React.createContext<ScrollbarManagerChildrenProps>({
-  generateScrollableSpanBarRef: () => () => undefined,
   generateContentSpanBarRef: () => () => undefined,
   virtualScrollbarRef: React.createRef<HTMLDivElement>(),
   onDragStart: () => {},
@@ -24,7 +22,7 @@ const ScrollbarManagerContext = React.createContext<ScrollbarManagerChildrenProp
 
 const selectRefs = (
   refs: Set<HTMLDivElement> | React.RefObject<HTMLDivElement>,
-  transform: (dividerDOM: HTMLDivElement) => void
+  transform: (element: HTMLDivElement) => void
 ) => {
   if (!(refs instanceof Set)) {
     if (refs.current) {
@@ -77,7 +75,7 @@ export class Provider extends React.Component<Props, State> {
       // Find any span bar and adjust the virtual scroll bar's scroll position
       // with respect to this span bar.
 
-      if (this.scrollableSpanBar.size === 0) {
+      if (this.contentSpanBar.size === 0) {
         return;
       }
 
@@ -104,14 +102,13 @@ export class Provider extends React.Component<Props, State> {
     this.cleanUpListeners();
   }
 
-  scrollableSpanBar: Set<HTMLDivElement> = new Set();
   contentSpanBar: Set<HTMLDivElement> = new Set();
   virtualScrollbar: React.RefObject<HTMLDivElement> = React.createRef<HTMLDivElement>();
   isDragging: boolean = false;
   previousUserSelect: UserSelectValues | null = null;
 
   getReferenceSpanBar() {
-    for (const currentSpanBar of this.scrollableSpanBar) {
+    for (const currentSpanBar of this.contentSpanBar) {
       const isHidden = currentSpanBar.offsetParent === null;
       if (!document.body.contains(currentSpanBar) || isHidden) {
         continue;
@@ -123,25 +120,21 @@ export class Provider extends React.Component<Props, State> {
   }
 
   initializeScrollState = () => {
-    if (this.scrollableSpanBar.size === 0 || this.contentSpanBar.size === 0) {
+    if (this.contentSpanBar.size === 0) {
       return;
     }
-
-    // set initial scroll state for all scrollable spanbars
-    selectRefs(this.scrollableSpanBar, (spanBarDOM: HTMLDivElement) => {
-      spanBarDOM.scrollLeft = 0;
-    });
 
     // reset all span bar content containers to their natural widths
     selectRefs(this.contentSpanBar, (spanBarDOM: HTMLDivElement) => {
       spanBarDOM.style.removeProperty('width');
       spanBarDOM.style.removeProperty('max-width');
       spanBarDOM.style.removeProperty('overflow');
+      spanBarDOM.style.removeProperty('transform');
     });
 
     // Find the maximum content width. We set each content spanbar to be this maximum width,
     // such that all content spanbar widths are uniform.
-    const maxContentWidth = Array.from(this.scrollableSpanBar).reduce(
+    const maxContentWidth = Array.from(this.contentSpanBar).reduce(
       (currentMaxWidth, currentSpanBar) => {
         const isHidden = currentSpanBar.offsetParent === null;
         if (!document.body.contains(currentSpanBar) || isHidden) {
@@ -165,71 +158,15 @@ export class Provider extends React.Component<Props, State> {
       spanBarDOM.style.overflow = 'hidden';
     });
 
-    this.scrollableSpanBar.forEach(currentSpanBarRef => {
-      this.unregisterEventListeners(currentSpanBarRef);
-    });
-
     const spanBarDOM = this.getReferenceSpanBar();
 
     if (spanBarDOM) {
       this.syncVirtualScrollbar(spanBarDOM);
     }
-
-    this.scrollableSpanBar.forEach(currentSpanBarRef => {
-      this.registerEventListeners(currentSpanBarRef);
-    });
   };
 
-  registerEventListeners = (spanbar: HTMLDivElement) => {
-    spanbar.onscroll = this.handleScroll.bind(this, spanbar);
-  };
-
-  unregisterEventListeners = (spanbar: HTMLDivElement) => {
-    spanbar.onscroll = null;
-  };
-
-  handleScroll = (spanbar: HTMLDivElement) => {
-    window.requestAnimationFrame(() => {
-      this.syncScrollPositions(spanbar);
-    });
-  };
-
-  syncScrollPositions = (scrolledSpanBar: HTMLDivElement) => {
-    // Sync scroll positions of all span bars with respect to scrolledSpanBar's
-    // scroll position
-
-    selectRefs(this.scrollableSpanBar, (spanBarDOM: HTMLDivElement) => {
-      if (scrolledSpanBar === spanBarDOM) {
-        // Don't sync scrolledSpanBar's scroll position with itself
-        return;
-      }
-
-      this.unregisterEventListeners(spanBarDOM);
-      this.syncScrollPosition(scrolledSpanBar, spanBarDOM);
-      this.syncVirtualScrollbar(scrolledSpanBar);
-
-      window.requestAnimationFrame(() => {
-        this.registerEventListeners(spanBarDOM);
-      });
-    });
-  };
-
-  syncScrollPosition = (scrolledSpanBar: HTMLDivElement, spanBarDOM: HTMLDivElement) => {
-    // sync spanBarDOM's scroll position with respect to scrolledSpanBar's
-    // scroll position
-
-    const {scrollLeft, scrollWidth, clientWidth} = scrolledSpanBar;
-
-    const scrollLeftOffset = scrollWidth - clientWidth;
-
-    if (scrollLeftOffset > 0) {
-      spanBarDOM.scrollLeft = scrollLeft;
-    }
-  };
-
-  syncVirtualScrollbar = (scrolledSpanBar: HTMLDivElement) => {
-    // sync the virtual scrollbar's scroll position with respect to scrolledSpanBar's
-    // scroll position
+  syncVirtualScrollbar = (spanBar: HTMLDivElement) => {
+    // sync the virtual scrollbar's width scrolledSpanBar's width
 
     if (!this.virtualScrollbar.current || !this.hasInteractiveLayer()) {
       return;
@@ -237,16 +174,18 @@ export class Provider extends React.Component<Props, State> {
 
     const virtualScrollbarDOM = this.virtualScrollbar.current;
 
-    const maxContentWidth = scrolledSpanBar.scrollWidth;
+    const maxContentWidth = spanBar.getBoundingClientRect().width;
+    const {parentElement} = spanBar;
 
-    if (maxContentWidth === undefined || maxContentWidth <= 0) {
+    if (maxContentWidth === undefined || maxContentWidth <= 0 || !parentElement) {
       virtualScrollbarDOM.style.width = '0';
       return;
     }
 
-    const visibleWidth = scrolledSpanBar.getBoundingClientRect().width;
-    // This is the scroll width of the content not visible on the screen due to overflow.
-    const maxScrollDistance = scrolledSpanBar.scrollWidth - scrolledSpanBar.clientWidth;
+    const visibleWidth = parentElement.getBoundingClientRect().width;
+
+    // This is the width of the content not visible.
+    const maxScrollDistance = maxContentWidth - visibleWidth;
 
     const virtualScrollbarWidth = visibleWidth / (visibleWidth + maxScrollDistance);
 
@@ -257,40 +196,7 @@ export class Provider extends React.Component<Props, State> {
 
     virtualScrollbarDOM.style.width = `max(50px, ${toPercent(virtualScrollbarWidth)})`;
 
-    const rect = rectOfContent(this.props.interactiveLayerRef.current!);
-    const virtualScrollBarRect = rectOfContent(virtualScrollbarDOM);
-    const maxVirtualScrollableArea = 1 - virtualScrollBarRect.width / rect.width;
-
-    // Assume scrollbarLeftOffset = lerp(0, maxScrollDistance, virtualScrollPercentage).
-    // Then solve for virtualScrollPercentage.
-    const virtualScrollPercentage = clamp(
-      scrolledSpanBar.scrollLeft / maxScrollDistance,
-      0,
-      1
-    );
-    const virtualScrollbarPosition = virtualScrollPercentage * maxVirtualScrollableArea;
-
-    virtualScrollbarDOM.style.left = `clamp(0%, calc(${toPercent(
-      virtualScrollbarPosition
-    )}), calc(100% - max(50px, ${toPercent(virtualScrollbarWidth)})))`;
-  };
-
-  generateScrollableSpanBarRef = () => {
-    let previousInstance: HTMLDivElement | null = null;
-
-    const addScrollableSpanBarRef = (instance: HTMLDivElement | null) => {
-      if (previousInstance) {
-        this.scrollableSpanBar.delete(previousInstance);
-        previousInstance = null;
-      }
-
-      if (instance) {
-        this.scrollableSpanBar.add(instance);
-        previousInstance = instance;
-      }
-    };
-
-    return addScrollableSpanBarRef;
+    virtualScrollbarDOM.style.left = '0';
   };
 
   generateContentSpanBarRef = () => {
@@ -348,8 +254,8 @@ export class Provider extends React.Component<Props, State> {
 
     this.isDragging = true;
 
-    selectRefs(this.virtualScrollbar, dividerDOM => {
-      dividerDOM.classList.add('dragging');
+    selectRefs(this.virtualScrollbar, scrollbarDOM => {
+      scrollbarDOM.classList.add('dragging');
     });
   };
 
@@ -387,16 +293,18 @@ export class Provider extends React.Component<Props, State> {
 
     // Update scroll positions of all the span bars
 
-    selectRefs(this.scrollableSpanBar, (spanBarDOM: HTMLDivElement) => {
-      this.unregisterEventListeners(spanBarDOM);
+    selectRefs(this.contentSpanBar, (spanBarDOM: HTMLDivElement) => {
+      if (!spanBarDOM.parentElement) {
+        return;
+      }
 
-      const maxScrollDistance = spanBarDOM.scrollWidth - spanBarDOM.clientWidth;
+      const parentWidth = spanBarDOM.parentElement.getBoundingClientRect().width;
+      const maxScrollDistance = spanBarDOM.getBoundingClientRect().width - parentWidth;
 
-      spanBarDOM.scrollLeft = lerp(0, maxScrollDistance, virtualScrollPercentage);
+      const left = -lerp(0, maxScrollDistance, virtualScrollPercentage);
 
-      window.requestAnimationFrame(() => {
-        this.registerEventListeners(spanBarDOM);
-      });
+      spanBarDOM.style.transform = `translate3d(${left}px, 0, 0)`;
+      spanBarDOM.style.transformOrigin = 'left';
     });
   };
 
@@ -420,8 +328,8 @@ export class Provider extends React.Component<Props, State> {
 
     this.isDragging = false;
 
-    selectRefs(this.virtualScrollbar, dividerDOM => {
-      dividerDOM.classList.remove('dragging');
+    selectRefs(this.virtualScrollbar, scrollbarDOM => {
+      scrollbarDOM.classList.remove('dragging');
     });
   };
 
@@ -435,7 +343,6 @@ export class Provider extends React.Component<Props, State> {
 
   render() {
     const childrenProps: ScrollbarManagerChildrenProps = {
-      generateScrollableSpanBarRef: this.generateScrollableSpanBarRef,
       generateContentSpanBarRef: this.generateContentSpanBarRef,
       onDragStart: this.onDragStart,
       virtualScrollbarRef: this.virtualScrollbar,
