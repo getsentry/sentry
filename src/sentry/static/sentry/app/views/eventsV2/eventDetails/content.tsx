@@ -276,7 +276,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
 const EventHeader = ({event}: {event: Event}) => {
   const message = getMessage(event);
   return (
-    <EventHeaderContainer>
+    <EventHeaderContainer data-test-id="event-header">
       <TitleWrapper>
         <EventOrGroupTitle data={event} />
       </TitleWrapper>
