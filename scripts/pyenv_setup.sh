@@ -112,9 +112,6 @@ setup_pyenv() {
   eval "$(pyenv init -)"
   python_version=$(python -V | sed s/Python\ //g)
   [[ $python_version != $(cat .python-version) ]] && echo "Wrong Python version: $python_version" && exit 1
-  # The Python version installed via pyenv does not come with wheel pre-installed
-  # Installing wheel will speed up installation of Python dependencies
-  PIP_DISABLE_PIP_VERSION_CHECK=on pip install wheel
 }
 
 setup_pyenv

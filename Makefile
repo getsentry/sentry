@@ -90,6 +90,9 @@ install-js-dev: node-version-check
 	yarn check --verify-tree || yarn install --check-files
 
 install-py-dev: ensure-pinned-pip
+	# The Python version installed via pyenv does not come with wheel pre-installed
+	# Installing wheel will speed up installation of Python dependencies
+	$(PIP) install wheel
 	@echo "--> Installing Sentry (for development)"
 ifdef BIG_SUR
 	# grpcio 1.35.0 is very painful to compile on Big Sur, and is not really surfaced in testing anyways.
