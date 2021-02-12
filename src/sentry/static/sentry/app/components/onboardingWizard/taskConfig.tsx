@@ -81,11 +81,10 @@ export function getOnboardingTasks(
     },
     {
       task: OnboardingTaskKey.INVITE_MEMBER,
-      title: t('Invite team members'),
+      title: t('Invite your team'),
       description: t('Bring your team aboard'),
       detailedDescription: t(
-        `Let Sentry help your team triage and assign issues. Improve your workflow
-        by unlocking mentions, assignment, and suggested issue owners.`
+        `Assign issues and comment on shared errors with coworkers so you always know who to blame when sh*t hits the fan.`
       ),
       skippable: true,
       requisites: [],
@@ -240,19 +239,18 @@ export function getMergedTasks(organization: Organization) {
 
 const PulsingIndicator = styled('div')`
   ${pulsingIndicatorStyles};
+  margin-right: ${space(1)};
 `;
 
 const EventWaitingIndicator = styled(p => (
   <div {...p}>
-    {t('Waiting for first event')}
     <PulsingIndicator />
+    <span>{t('Waiting for event')}</span>
   </div>
 ))`
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.textColor};
-  display: grid;
-  grid-template-columns: max-content max-content;
-  grid-gap: ${space(1)};
+  display: flex;
   align-items: center;
-  line-height: 1rem;
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: 600;
+  color: ${p => p.theme.orange300};
 `;

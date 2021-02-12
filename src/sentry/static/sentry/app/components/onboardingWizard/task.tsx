@@ -111,7 +111,7 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
         requisite: task.requisiteTasks[0].title,
       })}
     >
-      <IconLock size="xs" color="red300" />
+      <IconLock size="xs" color="orange300" />
     </Tooltip>
   );
 
@@ -122,16 +122,18 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
 
   const skipAction = task.skippable && (
     <SkipConfirm onSkip={handleSkip}>
-      {({skip}) => (
-        <SkipButton priority="link" onClick={skip}>
-          {t('Skip task')}
-        </SkipButton>
-      )}
+      {({skip}) => <StyledIconClose onClick={skip} />}
     </SkipConfirm>
   );
 
   return (
-    <Item interactive ref={forwardedRef} onClick={handleClick} data-test-id={task.task}>
+    <TaskCard
+      interactive
+      ref={forwardedRef}
+      onClick={handleClick}
+      data-test-id={task.task}
+    >
+      {skipAction}
       <Title>
         {IncompleteMarker}
         {task.title}
@@ -139,49 +141,39 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
       <Description>{`${task.description}. ${task.detailedDescription}`}</Description>
       {task.requisiteTasks.length === 0 && (
         <ActionBar>
+          {supplement}
           {task.status === 'pending' ? (
             <InProgressIndicator user={task.user} />
           ) : (
-            <CTA>{t('Setup now')}</CTA>
+            <Button priority="primary" size="small">
+              {t('Start')}
+            </Button>
           )}
-          {skipAction}
-          {supplement}
         </ActionBar>
       )}
-    </Item>
+    </TaskCard>
   );
 }
 
-const Item = styled(Card)`
-  padding: ${space(3)};
+const TaskCard = styled(Card)`
   position: relative;
 `;
 
-const Title = styled('h5')`
-  font-weight: normal;
+const Title = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  grid-gap: ${space(0.75)};
+  grid-gap: ${space(1)};
   align-items: center;
-  margin: 0;
+  font-weight: 600;
 `;
 
 const Description = styled('p')`
-  padding-top: ${space(1)};
   font-size: ${p => p.theme.fontSizeSmall};
-  line-height: 1.75rem;
   color: ${p => p.theme.subText};
-  margin: 0;
 `;
 
 const ActionBar = styled('div')`
-  height: 40px;
-  border-top: 1px solid ${p => p.theme.border};
-  margin: ${space(3)} -${space(3)} -${space(3)};
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 ${space(2)};
 `;
 
 type InProgressIndicatorProps = React.HTMLAttributes<HTMLDivElement> & {
@@ -211,14 +203,10 @@ const InProgressIndicator = styled(({user, ...props}: InProgressIndicatorProps) 
   grid-gap: ${space(1)};
 `;
 
-const CTA = styled('div')`
-  color: ${p => p.theme.blue300};
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: bold;
-`;
-
-const SkipButton = styled(Button)`
-  font-size: ${p => p.theme.fontSizeMedium};
+const StyledIconClose = styled(IconClose)`
+  position: absolute;
+  right: ${space(1)};
+  top: ${space(1)};
   color: ${p => p.theme.gray300};
 `;
 

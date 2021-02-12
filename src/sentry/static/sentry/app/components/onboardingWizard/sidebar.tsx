@@ -7,7 +7,6 @@ import {Client} from 'app/api';
 import SidebarPanel from 'app/components/sidebar/sidebarPanel';
 import {CommonSidebarProps} from 'app/components/sidebar/types';
 import Tooltip from 'app/components/tooltip';
-import {IconCheckmark, IconLightning, IconLock} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {OnboardingTask, OnboardingTaskKey, Organization} from 'app/types';
@@ -40,16 +39,7 @@ const doTimeout = (timeout: number) =>
   new Promise(resolve => setTimeout(resolve, timeout));
 
 const Heading = styled(motion.div)`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  grid-gap: ${space(0.75)};
-  align-items: center;
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin: 0;
-  font-weight: normal;
-  border-bottom: 1px solid ${p => p.theme.border};
-  color: ${p => p.theme.subText};
-  padding-bottom: ${space(1)};
+  color: ${p => p.theme.purple300};
 `;
 
 Heading.defaultProps = {
@@ -57,29 +47,17 @@ Heading.defaultProps = {
   transition: testableTransition(),
 };
 
-const completeNowHeading = (
-  <Heading key="now">
-    <IconLightning size="xs" />
-    {t('Complete now')}
-  </Heading>
-);
+const completeNowHeading = <Heading key="now">{t('The Basics')}</Heading>;
 const upcomingTasksHeading = (
   <Heading key="upcoming">
     <Tooltip
       containerDisplayMode="block"
       title={t('Some tasks should be completed before completing these tasks')}
-    >
-      <IconLock size="xs" />
-    </Tooltip>
-    {t('Upcoming tasks')}
+    />
+    {t('Level Up')}
   </Heading>
 );
-const completedTasksHeading = (
-  <Heading key="complete">
-    <IconCheckmark size="xs" />
-    {t('Completed tasks')}
-  </Heading>
-);
+const completedTasksHeading = <Heading key="complete">{t('Complete')}</Heading>;
 
 class OnboardingWizardSidebar extends React.Component<Props> {
   async componentDidMount() {
@@ -203,8 +181,6 @@ const TaskList = styled('div')`
   display: grid;
   grid-auto-flow: row;
   grid-gap: ${space(2)};
-  margin: 0 ${space(4)};
-  margin-bottom: ${space(4)};
 `;
 
 const CompleteList = styled('div')`
