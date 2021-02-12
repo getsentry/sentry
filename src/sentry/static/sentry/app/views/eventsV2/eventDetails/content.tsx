@@ -16,11 +16,13 @@ import EventVitals from 'app/components/events/eventVitals';
 import * as SpanEntryContext from 'app/components/events/interfaces/spans/context';
 import OpsBreakdown from 'app/components/events/opsBreakdown';
 import RootSpanStatus from 'app/components/events/rootSpanStatus';
+import FileSize from 'app/components/fileSize';
 import * as Layout from 'app/components/layouts/thirds';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import TagsTable from 'app/components/tagsTable';
+import {IconOpen} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -31,6 +33,7 @@ import {FIELD_TAGS} from 'app/utils/discover/fields';
 import {eventDetailsRoute} from 'app/utils/discover/urls';
 import {getMessage} from 'app/utils/events';
 import Projects from 'app/utils/projects';
+import EventMetas from 'app/views/performance/transactionDetails/eventMetas';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 
 import DiscoverBreadcrumb from '../breadcrumb';
@@ -146,6 +149,13 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
           })
         : null;
 
+    const hasQuickTraceView =
+      event.type === 'transaction' &&
+      organization.features.includes('trace-view-quick') &&
+      organization.features.includes('trace-view-summary');
+
+    const eventJsonUrl = `/api/0/projects/${organization.slug}/${this.projectId}/events/${event.eventID}/json/`;
+
     return (
       <React.Fragment>
         <Layout.Header>
@@ -163,6 +173,11 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               <Button onClick={this.toggleSidebar}>
                 {isSidebarVisible ? 'Hide Details' : 'Show Details'}
               </Button>
+              {hasQuickTraceView && (
+                <Button icon={<IconOpen />} href={eventJsonUrl} external>
+                  {t('JSON')} (<FileSize bytes={event.size} />)
+                </Button>
+              )}
               {transactionSummaryTarget && (
                 <Feature organization={organization} features={['performance-view']}>
                   {({hasFeature}) => (
@@ -180,6 +195,16 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
           </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>
+          {hasQuickTraceView && (
+            <Layout.Main fullWidth>
+              <EventMetas
+                event={event}
+                organization={organization}
+                projectId={this.projectId}
+                location={location}
+              />
+            </Layout.Main>
+          )}
           <Layout.Main fullWidth={!isSidebarVisible}>
             <Projects orgId={organization.slug} slugs={[this.projectId]}>
               {({projects, initiallyLoaded}) =>
@@ -216,12 +241,16 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
           </Layout.Main>
           {isSidebarVisible && (
             <Layout.Side>
-              <EventMetadata
-                event={event}
-                organization={organization}
-                projectId={this.projectId}
-              />
-              <RootSpanStatus event={event} />
+              {!hasQuickTraceView && (
+                <React.Fragment>
+                  <EventMetadata
+                    event={event}
+                    organization={organization}
+                    projectId={this.projectId}
+                  />
+                  <RootSpanStatus event={event} />
+                </React.Fragment>
+              )}
               <OpsBreakdown event={event} />
               <EventVitals event={event} />
               {event.groupID && (
