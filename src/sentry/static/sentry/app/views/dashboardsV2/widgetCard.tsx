@@ -168,6 +168,7 @@ const StyledPanel = styled(Panel, {
   /* If a panel overflows due to a long title stretch its grid sibling */
   height: 100%;
   min-height: 96px;
+  overflow: hidden;
 `;
 
 const ToolbarPanel = styled('div')`
