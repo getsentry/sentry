@@ -370,6 +370,7 @@ describe('IssueList', function () {
             isPinned: false,
             isGlobal: true,
             query: 'assigned:me',
+            sort: 'priority',
             projectId: null,
             type: 0,
           }),
@@ -385,7 +386,9 @@ describe('IssueList', function () {
         expect.anything(),
         expect.objectContaining({
           // Should be called with default query
-          data: expect.stringContaining('assigned%3Ame'),
+          data:
+            expect.stringContaining('assigned%3Ame') &&
+            expect.stringContaining('sort=priority'),
         })
       );
 
