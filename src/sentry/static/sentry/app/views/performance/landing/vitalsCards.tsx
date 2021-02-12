@@ -5,6 +5,7 @@ import {Location} from 'history';
 import {Client} from 'app/api';
 import Card from 'app/components/card';
 import EventsRequest from 'app/components/charts/eventsRequest';
+import {HeaderTitle} from 'app/components/charts/styles';
 import {getInterval} from 'app/components/charts/utils';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Link from 'app/components/links/link';
@@ -29,7 +30,6 @@ import VitalsCardsDiscoverQuery, {
   VitalsData,
 } from 'app/views/performance/vitalDetail/vitalsCardsDiscoverQuery';
 
-import {HeaderTitle} from '../styles';
 import ColorBar from '../vitalDetail/colorBar';
 import {
   vitalAbbreviations,
