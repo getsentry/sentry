@@ -265,7 +265,7 @@ class TableView extends React.Component<TableViewProps> {
           onApply={this.handleUpdateColumns}
         />
       ),
-      {modalCss}
+      {modalCss, backdrop: 'static'}
     );
   };
 
