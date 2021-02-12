@@ -20,7 +20,9 @@ class OrganizationIntegrationRequestTest(APITestCase):
 
             assert response.status_code == 201
         requester_name = self.user.get_display_name()
-        requester_link = absolute_uri(f"/organizations/{self.organization.slug}/projects/new/")
+        requester_link = absolute_uri(
+            f"/organizations/{self.organization.slug}/projects/new/?referrer=request_project&category=mobile"
+        )
 
         expected_email_args = {
             "subject": f"{requester_name} thinks Sentry can help monitor your mobile app",

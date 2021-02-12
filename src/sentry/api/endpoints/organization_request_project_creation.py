@@ -32,7 +32,9 @@ class OrganizationRequestProjectCreation(OrganizationEndpoint):
             return self.respond(serializer.errors, status=400)
 
         requester_name = request.user.get_display_name()
-        requester_link = absolute_uri(f"/organizations/{organization.slug}/projects/new/")
+        requester_link = absolute_uri(
+            f"/organizations/{organization.slug}/projects/new/?referrer=request_project&category=mobile"
+        )
 
         msg = MessageBuilder(
             subject=f"{requester_name} thinks Sentry can help monitor your mobile app",
