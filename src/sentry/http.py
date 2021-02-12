@@ -153,7 +153,6 @@ def fetch_file(
         if domain_result:
             domain_result = dict(domain_result)
             domain_result["url"] = url
-            domain_result["domain_blacklisted"] = True
             raise CannotFetch(domain_result)
 
     logger.debug("Fetching %r from the internet", url)
@@ -230,6 +229,7 @@ def fetch_file(
 
                 # TODO(dcramer): we want to be less aggressive on disabling domains
                 if domain_lock_enabled:
+                    error["domain_blacklisted"] = True
                     cache.set(domain_key, error or "", 300)
                     logger.warning("source.disabled", extra=error)
                 raise CannotFetch(error)
