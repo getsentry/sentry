@@ -734,6 +734,7 @@ def query(
     totals=None,
     **kwargs,
 ):
+
     aggregations = aggregations or [["count()", "", "aggregate"]]
     filter_keys = filter_keys or {}
     selected_columns = selected_columns or []

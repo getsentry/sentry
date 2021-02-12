@@ -179,6 +179,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             seen_by = self._get_seen_by(request, group)
 
             first_release = group.get_first_release()
+
             if first_release is not None:
                 last_release = group.get_last_release()
             else:
@@ -194,6 +195,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 first_release = self._get_release_info(request, group, first_release)
             elif last_release is not None:
                 last_release = self._get_release_info(request, group, last_release)
+
             get_range = functools.partial(tsdb.get_range, environment_ids=environment_ids)
 
             tags = tagstore.get_group_tag_keys(
