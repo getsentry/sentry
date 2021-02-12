@@ -185,8 +185,7 @@ def load_data(
                 tag[1] = span_id
         data["contexts"]["trace"]["trace_id"] = trace
         data["contexts"]["trace"]["span_id"] = span_id
-        if parent_span_id:
-            data["contexts"]["trace"]["parent_span_id"] = parent_span_id
+        data["contexts"]["trace"]["parent_span_id"] = parent_span_id
         if spans:
             data["spans"] = spans
 
@@ -195,6 +194,12 @@ def load_data(
             # on event timestamp
             duration = span.get("data", {}).get("duration", 10.0)
             offset = span.get("data", {}).get("offset", 0)
+
+            # Span doesn't have a parent, make it the transaction
+            if span.get("parent_span_id") is None:
+                span["parent_span_id"] = span_id
+            if span.get("span_id") is None:
+                span["span_id"] = uuid4().hex[:16]
 
             span_start = data["start_timestamp"] + offset
             span["trace_id"] = trace
