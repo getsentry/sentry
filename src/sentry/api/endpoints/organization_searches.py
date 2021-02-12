@@ -13,7 +13,9 @@ class OrganizationSearchSerializer(serializers.Serializer):
     type = serializers.IntegerField(required=True)
     name = serializers.CharField(required=True)
     query = serializers.CharField(required=True, min_length=1)
-    sort = serializers.ChoiceField(choices=SortOptions.as_choices(), required=True)
+    sort = serializers.ChoiceField(
+        choices=SortOptions.as_choices(), default=SortOptions.DATE, required=False
+    )
 
 
 class OrganizationSearchesEndpoint(OrganizationEndpoint):
