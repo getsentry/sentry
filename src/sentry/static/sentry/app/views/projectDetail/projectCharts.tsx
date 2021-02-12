@@ -7,6 +7,7 @@ import {Location} from 'history';
 import {Client} from 'app/api';
 import OptionSelector from 'app/components/charts/optionSelector';
 import {
+  ChartContainer,
   ChartControls,
   InlineContainer,
   SectionHeading,
@@ -23,7 +24,6 @@ import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 
 import {getTermHelp, PERFORMANCE_TERM} from '../performance/data';
-import {ChartContainer} from '../performance/styles';
 
 import ProjectBaseEventsChart from './charts/projectBaseEventsChart';
 import ProjectStabilityChart from './charts/projectStabilityChart';
@@ -91,6 +91,11 @@ class ProjectCharts extends React.Component<Props, State> {
 
     return [
       {
+        value: DisplayModes.STABILITY,
+        label: t('Crash Free Sessions'),
+        disabled: this.otherActiveDisplayModes.includes(DisplayModes.STABILITY),
+      },
+      {
         value: DisplayModes.APDEX,
         label: t('Apdex'),
         disabled:
@@ -132,11 +137,6 @@ class ProjectCharts extends React.Component<Props, State> {
           this.otherActiveDisplayModes.includes(DisplayModes.TRANSACTIONS) ||
           !hasPerformance,
         tooltip: hasPerformance ? undefined : noPerformanceTooltip,
-      },
-      {
-        value: DisplayModes.STABILITY,
-        label: t('Crash Free Sessions'),
-        disabled: this.otherActiveDisplayModes.includes(DisplayModes.STABILITY),
       },
     ];
   }
