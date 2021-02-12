@@ -10,6 +10,7 @@ import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import {inputStyles} from 'app/styles/input';
 import {Organization, Project, Team} from 'app/types';
+import {defined} from 'app/utils';
 import theme from 'app/utils/theme';
 
 import RuleBuilder from './ruleBuilder';
@@ -28,7 +29,7 @@ type Props = {
 
 type State = {
   hasChanges: boolean;
-  text: string;
+  text: string | null;
   error: null | {
     raw: string[];
   };
@@ -39,7 +40,7 @@ class OwnerInput extends React.Component<Props, State> {
 
   state: State = {
     hasChanges: false,
-    text: '',
+    text: null,
     error: null,
   };
 
@@ -173,7 +174,7 @@ class OwnerInput extends React.Component<Props, State> {
             }
             onChange={this.handleChange}
             disabled={disabled}
-            value={text || initialText}
+            value={defined(text) ? text : initialText}
             spellCheck="false"
             autoComplete="off"
             autoCorrect="off"
