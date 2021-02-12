@@ -1,9 +1,20 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import {Organization, Project} from 'app/types';
 import {EntryRequest, Event} from 'app/types/event';
 import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
+import {promptIsDismissed} from 'app/utils/promptIsDismissed';
 import withProjects from 'app/utils/withProjects';
+import Alert from 'app/components/alert';
+import {promptsCheck, promptsUpdate, PromptData} from 'app/actionCreators/prompts';
+import withApi from 'app/utils/withApi';
+import {Client} from 'app/api';
+import {t} from 'app/locale';
+import {IconUpgrade, IconClose} from 'app/icons';
+import space from 'app/styles/space';
+import {openModal} from 'app/actionCreators/modal';
+import SuggestProjectModal from 'app/components/modals/suggestProjectModal';
 
 const MOBILE_PLATFORMS = [
   'react-native',
@@ -18,28 +29,30 @@ const MOBILE_PLATFORMS = [
   'dotnet-xamarin',
 ];
 
-const MOBILE_USER_AGENTS = ['okhttp/', 'CFNetwork/', 'Alamofire/', 'Dalvik/'];
+const MOBILE_USER_AGENTS = [
+  'okhttp/',
+  'CFNetwork/',
+  'Alamofire/',
+  'Dalvik/',
+  'node-fetch',
+];
 
 type Props = {
   projects: Project[];
   event: Event;
   organization: Organization;
+  api: Client;
 };
 
-class SuggestProjectCTA extends React.Component<Props> {
+type State = {
+  isDismissed?: boolean;
+  promptIsLoaded?: boolean;
+};
+
+class SuggestProjectCTA extends React.Component<Props, State> {
+  state: State = {};
   componentDidMount() {
-    const matchedUserAgentString = this.matchedUserAgentString;
-    trackAdvancedAnalyticsEvent(
-      'growth.check_show_mobile_prompt_banner',
-      {
-        matchedUserAgentString,
-        userAgentMatches: !!matchedUserAgentString,
-        hasMobileProject: this.hasMobileProject,
-        snoozedOrDismissed: false, //TODO: update when snooze/dismissed implemented
-      },
-      this.props.organization,
-      {startSession: true}
-    );
+    this.fetchData();
   }
 
   //Returns the matched user agent string
@@ -69,10 +82,98 @@ class SuggestProjectCTA extends React.Component<Props> {
     );
   }
 
+  get showCTA() {
+    const {promptIsLoaded, isDismissed} = this.state;
+    /**
+     * conditions to show prompt:
+     * 1. User agent matches mobile
+     * 2. No mobile project
+     * 3. CTA is not dimissed
+     * 4. We've loaded the data from the backend for the prompt
+     */
+    return (
+      !!this.matchedUserAgentString &&
+      !this.hasMobileProject &&
+      !isDismissed &&
+      promptIsLoaded
+    );
+  }
+
+  async fetchData() {
+    const {api, organization} = this.props;
+
+    //check our prompt backend
+    const promptData = await promptsCheck(api, {
+      organizationId: organization.id,
+      feature: 'suggest_mobile_project',
+    });
+    const isDismissed = promptIsDismissed(promptData);
+
+    //set the new state
+    this.setState({
+      isDismissed,
+      promptIsLoaded: true,
+    });
+
+    const matchedUserAgentString = this.matchedUserAgentString;
+
+    //now record the results
+    trackAdvancedAnalyticsEvent(
+      'growth.check_show_mobile_prompt_banner',
+      {
+        matchedUserAgentString,
+        userAgentMatches: !!matchedUserAgentString,
+        hasMobileProject: this.hasMobileProject,
+        snoozedOrDismissed: isDismissed,
+      },
+      this.props.organization,
+      {startSession: true}
+    );
+  }
+
+  handleCTAClose = () => {
+    const {api, organization} = this.props;
+    promptsUpdate(api, {
+      organizationId: organization.id,
+      feature: 'suggest_mobile_project',
+      status: 'dismissed',
+    });
+
+    this.setState({isDismissed: true});
+  };
+
+  openModal = () => {
+    openModal(deps => (
+      <SuggestProjectModal organization={this.props.organization} {...deps} />
+    ));
+  };
+
+  renderCTA() {
+    return (
+      <Alert icon={<IconUpgrade onClick={this.openModal} />} type="info">
+        <Content>
+          {t(
+            'We have a sneaky suspicion you have a mobile app and something might not be right.  Figure it out faster with Sentry Mobile App Monitoring.'
+          )}
+          <StyledIconClose onClick={this.handleCTAClose} />
+        </Content>
+      </Alert>
+    );
+  }
+
   render() {
-    //TODO(Steve): implement UI
-    return null;
+    return this.showCTA ? this.renderCTA() : null;
   }
 }
 
-export default withProjects(SuggestProjectCTA);
+export default withApi(withProjects(SuggestProjectCTA));
+
+const Content = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  grid-gap: ${space(1)};
+`;
+
+const StyledIconClose = styled(IconClose)`
+  margin: auto;
+`;
