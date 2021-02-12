@@ -4,9 +4,9 @@ import {PlainRoute} from 'react-router/lib/Route';
 
 import {
   addErrorMessage,
-  addLoadingMessage,
   addSuccessMessage,
   clearIndicators,
+  Indicator,
 } from 'app/actionCreators/indicator';
 import {fetchOrganizationTags} from 'app/actionCreators/tags';
 import Access from 'app/components/acl/access';
@@ -14,6 +14,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import {t} from 'app/locale';
+import IndicatorStore from 'app/stores/indicatorStore';
 import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -129,24 +130,33 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     router.push(`/organizations/${orgId}/alerts/rules/`);
   }
 
-  resetPollingState = () => {
+  resetPollingState = (loadingSlackIndicator: Indicator) => {
+    IndicatorStore.remove(loadingSlackIndicator);
     this.setState({loading: false, uuid: undefined});
   };
 
   fetchStatus(model: FormModel) {
+    const loadingSlackIndicator = IndicatorStore.addMessage(
+      t('Looking for your slack channel (this can take a while)'),
+      'loading'
+    );
     // pollHandler calls itself until it gets either a success
     // or failed status but we don't want to poll forever so we pass
     // in a hard stop time of 3 minutes before we bail.
     const quitTime = Date.now() + POLLING_MAX_TIME_LIMIT;
     setTimeout(() => {
-      this.pollHandler(model, quitTime);
+      this.pollHandler(model, quitTime, loadingSlackIndicator);
     }, 1000);
   }
 
-  pollHandler = async (model: FormModel, quitTime: number) => {
+  pollHandler = async (
+    model: FormModel,
+    quitTime: number,
+    loadingSlackIndicator: Indicator
+  ) => {
     if (Date.now() > quitTime) {
       addErrorMessage(t('Looking for that channel took too long :('));
-      this.resetPollingState();
+      this.resetPollingState(loadingSlackIndicator);
       return;
     }
 
@@ -167,12 +177,12 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
       if (status === 'pending') {
         setTimeout(() => {
-          this.pollHandler(model, quitTime);
+          this.pollHandler(model, quitTime, loadingSlackIndicator);
         }, 1000);
         return;
       }
 
-      this.resetPollingState();
+      this.resetPollingState(loadingSlackIndicator);
 
       if (status === 'failed') {
         addErrorMessage(error);
@@ -185,7 +195,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       }
     } catch {
       addErrorMessage(t('An error occurred'));
-      this.resetPollingState();
+      this.resetPollingState(loadingSlackIndicator);
     }
   };
 
@@ -415,8 +425,12 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
     // form model has all form state data, however we use local state to keep
     // track of the list of triggers (and actions within triggers)
+    const loadingIndicator = IndicatorStore.addMessage(
+      t('Saving your alert rule, hold on...'),
+      'loading'
+    );
     try {
-      addLoadingMessage();
+      this.setState({loading: true});
       const [resp, , xhr] = await addOrUpdateRule(
         this.api,
         organization.slug,
@@ -440,15 +454,18 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         if (!uuid) {
           this.setState({loading: true, uuid: resp.uuid});
           this.fetchStatus(model);
-          addLoadingMessage(t('Looking through all your channels...'));
         }
       } else {
+        IndicatorStore.remove(loadingIndicator);
+        this.setState({loading: false});
         addSuccessMessage(ruleId ? t('Updated alert rule') : t('Created alert rule'));
         if (onSubmitSuccess) {
           onSubmitSuccess(resp, model);
         }
       }
     } catch (err) {
+      IndicatorStore.remove(loadingIndicator);
+      this.setState({loading: false});
       const errors = err?.responseJSON
         ? Array.isArray(err?.responseJSON)
           ? err?.responseJSON
@@ -541,6 +558,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       environment,
       thresholdType,
       resolveThreshold,
+      loading,
     } = this.state;
 
     const eventTypeFilter = getEventTypeFilter(this.state.dataset, this.state.eventTypes);
@@ -568,7 +586,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
             apiEndpoint={`/organizations/${organization.slug}/alert-rules/${
               ruleId ? `${ruleId}/` : ''
             }`}
-            submitDisabled={!hasAccess}
+            submitDisabled={!hasAccess || loading}
             initialData={{
               name: rule.name || '',
               dataset: rule.dataset,
