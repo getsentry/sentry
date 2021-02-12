@@ -108,10 +108,10 @@ setup_pyenv() {
 
   # If the script is called with the "dot space right" approach (. ./scripts/pyenv_setup.sh),
   # the effects of this will be persistent outside of this script
-  echo "Activating pyenv"
+  echo "Activating pyenv and validating Python version"
   eval "$(pyenv init -)"
   python_version=$(python -V | sed s/Python\ //g)
-  [[ $python_version != $(cat .python-version) ]] && echo "Wrong Python version: $python_version" && exit 1
+  [[ $python_version == $(cat .python-version) ]] || (echo "Wrong Python version: $python_version" && exit 1)
 }
 
 setup_pyenv
