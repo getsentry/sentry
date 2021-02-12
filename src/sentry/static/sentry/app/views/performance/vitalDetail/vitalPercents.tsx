@@ -1,13 +1,15 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import Tooltip from 'app/components/tooltip';
 import {IconCheckmark, IconFire, IconWarning} from 'app/icons';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
+import {WebVital} from 'app/utils/discover/fields';
 import {formatPercentage} from 'app/utils/formatters';
 import theme, {Color} from 'app/utils/theme';
 
-import {VitalState, vitalStateColors} from './utils';
+import {VitalState, vitalStateColors, webVitalMeh, webVitalPoor} from './utils';
 
 type Percent = {
   vitalState: VitalState;
@@ -15,6 +17,7 @@ type Percent = {
 };
 
 type Props = {
+  vital: WebVital | WebVital[];
   percents: Percent[];
   showVitalPercentNames?: boolean;
 };
@@ -26,13 +29,46 @@ export default function VitalPercents(props: Props) {
         return (
           <VitalStatus key={p.vitalState}>
             {p.vitalState === VitalState.POOR && (
-              <IconFire color={vitalStateColors[p.vitalState] as Color} />
+              <Tooltip
+                title={
+                  Array.isArray(props.vital)
+                    ? t('Poor')
+                    : tct('Poor: >[threshold]ms', {
+                        threshold: webVitalPoor[props.vital],
+                      })
+                }
+              >
+                <IconFire color={vitalStateColors[p.vitalState] as Color} />
+              </Tooltip>
             )}
             {p.vitalState === VitalState.MEH && (
-              <IconWarning color={vitalStateColors[p.vitalState] as Color} />
+              <Tooltip
+                title={
+                  Array.isArray(props.vital)
+                    ? t('Needs improvement')
+                    : tct('Needs improvement: >[threshold]ms', {
+                        threshold: webVitalMeh[props.vital],
+                      })
+                }
+              >
+                <IconWarning color={vitalStateColors[p.vitalState] as Color} />
+              </Tooltip>
             )}
             {p.vitalState === VitalState.GOOD && (
-              <IconCheckmark color={vitalStateColors[p.vitalState] as Color} isCircled />
+              <Tooltip
+                title={
+                  Array.isArray(props.vital)
+                    ? t('Good')
+                    : tct('Good: <[threshold]ms', {
+                        threshold: webVitalMeh[props.vital],
+                      })
+                }
+              >
+                <IconCheckmark
+                  color={vitalStateColors[p.vitalState] as Color}
+                  isCircled
+                />
+              </Tooltip>
             )}
             <span>
               {props.showVitalPercentNames && t(`${p.vitalState}`)}{' '}
