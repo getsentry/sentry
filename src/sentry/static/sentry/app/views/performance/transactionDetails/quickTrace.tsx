@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Location, LocationDescriptor} from 'history';
 
 import {getTraceDateTimeRange} from 'app/components/events/interfaces/spans/utils';
+import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {t, tn} from 'app/locale';
@@ -33,6 +34,7 @@ export default function QuickTrace({event, location, organization}: Props) {
   }
 
   const traceId = event.contexts?.trace?.trace_id ?? null;
+  const traceTarget = generateTraceTarget(event, organization);
 
   return (
     <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
@@ -56,7 +58,13 @@ export default function QuickTrace({event, location, organization}: Props) {
             tooltipText={t('A minified version of the full trace.')}
             bodyText={body}
             subtext={
-              trace === null ? '\u2014' : t('Trace ID: %s', getShortEventId(traceId!))
+              traceId === null ? (
+                '\u2014'
+              ) : (
+                <Link to={traceTarget}>
+                  {t('Trace ID: %s', getShortEventId(traceId))}
+                </Link>
+              )
             }
           />
         );
@@ -124,7 +132,7 @@ const QuickTraceLite = withProjects(
 
       nodes.push(
         <EventNode key="descendents" type="white" icon={null} to={traceTarget}>
-          {t('Descendents')}
+          &nbsp;&nbsp;.&nbsp;&nbsp;.&nbsp;&nbsp;.&nbsp;&nbsp;
         </EventNode>
       );
     }
