@@ -6,8 +6,6 @@ import {IconAdd, IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {DynamicSamplingInnerName} from 'app/types/dynamicSampling';
-import Field from 'app/views/settings/components/forms/field';
-import FieldHelp from 'app/views/settings/components/forms/field/fieldHelp';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import TextareaField from 'app/views/settings/components/forms/textareaField';
 
@@ -58,37 +56,26 @@ function ConditionFields({
                 required
                 stacked
               />
-              <StyledField
-                label={t('Match Conditions')}
+              <TextareaField
+                label={t('Matches')}
                 // help={t('This is a description')} // TODO(PRISCILA): Add correct description
+                placeholder={
+                  showLegacyBrowsers
+                    ? t('No match')
+                    : t('%s (Multiline)', 'ex. 1* or [I3].[0-9].*')
+                }
+                name={`match-${index}`}
+                value={match}
+                onChange={value => onChange(index, 'match', value)}
+                disabled={showLegacyBrowsers}
                 inline={false}
+                autosize
                 hideControlState
                 showHelpInTooltip
                 flexibleControlStateSize
                 required
                 stacked
-              >
-                <StyledTextareaField
-                  placeholder={
-                    showLegacyBrowsers
-                      ? t('No match condition')
-                      : 'ex. 1* or [I3].[0-9].*'
-                  }
-                  name={`match-${index}`}
-                  value={match}
-                  onChange={value => onChange(index, 'match', value)}
-                  disabled={showLegacyBrowsers}
-                  inline={false}
-                  autosize
-                  hideControlState
-                  stacked
-                />
-                <FieldHelp>
-                  {t(
-                    'You can include multiple values by putting each value on a separate line'
-                  )}
-                </FieldHelp>
-              </StyledField>
+              />
               <ButtonDeleteWrapper>
                 <Button onClick={onDelete(index)} size="small">
                   {t('Delete Condition')}
@@ -129,17 +116,6 @@ const IconDeleteWrapper = styled('div')`
   }
 `;
 
-const FieldsWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr;
-  grid-gap: ${space(2)};
-  margin-bottom: ${space(2)};
-
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 1fr max-content;
-  }
-`;
-
 const Fields = styled('div')`
   display: grid;
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
@@ -149,41 +125,48 @@ const Fields = styled('div')`
 `;
 
 const Wrapper = styled('div')`
-  > * :not(:first-child) {
-    label {
-      display: none;
-    }
-    ${IconDeleteWrapper} {
-      margin-top: 0;
-    }
+  > * {
+    :not(:first-child) {
+      label {
+        display: none;
+      }
+      ${IconDeleteWrapper} {
+        margin-top: 0;
+      }
 
-    ${Fields} {
-      @media (max-width: ${p => p.theme.breakpoints[0]}) {
-        border-top: 1px solid ${p => p.theme.border};
-        padding-top: ${space(2)};
+      ${Fields} {
+        @media (max-width: ${p => p.theme.breakpoints[0]}) {
+          border-top: 1px solid ${p => p.theme.border};
+          padding-top: ${space(2)};
+          margin-top: ${space(2)};
+        }
       }
     }
   }
 `;
 
-const StyledField = styled(Field)`
-  padding-bottom: 0;
-`;
+const FieldsWrapper = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-gap: ${space(2)};
 
-const StyledTextareaField = styled(TextareaField)`
-  padding-bottom: 0;
-`;
-
-const StyledButton = styled(Button)`
-  margin-bottom: ${space(2)};
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: 1fr max-content;
+  }
 `;
 
 const ButtonDeleteWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
-  padding-top: ${space(2)};
-
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     display: none;
+  }
+`;
+
+const StyledButton = styled(Button)`
+  margin: ${space(2)} 0;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    margin-top: 0;
   }
 `;
