@@ -7,6 +7,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import AreaChart from 'app/components/charts/areaChart';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import LoadingPanel from 'app/components/charts/loadingPanel';
+import {HeaderTitleLegend} from 'app/components/charts/styles';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
@@ -15,8 +16,6 @@ import {axisLabelFormatter} from 'app/utils/discover/charts';
 import EventView from 'app/utils/discover/eventView';
 import {getDuration} from 'app/utils/formatters';
 import theme from 'app/utils/theme';
-
-import {HeaderTitleLegend} from '../styles';
 
 const QUERY_KEYS = [
   'environment',
