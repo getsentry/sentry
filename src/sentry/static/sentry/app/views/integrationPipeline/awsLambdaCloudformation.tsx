@@ -42,6 +42,7 @@ type Props = {
   accountNumber?: string;
   region?: string;
   error?: string;
+  awsExternalId?: string;
 };
 
 type State = {
@@ -56,7 +57,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
   state: State = {
     accountNumber: this.props.accountNumber,
     region: this.props.region,
-    awsExternalId: getAwsExternalId(),
+    awsExternalId: this.props.awsExternalId ?? getAwsExternalId(),
   };
 
   componentDidMount() {
@@ -81,7 +82,8 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
     // generarate the cloudformation URL using the params we get from the server
     // and the external id we generate
     const {baseCloudformationUrl, templateUrl, stackName} = this.props;
-    const {awsExternalId} = this.state;
+    //always us the generated AWS External ID in local storage
+    const awsExternalId = getAwsExternalId();
     const query = qs.stringify({
       templateURL: templateUrl,
       stackName,
@@ -97,11 +99,12 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
   handleSubmit = (e: React.MouseEvent) => {
     this.setState({submitting: true});
     e.preventDefault();
-    const {accountNumber, region} = this.state;
+    //use the external ID from the form on on the submission
+    const {accountNumber, region, awsExternalId} = this.state;
     const data = {
       accountNumber,
       region,
-      awsExternalId: getAwsExternalId(),
+      awsExternalId,
     };
     addLoadingMessage(t('Submitting\u2026'));
     const {
@@ -142,7 +145,6 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
   handleChangeExternalId = (awsExternalId: string) => {
     this.debouncedTrackValueChanged('awsExternalId');
     awsExternalId = awsExternalId.trim();
-    window.localStorage.setItem(ID_NAME, awsExternalId);
     this.setState({awsExternalId});
   };
 
