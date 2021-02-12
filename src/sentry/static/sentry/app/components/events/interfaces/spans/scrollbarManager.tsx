@@ -120,7 +120,7 @@ export class Provider extends React.Component<Props, State> {
   }
 
   initializeScrollState = () => {
-    if (this.contentSpanBar.size === 0) {
+    if (this.contentSpanBar.size === 0 || !this.hasInteractiveLayer()) {
       return;
     }
 
@@ -175,14 +175,14 @@ export class Provider extends React.Component<Props, State> {
     const virtualScrollbarDOM = this.virtualScrollbar.current;
 
     const maxContentWidth = spanBar.getBoundingClientRect().width;
-    const {parentElement} = spanBar;
+    const interactiveLayer = this.props.interactiveLayerRef.current!;
 
-    if (maxContentWidth === undefined || maxContentWidth <= 0 || !parentElement) {
+    if (maxContentWidth === undefined || maxContentWidth <= 0) {
       virtualScrollbarDOM.style.width = '0';
       return;
     }
 
-    const visibleWidth = parentElement.getBoundingClientRect().width;
+    const visibleWidth = interactiveLayer.getBoundingClientRect().width;
 
     // This is the width of the content not visible.
     const maxScrollDistance = maxContentWidth - visibleWidth;
@@ -292,14 +292,12 @@ export class Provider extends React.Component<Props, State> {
     const virtualScrollPercentage = clamp(rawMouseX / maxVirtualScrollableArea, 0, 1);
 
     // Update scroll positions of all the span bars
+    const interactiveLayer = this.props.interactiveLayerRef.current!;
+    const interactiveLayerWidth = interactiveLayer.getBoundingClientRect().width;
 
     selectRefs(this.contentSpanBar, (spanBarDOM: HTMLDivElement) => {
-      if (!spanBarDOM.parentElement) {
-        return;
-      }
-
-      const parentWidth = spanBarDOM.parentElement.getBoundingClientRect().width;
-      const maxScrollDistance = spanBarDOM.getBoundingClientRect().width - parentWidth;
+      const maxScrollDistance =
+        spanBarDOM.getBoundingClientRect().width - interactiveLayerWidth;
 
       const left = -lerp(0, maxScrollDistance, virtualScrollPercentage);
 
