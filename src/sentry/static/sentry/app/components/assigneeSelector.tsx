@@ -245,8 +245,8 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
   renderSuggestedAssigneeNodes() {
     const {assignedTo} = this.state;
     return (
+      // filter out suggested assignees if a suggestion is already selected
       this.getSuggestedAssignees()
-        // filter out suggested assignees if one is already selected
         ?.filter(
           ({type, id}: SuggestedAssignee) =>
             !(assignedTo && type === assignedTo.type && id === assignedTo.id)
