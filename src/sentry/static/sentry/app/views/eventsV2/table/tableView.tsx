@@ -87,7 +87,7 @@ class TableView extends React.Component<TableViewProps> {
 
   _renderPrependColumns = (
     isHeader: boolean,
-    dataRow?: any,
+    dataRow?: TableDataRow,
     rowIndex?: number
   ): React.ReactNode[] => {
     const {organization, eventView, tableData, location} = this.props;
@@ -133,12 +133,12 @@ class TableView extends React.Component<TableViewProps> {
           </Link>
         </Tooltip>,
       ];
-    } else if (!hasIdField) {
-      let value = dataRow.id;
+    } else if (!hasIdField && dataRow) {
+      let value: React.ReactNode = dataRow.id;
 
       if (tableData && tableData.meta) {
         const fieldRenderer = getFieldRenderer('id', tableData.meta);
-        value = fieldRenderer(dataRow, {organization, location});
+        value = fieldRenderer({data: dataRow}, {organization, location});
       }
 
       const eventSlug = generateEventSlug(dataRow);
@@ -411,7 +411,7 @@ class TableView extends React.Component<TableViewProps> {
           renderHeadCell: this._renderGridHeaderCell as any,
           renderBodyCell: this._renderGridBodyCell as any,
           onResizeColumn: this._resizeColumn as any,
-          renderPrependColumns: this._renderPrependColumns as any,
+          renderPrependColumns: this._renderPrependColumns,
           prependColumnWidths,
         }}
         headerButtons={this.renderHeaderButtons}
