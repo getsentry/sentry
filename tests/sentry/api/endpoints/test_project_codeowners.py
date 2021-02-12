@@ -4,7 +4,7 @@ from sentry.testutils import APITestCase
 from sentry.models import Integration, ProjectCodeOwners
 
 
-class ProjectOwnershipEndpointTestCase(APITestCase):
+class ProjectCodeOwnersEndpointTestCase(APITestCase):
     def setUp(self):
         self.login_as(user=self.user)
 
@@ -64,6 +64,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp_data["raw"] == code_owner.raw
         assert resp_data["dateCreated"] == code_owner.date_added
         assert resp_data["dateUpdated"] == code_owner.date_updated
+        assert resp_data["codeMappingId"] == str(code_mapping.id)
         assert resp_data["provider"] == "unknown"
 
     def test_codeowners_with_integration(self):
@@ -74,4 +75,5 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp_data["raw"] == self.code_owner.raw
         assert resp_data["dateCreated"] == self.code_owner.date_added
         assert resp_data["dateUpdated"] == self.code_owner.date_updated
+        assert resp_data["codeMappingId"] == str(self.code_mapping.id)
         assert resp_data["provider"] == self.integration.provider

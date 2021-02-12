@@ -9,6 +9,7 @@ class ProjectCodeOwnersSerializer(Serializer):
             "raw": obj.raw,
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
+            "codeMappingId": str(obj.repository_project_path_config_id),
             "provider": "unknown",
         }
         if obj.organization_integration:
