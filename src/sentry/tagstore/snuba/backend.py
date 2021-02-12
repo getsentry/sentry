@@ -7,7 +7,7 @@ from django.core.cache import cache
 
 from sentry import options
 from sentry.api.event_search import FIELD_ALIASES, PROJECT_ALIAS, USER_DISPLAY_ALIAS
-from sentry.models import Project
+from sentry.models import Project, ReleaseProjectEnvironment
 from sentry.api.utils import default_start_end_dates
 from sentry.snuba.dataset import Dataset
 from sentry.tagstore import TagKeyStatus
@@ -516,9 +516,7 @@ class SnubaTagStorage(TagStorage):
         return keys_with_counts
 
     def __get_release(self, project_id, group_id, first=True):
-        print("__get_release called. first?", first)
         filters = {"project_id": get_project_list(project_id)}
-        print("filters:", filters)
         conditions = [["tags[sentry:release]", "IS NOT NULL", None], DEFAULT_TYPE_CONDITION]
         if group_id is not None:
             filters["group_id"] = [group_id]
@@ -534,22 +532,18 @@ class SnubaTagStorage(TagStorage):
             orderby=orderby,
             referrer="tagstore.__get_release",
         )
-        print("returning release info:", result)
         if not result:
             return None
         else:
             return list(result.keys())[0]
 
     def get_first_release(self, project_id, group_id):
-        print("tagstore get first release called")
         return self.__get_release(project_id, group_id, True)
 
     def get_last_release(self, project_id, group_id):
         return self.__get_release(project_id, group_id, False)
 
     def get_release_tags(self, project_ids, environment_id, versions):
-        print("tagstore get_release_tags:", project_ids)
-        print("seen column:", SEEN_COLUMN)
         filters = {"project_id": project_ids}
         if environment_id:
             filters["environment"] = [environment_id]
@@ -564,8 +558,9 @@ class SnubaTagStorage(TagStorage):
             ["min", SEEN_COLUMN, "first_seen"],
             ["max", SEEN_COLUMN, "last_seen"],
         ]
-
+        start = self.get_min_start_date(project_ids, environment_id, versions)
         result = snuba.query(
+            start=start,
             groupby=["project_id", col],
             conditions=conditions,
             filter_keys=filters,
@@ -580,6 +575,19 @@ class SnubaTagStorage(TagStorage):
                 values.append(TagValue(key=tag, value=value, **fix_tag_value_data(data)))
 
         return set(values)
+
+    def get_min_start_date(self, project_ids, environment_id, versions):
+        rpe = ReleaseProjectEnvironment.objects.filter(
+            project_id__in=project_ids, release__version__in=versions
+        ).order_by("first_seen")
+
+        if environment_id:
+            rpe = rpe.filter(environment_id=environment_id)
+
+        if rpe:
+            return rpe[0].first_seen
+
+        return None
 
     def get_group_ids_for_users(self, project_ids, event_users, limit=100):
         filters = {"project_id": project_ids}

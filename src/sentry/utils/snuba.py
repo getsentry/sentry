@@ -61,7 +61,7 @@ OVERRIDE_OPTIONS = {
 }
 
 # Show the snuba query params and the corresponding sql or errors in the server logs
-SNUBA_INFO = True  # os.environ.get("SENTRY_SNUBA_INFO", "false").lower() in ("true", "1")
+SNUBA_INFO = os.environ.get("SENTRY_SNUBA_INFO", "false").lower() in ("true", "1")
 
 # There are several cases here where we support both a top level column name and
 # a tag with the same name. Existing search patterns expect to refer to the tag,
@@ -681,7 +681,6 @@ def bulk_raw_query(snuba_param_list, referrer=None):
             query_results = [snuba_query(query_param_list[0] + (Hub(Hub.current),))]
 
     results = []
-    print("results:", query_results)
     for response, _, reverse in query_results:
         try:
             body = json.loads(response.data)
@@ -735,7 +734,6 @@ def query(
     totals=None,
     **kwargs,
 ):
-    print("running snuba query!")
     aggregations = aggregations or [["count()", "", "aggregate"]]
     filter_keys = filter_keys or {}
     selected_columns = selected_columns or []
