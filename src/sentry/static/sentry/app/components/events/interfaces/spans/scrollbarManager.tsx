@@ -175,14 +175,14 @@ export class Provider extends React.Component<Props, State> {
     const virtualScrollbarDOM = this.virtualScrollbar.current;
 
     const maxContentWidth = spanBar.getBoundingClientRect().width;
-    const interactiveLayer = this.props.interactiveLayerRef.current!;
+    const interactiveLayerRect = rectOfContent(this.props.interactiveLayerRef.current!);
 
     if (maxContentWidth === undefined || maxContentWidth <= 0) {
       virtualScrollbarDOM.style.width = '0';
       return;
     }
 
-    const visibleWidth = interactiveLayer.getBoundingClientRect().width;
+    const visibleWidth = interactiveLayerRect.width;
 
     // This is the width of the content not visible.
     const maxScrollDistance = maxContentWidth - visibleWidth;
@@ -196,7 +196,7 @@ export class Provider extends React.Component<Props, State> {
 
     virtualScrollbarDOM.style.width = `max(50px, ${toPercent(virtualScrollbarWidth)})`;
 
-    virtualScrollbarDOM.style.left = '0';
+    virtualScrollbarDOM.style.removeProperty('transform');
   };
 
   generateContentSpanBarRef = () => {
@@ -256,6 +256,7 @@ export class Provider extends React.Component<Props, State> {
 
     selectRefs(this.virtualScrollbar, scrollbarDOM => {
       scrollbarDOM.classList.add('dragging');
+      document.body.style.setProperty('cursor', 'grabbing', 'important');
     });
   };
 
@@ -272,32 +273,34 @@ export class Provider extends React.Component<Props, State> {
 
     const virtualScrollbarDOM = this.virtualScrollbar.current;
 
-    const rect = rectOfContent(this.props.interactiveLayerRef.current!);
+    const interactiveLayerRect = rectOfContent(this.props.interactiveLayerRef.current!);
     const virtualScrollBarRect = rectOfContent(virtualScrollbarDOM);
 
     // Mouse x-coordinate relative to the interactive layer's left side
-    const localDragX = event.pageX - rect.x;
+    const localDragX = event.pageX - interactiveLayerRect.x;
     // The drag movement with respect to the interactive layer's width.
-    const rawMouseX = (localDragX - this.initialMouseClickX) / rect.width;
+    const rawMouseX = (localDragX - this.initialMouseClickX) / interactiveLayerRect.width;
 
-    const maxVirtualScrollableArea = 1 - virtualScrollBarRect.width / rect.width;
+    const maxVirtualScrollableArea =
+      1 - virtualScrollBarRect.width / interactiveLayerRect.width;
 
     // clamp rawMouseX to be within [0, 1]
     const virtualScrollbarPosition = clamp(rawMouseX, 0, 1);
 
-    virtualScrollbarDOM.style.left = `clamp(0%, calc(${toPercent(
-      virtualScrollbarPosition
-    )}), ${toPercent(maxVirtualScrollableArea)})`;
+    const virtualLeft =
+      clamp(virtualScrollbarPosition, 0, maxVirtualScrollableArea) *
+      interactiveLayerRect.width;
+
+    virtualScrollbarDOM.style.transform = `translate3d(${virtualLeft}px, 0, 0)`;
+    virtualScrollbarDOM.style.transformOrigin = 'left';
 
     const virtualScrollPercentage = clamp(rawMouseX / maxVirtualScrollableArea, 0, 1);
 
     // Update scroll positions of all the span bars
-    const interactiveLayer = this.props.interactiveLayerRef.current!;
-    const interactiveLayerWidth = interactiveLayer.getBoundingClientRect().width;
 
     selectRefs(this.contentSpanBar, (spanBarDOM: HTMLDivElement) => {
       const maxScrollDistance =
-        spanBarDOM.getBoundingClientRect().width - interactiveLayerWidth;
+        spanBarDOM.getBoundingClientRect().width - interactiveLayerRect.width;
 
       const left = -lerp(0, maxScrollDistance, virtualScrollPercentage);
 
@@ -328,6 +331,7 @@ export class Provider extends React.Component<Props, State> {
 
     selectRefs(this.virtualScrollbar, scrollbarDOM => {
       scrollbarDOM.classList.remove('dragging');
+      document.body.style.removeProperty('cursor');
     });
   };
 
