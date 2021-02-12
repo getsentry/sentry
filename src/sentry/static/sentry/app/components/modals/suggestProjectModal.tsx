@@ -1,19 +1,16 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
-import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import {IconInfo} from 'app/icons';
+import PatternHeader from 'app/components/patternHeader';
+import {IconBusiness} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Integration, Organization, Project} from 'app/types';
-import {getIntegrationIcon, trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
-import InputField from 'app/views/settings/components/forms/inputField';
 
 type Props = ModalRenderProps & {
   api: Client;
@@ -25,55 +22,68 @@ type State = {};
 class SuggestProjectModal extends React.Component<Props, State> {
   state: State = {};
 
-  onHandleChange(sourceCodeInput: string) {
-    this.setState({
-      sourceCodeInput,
-    });
-  }
-
-  onManualSetup(provider: string) {
-    trackIntegrationEvent(
-      'integrations.stacktrace_manual_option_clicked',
-      {
-        view: 'stacktrace_issue_details',
-        setup_type: 'manual',
-        provider,
-      },
-      this.props.organization
-    );
-  }
-
   render() {
-    const {Header, Body, Footer, organization} = this.props;
+    const {Header, Body, Footer} = this.props;
+
+    const newProjectLink = `/organi`;
 
     return (
       <React.Fragment>
-        <Header closeButton>{t('Link Stack Trace To Source Code')}</Header>
+        <Header>
+          <PatternHeader />
+          <Title>
+            <HeaderPowerIcon gradient withShine size="1.4em" />
+            <h3>{t('Try Sentry for Mobile')}</h3>
+          </Title>
+        </Header>
         <Body>
           <ModalContainer>
-            <div>
-              <h6>{t('Automatic Setup')}</h6>
-              Hi
-            </div>
+            <SmallP>
+              {t(
+                "Sentry for Mobile shows a holistic overview of your application's health in real time. So you can correlate errors with releases, tags, and devices to solve problems quickly, decrease churn, and improve user retention."
+              )}
+            </SmallP>
+            <SmallUl>
+              <li>
+                {tct(
+                  '[see:See] session data, version adoption, and user impact by every release.',
+                  {
+                    see: <strong />,
+                  }
+                )}
+              </li>
+              <li>
+                {tct(
+                  '[solve:Solve] issues quickly with full context: contextualized stack traces, events that lead to the error, client, hardware information, and the very commit that introduced the error.',
+                  {
+                    solve: <strong />,
+                  }
+                )}
+              </li>
+              <li>
+                {tct(
+                  '[learn:Learn] and analyze event data to reduce regressions and ultimately improve user adoption and engagement.',
+                  {
+                    learn: <strong />,
+                  }
+                )}
+              </li>
+            </SmallUl>
+            <SmallP>{t('And guess what? Setup takes less than five minutes.')}</SmallP>
           </ModalContainer>
         </Body>
-        <Footer>Footer</Footer>
+        <Footer>
+          <ButtonBar gap={1}>
+            <Button href={newProjectLink} priority="primary">
+              {t('Get Started')}
+            </Button>
+            <Button>{t('Ask Teammate')}</Button>
+          </ButtonBar>
+        </Footer>
       </React.Fragment>
     );
   }
 }
-
-const SourceCodeInput = styled('div')`
-  display: grid;
-  grid-template-columns: 5fr 1fr;
-  grid-gap: ${space(1)};
-`;
-
-const ManualSetup = styled('div')`
-  display: grid;
-  grid-gap: ${space(1)};
-  justify-items: center;
-`;
 
 const ModalContainer = styled('div')`
   display: grid;
@@ -84,12 +94,23 @@ const ModalContainer = styled('div')`
   }
 `;
 
-const StyledInputField = styled(InputField)`
-  padding: 0px;
+const Title = styled('div')`
+  display: flex;
+  align-items: center;
+  font-size: 1.6em;
+  margin-top: ${space(2)};
 `;
 
-const IntegrationName = styled('p')`
-  padding-left: 10px;
+const HeaderPowerIcon = styled(IconBusiness)`
+  margin-right: ${space(1)};
+`;
+
+const SmallP = styled('p')`
+  margin: 0;
+`;
+
+const SmallUl = styled('ul')`
+  margin: 0;
 `;
 
 export default withApi(SuggestProjectModal);
