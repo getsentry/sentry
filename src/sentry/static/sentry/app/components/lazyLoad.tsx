@@ -1,7 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import PropTypes from 'prop-types';
 
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -9,37 +8,42 @@ import {t} from 'app/locale';
 import {isWebpackChunkLoadingError} from 'app/utils';
 import retryableImport from 'app/utils/retryableImport';
 
-class LazyLoad extends React.Component {
-  static propTypes = {
-    hideBusy: PropTypes.bool,
-    hideError: PropTypes.bool,
-    /**
-     * Function that returns a promise of a React.Component
-     */
-    component: PropTypes.func,
+type PromisedImport<C> = Promise<{default: C}>;
 
-    /**
-     * Also accepts a route object from react-router that has a `componentPromise` property
-     */
-    route: PropTypes.shape({
-      path: PropTypes.string,
-      componentPromise: PropTypes.func,
-    }),
+type Component = React.ComponentType<any>;
+
+type Props<C extends Component> = Omit<
+  React.ComponentProps<C>,
+  'hideBusy' | 'hideError' | 'component' | 'route'
+> & {
+  hideBusy?: boolean;
+  hideError?: boolean;
+  /**
+   * Function that returns a promise of a React.Component
+   */
+  component?: () => PromisedImport<C>;
+  /**
+   * Also accepts a route object from react-router that has a `componentPromise` property
+   */
+  route?: {componentPromise: () => PromisedImport<C>};
+};
+
+type State<C extends Component> = {
+  Component: C | null;
+  error: any | null;
+};
+
+class LazyLoad<C extends Component> extends React.Component<Props<C>, State<C>> {
+  state: State<C> = {
+    Component: null,
+    error: null,
   };
-
-  constructor(...args) {
-    super(...args);
-    this.state = {
-      Component: null,
-      error: null,
-    };
-  }
 
   componentDidMount() {
     this.fetchComponent();
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props<C>) {
     // No need to refetch when component does not change
     if (nextProps.component && nextProps.component === this.props.component) {
       return;
@@ -67,14 +71,16 @@ class LazyLoad extends React.Component {
     );
   }
 
-  componentDidCatch(error) {
+  componentDidCatch(error: any) {
     Sentry.captureException(error);
     this.handleError(error);
   }
 
-  getComponentGetter = () => this.props.component || this.props.route.componentPromise;
+  get componentGetter() {
+    return this.props.component ?? this.props.route?.componentPromise;
+  }
 
-  handleFetchError = error => {
+  handleFetchError = (error: any) => {
     Sentry.withScope(scope => {
       if (isWebpackChunkLoadingError(error)) {
         scope.setFingerprint(['webpack', 'error loading chunk']);
@@ -84,34 +90,28 @@ class LazyLoad extends React.Component {
     this.handleError(error);
   };
 
-  handleError = error => {
+  handleError = (error: any) => {
     // eslint-disable-next-line no-console
     console.error(error);
-    this.setState({
-      error,
-    });
+    this.setState({error});
   };
 
-  async fetchComponent() {
-    const getComponent = this.getComponentGetter();
+  fetchComponent = async () => {
+    const getComponent = this.componentGetter;
+
+    if (getComponent === undefined) {
+      return;
+    }
 
     try {
-      const Component = await retryableImport(getComponent);
-      this.setState({
-        Component: Component.default || Component,
-      });
+      this.setState({Component: await retryableImport(getComponent)});
     } catch (err) {
       this.handleFetchError(err);
     }
-  }
+  };
 
   fetchRetry = () => {
-    this.setState(
-      {
-        error: null,
-      },
-      () => this.fetchComponent()
-    );
+    this.setState({error: null}, this.fetchComponent);
   };
 
   render() {
@@ -137,7 +137,11 @@ class LazyLoad extends React.Component {
       );
     }
 
-    return <Component {...otherProps} />;
+    if (Component === null) {
+      return null;
+    }
+
+    return <Component {...(otherProps as React.ComponentProps<C>)} />;
   }
 }
 
