@@ -81,12 +81,12 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
     const completedOn = moment(task.dateCompleted);
 
     return (
-      <ItemComplete ref={forwardedRef} onClick={handleClick}>
+      <TaskCard ref={forwardedRef} onClick={handleClick}>
         <StatusIndicator>
           {task.status === 'complete' && <CompleteIndicator />}
           {task.status === 'skipped' && <SkippedIndicator />}
         </StatusIndicator>
-        {task.title}
+        <Title>{task.title}</Title>
         <CompletedDate title={completedOn.toString()}>
           {completedOn.fromNow()}
         </CompletedDate>
@@ -100,7 +100,7 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
             <TaskBlankAvatar round />
           </Tooltip>
         )}
-      </ItemComplete>
+      </TaskCard>
     );
   }
 
@@ -111,7 +111,7 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
         requisite: task.requisiteTasks[0].title,
       })}
     >
-      <IconLock size="xs" color="orange300" />
+      <IconLock color="orange300" />
     </Tooltip>
   );
 
@@ -211,16 +211,6 @@ const StyledIconClose = styled(IconClose)`
   right: ${space(1)};
   top: ${space(1)};
   color: ${p => p.theme.gray300};
-`;
-
-const ItemComplete = styled(Card)`
-  cursor: pointer;
-  color: ${p => p.theme.subText};
-  padding: ${space(1)} ${space(1.5)};
-  display: grid;
-  grid-template-columns: max-content 1fr max-content 20px;
-  grid-gap: ${space(1)};
-  align-items: center;
 `;
 
 const transition = testableTransition();

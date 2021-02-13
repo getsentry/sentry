@@ -40,6 +40,7 @@ const doTimeout = (timeout: number) =>
 
 const Heading = styled(motion.div)`
   color: ${p => p.theme.purple300};
+  display: flex;
 `;
 
 Heading.defaultProps = {
@@ -53,8 +54,9 @@ const upcomingTasksHeading = (
     <Tooltip
       containerDisplayMode="block"
       title={t('Some tasks should be completed before completing these tasks')}
-    />
-    {t('Level Up')}
+    >
+      {t('Level Up')}
+    </Tooltip>
   </Heading>
 );
 const completedTasksHeading = <Heading key="complete">{t('Complete')}</Heading>;
