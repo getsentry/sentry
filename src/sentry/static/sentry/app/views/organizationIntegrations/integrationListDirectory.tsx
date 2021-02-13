@@ -41,23 +41,32 @@ import PermissionAlert from 'app/views/settings/organization/permissionAlert';
 import {documentIntegrations, POPULARITY_WEIGHT} from './constants';
 import IntegrationRow from './integrationRow';
 
+const fuseOptions = {
+  threshold: 0.3,
+  location: 0,
+  distance: 100,
+  includeScore: true as const,
+  keys: ['slug', 'key', 'name', 'id'],
+};
+
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
   hideHeader: boolean;
 };
 
 type State = {
-  integrations: Integration[];
-  plugins: PluginWithProjectList[];
-  appInstalls: SentryAppInstallation[];
-  orgOwnedApps: SentryApp[];
-  publishedApps: SentryApp[];
-  config: {providers: IntegrationProvider[]};
+  integrations: Integration[] | null;
+  plugins: PluginWithProjectList[] | null;
+  appInstalls: SentryAppInstallation[] | null;
+  orgOwnedApps: SentryApp[] | null;
+  publishedApps: SentryApp[] | null;
+  config: {providers: IntegrationProvider[]} | null;
   extraApp?: SentryApp;
   searchInput: string;
   list: AppOrProviderOrPlugin[];
   displayedList: AppOrProviderOrPlugin[];
   selectedCategory: string;
+  fuzzy?: Fuse<AppOrProviderOrPlugin, typeof fuseOptions>;
 };
 
 const TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS = 1000;
@@ -85,13 +94,13 @@ export class IntegrationListDirectory extends AsyncComponent<
     const {publishedApps, orgOwnedApps, extraApp, plugins} = this.state;
     const published = publishedApps || [];
     // If we have an extra app in state from query parameter, add it as org owned app
-    if (extraApp) {
+    if (orgOwnedApps !== null && extraApp) {
       orgOwnedApps.push(extraApp);
     }
 
     // we dont want the app to render twice if its the org that created
     // the published app.
-    const orgOwned = orgOwnedApps.filter(
+    const orgOwned = orgOwnedApps?.filter(
       app => !published.find(p => p.slug === app.slug)
     );
 
@@ -104,9 +113,9 @@ export class IntegrationListDirectory extends AsyncComponent<
 
     const combined = ([] as AppOrProviderOrPlugin[])
       .concat(published)
-      .concat(orgOwned)
+      .concat(orgOwned ?? [])
       .concat(this.providers)
-      .concat(plugins)
+      .concat(plugins ?? [])
       .concat(Object.values(documentIntegrations));
 
     const list = this.sortIntegrations(combined);
@@ -125,15 +134,15 @@ export class IntegrationListDirectory extends AsyncComponent<
     const {integrations, publishedApps, plugins} = this.state;
     const integrationsInstalled = new Set();
     //add installed integrations
-    integrations.forEach((integration: Integration) => {
+    integrations?.forEach((integration: Integration) => {
       integrationsInstalled.add(integration.provider.key);
     });
     //add sentry apps
-    publishedApps.filter(this.getAppInstall).forEach((sentryApp: SentryApp) => {
+    publishedApps?.filter(this.getAppInstall).forEach((sentryApp: SentryApp) => {
       integrationsInstalled.add(sentryApp.slug);
     });
     //add plugins
-    plugins.forEach((plugin: PluginWithProjectList) => {
+    plugins?.forEach((plugin: PluginWithProjectList) => {
       if (plugin.projectList.length) {
         integrationsInstalled.add(plugin.slug);
       }
@@ -184,11 +193,11 @@ export class IntegrationListDirectory extends AsyncComponent<
   }
 
   get providers(): IntegrationProvider[] {
-    return this.state.config.providers;
+    return this.state.config?.providers ?? [];
   }
 
   getAppInstall = (app: SentryApp) =>
-    this.state.appInstalls.find(i => i.app.slug === app.slug);
+    this.state.appInstalls?.find(i => i.app.slug === app.slug);
 
   //Returns 0 if uninstalled, 1 if pending, and 2 if installed
   getInstallValue(integration: AppOrProviderOrPlugin) {
@@ -210,7 +219,7 @@ export class IntegrationListDirectory extends AsyncComponent<
       return 0;
     }
 
-    return integrations.find(i => i.provider.key === integration.key) ? 2 : 0;
+    return integrations?.find(i => i.provider.key === integration.key) ? 2 : 0;
   }
 
   getPopularityWeight = (integration: AppOrProviderOrPlugin) =>
@@ -254,12 +263,7 @@ export class IntegrationListDirectory extends AsyncComponent<
   async createSearch() {
     const {list} = this.state;
     this.setState({
-      fuzzy: await createFuzzySearch(list || [], {
-        threshold: 0.3,
-        location: 0,
-        distance: 100,
-        keys: ['slug', 'key', 'name', 'id'],
-      }),
+      fuzzy: await createFuzzySearch(list || [], fuseOptions),
     });
   }
 
@@ -361,9 +365,8 @@ export class IntegrationListDirectory extends AsyncComponent<
   renderProvider = (provider: IntegrationProvider) => {
     const {organization} = this.props;
     //find the integration installations for that provider
-    const integrations = this.state.integrations.filter(
-      i => i.provider.key === provider.key
-    );
+    const integrations =
+      this.state.integrations?.filter(i => i.provider.key === provider.key) ?? [];
 
     return (
       <IntegrationRow
