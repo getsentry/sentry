@@ -250,6 +250,7 @@ const EventWaitingIndicator = styled(p => (
 ))`
   display: flex;
   align-items: center;
+  flex-grow: 1;
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
   color: ${p => p.theme.orange300};

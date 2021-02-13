@@ -157,7 +157,7 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
 
 const TaskCard = styled(Card)`
   position: relative;
-  min-height: 140px;
+  padding: ${space(2)} ${space(3)};
 `;
 
 const Title = styled('div')`
@@ -176,6 +176,7 @@ const Description = styled('p')`
 
 const ActionBar = styled('div')`
   display: flex;
+  justify-content: flex-end;
 `;
 
 type InProgressIndicatorProps = React.HTMLAttributes<HTMLDivElement> & {

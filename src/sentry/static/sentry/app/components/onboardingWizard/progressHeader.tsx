@@ -41,6 +41,7 @@ const Container = styled('div')`
   grid-template-columns: min-content 1fr;
   grid-template-rows: min-content 1fr;
   grid-gap: ${space(1)};
+  margin-bottom: ${space(2)};
 `;
 
 const StyledProgressRing = styled(ProgressRing)`

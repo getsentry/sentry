@@ -15,10 +15,10 @@ const pulse = keyframes`
 `;
 
 const pulsingIndicatorStyles = (p: {theme: Theme}) => css`
-  height: 10px;
-  width: 10px;
+  height: 8px;
+  width: 8px;
   border-radius: 50%;
-  background: ${p.theme.red300};
+  background: ${p.theme.orange300};
   position: relative;
 
   &:before {
@@ -30,7 +30,7 @@ const pulsingIndicatorStyles = (p: {theme: Theme}) => css`
     border-radius: 50%;
     top: -45px;
     left: -45px;
-    border: 4px solid ${p.theme.red300};
+    border: 4px solid ${p.theme.orange300};
     transform-origin: center;
     animation: ${pulse} 3s ease-out infinite;
   }
