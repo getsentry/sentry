@@ -31,3 +31,11 @@ family:native function:"?[[]SentryClient *"                         -app -group
 family:native function:"?[[]SentryHub *"                            -app -group
 family:native function:"?[[]RNSentry *"                             -app -group
 family:native function:"?[[]SentrySDK *"                             -app -group
+
+# Java
+# Match $$EnhancerByGuice$$ and $$FastClassByGuice$$ with a single rule:
+family:java module:*ByGuice$$*                                       -app -group
+# jdk.internal.reflect.GeneratedConstructorAccessorXYZ
+family:java module:*.reflect.GeneratedConstructorAccessor*           -app -group
+# sun.reflect.GeneratedMethodAccessorXYZ
+family:java module:*.reflect.GeneratedMethodAccessor*                -app -group

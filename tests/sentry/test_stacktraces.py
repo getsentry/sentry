@@ -349,6 +349,93 @@ class NormalizeInApptest(TestCase):
         assert frames[6]["in_app"] is True
         assert frames[7]["in_app"] is True
 
+    def test_java_in_app_detection(self):
+        data = {
+            "platform": "java",
+            "exception": {
+                "values": [
+                    {
+                        "type": "RuntimeException",
+                        "value": "10",
+                        "module": "java.lang",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "run",
+                                    "module": "java.lang.Thread",
+                                    "filename": "Thread.java",
+                                    "abs_path": "Thread.java",
+                                    "lineno": 748,
+                                },
+                                {
+                                    "function": "handle",
+                                    "module": "org.eclipse.jetty.security.SecurityHandler",
+                                    "filename": "SecurityHandler.java",
+                                    "abs_path": "SecurityHandler.java",
+                                    "lineno": 602,
+                                },
+                                {
+                                    "function": "doFilter",
+                                    "module": "org.eclipse.jetty.servlet.ServletHandler$CachedChain",
+                                    "filename": "ServletHandler.java",
+                                    "abs_path": "ServletHandler.java",
+                                    "lineno": 1638,
+                                },
+                                {
+                                    "function": "invoke",
+                                    "module": "sun.reflect.GeneratedMethodAccessor35",
+                                    "in_app": True,
+                                },
+                                {
+                                    "function": "invoke",
+                                    "module": "jdk.internal.reflect.GeneratedConstructorAccessor2335",
+                                    "in_app": True,
+                                },
+                                {
+                                    "function": "intercept",
+                                    "module": "io.sentry.samples.StaticResourcesImpl$$EnhancerByGuice$$69175a50",
+                                    "filename": "Interceptor.java",
+                                    "abs_path": "Interceptor.java",
+                                    "lineno": 22,
+                                    "in_app": True,
+                                },
+                                {
+                                    "function": "intercept",
+                                    "module": "io.sentry.samples.StaticResourcesImpl$$FastClassByGuice$$21bac442",
+                                    "filename": "Interceptor.java",
+                                    "abs_path": "Interceptor.java",
+                                    "lineno": 10,
+                                    "in_app": True,
+                                },
+                                {
+                                    "function": "person",
+                                    "module": "io.sentry.samples.spring.web.PersonController",
+                                    "filename": "PersonController.java",
+                                    "abs_path": "PersonController.java",
+                                    "lineno": 29,
+                                    "in_app": True,
+                                },
+                            ]
+                        },
+                        "thread_id": 116,
+                    }
+                ]
+            },
+        }
+
+        config = load_grouping_config(get_default_grouping_config_dict())
+        normalize_stacktraces_for_grouping(data, grouping_config=config)
+
+        frames = data["exception"]["values"][0]["stacktrace"]["frames"]
+        assert frames[0]["in_app"] is False
+        assert frames[1]["in_app"] is False
+        assert frames[2]["in_app"] is False
+        assert frames[3]["in_app"] is False
+        assert frames[4]["in_app"] is False
+        assert frames[5]["in_app"] is False
+        assert frames[6]["in_app"] is False
+        assert frames[7]["in_app"] is True
+
 
 @pytest.mark.parametrize(
     "event",
