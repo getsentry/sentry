@@ -48,12 +48,14 @@ function Headers({
           >
             <GraphHeader>
               <StyledToolbarHeader>{t('Graph:')}</StyledToolbarHeader>
-              <GraphToggle
-                active={statsPeriod === '24h'}
-                onClick={() => onSelectStatsPeriod('24h')}
-              >
-                {t('24h')}
-              </GraphToggle>
+              {selection.datetime.period !== '24h' && (
+                <GraphToggle
+                  active={statsPeriod === '24h'}
+                  onClick={() => onSelectStatsPeriod('24h')}
+                >
+                  {t('24h')}
+                </GraphToggle>
+              )}
               <GraphToggle
                 active={statsPeriod === 'auto'}
                 onClick={() => onSelectStatsPeriod('auto')}
