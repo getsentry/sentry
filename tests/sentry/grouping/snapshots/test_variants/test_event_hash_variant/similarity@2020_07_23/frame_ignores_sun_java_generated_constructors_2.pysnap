@@ -1,25 +1,28 @@
 ---
-created: '2020-07-23T17:38:23.517432Z'
+created: '2021-02-14T15:04:59.270542Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
   component:
-    app (stacktrace of system takes precedence)
+    app
       stacktrace
-        frame (non app frame)
+        frame (marked out of app by stack trace rule (family:java module:*.reflect.GeneratedConstructorAccessor* -app -group))
           module* (removed codegen marker)
             "sun.reflect.GeneratedConstructorAccessor<auto>"
           function*
             "invoke"
 --------------------------------------------------------------------------
+fallback:
+  hash: "d41d8cd98f00b204e9800998ecf8427e"
+--------------------------------------------------------------------------
 system:
-  hash: "09e0efcab18f545166318118ed4e0292"
+  hash: null
   component:
-    system*
-      stacktrace*
-        frame*
+    system
+      stacktrace
+        frame (ignored by stack trace rule (family:java module:*.reflect.GeneratedConstructorAccessor* -app -group))
           module* (removed codegen marker)
             "sun.reflect.GeneratedConstructorAccessor<auto>"
           function*
