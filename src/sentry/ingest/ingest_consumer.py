@@ -257,12 +257,13 @@ def process_userreport(message, projects):
     try:
         save_userreport(project, feedback, start_time=start_time)
         return True
-    except KeyError as e:
-        # XXX(markus): Hotfix because we have broken data in kafka
-        logger.error("Missing user report key: %s", e)
-        return False
     except Conflict as e:
         logger.info("Invalid userreport: %s", e)
+        return False
+    except Exception:
+        # XXX(markus): Hotfix because we have broken data in kafka
+        # If you want to remove this make sure to have triaged all errors in Sentry
+        logger.exception("userreport.save.crash")
         return False
 
 
