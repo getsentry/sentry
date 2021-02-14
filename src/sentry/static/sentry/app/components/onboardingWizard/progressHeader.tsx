@@ -40,7 +40,7 @@ const Container = styled('div')`
   display: grid;
   grid-template-columns: min-content 1fr;
   grid-template-rows: min-content 1fr;
-  grid-gap: ${space(1)};
+  grid-column-gap: ${space(2)};
   margin-bottom: ${space(2)};
 `;
 

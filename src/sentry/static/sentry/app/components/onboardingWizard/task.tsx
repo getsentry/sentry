@@ -111,7 +111,7 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
         requisite: task.requisiteTasks[0].title,
       })}
     >
-      <IconLock color="orange300" />
+      <IconLock color="orange400" />
     </Tooltip>
   );
 
@@ -122,7 +122,7 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
 
   const skipAction = task.skippable && (
     <SkipConfirm onSkip={handleSkip}>
-      {({skip}) => <StyledIconClose onClick={skip} />}
+      {({skip}) => <StyledIconClose size="xs" onClick={skip} />}
     </SkipConfirm>
   );
 
@@ -199,7 +199,7 @@ const InProgressIndicator = styled(({user, ...props}: InProgressIndicatorProps) 
 ))`
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: bold;
-  color: ${p => p.theme.orange300};
+  color: ${p => p.theme.orange400};
   display: grid;
   grid-template-columns: max-content max-content;
   align-items: center;
@@ -208,8 +208,8 @@ const InProgressIndicator = styled(({user, ...props}: InProgressIndicatorProps) 
 
 const StyledIconClose = styled(IconClose)`
   position: absolute;
-  right: ${space(1)};
-  top: ${space(1)};
+  right: ${space(1.5)};
+  top: ${space(1.5)};
   color: ${p => p.theme.gray300};
 `;
 
@@ -235,7 +235,7 @@ CompleteIndicator.defaultProps = {
 const SkippedIndicator = styled(IconClose)``;
 SkippedIndicator.defaultProps = {
   isCircled: true,
-  color: 'orange300',
+  color: 'orange400',
 };
 
 const completedItemAnimation = {
