@@ -128,7 +128,7 @@ jobs:
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path
         if: github.ref == 'refs/heads/master' || steps.changes.outputs.frontend == 'true'
-        run: echo "::set-output name=dir::$(yarn cache dir)"
+        run: echo "::set-output name=dir::$(yarn config get cacheFolder)"
 
       - uses: actions/cache@v2
         id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
@@ -141,7 +141,7 @@ jobs:
 
       - name: Install dependencies
         if: github.ref == 'refs/heads/master' || steps.changes.outputs.frontend == 'true'
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - uses: getsentry/size-limit-action@v3
         if: github.ref == 'refs/heads/master' || steps.changes.outputs.frontend == 'true'
