@@ -87,7 +87,6 @@ register_strategy_config(
     """,
     initial_context={
         "trim_message": False,
-        "hierarchical_grouping": False,
     },
 )
 
@@ -118,7 +117,6 @@ register_strategy_config(
         "with_context_line_file_origin_bug": True,
         "trim_message": True,
         "with_exception_value_fallback": True,
-        "hierarchical_grouping": False,
     },
 )
 

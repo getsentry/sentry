@@ -1,6 +1,6 @@
 import re
 
-from sentry.grouping.component import GroupingComponent, MultipleVariants
+from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import strategy, call_with_variants
 from sentry.grouping.strategies.utils import remove_non_stacktrace_variants, has_url_origin
 from sentry.grouping.strategies.message import trim_message_for_grouping
@@ -344,24 +344,45 @@ def get_contextline_component(frame, platform, function, context):
 
 @strategy(id="stacktrace:v1", interfaces=["stacktrace"], score=1800)
 def stacktrace(stacktrace, context, **meta):
+    assert context["variant"] is None
+
+    rv = call_with_variants(
+        _single_stacktrace_variant, ["!system", "app"], stacktrace, context=context, meta=meta
+    )
+
     if context["hierarchical_grouping"]:
-        with context:
-            context["variant"] = "app"
+        rv["app-depth-max"] = full_stacktrace = rv.pop("app")
 
-            variants = {
-                f"{n}frames": _single_stacktrace_variant(stacktrace, context, meta, max_frames=n)
-                for n in range(5)
-            }
-            variants["app"] = _single_stacktrace_variant(stacktrace, context, meta)
-            return MultipleVariants(variants)
-    else:
-        assert context["variant"] is None
-        return call_with_variants(
-            _single_stacktrace_variant, ["!system", "app"], stacktrace, context=context, meta=meta
-        )
+        max_frames = 5
+
+        while max_frames > 0:
+            stacktrace = full_stacktrace.shallow_copy()
+            new_values = []
+            ignored = 0
+
+            # cannot update contributes here as this copy is shallow.
+            # instead, trim down list
+            for component in reversed(stacktrace.values):
+                if not component.contributes:
+                    continue
+
+                ignored += 1
+                if ignored <= max_frames:
+                    new_values.append(component)
+                else:
+                    break
+
+            new_values.reverse()
+            stacktrace.update(values=new_values)
+            if len(new_values) == max_frames:
+                rv[f"app-depth-{max_frames}"] = stacktrace
+
+            max_frames -= 1
+
+    return rv
 
 
-def _single_stacktrace_variant(stacktrace, context, meta, max_frames=-1):
+def _single_stacktrace_variant(stacktrace, context, meta):
     variant = context["variant"]
 
     frames = stacktrace.frames
@@ -397,7 +418,6 @@ def _single_stacktrace_variant(stacktrace, context, meta, max_frames=-1):
         frames_for_filtering,
         meta["event"].platform,
         similarity_self_encoder=_stacktrace_encoder,
-        max_frames=max_frames,
     )
 
 
@@ -451,7 +471,7 @@ def single_exception(exception, context, **meta):
         type_component.update(contributes=False, hint="ignored because exception is synthetic")
 
     if exception.stacktrace is not None:
-        stacktrace_variants = context.get_grouping_component(exception.stacktrace, **meta).variants
+        stacktrace_variants = context.get_grouping_component(exception.stacktrace, **meta)
     else:
         stacktrace_variants = {
             "app": GroupingComponent(id="stacktrace"),
@@ -485,7 +505,7 @@ def single_exception(exception, context, **meta):
 
         rv[variant] = GroupingComponent(id="exception", values=values)
 
-    return MultipleVariants(rv)
+    return rv
 
 
 @strategy(id="chained-exception:v1", interfaces=["exception"], score=2000)
@@ -497,16 +517,18 @@ def chained_exception(chained_exception, context, **meta):
         return context.get_grouping_component(exceptions[0], **meta)
 
     # Case 2: produce a component for each chained exception
-    rv = {}
+    by_name = {}
+
     for exception in exceptions:
-        variants = context.get_grouping_component(exception, **meta)
+        for name, component in context.get_grouping_component(exception, **meta).items():
+            by_name.setdefault(name, []).append(component)
 
-        for variant, component in variants.variants.items():
-            rv.setdefault(variant, []).append(component)
+    rv = {}
 
-    return MultipleVariants(
-        {k: GroupingComponent(id="chained-exception", values=v) for k, v in rv.items()}
-    )
+    for name, component_list in by_name.items():
+        rv[name] = GroupingComponent(id="chained-exception", values=component_list)
+
+    return rv
 
 
 @chained_exception.variant_processor
@@ -518,34 +540,28 @@ def chained_exception_variant_processor(variants, context, **meta):
 def threads(threads_interface, context, **meta):
     thread_count = len(threads_interface.values)
     if thread_count != 1:
-        return MultipleVariants(
-            {
-                "app": GroupingComponent(
-                    id="threads",
-                    contributes=False,
-                    hint="ignored because contains %d threads" % thread_count,
-                )
-            }
-        )
+        return {
+            "app": GroupingComponent(
+                id="threads",
+                contributes=False,
+                hint="ignored because contains %d threads" % thread_count,
+            )
+        }
 
     stacktrace = threads_interface.values[0].get("stacktrace")
     if not stacktrace:
-        return MultipleVariants(
-            {
-                "app": GroupingComponent(
-                    id="threads", contributes=False, hint="thread has no stacktrace"
-                ),
-            }
-        )
+        return {
+            "app": GroupingComponent(
+                id="threads", contributes=False, hint="thread has no stacktrace"
+            )
+        }
 
     rv = {}
 
-    for variant, stacktrace_component in context.get_grouping_component(
-        stacktrace, **meta
-    ).variants.items():
-        rv[variant] = GroupingComponent(id="threads", values=[stacktrace_component])
+    for name, stacktrace_component in context.get_grouping_component(stacktrace, **meta).items():
+        rv[name] = GroupingComponent(id="threads", values=[stacktrace_component])
 
-    return MultipleVariants(rv)
+    return rv
 
 
 @threads.variant_processor

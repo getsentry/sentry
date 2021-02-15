@@ -1,7 +1,7 @@
 import inspect
 
 from sentry import projectoptions
-from sentry.grouping.component import GroupingComponent, MultipleVariants
+from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import Enhancements
 
 
@@ -155,12 +155,13 @@ class Strategy:
         if variants is None:
             return {}
 
-        assert isinstance(variants, MultipleVariants)
-        rv = variants.variants
+        assert isinstance(variants, dict)
 
         if self.variant_processor_func is not None:
-            rv = self._invoke(self.variant_processor_func, rv, event=event, context=context)
-        return rv
+            variants = self._invoke(
+                self.variant_processor_func, variants, event=event, context=context
+            )
+        return variants
 
 
 class StrategyConfiguration:
@@ -269,17 +270,6 @@ def create_strategy_configuration(
     return NewStrategyConfiguration
 
 
-def _flatten_variants(component):
-    if isinstance(component, MultipleVariants):
-        for k, v in component.variants:
-            assert k is not None
-            for k2, v2 in _flatten_variants(v):
-                yield (f"{k}-{k2}" if k2 is not None and k2 != k else k), v2
-
-    else:
-        yield None, component
-
-
 def call_with_variants(f, variants, *args, **kwargs):
     context = kwargs["context"]
     if context["variant"] is not None:
@@ -292,6 +282,9 @@ def call_with_variants(f, variants, *args, **kwargs):
     prevent_contribution = None
 
     for variant in variants:
+        is_mandatory = variant[:1] == "!"
+        variant = variant.lstrip("!")
+
         with context:
             context["variant"] = variant
             component = f(*args, **kwargs)
@@ -299,8 +292,6 @@ def call_with_variants(f, variants, *args, **kwargs):
         if component is None:
             continue
 
-        is_mandatory = variant[:1] == "!"
-        variant = variant.lstrip("!")
         if is_mandatory:
             has_mandatory_hashes = True
 
@@ -341,4 +332,4 @@ def call_with_variants(f, variants, *args, **kwargs):
                     hint="ignored because hash matches %s variant" % duplicate_of,
                 )
 
-    return MultipleVariants(rv)
+    return rv
