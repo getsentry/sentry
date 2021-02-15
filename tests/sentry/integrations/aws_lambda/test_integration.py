@@ -68,6 +68,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
                 "error": None,
                 "initialStepNumber": 1,
                 "organization": serialize(self.organization),
+                "awsExternalId": None,
             },
         )
 
@@ -101,6 +102,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
                 "error": "Please validate the Cloudformation stack was created successfully",
                 "initialStepNumber": 1,
                 "organization": serialize(self.organization),
+                "awsExternalId": "my-id",
             },
         )
 

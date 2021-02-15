@@ -152,19 +152,19 @@ class Issues extends React.Component<Props, State> {
       : t('given timeframe');
 
     return (
-      <EmptyState withIcon={false}>
+      <EmptyState>
         <React.Fragment>
           {issuesType === IssuesType.NEW &&
-            tct('No new issues in this release for the [timePeriod].', {
+            tct('No new issues for the [timePeriod].', {
               timePeriod: displayedPeriod,
             })}
           {issuesType === IssuesType.UNHANDLED &&
-            tct('No unhandled issues in this release for the [timePeriod].', {
+            tct('No unhandled issues for the [timePeriod].', {
               timePeriod: displayedPeriod,
             })}
-          {issuesType === IssuesType.RESOLVED && t('No resolved issues in this release.')}
+          {issuesType === IssuesType.RESOLVED && t('No resolved issues.')}
           {issuesType === IssuesType.ALL &&
-            tct('No issues in this release for the [timePeriod].', {
+            tct('No issues for the [timePeriod].', {
               timePeriod: displayedPeriod,
             })}
         </React.Fragment>
