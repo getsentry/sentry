@@ -1,12 +1,12 @@
 ---
-created: '2020-02-26T19:54:43.010583Z'
+created: '2021-02-15T18:20:10.265699Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app:
+app-depth-max:
   hash: "b4c29e2a2a2681fbaf9fd8f5b09e4154"
   component:
-    app*
+    app-depth-max*
       chained-exception*
         exception*
           stacktrace

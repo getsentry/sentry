@@ -1,12 +1,31 @@
 ---
-created: '2020-08-25T09:17:15.905761Z'
+created: '2021-02-15T18:20:09.542238Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app:
+app-depth-1:
+  hash: "73b820e39fcb5ac396b0e288dfec33ac"
+  component:
+    app-depth-1*
+      chained-exception*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "io.sentry.example.Application"
+              filename (module takes precedence)
+                "application.java"
+              function*
+                "main"
+          type*
+            "LifecycleException"
+          value (ignored because stacktrace takes precedence)
+            "Failed to start component [Connector[HTTP/<float><int>]]"
+--------------------------------------------------------------------------
+app-depth-max:
   hash: "750486b8d8c51500fa0dfbb6f1577af0"
   component:
-    app*
+    app-depth-max*
       chained-exception*
         exception*
           stacktrace
@@ -394,8 +413,8 @@ app:
 default:
   hash: null
   component:
-    default (exception of app/system takes precedence)
-      message (exception of app/system takes precedence)
+    default (exception of app-depth-1/app-depth-max/system takes precedence)
+      message (exception of app-depth-1/app-depth-max/system takes precedence)
         "Failed to start connector [Connector[HTTP/<float><int>]]"
 --------------------------------------------------------------------------
 system:

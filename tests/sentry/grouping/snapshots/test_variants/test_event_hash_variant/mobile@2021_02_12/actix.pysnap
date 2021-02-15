@@ -1,12 +1,142 @@
 ---
-created: '2020-11-12T10:57:06.244577Z'
+created: '2021-02-15T18:20:09.406827Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app:
+app-depth-1:
+  hash: "ea56167628576b6a5ef91fb59775f168"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "lib.rs"
+            function*
+              "log::__private_api_log"
+        type*
+          "actix_web::pipeline"
+        value (ignored because stacktrace takes precedence)
+          "Error occurred during request handling, status: <int> Internal Server Error Something went really wrong here"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "5cf39244fb365390a16ae393df9a55b7"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "<::log::macros::log macros>"
+            function*
+              "actix_web::pipeline::ProcessResponse<T>::poll_io"
+          frame*
+            filename*
+              "lib.rs"
+            function*
+              "log::__private_api_log"
+        type*
+          "actix_web::pipeline"
+        value (ignored because stacktrace takes precedence)
+          "Error occurred during request handling, status: <int> Internal Server Error Something went really wrong here"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "c5de9705747039471f5c6674ce9530bf"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "pipeline.rs"
+            function*
+              "actix_web::pipeline::Pipeline<T>::poll_io"
+          frame*
+            filename*
+              "<::log::macros::log macros>"
+            function*
+              "actix_web::pipeline::ProcessResponse<T>::poll_io"
+          frame*
+            filename*
+              "lib.rs"
+            function*
+              "log::__private_api_log"
+        type*
+          "actix_web::pipeline"
+        value (ignored because stacktrace takes precedence)
+          "Error occurred during request handling, status: <int> Internal Server Error Something went really wrong here"
+--------------------------------------------------------------------------
+app-depth-4:
+  hash: "165eeab6e2e604c7590f33ea5863061e"
+  component:
+    app-depth-4*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "h1.rs"
+            function*
+              "actix_web::server::h1::Http1Dispatcher<T>::parse"
+          frame*
+            filename*
+              "pipeline.rs"
+            function*
+              "actix_web::pipeline::Pipeline<T>::poll_io"
+          frame*
+            filename*
+              "<::log::macros::log macros>"
+            function*
+              "actix_web::pipeline::ProcessResponse<T>::poll_io"
+          frame*
+            filename*
+              "lib.rs"
+            function*
+              "log::__private_api_log"
+        type*
+          "actix_web::pipeline"
+        value (ignored because stacktrace takes precedence)
+          "Error occurred during request handling, status: <int> Internal Server Error Something went really wrong here"
+--------------------------------------------------------------------------
+app-depth-5:
+  hash: "7cceb99a79f82dd8c675438c5460089d"
+  component:
+    app-depth-5*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "h1.rs"
+            function*
+              "actix_web::server::h1::Http1Dispatcher<T>::poll_io"
+          frame*
+            filename*
+              "h1.rs"
+            function*
+              "actix_web::server::h1::Http1Dispatcher<T>::parse"
+          frame*
+            filename*
+              "pipeline.rs"
+            function*
+              "actix_web::pipeline::Pipeline<T>::poll_io"
+          frame*
+            filename*
+              "<::log::macros::log macros>"
+            function*
+              "actix_web::pipeline::ProcessResponse<T>::poll_io"
+          frame*
+            filename*
+              "lib.rs"
+            function*
+              "log::__private_api_log"
+        type*
+          "actix_web::pipeline"
+        value (ignored because stacktrace takes precedence)
+          "Error occurred during request handling, status: <int> Internal Server Error Something went really wrong here"
+--------------------------------------------------------------------------
+app-depth-max:
   hash: "703d3dd9cb763e3f5037f659d27da947"
   component:
-    app*
+    app-depth-max*
       exception*
         stacktrace*
           frame*

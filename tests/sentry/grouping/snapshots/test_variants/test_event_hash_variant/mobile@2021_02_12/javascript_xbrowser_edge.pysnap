@@ -1,12 +1,12 @@
 ---
-created: '2020-02-26T19:54:42.181080Z'
+created: '2021-02-15T18:20:10.362363Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app:
+app-depth-max:
   hash: null
   component:
-    app (exception of system takes precedence)
+    app-depth-max (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace
           frame (non app frame)
