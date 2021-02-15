@@ -87,6 +87,15 @@ def lookup_strategy(strategy_id):
         raise LookupError("Unknown strategy %r" % strategy_id)
 
 
+def flatten_variants_from_component(component):
+    """Given a component extracts variants from it if that component is
+    a variant provider.  Otherwise this just returns the root component.
+    """
+    if not component.variant_provider:
+        return {component.id: component}
+    return {c.id: c for c in component.values}
+
+
 class Strategy:
     """Baseclass for all strategies."""
 
@@ -122,7 +131,7 @@ class Strategy:
         self.variant_processor_func = func
         return func
 
-    def get_grouping_component(self, event, variant, context):
+    def get_grouping_component(self, event, context, variant=None):
         """Given a specific variant this calculates the grouping component."""
         args = []
         for iface_path in self.interfaces:
@@ -220,7 +229,6 @@ def create_strategy_configuration(
 
     NewStrategyConfiguration.id = id
     NewStrategyConfiguration.base = base
-    NewStrategyConfiguration.config_class = id.split(":", 1)[0]
     NewStrategyConfiguration.strategies = dict(base.strategies) if base else {}
     NewStrategyConfiguration.delegates = dict(base.delegates) if base else {}
     NewStrategyConfiguration.initial_context = dict(base.initial_context) if base else {}

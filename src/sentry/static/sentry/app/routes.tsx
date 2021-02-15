@@ -1664,15 +1664,6 @@ function routes() {
                 component={errorHandler(LazyLoad)}
               />
               <Route
-                path="artifacts/"
-                componentPromise={() =>
-                  import(
-                    /* webpackChunkName: "ReleasesDetailArtifacts" */ 'app/views/releases/detail/artifacts'
-                  )
-                }
-                component={errorHandler(LazyLoad)}
-              />
-              <Route
                 path="files-changed/"
                 componentPromise={() =>
                   import(
@@ -2251,15 +2242,6 @@ function routes() {
                   redirectDeprecatedProjectRoute(
                     ({orgId, projectId, router}) =>
                       `/organizations/${orgId}/releases/${router.params.version}/all-events/?project=${projectId}`
-                  )
-                )}
-              />
-              <Route
-                path="releases/:version/artifacts/"
-                component={errorHandler(
-                  redirectDeprecatedProjectRoute(
-                    ({orgId, projectId, router}) =>
-                      `/organizations/${orgId}/releases/${router.params.version}/artifacts/?project=${projectId}`
                   )
                 )}
               />

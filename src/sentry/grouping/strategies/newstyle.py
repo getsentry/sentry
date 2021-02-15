@@ -53,6 +53,9 @@ RECURSION_COMPARISON_FIELDS = [
 
 def is_recursion_v1(frame1, frame2):
     "Returns a boolean indicating whether frames are recursive calls."
+    if frame2 is None:
+        return False
+
     for field in RECURSION_COMPARISON_FIELDS:
         if getattr(frame1, field, None) != getattr(frame2, field, None):
             return False
@@ -234,8 +237,6 @@ def get_function_component(
 def frame(frame, event, context, **meta):
     platform = frame.platform or event.platform
 
-    platform = frame.platform or event.platform
-
     # Safari throws [native code] frames in for calls like ``forEach``
     # whereas Chrome ignores these. Let's remove it from the hashing algo
     # so that they're more likely to group together
@@ -307,6 +308,9 @@ def frame(frame, event, context, **meta):
         ):
             rv.update(contributes=False, hint="ignored low quality javascript frame")
 
+    if context["is_recursion"]:
+        rv.update(contributes=False, hint="ignored due to recursion")
+
     return rv
 
 
@@ -366,11 +370,11 @@ def _single_stacktrace_variant(stacktrace, context, meta, max_frames=-1):
     prev_frame = None
     frames_for_filtering = []
     for frame in frames:
-        frame_component = context.get_grouping_component(frame, **meta)
+        with context:
+            context["is_recursion"] = is_recursion_v1(frame, prev_frame)
+            frame_component = context.get_grouping_component(frame, **meta)
         if variant == "app" and not frame.in_app:
             frame_component.update(contributes=False, hint="non app frame")
-        elif prev_frame is not None and is_recursion_v1(frame, prev_frame):
-            frame_component.update(contributes=False, hint="ignored due to recursion")
         values.append(frame_component)
         frames_for_filtering.append(frame.get_raw_data())
         prev_frame = frame

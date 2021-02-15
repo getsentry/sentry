@@ -251,7 +251,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
     const {onChange} = this.props;
 
     const newDateTime: ChangeData = {
-      relative: null,
+      relative: DEFAULT_STATS_PERIOD,
       start: null,
       end: null,
       utc: null,
