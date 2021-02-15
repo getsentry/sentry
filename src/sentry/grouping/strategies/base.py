@@ -15,8 +15,8 @@ RISK_LEVEL_HIGH = 2
 
 def strategy(id=None, ids=None, variants=None, interfaces=None, name=None, score=None):
     """Registers a strategy"""
-    if interfaces is None or variants is None:
-        raise TypeError("interfaces and variants are required")
+    if interfaces is None:
+        raise TypeError("interfaces is required")
 
     if name is None:
         if len(interfaces) != 1:
@@ -87,6 +87,15 @@ def lookup_strategy(strategy_id):
         raise LookupError("Unknown strategy %r" % strategy_id)
 
 
+def flatten_variants_from_component(component):
+    """Given a component extracts variants from it if that component is
+    a variant provider.  Otherwise this just returns the root component.
+    """
+    if not component.variant_provider:
+        return {component.id: component}
+    return {c.id: c for c in component.values}
+
+
 class Strategy:
     """Baseclass for all strategies."""
 
@@ -97,13 +106,16 @@ class Strategy:
         self.interfaces = interfaces
         self.mandatory_variants = []
         self.optional_variants = []
-        self.variants = []
-        for variant in variants:
-            if variant[:1] == "!":
-                self.mandatory_variants.append(variant[1:])
-            else:
-                self.optional_variants.append(variant)
-            self.variants.append(variant)
+        if variants is not None:
+            self.variants = []
+            for variant in variants:
+                if variant[:1] == "!":
+                    self.mandatory_variants.append(variant[1:])
+                else:
+                    self.optional_variants.append(variant)
+                self.variants.append(variant)
+        else:
+            self.variants = None
         self.score = score
         self.func = func
         self.variant_processor_func = None
@@ -128,7 +140,7 @@ class Strategy:
         self.variant_processor_func = func
         return func
 
-    def get_grouping_component(self, event, variant, context):
+    def get_grouping_component(self, event, context, variant=None):
         """Given a specific variant this calculates the grouping component."""
         args = []
         for iface_path in self.interfaces:
@@ -146,12 +158,22 @@ class Strategy:
         """This returns a dictionary of all components by variant that this
         strategy can produce.
         """
+        # If no variants are provided we skip over the default logic and
+        # go exclusively by the variant_processor_func. This also makes this
+        # code a noop for delegate only strategies.
+        if not self.variants:
+            component = self.get_grouping_component(event, context)
+            rv = flatten_variants_from_component(component)
+            if self.variant_processor_func is not None:
+                rv = self._invoke(self.variant_processor_func, rv, event=event, context=context)
+            return rv
+
         rv = {}
         # trivial case: we do not have mandatory variants and can handle
         # them all the same.
         if not self.mandatory_variants:
             for variant in self.variants:
-                component = self.get_grouping_component(event, variant, context)
+                component = self.get_grouping_component(event, context, variant)
                 if component is not None:
                     rv[variant] = component
 
@@ -160,7 +182,7 @@ class Strategy:
             prevent_contribution = None
 
             for variant in self.mandatory_variants:
-                component = self.get_grouping_component(event, variant, context)
+                component = self.get_grouping_component(event, context, variant)
                 if component is None:
                     continue
                 if component.contributes:
@@ -172,7 +194,7 @@ class Strategy:
             for variant in self.optional_variants:
                 # We also only want to create another variant if it
                 # produces different results than the mandatory components
-                component = self.get_grouping_component(event, variant, context)
+                component = self.get_grouping_component(event, context, variant)
                 if component is None:
                     continue
 
@@ -273,7 +295,6 @@ def create_strategy_configuration(
 
     NewStrategyConfiguration.id = id
     NewStrategyConfiguration.base = base
-    NewStrategyConfiguration.config_class = id.split(":", 1)[0]
     NewStrategyConfiguration.strategies = dict(base.strategies) if base else {}
     NewStrategyConfiguration.delegates = dict(base.delegates) if base else {}
     NewStrategyConfiguration.initial_context = dict(base.initial_context) if base else {}
