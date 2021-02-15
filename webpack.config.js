@@ -10,6 +10,7 @@ const CompressionPlugin = require('compression-webpack-plugin');
 const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const FixStyleOnlyEntriesPlugin = require('webpack-fix-style-only-entries');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+const PnpWebpackPlugin = require(`pnp-webpack-plugin`);
 
 const IntegrationDocsFetchPlugin = require('./build-utils/integration-docs-fetch-plugin');
 const OptionalLocaleChunkPlugin = require('./build-utils/optional-locale-chunk-plugin');
@@ -205,7 +206,7 @@ const cacheGroups = {
 
 const babelOptions = {...babelConfig, cacheDirectory: true};
 const babelLoaderConfig = {
-  loader: 'babel-loader',
+  loader: require.resolve('babel-loader'),
   options: babelOptions,
 };
 
@@ -343,33 +344,30 @@ let appConfig = {
     ...localeRestrictionPlugins,
   ],
   resolve: {
+    plugins: [
+      PnpWebpackPlugin
+    ],
     alias: {
       app: path.join(staticPrefix, 'app'),
       'sentry-images': path.join(staticPrefix, 'images'),
       '@emotion/styled': path.join(staticPrefix, 'app', 'styled'),
-      '@original-emotion/styled': path.join(
-        __dirname,
-        'node_modules',
-        '@emotion',
-        'styled'
-      ),
+      '@original-emotion/styled': require.resolve('@emotion/styled'),
 
       // Aliasing this for getsentry's build, otherwise `less/select2` will not be able
       // to be resolved
       less: path.join(staticPrefix, 'less'),
       'sentry-test': path.join(__dirname, 'tests', 'js', 'sentry-test'),
       'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale'),
-      'ios-device-list': path.join(
-        __dirname,
-        'node_modules',
-        'ios-device-list',
-        'dist',
-        'ios-device-list.min.js'
-      ),
+      'ios-device-list': require.resolve('ios-device-list/dist/ios-device-list.min.js')
     },
 
     modules: ['node_modules'],
     extensions: ['.jsx', '.js', '.json', '.ts', '.tsx', '.less'],
+  },
+  resolveLoader: {
+    plugins: [
+      PnpWebpackPlugin.moduleLoader(module),
+    ],
   },
   output: {
     path: distPath,
