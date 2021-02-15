@@ -40,7 +40,10 @@ const doTimeout = (timeout: number) =>
 
 const Heading = styled(motion.div)`
   color: ${p => p.theme.purple300};
-  display: flex;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-top: ${space(2)};
 `;
 
 Heading.defaultProps = {
@@ -182,7 +185,7 @@ AnimatedTaskItem.defaultProps = {
 const TaskList = styled('div')`
   display: grid;
   grid-auto-flow: row;
-  grid-gap: ${space(2)};
+  grid-gap: ${space(1)};
   margin-bottom: ${space(2)};
 `;
 
