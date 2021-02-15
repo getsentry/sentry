@@ -1,12 +1,17 @@
+import React from 'react';
 import * as Sentry from '@sentry/react';
 
 import {t} from 'app/locale';
 import {BuiltinSymbolSource} from 'app/types/debugFiles';
-import {CandidateFeatures} from 'app/types/debugImage';
+import {
+  CandidateDownloadStatus,
+  CandidateFeatures,
+  ImageCandidate,
+} from 'app/types/debugImage';
 
 import {INTERNAL_SOURCE} from '../utils';
 
-export function getCandidateFeatureLabel(type: keyof CandidateFeatures) {
+export function getFeatureLabel(type: keyof CandidateFeatures) {
   switch (type) {
     case 'has_debug_info':
       return {
@@ -63,4 +68,73 @@ export function getSourceTooltipDescription(
   }
 
   return t('This debug information file is from a custom symbol server');
+}
+
+export function getStatusTooltipDescription(candidate: ImageCandidate) {
+  const {download, location, source} = candidate;
+
+  switch (download.status) {
+    case CandidateDownloadStatus.OK: {
+      return {
+        label: t('Download Details'),
+        description: location,
+        disabled: !location || source === INTERNAL_SOURCE,
+      };
+    }
+
+    case CandidateDownloadStatus.ERROR:
+    case CandidateDownloadStatus.MALFORMED: {
+      const {details} = download;
+      return {
+        label: t('Download Details'),
+        description: details,
+        disabled: !details,
+      };
+    }
+    case CandidateDownloadStatus.NOT_FOUND: {
+      const {details} = download;
+      return {
+        label: (
+          <React.Fragment>
+            {t('No debug file was not found at this location')}
+            {':'}
+          </React.Fragment>
+        ),
+        description: (
+          <React.Fragment>
+            <div>{location}</div>
+            {details && <div>{details}</div>}
+          </React.Fragment>
+        ),
+        disabled: !location || source === INTERNAL_SOURCE,
+      };
+    }
+    case CandidateDownloadStatus.NO_PERMISSION: {
+      const {details} = download;
+      return {
+        label: t('Permission Error'),
+        description: details,
+        disabled: !details,
+      };
+    }
+    case CandidateDownloadStatus.DELETED: {
+      return {
+        label: t('This file was deleted after the issue was processed.'),
+      };
+    }
+    case CandidateDownloadStatus.UNAPPLIED: {
+      return {
+        label: t(
+          'This issue was processed before this debug information file was available. To apply new debug information, reprocess this issue. '
+        ),
+      };
+    }
+    default: {
+      Sentry.withScope(scope => {
+        scope.setLevel(Sentry.Severity.Warning);
+        Sentry.captureException(new Error("Unknown Image's candidate download status"));
+      });
+      return {}; // This shall not happen
+    }
+  }
 }
