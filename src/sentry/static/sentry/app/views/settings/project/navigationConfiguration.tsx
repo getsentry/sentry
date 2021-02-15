@@ -102,13 +102,13 @@ export default function getConfiguration({
           title: t('Debug Files'),
         },
         {
-          path: `${pathPrefix}/source-maps/`,
-          title: t('Source Maps'),
-        },
-        {
           path: `${pathPrefix}/proguard/`,
           title: t('ProGuard'),
           show: () => !!organization?.features?.includes('android-mappings'),
+        },
+        {
+          path: `${pathPrefix}/source-maps/`,
+          title: t('Source Maps'),
         },
       ],
     },
