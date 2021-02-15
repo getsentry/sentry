@@ -1,12 +1,30 @@
 ---
-created: '2020-08-25T09:17:15.093586Z'
+created: '2021-02-15T18:55:33.951571Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app:
+app-depth-1:
+  hash: "8916e86cfaa7898cdeece0f4d8035ba5"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "SentryTest2.Controllers.ValuesController"
+            filename (module takes precedence)
+              "valuescontroller.cs"
+            function*
+              "Get"
+        type*
+          "System.Exception"
+        value (ignored because stacktrace takes precedence)
+          "sync exception"
+--------------------------------------------------------------------------
+app-depth-max:
   hash: "228c649a3aa0901622c0a0e66ab0522c"
   component:
-    app*
+    app-depth-max*
       exception*
         stacktrace*
           frame (non app frame)
@@ -174,8 +192,8 @@ app:
 default:
   hash: null
   component:
-    default (exception of app/system takes precedence)
-      message (exception of app/system takes precedence)
+    default (exception of app-depth-1/app-depth-max/system takes precedence)
+      message (exception of app-depth-1/app-depth-max/system takes precedence)
         "An unhandled exception has occurred while executing the request."
 --------------------------------------------------------------------------
 system:

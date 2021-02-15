@@ -1,12 +1,32 @@
 ---
-created: '2020-11-12T10:57:08.390423Z'
+created: '2021-02-15T18:55:36.051031Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app:
+app-depth-1:
+  hash: "a997f8d355456021a562ab49e90fbf00"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "sentry_plugins.heroku.plugin"
+            filename (module takes precedence)
+              "plugin.py"
+            function*
+              "handle"
+            context-line*
+              "email = request.POST['user']"
+        type*
+          "MultiValueDictKeyError"
+        value (ignored because stacktrace takes precedence)
+          "\"'user'\""
+--------------------------------------------------------------------------
+app-depth-max:
   hash: "121caa876de75ec51bf72ed4c852cd75"
   component:
-    app*
+    app-depth-max*
       exception*
         stacktrace*
           frame (non app frame)

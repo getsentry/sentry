@@ -351,14 +351,12 @@ def stacktrace(stacktrace, context, **meta):
     )
 
     if context["hierarchical_grouping"]:
-        rv["app-depth-max"] = full_stacktrace = rv.pop("app")
+        full_stacktrace = rv.pop("app")
 
-        max_frames = 5
-
-        while max_frames > 0:
+        for max_frames in range(1, 6):
             stacktrace = full_stacktrace.shallow_copy()
             new_values = []
-            ignored = 0
+            ignored_frames = 0
 
             # cannot update contributes here as this copy is shallow.
             # instead, trim down list
@@ -366,18 +364,22 @@ def stacktrace(stacktrace, context, **meta):
                 if not component.contributes:
                     continue
 
-                ignored += 1
-                if ignored <= max_frames:
+                if len(new_values) < max_frames:
                     new_values.append(component)
                 else:
-                    break
+                    ignored_frames += 1
+
+            if not new_values or not ignored_frames:
+                break
 
             new_values.reverse()
             stacktrace.update(values=new_values)
-            if len(new_values) == max_frames:
-                rv[f"app-depth-{max_frames}"] = stacktrace
 
-            max_frames -= 1
+            rv[f"app-depth-{max_frames}"] = stacktrace
+
+            max_frames += 1
+
+        rv["app-depth-max"] = full_stacktrace
 
     return rv
 

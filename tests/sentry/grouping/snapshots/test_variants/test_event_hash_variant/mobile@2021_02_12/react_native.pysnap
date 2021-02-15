@@ -1,12 +1,32 @@
 ---
-created: '2020-02-26T19:54:43.138153Z'
+created: '2021-02-15T18:55:35.621465Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app:
+app-depth-1:
+  hash: "f3c55d92b61d1734b37445f461758449"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "App"
+            filename (module takes precedence)
+              "app.js"
+            function (ignored because sourcemap used and context line available)
+              "Button"
+            context-line*
+              "<Button"
+        type*
+          "TypeError"
+        value (ignored because stacktrace takes precedence)
+          "undefined is not a function (evaluating '({}).invalidFunction()')"
+--------------------------------------------------------------------------
+app-depth-max:
   hash: "73470e545e51eea9cff8a6c006f68f57"
   component:
-    app*
+    app-depth-max*
       exception*
         stacktrace*
           frame (non app frame)

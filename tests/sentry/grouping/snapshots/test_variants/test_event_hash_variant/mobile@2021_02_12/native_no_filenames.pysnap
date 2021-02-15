@@ -1,12 +1,63 @@
 ---
-created: '2020-11-12T10:57:07.581917Z'
+created: '2021-02-15T18:55:35.530468Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app:
+app-depth-1:
+  hash: "59c0434e3624d23495e047f18d5615c5"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "log::__private_api_log"
+        type (ignored because exception is synthetic)
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "76f35a6a10b48e05d6f2eef4ed6e964e"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "log_demo::main"
+          frame*
+            function*
+              "log::__private_api_log"
+        type (ignored because exception is synthetic)
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "34020cf04e5ece6c917775f7c2d6bb27"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "___rust_maybe_catch_panic"
+          frame*
+            function*
+              "log_demo::main"
+          frame*
+            function*
+              "log::__private_api_log"
+        type (ignored because exception is synthetic)
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"
+--------------------------------------------------------------------------
+app-depth-max:
   hash: "418120a66f7031923031f5c52aca0724"
   component:
-    app*
+    app-depth-max*
       exception*
         stacktrace*
           frame*

@@ -1,5 +1,5 @@
 ---
-created: '2021-02-12T22:47:15.157892Z'
+created: '2021-02-15T18:59:51.216515Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -7,6 +7,12 @@ app:
   hash: null
   component:
     app (exception of system takes precedence)
+      threads (thread has no stacktrace)
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: null
+  component:
+    app-depth-max (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace
           frame (non app frame)
@@ -33,7 +39,6 @@ app:
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
         value*
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
-      threads (thread has no stacktrace)
 --------------------------------------------------------------------------
 system:
   hash: "c29439027eafcf7642f641554ab0f0ef"

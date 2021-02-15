@@ -1,12 +1,55 @@
 ---
-created: '2020-02-26T19:54:42.520856Z'
+created: '2021-02-15T18:55:35.178173Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app:
+app-depth-1:
+  hash: "085111c76fa557709d40f7410014247a"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "web.php"
+            function*
+              "Illuminate\\Routing\\RouteFileRegistrar::{closure}"
+            context-line*
+              "throw new Exception('LARAVEL TEST');"
+        type*
+          "Exception"
+        value (ignored because stacktrace takes precedence)
+          "LARAVEL TEST"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "568a519d81057ebff6cdb40a7c48da18"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            filename*
+              "index.php"
+            function*
+              "require_once"
+            context-line*
+              "$request = Illuminate\\Http\\Request::capture()"
+          frame*
+            filename*
+              "web.php"
+            function*
+              "Illuminate\\Routing\\RouteFileRegistrar::{closure}"
+            context-line*
+              "throw new Exception('LARAVEL TEST');"
+        type*
+          "Exception"
+        value (ignored because stacktrace takes precedence)
+          "LARAVEL TEST"
+--------------------------------------------------------------------------
+app-depth-max:
   hash: "4665d486184740231357ab63f4543a8d"
   component:
-    app*
+    app-depth-max*
       exception*
         stacktrace*
           frame*

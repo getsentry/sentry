@@ -1,27 +1,13 @@
 ---
-created: '2021-02-15T18:20:09.714812Z'
+created: '2021-02-15T18:46:44.112555Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-1:
-  hash: "eb87c1031dba55b67df86fb9fff59dc6"
-  component:
-    app-depth-1*
-      exception*
-        stacktrace* (discarded because stack trace only contains 1 frame which is under the configured threshold by stack trace rule (family:native min-frames=2))
-          frame* (marked in-app by stack trace rule (function:log_demo::* +app))
-            function*
-              "log_demo::main"
-        type*
-          "log_demo"
-        value (ignored because stacktrace takes precedence)
-          "Holy shit everything is on fire!"
---------------------------------------------------------------------------
 app-depth-max:
   hash: null
   component:
-    app-depth-max (exception of app-depth-1/system takes precedence)
-      exception (ignored because this variant does not have a contributing stacktrace, but others do)
+    app-depth-max (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace (discarded because stack trace only contains 1 frame which is under the configured threshold by stack trace rule (family:native min-frames=2))
           frame (non app frame)
             function*

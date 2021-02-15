@@ -1,12 +1,99 @@
 ---
-created: '2020-02-26T19:54:42.402505Z'
+created: '2021-02-15T18:55:35.676169Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app:
+app-depth-1:
+  hash: "37431f5f13e61c1a604e54d097c98cc5"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "app/api"
+            filename (module takes precedence)
+              "api.jsx"
+            function (ignored because sourcemap used and context line available)
+              "fetchGroupEventAndMarkSeen"
+            context-line*
+              "const preservedError = new Error();"
+        type*
+          "NotFoundError"
+        value (ignored because stacktrace takes precedence)
+          "GET /issues/<int>/events/latest/ <int>"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "caa5df29a33af87ed50ebc242e35178d"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "app/views/groupDetails/shared/groupEventDetails"
+            filename (module takes precedence)
+              "groupeventdetails.jsx"
+            function (ignored because sourcemap used and context line available)
+              "this"
+            context-line*
+              "fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)"
+          frame*
+            module*
+              "app/api"
+            filename (module takes precedence)
+              "api.jsx"
+            function (ignored because sourcemap used and context line available)
+              "fetchGroupEventAndMarkSeen"
+            context-line*
+              "const preservedError = new Error();"
+        type*
+          "NotFoundError"
+        value (ignored because stacktrace takes precedence)
+          "GET /issues/<int>/events/latest/ <int>"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "0d2903c79166b4f45dce1a21dd5bca2a"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "app/views/groupDetails/shared/groupEventDetails"
+            filename (module takes precedence)
+              "groupeventdetails.jsx"
+            function (ignored because sourcemap used and context line available)
+              "X"
+            context-line*
+              "this.fetchData();"
+          frame*
+            module*
+              "app/views/groupDetails/shared/groupEventDetails"
+            filename (module takes precedence)
+              "groupeventdetails.jsx"
+            function (ignored because sourcemap used and context line available)
+              "this"
+            context-line*
+              "fetchGroupEventAndMarkSeen(api, orgSlug, projSlug, groupId, eventId, envNames)"
+          frame*
+            module*
+              "app/api"
+            filename (module takes precedence)
+              "api.jsx"
+            function (ignored because sourcemap used and context line available)
+              "fetchGroupEventAndMarkSeen"
+            context-line*
+              "const preservedError = new Error();"
+        type*
+          "NotFoundError"
+        value (ignored because stacktrace takes precedence)
+          "GET /issues/<int>/events/latest/ <int>"
+--------------------------------------------------------------------------
+app-depth-max:
   hash: "4a3cf3893b6485428dd02da116c8370e"
   component:
-    app*
+    app-depth-max*
       exception*
         stacktrace*
           frame (non app frame)

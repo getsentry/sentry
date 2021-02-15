@@ -1,12 +1,32 @@
 ---
-created: '2020-08-25T09:17:16.122350Z'
+created: '2021-02-15T18:55:35.019208Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app:
+app-depth-1:
+  hash: "92dfcda18050570bb1aabce4f35dc0a1"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "sentry.integrations.slack.notify_action"
+            filename (module takes precedence)
+              "notify_action.py"
+            function*
+              "send_notification"
+            context-line*
+              "resp.raise_for_status()"
+        type*
+          "HTTPError"
+        value (ignored because stacktrace takes precedence)
+          "<int> Client Error: Too Many Requests for url: <url>"
+--------------------------------------------------------------------------
+app-depth-max:
   hash: "d59239f5aad3304d60beb1fde3369b78"
   component:
-    app*
+    app-depth-max*
       exception*
         stacktrace*
           frame*
@@ -44,8 +64,8 @@ app:
 default:
   hash: null
   component:
-    default (exception of app/system takes precedence)
-      message (exception of app/system takes precedence)
+    default (exception of app-depth-1/app-depth-max/system takes precedence)
+      message (exception of app-depth-1/app-depth-max/system takes precedence)
         "%s.process_error"
 --------------------------------------------------------------------------
 system:
