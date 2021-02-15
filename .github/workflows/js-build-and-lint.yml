@@ -75,7 +75,7 @@ jobs:
       - name: eslint (changed files only)
         if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
         run: |
-          yarn eslint --fix ${{ steps.changes.outputs.frontend_modified_lintable_files }}
+          yarn pnpify eslint --fix ${{ steps.changes.outputs.frontend_modified_lintable_files }}
 
       - name: stylelint (changed files only)
         if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend_components_modified_lintable == 'true'
@@ -100,7 +100,7 @@ jobs:
       - name: tsc
         if: always() && steps.changes.outputs.frontend == 'true'
         run: |
-          yarn tsc -p config/tsconfig.build.json
+          yarn pnpify tsc -p config/tsconfig.build.json
 
       - name: storybook
         if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
