@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import NotAvailable from 'app/components/notAvailable';
 import QuestionTooltip from 'app/components/questionTooltip';
 import space from 'app/styles/space';
 import {
@@ -8,8 +9,6 @@ import {
   CandidateDownloadStatus,
   CandidateFeatures,
 } from 'app/types/debugImage';
-
-import NotAvailable from '../../notAvailable';
 
 import {getCandidateFeatureLabel} from './utils';
 

@@ -1,9 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import NotAvailable from 'app/components/notAvailable';
 import space from 'app/styles/space';
-
-import NotAvailable from '../notAvailable';
 
 type Props = {
   items: Array<React.ReactElement>;

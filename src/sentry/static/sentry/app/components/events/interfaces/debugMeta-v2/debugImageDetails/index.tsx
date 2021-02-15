@@ -8,6 +8,7 @@ import {addErrorMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
+import NotAvailable from 'app/components/notAvailable';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -16,7 +17,6 @@ import {CandidateDownloadStatus, Image} from 'app/types/debugImage';
 import theme from 'app/utils/theme';
 
 import Address from '../address';
-import NotAvailable from '../notAvailable';
 import {getFileName} from '../utils';
 
 import Candidates from './candidates';
