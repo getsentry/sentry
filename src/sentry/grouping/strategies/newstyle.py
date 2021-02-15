@@ -439,7 +439,7 @@ def single_exception(exception, context, **meta):
             type_component.update(contributes=False, hint="ignored because exception is synthetic")
         if exception.mechanism.meta and "ns_error" in exception.mechanism.meta:
             ns_error_component = GroupingComponent(
-                id="ns-error-code",
+                id="ns-error",
                 values=[
                     exception.mechanism.meta["ns_error"].get("domain"),
                     exception.mechanism.meta["ns_error"].get("code"),
