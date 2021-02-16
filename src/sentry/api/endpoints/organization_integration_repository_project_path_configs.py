@@ -150,12 +150,12 @@ class OrganizationIntegrationRepositoryProjectPathConfigEndpoint(
         queryset = RepositoryProjectPathConfig.objects.all()
 
         if integration_id:
-            # Return early with 404
+            # get_organization_integration will raise a 404 if no org_integraiton is found
             org_integration = self.get_organization_integration(organization, integration_id)
             queryset = queryset.filter(organization_integration=org_integration)
 
         if project_id:
-            # Check that the project is apart of the organization.
+            # Check that the project is apart of the organization. get_project will raise 404 if project not found.
             project = self.get_project(organization, project_id)
             queryset = queryset.filter(project=project)
 
