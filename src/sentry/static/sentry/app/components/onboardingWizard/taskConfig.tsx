@@ -107,7 +107,7 @@ export function getOnboardingTasks(
       task: OnboardingTaskKey.FIRST_TRANSACTION,
       title: t('Improve performance'),
       description: t(
-        "Don't keep users waiting. Trace transactions and cross reference related errors to discover why those API endpoints "
+        "Don't keep users waiting. Trace transactions and cross reference related issues for those mission critical endpoints."
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
