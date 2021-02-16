@@ -184,6 +184,7 @@ const ToolbarPanel = styled('div')`
   align-items: flex-start;
 
   background-color: rgba(255, 255, 255, 0.7);
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 const IconContainer = styled('div')`
