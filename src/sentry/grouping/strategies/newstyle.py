@@ -346,12 +346,21 @@ def get_contextline_component(frame, platform, function, context):
 def stacktrace(stacktrace, context, **meta):
     assert context["variant"] is None
 
-    rv = call_with_variants(
-        _single_stacktrace_variant, ["!system", "app"], stacktrace, context=context, meta=meta
-    )
-
     if context["hierarchical_grouping"]:
+        rv = call_with_variants(
+            _single_stacktrace_variant,
+            # when app hash is equal to system hash, we do not want to stop it
+            # from contributing as it will become a hierarchical hash when
+            # renamed to app-depth-max. Therefore we must not make system a
+            # mandatory variant ('system' instead of '!system')
+            ["system", "app"],
+            stacktrace,
+            context=context,
+            meta=meta,
+        )
+
         full_stacktrace = rv.pop("app")
+        rv["app-depth-max"] = full_stacktrace
 
         for max_frames in range(1, 6):
             stacktrace = full_stacktrace.shallow_copy()
@@ -379,7 +388,10 @@ def stacktrace(stacktrace, context, **meta):
 
             max_frames += 1
 
-        rv["app-depth-max"] = full_stacktrace
+    else:
+        rv = call_with_variants(
+            _single_stacktrace_variant, ["!system", "app"], stacktrace, context=context, meta=meta
+        )
 
     return rv
 
