@@ -5,7 +5,7 @@ import ClippedBox from 'app/components/clippedBox';
 import ErrorBoundary from 'app/components/errorBoundary';
 import {Assembly} from 'app/components/events/interfaces/assembly';
 import ContextLine from 'app/components/events/interfaces/contextLine';
-import FrameRegisters from 'app/components/events/interfaces/frameRegisters/frameRegisters';
+import FrameRegisters from 'app/components/events/interfaces/frameRegisters';
 import FrameVariables from 'app/components/events/interfaces/frameVariables';
 import {OpenInContextLine} from 'app/components/events/interfaces/openInContextLine';
 import StacktraceLink from 'app/components/events/interfaces/stacktraceLink';
@@ -113,8 +113,13 @@ const Context = ({
 
       {(hasContextRegisters || hasContextVars) && (
         <StyledClippedBox clipHeight={100}>
-          {hasContextRegisters && <FrameRegisters data={registers} key="registers" />}
-          {hasContextVars && <FrameVariables data={frame.vars || {}} key="vars" />}
+          {hasContextRegisters && (
+            <FrameRegisters
+              registers={registers}
+              deviceArch={event.contexts.device?.arch}
+            />
+          )}
+          {hasContextVars && <FrameVariables data={frame.vars || {}} />}
         </StyledClippedBox>
       )}
 
