@@ -29,10 +29,11 @@ import FormModel from 'app/views/settings/components/forms/model';
 type Props = ModalRenderProps & {
   api: Client;
   organization: Organization;
+  matchedUserAgentString: string;
 };
 
 type State = {
-  askTeammate?: boolean;
+  askTeammate: boolean;
 };
 
 class SuggestProjectModal extends React.Component<Props, State> {
@@ -42,18 +43,20 @@ class SuggestProjectModal extends React.Component<Props, State> {
   model = new FormModel();
 
   handleGetStartedClick = () => {
+    const {matchedUserAgentString} = this.props;
     trackAdvancedAnalyticsEvent(
       'growth.clicked_mobile_prompt_setup_project',
-      {},
+      {matchedUserAgentString},
       this.props.organization
     );
   };
 
   handleAskTeammate = () => {
+    const {matchedUserAgentString} = this.props;
     this.setState({askTeammate: true});
     trackAdvancedAnalyticsEvent(
       'growth.clicked_mobile_prompt_ask_teammate',
-      {},
+      {matchedUserAgentString},
       this.props.organization
     );
   };
@@ -63,10 +66,11 @@ class SuggestProjectModal extends React.Component<Props, State> {
   };
 
   handleSubmitSuccess = ({targetUserEmail}: {targetUserEmail: string}) => {
+    const {matchedUserAgentString} = this.props;
     addSuccessMessage('Notified teammate successfully');
     trackAdvancedAnalyticsEvent(
       'growth.submitted_mobile_prompt_ask_teammate',
-      {email: targetUserEmail},
+      {email: targetUserEmail, matchedUserAgentString},
       this.props.organization
     );
     this.props.closeModal();
@@ -79,10 +83,6 @@ class SuggestProjectModal extends React.Component<Props, State> {
 
   handleSubmitError = () => {
     addErrorMessage(t('Error notifying teammate'));
-  };
-
-  handlePreSubmit = () => {
-    addLoadingMessage(t('Submitting\u2026'));
   };
 
   renderAskTeammate() {
@@ -98,7 +98,6 @@ class SuggestProjectModal extends React.Component<Props, State> {
             submitLabel={t('Send')}
             onSubmitSuccess={this.handleSubmitSuccess}
             onSubmitError={this.handleSubmitError}
-            onPreSubmit={this.handlePreSubmit}
             hideFooter
           >
             <p>

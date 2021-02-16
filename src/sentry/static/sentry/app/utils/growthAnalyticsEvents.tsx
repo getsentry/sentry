@@ -1,4 +1,8 @@
 type MobilePromptBannerParams = {
+  matchedUserAgentString: string;
+};
+
+type CheckShowParams = MobilePromptBannerParams & {
   userAgentMatches: boolean;
   matchedUserAgentString: string;
   hasMobileProject: boolean;
@@ -7,14 +11,12 @@ type MobilePromptBannerParams = {
 
 //define the event key to payload mappings
 export type GrowthEventParameters = {
-  'growth.check_show_mobile_prompt_banner': MobilePromptBannerParams;
-  'growth.dismissed_mobile_prompt_banner': {};
-  'growth.opened_mobile_project_suggest_modal': {
-    matchedUserAgentString: string;
-  };
-  'growth.clicked_mobile_prompt_setup_project': {};
-  'growth.clicked_mobile_prompt_ask_teammate': {};
-  'growth.submitted_mobile_prompt_ask_teammate': {
+  'growth.check_show_mobile_prompt_banner': CheckShowParams;
+  'growth.dismissed_mobile_prompt_banner': MobilePromptBannerParams;
+  'growth.opened_mobile_project_suggest_modal': MobilePromptBannerParams;
+  'growth.clicked_mobile_prompt_setup_project': MobilePromptBannerParams;
+  'growth.clicked_mobile_prompt_ask_teammate': MobilePromptBannerParams;
+  'growth.submitted_mobile_prompt_ask_teammate': MobilePromptBannerParams & {
     email: string;
   };
 };

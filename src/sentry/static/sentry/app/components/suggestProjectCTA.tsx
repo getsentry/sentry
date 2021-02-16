@@ -29,7 +29,7 @@ const MOBILE_PLATFORMS = [
   'dotnet-xamarin',
 ];
 
-const MOBILE_USER_AGENTS = ['okhttp/', 'CFNetwork/', 'Alamofire/', 'Dalvik/', 'sentry/'];
+const MOBILE_USER_AGENTS = ['okhttp/', 'CFNetwork/', 'Alamofire/', 'Dalvik/'];
 
 type Props = {
   projects: Project[];
@@ -46,7 +46,7 @@ type State = {
 class SuggestProjectCTA extends React.Component<Props, State> {
   state: State = {};
   componentDidMount() {
-    // this.openModal();
+    this.openModal();
     this.fetchData();
   }
 
@@ -98,6 +98,7 @@ class SuggestProjectCTA extends React.Component<Props, State> {
     const {api, organization} = this.props;
 
     //check our prompt backend
+    //no need to catch error since we have error boundary wrapping
     const promptData = await promptsCheck(api, {
       organizationId: organization.id,
       feature: 'suggest_mobile_project',
@@ -130,10 +131,13 @@ class SuggestProjectCTA extends React.Component<Props, State> {
     const {api, organization} = this.props;
     trackAdvancedAnalyticsEvent(
       'growth.dismissed_mobile_prompt_banner',
-      {},
+      {
+        matchedUserAgentString: this.matchedUserAgentString,
+      },
       this.props.organization
     );
 
+    //update the prompt so we don't show it again to this user
     promptsUpdate(api, {
       organizationId: organization.id,
       feature: 'suggest_mobile_project',
@@ -145,14 +149,18 @@ class SuggestProjectCTA extends React.Component<Props, State> {
 
   openModal = () => {
     trackAdvancedAnalyticsEvent(
-      'growth.dismissed_mobile_prompt_banner',
+      'growth.opened_mobile_project_suggest_modal',
       {
         matchedUserAgentString: this.matchedUserAgentString,
       },
       this.props.organization
     );
     openModal(deps => (
-      <SuggestProjectModal organization={this.props.organization} {...deps} />
+      <SuggestProjectModal
+        organization={this.props.organization}
+        matchedUserAgentString={this.matchedUserAgentString}
+        {...deps}
+      />
     ));
   };
 
