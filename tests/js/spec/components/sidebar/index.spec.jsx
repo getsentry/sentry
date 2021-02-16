@@ -153,7 +153,7 @@ describe('Sidebar', function () {
       const menu = wrapper.find('HelpMenu');
       expect(menu).toHaveLength(1);
       expect(menu).toSnapshot();
-      expect(menu.find('SidebarMenuItem')).toHaveLength(3);
+      expect(menu.find('SidebarMenuItem')).toHaveLength(4);
       wrapper.find('HelpActor').simulate('click');
       expect(wrapper.find('HelpMenu')).toHaveLength(0);
     });
