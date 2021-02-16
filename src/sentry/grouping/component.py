@@ -114,6 +114,13 @@ class GroupingComponent:
         if contributes_to_similarity is not None:
             self.contributes_to_similarity = contributes_to_similarity
 
+    def shallow_copy(self):
+        """Creates a shallow copy."""
+        rv = object.__new__(self.__class__)
+        rv.__dict__.update(self.__dict__)
+        rv.values = list(self.values)
+        return rv
+
     def iter_values(self):
         """Recursively walks the component and flattens it into a list of
         values.
