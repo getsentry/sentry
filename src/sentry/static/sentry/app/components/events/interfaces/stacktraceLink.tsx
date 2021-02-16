@@ -247,7 +247,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     const {config} = this.match;
     const {organization} = this.props;
     const text = this.errorText;
-    const url = `/settings/${organization.slug}/integrations/${config?.provider.key}/${config?.integrationId}/?tab=codeMappings`;
+    const url = `/settings/${organization.slug}/integrations/${config?.provider?.key}/${config?.integrationId}/?tab=codeMappings`;
     return (
       <CodeMappingButtonContainer columnQuantity={2}>
         {text}
@@ -263,8 +263,8 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       <OpenInContainer columnQuantity={2}>
         <div>{t('Open this line in')}</div>
         <OpenInLink onClick={() => this.onOpenLink()} href={url} openInNewTab>
-          {getIntegrationIcon(config.provider.key)}
-          <OpenInName>{config.provider.name}</OpenInName>
+          {getIntegrationIcon(config.provider?.key)}
+          <OpenInName>{config.provider?.name}</OpenInName>
         </OpenInLink>
       </OpenInContainer>
     );
