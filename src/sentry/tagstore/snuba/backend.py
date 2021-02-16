@@ -578,7 +578,9 @@ class SnubaTagStorage(TagStorage):
 
     def get_min_start_date(self, organization_id, project_ids, environment_id, versions):
         rpe = ReleaseProjectEnvironment.objects.filter(
-            project_id__in=project_ids, release__version__in=versions
+            project_id__in=project_ids,
+            release__version__in=versions,
+            release__organization_id=organization_id,
         ).order_by("first_seen")
 
         if environment_id:
