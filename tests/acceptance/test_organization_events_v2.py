@@ -64,7 +64,7 @@ def generate_transaction(trace=None, span=None):
         timestamp=end_datetime,
         start_timestamp=start_datetime,
         trace=trace,
-        span=span,
+        span_id=span,
     )
     event_data.update({"event_id": "a" * 32})
 
