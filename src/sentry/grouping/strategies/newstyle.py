@@ -516,16 +516,6 @@ def single_exception(exception, context, **meta):
             value_component = GroupingComponent(
                 id="value", similarity_encoder=text_shingle_encoder(5)
             )
-            if (
-                ns_error_component is not None
-                and ns_error_component.contributes
-                and value_component.contributes
-            ):
-                value_component.update(
-                    contributes=False,
-                    contributes_to_similarity=True,
-                    hint="ignored because ns-error info takes precedence",
-                )
 
             value_in = exception.value
             if value_in is not None:
@@ -539,6 +529,17 @@ def single_exception(exception, context, **meta):
                     contributes=False,
                     contributes_to_similarity=True,
                     hint="ignored because stacktrace takes precedence",
+                )
+
+            if (
+                ns_error_component is not None
+                and ns_error_component.contributes
+                and value_component.contributes
+            ):
+                value_component.update(
+                    contributes=False,
+                    contributes_to_similarity=True,
+                    hint="ignored because ns-error info takes precedence",
                 )
 
             values.append(value_component)
