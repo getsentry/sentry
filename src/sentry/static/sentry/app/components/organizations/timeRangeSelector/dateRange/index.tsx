@@ -119,8 +119,8 @@ class DateRange extends React.Component<Props, State> {
     // `e.target.valueAsDate`, must parse as string
     //
     // Time will be in 24hr e.g. "21:00"
-    const start = this.props.start ? this.props.start : '';
-    const end = this.props.end ? this.props.end : undefined;
+    const start = this.props.start ?? '';
+    const end = this.props.end ?? undefined;
     const {onChange} = this.props;
     const startTime = e.target.value;
 
@@ -148,8 +148,8 @@ class DateRange extends React.Component<Props, State> {
   };
 
   handleChangeEnd = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const start = this.props.start ? this.props.start : undefined;
-    const end = this.props.end ? this.props.end : '';
+    const start = this.props.start ?? undefined;
+    const end = this.props.end ?? '';
     const {onChange} = this.props;
     const endTime = e.target.value;
 
@@ -179,8 +179,8 @@ class DateRange extends React.Component<Props, State> {
 
   render() {
     const {className, maxPickableDays, utc, showTimePicker, onChangeUtc} = this.props;
-    const start = this.props.start ? this.props.start : '';
-    const end = this.props.end ? this.props.end : '';
+    const start = this.props.start ?? '';
+    const end = this.props.end ?? '';
 
     const startTime = getTimeStringFromDate(new Date(start));
     const endTime = getTimeStringFromDate(new Date(end));
