@@ -28,8 +28,8 @@ const pulsingIndicatorStyles = (p: {theme: Theme}) => css`
     height: 100px;
     width: 100px;
     border-radius: 50%;
-    top: -45px;
-    left: -45px;
+    top: -46px;
+    left: -46px;
     border: 4px solid ${p.theme.orange300};
     transform-origin: center;
     animation: ${pulse} 3s ease-out infinite;
