@@ -52,7 +52,9 @@ BASE_STRATEGY = create_strategy_configuration(
         # newstyle: turns on falling back to exception values when there
         # is no stacktrace.
         "with_exception_value_fallback": False,
-        # TODO
+        # Whether the strategy should produce special variants that are
+        # considered for hierarchical grouping (see HIERARCHICAL_VARIANTS
+        # constant)
         "hierarchical_grouping": False,
     },
 )
