@@ -130,7 +130,7 @@ class DropdownMenu extends React.Component<Props, State> {
   checkClickOutside = async (e: MouseEvent) => {
     const {onClickOutside, shouldIgnoreClickOutside} = this.props;
 
-    if (!this.dropdownMenu) {
+    if (!this.dropdownMenu || !this.isOpen()) {
       return;
     }
 
@@ -175,7 +175,7 @@ class DropdownMenu extends React.Component<Props, State> {
 
   // Opens dropdown menu
   handleOpen = (e: React.MouseEvent<Element>) => {
-    const {onOpen, isOpen, alwaysRenderMenu} = this.props;
+    const {onOpen, isOpen, alwaysRenderMenu, isNestedDropdown} = this.props;
     const isControlled = typeof isOpen !== 'undefined';
     if (!isControlled) {
       this.setState({
@@ -189,7 +189,7 @@ class DropdownMenu extends React.Component<Props, State> {
 
     // If we always render menu (e.g. DropdownLink), then add the check click outside handlers when we open the menu
     // instead of when the menu component mounts. Otherwise we will have many click handlers attached on initial load.
-    if (alwaysRenderMenu) {
+    if (alwaysRenderMenu || isNestedDropdown) {
       document.addEventListener('click', this.checkClickOutside, true);
     }
 
@@ -228,7 +228,7 @@ class DropdownMenu extends React.Component<Props, State> {
 
   // Closes dropdown menu
   handleClose = (e: React.KeyboardEvent<Element> | React.MouseEvent<Element> | null) => {
-    const {onClose, isOpen, alwaysRenderMenu} = this.props;
+    const {onClose, isOpen, alwaysRenderMenu, isNestedDropdown} = this.props;
     const isControlled = typeof isOpen !== 'undefined';
 
     if (!isControlled) {
@@ -237,7 +237,7 @@ class DropdownMenu extends React.Component<Props, State> {
 
     // Clean up click handlers when the menu is closed for menus that are always rendered,
     // otherwise the click handlers get cleaned up when menu is unmounted
-    if (alwaysRenderMenu) {
+    if (alwaysRenderMenu || isNestedDropdown) {
       document.removeEventListener('click', this.checkClickOutside, true);
     }
 
@@ -253,13 +253,13 @@ class DropdownMenu extends React.Component<Props, State> {
     if (ref && !(ref instanceof Element)) {
       return;
     }
-    const {alwaysRenderMenu} = this.props;
+    const {alwaysRenderMenu, isNestedDropdown} = this.props;
 
     this.dropdownMenu = ref;
 
     // Don't add document event listeners here if we are always rendering menu
     // Instead add when menu is opened
-    if (alwaysRenderMenu) {
+    if (alwaysRenderMenu || isNestedDropdown) {
       return;
     }
 
