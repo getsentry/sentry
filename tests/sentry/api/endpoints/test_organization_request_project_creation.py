@@ -11,6 +11,7 @@ class OrganizationIntegrationRequestTest(APITestCase):
 
     @mock.patch("sentry.utils.email.MessageBuilder")
     def test_basic(self, builder):
+        builder.return_value.send_async = mock.Mock()
         self.login_as(user=self.user)
         with self.tasks():
             response = self.get_response(
