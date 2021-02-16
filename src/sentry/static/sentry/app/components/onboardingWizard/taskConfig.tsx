@@ -41,9 +41,8 @@ export function getOnboardingTasks(
     {
       task: OnboardingTaskKey.FIRST_PROJECT,
       title: t('Create a project'),
-      description: t('Create your first Sentry project'),
-      detailedDescription: t(
-        'Follow our quick and easy steps to set up a project and start sending errors.'
+      description: t(
+        "Start monitoring in seconds by adding a few simple snippets of code in your project. It's as easy as microwaving leftover pizza."
       ),
       skippable: false,
       requisites: [],
@@ -53,9 +52,10 @@ export function getOnboardingTasks(
     },
     {
       task: OnboardingTaskKey.FIRST_EVENT,
-      title: t('Send your first event'),
-      description: t('Install the appropriate Sentry SDK for your application'),
-      detailedDescription: t('Choose your platform and send an event.'),
+      title: t('Capture your first event'),
+      description: t(
+        "After you've set up your first project, capture your first error. Need an example? We've got plenty of errors to spare."
+      ),
       skippable: false,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
       actionType: 'app',
@@ -82,9 +82,8 @@ export function getOnboardingTasks(
     {
       task: OnboardingTaskKey.INVITE_MEMBER,
       title: t('Invite your team'),
-      description: t('Bring your team aboard'),
-      detailedDescription: t(
-        `Assign issues and comment on shared errors with coworkers so you always know who to blame when sh*t hits the fan.`
+      description: t(
+        'Assign issues and comment on shared errors with coworkers so you always know who to blame when sh*t hits the fan.'
       ),
       skippable: true,
       requisites: [],
@@ -94,9 +93,10 @@ export function getOnboardingTasks(
     },
     {
       task: OnboardingTaskKey.SECOND_PLATFORM,
-      title: t('Add a second platform'),
-      description: t('Add Sentry to a second platform'),
-      detailedDescription: t('Capture errors from both your front and back ends.'),
+      title: t('Create another project'),
+      description: t(
+        'That was easy, huh? So don’t stop at one. Set up another project to keep things running smoothly in both your frontend and backend.'
+      ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
       actionType: 'app',
@@ -105,11 +105,9 @@ export function getOnboardingTasks(
     },
     {
       task: OnboardingTaskKey.FIRST_TRANSACTION,
-      title: t('Monitor Performance'),
-      description: t('See slow faster'),
-      detailedDescription: t(
-        `Set up Performance Monitoring to see everything from macro-level metrics to micro-level spans.
-        Cross-reference transactions with related issues, customize queries, and monitor mission-critical endpoints using metric alerts.`
+      title: t('Improve Performance'),
+      description: t(
+        "Don't keep users waiting. Trace transactions and cross reference related errors"
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
@@ -136,11 +134,9 @@ export function getOnboardingTasks(
     },
     {
       task: OnboardingTaskKey.USER_CONTEXT,
-      title: t('Add user context'),
-      description: t('Know who is being affected by crashes'),
-      detailedDescription: t(
-        `Unlock features that let you drill down into the number of users affected by an issue
-        and get a broader sense about the quality of your application.`
+      title: t('Get more user context'),
+      description: t(
+        "Not sure who's who? Add some more user context to help you identify users by email when you're debugging errors or bad performance."
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
@@ -150,11 +146,9 @@ export function getOnboardingTasks(
     },
     {
       task: OnboardingTaskKey.RELEASE_TRACKING,
-      title: t('Set up release tracking'),
-      description: t('See which releases cause errors'),
-      detailedDescription: t(
-        `Set up releases and associate commits to gain additional context when determining the
-        cause of an issue and unlock the ability to resolve issues via commit message.`
+      title: t('Track releases'),
+      description: t(
+        'Take an in-depth look at the health of each and every release with crash analytics, errors, and related issues.'
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
@@ -165,10 +159,8 @@ export function getOnboardingTasks(
     {
       task: OnboardingTaskKey.SOURCEMAPS,
       title: t('Upload source maps'),
-      description: t('Deminify JavaScript stack traces'),
-      detailedDescription: t(
-        `View source code context obtained from stack traces in its
-        original untransformed form, which is particularly useful for debugging minified code.`
+      description: t(
+        'Deminify Javascript source traces and demystify context to debug faster and decouple yourself from the ghosts of errors past. '
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
@@ -202,9 +194,10 @@ export function getOnboardingTasks(
     },
     {
       task: OnboardingTaskKey.ALERT_RULE,
-      title: t('Configure alerting rules'),
-      description: t('Configure alerting rules to control error emails'),
-      detailedDescription: t('Receive Sentry alerts in Slack, PagerDuty, and more.'),
+      title: t('Get smarter alerts'),
+      description: t(
+        'Set up notifications according to issue or metric, and be sure to get all the information you need precisely when you need it.'
+      ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
       actionType: 'app',

@@ -131,7 +131,7 @@ const SidebarPanelBody = styled('div')<{hasHeader: boolean}>`
   flex-direction: column;
   flex-grow: 1;
   overflow: auto;
-  padding: 40px 36px;
+  padding: 100px 30px;
 `;
 
 const PanelClose = styled(IconClose)`

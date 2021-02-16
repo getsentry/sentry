@@ -82,24 +82,26 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
 
     return (
       <TaskCard ref={forwardedRef} onClick={handleClick}>
-        <StatusIndicator>
-          {task.status === 'complete' && <CompleteIndicator />}
-          {task.status === 'skipped' && <SkippedIndicator />}
-        </StatusIndicator>
-        <Title>{task.title}</Title>
-        <CompletedDate title={completedOn.toString()}>
-          {completedOn.fromNow()}
-        </CompletedDate>
-        {task.user ? (
-          <TaskUserAvatar hasTooltip user={task.user} />
-        ) : (
-          <Tooltip
-            containerDisplayMode="inherit"
-            title={t('No user was associated with completing this task')}
-          >
-            <TaskBlankAvatar round />
-          </Tooltip>
-        )}
+        <CompleteTitle>
+          <StatusIndicator>
+            {task.status === 'complete' && <CompleteIndicator />}
+            {task.status === 'skipped' && <SkippedIndicator />}
+          </StatusIndicator>
+          {task.title}
+          <DateCompleted title={completedOn.toString()}>
+            {completedOn.fromNow()}
+          </DateCompleted>
+          {task.user ? (
+            <TaskUserAvatar hasTooltip user={task.user} />
+          ) : (
+            <Tooltip
+              containerDisplayMode="inherit"
+              title={t('No user was associated with completing this task')}
+            >
+              <TaskBlankAvatar round />
+            </Tooltip>
+          )}
+        </CompleteTitle>
       </TaskCard>
     );
   }
@@ -134,11 +136,11 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
       data-test-id={task.task}
     >
       {skipAction}
-      <Title>
+      <IncompleteTitle>
         {IncompleteMarker}
         {task.title}
-      </Title>
-      <Description>{`${task.description}. ${task.detailedDescription}`}</Description>
+      </IncompleteTitle>
+      <Description>{`${task.description}`}</Description>
       {task.requisiteTasks.length === 0 && (
         <ActionBar>
           {supplement}
@@ -160,7 +162,7 @@ const TaskCard = styled(Card)`
   padding: ${space(2)} ${space(3)};
 `;
 
-const Title = styled('div')`
+const IncompleteTitle = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
   grid-gap: ${space(1)};
@@ -168,15 +170,21 @@ const Title = styled('div')`
   font-weight: 600;
 `;
 
+const CompleteTitle = styled(IncompleteTitle)`
+  grid-template-columns: min-content 1fr max-content min-content;
+`;
+
 const Description = styled('p')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
-  margin: 0;
+  margin: ${space(0.5)} 0 0 0;
 `;
 
 const ActionBar = styled('div')`
   display: flex;
   justify-content: flex-end;
+  align-items: flex-end;
+  margin-top: ${space(1)};
 `;
 
 type InProgressIndicatorProps = React.HTMLAttributes<HTMLDivElement> & {
@@ -243,11 +251,13 @@ const completedItemAnimation = {
   animate: {opacity: 1, x: 0},
 };
 
-const CompletedDate = styled(motion.div)`
-  color: ${p => p.theme.gray300};
+const DateCompleted = styled(motion.div)`
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: 300;
 `;
-CompletedDate.defaultProps = {
+
+DateCompleted.defaultProps = {
   variants: completedItemAnimation,
   transition,
 };
@@ -261,6 +271,7 @@ TaskUserAvatar.defaultProps = {
 const TaskBlankAvatar = styled(motion.custom(LetterAvatar))`
   position: unset;
 `;
+
 TaskBlankAvatar.defaultProps = {
   variants: completedItemAnimation,
   transition,
