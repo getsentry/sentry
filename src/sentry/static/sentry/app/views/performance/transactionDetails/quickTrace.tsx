@@ -94,10 +94,7 @@ const QuickTraceLite = withProjects(
     if (root) {
       const target = generateSingleEventTarget(root, organization, projects, location);
       nodes.push(
-        <Tooltip
-          position="top"
-          title={t('Navigate to the root transaction in this trace.')}
-        >
+        <Tooltip position="top" title={t('View the root transaction in this trace.')}>
           <EventNode key="root" type="white" pad="right" icon={null} to={target}>
             {t('Root')}
           </EventNode>
@@ -110,10 +107,7 @@ const QuickTraceLite = withProjects(
 
     if (root && current && root.event_id !== current.parent_event_id) {
       nodes.push(
-        <Tooltip
-          position="top"
-          title={t('Navigate to other transactions in this trace.')}
-        >
+        <Tooltip position="top" title={t('View all transactions in this trace.')}>
           <EventNode
             key="ancestors"
             type="white"
@@ -147,8 +141,8 @@ const QuickTraceLite = withProjects(
         <Tooltip
           position="top"
           title={tn(
-            'Navigate to the child transaction of this event.',
-            'Navigate to child transactions of this event.',
+            'View the child transaction of this event.',
+            'View all child transactions of this event.',
             children.length
           )}
         >
@@ -166,10 +160,7 @@ const QuickTraceLite = withProjects(
 
       nodes.push(<Dash />);
       nodes.push(
-        <Tooltip
-          position="top"
-          title={t('Navigate to other transactions in this trace.')}
-        >
+        <Tooltip position="top" title={t('View all transactions in this trace.')}>
           <EventNode
             key="descendents"
             type="white"
