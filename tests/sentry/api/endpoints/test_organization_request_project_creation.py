@@ -9,7 +9,7 @@ class OrganizationIntegrationRequestTest(APITestCase):
     endpoint = "sentry-api-0-organization-request-project-creation"
     method = "post"
 
-    @mock.patch("sentry.utils.email.MessageBuilder")
+    @mock.patch("sentry.api.endpoints.organization_request_project_creation.MessageBuilder")
     def test_basic(self, builder):
         builder.return_value.send_async = mock.Mock()
         self.login_as(user=self.user)
