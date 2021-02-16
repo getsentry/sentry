@@ -367,6 +367,8 @@ const StyledSimpleTableChart = styled(SimpleTableChart)`
   /* align with other card charts */
   height: 216px;
   margin-top: ${space(1.5)};
+  border-bottom-left-radius: ${p => p.theme.borderRadius};
+  border-bottom-right-radius: ${p => p.theme.borderRadius};
 `;
 
 export default WidgetCardChart;
