@@ -148,16 +148,32 @@ class Chart extends React.Component<ChartProps, State> {
     const {seriesSelection} = this.state;
 
     const data = [currentSeriesName ?? t('Current'), previousSeriesName ?? t('Previous')];
+
+    const releasesLegend = t('Releases');
     if (Array.isArray(releaseSeries)) {
-      data.push(t('Releases'));
+      data.push(releasesLegend);
     }
+
+    // Temporary fix to improve performance on pages with a high number of releases.
+    // Picked 1000 as it is the size of the first page
+    const releases = releaseSeries && releaseSeries[0];
+    const hideReleasesByDefault =
+      Array.isArray(releaseSeries) &&
+      (releases as any)?.markLine?.data &&
+      (releases as any).markLine.data.length >= 1000;
+
+    const selected = !Array.isArray(releaseSeries)
+      ? seriesSelection
+      : Object.keys(seriesSelection).length === 0 && hideReleasesByDefault
+      ? {[releasesLegend]: false}
+      : seriesSelection;
 
     const legend = showLegend
       ? {
           right: 16,
           top: 12,
           data,
-          selected: seriesSelection,
+          selected,
           ...(legendOptions ?? {}),
         }
       : undefined;
