@@ -107,7 +107,6 @@ def load_data(
     start_timestamp=None,
     trace=None,
     span_id=None,
-    parent_span_id=None,
     spans=None,
 ):
     # NOTE: Before editing this data, make sure you understand the context
@@ -185,7 +184,6 @@ def load_data(
                 tag[1] = span_id
         data["contexts"]["trace"]["trace_id"] = trace
         data["contexts"]["trace"]["span_id"] = span_id
-        data["contexts"]["trace"]["parent_span_id"] = parent_span_id
         if spans:
             data["spans"] = spans
 
@@ -268,7 +266,6 @@ def create_sample_event(
     start_timestamp=None,
     trace=None,
     span_id=None,
-    parent_span_id=None,
     spans=None,
     **kwargs,
 ):
@@ -283,12 +280,13 @@ def create_sample_event(
         start_timestamp,
         trace,
         span_id,
-        parent_span_id,
         spans,
     )
 
     if not data:
         return
+    if "parent_span_id" in kwargs:
+        data["contexts"]["trace"]["parent_span_id"] = kwargs.pop("parent_span_id")
 
     data.update(kwargs)
 
