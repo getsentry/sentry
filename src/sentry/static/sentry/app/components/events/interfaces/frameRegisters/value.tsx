@@ -18,19 +18,16 @@ type State = {
   view: number;
 };
 
-class frameRegistersValue extends React.Component<Props, State> {
-  state = {
-    view: 0,
-  };
+class Value extends React.Component<Props, State> {
+  state: State = {view: 0};
 
   toggleView = () => {
     this.setState(state => ({view: (state.view + 1) % REGISTER_VIEWS.length}));
   };
 
-  tooltipTitle = () => REGISTER_VIEWS[this.state.view];
-
-  formatValue = () => {
-    const value = this.props.value;
+  formatValue() {
+    const {value} = this.props;
+    const {view} = this.state;
 
     try {
       const parsed = typeof value === 'string' ? parseInt(value, 16) : value;
@@ -38,7 +35,7 @@ class frameRegistersValue extends React.Component<Props, State> {
         return value;
       }
 
-      switch (this.state.view) {
+      switch (view) {
         case 1:
           return `${parsed}`;
         case 0:
@@ -48,18 +45,19 @@ class frameRegistersValue extends React.Component<Props, State> {
     } catch {
       return value;
     }
-  };
+  }
 
   render() {
     const formattedValue = this.formatValue();
     const {meta} = this.props;
+    const {view} = this.state;
 
     return (
       <InlinePre data-test-id="frame-registers-value">
         <FixedWidth>
           <AnnotatedText value={formattedValue} meta={meta} />
         </FixedWidth>
-        <Tooltip title={this.tooltipTitle()}>
+        <Tooltip title={REGISTER_VIEWS[view]}>
           <Toggle onClick={this.toggleView} size="xs" />
         </Tooltip>
       </InlinePre>
@@ -67,7 +65,7 @@ class frameRegistersValue extends React.Component<Props, State> {
   }
 }
 
-export default frameRegistersValue;
+export default Value;
 
 const InlinePre = styled('pre')`
   display: inline;

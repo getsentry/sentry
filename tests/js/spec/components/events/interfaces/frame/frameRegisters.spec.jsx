@@ -2,8 +2,8 @@ import React from 'react';
 
 import {mount} from 'sentry-test/enzyme';
 
-import FrameRegisters from 'app/components/events/interfaces/frameRegisters/frameRegisters';
-import FrameRegistersValue from 'app/components/events/interfaces/frameRegisters/frameRegistersValue';
+import FrameRegisters from 'app/components/events/interfaces/frameRegisters';
+import FrameRegistersValue from 'app/components/events/interfaces/frameRegisters/value';
 
 describe('FrameRegisters', () => {
   it('should render registers', () => {
@@ -13,7 +13,7 @@ describe('FrameRegisters', () => {
       r12: '0x0000000000000000',
     };
 
-    const wrapper = mount(<FrameRegisters data={registers} />);
+    const wrapper = mount(<FrameRegisters registers={registers} />);
     expect(wrapper.find('[data-test-id="frame-registers-value"]')).toSnapshot();
   });
 
@@ -24,7 +24,7 @@ describe('FrameRegisters', () => {
       r12: '0x0000000000000000',
     };
 
-    const wrapper = mount(<FrameRegisters data={registers} />);
+    const wrapper = mount(<FrameRegisters registers={registers} />);
     expect(wrapper.find('[data-test-id="frame-registers-value"]')).toSnapshot();
   });
 });

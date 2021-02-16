@@ -1,43 +1,49 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import FrameRegistersValue from 'app/components/events/interfaces/frameRegisters/frameRegistersValue';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {defined} from 'app/utils';
 
+import {getSortedRegisters} from './utils';
+import Value from './value';
+
 type Props = {
-  data: {[key: string]: string};
+  registers: Record<string, string>;
+  deviceArch?: string;
 };
 
-const FrameRegisters = ({data}: Props) => {
+function FrameRegisters({registers, deviceArch}: Props) {
   // make sure that clicking on the registers does not actually do
   // anything on the containing element.
   const handlePreventToggling = (event: React.MouseEvent<HTMLDivElement>) => {
     event.stopPropagation();
   };
 
+  const sortedRegisters = getSortedRegisters(registers, deviceArch);
+
   return (
-    <RegistersWrapper>
-      <RegistersHeading>{t('registers')}</RegistersHeading>
+    <Wrapper>
+      <Heading>{t('registers')}</Heading>
       <Registers>
-        {Object.entries(data).map(([name, value]) => {
+        {sortedRegisters.map(([name, value]) => {
           if (!defined(value)) {
             return null;
           }
           return (
             <Register key={name} onClick={handlePreventToggling}>
-              <RegisterName>{name}</RegisterName>
-              <FrameRegistersValue value={value} meta={getMeta(data, name)} />
+              <Name>{name}</Name>
+              <Value value={value} meta={getMeta(registers, name)} />
             </Register>
           );
         })}
       </Registers>
-    </RegistersWrapper>
+    </Wrapper>
   );
-};
+}
 
-const RegistersWrapper = styled('div')`
+const Wrapper = styled('div')`
   border-top: 1px solid ${p => p.theme.innerBorder};
   padding-top: 10px;
 `;
@@ -46,14 +52,14 @@ const Registers = styled('div')`
   display: flex;
   flex-wrap: wrap;
   margin-left: 125px;
-  padding: 2px 0px;
+  padding: ${space(0.25)} 0px;
 `;
 
 const Register = styled('div')`
-  padding: 4px 5px;
+  padding: ${space(0.5)} 5px;
 `;
 
-const RegistersHeading = styled('strong')`
+const Heading = styled('strong')`
   font-weight: 600;
   font-size: 13px;
   width: 125px;
@@ -64,7 +70,7 @@ const RegistersHeading = styled('strong')`
   float: left;
 `;
 
-const RegisterName = styled('span')`
+const Name = styled('span')`
   display: inline-block;
   font-size: 13px;
   font-weight: 600;
