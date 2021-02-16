@@ -295,7 +295,7 @@ class ReleaseOverview extends AsyncView<Props> {
               hasPerformance={hasPerformance}
               defaultStatsPeriod={defaultStatsPeriod}
             >
-              {({crashFreeTimeBreakdown, ...releaseStatsProps}) => (
+              {({...releaseStatsProps}) => (
                 <Body>
                   <Main>
                     {isReleaseArchived(release) && (
@@ -378,7 +378,11 @@ class ReleaseOverview extends AsyncView<Props> {
                     )}
                     {hasHealthData && (
                       <TotalCrashFreeUsers
-                        crashFreeTimeBreakdown={crashFreeTimeBreakdown}
+                        organization={organization}
+                        version={version}
+                        projectSlug={project.slug}
+                        location={location}
+                        defaultStatsPeriod={defaultStatsPeriod}
                       />
                     )}
                     {deploys.length > 0 && (

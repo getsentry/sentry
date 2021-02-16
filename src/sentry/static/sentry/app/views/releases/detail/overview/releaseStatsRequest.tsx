@@ -13,7 +13,7 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 import CHART_PALETTE from 'app/constants/chartPalette';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t, tct} from 'app/locale';
-import {CrashFreeTimeBreakdown, GlobalSelection, Organization} from 'app/types';
+import {GlobalSelection, Organization} from 'app/types';
 import {Series} from 'app/types/echarts';
 import {defined, percent} from 'app/utils';
 import {WebVital} from 'app/utils/discover/fields';
@@ -35,7 +35,6 @@ type ChartData = Record<string, Series>;
 type Data = {
   chartData: Series[];
   chartSummary: React.ReactNode;
-  crashFreeTimeBreakdown: CrashFreeTimeBreakdown;
 };
 
 export type ReleaseStatsRequestRenderProps = Data & {
@@ -152,7 +151,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
         ? this.transformSessionDurationData(response.stats)
         : this.transformCountData(response.stats, yAxis, response.statTotals);
 
-    return {...transformedData, crashFreeTimeBreakdown: response.usersBreakdown};
+    return {...transformedData};
   };
 
   fetchRateData = async () => {
@@ -178,7 +177,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       sessionResponse.stats
     );
 
-    return {...transformedData, crashFreeTimeBreakdown: userResponse.usersBreakdown};
+    return {...transformedData};
   };
 
   fetchEventData = async () => {
@@ -191,9 +190,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       vitalType,
       selection,
       version,
-      hasHealthData,
     } = this.props;
-    const {crashFreeTimeBreakdown} = this.state.data || {};
     const eventView = getReleaseEventView(
       selection,
       version,
@@ -204,27 +201,10 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       true
     );
     const payload = eventView.getEventsAPIPayload(location);
-    let userResponse, eventsCountResponse;
-
-    // we don't need to fetch crashFreeTimeBreakdown every time, because it does not change
-    if (crashFreeTimeBreakdown || !hasHealthData) {
-      eventsCountResponse = await fetchTotalCount(api, organization.slug, payload);
-    } else {
-      [userResponse, eventsCountResponse] = await Promise.all([
-        api.requestPromise(this.statsPath, {
-          query: {
-            ...this.baseQueryParams,
-            type: YAxis.USERS,
-          },
-        }),
-        fetchTotalCount(api, organization.slug, payload),
-      ]);
-    }
-
-    const breakdown = userResponse?.usersBreakdown ?? crashFreeTimeBreakdown;
+    const eventsCountResponse = await fetchTotalCount(api, organization.slug, payload);
     const chartSummary = eventsCountResponse.toLocaleString();
 
-    return {chartData: [], crashFreeTimeBreakdown: breakdown, chartSummary};
+    return {chartData: [], chartSummary};
   };
 
   get statsPath() {
@@ -244,11 +224,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
     };
   }
 
-  transformCountData(
-    responseData,
-    yAxis: string,
-    responseTotals
-  ): Omit<Data, 'crashFreeTimeBreakdown'> {
+  transformCountData(responseData, yAxis: string, responseTotals): Data {
     // here we can configure colors of the chart
     const chartData: ChartData = {
       crashed: {
@@ -328,10 +304,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
     };
   }
 
-  transformRateData(
-    responseUsersData,
-    responseSessionsData
-  ): Omit<Data, 'crashFreeTimeBreakdown'> {
+  transformRateData(responseUsersData, responseSessionsData): Data {
     const chartData: ChartData = {
       users: {
         seriesName: sessionTerm['crash-free-users'],
@@ -387,7 +360,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
     return {chartData: Object.values(chartData), chartSummary: summary};
   }
 
-  transformSessionDurationData(responseData): Omit<Data, 'crashFreeTimeBreakdown'> {
+  transformSessionDurationData(responseData): Data {
     // here we can configure colors of the chart
     const chartData: Series = {
       seriesName: t('Session Duration'),
@@ -427,7 +400,6 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       errored,
       chartData: data?.chartData ?? [],
       chartSummary: data?.chartSummary ?? '',
-      crashFreeTimeBreakdown: data?.crashFreeTimeBreakdown ?? [],
     });
   }
 }
