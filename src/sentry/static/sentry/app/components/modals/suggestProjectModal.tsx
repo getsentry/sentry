@@ -34,7 +34,7 @@ type State = {
 
 class SuggestProjectModal extends React.Component<Props, State> {
   state: State = {
-    askTeammate: true,
+    askTeammate: false,
   };
 
   handleGetStartedClick = () => {
@@ -61,6 +61,7 @@ class SuggestProjectModal extends React.Component<Props, State> {
       {email: targetUserEmail},
       this.props.organization
     );
+    this.props.closeModal();
   };
 
   handleSubmitError = () => {
@@ -171,7 +172,7 @@ class SuggestProjectModal extends React.Component<Props, State> {
     const header = askTeammate ? t('Tell a Teammate') : t('Try Sentry for Mobile');
     return (
       <React.Fragment>
-        <Header closeButton>
+        <Header>
           <PatternHeader />
           <Title>{header}</Title>
         </Header>
