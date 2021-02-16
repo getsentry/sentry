@@ -3,7 +3,7 @@ import pytest
 
 from django.utils import timezone
 
-from sentry.models import Environment, EventUser
+from sentry.models import Environment, EventUser, ReleaseProjectEnvironment, Release
 from sentry.tagstore.exceptions import (
     GroupTagKeyNotFound,
     GroupTagValueNotFound,
@@ -24,7 +24,9 @@ class TagStorageTest(TestCase, SnubaTestCase):
         self.proj1 = self.create_project()
         env1 = "test"
         env2 = "test2"
-
+        self.env3 = Environment.objects.create(
+            organization_id=self.proj1.organization_id, name="test3"
+        )
         self.now = timezone.now().replace(microsecond=0)
 
         exception = {
@@ -381,6 +383,65 @@ class TagStorageTest(TestCase, SnubaTestCase):
         assert tags[0].first_seen == one_second_ago
         assert tags[0].times_seen == 1
         assert tags[0].key == "sentry:release"
+
+    def test_get_release_tags_uses_release_project_environment(self):
+        tags = list(self.ts.get_release_tags([self.proj1.id], None, ["100"]))
+
+        assert len(tags) == 1
+        one_second_ago = self.now - timedelta(seconds=1)
+        assert tags[0].last_seen == one_second_ago
+        assert tags[0].first_seen == one_second_ago
+        assert tags[0].times_seen == 1
+
+        one_day_ago = self.now - timedelta(days=1)
+        two_days_ago = self.now - timedelta(days=2)
+        self.store_event(
+            data={
+                "event_id": "5" * 32,
+                "message": "message3",
+                "platform": "python",
+                "environment": None,
+                "fingerprint": ["group-1"],
+                "timestamp": iso_format(one_day_ago),
+                "tags": {
+                    "sentry:release": 100,
+                },
+            },
+            project_id=self.proj1.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "6" * 32,
+                "message": "message3",
+                "platform": "python",
+                "environment": None,
+                "fingerprint": ["group-1"],
+                "timestamp": iso_format(two_days_ago),
+                "tags": {
+                    "sentry:release": 100,
+                },
+            },
+            project_id=self.proj1.id,
+        )
+
+        tags = list(self.ts.get_release_tags([self.proj1.id], None, ["100"]))
+        assert tags[0].last_seen == one_second_ago
+        assert tags[0].first_seen == two_days_ago
+        assert tags[0].times_seen == 3
+
+        release = Release.objects.create(version="100", organization=self.organization)
+        ReleaseProjectEnvironment.objects.create(
+            release_id=release.id,
+            project_id=self.proj1.id,
+            environment_id=self.env3.id,
+            first_seen=one_day_ago,
+        )
+        tags = list(self.ts.get_release_tags([self.proj1.id], None, ["100"]))
+        assert tags[0].last_seen == one_second_ago
+        assert tags[0].first_seen == one_day_ago
+        assert (
+            tags[0].times_seen == 2
+        )  # Isn't 3 because start was limited by the ReleaseProjectEnvironment entry
 
     def test_get_group_event_filter(self):
         assert self.ts.get_group_event_filter(
