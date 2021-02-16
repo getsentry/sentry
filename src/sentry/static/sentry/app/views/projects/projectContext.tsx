@@ -1,13 +1,12 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
-import {withRouter} from 'react-router';
 import styled from '@emotion/styled';
 import createReactClass from 'create-react-class';
-import PropTypes from 'prop-types';
 import Reflux from 'reflux';
 
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {setActiveProject} from 'app/actionCreators/projects';
+import {Client} from 'app/api';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import MissingProjectMembership from 'app/components/projects/missingProjectMembership';
@@ -16,14 +15,35 @@ import SentryTypes from 'app/sentryTypes';
 import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import space from 'app/styles/space';
+import {Member, Organization, Project} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
-const ERROR_TYPES = {
-  MISSING_MEMBERSHIP: 'MISSING_MEMBERSHIP',
-  PROJECT_NOT_FOUND: 'PROJECT_NOT_FOUND',
-  UNKNOWN: 'UNKNOWN',
+enum ErrorTypes {
+  MISSING_MEMBERSHIP = 'MISSING_MEMBERSHIP',
+  PROJECT_NOT_FOUND = 'PROJECT_NOT_FOUND',
+  UNKNOWN = 'UNKNOWN',
+}
+
+type Props = {
+  api: Client;
+  /**
+   * If true, this will not change `state.loading` during `fetchData` phase
+   */
+  skipReload?: boolean;
+  organization: Organization;
+  projects: Project[];
+  projectId: string;
+  orgId: string;
+};
+
+type State = {
+  memberList: Member[];
+  project: Project | null;
+  loading: boolean;
+  error: boolean;
+  errorType: ErrorTypes | null;
 };
 
 /**
@@ -33,29 +53,16 @@ const ERROR_TYPES = {
  * Additionally delays rendering of children until project XHR has finished
  * and context is populated.
  */
-const ProjectContext = createReactClass({
+const ProjectContext = createReactClass<Props, State>({
   displayName: 'ProjectContext',
-
-  propTypes: {
-    api: PropTypes.object,
-
-    /**
-     * If true, this will not change `state.loading` during `fetchData` phase
-     */
-    skipReload: PropTypes.bool,
-    organization: SentryTypes.Organization,
-    projects: PropTypes.arrayOf(SentryTypes.Project),
-    projectId: PropTypes.string,
-    orgId: PropTypes.string,
-  },
 
   childContextTypes: {
     project: SentryTypes.Project,
   },
 
   mixins: [
-    Reflux.connect(MemberListStore, 'memberList'),
-    Reflux.listenTo(ProjectsStore, 'onProjectChange'),
+    Reflux.connect(MemberListStore, 'memberList') as any,
+    Reflux.listenTo(ProjectsStore, 'onProjectChange') as any,
   ],
 
   getInitialState() {
@@ -78,7 +85,7 @@ const ProjectContext = createReactClass({
     this.fetchData();
   },
 
-  componentWillReceiveProps(nextProps) {
+  componentWillReceiveProps(nextProps: Props) {
     if (nextProps.projectId === this.props.projectId) {
       return;
     }
@@ -88,7 +95,7 @@ const ProjectContext = createReactClass({
     }
   },
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(prevProps: Props, prevState: State) {
     if (prevProps.projectId !== this.props.projectId) {
       this.fetchData();
     }
@@ -113,10 +120,7 @@ const ProjectContext = createReactClass({
     // See: https://github.com/gaearon/react-document-title/issues/35
 
     // intentionally shallow comparing references
-    if (
-      prevState.project !== this.state.project ||
-      prevState.organization !== this.state.organization
-    ) {
+    if (prevState.project !== this.state.project) {
       if (!this.docTitle) {
         return;
       }
@@ -128,17 +132,14 @@ const ProjectContext = createReactClass({
   },
 
   remountComponent() {
-    this.setState(this.getInitialState());
+    this.setState(this.getInitialState!());
   },
 
   getTitle() {
-    if (this.state.project) {
-      return this.state.project.slug;
-    }
-    return 'Sentry';
+    return this.state.project?.slug ?? 'Sentry';
   },
 
-  onProjectChange(projectIds) {
+  onProjectChange(projectIds: Set<string>) {
     if (!this.state.project) {
       return;
     }
@@ -163,7 +164,7 @@ const ProjectContext = createReactClass({
     const activeProject = this.identifyProject();
     const hasAccess = activeProject && activeProject.hasAccess;
 
-    this.setState(state => ({
+    this.setState((state: State) => ({
       // if `skipReload` is true, then don't change loading state
       loading: skipReload ? state.loading : true,
       // we bind project initially, but it'll rebind
@@ -191,7 +192,7 @@ const ProjectContext = createReactClass({
         this.setState({
           loading: false,
           error: false,
-          errorType: ERROR_TYPES.UNKNOWN,
+          errorType: ErrorTypes.UNKNOWN,
         });
       }
 
@@ -205,7 +206,7 @@ const ProjectContext = createReactClass({
       this.setState({
         loading: false,
         error: true,
-        errorType: ERROR_TYPES.MISSING_MEMBERSHIP,
+        errorType: ErrorTypes.MISSING_MEMBERSHIP,
       });
 
       return;
@@ -220,7 +221,7 @@ const ProjectContext = createReactClass({
       this.setState({
         loading: false,
         error: true,
-        errorType: ERROR_TYPES.PROJECT_NOT_FOUND,
+        errorType: ErrorTypes.PROJECT_NOT_FOUND,
       });
     }
   },
@@ -232,34 +233,36 @@ const ProjectContext = createReactClass({
           <LoadingIndicator />
         </div>
       );
-    } else if (this.state.error) {
-      switch (this.state.errorType) {
-        case ERROR_TYPES.PROJECT_NOT_FOUND:
-          // TODO(chrissy): use scale for margin values
-          return (
-            <div className="container">
-              <div className="alert alert-block" style={{margin: '30px 0 10px'}}>
-                {t('The project you were looking for was not found.')}
-              </div>
-            </div>
-          );
-        case ERROR_TYPES.MISSING_MEMBERSHIP:
-          // TODO(dcramer): add various controls to improve this flow and break it
-          // out into a reusable missing access error component
-          return (
-            <ErrorWrapper>
-              <MissingProjectMembership
-                organization={this.props.organization}
-                projectSlug={this.state.project.slug}
-              />
-            </ErrorWrapper>
-          );
-        default:
-          return <LoadingError onRetry={this.remountComponent} />;
-      }
     }
 
-    return this.props.children;
+    if (!this.state.error) {
+      return this.props.children;
+    }
+
+    switch (this.state.errorType) {
+      case ErrorTypes.PROJECT_NOT_FOUND:
+        // TODO(chrissy): use scale for margin values
+        return (
+          <div className="container">
+            <div className="alert alert-block" style={{margin: '30px 0 10px'}}>
+              {t('The project you were looking for was not found.')}
+            </div>
+          </div>
+        );
+      case ErrorTypes.MISSING_MEMBERSHIP:
+        // TODO(dcramer): add various controls to improve this flow and break it
+        // out into a reusable missing access error component
+        return (
+          <ErrorWrapper>
+            <MissingProjectMembership
+              organization={this.props.organization}
+              projectSlug={this.state.project.slug}
+            />
+          </ErrorWrapper>
+        );
+      default:
+        return <LoadingError onRetry={this.remountComponent} />;
+    }
   },
 
   render() {
@@ -273,7 +276,7 @@ const ProjectContext = createReactClass({
 
 export {ProjectContext};
 
-export default withApi(withOrganization(withProjects(withRouter(ProjectContext))));
+export default withApi(withOrganization(withProjects(ProjectContext)));
 
 const ErrorWrapper = styled('div')`
   width: 100%;
