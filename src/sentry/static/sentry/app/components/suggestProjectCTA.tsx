@@ -29,13 +29,7 @@ const MOBILE_PLATFORMS = [
   'dotnet-xamarin',
 ];
 
-const MOBILE_USER_AGENTS = [
-  'okhttp/',
-  'CFNetwork/',
-  'Alamofire/',
-  'Dalvik/',
-  'node-fetch',
-];
+const MOBILE_USER_AGENTS = ['okhttp/', 'CFNetwork/', 'Alamofire/', 'Dalvik/', 'sentry/'];
 
 type Props = {
   projects: Project[];
@@ -52,7 +46,7 @@ type State = {
 class SuggestProjectCTA extends React.Component<Props, State> {
   state: State = {};
   componentDidMount() {
-    this.openModal();
+    // this.openModal();
     this.fetchData();
   }
 
@@ -164,7 +158,7 @@ class SuggestProjectCTA extends React.Component<Props, State> {
 
   renderCTA() {
     return (
-      <Alert icon={<IconUpgrade onClick={this.openModal} />} type="info">
+      <Alert icon={<SyledIconUpgrade onClick={this.openModal} />} type="info">
         <Content>
           {t(
             'We have a sneaky suspicion you have a mobile app that doesn’t use Sentry. Let’s start monitoring.'
@@ -190,4 +184,9 @@ const Content = styled('div')`
 
 const StyledIconClose = styled(IconClose)`
   margin: auto;
+  cursor: pointer;
+`;
+
+const SyledIconUpgrade = styled(IconUpgrade)`
+  cursor: pointer;
 `;

@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {Observer} from 'mobx-react';
 import * as qs from 'query-string';
 
 import bgPattern from 'sentry-images/spot/mobile-hero.jpg';
@@ -22,6 +23,7 @@ import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
 import withApi from 'app/utils/withApi';
 import EmailField from 'app/views/settings/components/forms/emailField';
 import Form from 'app/views/settings/components/forms/form';
+import FormModel from 'app/views/settings/components/forms/model';
 
 type Props = ModalRenderProps & {
   api: Client;
@@ -36,6 +38,7 @@ class SuggestProjectModal extends React.Component<Props, State> {
   state: State = {
     askTeammate: false,
   };
+  model = new FormModel();
 
   handleGetStartedClick = () => {
     trackAdvancedAnalyticsEvent(
@@ -54,6 +57,10 @@ class SuggestProjectModal extends React.Component<Props, State> {
     );
   };
 
+  goBack = () => {
+    this.setState({askTeammate: false});
+  };
+
   handleSubmitSuccess = ({targetUserEmail}: {targetUserEmail: string}) => {
     addSuccessMessage('Notified teammate successfully');
     trackAdvancedAnalyticsEvent(
@@ -62,6 +69,11 @@ class SuggestProjectModal extends React.Component<Props, State> {
       this.props.organization
     );
     this.props.closeModal();
+  };
+
+  handleSubmit = () => {
+    addLoadingMessage(t('Submitting\u2026'));
+    this.model.saveForm();
   };
 
   handleSubmitError = () => {
@@ -73,29 +85,50 @@ class SuggestProjectModal extends React.Component<Props, State> {
   };
 
   renderAskTeammate() {
-    const {organization} = this.props;
+    const {Body, Footer, organization} = this.props;
+    const model = this.model;
     return (
       <React.Fragment>
-        <Form
-          requireChanges
-          apiEndpoint={`/organizations/${organization.slug}/request-project-creation/`}
-          apiMethod="POST"
-          submitLabel={t('Send')}
-          onSubmitSuccess={this.handleSubmitSuccess}
-          onSubmitError={this.handleSubmitError}
-          onPreSubmit={this.handlePreSubmit}
-        >
-          <p>
-            {t('Let the right folks know about Sentry Mobile Application Monitoring.')}
-          </p>
-          <EmailField
-            name="targetUserEmail"
-            inline={false}
-            label={t('Email Address')}
-            placeholder="name@example.com"
-            stacked
-          />
-        </Form>
+        <Body>
+          <Form
+            model={this.model}
+            apiEndpoint={`/organizations/${organization.slug}/request-project-creation/`}
+            apiMethod="POST"
+            submitLabel={t('Send')}
+            onSubmitSuccess={this.handleSubmitSuccess}
+            onSubmitError={this.handleSubmitError}
+            onPreSubmit={this.handlePreSubmit}
+            hideFooter
+          >
+            <p>
+              {t('Let the right folks know about Sentry Mobile Application Monitoring.')}
+            </p>
+            <EmailField
+              required
+              name="targetUserEmail"
+              inline={false}
+              label={t('Email Address')}
+              placeholder="name@example.com"
+              stacked
+            />
+          </Form>
+        </Body>
+        <Footer>
+          <ButtonBar gap={1}>
+            <Button onClick={this.goBack}>{t('Back')}</Button>
+            <Observer>
+              {() => (
+                <Button
+                  onClick={this.handleSubmit}
+                  disabled={model.isError || model.isSaving}
+                  priority="primary"
+                >
+                  {t('Send')}
+                </Button>
+              )}
+            </Observer>
+          </ButtonBar>
+        </Footer>
       </React.Fragment>
     );
   }
@@ -152,6 +185,7 @@ class SuggestProjectModal extends React.Component<Props, State> {
         </Body>
         <Footer>
           <ButtonBar gap={1}>
+            <Button onClick={this.handleAskTeammate}>{t('Tell a Teammate')}</Button>
             <Button
               href={newProjectLink}
               onClick={this.handleGetStartedClick}
@@ -159,7 +193,6 @@ class SuggestProjectModal extends React.Component<Props, State> {
             >
               {t('Get Started')}
             </Button>
-            <Button onClick={this.handleAskTeammate}>{t('Tell a Teammate')}</Button>
           </ButtonBar>
         </Footer>
       </React.Fragment>
