@@ -38,15 +38,14 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
         return self.client.post(self.url, data=config_data, format="json")
 
     def test_basic_get_with_integrationId(self):
-        path_config1 = RepositoryProjectPathConfig.objects.create(
+        path_config1 = self.create_code_mapping(
             organization_integration=self.org_integration,
             project=self.project1,
             repository=self.repo1,
             stack_root="stack/root",
             source_root="source/root",
-            default_branch="master",
         )
-        path_config2 = RepositoryProjectPathConfig.objects.create(
+        path_config2 = self.create_code_mapping(
             organization_integration=self.org_integration,
             project=self.project2,
             repository=self.repo1,
