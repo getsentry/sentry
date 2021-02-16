@@ -1,7 +1,6 @@
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import status, serializers
 from django.http import Http404
-from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationIntegrationsPermission, OrganizationEndpoint
 from sentry.api.serializers import serialize
@@ -72,7 +71,7 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
 
     def validate_repository_id(self, repository_id):
         # validate repo exists on this org
-        repo_query = Repository.objects.all().filter(
+        repo_query = Repository.objects.filter(
             id=repository_id, organization_id=self.organization.id
         )
         # if there is an integration, validate that repo exists on integration
@@ -86,9 +85,7 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
 
     def validate_project_id(self, project_id):
         # validate project exists on this org
-        project_query = Project.objects.all().filter(
-            id=project_id, organization_id=self.organization.id
-        )
+        project_query = Project.objects.filter(id=project_id, organization_id=self.organization.id)
         if not project_query.exists():
             raise serializers.ValidationError("Project does not exist")
         return project_id
@@ -119,7 +116,7 @@ class NullableOrganizationIntegrationMixin:
 
     def get_project(self, organization, project_id):
         try:
-            return Project.objects.filter(organization=organization, id=project_id).get()
+            return Project.objects.get(organization=organization, id=project_id)
 
         except Project.DoesNotExist:
             raise Http404
@@ -140,11 +137,12 @@ class OrganizationIntegrationRepositoryProjectPathConfigEndpoint(
         :queryparam int projectId: the optional project id.
         :auth: required
         """
+
         integration_id = request.GET.get("integrationId")
         project_id = request.GET.get("projectId")
 
         if not integration_id and not project_id:
-            return Response(
+            return self.respond(
                 {"detail": 'Missing valid "projectId" or "integrationId"'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
@@ -189,7 +187,7 @@ class OrganizationIntegrationRepositoryProjectPathConfigEndpoint(
                 org_integration = self.get_organization_integration(organization, integration_id)
             except Http404:
                 # Human friendly error response.
-                return Response(
+                return self.respond(
                     "Could not find this integration installed on your organization",
                     status=status.HTTP_404_NOT_FOUND,
                 )
@@ -200,9 +198,9 @@ class OrganizationIntegrationRepositoryProjectPathConfigEndpoint(
         )
         if serializer.is_valid():
             repository_project_path_config = serializer.save()
-            return Response(
+            return self.respond(
                 serialize(repository_project_path_config, request.user),
                 status=status.HTTP_201_CREATED,
             )
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

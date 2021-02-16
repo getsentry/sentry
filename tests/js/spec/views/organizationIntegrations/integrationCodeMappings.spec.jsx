@@ -69,7 +69,7 @@ describe('IntegrationCodeMappings', function () {
 
     mockResponse([
       [
-        `/organizations/${org.slug}/repo-project-path-configs/?integrationId=${integration.id}`,
+        `/organizations/${org.slug}/repo-project-path-configs/`,
         [pathConfig1, pathConfig2],
       ],
       [`/organizations/${org.slug}/repos/`, repos],
@@ -80,7 +80,7 @@ describe('IntegrationCodeMappings', function () {
     );
   });
 
-  it('shows the paths', () => {
+  it('shows the paths', async () => {
     expect(wrapper.find('RepoName').length).toEqual(2);
     expect(wrapper.find('RepoName').at(0).text()).toEqual(repos[0].name);
     expect(wrapper.find('RepoName').at(1).text()).toEqual(repos[1].name);

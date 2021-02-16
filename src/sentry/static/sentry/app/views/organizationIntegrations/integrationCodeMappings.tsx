@@ -76,7 +76,8 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     return [
       [
         'pathConfigs',
-        `/organizations/${orgSlug}/repo-project-path-configs/?integrationId=${this.integrationId}`,
+        `/organizations/${orgSlug}/repo-project-path-configs/`,
+        {query: {integrationId: this.integrationId}},
       ],
       ['repos', `/organizations/${orgSlug}/repos/`, {query: {status: 'active'}}],
     ];

@@ -1,7 +1,6 @@
 from django.http import Http404
 
 from rest_framework import status
-from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationIntegrationsPermission, OrganizationEndpoint
 from sentry.api.serializers import serialize
@@ -22,7 +21,7 @@ class OrganizationIntegrationRepositoryProjectPathConfigDetailsEndpoint(
         args, kwargs = super().convert_args(request, organization_slug, config_id, *args, **kwargs)
 
         try:
-            kwargs["config"] = RepositoryProjectPathConfig.objects.all().get(
+            kwargs["config"] = RepositoryProjectPathConfig.objects.get(
                 id=config_id,
             )
         except RepositoryProjectPathConfig.DoesNotExist:
@@ -58,7 +57,7 @@ class OrganizationIntegrationRepositoryProjectPathConfigDetailsEndpoint(
                 serialize(repository_project_path_config, request.user),
                 status=status.HTTP_200_OK,
             )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, config_id, organization, config):
         """
@@ -67,4 +66,4 @@ class OrganizationIntegrationRepositoryProjectPathConfigDetailsEndpoint(
         :auth: required
         """
         config.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return self.respond(status=status.HTTP_204_NO_CONTENT)
