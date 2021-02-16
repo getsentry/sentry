@@ -1,20 +1,20 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {openModal} from 'app/actionCreators/modal';
+import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
+import {Client} from 'app/api';
+import Alert from 'app/components/alert';
+import SuggestProjectModal from 'app/components/modals/suggestProjectModal';
+import {IconClose, IconUpgrade} from 'app/icons';
+import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {EntryRequest, Event} from 'app/types/event';
 import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
 import {promptIsDismissed} from 'app/utils/promptIsDismissed';
-import withProjects from 'app/utils/withProjects';
-import Alert from 'app/components/alert';
-import {promptsCheck, promptsUpdate, PromptData} from 'app/actionCreators/prompts';
 import withApi from 'app/utils/withApi';
-import {Client} from 'app/api';
-import {t} from 'app/locale';
-import {IconUpgrade, IconClose} from 'app/icons';
-import space from 'app/styles/space';
-import {openModal} from 'app/actionCreators/modal';
-import SuggestProjectModal from 'app/components/modals/suggestProjectModal';
+import withProjects from 'app/utils/withProjects';
 
 const MOBILE_PLATFORMS = [
   'react-native',
@@ -134,6 +134,12 @@ class SuggestProjectCTA extends React.Component<Props, State> {
 
   handleCTAClose = () => {
     const {api, organization} = this.props;
+    trackAdvancedAnalyticsEvent(
+      'growth.dismissed_mobile_prompt_banner',
+      {},
+      this.props.organization
+    );
+
     promptsUpdate(api, {
       organizationId: organization.id,
       feature: 'suggest_mobile_project',
@@ -144,6 +150,13 @@ class SuggestProjectCTA extends React.Component<Props, State> {
   };
 
   openModal = () => {
+    trackAdvancedAnalyticsEvent(
+      'growth.dismissed_mobile_prompt_banner',
+      {
+        matchedUserAgentString: this.matchedUserAgentString,
+      },
+      this.props.organization
+    );
     openModal(deps => (
       <SuggestProjectModal organization={this.props.organization} {...deps} />
     ));
@@ -154,7 +167,7 @@ class SuggestProjectCTA extends React.Component<Props, State> {
       <Alert icon={<IconUpgrade onClick={this.openModal} />} type="info">
         <Content>
           {t(
-            'We have a sneaky suspicion you have a mobile app and something might not be right.  Figure it out faster with Sentry Mobile App Monitoring.'
+            'We have a sneaky suspicion you have a mobile app that doesn’t use Sentry. Let’s start monitoring.'
           )}
           <StyledIconClose onClick={this.handleCTAClose} />
         </Content>

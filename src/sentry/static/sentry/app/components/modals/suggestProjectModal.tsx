@@ -1,40 +1,100 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
 import bgPattern from 'sentry-images/spot/mobile-hero.jpg';
 
-import List from 'app/components/list';
-import ListItem from 'app/components/list/listItem';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import List from 'app/components/list';
+import ListItem from 'app/components/list/listItem';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
+import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
 import withApi from 'app/utils/withApi';
+import EmailField from 'app/views/settings/components/forms/emailField';
+import Form from 'app/views/settings/components/forms/form';
 
 type Props = ModalRenderProps & {
   api: Client;
   organization: Organization;
 };
 
-type State = {};
+type State = {
+  askTeammate?: boolean;
+};
 
 class SuggestProjectModal extends React.Component<Props, State> {
-  state: State = {};
+  state: State = {
+    askTeammate: false,
+  };
 
-  render() {
-    const {Header, Body, Footer, organization} = this.props;
+  handleGetStartedClick = () => {
+    trackAdvancedAnalyticsEvent(
+      'growth.clicked_mobile_prompt_setup_project',
+      {},
+      this.props.organization
+    );
+  };
 
-    const newProjectLink = `/organizations/${organization.slug}/projects/new/`;
+  handleAskTeammate = () => {
+    this.setState({askTeammate: true});
+    trackAdvancedAnalyticsEvent(
+      'growth.clicked_mobile_prompt_ask_teammate',
+      {},
+      this.props.organization
+    );
+  };
+
+  handleSubmitSuccess = ({email}: {email: string}) => {
+    trackAdvancedAnalyticsEvent(
+      'growth.submitted_mobile_prompt_ask_teammate',
+      {email},
+      this.props.organization
+    );
+  };
+
+  renderAskTeammate() {
+    const {organization} = this.props;
+    return (
+      <React.Fragment>
+        <Form
+          requireChanges
+          apiEndpoint={`/organizations/${organization.slug}/join-request/`}
+          apiMethod="POST"
+          submitLabel={t('Send')}
+          onSubmitSuccess={this.handleSubmitSuccess}
+        >
+          <p>
+            {t('Let the right folks know about Sentry Mobile Application Monitoring.')}
+          </p>
+          <EmailField
+            name="email"
+            inline={false}
+            label={t('Email Address')}
+            placeholder="name@example.com"
+            stacked
+          />
+        </Form>
+      </React.Fragment>
+    );
+  }
+
+  renderMain() {
+    const {Body, Footer, organization} = this.props;
+
+    const paramString = qs.stringify({
+      referrer: 'suggest_project',
+      category: 'mobile',
+    });
+
+    const newProjectLink = `/organizations/${organization.slug}/projects/new/?${paramString}`;
 
     return (
       <React.Fragment>
-        <Header>
-          <PatternHeader />
-          <Title>{t('Try Sentry for Mobile')}</Title>
-        </Header>
         <Body>
           <ModalContainer>
             <SmallP>
@@ -75,12 +135,31 @@ class SuggestProjectModal extends React.Component<Props, State> {
         </Body>
         <Footer>
           <ButtonBar gap={1}>
-            <Button href={newProjectLink} priority="primary">
+            <Button
+              href={newProjectLink}
+              onClick={this.handleGetStartedClick}
+              priority="primary"
+            >
               {t('Get Started')}
             </Button>
-            <Button>{t('Ask Teammate')}</Button>
+            <Button onClick={this.handleAskTeammate}>{t('Tell a Teammate')}</Button>
           </ButtonBar>
         </Footer>
+      </React.Fragment>
+    );
+  }
+
+  render() {
+    const {Header} = this.props;
+    const {askTeammate} = this.state;
+    const header = askTeammate ? t('Tell a Teammate') : t('Try Sentry for Mobile');
+    return (
+      <React.Fragment>
+        <Header>
+          <PatternHeader />
+          <Title>{header}</Title>
+        </Header>
+        {this.state.askTeammate ? this.renderAskTeammate() : this.renderMain()}
       </React.Fragment>
     );
   }
@@ -97,7 +176,7 @@ const ModalContainer = styled('div')`
 
 const Title = styled('h3')`
   margin-top: ${space(2)};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(3)};
 `;
 
 const SmallP = styled('p')`
