@@ -1,6 +1,5 @@
 from rest_framework import serializers
 
-from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -35,8 +34,7 @@ class OrganizationRequestProjectCreation(OrganizationEndpoint):
 
         requester_name = request.user.get_display_name()
         requester_link = absolute_uri(
-            reverse("sentry-api-0-organization-request-project-creation", args=[organization.slug])
-            + "?referrer=request_project&category=mobile"
+            f"/organizations/{organization.slug}/projects/new/?referrer=request_project&category=mobile"
         )
 
         subject = _("%s thinks Sentry can help monitor your mobile app")
