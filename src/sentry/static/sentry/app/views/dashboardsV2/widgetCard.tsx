@@ -168,7 +168,6 @@ const StyledPanel = styled(Panel, {
   /* If a panel overflows due to a long title stretch its grid sibling */
   height: 100%;
   min-height: 96px;
-  overflow: hidden;
 `;
 
 const ToolbarPanel = styled('div')`
@@ -185,6 +184,7 @@ const ToolbarPanel = styled('div')`
   align-items: flex-start;
 
   background-color: rgba(255, 255, 255, 0.7);
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 const IconContainer = styled('div')`
