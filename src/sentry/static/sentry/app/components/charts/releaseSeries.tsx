@@ -35,10 +35,6 @@ type ReleaseConditions = {
   cursor?: string;
 };
 
-export type ReleaseSeriesData = Series & {
-  markLine: EChartOption.SeriesLine['markLine'];
-};
-
 // This is not an exported action/function because releases list uses AsyncComponent
 // and this is not re-used anywhere else afaict
 function getOrganizationReleases(
@@ -184,7 +180,7 @@ class ReleaseSeries extends React.Component<Props, State> {
 
   setReleasesWithSeries(releases) {
     const {emphasizeReleases = []} = this.props;
-    const releaseSeries: ReleaseSeriesData[] = [];
+    const releaseSeries: Series[] = [];
 
     if (emphasizeReleases.length) {
       const [unemphasizedReleases, emphasizedReleases] = partition(
