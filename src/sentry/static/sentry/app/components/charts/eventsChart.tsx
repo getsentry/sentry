@@ -10,7 +10,7 @@ import BarChart from 'app/components/charts/barChart';
 import ChartZoom, {ZoomRenderProps} from 'app/components/charts/chartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import LineChart from 'app/components/charts/lineChart';
-import ReleaseSeries from 'app/components/charts/releaseSeries';
+import ReleaseSeries, {ReleaseSeriesData} from 'app/components/charts/releaseSeries';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {getInterval} from 'app/components/charts/utils';
@@ -33,7 +33,7 @@ type ChartProps = {
   legendOptions?: EChartOption.Legend;
   chartOptions?: EChartOption;
   currentSeriesName?: string;
-  releaseSeries?: Series[];
+  releaseSeries?: ReleaseSeriesData[];
   previousTimeseriesData?: Series | null;
   previousSeriesName?: string;
   /**
@@ -156,8 +156,11 @@ class Chart extends React.Component<ChartProps, State> {
 
     // Temporary fix to improve performance on pages with a high number of releases.
     // Picked 1000 as it is the size of the first page
+    const releases = releaseSeries && releaseSeries[0];
     const hideReleasesByDefault =
-      Array.isArray(releaseSeries) && releaseSeries.length >= 1000;
+      Array.isArray(releaseSeries) &&
+      releases?.markLine?.data &&
+      (releases.markLine.data as any).length >= 1000;
 
     const selected = !Array.isArray(releaseSeries)
       ? seriesSelection
