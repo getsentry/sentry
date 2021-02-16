@@ -22,7 +22,6 @@ type Props<OptionType> = InputFieldProps &
      * A label that is shown inside the select control.
      */
     inFieldLabel?: string;
-    stacked?: boolean;
   };
 
 function getChoices<T>(props: Props<T>): Choices {
@@ -80,11 +79,11 @@ export default class SelectField<
   };
 
   render() {
-    const {multiple, allowClear, ...otherProps} = this.props;
+    const {multiple, allowClear, small, ...otherProps} = this.props;
     return (
       <InputField
         {...otherProps}
-        alignRight={this.props.small}
+        alignRight={small}
         field={({onChange, onBlur, required: _required, ...props}) => (
           <SelectControl
             {...props}
