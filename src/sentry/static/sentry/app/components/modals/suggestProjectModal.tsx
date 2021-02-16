@@ -12,6 +12,7 @@ import {
 } from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
+import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import List from 'app/components/list';
@@ -184,16 +185,27 @@ class SuggestProjectModal extends React.Component<Props, State> {
           </ModalContainer>
         </Body>
         <Footer>
-          <ButtonBar gap={1}>
-            <Button onClick={this.handleAskTeammate}>{t('Tell a Teammate')}</Button>
-            <Button
-              href={newProjectLink}
-              onClick={this.handleGetStartedClick}
-              priority="primary"
-            >
-              {t('Get Started')}
-            </Button>
-          </ButtonBar>
+          <Access organization={organization} access={['project:write']}>
+            {({hasAccess}) => (
+              <ButtonBar gap={1}>
+                <Button
+                  priority={hasAccess ? 'default' : 'primary'}
+                  onClick={this.handleAskTeammate}
+                >
+                  {t('Tell a Teammate')}
+                </Button>
+                {hasAccess && (
+                  <Button
+                    href={newProjectLink}
+                    onClick={this.handleGetStartedClick}
+                    priority="primary"
+                  >
+                    {t('Get Started')}
+                  </Button>
+                )}
+              </ButtonBar>
+            )}
+          </Access>
         </Footer>
       </React.Fragment>
     );
