@@ -1,0 +1,1269 @@
+{
+  "event_id": "0f2ecb34993846fab03f3a0bab6343e5",
+  "project": 5434472,
+  "release": null,
+  "dist": null,
+  "platform": "ruby",
+  "message": "",
+  "datetime": "2021-02-14T14:05:19.000000Z",
+  "tags": [
+    ["browser", "Safari 14.0.3"],
+    ["browser.name", "Safari"],
+    ["client_os", "Mac OS X 10.15.6"],
+    ["client_os.name", "Mac OS X"],
+    ["counter", "1"],
+    ["device", "Mac"],
+    ["device.family", "Mac"],
+    ["environment", "development"],
+    ["level", "error"],
+    [
+      "os",
+      "Darwin Darwin Kernel Version 20.3.0: Thu Jan 21 00:07:06 PST 2021; root:xnu-7195.81.3~1/RELEASE_X86_64"
+    ],
+    ["os.name", "Darwin"],
+    ["request_id", "0464ff39-3c81-4cda-a932-0eb1b888ebb3"],
+    ["runtime", "ruby ruby 2.7.2p137 (2020-10-01 revision 5445e04352) [x86_64-darwin20]"],
+    ["runtime.name", "ruby"],
+    ["server_name", "Stans-MBPR"],
+    ["transaction", "WelcomeController#index"],
+    ["url", "http://localhost:3000/"]
+  ],
+  "_metrics": {"bytes.ingested.event": 45638, "bytes.stored.event": 75281},
+  "contexts": {
+    "browser": {"name": "Safari", "version": "14.0.3", "type": "browser"},
+    "client_os": {"name": "Mac OS X", "version": "10.15.6", "type": "os"},
+    "device": {"family": "Mac", "model": "Mac", "brand": "Apple", "type": "device"},
+    "os": {
+      "name": "Darwin",
+      "version": "Darwin Kernel Version 20.3.0: Thu Jan 21 00:07:06 PST 2021; root:xnu-7195.81.3~1/RELEASE_X86_64",
+      "build": "20.3.0",
+      "kernel_version": "Darwin Kernel Version 20.3.0: Thu Jan 21 00:07:06 PST 2021; root:xnu-7195.81.3~1/RELEASE_X86_64",
+      "type": "os"
+    },
+    "runtime": {
+      "name": "ruby",
+      "version": "ruby 2.7.2p137 (2020-10-01 revision 5445e04352) [x86_64-darwin20]",
+      "type": "runtime"
+    },
+    "trace": {
+      "trace_id": "b74e4bb5533a481bb6df609b75a4aecd",
+      "span_id": "e4123c652e21b9a7",
+      "op": "rails.request",
+      "type": "trace"
+    }
+  },
+  "culprit": "WelcomeController#index",
+  "environment": "development",
+  "exception": {
+    "values": [
+      {
+        "type": "ZeroDivisionError",
+        "value": "divided by 0",
+        "module": "",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "block in spawn_thread",
+              "filename": "puma (3.12.6) lib/puma/thread_pool.rb",
+              "abs_path": "puma (3.12.6) lib/puma/thread_pool.rb",
+              "lineno": 135,
+              "in_app": false
+            },
+            {
+              "function": "block in run",
+              "filename": "puma (3.12.6) lib/puma/server.rb",
+              "abs_path": "puma (3.12.6) lib/puma/server.rb",
+              "lineno": 334,
+              "in_app": false
+            },
+            {
+              "function": "process_client",
+              "filename": "puma (3.12.6) lib/puma/server.rb",
+              "abs_path": "puma (3.12.6) lib/puma/server.rb",
+              "lineno": 476,
+              "in_app": false
+            },
+            {
+              "function": "handle_request",
+              "filename": "puma (3.12.6) lib/puma/server.rb",
+              "abs_path": "puma (3.12.6) lib/puma/server.rb",
+              "lineno": 706,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "puma (3.12.6) lib/puma/configuration.rb",
+              "abs_path": "puma (3.12.6) lib/puma/configuration.rb",
+              "lineno": 227,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "railties (6.0.3.4) lib/rails/engine.rb",
+              "abs_path": "railties (6.0.3.4) lib/rails/engine.rb",
+              "lineno": 527,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "rack-proxy (0.6.5) lib/rack/proxy.rb",
+              "abs_path": "rack-proxy (0.6.5) lib/rack/proxy.rb",
+              "lineno": 57,
+              "in_app": false
+            },
+            {
+              "function": "perform_request",
+              "filename": "webpacker (4.3.0) lib/webpacker/dev_server_proxy.rb",
+              "abs_path": "webpacker (4.3.0) lib/webpacker/dev_server_proxy.rb",
+              "lineno": 23,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "sentry/rack/capture_exceptions.rb",
+              "abs_path": "/Users/st0012/projects/sentry-ruby/sentry-ruby/lib/sentry/rack/capture_exceptions.rb",
+              "lineno": 14,
+              "pre_context": [
+                "        # make sure the current thread has a clean hub\n",
+                "        Sentry.clone_hub_to_current_thread\n",
+                "\n"
+              ],
+              "context_line": "        Sentry.with_scope do |scope|\n",
+              "post_context": [
+                "          scope.clear_breadcrumbs\n",
+                "          scope.set_transaction_name(env[\"PATH_INFO\"]) if env[\"PATH_INFO\"]\n",
+                "          scope.set_rack_env(env)\n"
+              ],
+              "in_app": false
+            },
+            {
+              "function": "with_scope",
+              "filename": "sentry-ruby.rb",
+              "abs_path": "/Users/st0012/projects/sentry-ruby/sentry-ruby/lib/sentry-ruby.rb",
+              "lineno": 149,
+              "pre_context": ["    # ```\n", "    #\n", "    def with_scope(&block)\n"],
+              "context_line": "      get_current_hub&.with_scope(&block)\n",
+              "post_context": [
+                "    end\n",
+                "\n",
+                "    # Takes an exception and reports it to Sentry via the currently active hub.\n"
+              ],
+              "in_app": false
+            },
+            {
+              "function": "with_scope",
+              "filename": "sentry/hub.rb",
+              "abs_path": "/Users/st0012/projects/sentry-ruby/sentry-ruby/lib/sentry/hub.rb",
+              "lineno": 52,
+              "pre_context": ["\n", "    def with_scope(&block)\n", "      push_scope\n"],
+              "context_line": "      yield(current_scope)\n",
+              "post_context": ["    ensure\n", "      pop_scope\n", "    end\n"],
+              "in_app": false
+            },
+            {
+              "function": "block in call",
+              "filename": "sentry/rack/capture_exceptions.rb",
+              "abs_path": "/Users/st0012/projects/sentry-ruby/sentry-ruby/lib/sentry/rack/capture_exceptions.rb",
+              "lineno": 26,
+              "pre_context": [
+                "          scope.set_span(span)\n",
+                "\n",
+                "          begin\n"
+              ],
+              "context_line": "            response = @app.call(env)\n",
+              "post_context": [
+                "          rescue Sentry::Error\n",
+                "            finish_span(span, 500)\n",
+                "            raise # Don't capture Sentry errors\n"
+              ],
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/middleware/host_authorization.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/middleware/host_authorization.rb",
+              "lineno": 82,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "rack (2.2.3) lib/rack/sendfile.rb",
+              "abs_path": "rack (2.2.3) lib/rack/sendfile.rb",
+              "lineno": 110,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/middleware/static.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/middleware/static.rb",
+              "lineno": 126,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/middleware/executor.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/middleware/executor.rb",
+              "lineno": 14,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "activesupport (6.0.3.4) lib/active_support/cache/strategy/local_cache_middleware.rb",
+              "abs_path": "activesupport (6.0.3.4) lib/active_support/cache/strategy/local_cache_middleware.rb",
+              "lineno": 29,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "rack (2.2.3) lib/rack/runtime.rb",
+              "abs_path": "rack (2.2.3) lib/rack/runtime.rb",
+              "lineno": 22,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "rack (2.2.3) lib/rack/method_override.rb",
+              "abs_path": "rack (2.2.3) lib/rack/method_override.rb",
+              "lineno": 24,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/middleware/request_id.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/middleware/request_id.rb",
+              "lineno": 27,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/middleware/remote_ip.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/middleware/remote_ip.rb",
+              "lineno": 81,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "sprockets-rails (3.2.2) lib/sprockets/rails/quiet_assets.rb",
+              "abs_path": "sprockets-rails (3.2.2) lib/sprockets/rails/quiet_assets.rb",
+              "lineno": 13,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "railties (6.0.3.4) lib/rails/rack/logger.rb",
+              "abs_path": "railties (6.0.3.4) lib/rails/rack/logger.rb",
+              "lineno": 26,
+              "in_app": false
+            },
+            {
+              "function": "tagged",
+              "filename": "activesupport (6.0.3.4) lib/active_support/tagged_logging.rb",
+              "abs_path": "activesupport (6.0.3.4) lib/active_support/tagged_logging.rb",
+              "lineno": 80,
+              "in_app": false
+            },
+            {
+              "function": "tagged",
+              "filename": "activesupport (6.0.3.4) lib/active_support/tagged_logging.rb",
+              "abs_path": "activesupport (6.0.3.4) lib/active_support/tagged_logging.rb",
+              "lineno": 28,
+              "in_app": false
+            },
+            {
+              "function": "block in tagged",
+              "filename": "activesupport (6.0.3.4) lib/active_support/tagged_logging.rb",
+              "abs_path": "activesupport (6.0.3.4) lib/active_support/tagged_logging.rb",
+              "lineno": 80,
+              "in_app": false
+            },
+            {
+              "function": "block in call",
+              "filename": "railties (6.0.3.4) lib/rails/rack/logger.rb",
+              "abs_path": "railties (6.0.3.4) lib/rails/rack/logger.rb",
+              "lineno": 26,
+              "in_app": false
+            },
+            {
+              "function": "call_app",
+              "filename": "railties (6.0.3.4) lib/rails/rack/logger.rb",
+              "abs_path": "railties (6.0.3.4) lib/rails/rack/logger.rb",
+              "lineno": 37,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/middleware/show_exceptions.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/middleware/show_exceptions.rb",
+              "lineno": 33,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "web-console (4.1.0) lib/web_console/middleware.rb",
+              "abs_path": "web-console (4.1.0) lib/web_console/middleware.rb",
+              "lineno": 17,
+              "in_app": false
+            },
+            {
+              "function": "catch",
+              "filename": "web-console (4.1.0) lib/web_console/middleware.rb",
+              "abs_path": "web-console (4.1.0) lib/web_console/middleware.rb",
+              "lineno": 17,
+              "in_app": false
+            },
+            {
+              "function": "block in call",
+              "filename": "web-console (4.1.0) lib/web_console/middleware.rb",
+              "abs_path": "web-console (4.1.0) lib/web_console/middleware.rb",
+              "lineno": 28,
+              "in_app": false
+            },
+            {
+              "function": "call_app",
+              "filename": "web-console (4.1.0) lib/web_console/middleware.rb",
+              "abs_path": "web-console (4.1.0) lib/web_console/middleware.rb",
+              "lineno": 132,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/middleware/debug_exceptions.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/middleware/debug_exceptions.rb",
+              "lineno": 32,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/middleware/actionable_exceptions.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/middleware/actionable_exceptions.rb",
+              "lineno": 18,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/middleware/executor.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/middleware/executor.rb",
+              "lineno": 14,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/middleware/callbacks.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/middleware/callbacks.rb",
+              "lineno": 26,
+              "in_app": false
+            },
+            {
+              "function": "run_callbacks",
+              "filename": "activesupport (6.0.3.4) lib/active_support/callbacks.rb",
+              "abs_path": "activesupport (6.0.3.4) lib/active_support/callbacks.rb",
+              "lineno": 101,
+              "in_app": false
+            },
+            {
+              "function": "block in call",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/middleware/callbacks.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/middleware/callbacks.rb",
+              "lineno": 27,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "activerecord (6.0.3.4) lib/active_record/migration.rb",
+              "abs_path": "activerecord (6.0.3.4) lib/active_record/migration.rb",
+              "lineno": 567,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/middleware/cookies.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/middleware/cookies.rb",
+              "lineno": 648,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "rack (2.2.3) lib/rack/session/abstract/id.rb",
+              "abs_path": "rack (2.2.3) lib/rack/session/abstract/id.rb",
+              "lineno": 260,
+              "in_app": false
+            },
+            {
+              "function": "context",
+              "filename": "rack (2.2.3) lib/rack/session/abstract/id.rb",
+              "abs_path": "rack (2.2.3) lib/rack/session/abstract/id.rb",
+              "lineno": 266,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/http/content_security_policy.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/http/content_security_policy.rb",
+              "lineno": 18,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "rack (2.2.3) lib/rack/head.rb",
+              "abs_path": "rack (2.2.3) lib/rack/head.rb",
+              "lineno": 12,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "rack (2.2.3) lib/rack/conditional_get.rb",
+              "abs_path": "rack (2.2.3) lib/rack/conditional_get.rb",
+              "lineno": 27,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "rack (2.2.3) lib/rack/etag.rb",
+              "abs_path": "rack (2.2.3) lib/rack/etag.rb",
+              "lineno": 27,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "rack (2.2.3) lib/rack/tempfile_reaper.rb",
+              "abs_path": "rack (2.2.3) lib/rack/tempfile_reaper.rb",
+              "lineno": 15,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "sentry/rails/rescued_exception_interceptor.rb",
+              "abs_path": "/Users/st0012/projects/sentry-ruby/sentry-rails/lib/sentry/rails/rescued_exception_interceptor.rb",
+              "lineno": 12,
+              "context_line": "          @app.call(env)\n",
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/routing/route_set.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/routing/route_set.rb",
+              "lineno": 834,
+              "in_app": false
+            },
+            {
+              "function": "serve",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/journey/router.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/journey/router.rb",
+              "lineno": 32,
+              "in_app": false
+            },
+            {
+              "function": "each",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/journey/router.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/journey/router.rb",
+              "lineno": 32,
+              "in_app": false
+            },
+            {
+              "function": "block in serve",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/journey/router.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/journey/router.rb",
+              "lineno": 49,
+              "in_app": false
+            },
+            {
+              "function": "serve",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/routing/route_set.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/routing/route_set.rb",
+              "lineno": 33,
+              "in_app": false
+            },
+            {
+              "function": "dispatch",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/routing/route_set.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/routing/route_set.rb",
+              "lineno": 50,
+              "in_app": false
+            },
+            {
+              "function": "dispatch",
+              "filename": "actionpack (6.0.3.4) lib/action_controller/metal.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_controller/metal.rb",
+              "lineno": 254,
+              "in_app": false
+            },
+            {
+              "function": "dispatch",
+              "filename": "actionpack (6.0.3.4) lib/action_controller/metal.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_controller/metal.rb",
+              "lineno": 190,
+              "in_app": false
+            },
+            {
+              "function": "process",
+              "filename": "actionview (6.0.3.4) lib/action_view/rendering.rb",
+              "abs_path": "actionview (6.0.3.4) lib/action_view/rendering.rb",
+              "lineno": 39,
+              "in_app": false
+            },
+            {
+              "function": "process",
+              "filename": "actionpack (6.0.3.4) lib/abstract_controller/base.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/abstract_controller/base.rb",
+              "lineno": 136,
+              "in_app": false
+            },
+            {
+              "function": "process_action",
+              "filename": "activerecord (6.0.3.4) lib/active_record/railties/controller_runtime.rb",
+              "abs_path": "activerecord (6.0.3.4) lib/active_record/railties/controller_runtime.rb",
+              "lineno": 27,
+              "in_app": false
+            },
+            {
+              "function": "process_action",
+              "filename": "actionpack (6.0.3.4) lib/action_controller/metal/params_wrapper.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_controller/metal/params_wrapper.rb",
+              "lineno": 245,
+              "in_app": false
+            },
+            {
+              "function": "process_action",
+              "filename": "actionpack (6.0.3.4) lib/action_controller/metal/instrumentation.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_controller/metal/instrumentation.rb",
+              "lineno": 32,
+              "in_app": false
+            },
+            {
+              "function": "instrument",
+              "filename": "activesupport (6.0.3.4) lib/active_support/notifications.rb",
+              "abs_path": "activesupport (6.0.3.4) lib/active_support/notifications.rb",
+              "lineno": 180,
+              "in_app": false
+            },
+            {
+              "function": "instrument",
+              "filename": "activesupport (6.0.3.4) lib/active_support/notifications/instrumenter.rb",
+              "abs_path": "activesupport (6.0.3.4) lib/active_support/notifications/instrumenter.rb",
+              "lineno": 24,
+              "in_app": false
+            },
+            {
+              "function": "block in instrument",
+              "filename": "activesupport (6.0.3.4) lib/active_support/notifications.rb",
+              "abs_path": "activesupport (6.0.3.4) lib/active_support/notifications.rb",
+              "lineno": 180,
+              "in_app": false
+            },
+            {
+              "function": "block in process_action",
+              "filename": "actionpack (6.0.3.4) lib/action_controller/metal/instrumentation.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_controller/metal/instrumentation.rb",
+              "lineno": 33,
+              "in_app": false
+            },
+            {
+              "function": "process_action",
+              "filename": "actionpack (6.0.3.4) lib/action_controller/metal/rescue.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_controller/metal/rescue.rb",
+              "lineno": 22,
+              "in_app": false
+            },
+            {
+              "function": "process_action",
+              "filename": "actionpack (6.0.3.4) lib/abstract_controller/callbacks.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/abstract_controller/callbacks.rb",
+              "lineno": 41,
+              "in_app": false
+            },
+            {
+              "function": "run_callbacks",
+              "filename": "activesupport (6.0.3.4) lib/active_support/callbacks.rb",
+              "abs_path": "activesupport (6.0.3.4) lib/active_support/callbacks.rb",
+              "lineno": 135,
+              "in_app": false
+            },
+            {
+              "function": "block in process_action",
+              "filename": "actionpack (6.0.3.4) lib/abstract_controller/callbacks.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/abstract_controller/callbacks.rb",
+              "lineno": 42,
+              "in_app": false
+            },
+            {
+              "function": "process_action",
+              "filename": "actionpack (6.0.3.4) lib/action_controller/metal/rendering.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_controller/metal/rendering.rb",
+              "lineno": 30,
+              "in_app": false
+            },
+            {
+              "function": "process_action",
+              "filename": "actionpack (6.0.3.4) lib/abstract_controller/base.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/abstract_controller/base.rb",
+              "lineno": 195,
+              "in_app": false
+            },
+            {
+              "function": "send_action",
+              "filename": "actionpack (6.0.3.4) lib/action_controller/metal/basic_implicit_render.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_controller/metal/basic_implicit_render.rb",
+              "lineno": 6,
+              "in_app": false
+            },
+            {
+              "function": "index",
+              "filename": "app/controllers/welcome_controller.rb",
+              "abs_path": "app/controllers/welcome_controller.rb",
+              "lineno": 5,
+              "pre_context": [
+                "  before_action :set_sentry_context\n",
+                "\n",
+                "  def index\n"
+              ],
+              "context_line": "    1 / 0\n",
+              "post_context": ["  end\n", "\n", "  def view_error\n"],
+              "in_app": true
+            },
+            {
+              "function": "/",
+              "filename": "app/controllers/welcome_controller.rb",
+              "abs_path": "app/controllers/welcome_controller.rb",
+              "lineno": 5,
+              "pre_context": [
+                "  before_action :set_sentry_context\n",
+                "\n",
+                "  def index\n"
+              ],
+              "context_line": "    1 / 0\n",
+              "post_context": ["  end\n", "\n", "  def view_error\n"],
+              "in_app": true
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "fingerprint": ["{{ default }}"],
+  "grouping_config": {
+    "enhancements": "eJybzDhxY3J-bm5-npWRgaGlroGxrpHxBABcTQcY",
+    "id": "newstyle:2019-10-29"
+  },
+  "hashes": ["bc63a4d65528adaf3dc630761002f91c", "a0fbd94180cf5aa23020cdfd59a585d5"],
+  "key_id": "1342649",
+  "level": "error",
+  "location": "app/controllers/welcome_controller.rb",
+  "logger": "",
+  "metadata": {
+    "filename": "app/controllers/welcome_controller.rb",
+    "function": "/",
+    "type": "ZeroDivisionError",
+    "value": "divided by 0"
+  },
+  "received": 1613311520.792659,
+  "request": {
+    "url": "http://localhost:3000/",
+    "method": "GET",
+    "headers": [
+      ["Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"],
+      ["Accept-Encoding", "gzip, deflate"],
+      ["Accept-Language", "zh-tw"],
+      ["Connection", "keep-alive"],
+      ["Host", "localhost:3000"],
+      ["Upgrade-Insecure-Requests", "1"],
+      [
+        "User-Agent",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Safari/605.1.15"
+      ],
+      ["X-Request-Id", "0464ff39-3c81-4cda-a932-0eb1b888ebb3"]
+    ],
+    "env": {"SERVER_NAME": "localhost", "SERVER_PORT": "3000"}
+  },
+  "sdk": {"name": "sentry.ruby.rails", "version": "4.2.1"},
+  "threads": {
+    "values": [
+      {
+        "id": 13920,
+        "name": "puma 004",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "block in spawn_thread",
+              "filename": "puma (3.12.6) lib/puma/thread_pool.rb",
+              "abs_path": "puma (3.12.6) lib/puma/thread_pool.rb",
+              "lineno": 135,
+              "in_app": false
+            },
+            {
+              "function": "block in run",
+              "filename": "puma (3.12.6) lib/puma/server.rb",
+              "abs_path": "puma (3.12.6) lib/puma/server.rb",
+              "lineno": 334,
+              "in_app": false
+            },
+            {
+              "function": "process_client",
+              "filename": "puma (3.12.6) lib/puma/server.rb",
+              "abs_path": "puma (3.12.6) lib/puma/server.rb",
+              "lineno": 476,
+              "in_app": false
+            },
+            {
+              "function": "handle_request",
+              "filename": "puma (3.12.6) lib/puma/server.rb",
+              "abs_path": "puma (3.12.6) lib/puma/server.rb",
+              "lineno": 706,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "puma (3.12.6) lib/puma/configuration.rb",
+              "abs_path": "puma (3.12.6) lib/puma/configuration.rb",
+              "lineno": 227,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "railties (6.0.3.4) lib/rails/engine.rb",
+              "abs_path": "railties (6.0.3.4) lib/rails/engine.rb",
+              "lineno": 527,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "rack-proxy (0.6.5) lib/rack/proxy.rb",
+              "abs_path": "rack-proxy (0.6.5) lib/rack/proxy.rb",
+              "lineno": 57,
+              "in_app": false
+            },
+            {
+              "function": "perform_request",
+              "filename": "webpacker (4.3.0) lib/webpacker/dev_server_proxy.rb",
+              "abs_path": "webpacker (4.3.0) lib/webpacker/dev_server_proxy.rb",
+              "lineno": 23,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "sentry/rack/capture_exceptions.rb",
+              "abs_path": "/Users/st0012/projects/sentry-ruby/sentry-ruby/lib/sentry/rack/capture_exceptions.rb",
+              "lineno": 14,
+              "pre_context": [
+                "        # make sure the current thread has a clean hub\n",
+                "        Sentry.clone_hub_to_current_thread\n",
+                "\n"
+              ],
+              "context_line": "        Sentry.with_scope do |scope|\n",
+              "post_context": [
+                "          scope.clear_breadcrumbs\n",
+                "          scope.set_transaction_name(env[\"PATH_INFO\"]) if env[\"PATH_INFO\"]\n",
+                "          scope.set_rack_env(env)\n"
+              ],
+              "in_app": false
+            },
+            {
+              "function": "with_scope",
+              "filename": "sentry-ruby.rb",
+              "abs_path": "/Users/st0012/projects/sentry-ruby/sentry-ruby/lib/sentry-ruby.rb",
+              "lineno": 149,
+              "pre_context": ["    # ```\n", "    #\n", "    def with_scope(&block)\n"],
+              "context_line": "      get_current_hub&.with_scope(&block)\n",
+              "post_context": [
+                "    end\n",
+                "\n",
+                "    # Takes an exception and reports it to Sentry via the currently active hub.\n"
+              ],
+              "in_app": false
+            },
+            {
+              "function": "with_scope",
+              "filename": "sentry/hub.rb",
+              "abs_path": "/Users/st0012/projects/sentry-ruby/sentry-ruby/lib/sentry/hub.rb",
+              "lineno": 52,
+              "pre_context": ["\n", "    def with_scope(&block)\n", "      push_scope\n"],
+              "context_line": "      yield(current_scope)\n",
+              "post_context": ["    ensure\n", "      pop_scope\n", "    end\n"],
+              "in_app": false
+            },
+            {
+              "function": "block in call",
+              "filename": "sentry/rack/capture_exceptions.rb",
+              "abs_path": "/Users/st0012/projects/sentry-ruby/sentry-ruby/lib/sentry/rack/capture_exceptions.rb",
+              "lineno": 26,
+              "pre_context": [
+                "          scope.set_span(span)\n",
+                "\n",
+                "          begin\n"
+              ],
+              "context_line": "            response = @app.call(env)\n",
+              "post_context": [
+                "          rescue Sentry::Error\n",
+                "            finish_span(span, 500)\n",
+                "            raise # Don't capture Sentry errors\n"
+              ],
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/middleware/host_authorization.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/middleware/host_authorization.rb",
+              "lineno": 82,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "rack (2.2.3) lib/rack/sendfile.rb",
+              "abs_path": "rack (2.2.3) lib/rack/sendfile.rb",
+              "lineno": 110,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/middleware/static.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/middleware/static.rb",
+              "lineno": 126,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/middleware/executor.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/middleware/executor.rb",
+              "lineno": 14,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "activesupport (6.0.3.4) lib/active_support/cache/strategy/local_cache_middleware.rb",
+              "abs_path": "activesupport (6.0.3.4) lib/active_support/cache/strategy/local_cache_middleware.rb",
+              "lineno": 29,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "rack (2.2.3) lib/rack/runtime.rb",
+              "abs_path": "rack (2.2.3) lib/rack/runtime.rb",
+              "lineno": 22,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "rack (2.2.3) lib/rack/method_override.rb",
+              "abs_path": "rack (2.2.3) lib/rack/method_override.rb",
+              "lineno": 24,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/middleware/request_id.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/middleware/request_id.rb",
+              "lineno": 27,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/middleware/remote_ip.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/middleware/remote_ip.rb",
+              "lineno": 81,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "sprockets-rails (3.2.2) lib/sprockets/rails/quiet_assets.rb",
+              "abs_path": "sprockets-rails (3.2.2) lib/sprockets/rails/quiet_assets.rb",
+              "lineno": 13,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "railties (6.0.3.4) lib/rails/rack/logger.rb",
+              "abs_path": "railties (6.0.3.4) lib/rails/rack/logger.rb",
+              "lineno": 26,
+              "in_app": false
+            },
+            {
+              "function": "tagged",
+              "filename": "activesupport (6.0.3.4) lib/active_support/tagged_logging.rb",
+              "abs_path": "activesupport (6.0.3.4) lib/active_support/tagged_logging.rb",
+              "lineno": 80,
+              "in_app": false
+            },
+            {
+              "function": "tagged",
+              "filename": "activesupport (6.0.3.4) lib/active_support/tagged_logging.rb",
+              "abs_path": "activesupport (6.0.3.4) lib/active_support/tagged_logging.rb",
+              "lineno": 28,
+              "in_app": false
+            },
+            {
+              "function": "block in tagged",
+              "filename": "activesupport (6.0.3.4) lib/active_support/tagged_logging.rb",
+              "abs_path": "activesupport (6.0.3.4) lib/active_support/tagged_logging.rb",
+              "lineno": 80,
+              "in_app": false
+            },
+            {
+              "function": "block in call",
+              "filename": "railties (6.0.3.4) lib/rails/rack/logger.rb",
+              "abs_path": "railties (6.0.3.4) lib/rails/rack/logger.rb",
+              "lineno": 26,
+              "in_app": false
+            },
+            {
+              "function": "call_app",
+              "filename": "railties (6.0.3.4) lib/rails/rack/logger.rb",
+              "abs_path": "railties (6.0.3.4) lib/rails/rack/logger.rb",
+              "lineno": 37,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/middleware/show_exceptions.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/middleware/show_exceptions.rb",
+              "lineno": 33,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "web-console (4.1.0) lib/web_console/middleware.rb",
+              "abs_path": "web-console (4.1.0) lib/web_console/middleware.rb",
+              "lineno": 17,
+              "in_app": false
+            },
+            {
+              "function": "catch",
+              "filename": "web-console (4.1.0) lib/web_console/middleware.rb",
+              "abs_path": "web-console (4.1.0) lib/web_console/middleware.rb",
+              "lineno": 17,
+              "in_app": false
+            },
+            {
+              "function": "block in call",
+              "filename": "web-console (4.1.0) lib/web_console/middleware.rb",
+              "abs_path": "web-console (4.1.0) lib/web_console/middleware.rb",
+              "lineno": 28,
+              "in_app": false
+            },
+            {
+              "function": "call_app",
+              "filename": "web-console (4.1.0) lib/web_console/middleware.rb",
+              "abs_path": "web-console (4.1.0) lib/web_console/middleware.rb",
+              "lineno": 132,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/middleware/debug_exceptions.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/middleware/debug_exceptions.rb",
+              "lineno": 32,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/middleware/actionable_exceptions.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/middleware/actionable_exceptions.rb",
+              "lineno": 18,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/middleware/executor.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/middleware/executor.rb",
+              "lineno": 14,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/middleware/callbacks.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/middleware/callbacks.rb",
+              "lineno": 26,
+              "in_app": false
+            },
+            {
+              "function": "run_callbacks",
+              "filename": "activesupport (6.0.3.4) lib/active_support/callbacks.rb",
+              "abs_path": "activesupport (6.0.3.4) lib/active_support/callbacks.rb",
+              "lineno": 101,
+              "in_app": false
+            },
+            {
+              "function": "block in call",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/middleware/callbacks.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/middleware/callbacks.rb",
+              "lineno": 27,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "activerecord (6.0.3.4) lib/active_record/migration.rb",
+              "abs_path": "activerecord (6.0.3.4) lib/active_record/migration.rb",
+              "lineno": 567,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/middleware/cookies.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/middleware/cookies.rb",
+              "lineno": 648,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "rack (2.2.3) lib/rack/session/abstract/id.rb",
+              "abs_path": "rack (2.2.3) lib/rack/session/abstract/id.rb",
+              "lineno": 260,
+              "in_app": false
+            },
+            {
+              "function": "context",
+              "filename": "rack (2.2.3) lib/rack/session/abstract/id.rb",
+              "abs_path": "rack (2.2.3) lib/rack/session/abstract/id.rb",
+              "lineno": 266,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/http/content_security_policy.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/http/content_security_policy.rb",
+              "lineno": 18,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "rack (2.2.3) lib/rack/head.rb",
+              "abs_path": "rack (2.2.3) lib/rack/head.rb",
+              "lineno": 12,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "rack (2.2.3) lib/rack/conditional_get.rb",
+              "abs_path": "rack (2.2.3) lib/rack/conditional_get.rb",
+              "lineno": 27,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "rack (2.2.3) lib/rack/etag.rb",
+              "abs_path": "rack (2.2.3) lib/rack/etag.rb",
+              "lineno": 27,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "rack (2.2.3) lib/rack/tempfile_reaper.rb",
+              "abs_path": "rack (2.2.3) lib/rack/tempfile_reaper.rb",
+              "lineno": 15,
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "sentry/rails/rescued_exception_interceptor.rb",
+              "abs_path": "/Users/st0012/projects/sentry-ruby/sentry-rails/lib/sentry/rails/rescued_exception_interceptor.rb",
+              "lineno": 12,
+              "context_line": "          @app.call(env)\n",
+              "in_app": false
+            },
+            {
+              "function": "call",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/routing/route_set.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/routing/route_set.rb",
+              "lineno": 834,
+              "in_app": false
+            },
+            {
+              "function": "serve",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/journey/router.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/journey/router.rb",
+              "lineno": 32,
+              "in_app": false
+            },
+            {
+              "function": "each",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/journey/router.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/journey/router.rb",
+              "lineno": 32,
+              "in_app": false
+            },
+            {
+              "function": "block in serve",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/journey/router.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/journey/router.rb",
+              "lineno": 49,
+              "in_app": false
+            },
+            {
+              "function": "serve",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/routing/route_set.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/routing/route_set.rb",
+              "lineno": 33,
+              "in_app": false
+            },
+            {
+              "function": "dispatch",
+              "filename": "actionpack (6.0.3.4) lib/action_dispatch/routing/route_set.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_dispatch/routing/route_set.rb",
+              "lineno": 50,
+              "in_app": false
+            },
+            {
+              "function": "dispatch",
+              "filename": "actionpack (6.0.3.4) lib/action_controller/metal.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_controller/metal.rb",
+              "lineno": 254,
+              "in_app": false
+            },
+            {
+              "function": "dispatch",
+              "filename": "actionpack (6.0.3.4) lib/action_controller/metal.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_controller/metal.rb",
+              "lineno": 190,
+              "in_app": false
+            },
+            {
+              "function": "process",
+              "filename": "actionview (6.0.3.4) lib/action_view/rendering.rb",
+              "abs_path": "actionview (6.0.3.4) lib/action_view/rendering.rb",
+              "lineno": 39,
+              "in_app": false
+            },
+            {
+              "function": "process",
+              "filename": "actionpack (6.0.3.4) lib/abstract_controller/base.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/abstract_controller/base.rb",
+              "lineno": 136,
+              "in_app": false
+            },
+            {
+              "function": "process_action",
+              "filename": "activerecord (6.0.3.4) lib/active_record/railties/controller_runtime.rb",
+              "abs_path": "activerecord (6.0.3.4) lib/active_record/railties/controller_runtime.rb",
+              "lineno": 27,
+              "in_app": false
+            },
+            {
+              "function": "process_action",
+              "filename": "actionpack (6.0.3.4) lib/action_controller/metal/params_wrapper.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_controller/metal/params_wrapper.rb",
+              "lineno": 245,
+              "in_app": false
+            },
+            {
+              "function": "process_action",
+              "filename": "actionpack (6.0.3.4) lib/action_controller/metal/instrumentation.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_controller/metal/instrumentation.rb",
+              "lineno": 32,
+              "in_app": false
+            },
+            {
+              "function": "instrument",
+              "filename": "activesupport (6.0.3.4) lib/active_support/notifications.rb",
+              "abs_path": "activesupport (6.0.3.4) lib/active_support/notifications.rb",
+              "lineno": 180,
+              "in_app": false
+            },
+            {
+              "function": "instrument",
+              "filename": "activesupport (6.0.3.4) lib/active_support/notifications/instrumenter.rb",
+              "abs_path": "activesupport (6.0.3.4) lib/active_support/notifications/instrumenter.rb",
+              "lineno": 24,
+              "in_app": false
+            },
+            {
+              "function": "block in instrument",
+              "filename": "activesupport (6.0.3.4) lib/active_support/notifications.rb",
+              "abs_path": "activesupport (6.0.3.4) lib/active_support/notifications.rb",
+              "lineno": 180,
+              "in_app": false
+            },
+            {
+              "function": "block in process_action",
+              "filename": "actionpack (6.0.3.4) lib/action_controller/metal/instrumentation.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_controller/metal/instrumentation.rb",
+              "lineno": 33,
+              "in_app": false
+            },
+            {
+              "function": "process_action",
+              "filename": "actionpack (6.0.3.4) lib/action_controller/metal/rescue.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_controller/metal/rescue.rb",
+              "lineno": 22,
+              "in_app": false
+            },
+            {
+              "function": "process_action",
+              "filename": "actionpack (6.0.3.4) lib/abstract_controller/callbacks.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/abstract_controller/callbacks.rb",
+              "lineno": 41,
+              "in_app": false
+            },
+            {
+              "function": "run_callbacks",
+              "filename": "activesupport (6.0.3.4) lib/active_support/callbacks.rb",
+              "abs_path": "activesupport (6.0.3.4) lib/active_support/callbacks.rb",
+              "lineno": 135,
+              "in_app": false
+            },
+            {
+              "function": "block in process_action",
+              "filename": "actionpack (6.0.3.4) lib/abstract_controller/callbacks.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/abstract_controller/callbacks.rb",
+              "lineno": 42,
+              "in_app": false
+            },
+            {
+              "function": "process_action",
+              "filename": "actionpack (6.0.3.4) lib/action_controller/metal/rendering.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_controller/metal/rendering.rb",
+              "lineno": 30,
+              "in_app": false
+            },
+            {
+              "function": "process_action",
+              "filename": "actionpack (6.0.3.4) lib/abstract_controller/base.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/abstract_controller/base.rb",
+              "lineno": 195,
+              "in_app": false
+            },
+            {
+              "function": "send_action",
+              "filename": "actionpack (6.0.3.4) lib/action_controller/metal/basic_implicit_render.rb",
+              "abs_path": "actionpack (6.0.3.4) lib/action_controller/metal/basic_implicit_render.rb",
+              "lineno": 6,
+              "in_app": false
+            },
+            {
+              "function": "index",
+              "filename": "app/controllers/welcome_controller.rb",
+              "abs_path": "app/controllers/welcome_controller.rb",
+              "lineno": 5,
+              "pre_context": [
+                "  before_action :set_sentry_context\n",
+                "\n",
+                "  def index\n"
+              ],
+              "context_line": "    1 / 0\n",
+              "post_context": ["  end\n", "\n", "  def view_error\n"],
+              "in_app": true
+            },
+            {
+              "function": "/",
+              "filename": "app/controllers/welcome_controller.rb",
+              "abs_path": "app/controllers/welcome_controller.rb",
+              "lineno": 5,
+              "pre_context": [
+                "  before_action :set_sentry_context\n",
+                "\n",
+                "  def index\n"
+              ],
+              "context_line": "    1 / 0\n",
+              "post_context": ["  end\n", "\n", "  def view_error\n"],
+              "in_app": true
+            }
+          ]
+        },
+        "crashed": true,
+        "current": true
+      }
+    ]
+  },
+  "timestamp": 1613311519.0,
+  "title": "ZeroDivisionError: divided by 0",
+  "transaction": "WelcomeController#index",
+  "type": "error",
+  "version": "5"
+}
