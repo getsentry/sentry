@@ -42,7 +42,7 @@ export function getOnboardingTasks(
       task: OnboardingTaskKey.FIRST_PROJECT,
       title: t('Create a project'),
       description: t(
-        "Start monitoring in seconds by adding a few simple snippets of code in your project. It's as easy as microwaving leftover pizza."
+        "Monitor in seconds by adding a simple lines of code to your project. It's as easy as microwaving leftover pizza."
       ),
       skippable: false,
       requisites: [],
@@ -54,7 +54,7 @@ export function getOnboardingTasks(
       task: OnboardingTaskKey.FIRST_EVENT,
       title: t('Capture your first error'),
       description: t(
-        "After you've set up your first project, capture your first error. Need an example? We've got plenty to spare."
+        "Now that you've created your first project, capture your first error. Test it out. We've got plenty of examples to spare."
       ),
       skippable: false,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
@@ -95,7 +95,7 @@ export function getOnboardingTasks(
       task: OnboardingTaskKey.SECOND_PLATFORM,
       title: t('Create another project'),
       description: t(
-        'Don’t stop at one. Set up another project to keep things running smoothly in both the frontend and backend.'
+        'Easy, right? Don’t stop at one. Set up another project to keep things running smoothly in both the frontend and backend.'
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
@@ -105,9 +105,9 @@ export function getOnboardingTasks(
     },
     {
       task: OnboardingTaskKey.FIRST_TRANSACTION,
-      title: t('Improve performance'),
+      title: t('Boost performance'),
       description: t(
-        "Don't keep users waiting. Trace transactions and cross reference related issues for those mission critical endpoints."
+        "Don't keep users waiting. Trace transactions and cross-reference related issues for those mission-critical endpoints."
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
@@ -136,7 +136,7 @@ export function getOnboardingTasks(
       task: OnboardingTaskKey.USER_CONTEXT,
       title: t('Get more user context'),
       description: t(
-        "Not sure who's who? Add some more user context to help you identify users by email when you're debugging errors or bad performance."
+        'Pinpoint which users are suffering the consequences of your code, so you can immediately debug the problem and maybe even apologize for it.'
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
@@ -160,7 +160,7 @@ export function getOnboardingTasks(
       task: OnboardingTaskKey.SOURCEMAPS,
       title: t('Upload source maps'),
       description: t(
-        'Deminify Javascript source traces and demystify context to debug faster and decouple yourself from the ghosts of errors past. '
+        'Deminify Javascript source traces and demystify context to debug faster and decouple yourself from the ghosts of errors past.'
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
