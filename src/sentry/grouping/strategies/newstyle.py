@@ -311,7 +311,7 @@ def frame(frame, event, context, **meta):
     if context["is_recursion"]:
         rv.update(contributes=False, hint="ignored due to recursion")
 
-    return rv
+    return {context["variant"]: rv}
 
 
 def get_contextline_component(frame, platform, function, context):
@@ -427,12 +427,14 @@ def _single_stacktrace_variant(stacktrace, context, meta):
     ):
         values[0].update(contributes=False, hint="ignored single non-URL JavaScript frame")
 
-    return context.config.enhancements.assemble_stacktrace_component(
-        values,
-        frames_for_filtering,
-        meta["event"].platform,
-        similarity_self_encoder=_stacktrace_encoder,
-    )
+    return {
+        variant: context.config.enhancements.assemble_stacktrace_component(
+            values,
+            frames_for_filtering,
+            meta["event"].platform,
+            similarity_self_encoder=_stacktrace_encoder,
+        )
+    }
 
 
 @stacktrace.variant_processor

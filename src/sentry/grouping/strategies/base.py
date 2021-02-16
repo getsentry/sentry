@@ -1,7 +1,6 @@
 import inspect
 
 from sentry import projectoptions
-from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import Enhancements
 
 
@@ -73,10 +72,18 @@ class GroupingContext:
         """
         path = interface.path
         strategy = self.config.delegates.get(path)
-        if strategy is not None:
-            kwargs["context"] = self
-            return strategy(interface, *args, **kwargs)
-        return GroupingComponent(id=path, hint="grouping algorithm does not consider this value")
+        if strategy is None:
+            raise RuntimeError(f"failed to dispatch interface {path} to strategy")
+
+        kwargs["context"] = self
+        rv = strategy(interface, *args, **kwargs)
+        assert isinstance(rv, dict)
+
+        if self["variant"] is not None:
+            assert len(rv) == 1
+            return rv[self["variant"]]
+
+        return rv
 
 
 def lookup_strategy(strategy_id):
@@ -287,7 +294,9 @@ def call_with_variants(f, variants, *args, **kwargs):
 
         with context:
             context["variant"] = variant
-            component = f(*args, **kwargs)
+            variants = f(*args, **kwargs)
+            assert len(variants) == 1
+            component = variants[variant]
 
         if component is None:
             continue

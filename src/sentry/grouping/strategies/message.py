@@ -111,15 +111,19 @@ def message_v1(message_interface, context, **meta):
         message_in = message_interface.message or message_interface.formatted or ""
         message_trimmed = trim_message_for_grouping(message_in)
         hint = "stripped common values" if message_in != message_trimmed else None
-        return GroupingComponent(
-            id="message",
-            values=[message_trimmed],
-            hint=hint,
-            similarity_encoder=text_shingle_encoder(5),
-        )
+        return {
+            context["variant"]: GroupingComponent(
+                id="message",
+                values=[message_trimmed],
+                hint=hint,
+                similarity_encoder=text_shingle_encoder(5),
+            )
+        }
     else:
-        return GroupingComponent(
-            id="message",
-            values=[message_interface.message or message_interface.formatted or ""],
-            similarity_encoder=text_shingle_encoder(5),
-        )
+        return {
+            context["variant"]: GroupingComponent(
+                id="message",
+                values=[message_interface.message or message_interface.formatted or ""],
+                similarity_encoder=text_shingle_encoder(5),
+            )
+        }
