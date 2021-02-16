@@ -7,7 +7,7 @@ from django.core.cache import cache
 
 from sentry import options
 from sentry.api.event_search import FIELD_ALIASES, PROJECT_ALIAS, USER_DISPLAY_ALIAS
-from sentry.models import Project, ReleaseProjectEnvironment
+from sentry.models import Project
 from sentry.api.utils import default_start_end_dates
 from sentry.snuba.dataset import Dataset
 from sentry.tagstore import TagKeyStatus
@@ -558,9 +558,8 @@ class SnubaTagStorage(TagStorage):
             ["min", SEEN_COLUMN, "first_seen"],
             ["max", SEEN_COLUMN, "last_seen"],
         ]
-        start = self.get_min_start_date(project_ids, environment_id, versions)
+
         result = snuba.query(
-            start=start,
             groupby=["project_id", col],
             conditions=conditions,
             filter_keys=filters,
@@ -575,20 +574,6 @@ class SnubaTagStorage(TagStorage):
                 values.append(TagValue(key=tag, value=value, **fix_tag_value_data(data)))
 
         return set(values)
-
-    def get_min_start_date(self, project_ids, environment_id, versions):
-        rpe = ReleaseProjectEnvironment.objects.filter(
-            project_id__in=project_ids, release__version__in=versions
-        ).order_by("first_seen")
-
-        if environment_id:
-            rpe = rpe.filter(environment_id=environment_id)
-
-        rpe = rpe.first()
-        if rpe:
-            return rpe.first_seen
-
-        return None
 
     def get_group_ids_for_users(self, project_ids, event_users, limit=100):
         filters = {"project_id": project_ids}
