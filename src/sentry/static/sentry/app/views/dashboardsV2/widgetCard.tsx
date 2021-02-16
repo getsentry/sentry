@@ -6,6 +6,7 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {Client} from 'app/api';
+import {HeaderTitle} from 'app/components/charts/styles';
 import ErrorBoundary from 'app/components/errorBoundary';
 import {isSelectionEqual} from 'app/components/organizations/globalSelectionHeader/utils';
 import {Panel} from 'app/components/panels';
@@ -17,8 +18,6 @@ import {GlobalSelection, Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
-
-import {HeaderTitle} from '../performance/styles';
 
 import {Widget} from './types';
 import WidgetCardChart from './widgetCardChart';
@@ -69,7 +68,6 @@ class WidgetCard extends React.Component<Props> {
           <IconClick>
             <StyledIconGrabbable
               color="gray500"
-              size="md"
               {...draggableProps?.listeners}
               {...draggableProps?.attributes}
             />
@@ -80,7 +78,7 @@ class WidgetCard extends React.Component<Props> {
               onEdit();
             }}
           >
-            <IconEdit color="gray500" size="md" />
+            <IconEdit color="gray500" />
           </IconClick>
           <IconClick
             data-test-id="widget-delete"
@@ -88,7 +86,7 @@ class WidgetCard extends React.Component<Props> {
               onDelete();
             }}
           >
-            <IconDelete color="gray500" size="md" />
+            <IconDelete color="gray500" />
           </IconClick>
         </IconContainer>
       </ToolbarPanel>
@@ -182,27 +180,21 @@ const ToolbarPanel = styled('div')`
   height: 100%;
 
   display: flex;
-  justify-content: center;
-  align-items: center;
+  justify-content: flex-end;
+  align-items: flex-start;
 
-  background-color: rgba(255, 255, 255, 0.5);
+  background-color: rgba(255, 255, 255, 0.7);
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 const IconContainer = styled('div')`
   display: flex;
-
-  > * + * {
-    margin-left: 50px;
-  }
-
+  margin: 10px ${space(2)};
   touch-action: none;
 `;
 
 const IconClick = styled('div')`
-  background: ${p => p.theme.background};
-  padding: ${space(0.5)};
-  border-radius: ${p => p.theme.borderRadius};
-  line-height: 0.9;
+  padding: ${space(1)};
 
   &:hover {
     cursor: pointer;

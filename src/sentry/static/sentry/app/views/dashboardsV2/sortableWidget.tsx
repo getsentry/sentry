@@ -8,12 +8,12 @@ import {Widget} from './types';
 import WidgetCard from './widgetCard';
 import WidgetWrapper from './widgetWrapper';
 
-const initialStyles = {
+const initialStyles: React.ComponentProps<typeof WidgetWrapper>['animate'] = {
   x: 0,
   y: 0,
   scaleX: 1,
   scaleY: 1,
-  zIndex: 0,
+  zIndex: 'auto',
 };
 
 type Props = {
@@ -69,7 +69,7 @@ function SortableWidget(props: Props) {
               y: transform.y,
               scaleX: transform?.scaleX && transform.scaleX <= 1 ? transform.scaleX : 1,
               scaleY: transform?.scaleY && transform.scaleY <= 1 ? transform.scaleY : 1,
-              zIndex: currentWidgetDragging ? theme.zIndex.modal : 0,
+              zIndex: currentWidgetDragging ? theme.zIndex.modal : 'auto',
             }
           : initialStyles
       }

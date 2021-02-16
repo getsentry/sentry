@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import {Group, GroupTombstone, Organization} from 'app/types';
@@ -37,7 +38,7 @@ class EventOrGroupTitle extends React.Component<Props> {
           <span>{titleWithHoverStacktrace}</span>
         </GuideAnchor>
         <Spacer />
-        <em title={subtitle}>{subtitle}</em>
+        <Subtitle title={subtitle}>{subtitle}</Subtitle>
         <br />
       </span>
     ) : (
@@ -58,3 +59,8 @@ export default withOrganization(EventOrGroupTitle);
  * title to be highlighted without spilling over to the subtitle.
  */
 const Spacer = () => <span style={{display: 'inline-block', width: 10}}>&nbsp;</span>;
+
+const Subtitle = styled('em')`
+  color: ${p => p.theme.gray300};
+  font-style: normal;
+`;

@@ -13,13 +13,11 @@ import styled from '@emotion/styled';
 import {openModal} from 'app/actionCreators/modal';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
 import EventDataSection from 'app/components/events/eventDataSection';
 import {getImageRange, parseAddress} from 'app/components/events/interfaces/utils';
 import {PanelTable} from 'app/components/panels';
 import QuestionTooltip from 'app/components/questionTooltip';
 import SearchBar from 'app/components/searchBar';
-import {IconSearch} from 'app/icons/iconSearch';
 import {t} from 'app/locale';
 import DebugMetaStore, {DebugMetaActions} from 'app/stores/debugMetaStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -27,7 +25,6 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {Image, ImageStatus} from 'app/types/debugImage';
 import {Event} from 'app/types/event';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 import Status from './debugImage/status';
 import DebugImage from './debugImage';
@@ -294,7 +291,10 @@ class DebugMeta extends React.PureComponent<Props, State> {
     this.setState({
       filteredImages,
       filterOptions,
-      filteredImagesByFilter: filteredImages,
+      filteredImagesByFilter: this.getFilteredImagesByFilter(
+        filteredImages,
+        filterOptions
+      ),
       filteredImagesBySearch: filteredImages,
     });
   }
@@ -303,7 +303,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
     return [...new Set(images.map(image => image.status))].map(status => ({
       id: status,
       symbol: <Status status={status} />,
-      isChecked: false,
+      isChecked: status !== ImageStatus.UNUSED,
     }));
   }
 
@@ -435,48 +435,40 @@ class DebugMeta extends React.PureComponent<Props, State> {
     );
   }
 
-  renderContent() {
+  getEmptyMessage() {
     const {searchTerm, filteredImagesByFilter: images, filterOptions} = this.state;
+
+    if (!!images.length) {
+      return null;
+    }
 
     if (searchTerm && !images.length) {
       const hasActiveFilter = filterOptions.find(filterOption => filterOption.isChecked);
       return (
-        <EmptyMessage
-          icon={<IconSearch size="xl" />}
-          action={
-            hasActiveFilter ? (
-              <Button onClick={this.handleResetFilter} priority="primary">
-                {t('Reset Filter')}
-              </Button>
-            ) : (
-              <Button onClick={this.handleResetSearchBar} priority="primary">
-                {t('Clear Search Bar')}
-              </Button>
-            )
-          }
-        >
-          {t('Sorry, no images match your search query.')}
-        </EmptyMessage>
+        <React.Fragment>
+          <p>{t('Sorry, no images match your search query')}</p>
+          {hasActiveFilter ? (
+            <Button onClick={this.handleResetFilter} priority="primary">
+              {t('Reset filter')}
+            </Button>
+          ) : (
+            <Button onClick={this.handleResetSearchBar} priority="primary">
+              {t('Clear search bar')}
+            </Button>
+          )}
+        </React.Fragment>
       );
     }
 
-    if (!images.length) {
-      return (
-        <EmptyStateWarning>
-          <p>{t('There are no images to be displayed')}</p>
-        </EmptyStateWarning>
-      );
-    }
-
-    return <div ref={this.panelTableRef}>{this.renderList()}</div>;
+    return t('There are no images to be displayed');
   }
 
   render() {
     const {
       searchTerm,
       filterOptions,
-      filteredImagesByFilter: images,
       scrollbarWidth,
+      filteredImagesByFilter: images,
     } = this.state;
 
     return (
@@ -510,12 +502,12 @@ class DebugMeta extends React.PureComponent<Props, State> {
         isCentered
       >
         <StyledPanelTable
+          isEmpty={!images.length}
           scrollbarWidth={scrollbarWidth}
           headers={[t('Status'), t('Image'), t('Processing'), t('Details'), '']}
-          isEmpty={!images.length}
-          emptyMessage={t('There are no images to display')}
+          emptyMessage={this.getEmptyMessage()}
         >
-          {this.renderContent()}
+          <div ref={this.panelTableRef}>{this.renderList()}</div>
         </StyledPanelTable>
       </StyledEventDataSection>
     );
@@ -551,13 +543,15 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarWidth?: number}>`
       }
     }
 
-    ${p =>
-      !p.isEmpty &&
-      `:nth-child(n + 6) {
-    display: grid;
-    grid-column: 1/-1;
-    padding: 0;
-  }`}
+    :nth-child(n + 6) {
+      grid-column: 1/-1;
+      ${p =>
+        !p.isEmpty &&
+        `
+          display: grid;
+          padding: 0;
+        `}
+    }
   }
 
   ${p => layout(p.theme, p.scrollbarWidth)}

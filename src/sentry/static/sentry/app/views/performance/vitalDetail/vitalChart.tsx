@@ -10,6 +10,7 @@ import ErrorPanel from 'app/components/charts/errorPanel';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import LineChart from 'app/components/charts/lineChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
+import {ChartContainer, HeaderTitleLegend} from 'app/components/charts/styles';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {getInterval, getSeriesSelection} from 'app/components/charts/utils';
@@ -27,7 +28,6 @@ import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 
-import {ChartContainer, HeaderTitleLegend} from '../styles';
 import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
 
 import {getMaxOfSeries, vitalNameFromLocation, webVitalMeh, webVitalPoor} from './utils';

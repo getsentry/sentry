@@ -7,6 +7,7 @@ import Collapsible from 'app/components/collapsible';
 import Count from 'app/components/count';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
+import NotAvailable from 'app/components/notAvailable';
 import {PanelItem} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import ProgressBar from 'app/components/progressBar';
@@ -22,7 +23,6 @@ import AdoptionTooltip from '../adoptionTooltip';
 import CrashFree from '../crashFree';
 import HealthStatsChart from '../healthStatsChart';
 import HealthStatsPeriod, {StatsPeriod} from '../healthStatsPeriod';
-import NotAvailable from '../notAvailable';
 import {DisplayOption} from '../utils';
 
 import Header from './header';

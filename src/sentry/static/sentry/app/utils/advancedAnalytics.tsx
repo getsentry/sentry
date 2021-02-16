@@ -2,14 +2,11 @@ import * as qs from 'query-string';
 
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {
-  eventNameMap as growthEventMap,
-  EventParameters as GrowthEventParameters,
-} from 'app/utils/growthAnalyticsEvents';
+import {growthEventMap, GrowthEventParameters} from 'app/utils/growthAnalyticsEvents';
 import {uniqueId} from 'app/utils/guid';
 import {
-  eventNameMap as integrationEventMap,
-  EventParameters as IntegrationEventParameters,
+  integrationEventMap,
+  IntegrationEventParameters,
 } from 'app/utils/integrationEvents';
 
 const ANALYTICS_SESSION = 'ANALYTICS_SESSION';

@@ -14,7 +14,7 @@ import NarrowLayout from 'app/components/narrowLayout';
 import {IconFlag} from 'app/icons';
 import {t, tct} from 'app/locale';
 import {Integration, IntegrationProvider, Organization} from 'app/types';
-import {AnalyticsKey} from 'app/utils/integrationEvents';
+import {IntegrationAnalyticsKey} from 'app/utils/integrationEvents';
 import {
   getIntegrationFeatureGate,
   trackIntegrationEvent,
@@ -42,7 +42,10 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
     return t('Choose Installation Organization');
   }
 
-  trackIntegrationEvent = (eventName: AnalyticsKey, startSession?: boolean) => {
+  trackIntegrationEvent = (
+    eventName: IntegrationAnalyticsKey,
+    startSession?: boolean
+  ) => {
     const {organization, provider} = this.state;
     //should have these set but need to make TS happy
     if (!organization || !provider) {

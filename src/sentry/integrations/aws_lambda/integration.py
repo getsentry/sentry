@@ -17,6 +17,7 @@ from sentry.integrations.serverless import ServerlessMixin
 from sentry.models import Project, OrganizationIntegration, ProjectStatus
 from sentry.pipeline import PipelineView
 from sentry.utils.compat import map
+from sentry.utils.sdk import capture_exception
 from sentry.utils import json
 
 from .client import gen_aws_client, ConfigurationError
@@ -262,6 +263,7 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
                 "error": error,
                 "initialStepNumber": curr_step,
                 "organization": serialized_organization,
+                "awsExternalId": pipeline.fetch_state("aws_external_id"),
             }
             return self.render_react_view(request, "awsLambdaCloudformation", context)
 
@@ -293,7 +295,7 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
                     "AwsLambdaCloudFormationPipelineView.unexpected_error",
                     extra={"error": str(e)},
                 )
-                return render_response(_("Unkown errror"))
+                return render_response(_("Unknown errror"))
 
             # if no error, continue
             return pipeline.next_step()
@@ -382,6 +384,7 @@ class AwsLambdaSetupLayerPipelineView(PipelineView):
                     if invalid_layer:
                         err_message = _(INVALID_LAYER_TEXT) % invalid_layer
                     else:
+                        capture_exception(e)
                         err_message = _("Unknown Error")
                     failures.append({"name": function["FunctionName"], "error": err_message})
                     logger.info(
