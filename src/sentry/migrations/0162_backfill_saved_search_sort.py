@@ -6,16 +6,14 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 def backfill_saved_search_sort(apps, schema_editor):
     """
-    Processes user reports that are missing event data, and adds the appropriate data
-    if the event exists in Clickhouse.
+    Set all saved searches to current default sort "Last Seen"
     """
     SavedSearch = apps.get_model("sentry", "SavedSearch")
 
-    for search in RangeQuerySetWrapperWithProgressBar(
-        SavedSearch.objects.filter(sort__isnull=True)
-    ):
-        search.sort = "date"
-        search.save()
+    for search in RangeQuerySetWrapperWithProgressBar(SavedSearch.objects.all()):
+        if search.sort is None:
+            search.sort = "date"
+            search.save()
 
 
 class Migration(migrations.Migration):
@@ -28,7 +26,7 @@ class Migration(migrations.Migration):
     #   they can be monitored. Since data migrations will now hold a transaction open
     #   this is even more important.
     # - Adding columns to highly active tables, even ones that are NULL.
-    is_dangerous = True
+    is_dangerous = False
 
     # This flag is used to decide whether to run this migration in a transaction or not.
     # By default we prefer to run in a transaction, but for migrations where you want
