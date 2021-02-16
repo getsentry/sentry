@@ -483,8 +483,19 @@ def single_exception(exception, context, **meta):
         similarity_encoder=ident_encoder,
     )
 
-    if exception.mechanism and exception.mechanism.synthetic:
-        type_component.update(contributes=False, hint="ignored because exception is synthetic")
+    ns_error_component = None
+
+    if exception.mechanism:
+        if exception.mechanism.synthetic:
+            type_component.update(contributes=False, hint="ignored because exception is synthetic")
+        if exception.mechanism.meta and "ns_error" in exception.mechanism.meta:
+            ns_error_component = GroupingComponent(
+                id="ns-error",
+                values=[
+                    exception.mechanism.meta["ns_error"].get("domain"),
+                    exception.mechanism.meta["ns_error"].get("code"),
+                ],
+            )
 
     if exception.stacktrace is not None:
         stacktrace_variants = context.get_grouping_component(exception.stacktrace, **meta)
@@ -498,10 +509,23 @@ def single_exception(exception, context, **meta):
     for variant, stacktrace_component in stacktrace_variants.items():
         values = [stacktrace_component, type_component]
 
+        if ns_error_component is not None:
+            values.append(ns_error_component)
+
         if context["with_exception_value_fallback"]:
             value_component = GroupingComponent(
                 id="value", similarity_encoder=text_shingle_encoder(5)
             )
+            if (
+                ns_error_component is not None
+                and ns_error_component.contributes
+                and value_component.contributes
+            ):
+                value_component.update(
+                    contributes=False,
+                    contributes_to_similarity=True,
+                    hint="ignored because ns-error info takes precedence",
+                )
 
             value_in = exception.value
             if value_in is not None:

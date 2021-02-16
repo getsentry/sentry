@@ -1,12 +1,12 @@
 import React from 'react';
 
+import NotAvailable from 'app/components/notAvailable';
 import {
   CandidateDownloadStatus,
   ImageCandidate,
   ImageCandidateOk,
 } from 'app/types/debugImage';
 
-import NotAvailable from '../../notAvailable';
 import ProcessingItem from '../../processing/item';
 import ProcessingList from '../../processing/list';
 
