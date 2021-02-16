@@ -108,13 +108,10 @@ setup_pyenv() {
 
   # If the script is called with the "dot space right" approach (. ./scripts/pyenv_setup.sh),
   # the effects of this will be persistent outside of this script
-  echo "Activating pyenv"
+  echo "Activating pyenv and validating Python version"
   eval "$(pyenv init -)"
   python_version=$(python -V | sed s/Python\ //g)
-  [[ $python_version != $(cat .python-version) ]] && echo "Wrong Python version: $python_version" && exit 1
-  # The Python version installed via pyenv does not come with wheel pre-installed
-  # Installing wheel will speed up installation of Python dependencies
-  PIP_DISABLE_PIP_VERSION_CHECK=on pip install wheel
+  [[ $python_version == $(cat .python-version) ]] || (echo "Wrong Python version: $python_version" && exit 1)
 }
 
 setup_pyenv
