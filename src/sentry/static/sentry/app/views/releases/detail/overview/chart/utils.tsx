@@ -1,6 +1,8 @@
 import {DateTimeObject, getDiffInMinutes, TWO_WEEKS} from 'app/components/charts/utils';
+import CHART_PALETTE from 'app/constants/chartPalette';
 import {t} from 'app/locale';
 import {GlobalSelection, NewQuery, Organization} from 'app/types';
+import {Series} from 'app/types/echarts';
 import {escapeDoubleQuotes} from 'app/utils';
 import {getUtcDateString} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
@@ -8,8 +10,11 @@ import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {formatVersion} from 'app/utils/formatters';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
+import {sessionTerm} from 'app/views/releases/utils/sessionTerm';
 
 import {EventType, YAxis} from './releaseChartControls';
+
+type ChartData = Record<string, Series>;
 
 export function getInterval(datetimeObj: DateTimeObject) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
@@ -106,4 +111,93 @@ export function getReleaseEventView(
         orderby: '-last_seen',
       });
   }
+}
+
+export function initSessionsBreakdownChartData(): ChartData {
+  return {
+    crashed: {
+      seriesName: sessionTerm.crashed,
+      data: [],
+      color: CHART_PALETTE[3][2],
+      areaStyle: {
+        color: CHART_PALETTE[3][2],
+        opacity: 1,
+      },
+      lineStyle: {
+        opacity: 0,
+        width: 0.4,
+      },
+    },
+    abnormal: {
+      seriesName: sessionTerm.abnormal,
+      data: [],
+      color: CHART_PALETTE[3][1],
+      areaStyle: {
+        color: CHART_PALETTE[3][1],
+        opacity: 1,
+      },
+      lineStyle: {
+        opacity: 0,
+        width: 0.4,
+      },
+    },
+    errored: {
+      seriesName: sessionTerm.errored,
+      data: [],
+      color: CHART_PALETTE[3][0],
+      areaStyle: {
+        color: CHART_PALETTE[3][0],
+        opacity: 1,
+      },
+      lineStyle: {
+        opacity: 0,
+        width: 0.4,
+      },
+    },
+    healthy: {
+      seriesName: sessionTerm.healthy,
+      data: [],
+      color: CHART_PALETTE[3][3],
+      areaStyle: {
+        color: CHART_PALETTE[3][3],
+        opacity: 1,
+      },
+      lineStyle: {
+        opacity: 0,
+        width: 0.4,
+      },
+    },
+  };
+}
+
+export function initCrashFreeChartData(): ChartData {
+  return {
+    users: {
+      seriesName: sessionTerm['crash-free-users'],
+      data: [],
+      color: CHART_PALETTE[1][0],
+    },
+    sessions: {
+      seriesName: sessionTerm['crash-free-sessions'],
+      data: [],
+      color: CHART_PALETTE[1][1],
+    },
+  };
+}
+
+export function initSessionDurationChartData(): ChartData {
+  return {
+    duration: {
+      seriesName: t('Session Duration'),
+      data: [],
+      areaStyle: {
+        color: CHART_PALETTE[0][0],
+        opacity: 1,
+      },
+      lineStyle: {
+        opacity: 0,
+        width: 0.4,
+      },
+    },
+  };
 }
