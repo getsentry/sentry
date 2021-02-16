@@ -1092,7 +1092,7 @@ export type RepositoryProjectPathConfig = {
   projectSlug: string;
   repoId: string;
   repoName: string;
-  integrationId: number | null;
+  integrationId: string | null;
   provider: BaseIntegrationProvider | null;
   stackRoot: string;
   sourceRoot: string;

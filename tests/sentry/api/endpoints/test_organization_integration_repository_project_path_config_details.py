@@ -47,7 +47,7 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
         assert resp.status_code == 204
         assert not RepositoryProjectPathConfig.objects.filter(id=str(self.config.id)).exists()
 
-    def test_basic_edit_(self):
+    def test_basic_edit(self):
         resp = self.make_put({"sourceRoot": "newRoot"})
         assert resp.status_code == 200
         assert resp.data["id"] == str(self.config.id)
