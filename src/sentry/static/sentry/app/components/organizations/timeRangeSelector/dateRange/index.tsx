@@ -2,7 +2,7 @@ import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 
 import React from 'react';
-import {DateRangePicker} from 'react-date-range';
+import {DateRangePicker, OnChangeProps, RangeWithKey} from 'react-date-range';
 import styled from '@emotion/styled';
 import moment from 'moment';
 import PropTypes from 'prop-types';
@@ -25,6 +25,13 @@ import theme from 'app/utils/theme';
 
 const getTimeStringFromDate = (date: Date) => moment(date).local().format('HH:mm');
 
+// react.date-range doesn't export this as a type.
+type RangeSelection = {selection: RangeWithKey};
+
+function isRangeSelection(maybe: OnChangeProps): maybe is RangeSelection {
+  return (maybe as RangeSelection).selection !== undefined;
+}
+
 type ChangeData = {start?: Date; end?: Date; hasDateRangeErrors?: boolean};
 
 const defaultProps = {
@@ -45,12 +52,12 @@ type Props = {
   /**
    * Start date value for absolute date selector
    */
-  start: Date;
+  start: Date | null;
 
   /**
    * End date value for absolute date selector
    */
-  end: Date;
+  end: Date | null;
 
   /**
    * handle UTC checkbox change
@@ -91,7 +98,11 @@ class DateRange extends React.Component<Props, State> {
     hasEndErrors: false,
   };
 
-  handleSelectDateRange = ({selection}) => {
+  handleSelectDateRange = (changeProps: OnChangeProps) => {
+    if (!isRangeSelection(changeProps)) {
+      return;
+    }
+    const {selection} = changeProps;
     const {onChange} = this.props;
     const {startDate, endDate} = selection;
 
@@ -108,7 +119,9 @@ class DateRange extends React.Component<Props, State> {
     // `e.target.valueAsDate`, must parse as string
     //
     // Time will be in 24hr e.g. "21:00"
-    const {start, end, onChange} = this.props;
+    const start = this.props.start ? this.props.start : '';
+    const end = this.props.end ? this.props.end : undefined;
+    const {onChange} = this.props;
     const startTime = e.target.value;
 
     if (!startTime || !isValidTime(startTime)) {
@@ -135,7 +148,9 @@ class DateRange extends React.Component<Props, State> {
   };
 
   handleChangeEnd = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const {start, end, onChange} = this.props;
+    const start = this.props.start ? this.props.start : undefined;
+    const end = this.props.end ? this.props.end : '';
+    const {onChange} = this.props;
     const endTime = e.target.value;
 
     if (!endTime || !isValidTime(endTime)) {
@@ -163,15 +178,9 @@ class DateRange extends React.Component<Props, State> {
   };
 
   render() {
-    const {
-      className,
-      maxPickableDays,
-      utc,
-      start,
-      end,
-      showTimePicker,
-      onChangeUtc,
-    } = this.props;
+    const {className, maxPickableDays, utc, showTimePicker, onChangeUtc} = this.props;
+    const start = this.props.start ? this.props.start : '';
+    const end = this.props.end ? this.props.end : '';
 
     const startTime = getTimeStringFromDate(new Date(start));
     const endTime = getTimeStringFromDate(new Date(end));
@@ -192,8 +201,8 @@ class DateRange extends React.Component<Props, State> {
           rangeColors={[theme.purple300]}
           ranges={[
             {
-              startDate: moment(start).local(),
-              endDate: moment(end).local(),
+              startDate: moment(start).local().toDate(),
+              endDate: moment(end).local().toDate(),
               key: 'selection',
             },
           ]}
