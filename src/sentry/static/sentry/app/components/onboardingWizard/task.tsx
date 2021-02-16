@@ -135,7 +135,6 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
       onClick={handleClick}
       data-test-id={task.task}
     >
-      {skipAction}
       <IncompleteTitle>
         {IncompleteMarker}
         {task.title}
@@ -143,6 +142,7 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
       <Description>{`${task.description}`}</Description>
       {task.requisiteTasks.length === 0 && (
         <ActionBar>
+          {skipAction}
           {supplement}
           {task.status === 'pending' ? (
             <InProgressIndicator user={task.user} />
@@ -184,7 +184,7 @@ const ActionBar = styled('div')`
   display: flex;
   justify-content: flex-end;
   align-items: flex-end;
-  margin-top: ${space(1)};
+  margin-top: ${space(1.5)};
 `;
 
 type InProgressIndicatorProps = React.HTMLAttributes<HTMLDivElement> & {

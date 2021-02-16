@@ -39,11 +39,13 @@ const doTimeout = (timeout: number) =>
   new Promise(resolve => setTimeout(resolve, timeout));
 
 const Heading = styled(motion.div)`
+  display: flex;
   color: ${p => p.theme.purple300};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   text-transform: uppercase;
   font-weight: 600;
-  margin-top: ${space(2)};
+  line-height: 1;
+  margin-top: ${space(3)};
 `;
 
 Heading.defaultProps = {
@@ -62,7 +64,7 @@ const upcomingTasksHeading = (
     </Tooltip>
   </Heading>
 );
-const completedTasksHeading = <Heading key="complete">{t('Complete')}</Heading>;
+const completedTasksHeading = <Heading key="complete">{t('Completed')}</Heading>;
 
 class OnboardingWizardSidebar extends React.Component<Props> {
   async componentDidMount() {

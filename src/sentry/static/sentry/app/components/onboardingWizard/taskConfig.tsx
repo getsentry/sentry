@@ -52,9 +52,9 @@ export function getOnboardingTasks(
     },
     {
       task: OnboardingTaskKey.FIRST_EVENT,
-      title: t('Capture your first event'),
+      title: t('Capture your first error'),
       description: t(
-        "After you've set up your first project, capture your first error. Need an example? We've got plenty of errors to spare."
+        "After you've set up your first project, capture your first error. Need an example? We've got plenty to spare."
       ),
       skippable: false,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
@@ -95,7 +95,7 @@ export function getOnboardingTasks(
       task: OnboardingTaskKey.SECOND_PLATFORM,
       title: t('Create another project'),
       description: t(
-        'That was easy, huh? So don’t stop at one. Set up another project to keep things running smoothly in both your frontend and backend.'
+        'Don’t stop at one. Set up another project to keep things running smoothly in both the frontend and backend.'
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
@@ -105,9 +105,9 @@ export function getOnboardingTasks(
     },
     {
       task: OnboardingTaskKey.FIRST_TRANSACTION,
-      title: t('Improve Performance'),
+      title: t('Improve performance'),
       description: t(
-        "Don't keep users waiting. Trace transactions and cross reference related errors"
+        "Don't keep users waiting. Trace transactions and cross reference related errors to discover why those API endpoints "
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
