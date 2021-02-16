@@ -4,6 +4,11 @@ import * as qs from 'query-string';
 
 import bgPattern from 'sentry-images/spot/mobile-hero.jpg';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
@@ -29,7 +34,7 @@ type State = {
 
 class SuggestProjectModal extends React.Component<Props, State> {
   state: State = {
-    askTeammate: false,
+    askTeammate: true,
   };
 
   handleGetStartedClick = () => {
@@ -49,12 +54,21 @@ class SuggestProjectModal extends React.Component<Props, State> {
     );
   };
 
-  handleSubmitSuccess = ({email}: {email: string}) => {
+  handleSubmitSuccess = ({targetUserEmail}: {targetUserEmail: string}) => {
+    addSuccessMessage('Notified teammate successfully');
     trackAdvancedAnalyticsEvent(
       'growth.submitted_mobile_prompt_ask_teammate',
-      {email},
+      {email: targetUserEmail},
       this.props.organization
     );
+  };
+
+  handleSubmitError = () => {
+    addErrorMessage(t('Error notifying teammate'));
+  };
+
+  handlePreSubmit = () => {
+    addLoadingMessage(t('Submitting\u2026'));
   };
 
   renderAskTeammate() {
@@ -63,16 +77,18 @@ class SuggestProjectModal extends React.Component<Props, State> {
       <React.Fragment>
         <Form
           requireChanges
-          apiEndpoint={`/organizations/${organization.slug}/join-request/`}
+          apiEndpoint={`/organizations/${organization.slug}/request-project-creation/`}
           apiMethod="POST"
           submitLabel={t('Send')}
           onSubmitSuccess={this.handleSubmitSuccess}
+          onSubmitError={this.handleSubmitError}
+          onPreSubmit={this.handlePreSubmit}
         >
           <p>
             {t('Let the right folks know about Sentry Mobile Application Monitoring.')}
           </p>
           <EmailField
-            name="email"
+            name="targetUserEmail"
             inline={false}
             label={t('Email Address')}
             placeholder="name@example.com"
@@ -155,7 +171,7 @@ class SuggestProjectModal extends React.Component<Props, State> {
     const header = askTeammate ? t('Tell a Teammate') : t('Try Sentry for Mobile');
     return (
       <React.Fragment>
-        <Header>
+        <Header closeButton>
           <PatternHeader />
           <Title>{header}</Title>
         </Header>
