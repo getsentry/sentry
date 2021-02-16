@@ -76,7 +76,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
 
     expect(endpointOlderReleasesMock).toHaveBeenCalledTimes(1);
     expect(wrapper.find('Version').length).toBe(0);
-    expect(wrapper.text()).toContain('No releases match the filter.');
+    expect(wrapper.text()).toContain('No releases found');
   });
 
   it('shows configure releases buttons', async function () {

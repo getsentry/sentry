@@ -152,6 +152,11 @@ class Fixtures:
             release = self.release.version
         return Factories.create_artifact_bundle(org, release, *args, **kwargs)
 
+    def create_code_mapping(self, project=None, repo=None, **kwargs):
+        if project is None:
+            project = self.project
+        return Factories.create_code_mapping(project, repo, **kwargs)
+
     def create_repo(self, project=None, *args, **kwargs):
         if project is None:
             project = self.project

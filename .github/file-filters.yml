@@ -33,16 +33,20 @@ backend_lintable: &backend_lintable
 backend_dependencies: &backend_dependencies
   - 'requirements-*.txt'
 
+backend_build_changes: &backend_build_changes
+  - 'Makefile'
+  - '.pre-commit-config.yaml'
+  - '.python-version'
+  - '.github/workflows/!(js-*)'
+
 backend: &backend
+  - *backend_build_changes
   - *backend_dependencies
   - *backend_lintable
-  - '.pre-commit-config.yaml'
   - '**/*.sh'
   - '**/*.pysnap'
   - 'src/sentry/!(static)/**'
   - 'migrations_lockfile.txt'
-  - '.python-version'
-  - '.github/workflows/!(js-*)'
   - 'config/**/*'
 
 plugins:

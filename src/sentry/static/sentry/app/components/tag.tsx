@@ -139,7 +139,7 @@ const IconWrapper = styled('span')`
   display: inline-flex;
 `;
 
-export const Text = styled('span')<{maxWidth: number; type: keyof Theme['tag']}>`
+const Text = styled('span')<{maxWidth: number; type: keyof Theme['tag']}>`
   color: ${p => (p.type === 'black' ? p.theme.white : p.theme.gray500)};
   max-width: ${p => p.maxWidth}px;
   overflow: hidden;

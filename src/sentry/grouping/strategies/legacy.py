@@ -150,7 +150,7 @@ def remove_function_outliers_legacy(function):
     return new_function, None
 
 
-@strategy(id="single-exception:legacy", interfaces=["singleexception"], variants=["!system", "app"])
+@strategy(id="single-exception:legacy", interfaces=["singleexception"])
 def single_exception_legacy(exception, context, **meta):
     type_component = GroupingComponent(
         id="type",
@@ -223,7 +223,7 @@ def chained_exception_legacy_variant_processor(variants, context, **meta):
     return remove_non_stacktrace_variants(variants)
 
 
-@strategy(id="frame:legacy", interfaces=["frame"], variants=["!system", "app"])
+@strategy(id="frame:legacy", interfaces=["frame"])
 def frame_legacy(frame, event, **meta):
     platform = frame.platform or event.platform
 

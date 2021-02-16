@@ -260,6 +260,11 @@ def process_userreport(message, projects):
     except Conflict as e:
         logger.info("Invalid userreport: %s", e)
         return False
+    except Exception:
+        # XXX(markus): Hotfix because we have broken data in kafka
+        # If you want to remove this make sure to have triaged all errors in Sentry
+        logger.exception("userreport.save.crash")
+        return False
 
 
 def get_ingest_consumer(consumer_types, once=False, **options):
