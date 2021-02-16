@@ -109,28 +109,24 @@ class ProjectOwnership(Model):
             if not rules:
                 return ownership.auto_assignment, []
 
-            owners = []
-            # Automatic assignment prefers the owner with the longest
-            # matching pattern as the match is more specific.
-            for rule in rules:
-                candidate = len(rule.matcher.pattern)
-                for i, owner in enumerate(rule.owners):
-                    owners.append((candidate, -i, owner))
-
-            owners.sort(reverse=True)
+            # We want the last matching rule to take the most precedence.
+            owners = [owner for rule in rules for owner in rule.owners]
+            owners.reverse()
             actors = {
                 key: val
-                for key, val in resolve_actors({owner[2] for owner in owners}, project_id).items()
+                for key, val in resolve_actors({owner for owner in owners}, project_id).items()
                 if val
             }
-            actors = [actors[owner[2]] for owner in owners if owner[2] in actors][:limit]
+            actors = [actors[owner] for owner in owners if owner in actors][:limit]
 
             # Can happen if the ownership rule references a user/team that no longer
             # is assigned to the project or has been removed from the org.
             if not actors:
                 return ownership.auto_assignment, []
 
-            return ownership.auto_assignment, actors[0].resolve_many(actors)
+            from sentry.api.fields.actor import Actor
+
+            return ownership.auto_assignment, Actor.resolve_many(actors)
 
     @classmethod
     def _matching_ownership_rules(cls, ownership, project_id, data):
