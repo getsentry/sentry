@@ -116,7 +116,7 @@ const Context = ({
           {hasContextRegisters && (
             <FrameRegisters
               registers={registers}
-              deviceArch={event.contexts.device?.arch}
+              deviceArch={event.contexts?.device?.arch}
             />
           )}
           {hasContextVars && <FrameVariables data={frame.vars || {}} />}
