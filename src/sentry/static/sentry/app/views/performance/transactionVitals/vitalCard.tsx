@@ -96,7 +96,7 @@ class VitalCard extends React.Component<Props, State> {
     refPixelRect: null,
   };
 
-  static getDerivedStateFromProps(nextProps: Props, prevState: State) {
+  static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State) {
     const {isLoading, error, chartData} = nextProps;
 
     if (isLoading || error === null) {
