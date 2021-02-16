@@ -5,7 +5,6 @@ import {SectionHeading} from 'app/components/charts/styles';
 import QuestionTooltip from 'app/components/questionTooltip';
 import Tag, {Background} from 'app/components/tag';
 import space from 'app/styles/space';
-import {Theme} from 'app/utils/theme';
 
 type MetaDataProps = {
   headingText: string;
@@ -50,31 +49,18 @@ const SectionSubtext = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-export const NodesContainer = styled('div')`
-  position: absolute;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  height: 33px;
-  gap: ${space(1)};
-
-  &:before {
-    content: '';
-    border-bottom: 1px solid ${p => p.theme.gray500};
-    height: 33px;
-    position: absolute;
-    width: 100%;
-    transform: translateY(-50%);
-    z-index: ${p => p.theme.zIndex.initial};
-  }
-`;
-
-export const EventNode = styled(Tag)<{type: keyof Theme['tag']}>`
-  z-index: ${p => p.theme.zIndex.initial};
-
+export const EventNode = styled(Tag)<{pad?: 'left' | 'right'}>`
   & ${/* sc-selector */ Background} {
     border: 1px solid ${p => p.theme.gray500};
     height: 24px;
     border-radius: 24px;
   }
+`;
+
+export const Dash = styled('div')`
+  display: inline-block;
+  height: 24px;
+  width: ${space(1)};
+  border-bottom: 1px solid ${p => p.theme.gray500};
+  transform: translateY(-${space(0.5)});
 `;
