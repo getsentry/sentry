@@ -2,7 +2,7 @@ import re
 from itertools import islice
 
 from sentry.grouping.component import GroupingComponent
-from sentry.grouping.strategies.base import strategy
+from sentry.grouping.strategies.base import strategy, produces_variants
 from sentry.grouping.strategies.similarity_encoders import text_shingle_encoder
 
 
@@ -105,7 +105,8 @@ def trim_message_for_grouping(string):
     return _irrelevant_re.sub(_handle_match, s)
 
 
-@strategy(id="message:v1", interfaces=["message"], variants=["default"], score=0)
+@strategy(id="message:v1", interfaces=["message"], score=0)
+@produces_variants(["default"])
 def message_v1(message_interface, context, **meta):
     if context["trim_message"]:
         message_in = message_interface.message or message_interface.formatted or ""

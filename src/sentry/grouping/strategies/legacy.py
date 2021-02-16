@@ -2,7 +2,7 @@ import re
 import posixpath
 
 from sentry.grouping.component import GroupingComponent
-from sentry.grouping.strategies.base import strategy
+from sentry.grouping.strategies.base import strategy, produces_variants
 from sentry.grouping.strategies.utils import remove_non_stacktrace_variants, has_url_origin
 from sentry.grouping.strategies.similarity_encoders import text_shingle_encoder, ident_encoder
 
@@ -189,9 +189,8 @@ def single_exception_legacy(exception, context, **meta):
     }
 
 
-@strategy(
-    id="chained-exception:legacy", interfaces=["exception"], variants=["!system", "app"], score=2000
-)
+@strategy(id="chained-exception:legacy", interfaces=["exception"], score=2000)
+@produces_variants(["!system", "app"])
 def chained_exception_legacy(chained_exception, context, **meta):
     # Case 1: we have a single exception, use the single exception
     # component directly
@@ -383,9 +382,8 @@ def frame_legacy(frame, event, context, **meta):
     }
 
 
-@strategy(
-    id="stacktrace:legacy", interfaces=["stacktrace"], variants=["!system", "app"], score=1800
-)
+@strategy(id="stacktrace:legacy", interfaces=["stacktrace"], score=1800)
+@produces_variants(["!system", "app"])
 def stacktrace_legacy(stacktrace, context, **meta):
     variant = context["variant"]
     frames = stacktrace.frames
@@ -437,7 +435,8 @@ def stacktrace_legacy(stacktrace, context, **meta):
     return {variant: rv}
 
 
-@strategy(id="threads:legacy", interfaces=["threads"], variants=["!system", "app"], score=1900)
+@strategy(id="threads:legacy", interfaces=["threads"], score=1900)
+@produces_variants(["!system", "app"])
 def threads_legacy(threads_interface, context, **meta):
     thread_count = len(threads_interface.values)
     if thread_count != 1:

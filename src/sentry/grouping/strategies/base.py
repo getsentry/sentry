@@ -12,7 +12,7 @@ RISK_LEVEL_MEDIUM = 1
 RISK_LEVEL_HIGH = 2
 
 
-def strategy(id=None, ids=None, variants=None, interfaces=None, name=None, score=None):
+def strategy(id=None, ids=None, interfaces=None, name=None, score=None):
     """Registers a strategy"""
     if interfaces is None:
         raise TypeError("interfaces is required")
@@ -30,7 +30,7 @@ def strategy(id=None, ids=None, variants=None, interfaces=None, name=None, score
     def decorator(f):
         for id in ids:
             STRATEGIES[id] = rv = Strategy(
-                id=id, name=name, interfaces=interfaces, variants=variants, score=score, func=f
+                id=id, name=name, interfaces=interfaces, score=score, func=f
             )
         return rv
 
@@ -106,16 +106,13 @@ def flatten_variants_from_component(component):
 class Strategy:
     """Baseclass for all strategies."""
 
-    def __init__(self, id, name, interfaces, variants, score, func):
+    def __init__(self, id, name, interfaces, score, func):
         self.id = id
         self.strategy_class = id.split(":", 1)[0]
         self.name = name
         self.interfaces = interfaces
         self.score = score
-        if variants:
-            self.func = lambda *args, **kwargs: call_with_variants(func, variants, *args, **kwargs)
-        else:
-            self.func = func
+        self.func = func
         self.variant_processor_func = None
 
     def __repr__(self):
@@ -277,9 +274,45 @@ def create_strategy_configuration(
     return NewStrategyConfiguration
 
 
+def produces_variants(variants):
+    """
+    A grouping strategy can either:
+
+    - be told by the caller which variant to generate
+    - determine its own variants
+
+    In the latter case, use this decorator to produce variants and eliminate
+    duplicate hashes.
+
+    Syntax:
+        # call decorated function twice with different variant values
+        # (returning a new variant dictionary)
+        @produces_variants(["system", "app"])
+
+        # discard app variant if system variant produces the same hash, or if
+        # the function returned None when invoked with `context['variant'] ==
+        # 'system'`
+        @produces_variants(["!system", "app"])
+    """
+
+    def decorator(f):
+        def inner(*args, **kwargs):
+            return call_with_variants(f, variants, *args, **kwargs)
+
+        return inner
+
+    return decorator
+
+
 def call_with_variants(f, variants, *args, **kwargs):
     context = kwargs["context"]
     if context["variant"] is not None:
+        # For the case where the variant is already determined, we act as a
+        # delegate strategy.
+        #
+        # To ensure the function can deal with the particular value we assert
+        # the variant name is one of our own though.
+        assert context["variant"] in variants or "!" + context["variant"] in variants
         return f(*args, **kwargs)
 
     rv = {}

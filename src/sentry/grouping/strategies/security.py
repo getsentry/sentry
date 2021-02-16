@@ -1,5 +1,5 @@
 from sentry.grouping.component import GroupingComponent
-from sentry.grouping.strategies.base import strategy
+from sentry.grouping.strategies.base import strategy, produces_variants
 
 
 def _security_v1(reported_id, obj, context, **meta):
@@ -14,22 +14,26 @@ def _security_v1(reported_id, obj, context, **meta):
     }
 
 
-@strategy(id="expect-ct:v1", interfaces=["expectct"], variants=["default"], score=1000)
+@strategy(id="expect-ct:v1", interfaces=["expectct"], score=1000)
+@produces_variants(["default"])
 def expect_ct_v1(expectct_interface, **meta):
     return _security_v1("expect-ct", expectct_interface, **meta)
 
 
-@strategy(id="expect-staple:v1", interfaces=["expectstaple"], variants=["default"], score=1001)
+@strategy(id="expect-staple:v1", interfaces=["expectstaple"], score=1001)
+@produces_variants(["default"])
 def expect_staple_v1(expectstaple_interface, **meta):
     return _security_v1("expect-staple", expectstaple_interface, **meta)
 
 
-@strategy(id="hpkp:v1", interfaces=["hpkp"], variants=["default"], score=1002)
+@strategy(id="hpkp:v1", interfaces=["hpkp"], score=1002)
+@produces_variants(["default"])
 def hpkp_v1(hpkp_interface, **meta):
     return _security_v1("hpkp", hpkp_interface, **meta)
 
 
-@strategy(id="csp:v1", interfaces=["csp"], variants=["default"], score=1003)
+@strategy(id="csp:v1", interfaces=["csp"], score=1003)
+@produces_variants(["default"])
 def csp_v1(csp_interface, context, **meta):
     violation_component = GroupingComponent(id="violation")
     uri_component = GroupingComponent(id="uri")
