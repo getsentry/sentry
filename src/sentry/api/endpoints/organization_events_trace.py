@@ -25,6 +25,7 @@ def serialize_event(event, parent, is_root_event=False):
         "event_id": event["id"],
         "span_id": event["trace.span"],
         "transaction": event["transaction"],
+        "transaction.duration": event["transaction.duration"],
         "project_id": event["project_id"],
         "parent_event_id": parent,
         "is_root": is_root_event,
@@ -51,6 +52,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsEndpointBase):
                 selected_columns=[
                     "id",
                     "timestamp",
+                    "transaction.duration",
                     "transaction",
                     "project_id",
                     "trace.span",
