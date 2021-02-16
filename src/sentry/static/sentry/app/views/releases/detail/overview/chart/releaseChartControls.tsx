@@ -151,7 +151,7 @@ const ReleaseChartControls = ({
   };
 
   return (
-    <StyledChartControls>
+    <ChartControls>
       <InlineContainer>
         <SectionHeading key="total-label">{getSummaryHeading()}</SectionHeading>
         <SectionValue key="total-value">{summary}</SectionValue>
@@ -178,7 +178,7 @@ const ReleaseChartControls = ({
           onChange={onYAxisChange as (value: string) => void}
         />
       </InlineContainer>
-    </StyledChartControls>
+    </ChartControls>
   );
 };
 
@@ -236,16 +236,5 @@ function SecondarySelector({
       return null;
   }
 }
-
-const StyledChartControls = styled(ChartControls)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    display: grid;
-    grid-gap: ${space(1)};
-    padding-bottom: ${space(1.5)};
-    button {
-      font-size: ${p => p.theme.fontSizeSmall};
-    }
-  }
-`;
 
 export default ReleaseChartControls;
