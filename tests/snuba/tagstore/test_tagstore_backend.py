@@ -375,7 +375,9 @@ class TagStorageTest(TestCase, SnubaTestCase):
         assert result[0].last_seen == self.now - timedelta(seconds=2)
 
     def test_get_release_tags(self):
-        tags = list(self.ts.get_release_tags([self.proj1.id], None, ["100"]))
+        tags = list(
+            self.ts.get_release_tags(self.proj1.organization_id, [self.proj1.id], None, ["100"])
+        )
 
         assert len(tags) == 1
         one_second_ago = self.now - timedelta(seconds=1)
@@ -385,7 +387,9 @@ class TagStorageTest(TestCase, SnubaTestCase):
         assert tags[0].key == "sentry:release"
 
     def test_get_release_tags_uses_release_project_environment(self):
-        tags = list(self.ts.get_release_tags([self.proj1.id], None, ["100"]))
+        tags = list(
+            self.ts.get_release_tags(self.proj1.organization_id, [self.proj1.id], None, ["100"])
+        )
 
         assert len(tags) == 1
         one_second_ago = self.now - timedelta(seconds=1)
@@ -409,6 +413,15 @@ class TagStorageTest(TestCase, SnubaTestCase):
             },
             project_id=self.proj1.id,
         )
+
+        release = Release.objects.create(version="100", organization=self.organization)
+        ReleaseProjectEnvironment.objects.create(
+            release_id=release.id,
+            project_id=self.proj1.id,
+            environment_id=self.env3.id,
+            first_seen=one_day_ago,
+        )
+
         self.store_event(
             data={
                 "event_id": "6" * 32,
@@ -423,20 +436,9 @@ class TagStorageTest(TestCase, SnubaTestCase):
             },
             project_id=self.proj1.id,
         )
-
-        tags = list(self.ts.get_release_tags([self.proj1.id], None, ["100"]))
-        assert tags[0].last_seen == one_second_ago
-        assert tags[0].first_seen == two_days_ago
-        assert tags[0].times_seen == 3
-
-        release = Release.objects.create(version="100", organization=self.organization)
-        ReleaseProjectEnvironment.objects.create(
-            release_id=release.id,
-            project_id=self.proj1.id,
-            environment_id=self.env3.id,
-            first_seen=one_day_ago,
+        tags = list(
+            self.ts.get_release_tags(self.proj1.organization_id, [self.proj1.id], None, ["100"])
         )
-        tags = list(self.ts.get_release_tags([self.proj1.id], None, ["100"]))
         assert tags[0].last_seen == one_second_ago
         assert tags[0].first_seen == one_day_ago
         assert (

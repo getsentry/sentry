@@ -264,7 +264,7 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_release_tags(self, project_ids, environment_id, versions):
+    def get_release_tags(self, organization_id, project_ids, environment_id, versions):
         """
         >>> get_release_tags([1, 2], 3, ["1", "2"])
         """
