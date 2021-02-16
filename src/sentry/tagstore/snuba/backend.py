@@ -543,7 +543,7 @@ class SnubaTagStorage(TagStorage):
     def get_last_release(self, project_id, group_id):
         return self.__get_release(project_id, group_id, False)
 
-    def get_release_tags(self, project_ids, environment_id, versions):
+    def get_release_tags(self, organization_id, project_ids, environment_id, versions):
         filters = {"project_id": project_ids}
         if environment_id:
             filters["environment"] = [environment_id]
@@ -558,7 +558,7 @@ class SnubaTagStorage(TagStorage):
             ["min", SEEN_COLUMN, "first_seen"],
             ["max", SEEN_COLUMN, "last_seen"],
         ]
-        start = self.get_min_start_date(project_ids, environment_id, versions)
+        start = self.get_min_start_date(organization_id, project_ids, environment_id, versions)
         result = snuba.query(
             start=start,
             groupby=["project_id", col],
@@ -576,7 +576,7 @@ class SnubaTagStorage(TagStorage):
 
         return set(values)
 
-    def get_min_start_date(self, project_ids, environment_id, versions):
+    def get_min_start_date(self, organization_id, project_ids, environment_id, versions):
         rpe = ReleaseProjectEnvironment.objects.filter(
             project_id__in=project_ids, release__version__in=versions
         ).order_by("first_seen")
