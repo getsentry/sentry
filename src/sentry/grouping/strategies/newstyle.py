@@ -53,6 +53,9 @@ RECURSION_COMPARISON_FIELDS = [
 
 def is_recursion_v1(frame1, frame2):
     "Returns a boolean indicating whether frames are recursive calls."
+    if frame2 is None:
+        return False
+
     for field in RECURSION_COMPARISON_FIELDS:
         if getattr(frame1, field, None) != getattr(frame2, field, None):
             return False
@@ -230,11 +233,8 @@ def get_function_component(
 @strategy(
     ids=["frame:v1"],
     interfaces=["frame"],
-    variants=["!system", "app"],
 )
 def frame(frame, event, context, **meta):
-    platform = frame.platform or event.platform
-
     platform = frame.platform or event.platform
 
     # Safari throws [native code] frames in for calls like ``forEach``
@@ -308,6 +308,9 @@ def frame(frame, event, context, **meta):
         ):
             rv.update(contributes=False, hint="ignored low quality javascript frame")
 
+    if context["is_recursion"]:
+        rv.update(contributes=False, hint="ignored due to recursion")
+
     return rv
 
 
@@ -343,19 +346,16 @@ def get_contextline_component(frame, platform, function, context):
 def stacktrace(stacktrace, context, **meta):
     variant = context["variant"]
     frames = stacktrace.frames
-    all_frames_considered_in_app = False
 
     values = []
     prev_frame = None
     frames_for_filtering = []
     for frame in frames:
-        frame_component = context.get_grouping_component(frame, **meta)
-        if variant == "app" and not frame.in_app and not all_frames_considered_in_app:
+        with context:
+            context["is_recursion"] = is_recursion_v1(frame, prev_frame)
+            frame_component = context.get_grouping_component(frame, **meta)
+        if variant == "app" and not frame.in_app:
             frame_component.update(contributes=False, hint="non app frame")
-        elif prev_frame is not None and is_recursion_v1(frame, prev_frame):
-            frame_component.update(contributes=False, hint="ignored due to recursion")
-        elif variant == "app" and not frame.in_app and all_frames_considered_in_app:
-            frame_component.update(hint="frame considered in-app because no frame is in-app")
         values.append(frame_component)
         frames_for_filtering.append(frame.get_raw_data())
         prev_frame = frame
@@ -419,7 +419,6 @@ def _stacktrace_encoder(id, stacktrace):
 @strategy(
     ids=["single-exception:v1"],
     interfaces=["singleexception"],
-    variants=["!system", "app"],
 )
 def single_exception(exception, context, **meta):
     if exception.stacktrace is not None:
@@ -433,10 +432,23 @@ def single_exception(exception, context, **meta):
         similarity_encoder=ident_encoder,
     )
 
-    if exception.mechanism and exception.mechanism.synthetic:
-        type_component.update(contributes=False, hint="ignored because exception is synthetic")
+    ns_error_component = None
+
+    if exception.mechanism:
+        if exception.mechanism.synthetic:
+            type_component.update(contributes=False, hint="ignored because exception is synthetic")
+        if exception.mechanism.meta and "ns_error" in exception.mechanism.meta:
+            ns_error_component = GroupingComponent(
+                id="ns-error",
+                values=[
+                    exception.mechanism.meta["ns_error"].get("domain"),
+                    exception.mechanism.meta["ns_error"].get("code"),
+                ],
+            )
 
     values = [stacktrace_component, type_component]
+    if ns_error_component is not None:
+        values.append(ns_error_component)
 
     if context["with_exception_value_fallback"]:
         value_component = GroupingComponent(id="value", similarity_encoder=text_shingle_encoder(5))
@@ -453,6 +465,16 @@ def single_exception(exception, context, **meta):
                 contributes=False,
                 contributes_to_similarity=True,
                 hint="ignored because stacktrace takes precedence",
+            )
+        if (
+            ns_error_component is not None
+            and ns_error_component.contributes
+            and value_component.contributes
+        ):
+            value_component.update(
+                contributes=False,
+                contributes_to_similarity=True,
+                hint="ignored because ns-error info takes precedence",
             )
 
         values.append(value_component)
