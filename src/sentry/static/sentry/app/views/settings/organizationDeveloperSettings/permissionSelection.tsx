@@ -81,7 +81,7 @@ import SelectField from 'app/views/settings/components/forms/selectField';
 type Props = {
   permissions: Permissions;
   onChange: (permissions: Permissions) => void;
-  appPublished: Boolean;
+  appPublished: boolean;
 };
 
 type State = {

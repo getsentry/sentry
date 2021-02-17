@@ -11,7 +11,7 @@ import {Panel, PanelBody} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Environment, Organization} from 'app/types';
+import {Environment, Organization, SelectValue} from 'app/types';
 import {getDisplayName} from 'app/utils/environment';
 import theme from 'app/utils/theme';
 import {
@@ -25,7 +25,7 @@ import SelectField from 'app/views/settings/components/forms/selectField';
 
 import {DEFAULT_AGGREGATE} from './constants';
 import MetricField from './metricField';
-import {Datasource, IncidentRule, TimeWindow} from './types';
+import {Datasource, TimeWindow} from './types';
 
 const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
   [TimeWindow.ONE_MINUTE]: t('1 minute window'),
@@ -83,8 +83,11 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
     const {organization, disabled, onFilterSearch} = this.props;
     const {environments} = this.state;
 
-    const environmentList: [IncidentRule['environment'], React.ReactNode][] =
-      environments?.map((env: Environment) => [env.name, getDisplayName(env)]) ?? [];
+    const environmentOptions: SelectValue<string | null>[] =
+      environments?.map((env: Environment) => ({
+        value: env.name,
+        label: getDisplayName(env),
+      })) ?? [];
 
     const anyEnvironmentLabel = (
       <React.Fragment>
@@ -99,7 +102,7 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
         </div>
       </React.Fragment>
     );
-    environmentList.unshift([null, anyEnvironmentLabel]);
+    environmentOptions.unshift({value: null, label: anyEnvironmentLabel});
 
     const formElemBaseStyle = {
       padding: `${space(0.5)}`,
@@ -135,7 +138,7 @@ class RuleConditionsFormWithGuiFilters extends React.PureComponent<Props, State>
                     },
                   }),
                 }}
-                choices={environmentList}
+                options={environmentOptions}
                 isDisabled={disabled || this.state.environments === null}
                 isClearable
                 inline={false}
