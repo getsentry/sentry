@@ -640,6 +640,7 @@ const PercentContainer = styled('div')`
   top: ${space(2)};
   right: ${space(3)};
   z-index: 2;
+  background-color: ${p => p.theme.background};
 `;
 
 const StyledTag = styled(Tag)`
