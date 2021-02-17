@@ -13,7 +13,7 @@ import {
   Integration,
   Organization,
   Project,
-  RepositoryProjectPathConfig,
+  RepositoryProjectPathConfigWithIntegration,
 } from 'app/types';
 import {Event} from 'app/types/event';
 import {getIntegrationIcon, trackIntegrationEvent} from 'app/utils/integrationUtil';
@@ -35,7 +35,7 @@ type Props = AsyncComponent['props'] & {
 //format of the ProjectStacktraceLinkEndpoint response
 type StacktraceResultItem = {
   integrations: Integration[];
-  config?: RepositoryProjectPathConfig;
+  config?: RepositoryProjectPathConfigWithIntegration;
   sourceUrl?: string;
   error?: 'file_not_found' | 'stack_root_mismatch';
 };
@@ -247,7 +247,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     const {config} = this.match;
     const {organization} = this.props;
     const text = this.errorText;
-    const url = `/settings/${organization.slug}/integrations/${config?.provider?.key}/${config?.integrationId}/?tab=codeMappings`;
+    const url = `/settings/${organization.slug}/integrations/${config?.provider.key}/${config?.integrationId}/?tab=codeMappings`;
     return (
       <CodeMappingButtonContainer columnQuantity={2}>
         {text}
@@ -257,14 +257,14 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       </CodeMappingButtonContainer>
     );
   }
-  renderMatchWithUrl(config: RepositoryProjectPathConfig, url: string) {
+  renderMatchWithUrl(config: RepositoryProjectPathConfigWithIntegration, url: string) {
     url = `${url}#L${this.props.frame.lineNo}`;
     return (
       <OpenInContainer columnQuantity={2}>
         <div>{t('Open this line in')}</div>
         <OpenInLink onClick={() => this.onOpenLink()} href={url} openInNewTab>
-          {getIntegrationIcon(config.provider?.key)}
-          <OpenInName>{config.provider?.name}</OpenInName>
+          {getIntegrationIcon(config.provider.key)}
+          <OpenInName>{config.provider.name}</OpenInName>
         </OpenInLink>
       </OpenInContainer>
     );
