@@ -674,6 +674,8 @@ const HeaderContainer = styled('div')`
   background-color: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.border};
   height: ${MINIMAP_CONTAINER_HEIGHT}px;
+  border-top-left-radius: ${p => p.theme.borderRadius};
+  border-top-right-radius: ${p => p.theme.borderRadius};
 `;
 
 const MinimapBackground = styled('div')`
