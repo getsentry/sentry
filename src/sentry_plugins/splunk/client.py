@@ -14,5 +14,11 @@ class SplunkApiClient(ApiClient):
     def request(self, data):
         headers = {"Authorization": f"Splunk {self.token}"}
         return self._request(
-            path=self.endpoint, method="post", data=data, headers=headers, json=True, timeout=5
+            path=self.endpoint,
+            method="post",
+            data=data,
+            headers=headers,
+            json=True,
+            timeout=5,
+            allow_text=True,
         )
