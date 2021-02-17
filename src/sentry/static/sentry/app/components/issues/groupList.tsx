@@ -179,6 +179,7 @@ class GroupList extends React.Component<Props, State> {
       renderEmptyMessage,
       withPagination,
       useFilteredStats,
+      queryParams,
     } = this.props;
     const {loading, error, groups, memberList, pageLinks} = this.state;
 
@@ -205,6 +206,10 @@ class GroupList extends React.Component<Props, State> {
       );
     }
 
+    const statsPeriod = typeof queryParams?.groupStatsPeriod === 'string'
+      ? queryParams?.groupStatsPeriod
+      : undefined;
+
     return (
       <React.Fragment>
         <Panel>
@@ -223,6 +228,7 @@ class GroupList extends React.Component<Props, State> {
                   withChart={withChart}
                   memberList={members}
                   useFilteredStats={useFilteredStats}
+                  statsPeriod={statsPeriod}
                 />
               );
             })}
