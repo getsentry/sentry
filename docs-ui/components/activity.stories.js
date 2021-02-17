@@ -15,7 +15,7 @@ const user = {
 };
 
 export default {
-  title: 'Core/_Activity/Item',
+  title: 'UI/Activity/Item',
 };
 
 export const DefaultActivityItem = ({hideDate}) => (
