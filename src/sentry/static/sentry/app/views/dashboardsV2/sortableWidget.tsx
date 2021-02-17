@@ -57,7 +57,8 @@ function SortableWidget(props: Props) {
       displayType={widget.displayType}
       layoutId={dragId}
       style={{
-        originX: 0,
+        // Origin is set to top right-hand corner where the drag handle is placed
+        originX: 1,
         originY: 0,
         boxShadow: currentWidgetDragging ? theme.dropShadowHeavy : 'none',
         borderRadius: currentWidgetDragging ? theme.borderRadius : undefined,
