@@ -943,7 +943,7 @@ const CursorGuide = styled('div')`
 `;
 
 export const DividerLine = styled('div')`
-  background-color: ${p => p.theme.gray200};
+  background-color: ${p => p.theme.border};
   position: absolute;
   height: 100%;
   width: 1px;
