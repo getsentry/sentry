@@ -57,8 +57,9 @@ function SortableWidget(props: Props) {
       displayType={widget.displayType}
       layoutId={dragId}
       style={{
-        // Origin is set to top right-hand corner where the drag handle is placed
-        originX: 1,
+        // Origin is set to top right-hand corner where the drag handle is placed.
+        // Otherwise, set the origin to be the top left-hand corner when swapping widgets.
+        originX: currentWidgetDragging ? 1 : 0,
         originY: 0,
         boxShadow: currentWidgetDragging ? theme.dropShadowHeavy : 'none',
         borderRadius: currentWidgetDragging ? theme.borderRadius : undefined,
