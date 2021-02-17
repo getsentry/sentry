@@ -22,66 +22,46 @@ type Props = {
   showVitalPercentNames?: boolean;
 };
 
+const vitalStateIcons = {
+  [VitalState.POOR]: IconFire,
+  [VitalState.MEH]: IconWarning,
+  [VitalState.GOOD]: IconCheckmark,
+};
+
+function vitalStateText(vital, vitalState) {
+  switch (vitalState) {
+    case VitalState.POOR:
+      return Array.isArray(vital)
+        ? t('Poor')
+        : tct('Poor: >[threshold]ms', webVitalPoor[vital]);
+    case VitalState.MEH:
+      return Array.isArray(vital)
+        ? t('Needs improvement')
+        : tct('Needs improvement: >[threshold]ms', webVitalMeh[vital]);
+    case VitalState.GOOD:
+      return Array.isArray(vital)
+        ? t('Good')
+        : tct('Good: <[threshold]ms', webVitalMeh[vital]);
+    default:
+      return null;
+  }
+}
+
 export default function VitalPercents(props: Props) {
   return (
     <VitalSet>
       {props.percents.map(p => {
+        const VitalStateIcon = vitalStateIcons[p.vitalState];
         return (
-          <VitalStatus key={p.vitalState}>
-            {p.vitalState === VitalState.POOR && (
-              <Tooltip
-                title={
-                  Array.isArray(props.vital)
-                    ? t('Poor')
-                    : tct('Poor: >[threshold]ms', {
-                        threshold: webVitalPoor[props.vital],
-                      })
-                }
-              >
-                <IconFire
-                  style={{verticalAlign: 'middle'}}
-                  color={vitalStateColors[p.vitalState] as Color}
-                />
-              </Tooltip>
-            )}
-            {p.vitalState === VitalState.MEH && (
-              <Tooltip
-                title={
-                  Array.isArray(props.vital)
-                    ? t('Needs improvement')
-                    : tct('Needs improvement: >[threshold]ms', {
-                        threshold: webVitalMeh[props.vital],
-                      })
-                }
-              >
-                <IconWarning
-                  style={{verticalAlign: 'middle'}}
-                  color={vitalStateColors[p.vitalState] as Color}
-                />
-              </Tooltip>
-            )}
-            {p.vitalState === VitalState.GOOD && (
-              <Tooltip
-                title={
-                  Array.isArray(props.vital)
-                    ? t('Good')
-                    : tct('Good: <[threshold]ms', {
-                        threshold: webVitalMeh[props.vital],
-                      })
-                }
-              >
-                <IconCheckmark
-                  style={{verticalAlign: 'middle'}}
-                  color={vitalStateColors[p.vitalState] as Color}
-                  isCircled
-                />
-              </Tooltip>
-            )}
-            <span>
-              {props.showVitalPercentNames && t(`${p.vitalState}`)}{' '}
-              {formatPercentage(p.percent, 0)}
-            </span>
-          </VitalStatus>
+          <Tooltip key={p.vitalState} title={vitalStateText(props.vital, p.vitalState)}>
+            <VitalStatus>
+              <VitalStateIcon color={vitalStateColors[p.vitalState] as Color} />
+              <span>
+                {props.showVitalPercentNames && t(`${p.vitalState}`)}{' '}
+                {formatPercentage(p.percent, 0)}
+              </span>
+            </VitalStatus>
+          </Tooltip>
         );
       })}
     </VitalSet>
