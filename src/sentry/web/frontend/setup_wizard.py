@@ -45,6 +45,7 @@ class SetupWizardView(BaseView):
         mobile_scope = [
             "project:releases",
             "project:read",
+            "project:write",
             "event:read",
             "team:read",
             "org:read",
