@@ -4,20 +4,21 @@ from django.core.urlresolvers import reverse
 
 from sentry.utils.samples import load_data
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 
 
 class OrganizationEventsTrendsLightEndpointTest(APITestCase, SnubaTestCase):
     FEATURES = ["organizations:trace-view-quick", "organizations:global-views"]
 
-    def create_event(self, trace, spans, parent_span_id, project_id):
+    def create_event(self, trace, transaction, spans, parent_span_id, project_id):
         data = load_data(
             "transaction",
             trace=trace,
             spans=spans,
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=5),
         )
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=5))
+        data["transaction"] = transaction
         data["contexts"]["trace"]["parent_span_id"] = parent_span_id
         return self.store_event(data, project_id=project_id)
 
@@ -42,15 +43,16 @@ class OrganizationEventsTrendsLightEndpointTest(APITestCase, SnubaTestCase):
         self.trace_id = uuid4().hex
         self.root_event = self.create_event(
             trace=self.trace_id,
+            transaction="root",
             spans=[
                 {
                     "same_process_as_parent": True,
                     "op": "http",
-                    "description": "GET span_generation_1",
+                    "description": f"GET gen1-{i}",
                     "span_id": root_span_id,
                     "trace_id": self.trace_id,
                 }
-                for root_span_id in root_span_ids
+                for i, root_span_id in enumerate(root_span_ids)
             ],
             parent_span_id=None,
             project_id=self.project.id,
@@ -61,11 +63,12 @@ class OrganizationEventsTrendsLightEndpointTest(APITestCase, SnubaTestCase):
         self.gen1_events = [
             self.create_event(
                 trace=self.trace_id,
+                transaction=f"/transaction/gen1-{i}",
                 spans=[
                     {
                         "same_process_as_parent": True,
                         "op": "http",
-                        "description": "GET span_generation_2",
+                        "description": f"GET gen2-{i}",
                         "span_id": gen1_span_id,
                         "trace_id": self.trace_id,
                     }
@@ -73,7 +76,7 @@ class OrganizationEventsTrendsLightEndpointTest(APITestCase, SnubaTestCase):
                 parent_span_id=root_span_id,
                 project_id=self.create_project(organization=self.organization).id,
             )
-            for root_span_id, gen1_span_id in zip(root_span_ids, gen1_span_ids)
+            for i, (root_span_id, gen1_span_id) in enumerate(zip(root_span_ids, gen1_span_ids))
         ]
 
         # Second Generation
@@ -81,11 +84,12 @@ class OrganizationEventsTrendsLightEndpointTest(APITestCase, SnubaTestCase):
         self.gen2_events = [
             self.create_event(
                 trace=self.trace_id,
+                transaction=f"/transaction/gen2-{i}",
                 spans=[
                     {
                         "same_process_as_parent": True,
                         "op": "http",
-                        "description": "GET span_generation_3",
+                        "description": f"GET gen3-{i}" if i == 0 else f"SPAN gen3-{i}",
                         "span_id": gen2_span_id,
                         "trace_id": self.trace_id,
                     }
@@ -93,12 +97,13 @@ class OrganizationEventsTrendsLightEndpointTest(APITestCase, SnubaTestCase):
                 parent_span_id=gen1_span_id,
                 project_id=self.create_project(organization=self.organization).id,
             )
-            for gen1_span_id, gen2_span_id in zip(gen1_span_ids, gen2_span_ids)
+            for i, (gen1_span_id, gen2_span_id) in enumerate(zip(gen1_span_ids, gen2_span_ids))
         ]
 
         # Third generation
         self.gen3_event = self.create_event(
             trace=self.trace_id,
+            transaction="/transaction/gen3-0",
             spans=[],
             parent_span_id=gen2_span_ids[0],
             project_id=self.create_project(organization=self.organization).id,
@@ -137,7 +142,7 @@ class OrganizationEventsTrendsLightEndpointTest(APITestCase, SnubaTestCase):
                 format="json",
             )
 
-        assert response.status_code == 400, response.content
+        assert response.status_code == 404, response.content
 
         # Fake trace id
         self.url = reverse(
@@ -158,6 +163,7 @@ class OrganizationEventsTrendsLightEndpointTest(APITestCase, SnubaTestCase):
         no_root_trace = uuid4().hex
         event = self.create_event(
             trace=no_root_trace,
+            transaction="/not_root/but_only_transaction",
             spans=[],
             parent_span_id=uuid4().hex[:16],
             project_id=self.project.id,
@@ -179,6 +185,7 @@ class OrganizationEventsTrendsLightEndpointTest(APITestCase, SnubaTestCase):
     def test_multiple_roots(self):
         self.create_event(
             trace=self.trace_id,
+            transaction="/second_root",
             spans=[],
             parent_span_id=None,
             project_id=self.project.id,
