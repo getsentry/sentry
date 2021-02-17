@@ -36,3 +36,6 @@ class IssueListPage(BasePage):
 
     def find_resolved_issues(self):
         return self.browser.elements('[data-test-id="resolved-issue"]')
+
+    def mark_reviewed_issues(self):
+        self.browser.click('[aria-label="Mark Reviewed"]')
