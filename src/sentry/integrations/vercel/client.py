@@ -18,9 +18,10 @@ class VercelClient(ApiClient):
     PROJECTS_URL = "/v4/projects/"
     WEBHOOK_URL = "/v1/integrations/webhooks"
     ENV_VAR_URL = "/v4/projects/%s/env"
-    GET_ENV_VAR_URL = "/v5/projects/%s/env"
+    GET_ENV_VAR_URL = "/v6/projects/%s/env"
     SECRETS_URL = "/v2/now/secrets"
     DELETE_ENV_VAR_URL = "/v4/projects/%s/env/%s"
+    MAX_RETRIES = 2
 
     def __init__(self, access_token, team_id=None):
         super().__init__()
@@ -82,19 +83,24 @@ class VercelClient(ApiClient):
         return response
 
     def get_env_vars(self, vercel_project_id):
-        return self.paginate(self.GET_ENV_VAR_URL % vercel_project_id, "envs")
+        return self.get(self.GET_ENV_VAR_URL % vercel_project_id)
 
     def create_secret(self, vercel_project_id, name, value):
         data = {"name": name, "value": value}
         response = self.post(self.SECRETS_URL, data=data)["uid"]
         return response
 
-    def create_env_variable(self, vercel_project_id, key, value):
+    def create_env_variable(self, vercel_project_id, key, value, retry_create):
         data = {"key": key, "value": value, "target": "production"}
-        response = self.post(self.ENV_VAR_URL % vercel_project_id, data=data)
-        return response
+        try:
+            return self.post(self.ENV_VAR_URL % vercel_project_id, data=data)
+        except ApiError as e:
+            if e.json["error"]["code"] == "ENV_ALREADY_EXISTS":
+                if retry_create < self.MAX_RETRIES:
+                    retry_update = retry_create + 1
+                    return self.update_env_variable(vercel_project_id, key, value, retry_update)
 
-    def update_env_variable(self, vercel_project_id, key, value):
+    def update_env_variable(self, vercel_project_id, key, value, retry_update):
         try:
             self.delete(
                 self.DELETE_ENV_VAR_URL % (vercel_project_id, key),
@@ -105,5 +111,5 @@ class VercelClient(ApiClient):
             # we can ignore 404 errors here since we are just trying to delete
             if e.code != 404:
                 raise
-
-        return self.create_env_variable(vercel_project_id, key, value)
+        retry_create = retry_update
+        return self.create_env_variable(vercel_project_id, key, value, retry_create)

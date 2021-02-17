@@ -284,19 +284,8 @@ class VercelIntegration(IntegrationInstallation):
         config.update(data)
         self.org_integration.update(config=config)
 
-    def env_var_already_exists(self, client, vercel_project_id, name):
-        return any(
-            [
-                env_var
-                for env_var in client.get_env_vars(vercel_project_id)
-                if env_var["key"] == name
-            ]
-        )
-
     def create_env_var(self, client, vercel_project_id, key, value):
-        if not self.env_var_already_exists(client, vercel_project_id, key):
-            return client.create_env_variable(vercel_project_id, key, value)
-        client.update_env_variable(vercel_project_id, key, value)
+        return client.update_env_variable(vercel_project_id, key, value, retry_update=0)
 
 
 class VercelIntegrationProvider(IntegrationProvider):
