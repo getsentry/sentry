@@ -60,8 +60,8 @@ const SelectorItemsHook = HookOrDefault({
 
 export type ChangeData = {
   relative: string | null;
-   start?: Date;
-   end?: Date;
+  start?: Date;
+  end?: Date;
   utc?: boolean | null;
 };
 
