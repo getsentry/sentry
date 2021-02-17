@@ -30,7 +30,7 @@ class SetupWizardView(BaseView):
         if wizard_data is None:
             return self.redirect_to_org(request)
 
-        if wizard_hash.startswith('mobile-'):
+        if wizard_hash.startswith("mobile-"):
             context = {"hash": wizard_hash, "mobile": True}
             result = self.mobile_wizard(request, wizard_data)
         else:
@@ -42,7 +42,15 @@ class SetupWizardView(BaseView):
         return render_to_response("sentry/setup-wizard.html", context, request)
 
     def mobile_wizard(self, request, wizard_data):
-        mobile_scope = ["project:releases", "project:read", "event:read", "team:read", "org:read", "member:read", "alerts:read"]
+        mobile_scope = [
+            "project:releases",
+            "project:read",
+            "event:read",
+            "team:read",
+            "org:read",
+            "member:read",
+            "alerts:read",
+        ]
         # Fetching or creating a token
         token = None
         tokens = [
@@ -61,7 +69,6 @@ class SetupWizardView(BaseView):
             token = tokens[0]
 
         return {"token": serialize(token).get("token")}
-
 
     def setup_wizard(self, request, wizard_data):
         orgs = Organization.objects.filter(
