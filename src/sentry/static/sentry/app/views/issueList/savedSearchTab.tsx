@@ -36,7 +36,7 @@ function SavedSearchTab({
     `Create [link:saved searches] to quickly access other types of issues that you care about.`,
     {
       link: (
-        <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/#organization-wide-saved-searches" />
+        <StyledExternalLink href="https://docs.sentry.io/product/sentry-basics/search/#organization-wide-saved-searches" />
       ),
     }
   );
@@ -144,4 +144,12 @@ const StyledDropdownLink = styled(DropdownLink)<{isActive?: boolean}>`
 
 const StyledQueryCount = styled(QueryCount)`
   color: ${p => p.theme.gray300};
+`;
+
+const StyledExternalLink = styled(ExternalLink)`
+  color: ${p => p.theme.purple200};
+
+  :hover {
+    color: ${p => p.theme.purple100};
+  }
 `;
