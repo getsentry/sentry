@@ -46,7 +46,6 @@ type State = {
 class SuggestProjectCTA extends React.Component<Props, State> {
   state: State = {};
   componentDidMount() {
-    // this.openModal();
     this.fetchData();
   }
 
@@ -58,18 +57,21 @@ class SuggestProjectCTA extends React.Component<Props, State> {
     if (!requestEntry) {
       return '';
     }
+    //find the user agent header out of our list of headers
     const userAgent = (requestEntry as EntryRequest)?.data?.headers?.find(
       item => item[0].toLowerCase() === 'user-agent'
     );
     if (!userAgent) {
       return '';
     }
+    //check if any of our mobile agent headers matches the event mobile agent
     return (
       MOBILE_USER_AGENTS.find(mobileAgent =>
         userAgent[1]?.toLowerCase().includes(mobileAgent.toLowerCase())
       ) ?? ''
     );
   }
+
   //check our projects to see if there is a mobile project
   get hasMobileProject() {
     return this.props.projects.some(project =>
