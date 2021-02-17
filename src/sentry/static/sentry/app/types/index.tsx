@@ -480,6 +480,7 @@ export type SavedSearch = {
   type: SavedSearchType;
   name: string;
   query: string;
+  sort: string;
   isGlobal: boolean;
   isPinned: boolean;
   isOrgCustom: boolean;
@@ -1583,7 +1584,6 @@ export type OnboardingTaskDescriptor = {
   task: OnboardingTaskKey;
   title: string;
   description: string;
-  detailedDescription?: string;
   /**
    * Can this task be skipped?
    */
