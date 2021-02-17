@@ -30,9 +30,9 @@ class OrganizationEventsTrendsLightEndpointTest(APITestCase, SnubaTestCase):
                 gen2-0
                     gen3-0
             gen1-1
-                gen2B
+                gen2-1
             gen1-2
-                gen2C
+                gen2-2
         """
         super().setUp()
         self.login_as(user=self.user)
@@ -46,7 +46,7 @@ class OrganizationEventsTrendsLightEndpointTest(APITestCase, SnubaTestCase):
                 {
                     "same_process_as_parent": True,
                     "op": "http",
-                    "description": "GET /api/plants/?all_plants=1",
+                    "description": "GET span_generation_1",
                     "span_id": root_span_id,
                     "trace_id": self.trace_id,
                 }
@@ -65,7 +65,7 @@ class OrganizationEventsTrendsLightEndpointTest(APITestCase, SnubaTestCase):
                     {
                         "same_process_as_parent": True,
                         "op": "http",
-                        "description": "GET /api/plants/?all_plants=1",
+                        "description": "GET span_generation_2",
                         "span_id": gen1_span_id,
                         "trace_id": self.trace_id,
                     }
@@ -85,7 +85,7 @@ class OrganizationEventsTrendsLightEndpointTest(APITestCase, SnubaTestCase):
                     {
                         "same_process_as_parent": True,
                         "op": "http",
-                        "description": "GET /api/plants/?all_plants=1",
+                        "description": "GET span_generation_3",
                         "span_id": gen2_span_id,
                         "trace_id": self.trace_id,
                     }
