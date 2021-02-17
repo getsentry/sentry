@@ -1,6 +1,7 @@
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
+from sentry.models import ExternalTeam
 
 
 class ExternalTeamTest(APITestCase):
@@ -40,3 +41,21 @@ class ExternalTeamTest(APITestCase):
         response = self.client.post(self.url, data)
         assert response.status_code == 400
         assert response.data == {"provider": ['"git" is not a valid choice.']}
+
+    def test_create_existing_association(self):
+        self.external_team = ExternalTeam.objects.create(
+            team_id=str(self.team.id),
+            provider=ExternalTeam.get_provider_enum("github"),
+            external_id="@getsentry/ecosystem",
+        )
+        data = {
+            "externalId": self.external_team.external_id,
+            "provider": ExternalTeam.get_provider_string(self.external_team.provider),
+        }
+        response = self.client.post(self.url, data)
+        assert response.status_code == 200
+        assert response.data == {
+            "id": str(self.external_team.id),
+            "teamId": str(self.external_team.team_id),
+            **data,
+        }

@@ -30,12 +30,7 @@ class ExternalTeamSerializer(CamelSnakeModelSerializer):
         return ExternalTeam.get_provider_enum(provider)
 
     def create(self, validated_data):
-        try:
-            return ExternalTeam.objects.create(**validated_data)
-        except IntegrityError:
-            # swallow the error and find and return the object.
-            # we currently expect this endpoint to be hit by start-up scripts, so if the association already exists, we'll just return it.
-            return list(ExternalTeam.objects.filter(**validated_data))
+        return ExternalTeam.objects.get_or_create(**validated_data)
 
     def update(self, instance, validated_data):
         if "id" in validated_data:
@@ -66,12 +61,10 @@ class ExternalTeamEndpoint(TeamEndpoint):
         """
         serializer = ExternalTeamSerializer(data={**request.data, "team_id": team.id})
         if serializer.is_valid():
-            external_team = serializer.save()
+            external_team, created = serializer.save()
 
-            if isinstance(external_team, list):
-                return Response(
-                    serialize(external_team[0], request.user), status=status.HTTP_200_OK
-                )
+            if not created:
+                return Response(serialize(external_team, request.user), status=status.HTTP_200_OK)
 
             return Response(serialize(external_team, request.user), status=status.HTTP_201_CREATED)
 
