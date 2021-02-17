@@ -70,7 +70,7 @@ class SentryAppInstallationToken(Model):
                 api_token=token
             )
         except cls.DoesNotExist:
-            return False
+            return Project.objects.none()
 
         return Project.objects.filter(
             organization_id=install_token.sentry_app_installation.organization_id

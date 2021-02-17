@@ -149,3 +149,20 @@ class ProjectsListTest(APITestCase):
             f"{self.path}", HTTP_AUTHORIZATION=f"Bearer {token.api_token.token}"
         )
         assert project.name.encode("utf-8") in response.content
+
+    def test_deleted_token_with_internal_integration(self):
+        self.create_internal_integration(
+            name="my_app",
+            organization=self.organization,
+            scopes=("project:read",),
+            webhook_url="http://example.com",
+        )
+        # there should only be one record created so just grab the first one
+        token = SentryAppInstallationToken.objects.first()
+        token = token.api_token.token
+
+        # Delete the token
+        SentryAppInstallationToken.objects.all().delete()
+
+        response = self.client.get(f"{self.path}", HTTP_AUTHORIZATION=f"Bearer {token}")
+        assert response.status_code == 401
