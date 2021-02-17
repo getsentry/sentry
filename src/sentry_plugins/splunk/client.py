@@ -9,10 +9,10 @@ class SplunkApiClient(ApiClient):
     def __init__(self, endpoint, token):
         self.endpoint = endpoint
         self.token = token
-        super(SplunkApiClient, self).__init__(verify_ssl=False)
+        super().__init__(verify_ssl=False)
 
     def request(self, data):
-        headers = {"Authorization": "Splunk {}".format(self.token)}
+        headers = {"Authorization": f"Splunk {self.token}"}
         return self._request(
             path=self.endpoint, method="post", data=data, headers=headers, json=True, timeout=5
         )
