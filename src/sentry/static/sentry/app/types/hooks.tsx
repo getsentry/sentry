@@ -53,8 +53,8 @@ type SelectorItemsProps = React.ComponentProps<typeof SelectorItems>;
  * Component wrapping hooks
  */
 export type ComponentHooks = {
-  'component:header-date-range': React.ComponentType<DateRangeProps>;
-  'component:header-selector-items': React.ComponentType<SelectorItemsProps>;
+  'component:header-date-range': () => React.ComponentType<DateRangeProps>;
+  'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
 };
 
 /**

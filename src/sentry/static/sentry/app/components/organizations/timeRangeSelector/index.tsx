@@ -59,11 +59,15 @@ const SelectorItemsHook = HookOrDefault({
 });
 
 export type ChangeData = {
-  start: Date | null;
-  end: Date | null;
   relative: string | null;
+  start?: Date;
+  end?: Date;
   utc?: boolean | null;
 };
+
+type DateRangeChangeData = Parameters<
+  React.ComponentProps<typeof DateRange>['onChange']
+>[0];
 
 const defaultProps = {
   /**
@@ -128,9 +132,9 @@ type State = {
   isOpen: boolean;
   hasChanges: boolean;
   hasDateRangeErrors: boolean;
-  start: Date | null;
-  end: Date | null;
   relative: string | null;
+  start?: Date;
+  end?: Date;
   utc?: boolean | null;
 };
 
@@ -144,8 +148,8 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
   constructor(props: Props) {
     super(props);
 
-    let start: Date | null = null;
-    let end: Date | null = null;
+    let start: Date | undefined = undefined;
+    let end: Date | undefined = undefined;
 
     if (props.start && props.end) {
       start = getInternalDate(props.start, props.utc);
@@ -239,8 +243,8 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
     const {onChange} = this.props;
     const newDateTime: ChangeData = {
       relative: value,
-      start: null,
-      end: null,
+      start: undefined,
+      end: undefined,
     };
     this.setState(newDateTime);
     this.callCallback(onChange, newDateTime);
@@ -252,8 +256,8 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
 
     const newDateTime: ChangeData = {
       relative: DEFAULT_STATS_PERIOD,
-      start: null,
-      end: null,
+      start: undefined,
+      end: undefined,
       utc: null,
     };
     this.setState(newDateTime);
@@ -261,7 +265,11 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
     this.handleUpdate(newDateTime);
   };
 
-  handleSelectDateRange = ({start, end, hasDateRangeErrors = false}) => {
+  handleSelectDateRange = ({
+    start,
+    end,
+    hasDateRangeErrors = false,
+  }: DateRangeChangeData) => {
     if (hasDateRangeErrors) {
       this.setState({hasDateRangeErrors});
       return;
@@ -334,7 +342,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
         getRelativeSummary(relative || defaultPeriod)
       );
 
-    const relativeSelected = isAbsoluteSelected ? null : relative || defaultPeriod;
+    const relativeSelected = isAbsoluteSelected ? '' : relative || defaultPeriod;
 
     return (
       <DropdownMenu
@@ -377,8 +385,8 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
                 {isAbsoluteSelected && (
                   <div>
                     <DateRangeHook
-                      start={start}
-                      end={end}
+                      start={start ?? null}
+                      end={end ?? null}
                       organization={organization}
                       showTimePicker
                       utc={this.state.utc}
