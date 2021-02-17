@@ -676,7 +676,8 @@ const ViewHandle = styled('div')<{isDragging: boolean}>`
 `;
 
 const Fog = styled('div')`
-  background-color: rgba(108, 95, 199, 0.1);
+  background-color: ${p => p.theme.textColor};
+  opacity: 0.1;
   position: absolute;
   top: 0;
 `;
@@ -733,7 +734,8 @@ const WindowSelection = styled('div')`
   position: absolute;
   top: 0;
   height: ${MINIMAP_HEIGHT}px;
-  background-color: rgba(69, 38, 80, 0.1);
+  background-color: ${p => p.theme.textColor};
+  opacity: 0.1;
 `;
 
 const SecondaryHeader = styled('div')`
