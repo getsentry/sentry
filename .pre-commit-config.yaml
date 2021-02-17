@@ -25,21 +25,21 @@ repos:
     - id: black
       name: black
       entry: black
-      language: python
+      language: system
       types: [python]
     # Configuration for flake8 exists in setup.cfg,
     # but we let pre-commit take care of the file filtering.
     - id: flake8
       name: flake8
       entry: flake8
-      language: python
+      language: system
       types: [python]
       log_file: '.artifacts/flake8.pycodestyle.log'
     - id: pyupgrade
       name: pyupgrade
       entry: pyupgrade
       args: ['--py36-plus']
-      language: python
+      language: system
       types: [python]
       # We can't change this mock to unittest.mock until Python 3.8,
       # refer to the comment in this file.
