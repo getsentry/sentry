@@ -59,9 +59,9 @@ const SelectorItemsHook = HookOrDefault({
 });
 
 export type ChangeData = {
-  start: Date | undefined;
-  end: Date | undefined;
   relative: string | null;
+   start?: Date;
+   end?: Date;
   utc?: boolean | null;
 };
 
@@ -132,9 +132,9 @@ type State = {
   isOpen: boolean;
   hasChanges: boolean;
   hasDateRangeErrors: boolean;
-  start: Date | undefined;
-  end: Date | undefined;
   relative: string | null;
+  start?: Date;
+  end?: Date;
   utc?: boolean | null;
 };
 
