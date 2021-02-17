@@ -107,7 +107,7 @@ export function getOnboardingTasks(
       task: OnboardingTaskKey.FIRST_TRANSACTION,
       title: t('Boost performance'),
       description: t(
-        "Don't keep users waiting. Trace transactions and cross-reference related issues for those mission-critical endpoints."
+        "Don't keep users waiting. Trace transactions, investigate spans and cross-reference related issues for those mission-critical endpoints."
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
@@ -136,7 +136,7 @@ export function getOnboardingTasks(
       task: OnboardingTaskKey.USER_CONTEXT,
       title: t('Get more user context'),
       description: t(
-        'Pinpoint which users are suffering the consequences of your code, so you can immediately debug the problem and maybe even apologize for it.'
+        'Enable us to pinpoint which users are suffering from that bad code, so you can debug the problem more swiftly and maybe even apologize for it.'
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
@@ -148,7 +148,7 @@ export function getOnboardingTasks(
       task: OnboardingTaskKey.RELEASE_TRACKING,
       title: t('Track releases'),
       description: t(
-        'Take an in-depth look at the health of each and every release with crash analytics, errors, and related issues.'
+        'Take an in-depth look at the health of each and every release with crash analytics, errors, related issues and suspect commits.'
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
@@ -160,7 +160,7 @@ export function getOnboardingTasks(
       task: OnboardingTaskKey.SOURCEMAPS,
       title: t('Upload source maps'),
       description: t(
-        'Deminify Javascript source traces and demystify context to debug faster and decouple yourself from the ghosts of errors past.'
+        "Deminify Javascript source code to quickly debug with context. It's about time to decouple yourself from the ghosts of errors past."
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
