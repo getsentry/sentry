@@ -25,7 +25,6 @@ import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {eventDetailsRoute, generateEventSlug} from 'app/utils/discover/urls';
 import getDynamicText from 'app/utils/getDynamicText';
-import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 
 import * as SpanEntryContext from './context';
@@ -547,7 +546,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 `;
 
 const StyledText = styled('p')`
-  font-size: ${theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSizeMedium};
   margin: ${space(2)} ${space(0)};
 `;
 
