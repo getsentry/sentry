@@ -38,6 +38,9 @@ class SetupWizard extends React.Component<Props, State> {
             // On mobile we don't wait for the App to connect here
             // We just tell the user everything is alright
             this.setState({finished: true});
+            setTimeout(() => {
+              window.location.href = 'sentryiomobile://auth-success';
+            }, 1000);
           } else {
             setTimeout(() => this.pollFinished(), 1000);
           }
@@ -74,7 +77,14 @@ class SetupWizard extends React.Component<Props, State> {
   renderMobileSuccess() {
     return (
       <div className="row">
-        <h5>{t('Return to the App')}</h5>
+        <button
+          className="btn btn-default"
+          onClick={() => {
+            window.location.href = 'sentryiomobile://auth-success';
+          }}
+        >
+          {t('Return to the App')}
+        </button>
       </div>
     );
   }
