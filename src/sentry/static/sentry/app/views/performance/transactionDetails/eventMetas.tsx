@@ -46,7 +46,7 @@ function EventMetas({event, organization, projectId, location}: Props) {
   const httpStatus = <HttpStatus event={event} />;
 
   return (
-    <Container>
+    <EventDetailHeader>
       <MetaData
         headingText={t('Event ID')}
         tooltipText={t('The unique ID assigned to this transaction.')}
@@ -70,17 +70,16 @@ function EventMetas({event, organization, projectId, location}: Props) {
         subtext={httpStatus}
       />
       <QuickTrace event={event} organization={organization} location={location} />
-    </Container>
+    </EventDetailHeader>
   );
 }
 
-const Container = styled('div')`
+const EventDetailHeader = styled('div')`
   display: grid;
   grid-column-gap: ${space(2)};
-  grid-template-columns: repeat(3, 2fr);
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: repeat(3, 2fr) 5fr;
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    grid-template-columns: repeat(3, 2fr) 4fr;
   }
 `;
 
