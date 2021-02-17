@@ -143,7 +143,7 @@ const StyledMenuItem = styled(MenuItem)<{isActive: boolean; last: boolean}>`
   ${p =>
     p.isActive &&
     `
-  ${SearchTitle}, ${SearchQuery} {
+  ${SearchTitle}, ${SearchQuery}, ${SearchSort} {
     color: ${p.theme.white};
   }
   &:hover {
