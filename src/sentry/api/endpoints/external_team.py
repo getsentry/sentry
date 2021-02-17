@@ -27,8 +27,7 @@ class ExternalTeamSerializer(CamelSnakeModelSerializer):
             raise serializers.ValidationError(
                 f'The provider "{provider}" is not supported. We currently accept Github and Gitlab team identities.'
             )
-        inv_providers_map = {v: k for k, v in EXTERNAL_PROVIDERS.items()}
-        return inv_providers_map[provider].value
+        return ExternalTeam.get_provider_enum(provider)
 
     def create(self, validated_data):
         try:
