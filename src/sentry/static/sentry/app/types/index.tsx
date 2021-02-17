@@ -480,6 +480,7 @@ export type SavedSearch = {
   type: SavedSearchType;
   name: string;
   query: string;
+  sort: string;
   isGlobal: boolean;
   isPinned: boolean;
   isOrgCustom: boolean;
