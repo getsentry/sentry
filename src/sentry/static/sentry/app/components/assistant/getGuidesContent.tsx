@@ -156,15 +156,21 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       ],
     },
     {
-      guide: 'alerts_write_member',
-      requiredTargets: ['alerts_write_member'],
+      guide: 'assigned_or_suggested_guide',
+      requiredTargets: ['assigned_or_suggested_query'],
       steps: [
         {
-          target: 'alerts_write_member',
+          target: 'assigned_or_suggested_query',
           description: tct(
-            `Members can now create and edit alert rules. Ask your organization owner or manager to [link:enable this setting].`,
+            "Tip: use [assignedOrSuggested] to include issues based on your [ownership:ownership rules] and [committed:code you've committed].",
             {
-              link: <Link to={orgSlug ? `/settings/${orgSlug}` : `/settings`} />,
+              assignedOrSuggested: <code>assigned_or_suggested</code>,
+              ownership: (
+                <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
+              ),
+              committed: (
+                <ExternalLink href="https://docs.sentry.io/product/sentry-basics/guides/integrate-frontend/configure-scms/" />
+              ),
             }
           ),
         },

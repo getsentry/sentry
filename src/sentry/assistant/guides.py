@@ -22,4 +22,5 @@ GUIDES = {
     "for_review_guide": {"id": 9, "required_targets": ["for_review_guide_tab"]},
     "alerts_write_member": {"id": 10, "required_targets": ["alerts_write_member"]},
     "alerts_write_owner": {"id": 11, "required_targets": ["alerts_write_owner"]},
+    "assigned_or_suggested_guide": {"id": 10, "required_targets": ["assigned_or_suggested_query"]},
 }
