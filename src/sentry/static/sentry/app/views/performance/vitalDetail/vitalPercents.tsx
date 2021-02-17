@@ -38,7 +38,10 @@ export default function VitalPercents(props: Props) {
                       })
                 }
               >
-                <IconFire color={vitalStateColors[p.vitalState] as Color} />
+                <IconFire
+                  style={{verticalAlign: 'middle'}}
+                  color={vitalStateColors[p.vitalState] as Color}
+                />
               </Tooltip>
             )}
             {p.vitalState === VitalState.MEH && (
@@ -51,7 +54,10 @@ export default function VitalPercents(props: Props) {
                       })
                 }
               >
-                <IconWarning color={vitalStateColors[p.vitalState] as Color} />
+                <IconWarning
+                  style={{verticalAlign: 'middle'}}
+                  color={vitalStateColors[p.vitalState] as Color}
+                />
               </Tooltip>
             )}
             {p.vitalState === VitalState.GOOD && (
@@ -65,6 +71,7 @@ export default function VitalPercents(props: Props) {
                 }
               >
                 <IconCheckmark
+                  style={{verticalAlign: 'middle'}}
                   color={vitalStateColors[p.vitalState] as Color}
                   isCircled
                 />
