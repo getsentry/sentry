@@ -6,8 +6,8 @@ import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
 import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import SuggestProjectModal from 'app/components/modals/suggestProjectModal';
-import {IconClose, IconUpgrade} from 'app/icons';
-import {t} from 'app/locale';
+import {IconClose} from 'app/icons';
+import {tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {EntryRequest, Event} from 'app/types/event';
@@ -46,7 +46,7 @@ type State = {
 class SuggestProjectCTA extends React.Component<Props, State> {
   state: State = {};
   componentDidMount() {
-    this.openModal();
+    // this.openModal();
     this.fetchData();
   }
 
@@ -79,6 +79,7 @@ class SuggestProjectCTA extends React.Component<Props, State> {
 
   get showCTA() {
     const {promptIsLoaded, isDismissed} = this.state;
+
     /**
      * conditions to show prompt:
      * 1. User agent matches mobile
@@ -166,11 +167,14 @@ class SuggestProjectCTA extends React.Component<Props, State> {
 
   renderCTA() {
     return (
-      <Alert icon={<SyledIconUpgrade onClick={this.openModal} />} type="info">
+      <Alert type="info">
         <Content>
-          {t(
-            'We have a sneaky suspicion you have a mobile app that doesn’t use Sentry. Let’s start monitoring.'
-          )}
+          <span>
+            {tct(
+              'We have a sneaking suspicion you have a mobile app that doesn’t use Sentry. [link:Start Monitoring]',
+              {link: <a onClick={this.openModal} />}
+            )}
+          </span>
           <StyledIconClose onClick={this.handleCTAClose} />
         </Content>
       </Alert>
@@ -192,9 +196,5 @@ const Content = styled('div')`
 
 const StyledIconClose = styled(IconClose)`
   margin: auto;
-  cursor: pointer;
-`;
-
-const SyledIconUpgrade = styled(IconUpgrade)`
   cursor: pointer;
 `;
