@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from '@emotion/styled';
 
 import OptionSelector from 'app/components/charts/optionSelector';
 import {
@@ -11,7 +10,6 @@ import {
 import QuestionTooltip from 'app/components/questionTooltip';
 import NOT_AVAILABLE_MESSAGES from 'app/constants/notAvailableMessages';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 import {Organization, SelectValue} from 'app/types';
 import {WebVital} from 'app/utils/discover/fields';
 import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
