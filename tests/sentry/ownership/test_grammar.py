@@ -149,9 +149,13 @@ def test_matcher_test_module():
             ]
         },
     }
+    assert Matcher("module", "*os.Init").test(data)
     assert Matcher("module", "*somethinginthemiddle*").test(data)
     assert Matcher("module", "com.android.internal.os.RuntimeInit$MethodAndArgsCaller").test(data)
-    assert not Matcher("module", "*somethingattheend*").test(data)
+    assert Matcher("module", "com.android*").test(data)
+    assert not Matcher("module", "com.android").test(data)
+    assert not Matcher("module", "os.Init").test(data)
+    assert not Matcher("module", "*somethingattheend").test(data)
     assert not Matcher("module", "com.android.internal.os").test(data)
 
 
