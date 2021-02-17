@@ -53,10 +53,18 @@ export type PromptResponse = {
   };
 };
 
+export type PromptData = null | {
+  dismissedTime?: number;
+  snoozedTime?: number;
+};
+
 /**
  * Get the status of a prompt
  */
-export async function promptsCheck(api: Client, params: PromptCheckParams) {
+export async function promptsCheck(
+  api: Client,
+  params: PromptCheckParams
+): Promise<PromptData> {
   const query = {
     feature: params.feature,
     organization_id: params.organizationId,
