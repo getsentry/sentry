@@ -42,7 +42,7 @@ function SavedSearchMenu({
               {`${search.name} \u2022 `}
               <TooltipSearchQuery>{search.query}</TooltipSearchQuery>
               {` \u2022 `}
-              {t('Sort By: ')}
+              {t('Sort: ')}
               {getSortLabel(search.sort)}
             </React.Fragment>
           }
@@ -58,7 +58,7 @@ function SavedSearchMenu({
               <SearchTitle>{search.name}</SearchTitle>
               <SearchQuery>{search.query}</SearchQuery>
               <SearchSort>
-                {t('Sort By: ')}
+                {t('Sort: ')}
                 {getSortLabel(search.sort)}
               </SearchSort>
             </MenuItemLink>
