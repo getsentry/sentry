@@ -54,7 +54,7 @@ export function getOnboardingTasks(
       task: OnboardingTaskKey.FIRST_EVENT,
       title: t('Capture your first error'),
       description: t(
-        "Now that you've created your first project, capture your first error. Test it out. We've got plenty of examples to spare."
+        "Time to test it out. Now that you've created a project, capture your first error. We've got an example you can fiddle with."
       ),
       skippable: false,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
@@ -196,7 +196,7 @@ export function getOnboardingTasks(
       task: OnboardingTaskKey.ALERT_RULE,
       title: t('Get smarter alerts'),
       description: t(
-        'Set up notifications according to issue or metric, and be sure to get all the information you need precisely when you need it.'
+        'Set up alerting rules by issue or metric, and be sure to get all the information you need precisely when you need it.'
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
