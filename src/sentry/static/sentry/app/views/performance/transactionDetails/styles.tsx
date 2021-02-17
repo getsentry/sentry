@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {SectionHeading} from 'app/components/charts/styles';
 import QuestionTooltip from 'app/components/questionTooltip';
 import Tag, {Background} from 'app/components/tag';
+import {IconEllipsis} from 'app/icons';
 import space from 'app/styles/space';
 
 type MetaDataProps = {
@@ -15,7 +16,7 @@ type MetaDataProps = {
 
 export function MetaData({headingText, tooltipText, bodyText, subtext}: MetaDataProps) {
   return (
-    <Container>
+    <HeaderInfo>
       <StyledSectionHeading>
         {headingText}
         <QuestionTooltip
@@ -27,40 +28,57 @@ export function MetaData({headingText, tooltipText, bodyText, subtext}: MetaData
       </StyledSectionHeading>
       <SectionBody>{bodyText}</SectionBody>
       <SectionSubtext>{subtext}</SectionSubtext>
-    </Container>
+    </HeaderInfo>
   );
 }
 
-const Container = styled('div')`
-  min-width: 150px;
+const HeaderInfo = styled('div')`
+  height: 78px;
+
+  &:last-child {
+    grid-column: 1/4;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    &:last-child {
+      justify-self: flex-end;
+      min-width: 325px;
+      grid-column: unset;
+    }
+  }
 `;
 
 const StyledSectionHeading = styled(SectionHeading)`
-  color: ${p => p.theme.textColor};
+  margin: 0;
 `;
 
-const SectionBody = styled('p')`
-  color: ${p => p.theme.textColor};
+const SectionBody = styled('div')`
   font-size: ${p => p.theme.headerFontSize};
-  margin-bottom: ${space(1)};
+  margin: ${space(0.5)} 0;
 `;
 
 const SectionSubtext = styled('div')`
   color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 export const EventNode = styled(Tag)<{pad?: 'left' | 'right'}>`
   & ${/* sc-selector */ Background} {
     border: 1px solid ${p => p.theme.gray500};
-    height: 24px;
-    border-radius: 24px;
   }
 `;
 
-export const Dash = styled('div')`
-  display: inline-block;
-  height: 24px;
+export const TraceConnector = styled('div')`
   width: ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.gray500};
-  transform: translateY(-${space(0.5)});
+  border-top: 1px solid ${p => p.theme.gray500};
+`;
+
+export const QuickTraceContainer = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+export const StyledIconEllipsis = styled(IconEllipsis)`
+  vertical-align: middle;
+  margin-bottom: 2px;
 `;
