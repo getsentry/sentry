@@ -71,7 +71,10 @@ class SnubaTSDB(BaseTSDB):
     # outcomes
     project_filter_model_query_settings = {
         model: SnubaModelQuerySettings(
-            snuba.Dataset.Outcomes, "project_id", "times_seen", [["reason", "=", reason]]
+            snuba.Dataset.Outcomes,
+            "project_id",
+            "times_seen",
+            [["reason", "=", reason], ["category", "IN", [0, 1, 2]]],
         )
         for reason, model in FILTER_STAT_KEYS_TO_VALUES.items()
     }
@@ -81,55 +84,55 @@ class SnubaTSDB(BaseTSDB):
             snuba.Dataset.Outcomes,
             "org_id",
             "times_seen",
-            [["outcome", "!=", outcomes.Outcome.INVALID]],
+            [["outcome", "!=", outcomes.Outcome.INVALID], ["category", "IN", [0, 1, 2]]],
         ),
         TSDBModel.organization_total_rejected: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "org_id",
             "times_seen",
-            [["outcome", "=", outcomes.Outcome.RATE_LIMITED]],
+            [["outcome", "=", outcomes.Outcome.RATE_LIMITED], ["category", "IN", [0, 1, 2]]],
         ),
         TSDBModel.organization_total_blacklisted: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "org_id",
             "times_seen",
-            [["outcome", "=", outcomes.Outcome.FILTERED]],
+            [["outcome", "=", outcomes.Outcome.FILTERED], ["category", "IN", [0, 1, 2]]],
         ),
         TSDBModel.project_total_received: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "project_id",
             "times_seen",
-            [["outcome", "!=", outcomes.Outcome.INVALID]],
+            [["outcome", "!=", outcomes.Outcome.INVALID], ["category", "IN", [0, 1, 2]]],
         ),
         TSDBModel.project_total_rejected: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "project_id",
             "times_seen",
-            [["outcome", "=", outcomes.Outcome.RATE_LIMITED]],
+            [["outcome", "=", outcomes.Outcome.RATE_LIMITED], ["category", "IN", [0, 1, 2]]],
         ),
         TSDBModel.project_total_blacklisted: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "project_id",
             "times_seen",
-            [["outcome", "=", outcomes.Outcome.FILTERED]],
+            [["outcome", "=", outcomes.Outcome.FILTERED], ["category", "IN", [0, 1, 2]]],
         ),
         TSDBModel.key_total_received: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "key_id",
             "times_seen",
-            [["outcome", "!=", outcomes.Outcome.INVALID]],
+            [["outcome", "!=", outcomes.Outcome.INVALID], ["category", "IN", [0, 1, 2]]],
         ),
         TSDBModel.key_total_rejected: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "key_id",
             "times_seen",
-            [["outcome", "=", outcomes.Outcome.RATE_LIMITED]],
+            [["outcome", "=", outcomes.Outcome.RATE_LIMITED], ["category", "IN", [0, 1, 2]]],
         ),
         TSDBModel.key_total_blacklisted: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "key_id",
             "times_seen",
-            [["outcome", "=", outcomes.Outcome.FILTERED]],
+            [["outcome", "=", outcomes.Outcome.FILTERED], ["category", "IN", [0, 1, 2]]],
         ),
     }
 
@@ -144,7 +147,10 @@ class SnubaTSDB(BaseTSDB):
 
     project_filter_model_query_settings_lower_rollup = {
         model: SnubaModelQuerySettings(
-            snuba.Dataset.OutcomesRaw, "project_id", None, [["reason", "=", reason]]
+            snuba.Dataset.OutcomesRaw,
+            "project_id",
+            None,
+            [["reason", "=", reason], ["category", "IN", [0, 1, 2]]],
         )
         for reason, model in FILTER_STAT_KEYS_TO_VALUES.items()
     }
@@ -153,34 +159,40 @@ class SnubaTSDB(BaseTSDB):
     # query the raw outcomes dataset, with a few different settings (defined in lower_rollup_query_settings).
     other_lower_rollup_query_settings = {
         TSDBModel.organization_total_received: SnubaModelQuerySettings(
-            snuba.Dataset.OutcomesRaw, "org_id", None, [["outcome", "!=", outcomes.Outcome.INVALID]]
+            snuba.Dataset.OutcomesRaw,
+            "org_id",
+            None,
+            [["outcome", "!=", outcomes.Outcome.INVALID], ["category", "IN", [0, 1, 2]]],
         ),
         TSDBModel.organization_total_rejected: SnubaModelQuerySettings(
             snuba.Dataset.OutcomesRaw,
             "org_id",
             None,
-            [["outcome", "=", outcomes.Outcome.RATE_LIMITED]],
+            [["outcome", "=", outcomes.Outcome.RATE_LIMITED], ["category", "IN", [0, 1, 2]]],
         ),
         TSDBModel.organization_total_blacklisted: SnubaModelQuerySettings(
-            snuba.Dataset.OutcomesRaw, "org_id", None, [["outcome", "=", outcomes.Outcome.FILTERED]]
+            snuba.Dataset.OutcomesRaw,
+            "org_id",
+            None,
+            [["outcome", "=", outcomes.Outcome.FILTERED], ["category", "IN", [0, 1, 2]]],
         ),
         TSDBModel.project_total_received: SnubaModelQuerySettings(
             snuba.Dataset.OutcomesRaw,
             "project_id",
             None,
-            [["outcome", "!=", outcomes.Outcome.INVALID]],
+            [["outcome", "!=", outcomes.Outcome.INVALID], ["category", "IN", [0, 1, 2]]],
         ),
         TSDBModel.project_total_rejected: SnubaModelQuerySettings(
             snuba.Dataset.OutcomesRaw,
             "project_id",
             None,
-            [["outcome", "=", outcomes.Outcome.RATE_LIMITED]],
+            [["outcome", "=", outcomes.Outcome.RATE_LIMITED], ["category", "IN", [0, 1, 2]]],
         ),
         TSDBModel.project_total_blacklisted: SnubaModelQuerySettings(
             snuba.Dataset.OutcomesRaw,
             "project_id",
             None,
-            [["outcome", "=", outcomes.Outcome.FILTERED]],
+            [["outcome", "=", outcomes.Outcome.FILTERED], ["category", "IN", [0, 1, 2]]],
         ),
         TSDBModel.key_total_received: SnubaModelQuerySettings(
             snuba.Dataset.OutcomesRaw, "key_id", None, [["outcome", "!=", outcomes.Outcome.INVALID]]
@@ -189,10 +201,13 @@ class SnubaTSDB(BaseTSDB):
             snuba.Dataset.OutcomesRaw,
             "key_id",
             None,
-            [["outcome", "=", outcomes.Outcome.RATE_LIMITED]],
+            [["outcome", "=", outcomes.Outcome.RATE_LIMITED], ["category", "IN", [0, 1, 2]]],
         ),
         TSDBModel.key_total_blacklisted: SnubaModelQuerySettings(
-            snuba.Dataset.OutcomesRaw, "key_id", None, [["outcome", "=", outcomes.Outcome.FILTERED]]
+            snuba.Dataset.OutcomesRaw,
+            "key_id",
+            None,
+            [["outcome", "=", outcomes.Outcome.FILTERED], ["category", "IN", [0, 1, 2]]],
         ),
     }
 
