@@ -4,6 +4,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.incident import DetailedIncidentSerializer
 from sentry.incidents.models import Incident, IncidentStatus
 from sentry.snuba.dataset import Dataset
 
@@ -57,11 +58,18 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
             # Filter to only error alerts
             incidents = incidents.filter(alert_rule__snuba_query__dataset=Dataset.Events.value)
 
+        query_detailed = request.GET.get("detailed")
+        def serialize_results(results):
+            if query_detailed:
+                return serialize(results, request.user, DetailedIncidentSerializer())
+            else:
+                return serialize(results, request.user),
+
         return self.paginate(
             request,
             queryset=incidents,
             order_by="-date_started",
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=serialize_results,
             default_per_page=25,
         )
