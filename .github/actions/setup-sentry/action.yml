@@ -77,7 +77,7 @@ runs:
         MATRIX_INSTANCE: ${{ matrix.instance }}
       shell: bash
       run: |
-        echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
+        echo "::set-output name=yarn-cache-dir::$(yarn config get cacheFolder)"
         echo "::set-output name=matrix-instance-number::$(($MATRIX_INSTANCE+1))"
         echo "::set-output name=acceptance-dir::.artifacts/visual-snapshots/acceptance"
 

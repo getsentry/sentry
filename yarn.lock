@@ -2391,16 +2391,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sentry-internal/api-docs@workspace:api-docs":
-  version: 0.0.0-use.local
-  resolution: "@sentry-internal/api-docs@workspace:api-docs"
-  dependencies:
-    js-yaml: ^3.14.0
-    json-refs: ^3.0.15
-    openapi-examples-validator: ^4.1.1
-  languageName: unknown
-  linkType: soft
-
 "@sentry-internal/global-search@npm:^0.0.31":
   version: 0.0.31
   resolution: "@sentry-internal/global-search@npm:0.0.31"
@@ -5312,6 +5302,16 @@ __metadata:
   checksum: cf61bbaf7f34d9f94dd966230b7a7f8f1f24e3e2185540741a2561118e108206d85101ee2fc9876cd756475dbe6573d84d91115c3abdbf53a64e26a5f1f06b67
   languageName: node
   linkType: hard
+
+"api-docs@workspace:api-docs":
+  version: 0.0.0-use.local
+  resolution: "api-docs@workspace:api-docs"
+  dependencies:
+    js-yaml: ^3.14.0
+    json-refs: ^3.0.15
+    openapi-examples-validator: ^4.1.1
+  languageName: unknown
+  linkType: soft
 
 "app-root-dir@npm:^1.0.2":
   version: 1.0.2

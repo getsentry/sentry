@@ -35,23 +35,23 @@ jobs:
         if: steps.changes.outputs.frontend == 'true'
 
       # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
-      - name: Get yarn cache directory path
+      - name: Get yarn config get cacheFolderectory path
         id: yarn-cache-dir-path
         if: steps.changes.outputs.frontend == 'true'
-        run: echo "::set-output name=dir::$(yarn cache dir)"
+        run: echo "::set-output name=dir::$(yarn config get cacheFolder)"
 
       - uses: actions/cache@v2
         id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
         if: steps.changes.outputs.frontend == 'true'
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-yarn-
 
       - name: Install dependencies
         if: steps.changes.outputs.frontend == 'true'
-        run: yarn install --frozen-lockfile
+        run: yarn workspaces focus sentry
 
       # Setup custom tsc matcher, see https://github.com/actions/setup-node/issues/97
       - name: setup matchers
@@ -125,10 +125,10 @@ jobs:
         if: github.ref == 'refs/heads/master' || steps.changes.outputs.frontend == 'true'
 
       # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
-      - name: Get yarn cache directory path
+      - name: Get yarn config get cacheFolderectory path
         id: yarn-cache-dir-path
         if: github.ref == 'refs/heads/master' || steps.changes.outputs.frontend == 'true'
-        run: echo "::set-output name=dir::$(yarn cache dir)"
+        run: echo "::set-output name=dir::$(yarn config get cacheFolder)"
 
       - uses: actions/cache@v2
         id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
@@ -141,7 +141,7 @@ jobs:
 
       - name: Install dependencies
         if: github.ref == 'refs/heads/master' || steps.changes.outputs.frontend == 'true'
-        run: yarn install --frozen-lockfile
+        run: yarn workspaces focus sentry
 
       - uses: getsentry/size-limit-action@v3
         if: github.ref == 'refs/heads/master' || steps.changes.outputs.frontend == 'true'

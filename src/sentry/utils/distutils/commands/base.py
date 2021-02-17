@@ -128,7 +128,7 @@ class BaseBuildCommand(Command):
 
         if node_version[2] is not None:
             log.info(f"using node ({node_version})")
-            self._run_command(["yarn", "install", "--production", "--frozen-lockfile", "--quiet"])
+            self._run_command(["yarn", "workspaces", "sentry", "focus", "--production"])
 
     def _run_command(self, cmd, env=None):
         cmd_str = " ".join(cmd)

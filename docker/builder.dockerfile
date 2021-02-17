@@ -36,7 +36,7 @@ RUN node -v && yarn -v
 
 COPY yarn.lock /js
 RUN export YARN_CACHE_FOLDER="$(mktemp -d)" \
-  && yarn install --frozen-lockfile --production --quiet \
+  && yarn workspace focus sentry --production \
   && rm -r "$YARN_CACHE_FOLDER"
 
 WORKDIR /workspace

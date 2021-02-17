@@ -28,9 +28,9 @@ jobs:
       - uses: volta-cli/action@v1
 
       # See https://github.com/actions/cache/blob/master/examples.md#node---yarn for example
-      - name: Get yarn cache directory path
+      - name: Get yarn config get cacheFolderectory path
         id: yarn-cache-dir-path
-        run: echo "::set-output name=dir::$(yarn cache dir)"
+        run: echo "::set-output name=dir::$(yarn config get cacheFolder)"
 
       - uses: actions/cache@v2
         id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
@@ -41,7 +41,7 @@ jobs:
             ${{ runner.os }}-yarn-
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn workspaces focus sentry
 
       - name: jest
         run: |
@@ -126,8 +126,7 @@ jobs:
             ${{ runner.os }}-yarn-
 
       - name: Install Javascript Dependencies
-        run: |
-          yarn install --frozen-lockfile
+        run: yarn workspaces focus sentry
 
       - name: webpack
         env:

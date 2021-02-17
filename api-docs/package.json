@@ -1,11 +1,13 @@
 {
-  "name": "@sentry-internal/api-docs",
+  "name": "api-docs",
   "version": "1.0.0",
   "private": true,
   "description": "Sentry API docs",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "yarn node index.js openapi.json",
+    "dev": "yarn sane 'yarn build'",
+    "validate": "yarn openapi-examples-validator ./openapi.json --no-additional-properties"
   },
   "author": "sentry.io",
   "license": "UNLICENSED",
