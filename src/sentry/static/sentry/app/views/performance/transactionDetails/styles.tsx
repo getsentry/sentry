@@ -53,7 +53,6 @@ const StyledSectionHeading = styled(SectionHeading)`
 `;
 
 const SectionBody = styled('div')`
-  color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.headerFontSize};
   margin: ${space(0.5)} 0;
 `;
