@@ -83,7 +83,7 @@ export default class RepositoryProjectPathConfigForm extends React.Component<Pro
         type: 'string',
         required: false,
         label: t('Source Code Root'),
-        placeholder: t('Type root path of your source code'),
+        placeholder: t('Type root path of your source code, e.g. `src/`.'),
         showHelpInTooltip: true,
         help: t(
           'When a rule matches, the stack trace root is replaced with this path to get the path in your repository. Leaving this empty means replacing the stack trace root with an empty string.'
