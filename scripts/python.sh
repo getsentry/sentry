@@ -18,6 +18,9 @@ ensure-pinned-pip() {
 install-py-dev() {
     ensure-venv
     ensure-pinned-pip
+    # The Python version installed via pyenv does not come with wheel pre-installed
+    # Installing wheel will speed up installation of Python dependencies
+    require wheel || pip install wheel
     echo "--> Installing Sentry (for development)"
 	pip_version=$(pip -V |  awk '{print $2}')
     # Older versions of pip require SYSTEM_VERSION_COMPAT in Big Sur
