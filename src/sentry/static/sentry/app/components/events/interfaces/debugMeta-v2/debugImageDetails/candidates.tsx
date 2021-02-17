@@ -49,6 +49,10 @@ class Candidates extends React.Component<Props, State> {
     filteredCandidatesByFilter: [],
   };
 
+  componentDidMount() {
+    this.getFilters();
+  }
+
   componentDidUpdate(prevProps: Props, prevState: State) {
     if (!isEqual(prevProps.candidates, this.props.candidates)) {
       this.getFilters();
