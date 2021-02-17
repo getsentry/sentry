@@ -314,3 +314,11 @@ class Columns(Enum):
         "contexts[reprocessing.original_issue_id]",
         "reprocessing.original_issue_id",
     )
+
+    HIERARCHICAL_HASHES = Column(
+        None,
+        "hierarchical_hashes",
+        None,
+        "hierarchical_hashes",
+        "hierarchical_hashes",
+    )
