@@ -36,5 +36,8 @@
   "volta": {
     "node": "12.19.0",
     "yarn": "1.22.5"
+  },
+  "devDependencies": {
+    "@size-limit/preset-small-lib": "^4.9.2"
   }
 }

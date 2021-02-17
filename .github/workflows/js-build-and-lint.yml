@@ -75,12 +75,12 @@ jobs:
       - name: eslint (changed files only)
         if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
         run: |
-          yarn eslint --fix ${{ steps.changes.outputs.frontend_modified_lintable_files }}
+          yarn workspace sentry eslint --fix ${{ steps.changes.outputs.frontend_modified_lintable_files }}
 
       - name: stylelint (changed files only)
         if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend_components_modified_lintable == 'true'
         run: |
-          yarn stylelint ${{ steps.changes.outputs.frontend_components_modified_lintable_files }}
+          yarn workspace sentry stylelint ${{ steps.changes.outputs.frontend_components_modified_lintable_files }}
 
       # Check (and error) for dirty working tree for forks
       # Reason being we need a different token to auto commit changes and
@@ -100,7 +100,7 @@ jobs:
       - name: tsc
         if: always() && steps.changes.outputs.frontend == 'true'
         run: |
-          yarn tsc -p config/tsconfig.build.json
+          yarn workspace sentry tsc -p config/tsconfig.build.json
 
       - name: storybook
         if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
