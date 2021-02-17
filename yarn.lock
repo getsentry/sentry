@@ -4941,7 +4941,7 @@ __metadata:
   dependencies:
     "@size-limit/preset-small-lib": ^4.9.2
     eslint: ^7.20.0
-    prettier: ^2.2.1
+    prettier: ^2.1.2
     typescript: ^4.1.5
   languageName: unknown
   linkType: soft
@@ -17229,7 +17229,7 @@ fsevents@^1.2.7:
   languageName: node
   linkType: hard
 
-"prettier@npm:^2.2.1":
+"prettier@npm:^2.1.2":
   version: 2.2.1
   resolution: "prettier@npm:2.2.1"
   bin:

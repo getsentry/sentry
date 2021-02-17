@@ -40,7 +40,7 @@
   "devDependencies": {
     "@size-limit/preset-small-lib": "^4.9.2",
     "eslint": "^7.20.0",
-    "prettier": "^2.2.1",
+    "prettier": "^2.1.2",
     "typescript": "^4.1.5"
   }
 }
