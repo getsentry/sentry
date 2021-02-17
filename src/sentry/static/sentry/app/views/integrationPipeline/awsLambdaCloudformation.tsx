@@ -8,11 +8,9 @@ import Button from 'app/components/actions/button';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {uniqueId} from 'app/utils/guid';
 import {trackIntegrationEvent} from 'app/utils/integrationUtil';
-import BooleanField from 'app/views/settings/components/forms/booleanField';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import TextField from 'app/views/settings/components/forms/textField';
 
@@ -152,8 +150,17 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
     this.setState({awsExternalId});
   };
 
-  handleChangeShowInputs = (showInputs: boolean) => {
-    this.setState({showInputs});
+  handleChangeShowInputs = () => {
+    this.setState({showInputs: true});
+    trackIntegrationEvent(
+      'integrations.installation_input_value_changed',
+      {
+        integration: 'aws_lambda',
+        integration_type: 'first_party',
+        field_name: 'showInputs',
+      },
+      this.props.organization
+    );
   };
 
   get formValid() {
@@ -210,18 +217,16 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
               {t('Go to AWS')}
             </StyledButton>
             {!showInputs && (
-              <BooleanField
-                name="showInputs"
-                label={t('My Cloudformation Stack Exists')}
-                value={showInputs}
-                inline={false}
-                stacked
-                onChange={this.handleChangeShowInputs}
-                showHelpInTooltip
-                help={t(
-                  'Enable once the CloudFormation stack has been created successfully or one was already created in a different region'
-                )}
-              />
+              <React.Fragment>
+                <p>
+                  {t(
+                    "Once you've created Sentry's CloudFormation stack (or if you already have one) press the button below to continue."
+                  )}
+                </p>
+                <Button name="showInputs" onClick={this.handleChangeShowInputs}>
+                  {t("I've created the stack")}
+                </Button>
+              </React.Fragment>
             )}
           </ListItem>
           {showInputs ? (
@@ -288,5 +293,5 @@ const StyledList = styled(List)`
 `;
 
 const StyledButton = styled(Button)`
-  margin: 0 0 ${space(2)} 0;
+  margin-bottom: 20px;
 `;
