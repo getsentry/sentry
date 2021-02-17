@@ -1583,7 +1583,6 @@ export type OnboardingTaskDescriptor = {
   task: OnboardingTaskKey;
   title: string;
   description: string;
-  detailedDescription?: string;
   /**
    * Can this task be skipped?
    */

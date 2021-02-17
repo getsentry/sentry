@@ -82,7 +82,7 @@ class OnboardingStatus extends React.Component<Props> {
           />
           {!collapsed && (
             <div>
-              <Heading>{t('Setup Sentry')}</Heading>
+              <Heading>{t('Quick Start')}</Heading>
               <Remaining>
                 {tct('[numberRemaining] Remaining tasks', {numberRemaining})}
                 {pendingCompletionSeen && <PendingSeenIndicator />}
