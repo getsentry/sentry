@@ -49,7 +49,12 @@ class SetupWizard(Endpoint):
             if rate_limited:
                 logger.info("setup-wizard.rate-limit")
                 return Response({"Too many wizard requests"}, status=403)
+
             wizard_hash = get_random_string(64, allowed_chars="abcdefghijklmnopqrstuvwxyz012345679")
+
+            mobile_hash = request.GET.get("mobile", None)
+            if mobile_hash is not None:
+                wizard_hash = "mobile-" + wizard_hash
 
             key = f"{SETUP_WIZARD_CACHE_KEY}{wizard_hash}"
             default_cache.set(key, "empty", SETUP_WIZARD_CACHE_TIMEOUT)

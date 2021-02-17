@@ -8,6 +8,7 @@ import withApi from 'app/utils/withApi';
 type Props = {
   api: Client;
   hash?: boolean | string;
+  mobile?: boolean;
 };
 
 type State = {
@@ -17,6 +18,7 @@ type State = {
 class SetupWizard extends React.Component<Props, State> {
   static defaultProps = {
     hash: false,
+    mobile: false,
   };
 
   state: State = {
@@ -32,7 +34,13 @@ class SetupWizard extends React.Component<Props, State> {
       this.props.api.request(`/wizard/${this.props.hash}/`, {
         method: 'GET',
         success: () => {
-          setTimeout(() => this.pollFinished(), 1000);
+          if (this.props.mobile) {
+            // On mobile we don't wait for the App to connect here
+            // We just tell the user everything is alright
+            this.setState({finished: true});
+          } else {
+            setTimeout(() => this.pollFinished(), 1000);
+          }
         },
         error: () => {
           resolve();
@@ -63,13 +71,36 @@ class SetupWizard extends React.Component<Props, State> {
     );
   }
 
+  renderMobileSuccess() {
+    return (
+      <div className="row">
+        <h5>{t('Return to the App')}</h5>
+      </div>
+    );
+  }
+
+  renderMobileLoading() {
+    return (
+      <div className="row">
+        <h5>{t('Waiting for your App to connect')}</h5>
+      </div>
+    );
+  }
+
   render() {
     const {finished} = this.state;
+    const {mobile} = this.props;
 
+    let success = this.renderSuccess;
+    let loading = this.renderLoading;
+    if (mobile) {
+      success = this.renderMobileSuccess;
+      loading = this.renderMobileLoading;
+    }
     return (
       <div className="container">
         <LoadingIndicator style={{margin: '2em auto'}} finished={finished}>
-          {finished ? this.renderSuccess() : this.renderLoading()}
+          {finished ? success() : loading()}
         </LoadingIndicator>
       </div>
     );

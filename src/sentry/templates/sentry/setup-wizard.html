@@ -12,7 +12,8 @@
   {% script %}
   <script>
     ReactDOM.render(React.createElement(SentryApp.SetupWizard, {
-      hash: {{ hash|to_json|safe }}
+      hash: {{ hash|to_json|safe }},
+      mobile: {{ hash|to_json|safe }},
     }), document.getElementById('setup-wizard-container'));
   </script>
   {% endscript %}
