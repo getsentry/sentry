@@ -62,10 +62,7 @@ class ExternalTeamEndpoint(TeamEndpoint):
         serializer = ExternalTeamSerializer(data={**request.data, "team_id": team.id})
         if serializer.is_valid():
             external_team, created = serializer.save()
-
-            if not created:
-                return Response(serialize(external_team, request.user), status=status.HTTP_200_OK)
-
-            return Response(serialize(external_team, request.user), status=status.HTTP_201_CREATED)
+            status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
+            return Response(serialize(external_team, request.user), status=status_code)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
