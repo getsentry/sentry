@@ -386,8 +386,6 @@ def stacktrace(stacktrace, context, **meta):
 
             rv[f"app-depth-{max_frames}"] = stacktrace
 
-            max_frames += 1
-
     else:
         rv = call_with_variants(
             _single_stacktrace_variant, ["!system", "app"], stacktrace, context=context, meta=meta
