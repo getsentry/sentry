@@ -18,7 +18,13 @@ import withProjects from 'app/utils/withProjects';
 import {getTransactionDetailsUrl} from '../utils';
 
 import QuickTraceQuery, {EventLite, TraceLite} from './quickTraceQuery';
-import {Dash, EventNode, MetaData} from './styles';
+import {
+  EventNode,
+  MetaData,
+  QuickTraceContainer,
+  StyledIconEllipsis,
+  TraceConnector,
+} from './styles';
 import {isTransaction, parseTraceLite} from './utils';
 
 type Props = {
@@ -94,20 +100,28 @@ const QuickTraceLite = withProjects(
     if (root) {
       const target = generateSingleEventTarget(root, organization, projects, location);
       nodes.push(
-        <Tooltip position="top" title={t('View the root transaction in this trace.')}>
+        <Tooltip
+          position="top"
+          containerDisplayMode="inline-flex"
+          title={t('View the root transaction in this trace.')}
+        >
           <EventNode key="root" type="white" pad="right" icon={null} to={target}>
             {t('Root')}
           </EventNode>
         </Tooltip>
       );
-      nodes.push(<Dash />);
+      nodes.push(<TraceConnector />);
     }
 
     const traceTarget = generateTraceTarget(event, organization);
 
     if (root && current && root.event_id !== current.parent_event_id) {
       nodes.push(
-        <Tooltip position="top" title={t('View all transactions in this trace.')}>
+        <Tooltip
+          position="top"
+          containerDisplayMode="inline-flex"
+          title={t('View all transactions in this trace.')}
+        >
           <EventNode
             key="ancestors"
             type="white"
@@ -119,7 +133,7 @@ const QuickTraceLite = withProjects(
           </EventNode>
         </Tooltip>
       );
-      nodes.push(<Dash />);
+      nodes.push(<TraceConnector />);
     }
 
     nodes.push(
@@ -136,10 +150,11 @@ const QuickTraceLite = withProjects(
         projects,
         location
       );
-      nodes.push(<Dash />);
+      nodes.push(<TraceConnector />);
       nodes.push(
         <Tooltip
           position="top"
+          containerDisplayMode="inline-flex"
           title={tn(
             'View the child transaction of this event.',
             'View all child transactions of this event.',
@@ -158,9 +173,13 @@ const QuickTraceLite = withProjects(
         </Tooltip>
       );
 
-      nodes.push(<Dash />);
+      nodes.push(<TraceConnector />);
       nodes.push(
-        <Tooltip position="top" title={t('View all transactions in this trace.')}>
+        <Tooltip
+          position="top"
+          containerDisplayMode="inline-flex"
+          title={t('View all transactions in this trace.')}
+        >
           <EventNode
             key="descendents"
             type="white"
@@ -168,13 +187,13 @@ const QuickTraceLite = withProjects(
             icon={null}
             to={traceTarget}
           >
-            &nbsp;&nbsp;.&nbsp;&nbsp;.&nbsp;&nbsp;.&nbsp;&nbsp;
+            <StyledIconEllipsis size="xs" />
           </EventNode>
         </Tooltip>
       );
     }
 
-    return <div>{nodes}</div>;
+    return <QuickTraceContainer>{nodes}</QuickTraceContainer>;
   }
 );
 
