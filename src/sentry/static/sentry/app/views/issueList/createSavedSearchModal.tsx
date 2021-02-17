@@ -47,10 +47,19 @@ class CreateSavedSearchModal extends React.Component<Props, State> {
     sort: null,
   };
 
+  /** Handle "date added" sort not being available for saved searches */
+  validateSortOption(sort?: string | null): string {
+    if (SortOptions.find(option => option.value === sort)) {
+      return sort as string;
+    }
+
+    return IssueSortOptions.DATE;
+  }
+
   onSubmit = (e: React.FormEvent) => {
     const {api, organization} = this.props;
     const query = this.state.query || this.props.query;
-    const sort = this.state.sort || this.props.sort || null;
+    const sort = this.validateSortOption(this.state.sort || this.props.sort);
 
     e.preventDefault();
 
@@ -130,7 +139,7 @@ class CreateSavedSearchModal extends React.Component<Props, State> {
             label={t('Sort By')}
             required
             clearable={false}
-            defaultValue={sort}
+            defaultValue={this.validateSortOption(sort)}
             options={SortOptions}
             onChange={this.handleChangeSort}
           />
