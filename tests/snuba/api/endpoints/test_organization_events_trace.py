@@ -7,7 +7,7 @@ from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 
 
-class OrganizationEventsTrendsLightEndpointTest(APITestCase, SnubaTestCase):
+class OrganizationEventsTrendsEndpointBase(APITestCase, SnubaTestCase):
     FEATURES = ["organizations:trace-view-quick", "organizations:global-views"]
 
     def create_event(self, trace, transaction, spans, parent_span_id, project_id):
@@ -59,7 +59,7 @@ class OrganizationEventsTrendsLightEndpointTest(APITestCase, SnubaTestCase):
         )
 
         # First Generation
-        gen1_span_ids = [uuid4().hex[:16] for _ in range(3)]
+        self.gen1_span_ids = [uuid4().hex[:16] for _ in range(3)]
         self.gen1_events = [
             self.create_event(
                 trace=self.trace_id,
@@ -76,11 +76,11 @@ class OrganizationEventsTrendsLightEndpointTest(APITestCase, SnubaTestCase):
                 parent_span_id=root_span_id,
                 project_id=self.create_project(organization=self.organization).id,
             )
-            for i, (root_span_id, gen1_span_id) in enumerate(zip(root_span_ids, gen1_span_ids))
+            for i, (root_span_id, gen1_span_id) in enumerate(zip(root_span_ids, self.gen1_span_ids))
         ]
 
         # Second Generation
-        gen2_span_ids = [uuid4().hex[:16] for _ in range(3)]
+        self.gen2_span_ids = [uuid4().hex[:16] for _ in range(3)]
         self.gen2_events = [
             self.create_event(
                 trace=self.trace_id,
@@ -97,7 +97,9 @@ class OrganizationEventsTrendsLightEndpointTest(APITestCase, SnubaTestCase):
                 parent_span_id=gen1_span_id,
                 project_id=self.create_project(organization=self.organization).id,
             )
-            for i, (gen1_span_id, gen2_span_id) in enumerate(zip(gen1_span_ids, gen2_span_ids))
+            for i, (gen1_span_id, gen2_span_id) in enumerate(
+                zip(self.gen1_span_ids, self.gen2_span_ids)
+            )
         ]
 
         # Third generation
@@ -105,14 +107,18 @@ class OrganizationEventsTrendsLightEndpointTest(APITestCase, SnubaTestCase):
             trace=self.trace_id,
             transaction="/transaction/gen3-0",
             spans=[],
-            parent_span_id=gen2_span_ids[0],
             project_id=self.create_project(organization=self.organization).id,
+            parent_span_id=self.gen2_span_ids[0],
         )
 
         self.url = reverse(
-            "sentry-api-0-organization-events-trace-light",
+            self.url_name,
             kwargs={"organization_slug": self.project.organization.slug, "trace_id": self.trace_id},
         )
+
+
+class OrganizationEventsTrendsLightEndpointTest(OrganizationEventsTrendsEndpointBase):
+    url_name = "sentry-api-0-organization-events-trace-light"
 
     def test_no_projects(self):
         user = self.create_user()
@@ -317,3 +323,103 @@ class OrganizationEventsTrendsLightEndpointTest(APITestCase, SnubaTestCase):
         assert not event["is_root"]
         # Parent is unknown in this case
         assert event["parent_event_id"] is None
+
+
+class OrganizationEventsTrendsLightEndpoint(OrganizationEventsTrendsEndpointBase):
+    url_name = "sentry-api-0-organization-events-trace"
+
+    def test_no_projects(self):
+        user = self.create_user()
+        org = self.create_organization(owner=user)
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-organization-events-trace-light",
+            kwargs={"organization_slug": org.slug, "trace_id": uuid4().hex},
+        )
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                url,
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
+    def test_simple(self):
+        root_event_id = self.root_event.event_id
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": -1},
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+
+        assert len(response.data) == 8
+        events = {item["event_id"]: item for item in response.data}
+
+        assert root_event_id in events
+        event = events[root_event_id]
+        assert event["is_root"]
+        assert event["parent_event_id"] is None
+
+        for child_event in self.gen1_events:
+            child_event_id = child_event.event_id
+            assert child_event_id in events
+            event = events[child_event_id]
+            assert not event["is_root"]
+            assert event["parent_event_id"] == root_event_id
+
+        for child_event, parent_event in zip(self.gen2_events, self.gen1_events):
+            child_event_id = child_event.event_id
+            assert child_event_id in events
+            event = events[child_event_id]
+            assert not event["is_root"]
+            assert event["parent_event_id"] == parent_event.event_id
+
+        final_event = self.gen3_event.event_id
+        assert final_event in events
+        event = events[final_event]
+        assert not event["is_root"]
+        assert event["parent_event_id"] == self.gen2_events[0].event_id
+
+    def test_bad_span_loop(self):
+        """Maliciously create a loop in the span structure
+        Structure then becomes something like this:
+        root
+            gen1-0...
+            gen1-1
+                gen2-1
+                    gen3-1
+                        gen_2-1
+                            gen3-1...
+        """
+        self.create_event(
+            trace=self.trace_id,
+            transaction="/transaction/gen3-1/loop",
+            spans=[
+                {
+                    "same_process_as_parent": True,
+                    "op": "http",
+                    "description": "GET gen2-1",
+                    "span_id": self.gen1_span_ids[1],
+                    "trace_id": self.trace_id,
+                }
+            ],
+            parent_span_id=self.gen2_span_ids[1],
+            project_id=self.project.id,
+        )
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": -1},
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 9

@@ -1,7 +1,8 @@
 import logging
 
+from collections import deque
+
 from rest_framework.response import Response
-from rest_framework.exceptions import ParseError
 
 from sentry import features, eventstore
 from sentry.api.bases import OrganizationEventsEndpointBase, NoProjects
@@ -9,6 +10,7 @@ from sentry.snuba import discover
 
 
 logger = logging.getLogger(__name__)
+MAX_TRACE_SIZE = 100
 
 
 def find_event(items, function, default=None):
@@ -31,7 +33,7 @@ def serialize_event(event, parent, is_root_event=False):
     }
 
 
-class OrganizationEventsTraceLightEndpoint(OrganizationEventsEndpointBase):
+class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
     def has_feature(self, organization, request):
         return features.has(
             "organizations:trace-view-quick", organization, actor=request.user
@@ -63,20 +65,22 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsEndpointBase):
                 orderby=["-root", "-timestamp", "id"],
                 params=params,
                 query=f"event.type:transaction trace:{trace_id}",
-                limit=100,
+                limit=MAX_TRACE_SIZE,
                 referrer="api.trace-view.get_ids",
             )
             if len(result["data"]) == 0:
                 return Response(status=404)
 
         event_id = request.GET.get("event_id")
-        if event_id is None:
-            raise ParseError("Only the light trace view is supported at this time")
+        warning_extra = {"trace": trace_id, "organization": organization}
 
-        snuba_event = find_event(result["data"], lambda item: item["id"] == event_id)
-        # The current event couldn't be found in the snuba results
-        if snuba_event is None:
-            return Response(status=404)
+        if event_id:
+            snuba_event = find_event(result["data"], lambda item: item["id"] == event_id)
+            # The current event couldn't be found in the snuba results
+            if snuba_event is None:
+                return Response(status=404)
+        else:
+            snuba_event = None
 
         if is_root(result["data"][0]):
             root = result["data"][0]
@@ -84,7 +88,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsEndpointBase):
             root = None
             logger.warning(
                 "discover.trace-view.root.not-found",
-                extra={"trace": trace_id, "organization": organization},
+                extra=warning_extra,
             )
             return Response(status=204)
 
@@ -96,14 +100,17 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsEndpointBase):
             else:
                 break
         if extra_roots > 0:
+            warning_extra["extra_roots"] = extra_roots
             logger.warning(
                 "discover.trace-view.root.extra-found",
-                extra={"trace": trace_id, "organization": organization, "extra_roots": extra_roots},
+                warning_extra,
             )
 
-        return Response(self.serialize(result["data"], root, snuba_event, event_id))
+        return Response(self.serialize(result["data"], root, warning_extra, snuba_event, event_id))
 
-    def serialize(self, result, root, snuba_event, event_id=None):
+
+class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
+    def serialize(self, result, root, warning_extra, snuba_event, event_id=None):
         parent_map = {item["trace.parent_span"]: item for item in result}
         trace_results = [serialize_event(root, None, True)]
 
@@ -125,5 +132,35 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsEndpointBase):
             if span["span_id"] in parent_map:
                 child_event = parent_map[span["span_id"]]
                 trace_results.append(serialize_event(child_event, event_id))
+
+        return trace_results
+
+
+class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
+    def serialize(self, result, root, warning_extra, snuba_event=None, event_id=None):
+        parent_map = {item["trace.parent_span"]: item for item in result}
+        trace_results = [serialize_event(root, None, True)]
+
+        current_event = root
+        to_check = deque([root])
+        iteration = 0
+        while to_check:
+            current_event = to_check.popleft()
+            event = eventstore.get_event_by_id(current_event["project_id"], current_event["id"])
+            for child in [
+                item for item in event.data.get("spans", []) if item["span_id"] in parent_map
+            ]:
+                # Avoid potential span loops by popping, so we don't traverse the same nodes twice
+                child_event = parent_map.pop(child["span_id"])
+                trace_results.append(serialize_event(child_event, current_event["id"]))
+                to_check.append(child_event)
+            # Limit iterations just to be safe
+            iteration += 1
+            if iteration > MAX_TRACE_SIZE:
+                logger.warning(
+                    "discover.trace-view.surpassed-trace-limit",
+                    extra=warning_extra,
+                )
+                break
 
         return trace_results
