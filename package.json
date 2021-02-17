@@ -38,6 +38,9 @@
     "yarn": "1.22.5"
   },
   "devDependencies": {
-    "@size-limit/preset-small-lib": "^4.9.2"
+    "@size-limit/preset-small-lib": "^4.9.2",
+    "eslint": "^7.20.0",
+    "prettier": "^2.2.1",
+    "typescript": "^4.1.5"
   }
 }
