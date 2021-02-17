@@ -3,6 +3,7 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
+import ExternalLink from 'app/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tct} from 'app/locale';
 import {Organization, Project} from 'app/types';
@@ -57,21 +58,23 @@ class ProjectOwnership extends AsyncView<Props, State> {
             </Button>
           }
         />
+        <TextBlock>
+          {tct(
+            `Automatically assign issues to members or teams in your organization. To learn more about Issue Owners, [link:view the docs].`,
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
+              ),
+            }
+          )}
+        </TextBlock>
         <PermissionAlert />
         <Panel>
           <PanelHeader>{t('Ownership Rules')}</PanelHeader>
           <PanelBody withPadding>
             <Block>
-              {t(
-                'Define rules here to configure automated ownership for new issues and direct email alerts'
-              )}
-            </Block>
-            <Block>
               {t('Rules follow the pattern: ')}
-              <code>type:glob owner owner</code>
-            </Block>
-
-            <Block>
+              <code>type:glob owner owner</code>{' '}
               {tct(
                 'Owners can be team identifiers starting with [pound], or user emails',
                 {
@@ -81,7 +84,7 @@ class ProjectOwnership extends AsyncView<Props, State> {
             </Block>
 
             <Block>
-              {t('Globbing Syntax:')}
+              {t('Globbing Syntax')}
               <CodeBlock>
                 {`* matches everything
 ? matches any single character`}
@@ -89,7 +92,7 @@ class ProjectOwnership extends AsyncView<Props, State> {
             </Block>
 
             <Block>
-              {t('Examples:')}
+              {t('Examples')}
               <CodeBlock>
                 path:src/example/pipeline/* person@sentry.io #infrastructure
                 {'\n'}
