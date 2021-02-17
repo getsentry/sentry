@@ -44,7 +44,28 @@ type PropType = {
   event: EventTransaction;
 };
 
-class TraceViewHeader extends React.Component<PropType> {
+type State = {
+  minimapWidth: number | undefined;
+};
+
+class TraceViewHeader extends React.Component<PropType, State> {
+  state: State = {
+    minimapWidth: undefined,
+  };
+
+  componentDidUpdate() {
+    const {minimapInteractiveRef} = this.props;
+    if (minimapInteractiveRef.current) {
+      const minimapWidth = minimapInteractiveRef.current.getBoundingClientRect().width;
+      if (minimapWidth !== this.state.minimapWidth) {
+        // eslint-disable-next-line react/no-did-update-set-state
+        this.setState({
+          minimapWidth,
+        });
+      }
+    }
+  }
+
   renderCursorGuide({
     cursorGuideHeight,
     showCursorGuide,
@@ -173,6 +194,71 @@ class TraceViewHeader extends React.Component<PropType> {
     );
   }
 
+  renderTicks(props: {numberOfParts: number; duration: number}) {
+    const {numberOfParts, duration} = props;
+
+    if (numberOfParts === 1) {
+      return (
+        <TickLabel
+          key="1"
+          duration={duration * 0.5}
+          style={{
+            left: toPercent(0.5),
+          }}
+        />
+      );
+    }
+
+    const segment = 1 / (numberOfParts - 1);
+
+    const ticks: React.ReactNode[] = [];
+    for (let currentPart = 0; currentPart < numberOfParts; currentPart++) {
+      if (currentPart === 0) {
+        ticks.push(
+          <TickLabel
+            key="first"
+            align={TickAlignment.Left}
+            hideTickMarker
+            duration={0}
+            style={{
+              left: space(1),
+            }}
+          />
+        );
+        continue;
+      }
+
+      if (currentPart === numberOfParts - 1) {
+        ticks.push(
+          <TickLabel
+            key="last"
+            duration={duration}
+            align={TickAlignment.Right}
+            hideTickMarker
+            style={{
+              right: space(1),
+            }}
+          />
+        );
+        continue;
+      }
+
+      const progress = segment * currentPart;
+
+      ticks.push(
+        <TickLabel
+          key={String(currentPart)}
+          duration={duration * progress}
+          style={{
+            left: toPercent(progress),
+          }}
+        />
+      );
+    }
+
+    return ticks;
+  }
+
   renderTimeAxis({
     showCursorGuide,
     mouseLeft,
@@ -181,65 +267,29 @@ class TraceViewHeader extends React.Component<PropType> {
     mouseLeft: number | undefined;
   }) {
     const {trace} = this.props;
+    const {minimapWidth} = this.state;
 
     const duration = Math.abs(trace.traceEndTimestamp - trace.traceStartTimestamp);
 
-    const firstTick = (
-      <TickLabel
-        align={TickAlignment.Left}
-        hideTickMarker
-        duration={0}
-        style={{
-          left: space(1),
-        }}
-      />
-    );
-
-    const secondTick = (
-      <TickLabel
-        duration={duration * 0.25}
-        style={{
-          left: '25%',
-        }}
-      />
-    );
-
-    const thirdTick = (
-      <TickLabel
-        duration={duration * 0.5}
-        style={{
-          left: '50%',
-        }}
-      />
-    );
-
-    const fourthTick = (
-      <TickLabel
-        duration={duration * 0.75}
-        style={{
-          left: '75%',
-        }}
-      />
-    );
-
-    const lastTick = (
-      <TickLabel
-        duration={duration}
-        align={TickAlignment.Right}
-        hideTickMarker
-        style={{
-          right: space(1),
-        }}
-      />
-    );
+    let numberOfParts = 5;
+    if (minimapWidth) {
+      if (minimapWidth <= 350) {
+        numberOfParts = 4;
+      }
+      if (minimapWidth <= 280) {
+        numberOfParts = 3;
+      }
+      if (minimapWidth <= 160) {
+        numberOfParts = 2;
+      }
+      if (minimapWidth <= 130) {
+        numberOfParts = 1;
+      }
+    }
 
     return (
       <TimeAxis>
-        {firstTick}
-        {secondTick}
-        {thirdTick}
-        {fourthTick}
-        {lastTick}
+        {this.renderTicks({numberOfParts, duration})}
         {this.renderCursorGuide({
           showCursorGuide,
           mouseLeft,
