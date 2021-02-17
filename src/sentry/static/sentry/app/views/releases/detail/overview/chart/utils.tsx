@@ -170,17 +170,109 @@ export function initSessionsBreakdownChartData(): ChartData {
   };
 }
 
+export function initOtherSessionsBreakdownChartData(): ChartData {
+  return {
+    crashed: {
+      seriesName: t('Other Crashed'),
+      data: [],
+      stack: 'otherArea',
+      z: 0,
+      color: CHART_PALETTE[3][2],
+      areaStyle: {
+        color: CHART_PALETTE[3][2],
+        opacity: 0.3,
+      },
+      lineStyle: {
+        opacity: 0,
+        width: 0.4,
+      },
+    },
+    abnormal: {
+      seriesName: t('Other Abnormal'),
+      data: [],
+      stack: 'otherArea',
+      z: 0,
+      color: CHART_PALETTE[3][1],
+      areaStyle: {
+        color: CHART_PALETTE[3][1],
+        opacity: 0.3,
+      },
+      lineStyle: {
+        opacity: 0,
+        width: 0.4,
+      },
+    },
+    errored: {
+      seriesName: t('Other Errored'),
+      data: [],
+      stack: 'otherArea',
+      z: 0,
+      color: CHART_PALETTE[3][0],
+      areaStyle: {
+        color: CHART_PALETTE[3][0],
+        opacity: 0.3,
+      },
+      lineStyle: {
+        opacity: 0,
+        width: 0.4,
+      },
+    },
+    healthy: {
+      seriesName: t('Other Healthy'),
+      data: [],
+      stack: 'otherArea',
+      z: 0,
+      color: CHART_PALETTE[3][3],
+      areaStyle: {
+        color: CHART_PALETTE[3][3],
+        opacity: 0.3,
+      },
+      lineStyle: {
+        opacity: 0,
+        width: 0.4,
+      },
+    },
+  };
+}
+
 export function initCrashFreeChartData(): ChartData {
   return {
     users: {
       seriesName: sessionTerm['crash-free-users'],
       data: [],
-      color: CHART_PALETTE[1][0],
+      lineStyle: {
+        color: CHART_PALETTE[1][0],
+      },
     },
     sessions: {
       seriesName: sessionTerm['crash-free-sessions'],
       data: [],
-      color: CHART_PALETTE[1][1],
+      lineStyle: {
+        color: CHART_PALETTE[1][1],
+      },
+    },
+  };
+}
+
+export function initOtherCrashFreeChartData(): ChartData {
+  return {
+    users: {
+      seriesName: t('Other Crash Free Users'),
+      data: [],
+      z: 0,
+      lineStyle: {
+        color: CHART_PALETTE[1][0],
+        opacity: 0.1,
+      },
+    },
+    sessions: {
+      seriesName: t('Other Crash Free Sessions'),
+      data: [],
+      z: 0,
+      lineStyle: {
+        color: CHART_PALETTE[1][1],
+        opacity: 0.3,
+      },
     },
   };
 }
@@ -193,6 +285,24 @@ export function initSessionDurationChartData(): ChartData {
       areaStyle: {
         color: CHART_PALETTE[0][0],
         opacity: 1,
+      },
+      lineStyle: {
+        opacity: 0,
+        width: 0.4,
+      },
+    },
+  };
+}
+
+export function initOtherSessionDurationChartData(): ChartData {
+  return {
+    duration: {
+      seriesName: t('Other Session Duration'),
+      data: [],
+      z: 0,
+      areaStyle: {
+        color: CHART_PALETTE[0][0],
+        opacity: 0.3,
       },
       lineStyle: {
         opacity: 0,

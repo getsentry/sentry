@@ -25,6 +25,9 @@ import {
   getInterval,
   getReleaseEventView,
   initCrashFreeChartData,
+  initOtherCrashFreeChartData,
+  initOtherSessionDurationChartData,
+  initOtherSessionsBreakdownChartData,
   initSessionDurationChartData,
   initSessionsBreakdownChartData,
 } from './chart/utils';
@@ -167,24 +170,38 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
   };
 
   async fetchSessions() {
-    const {api} = this.props;
+    const {api, version} = this.props;
 
-    const response: SessionApiResponse = await api.requestPromise(this.path, {
-      query: {
-        ...this.baseQueryParams,
-        field: 'sum(session)',
-        groupBy: 'session.status',
-      },
-    });
+    const [
+      releaseResponse,
+      otherReleasesResponse,
+    ]: SessionApiResponse[] = await Promise.all([
+      api.requestPromise(this.path, {
+        query: {
+          ...this.baseQueryParams,
+          field: 'sum(session)',
+          groupBy: 'session.status',
+        },
+      }),
+      api.requestPromise(this.path, {
+        query: {
+          ...this.baseQueryParams,
+          field: 'sum(session)',
+          groupBy: 'session.status',
+          query: stringifyQueryObject(new QueryResults([`!release:${version}`])),
+        },
+      }),
+    ]);
 
     const chartData = initSessionsBreakdownChartData();
+    const otherChartData = initOtherSessionsBreakdownChartData();
 
-    const totalSessions = response.groups.reduce((acc, group) => {
+    const totalSessions = releaseResponse.groups.reduce((acc, group) => {
       return acc + group.totals['sum(session)'];
     }, 0);
 
-    response.intervals.forEach((interval, index) => {
-      response.groups.forEach(group => {
+    releaseResponse.intervals.forEach((interval, index) => {
+      releaseResponse.groups.forEach(group => {
         chartData[group.by['session.status']].data.push({
           name: interval,
           value: group.series['sum(session)'][index],
@@ -192,31 +209,54 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       });
     });
 
+    otherReleasesResponse.intervals.forEach((interval, index) => {
+      otherReleasesResponse.groups.forEach(group => {
+        otherChartData[group.by['session.status']].data.push({
+          name: interval,
+          value: group.series['sum(session)'][index],
+        });
+      });
+    });
+
     return {
-      chartData: Object.values(chartData),
+      chartData: [...Object.values(chartData), ...Object.values(otherChartData)],
       chartSummary: totalSessions.toLocaleString(),
     };
   }
 
   async fetchUsers() {
-    const {api} = this.props;
+    const {api, version} = this.props;
 
-    const response: SessionApiResponse = await api.requestPromise(this.path, {
-      query: {
-        ...this.baseQueryParams,
-        field: 'count_unique(user)',
-        groupBy: 'session.status',
-      },
-    });
+    const [
+      releaseResponse,
+      otherReleasesResponse,
+    ]: SessionApiResponse[] = await Promise.all([
+      api.requestPromise(this.path, {
+        query: {
+          ...this.baseQueryParams,
+          field: 'count_unique(user)',
+          groupBy: 'session.status',
+        },
+      }),
+      api.requestPromise(this.path, {
+        query: {
+          ...this.baseQueryParams,
+          field: 'count_unique(user)',
+          groupBy: 'session.status',
+          query: stringifyQueryObject(new QueryResults([`!release:${version}`])),
+        },
+      }),
+    ]);
 
     const chartData = initSessionsBreakdownChartData();
+    const otherChartData = initOtherSessionsBreakdownChartData();
 
-    const totalUsers = response.groups.reduce((acc, group) => {
+    const totalUsers = releaseResponse.groups.reduce((acc, group) => {
       return acc + group.totals['count_unique(user)'];
     }, 0);
 
-    response.intervals.forEach((interval, index) => {
-      response.groups.forEach(group => {
+    releaseResponse.intervals.forEach((interval, index) => {
+      releaseResponse.groups.forEach(group => {
         chartData[group.by['session.status']].data.push({
           name: interval,
           value: group.series['count_unique(user)'][index],
@@ -224,35 +264,57 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       });
     });
 
+    otherReleasesResponse.intervals.forEach((interval, index) => {
+      otherReleasesResponse.groups.forEach(group => {
+        otherChartData[group.by['session.status']].data.push({
+          name: interval,
+          value: group.series['count_unique(user)'][index],
+        });
+      });
+    });
+
     return {
-      chartData: Object.values(chartData),
+      chartData: [...Object.values(chartData), ...Object.values(otherChartData)],
       chartSummary: totalUsers.toLocaleString(),
     };
   }
 
   async fetchCrashFree() {
-    const {api} = this.props;
+    const {api, version} = this.props;
 
-    const response: SessionApiResponse = await api.requestPromise(this.path, {
-      query: {
-        ...this.baseQueryParams,
-        field: ['sum(session)', 'count_unique(user)'],
-        groupBy: 'session.status',
-      },
-    });
+    const [
+      releaseResponse,
+      otherReleasesResponse,
+    ]: SessionApiResponse[] = await Promise.all([
+      api.requestPromise(this.path, {
+        query: {
+          ...this.baseQueryParams,
+          field: ['sum(session)', 'count_unique(user)'],
+          groupBy: 'session.status',
+        },
+      }),
+      api.requestPromise(this.path, {
+        query: {
+          ...this.baseQueryParams,
+          field: ['sum(session)', 'count_unique(user)'],
+          groupBy: 'session.status',
+          query: stringifyQueryObject(new QueryResults([`!release:${version}`])),
+        },
+      }),
+    ]);
 
     const chartData = initCrashFreeChartData();
+    const otherChartData = initOtherCrashFreeChartData();
 
-    response.intervals.forEach((interval, index) => {
-      const intervalTotalSessions = response.groups.reduce(
+    releaseResponse.intervals.forEach((interval, index) => {
+      const intervalTotalSessions = releaseResponse.groups.reduce(
         (acc, group) => acc + group.series['sum(session)'][index],
         0
       );
 
       const intervalCrashedSessions =
-        response.groups.find(group => group.by['session.status'] === 'crashed')?.series[
-          'sum(session)'
-        ][index] ?? 0;
+        releaseResponse.groups.find(group => group.by['session.status'] === 'crashed')
+          ?.series['sum(session)'][index] ?? 0;
 
       const crashedSessionsPercent = percent(
         intervalCrashedSessions,
@@ -269,20 +331,69 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       });
     });
 
-    response.intervals.forEach((interval, index) => {
-      const intervalTotalUsers = response.groups.reduce(
+    releaseResponse.intervals.forEach((interval, index) => {
+      const intervalTotalUsers = releaseResponse.groups.reduce(
         (acc, group) => acc + group.series['count_unique(user)'][index],
         0
       );
 
       const intervalCrashedUsers =
-        response.groups.find(group => group.by['session.status'] === 'crashed')?.series[
-          'count_unique(user)'
-        ][index] ?? 0;
+        releaseResponse.groups.find(group => group.by['session.status'] === 'crashed')
+          ?.series['count_unique(user)'][index] ?? 0;
 
       const crashedUsersPercent = percent(intervalCrashedUsers, intervalTotalUsers);
 
       chartData.users.data.push({
+        name: interval,
+        // TODO: if total sessions = 0
+        value:
+          intervalTotalUsers === 0
+            ? (null as any)
+            : getCrashFreePercent(100 - crashedUsersPercent),
+      });
+    });
+
+    //
+    otherReleasesResponse.intervals.forEach((interval, index) => {
+      const intervalTotalSessions = otherReleasesResponse.groups.reduce(
+        (acc, group) => acc + group.series['sum(session)'][index],
+        0
+      );
+
+      const intervalCrashedSessions =
+        otherReleasesResponse.groups.find(
+          group => group.by['session.status'] === 'crashed'
+        )?.series['sum(session)'][index] ?? 0;
+
+      const crashedSessionsPercent = percent(
+        intervalCrashedSessions,
+        intervalTotalSessions
+      );
+
+      otherChartData.sessions.data.push({
+        name: interval,
+        // TODO: if total sessions = 0
+        value:
+          intervalTotalSessions === 0
+            ? (null as any)
+            : getCrashFreePercent(100 - crashedSessionsPercent),
+      });
+    });
+
+    otherReleasesResponse.intervals.forEach((interval, index) => {
+      const intervalTotalUsers = otherReleasesResponse.groups.reduce(
+        (acc, group) => acc + group.series['count_unique(user)'][index],
+        0
+      );
+
+      const intervalCrashedUsers =
+        otherReleasesResponse.groups.find(
+          group => group.by['session.status'] === 'crashed'
+        )?.series['count_unique(user)'][index] ?? 0;
+
+      const crashedUsersPercent = percent(intervalCrashedUsers, intervalTotalUsers);
+
+      otherChartData.users.data.push({
         name: interval,
         // TODO: if total sessions = 0
         value:
@@ -309,35 +420,57 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
     });
 
     return {
-      chartData: Object.values(chartData),
+      chartData: [...Object.values(chartData), ...Object.values(otherChartData)],
       chartSummary: summary,
     };
   }
 
   async fetchSessionDuration() {
-    const {api} = this.props;
+    const {api, version} = this.props;
 
-    const response: SessionApiResponse = await api.requestPromise(this.path, {
-      query: {
-        ...this.baseQueryParams,
-        field: 'p50(session.duration)',
-      },
-    });
+    const [
+      releaseResponse,
+      otherReleasesResponse,
+    ]: SessionApiResponse[] = await Promise.all([
+      api.requestPromise(this.path, {
+        query: {
+          ...this.baseQueryParams,
+          field: 'p50(session.duration)',
+        },
+      }),
+      api.requestPromise(this.path, {
+        query: {
+          ...this.baseQueryParams,
+          field: 'p50(session.duration)',
+          query: stringifyQueryObject(new QueryResults([`!release:${version}`])),
+        },
+      }),
+    ]);
 
     const chartData = initSessionDurationChartData();
+    const otherChartData = initOtherSessionDurationChartData();
 
-    const totalMedianDuration = response.groups[0].totals['p50(session.duration)'];
+    const totalMedianDuration = releaseResponse.groups[0].totals['p50(session.duration)'];
 
-    response.intervals.forEach((interval, index) => {
-      const duration = response.groups[0].series['p50(session.duration)'][index];
+    releaseResponse.intervals.forEach((interval, index) => {
+      const duration = releaseResponse.groups[0].series['p50(session.duration)'][index];
       chartData.duration.data.push({
         name: interval,
         value: roundDuration(duration ? duration / 1000 : 0),
       });
     });
 
+    otherReleasesResponse.intervals.forEach((interval, index) => {
+      const duration =
+        otherReleasesResponse.groups[0].series['p50(session.duration)'][index];
+      otherChartData.duration.data.push({
+        name: interval,
+        value: roundDuration(duration ? duration / 1000 : 0),
+      });
+    });
+
     return {
-      chartData: Object.values(chartData),
+      chartData: [...Object.values(chartData), ...Object.values(otherChartData)],
       chartSummary: getExactDuration(
         roundDuration(totalMedianDuration ? totalMedianDuration / 1000 : 0)
       ),
