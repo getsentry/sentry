@@ -36,7 +36,7 @@ type State = {
 
 class SuggestProjectModal extends React.Component<Props, State> {
   state: State = {
-    askTeammate: true,
+    askTeammate: false,
   };
 
   handleGetStartedClick = () => {
