@@ -160,7 +160,7 @@ export function getOnboardingTasks(
       task: OnboardingTaskKey.SOURCEMAPS,
       title: t('Upload source maps'),
       description: t(
-        "Deminify Javascript source code to quickly debug with context. It's about time to decouple yourself from the ghosts of errors past."
+        "Deminify Javascript source code to debug with context. Seeing code in it's original form will help you debunk the ghosts of errors past."
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
@@ -196,7 +196,7 @@ export function getOnboardingTasks(
       task: OnboardingTaskKey.ALERT_RULE,
       title: t('Get smarter alerts'),
       description: t(
-        'Set up alerting rules by issue or metric, and be sure to get all the information you need precisely when you need it.'
+        "Customize alerting rules by issue or metric. You'll get the exact information you need precisely when you need it."
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
@@ -238,7 +238,7 @@ const PulsingIndicator = styled('div')`
 const EventWaitingIndicator = styled(p => (
   <div {...p}>
     <PulsingIndicator />
-    <span>{t('Waiting for event')}</span>
+    {t('Waiting for event')}
   </div>
 ))`
   display: flex;
