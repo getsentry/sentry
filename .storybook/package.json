@@ -1,0 +1,23 @@
+{
+  "name": "storybook",
+  "version": "0.0.0",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/getsentry/sentry.git"
+  },
+  "dependencies": {
+    "@storybook/addon-a11y": "^6.1.15",
+    "@storybook/addon-actions": "^6.1.15",
+    "@storybook/addon-essentials": "^6.1.15",
+    "@storybook/addon-storysource": "^6.1.15",
+    "@storybook/addons": "^6.1.15",
+    "@storybook/react": "^6.1.18",
+    "@storybook/theming": "^6.1.15",
+    "sentry": "workspace:src/sentry/static/sentry/app"
+  },
+  "scripts": {
+    "start": "SENTRY_UI_HOT_RELOAD='' start-storybook -p 9001 -c .",
+    "build": "build-storybook -c .storybook -o ../docs-ui/.storybook-out --quiet"
+  }
+}
