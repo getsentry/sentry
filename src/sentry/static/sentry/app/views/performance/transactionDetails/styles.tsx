@@ -1,7 +1,9 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {LocationDescriptor} from 'history';
 
 import {SectionHeading} from 'app/components/charts/styles';
+import MenuItem from 'app/components/menuItem';
 import QuestionTooltip from 'app/components/questionTooltip';
 import Tag, {Background} from 'app/components/tag';
 import {IconEllipsis} from 'app/icons';
@@ -57,7 +59,7 @@ const SectionBody = styled('div')`
   margin: ${space(0.5)} 0;
 `;
 
-const SectionSubtext = styled('div')`
+export const SectionSubtext = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
@@ -82,3 +84,28 @@ export const StyledIconEllipsis = styled(IconEllipsis)`
   vertical-align: middle;
   margin-bottom: 2px;
 `;
+
+const StyledMenuItem = styled(MenuItem)<{first?: boolean}>`
+  border-top: ${p => (!p.first ? `1px solid ${p.theme.innerBorder}` : null)};
+  width: 200px;
+`;
+
+const MenuItemContent = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+`;
+
+type DropdownItemProps = {
+  children: React.ReactNode;
+  to?: string | LocationDescriptor;
+  first?: boolean;
+};
+
+export function DropdownItem({children, first, to}: DropdownItemProps) {
+  return (
+    <StyledMenuItem to={to} first={first}>
+      <MenuItemContent>{children}</MenuItemContent>
+    </StyledMenuItem>
+  );
+}
