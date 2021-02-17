@@ -132,28 +132,19 @@ def test_matcher_test_module():
         "stacktrace": {
             "frames": [
                 {
-                    "function": "main",
                     "module": "com.android.internal.os.Init",
                     "filename": "Init.java",
                     "abs_path": "Init.java",
-                    "lineno": 964,
-                    "in_app": False,
                 },
                 {
-                    "function": "run",
                     "module": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller",
                     "filename": "RuntimeInit.java",
                     "abs_path": "RuntimeInit.java",
-                    "lineno": 494,
-                    "in_app": False,
                 },
                 {
-                    "function": "run",
                     "module": "com.sentry.somethinginthemiddle.CustomModuleForMeowing",
                     "filename": "SourceFile",
                     "abs_path": "SourceFile",
-                    "lineno": 96,
-                    "in_app": False,
                 },
             ]
         },
