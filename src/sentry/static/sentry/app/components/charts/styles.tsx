@@ -2,13 +2,6 @@ import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 
-export const ChartControls = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  padding: ${space(1)} ${space(3)};
-  border-top: 1px solid ${p => p.theme.border};
-`;
-
 export const SubHeading = styled('h3')`
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: normal;
@@ -47,6 +40,21 @@ export const InlineContainer = styled('div')`
 
   &:last-child {
     margin-right: 0;
+  }
+`;
+
+export const ChartControls = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  padding: ${space(1)} ${space(3)};
+  border-top: 1px solid ${p => p.theme.border};
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    flex-direction: column;
+
+    > ${/* sc-selector */ InlineContainer} + ${/* sc-selector */ InlineContainer} {
+      margin-top: ${space(1)};
+    }
   }
 `;
 
