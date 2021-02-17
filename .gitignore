@@ -47,3 +47,10 @@ package-lock.json
 .webpack.meta
 pip-wheel-metadata/
 Brewfile.lock.json
+
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+.pnp.*

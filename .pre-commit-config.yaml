@@ -4,6 +4,7 @@ exclude: >
         \.snap$|
         \.map$|
         \.map\.js$|
+        ^.yarn/releases/|
         ^tests/sentry/lang/.*/fixtures/|
         ^tests/fixtures/|
         ^src/sentry/static/sentry/vendor/|
