@@ -58,9 +58,9 @@ jobs:
         if: steps.changes.outputs.backend == 'true'
         with:
           path: ${{ steps.pip.outputs.pip-cache-dir }}
-          key: ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ steps.pip.outputs.pip-version }}-${{ hashFiles('**/requirements-*.txt') }}
+          key: ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ hashFiles('**/requirements-*.txt') }}
           restore-keys: |
-            ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ steps.pip.outputs.pip-version }}-
+            ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry

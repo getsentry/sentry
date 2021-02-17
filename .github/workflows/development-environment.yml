@@ -64,9 +64,9 @@ jobs:
           path: |
             ${{ steps.pip.outputs.pip-cache-dir }}
             ~/.pyenv
-          key: ${{ matrix.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ steps.pip.outputs.pip-version }}-${{ hashFiles('**/requirements-*.txt') }}
+          key: ${{ matrix.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ hashFiles('**/requirements-*.txt') }}
           restore-keys: |
-            ${{ matrix.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ steps.pip.outputs.pip-version }}-
+            ${{ matrix.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}
 
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path
@@ -76,9 +76,9 @@ jobs:
         id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
+          key: ${{ matrix.os }}-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
           restore-keys: |
-            ${{ runner.os }}-yarn-
+            ${{ matrix.os }}-yarn-
 
       - name: Set up development environment (as per docs)
         run: |
