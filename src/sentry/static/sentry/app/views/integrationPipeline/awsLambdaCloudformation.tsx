@@ -4,13 +4,15 @@ import debounce from 'lodash/debounce';
 import * as qs from 'query-string';
 
 import {addErrorMessage, addLoadingMessage} from 'app/actionCreators/indicator';
-import ExternalLink from 'app/components/links/externalLink';
+import Button from 'app/components/actions/button';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {uniqueId} from 'app/utils/guid';
 import {trackIntegrationEvent} from 'app/utils/integrationUtil';
+import BooleanField from 'app/views/settings/components/forms/booleanField';
 import SelectField from 'app/views/settings/components/forms/selectField';
 import TextField from 'app/views/settings/components/forms/textField';
 
@@ -51,6 +53,7 @@ type State = {
   region?: string;
   accountNumberError?: string;
   submitting?: boolean;
+  showInputs?: boolean;
 };
 
 export default class AwsLambdaCloudformation extends React.Component<Props, State> {
@@ -58,6 +61,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
     accountNumber: this.props.accountNumber,
     region: this.props.region,
     awsExternalId: this.props.awsExternalId ?? getAwsExternalId(),
+    showInputs: !!this.props.awsExternalId,
   };
 
   componentDidMount() {
@@ -148,6 +152,10 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
     this.setState({awsExternalId});
   };
 
+  handleChangeShowInputs = (showInputs: boolean) => {
+    this.setState({showInputs});
+  };
+
   get formValid() {
     const {accountNumber, region, awsExternalId} = this.state;
     return !!region && testAccountNumber(accountNumber || '') && !!awsExternalId;
@@ -185,64 +193,85 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
       accountNumberError,
       submitting,
       awsExternalId,
+      showInputs,
     } = this.state;
     return (
       <React.Fragment>
         <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws-lambda/" />
         <StyledList symbol="colored-numeric" initialCounterValue={initialStepNumber}>
           <ListItem>
-            <ExternalLink
+            <h3>{t("Add Sentry's CloudFormation")}</h3>
+            <StyledButton
+              priority="primary"
               onClick={this.trackOpenCloudFormation}
+              external
               href={this.cloudformationUrl}
             >
-              <h3>{t("Add Sentry's CloudFormation to your AWS")}</h3>
-            </ExternalLink>
-            <p>{t('After the stack has been created, continue to the next step')}</p>
+              {t('Go to AWS')}
+            </StyledButton>
+            {!showInputs && (
+              <BooleanField
+                name="showInputs"
+                label={t('My Cloudformation Stack Exists')}
+                value={showInputs}
+                inline={false}
+                stacked
+                onChange={this.handleChangeShowInputs}
+                showHelpInTooltip
+                help={t(
+                  'Enable once the CloudFormation stack has been created successfully or one was already created in a different region'
+                )}
+              />
+            )}
           </ListItem>
-          <ListItem>
-            <h4>{t('Add AWS Account Information')}</h4>
-            <TextField
-              name="accountNumber"
-              value={accountNumber}
-              onChange={this.handleChangeArn}
-              onBlur={this.validateAccountNumber}
-              error={accountNumberError}
-              inline={false}
-              stacked
-              label={t('AWS Account Number')}
-              showHelpInTooltip
-              help={t(
-                'Your account number can be found on the right side of the header in AWS'
-              )}
-            />
-            <SelectField
-              name="region"
-              value={region}
-              onChange={this.hanldeChangeRegion}
-              options={this.regionOptions}
-              allowClear={false}
-              inline={false}
-              stacked
-              label={t('AWS Region')}
-              showHelpInTooltip
-              help={t(
-                'Your current region can be found on the right side of the header in AWS'
-              )}
-            />
-            <TextField
-              name="awsExternalId"
-              value={awsExternalId}
-              onChange={this.handleChangeExternalId}
-              inline={false}
-              stacked
-              error={awsExternalId ? '' : t('External ID Required')}
-              label={t('External ID')}
-              showHelpInTooltip
-              help={t(
-                'Do not edit unless you are copying from a previously created CloudFormation stack'
-              )}
-            />
-          </ListItem>
+          {showInputs ? (
+            <ListItem>
+              <h3>{t('Add AWS Account Information')}</h3>
+              <TextField
+                name="accountNumber"
+                value={accountNumber}
+                onChange={this.handleChangeArn}
+                onBlur={this.validateAccountNumber}
+                error={accountNumberError}
+                inline={false}
+                stacked
+                label={t('AWS Account Number')}
+                showHelpInTooltip
+                help={t(
+                  'Your account number can be found on the right side of the header in AWS'
+                )}
+              />
+              <SelectField
+                name="region"
+                value={region}
+                onChange={this.hanldeChangeRegion}
+                options={this.regionOptions}
+                allowClear={false}
+                inline={false}
+                stacked
+                label={t('AWS Region')}
+                showHelpInTooltip
+                help={t(
+                  'Your current region can be found on the right side of the header in AWS'
+                )}
+              />
+              <TextField
+                name="awsExternalId"
+                value={awsExternalId}
+                onChange={this.handleChangeExternalId}
+                inline={false}
+                stacked
+                error={awsExternalId ? '' : t('External ID Required')}
+                label={t('External ID')}
+                showHelpInTooltip
+                help={t(
+                  'Do not edit unless you are copying from a previously created CloudFormation stack'
+                )}
+              />
+            </ListItem>
+          ) : (
+            <React.Fragment />
+          )}
         </StyledList>
         <FooterWithButtons
           buttonText={t('Next')}
@@ -256,4 +285,8 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
 
 const StyledList = styled(List)`
   padding: 100px 50px 50px 50px;
+`;
+
+const StyledButton = styled(Button)`
+  margin: 0 0 ${space(2)} 0;
 `;
