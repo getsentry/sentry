@@ -61,12 +61,21 @@ const TIME_OPTIONS: SelectValue<string>[] = [
   {label: t('7 days'), value: TimePeriod.SEVEN_DAYS},
 ];
 
+export const ALERT_RULE_DETAILS_DEFAULT_PERIOD = TimePeriod.ONE_DAY;
+
 const TIME_WINDOWS = {
   [TimePeriod.SIX_HOURS]: TimeWindow.ONE_HOUR * 6 * 60 * 1000,
   [TimePeriod.ONE_DAY]: TimeWindow.ONE_DAY * 60 * 1000,
   [TimePeriod.THREE_DAYS]: TimeWindow.ONE_DAY * 3 * 60 * 1000,
   [TimePeriod.SEVEN_DAYS]: TimeWindow.ONE_DAY * 7 * 60 * 1000,
 };
+
+export const getStartEndTimesFromPeriod = (period: string): {start: string, end: string} => {
+  return {
+    start: getUtcDateString(moment(moment.utc().diff(TIME_WINDOWS[period]))),
+    end: getUtcDateString(moment.utc()),
+  }
+}
 
 class DetailsBody extends React.Component<Props> {
   get metricPreset() {
@@ -94,16 +103,14 @@ class DetailsBody extends React.Component<Props> {
 
   getTimePeriod() {
     const {location} = this.props;
-    const now = moment.utc();
 
-    const timePeriod = location.query.period ?? TimePeriod.ONE_DAY;
+    const timePeriod = location.query.period ?? ALERT_RULE_DETAILS_DEFAULT_PERIOD;
     const timeOption =
       TIME_OPTIONS.find(item => item.value === timePeriod) ?? TIME_OPTIONS[1];
 
     return {
       ...timeOption,
-      start: getUtcDateString(moment(now.diff(TIME_WINDOWS[timeOption.value]))),
-      end: getUtcDateString(now),
+      ...getStartEndTimesFromPeriod(timeOption.value),
     };
   }
 
