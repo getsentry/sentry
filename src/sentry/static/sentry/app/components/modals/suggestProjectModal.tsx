@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {Observer} from 'mobx-react';
 import * as qs from 'query-string';
 
 import bgPattern from 'sentry-images/spot/mobile-hero.jpg';
@@ -24,7 +23,6 @@ import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
 import withApi from 'app/utils/withApi';
 import EmailField from 'app/views/settings/components/forms/emailField';
 import Form from 'app/views/settings/components/forms/form';
-import FormModel from 'app/views/settings/components/forms/model';
 
 type Props = ModalRenderProps & {
   api: Client;
@@ -38,9 +36,8 @@ type State = {
 
 class SuggestProjectModal extends React.Component<Props, State> {
   state: State = {
-    askTeammate: false,
+    askTeammate: true,
   };
-  model = new FormModel();
 
   handleGetStartedClick = () => {
     const {matchedUserAgentString} = this.props;
@@ -76,9 +73,8 @@ class SuggestProjectModal extends React.Component<Props, State> {
     this.props.closeModal();
   };
 
-  handleSubmit = () => {
+  handlePreSubmit = () => {
     addLoadingMessage(t('Submitting\u2026'));
-    this.model.saveForm();
   };
 
   handleSubmitError = () => {
@@ -86,19 +82,22 @@ class SuggestProjectModal extends React.Component<Props, State> {
   };
 
   renderAskTeammate() {
-    const {Body, Footer, organization} = this.props;
-    const model = this.model;
+    const {Body, organization} = this.props;
     return (
       <React.Fragment>
         <Body>
           <Form
-            model={this.model}
             apiEndpoint={`/organizations/${organization.slug}/request-project-creation/`}
             apiMethod="POST"
             submitLabel={t('Send')}
             onSubmitSuccess={this.handleSubmitSuccess}
             onSubmitError={this.handleSubmitError}
-            hideFooter
+            onPreSubmit={this.handlePreSubmit}
+            extraButton={
+              <BackWrapper>
+                <StyledBackButton onClick={this.goBack}>{t('Back')}</StyledBackButton>
+              </BackWrapper>
+            }
           >
             <p>
               {t('Let the right folks know about Sentry Mobile Application Monitoring.')}
@@ -113,22 +112,6 @@ class SuggestProjectModal extends React.Component<Props, State> {
             />
           </Form>
         </Body>
-        <Footer>
-          <ButtonBar gap={1}>
-            <Button onClick={this.goBack}>{t('Back')}</Button>
-            <Observer>
-              {() => (
-                <Button
-                  onClick={this.handleSubmit}
-                  disabled={model.isError || model.isSaving}
-                  priority="primary"
-                >
-                  {t('Send')}
-                </Button>
-              )}
-            </Observer>
-          </ButtonBar>
-        </Footer>
       </React.Fragment>
     );
   }
@@ -263,6 +246,15 @@ const StyledList = styled(List)`
       top: 7px;
     }
   }
+`;
+
+const BackWrapper = styled('div')`
+  width: 100%;
+  margin-right: ${space(1)};
+`;
+
+const StyledBackButton = styled(Button)`
+  float: right;
 `;
 
 export default withApi(SuggestProjectModal);
