@@ -165,5 +165,4 @@ class ProjectsListTest(APITestCase):
         SentryAppInstallationToken.objects.all().delete()
 
         response = self.client.get(f"{self.path}", HTTP_AUTHORIZATION=f"Bearer {token}")
-        assert response.status_code == 200
-        assert len(response.data) == 0
+        assert response.status_code == 401
