@@ -16,9 +16,6 @@ For more details on the payload: http://dev.splunk.com/view/event-collector/SP-C
 
 import logging
 
-from requests.exceptions import ConnectTimeout, ReadTimeout
-import six
-
 from sentry import tagstore
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
@@ -40,63 +37,6 @@ Send Sentry events to Splunk.
 """
 
 
-<<<<<<< HEAD
-class SplunkError(Exception):
-    def __init__(self, status_code, code=0, text="unknown error"):
-        self.status_code = status_code
-        self.code = code
-        self.text = text
-        super().__init__(text)
-
-    @classmethod
-    def from_response(cls, response):
-        try:
-            body = response.json()
-        except Exception:
-            return cls(
-                status_code=response.status_code, code=0, text="Unable to parse response body"
-            )
-
-        code = body.get("code")
-        if code in SplunkInvalidToken.KNOWN_CODES:
-            cls = SplunkInvalidToken
-        elif code in SplunkServerBusy.KNOWN_CODES:
-            cls = SplunkInvalidToken
-        elif code in SplunkConfigError.KNOWN_CODES:
-            cls = SplunkConfigError
-        return cls(status_code=response.status_code, code=code, text=body.get("text"))
-
-    def __repr__(self):
-        return "<{}: status_code={}, code={}, text={}>".format(
-            type(self).__name__,
-            self.status_code,
-            self.code,
-            self.text,
-        )
-
-
-class SplunkInvalidToken(SplunkError):
-    # 1 - token disabled
-    # 2 - token required (should never happen)
-    # 3 - invalid authorization (should never happen)
-    # 4 - invalid token
-    KNOWN_CODES = frozenset([1, 2, 3, 4])
-
-
-class SplunkServerBusy(SplunkError):
-    # 9 - server is busy
-    KNOWN_CODES = frozenset([9])
-
-
-class SplunkConfigError(SplunkError):
-    # 7 - incorrect index
-    # 10 - data channel missing
-    # 11 - invalid data channel
-    KNOWN_CODES = frozenset([7, 10, 11])
-
-
-=======
->>>>>>> f3385e1034... rm legacy error handling
 class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
     title = "Splunk"
     slug = "splunk"
