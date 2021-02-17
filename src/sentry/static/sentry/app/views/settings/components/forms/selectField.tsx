@@ -14,7 +14,7 @@ type Props<OptionType> = InputFieldProps &
      */
     allowClear?: boolean;
     /**
-     * Should the select allow empty values.
+     * Should the select allow empty values?
      */
     allowEmpty?: boolean;
     small?: boolean;
@@ -29,7 +29,7 @@ function getChoices<T>(props: Props<T>): Choices {
   if (typeof choices === 'function') {
     return choices(props);
   }
-  if (typeof choices === 'undefined') {
+  if (choices === undefined) {
     return [];
   }
 
