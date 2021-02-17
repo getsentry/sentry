@@ -87,7 +87,7 @@ export const StyledIconEllipsis = styled(IconEllipsis)`
 
 const StyledMenuItem = styled(MenuItem)<{first?: boolean}>`
   border-top: ${p => (!p.first ? `1px solid ${p.theme.innerBorder}` : null)};
-  width: 200px;
+  width: 220px;
 `;
 
 const MenuItemContent = styled('div')`
