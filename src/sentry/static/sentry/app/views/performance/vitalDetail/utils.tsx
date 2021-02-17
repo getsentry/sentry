@@ -1,3 +1,4 @@
+import React from 'react';
 import {Location, Query} from 'history';
 
 import {IconCheckmark, IconFire, IconWarning} from 'app/icons';
@@ -38,10 +39,14 @@ export const vitalStateColors = {
   [VitalState.GOOD]: theme.green300,
 };
 
+function IconCircledCheckmark(props) {
+  return <IconCheckmark {...props} isCircled />;
+}
+
 export const vitalStateIcons = {
   [VitalState.POOR]: IconFire,
   [VitalState.MEH]: IconWarning,
-  [VitalState.GOOD]: IconCheckmark,
+  [VitalState.GOOD]: IconCircledCheckmark,
 };
 
 export function vitalDetailRouteWithQuery({

@@ -2,14 +2,19 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import Tooltip from 'app/components/tooltip';
-import {IconCheckmark, IconFire, IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {WebVital} from 'app/utils/discover/fields';
 import {formatPercentage} from 'app/utils/formatters';
 import theme, {Color} from 'app/utils/theme';
 
-import {VitalState, vitalStateColors, webVitalMeh, webVitalPoor} from './utils';
+import {
+  VitalState,
+  vitalStateColors,
+  vitalStateIcons,
+  webVitalMeh,
+  webVitalPoor,
+} from './utils';
 
 type Percent = {
   vitalState: VitalState;
@@ -20,12 +25,6 @@ type Props = {
   vital: WebVital | WebVital[];
   percents: Percent[];
   showVitalPercentNames?: boolean;
-};
-
-const vitalStateIcons = {
-  [VitalState.POOR]: IconFire,
-  [VitalState.MEH]: IconWarning,
-  [VitalState.GOOD]: IconCheckmark,
 };
 
 function vitalStateText(vital, vitalState) {
