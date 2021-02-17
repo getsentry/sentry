@@ -33,20 +33,29 @@ export function MetaData({headingText, tooltipText, bodyText, subtext}: MetaData
 }
 
 const HeaderInfo = styled('div')`
+  height: 78px;
+
   &:last-child {
-    justify-self: flex-end;
-    min-width: 325px;
+    grid-column: 1/4;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    &:last-child {
+      justify-self: flex-end;
+      min-width: 325px;
+      grid-column: unset;
+    }
   }
 `;
 
 const StyledSectionHeading = styled(SectionHeading)`
-  margin-top: 0;
+  margin: 0;
 `;
 
 const SectionBody = styled('div')`
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.headerFontSize};
-  margin-bottom: ${space(0.5)};
+  margin: ${space(0.5)} 0;
 `;
 
 const SectionSubtext = styled('div')`

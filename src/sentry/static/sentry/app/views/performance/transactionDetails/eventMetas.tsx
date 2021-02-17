@@ -76,10 +76,15 @@ function EventMetas({event, organization, projectId, location}: Props) {
 
 const EventDetailHeader = styled('div')`
   display: grid;
-  grid-column-gap: ${space(2)};
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, auto);
+  grid-gap: ${space(2)};
+  margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: repeat(3, 2fr) 4fr;
+    grid-template-columns: minmax(150px, 2fr) minmax(150px, 2fr) minmax(150px, 2fr) 4fr;
+    grid-row-gap: 0;
+    margin-bottom: 0;
   }
 `;
 
