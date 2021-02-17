@@ -318,7 +318,7 @@ class Browser:
         #      But to truly fix this, I think the driver needs to be refreshed.
         if not mobile_only:
             with self.full_viewport():
-                screenshot_path = "{}/{}.png".format(snapshot_dir, slugify(name))
+                screenshot_path = f"{snapshot_dir}/{slugify(name)}.png"
                 # This will make sure we resize viewport height to fit contents
                 self.driver.find_element_by_tag_name("body").screenshot(screenshot_path)
 
@@ -331,14 +331,14 @@ class Browser:
                     "return window.__openAllTooltips && window.__openAllTooltips()"
                 )
                 if has_tooltips:
-                    screenshot_path = "{}-tooltips/{}.png".format(snapshot_dir, slugify(name))
+                    screenshot_path = f"{snapshot_dir}-tooltips/{slugify(name)}.png"
                     self.driver.find_element_by_tag_name("body").screenshot(screenshot_path)
                     self.driver.execute_script(
                         "window.__closeAllTooltips && window.__closeAllTooltips()"
                     )
 
         with self.mobile_viewport():
-            screenshot_path = "{}-mobile/{}.png".format(snapshot_dir, slugify(name))
+            screenshot_path = f"{snapshot_dir}-mobile/{slugify(name)}.png"
             self.driver.find_element_by_tag_name("body").screenshot(screenshot_path)
 
             if os.environ.get("SENTRY_SCREENSHOT"):

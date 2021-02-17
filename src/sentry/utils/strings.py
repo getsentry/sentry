@@ -231,7 +231,7 @@ def oxfordize_list(strings):
     elif len(strings) == 1:
         return strings[0]
     elif len(strings) == 2:
-        return "{} and {}".format(strings[0], strings[1])
+        return f"{strings[0]} and {strings[1]}"
     else:
         return "{}, and {}".format(", ".join(strings[:-1]), strings[-1])
 

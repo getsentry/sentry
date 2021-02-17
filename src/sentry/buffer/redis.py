@@ -77,7 +77,7 @@ class RedisBuffer(Buffer):
         return "b:k:{}:{}".format(
             model._meta,
             md5_text(
-                "&".join("{}={}".format(k, self._coerce_val(v)) for k, v in sorted(filters.items()))
+                "&".join(f"{k}={self._coerce_val(v)}" for k, v in sorted(filters.items()))
             ).hexdigest(),
         )
 

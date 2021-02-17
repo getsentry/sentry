@@ -92,7 +92,7 @@ def less_shitty_error_messages(func):
             return func(self, sql, *args, **kwargs)
         except Exception as e:
             exc_info = sys.exc_info()
-            msg = "{}\nSQL: {}".format(repr(e), sql)
+            msg = f"{repr(e)}\nSQL: {sql}"
             raise exc_info[0](msg).with_traceback(exc_info[2])
 
     return inner

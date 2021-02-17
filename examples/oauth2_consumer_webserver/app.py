@@ -53,7 +53,7 @@ def index():
             # Unauthorized - bad token
             session.pop("access_token", None)
             return redirect(url_for("login"))
-        return "{}\n{}".format(str(e), e.read())
+        return f"{str(e)}\n{e.read()}"
 
     return ("<h1>Hi, {}!</h1>" "<pre>{}</pre>").format(
         json.loads(session["user"])["email"], json.dumps(json.loads(res.read()), indent=2)
