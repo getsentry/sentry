@@ -5,7 +5,7 @@ from django.db.models import Q
 from sentry import analytics
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationSearchPermission
 from sentry.api.serializers import serialize
-from sentry.models.savedsearch import SavedSearch
+from sentry.models.savedsearch import SavedSearch, SortOptions
 from sentry.models.search_common import SearchType
 
 
@@ -13,6 +13,9 @@ class OrganizationSearchSerializer(serializers.Serializer):
     type = serializers.IntegerField(required=True)
     name = serializers.CharField(required=True)
     query = serializers.CharField(required=True, min_length=1)
+    sort = serializers.ChoiceField(
+        choices=SortOptions.as_choices(), default=SortOptions.DATE, required=False
+    )
 
 
 class OrganizationSearchesEndpoint(OrganizationEndpoint):
@@ -79,6 +82,7 @@ class OrganizationSearchesEndpoint(OrganizationEndpoint):
                 type=result["type"],
                 name=result["name"],
                 query=result["query"],
+                sort=result["sort"],
             )
             analytics.record(
                 "organization_saved_search.created",

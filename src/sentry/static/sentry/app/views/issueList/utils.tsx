@@ -134,3 +134,23 @@ export enum IssueSortOptions {
   TREND = 'trend',
   INBOX = 'inbox',
 }
+
+export function getSortLabel(key: string) {
+  switch (key) {
+    case IssueSortOptions.NEW:
+      return t('First Seen');
+    case IssueSortOptions.PRIORITY:
+      return t('Priority');
+    case IssueSortOptions.FREQ:
+      return t('Events');
+    case IssueSortOptions.USER:
+      return t('Users');
+    case IssueSortOptions.TREND:
+      return t('Relative Change');
+    case IssueSortOptions.INBOX:
+      return t('Date Added');
+    case IssueSortOptions.DATE:
+    default:
+      return t('Last Seen');
+  }
+}

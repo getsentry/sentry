@@ -84,7 +84,8 @@ export function createSavedSearch(
   api: Client,
   orgSlug: string,
   name: string,
-  query: string
+  query: string,
+  sort: string | null
 ): Promise<SavedSearch> {
   const promise = api.requestPromise(`/organizations/${orgSlug}/searches/`, {
     method: 'POST',
@@ -92,6 +93,7 @@ export function createSavedSearch(
       type: SavedSearchType.ISSUE,
       query,
       name,
+      sort,
     },
   });
 

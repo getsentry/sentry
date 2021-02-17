@@ -119,6 +119,7 @@ type Props = {
 
   defaultQuery?: string;
   query?: string | null;
+  sort?: string;
   /**
    * Prepare query value before filtering dropdown items
    */
@@ -225,6 +226,7 @@ type State = {
    * The current search query in the input
    */
   query: string;
+  sort?: string;
   /**
    * The query in the input since we last updated our autocomplete list.
    */
@@ -1052,6 +1054,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       useFormWrapper,
       onSidebarToggle,
       inlineLabel,
+      sort,
     } = this.props;
 
     const pinTooltip = !!pinnedSearch ? t('Unpin this search') : t('Pin this search');
@@ -1151,6 +1154,7 @@ class SmartSearchBar extends React.Component<Props, State> {
               {({css}) => (
                 <CreateSavedSearchButton
                   query={this.state.query}
+                  sort={sort}
                   organization={organization}
                   withTooltip
                   iconOnly
@@ -1220,6 +1224,7 @@ class SmartSearchBar extends React.Component<Props, State> {
                   {({css}) => (
                     <CreateSavedSearchButton
                       query={this.state.query}
+                      sort={sort}
                       organization={organization}
                       buttonClassName={css`
                         ${getDropdownElementStyles({

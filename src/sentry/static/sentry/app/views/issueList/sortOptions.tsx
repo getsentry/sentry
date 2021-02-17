@@ -3,7 +3,11 @@ import React from 'react';
 import Feature from 'app/components/acl/feature';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import {t} from 'app/locale';
-import {isForReviewQuery, IssueSortOptions} from 'app/views/issueList/utils';
+import {
+  getSortLabel,
+  isForReviewQuery,
+  IssueSortOptions,
+} from 'app/views/issueList/utils';
 
 type Props = {
   sort: string;
@@ -13,26 +17,6 @@ type Props = {
 
 const IssueListSortOptions = ({onSelect, sort, query}: Props) => {
   const sortKey = sort || IssueSortOptions.DATE;
-
-  const getSortLabel = (key: string) => {
-    switch (key) {
-      case IssueSortOptions.NEW:
-        return t('First Seen');
-      case IssueSortOptions.PRIORITY:
-        return t('Priority');
-      case IssueSortOptions.FREQ:
-        return t('Events');
-      case IssueSortOptions.USER:
-        return t('Users');
-      case IssueSortOptions.TREND:
-        return t('Relative Change');
-      case IssueSortOptions.INBOX:
-        return t('Date Added');
-      case IssueSortOptions.DATE:
-      default:
-        return t('Last Seen');
-    }
-  };
 
   const getMenuItem = (key: string): React.ReactNode => (
     <DropdownItem onSelect={onSelect} eventKey={key} isActive={sortKey === key}>

@@ -1,8 +1,10 @@
 import React from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {selectByValue} from 'sentry-test/select-new';
 
 import CreateSavedSearchModal from 'app/views/issueList/createSavedSearchModal';
+import {IssueSortOptions} from 'app/views/issueList/utils';
 
 describe('CreateSavedSearchModal', function () {
   let wrapper, organization, createMock;
@@ -18,6 +20,7 @@ describe('CreateSavedSearchModal', function () {
         Footer={p => p.children}
         organization={organization}
         query="is:unresolved assigned:lyn@sentry.io"
+        sort={IssueSortOptions.DATE}
       />,
       TestStubs.routerContext()
     );
@@ -45,6 +48,7 @@ describe('CreateSavedSearchModal', function () {
           data: {
             name: 'new search name',
             query: 'is:unresolved assigned:lyn@sentry.io',
+            sort: IssueSortOptions.DATE,
             type: 0,
           },
         })
@@ -54,6 +58,7 @@ describe('CreateSavedSearchModal', function () {
     it('saves a search when query is changed', async function () {
       wrapper.find('#id-name').simulate('change', {target: {value: 'new search name'}});
       wrapper.find('#id-query').simulate('change', {target: {value: 'is:resolved'}});
+      selectByValue(wrapper, IssueSortOptions.PRIORITY, {name: 'sort', control: true});
       wrapper.find('Footer').find('Button[priority="primary"]').simulate('submit');
 
       await tick();
@@ -63,6 +68,7 @@ describe('CreateSavedSearchModal', function () {
           data: {
             name: 'new search name',
             query: 'is:resolved',
+            sort: IssueSortOptions.PRIORITY,
             type: 0,
           },
         })

@@ -27,6 +27,7 @@ class SavedSearchSerializer(Serializer):
             "type": obj.type,
             "name": obj.name,
             "query": obj.query,
+            "sort": obj.sort,
             # TODO: Remove once we've completely deprecated Sentry 9
             "isDefault": obj.is_default,
             # TODO: Remove once we've completely deprecated Sentry 9
