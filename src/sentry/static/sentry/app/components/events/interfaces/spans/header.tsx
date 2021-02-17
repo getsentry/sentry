@@ -871,7 +871,8 @@ const ScrollBarContainer = styled('div')`
   left: 0;
   bottom: 0;
   & > div[data-type='virtual-scrollbar'].dragging > div {
-    background-color: ${p => p.theme.gray500};
+    background-color: ${p => p.theme.textColor};
+    opacity: 0.8;
     cursor: grabbing;
   }
 `;
@@ -905,7 +906,8 @@ const VirtualScrollBarGrip = styled('div')`
   width: 100%;
   border-radius: 20px;
   transition: background-color 150ms ease;
-  background-color: rgba(48, 40, 57, 0.5);
+  background-color: ${p => p.theme.textColor};
+  opacity: 0.5;
 `;
 
 export default TraceViewHeader;
