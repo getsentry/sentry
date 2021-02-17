@@ -1,5 +1,4 @@
 import logging
-import sentry_sdk
 
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
@@ -74,6 +73,11 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsEndpointBase):
         if event_id is None:
             raise ParseError("Only the light trace view is supported at this time")
 
+        snuba_event = find_event(result["data"], lambda item: item["id"] == event_id)
+        # The current event couldn't be found in the snuba results
+        if snuba_event is None:
+            return Response(status=404)
+
         if is_root(result["data"][0]):
             root = result["data"][0]
         else:
@@ -97,16 +101,11 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsEndpointBase):
                 extra={"trace": trace_id, "organization": organization, "extra_roots": extra_roots},
             )
 
-        return Response(self.serialize(result["data"], root, event_id))
+        return Response(self.serialize(result["data"], root, snuba_event, event_id))
 
-    def serialize(self, result, root, event_id=None):
+    def serialize(self, result, root, snuba_event, event_id=None):
         parent_map = {item["trace.parent_span"]: item for item in result}
         trace_results = [serialize_event(root, None, True)]
-
-        snuba_event = find_event(result, lambda item: item["id"] == event_id)
-        if snuba_event is None:
-            sentry_sdk.set_tag("query.error_reason", "Matching event not found")
-            raise ParseError("event matching matching requested id not found")
 
         if root["id"] != event_id:
             # Get the root event and see if the current event's span is in the root event
