@@ -79,16 +79,16 @@ class SuggestProjectCTA extends React.Component<Props, State> {
     );
   }
 
+  /**
+   * conditions to show prompt:
+   * 1. User agent matches mobile
+   * 2. No mobile project
+   * 3. CTA is not dimissed
+   * 4. We've loaded the data from the backend for the prompt
+   */
   get showCTA() {
     const {promptIsLoaded, isDismissed} = this.state;
 
-    /**
-     * conditions to show prompt:
-     * 1. User agent matches mobile
-     * 2. No mobile project
-     * 3. CTA is not dimissed
-     * 4. We've loaded the data from the backend for the prompt
-     */
     return (
       !!this.matchedUserAgentString &&
       !this.hasMobileProject &&
@@ -140,7 +140,6 @@ class SuggestProjectCTA extends React.Component<Props, State> {
       this.props.organization
     );
 
-    //update the prompt so we don't show it again to this user
     promptsUpdate(api, {
       organizationId: organization.id,
       feature: 'suggest_mobile_project',

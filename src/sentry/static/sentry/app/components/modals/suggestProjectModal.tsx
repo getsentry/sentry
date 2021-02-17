@@ -40,21 +40,21 @@ class SuggestProjectModal extends React.Component<Props, State> {
   };
 
   handleGetStartedClick = () => {
-    const {matchedUserAgentString} = this.props;
+    const {matchedUserAgentString, organization} = this.props;
     trackAdvancedAnalyticsEvent(
       'growth.clicked_mobile_prompt_setup_project',
       {matchedUserAgentString},
-      this.props.organization
+      organization
     );
   };
 
   handleAskTeammate = () => {
-    const {matchedUserAgentString} = this.props;
+    const {matchedUserAgentString, organization} = this.props;
     this.setState({askTeammate: true});
     trackAdvancedAnalyticsEvent(
       'growth.clicked_mobile_prompt_ask_teammate',
       {matchedUserAgentString},
-      this.props.organization
+      organization
     );
   };
 
@@ -63,14 +63,14 @@ class SuggestProjectModal extends React.Component<Props, State> {
   };
 
   handleSubmitSuccess = ({targetUserEmail}: {targetUserEmail: string}) => {
-    const {matchedUserAgentString} = this.props;
+    const {matchedUserAgentString, organization, closeModal} = this.props;
     addSuccessMessage('Notified teammate successfully');
     trackAdvancedAnalyticsEvent(
       'growth.submitted_mobile_prompt_ask_teammate',
       {email: targetUserEmail, matchedUserAgentString},
-      this.props.organization
+      organization
     );
-    this.props.closeModal();
+    closeModal();
   };
 
   handlePreSubmit = () => {
@@ -84,35 +84,33 @@ class SuggestProjectModal extends React.Component<Props, State> {
   renderAskTeammate() {
     const {Body, organization} = this.props;
     return (
-      <React.Fragment>
-        <Body>
-          <Form
-            apiEndpoint={`/organizations/${organization.slug}/request-project-creation/`}
-            apiMethod="POST"
-            submitLabel={t('Send')}
-            onSubmitSuccess={this.handleSubmitSuccess}
-            onSubmitError={this.handleSubmitError}
-            onPreSubmit={this.handlePreSubmit}
-            extraButton={
-              <BackWrapper>
-                <StyledBackButton onClick={this.goBack}>{t('Back')}</StyledBackButton>
-              </BackWrapper>
-            }
-          >
-            <p>
-              {t('Let the right folks know about Sentry Mobile Application Monitoring.')}
-            </p>
-            <EmailField
-              required
-              name="targetUserEmail"
-              inline={false}
-              label={t('Email Address')}
-              placeholder="name@example.com"
-              stacked
-            />
-          </Form>
-        </Body>
-      </React.Fragment>
+      <Body>
+        <Form
+          apiEndpoint={`/organizations/${organization.slug}/request-project-creation/`}
+          apiMethod="POST"
+          submitLabel={t('Send')}
+          onSubmitSuccess={this.handleSubmitSuccess}
+          onSubmitError={this.handleSubmitError}
+          onPreSubmit={this.handlePreSubmit}
+          extraButton={
+            <BackWrapper>
+              <StyledBackButton onClick={this.goBack}>{t('Back')}</StyledBackButton>
+            </BackWrapper>
+          }
+        >
+          <p>
+            {t('Let the right folks know about Sentry Mobile Application Monitoring.')}
+          </p>
+          <EmailField
+            required
+            name="targetUserEmail"
+            inline={false}
+            label={t('Email Address')}
+            placeholder="name@example.com"
+            stacked
+          />
+        </Form>
+      </Body>
     );
   }
 

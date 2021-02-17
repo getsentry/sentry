@@ -46,7 +46,7 @@ describe('SuggestProjectCTA', function () {
     });
     const wrapper = generateWrapper({
       event: TestStubs.Event({
-        entries: [{type: 'request', data: {headers: [['User-Agent', 'firefox/123']]}}],
+        entries: [{type: 'request', data: {headers: [['User-Agent', 'sentry/123']]}}],
       }),
     });
     await tick();
