@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
 import Access from 'app/components/acl/access';
-import Alert, {Props as AlertProps} from 'app/components/alert';
+import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import ExternalLink from 'app/components/links/externalLink';
 import {Panel} from 'app/components/panels';
@@ -37,7 +37,7 @@ import IntegrationStatus from './integrationStatus';
 
 type Tab = 'overview' | 'configurations';
 
-type AlertType = AlertProps & {
+type AlertType = React.ComponentProps<typeof Alert> & {
   text: string;
 };
 
