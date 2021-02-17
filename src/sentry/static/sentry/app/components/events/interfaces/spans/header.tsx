@@ -356,7 +356,7 @@ class TraceViewHeader extends React.Component<PropType> {
                         width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
                         height: `${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px`,
                         position: 'absolute',
-                        right: 0,
+                        left: `calc(${toPercent(dividerPosition)} + 0.5px)`,
                         top: 0,
                       }}
                       onMouseEnter={event => {
@@ -562,6 +562,7 @@ class ActualMinimap extends React.PureComponent<{
         style={{
           // the width of this component is shrunk to compensate for half of the width of the divider line
           width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
+          left: `calc(${toPercent(dividerPosition)} + 0.5px)`,
         }}
       >
         <BackgroundSlider id="minimap-background-slider">
@@ -682,10 +683,8 @@ const MinimapBackground = styled('div')`
   height: ${MINIMAP_HEIGHT}px;
   max-height: ${MINIMAP_HEIGHT}px;
   overflow: hidden;
-  width: 100%;
   position: absolute;
   top: 0;
-  right: 0;
 `;
 
 const MinimapContainer = styled('div')`
