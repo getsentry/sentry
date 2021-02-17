@@ -350,14 +350,11 @@ class TraceViewHeader extends React.Component<PropType> {
                     mouseLeft,
                     showCursorGuide,
                   }) => (
-                    <div
+                    <RightSidePane
                       ref={this.props.minimapInteractiveRef}
                       style={{
                         width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
-                        height: `${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px`,
-                        position: 'absolute',
                         left: `calc(${toPercent(dividerPosition)} + 0.5px)`,
-                        top: 0,
                       }}
                       onMouseEnter={event => {
                         displayCursorGuide(event.pageX);
@@ -397,7 +394,7 @@ class TraceViewHeader extends React.Component<PropType> {
                         showCursorGuide,
                         mouseLeft,
                       })}
-                    </div>
+                    </RightSidePane>
                   )}
                 </CursorGuideHandler.Consumer>
                 {this.renderSecondaryHeader()}
@@ -812,6 +809,12 @@ const OperationsBreakdown = styled('div')`
   height: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px;
   position: absolute;
   left: 0;
+  top: 0;
+`;
+
+const RightSidePane = styled('div')`
+  height: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px;
+  position: absolute;
   top: 0;
 `;
 
