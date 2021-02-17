@@ -13,6 +13,9 @@ path:src/sentry/*       david@sentry.io
 
 tags.foo:bar             tagperson@sentry.io
 tags.foo:"bar baz"       tagperson@sentry.io
+
+module:foo.bar  #workflow
+module:"foo bar"  meow@sentry.io
 """
 
 
@@ -23,6 +26,8 @@ def test_parse_rules():
         Rule(Matcher("path", "src/sentry/*"), [Owner("user", "david@sentry.io")]),
         Rule(Matcher("tags.foo", "bar"), [Owner("user", "tagperson@sentry.io")]),
         Rule(Matcher("tags.foo", "bar baz"), [Owner("user", "tagperson@sentry.io")]),
+        Rule(Matcher("module", "foo.bar"), [Owner("team", "workflow")]),
+        Rule(Matcher("module", "foo bar"), [Owner("user", "meow@sentry.io")]),
     ]
 
 
@@ -120,6 +125,43 @@ def test_matcher_test_tags():
     assert Matcher("tags.foo", "foo_value").test(data)
     assert Matcher("tags.bar", "barval").test(data)
     assert not Matcher("tags.barz", "barval").test(data)
+
+
+def test_matcher_test_module():
+    data = {
+        "stacktrace": {
+            "frames": [
+                {
+                    "function": "main",
+                    "module": "com.android.internal.os.Init",
+                    "filename": "Init.java",
+                    "abs_path": "Init.java",
+                    "lineno": 964,
+                    "in_app": False,
+                },
+                {
+                    "function": "run",
+                    "module": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller",
+                    "filename": "RuntimeInit.java",
+                    "abs_path": "RuntimeInit.java",
+                    "lineno": 494,
+                    "in_app": False,
+                },
+                {
+                    "function": "run",
+                    "module": "com.sentry.somethinginthemiddle.CustomModuleForMeowing",
+                    "filename": "SourceFile",
+                    "abs_path": "SourceFile",
+                    "lineno": 96,
+                    "in_app": False,
+                },
+            ]
+        },
+    }
+    assert Matcher("module", "*somethinginthemiddle*").test(data)
+    assert Matcher("module", "com.android.internal.os.RuntimeInit$MethodAndArgsCaller").test(data)
+    assert not Matcher("module", "*somethingattheend*").test(data)
+    assert not Matcher("module", "com.android.internal.os").test(data)
 
 
 @pytest.mark.parametrize("data", [{}, {"tags": None}, {"tags": [None]}])

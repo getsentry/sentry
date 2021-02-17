@@ -20,7 +20,7 @@ rule = _ matcher owners
 
 matcher      = _ matcher_tag any_identifier
 matcher_tag  = (matcher_type sep)?
-matcher_type = "url" / "path" / event_tag
+matcher_type = "url" / "path" / "module" / event_tag
 
 event_tag   = ~r"tags.[^:]+"
 
@@ -89,6 +89,8 @@ class Matcher(namedtuple("Matcher", "type pattern")):
             return self.test_url(data)
         elif self.type == "path":
             return self.test_path(data)
+        elif self.type == "module":
+            return self.test_module(data)
         elif self.type.startswith("tags."):
             return self.test_tag(data)
         return False
@@ -103,6 +105,18 @@ class Matcher(namedtuple("Matcher", "type pattern")):
     def test_path(self, data):
         for frame in _iter_frames(data):
             filename = frame.get("filename") or frame.get("abs_path")
+
+            if not filename:
+                continue
+
+            if glob_match(filename, self.pattern, ignorecase=True, path_normalize=True):
+                return True
+
+        return False
+
+    def test_module(self, data):
+        for frame in _iter_frames(data):
+            filename = frame.get("module")
 
             if not filename:
                 continue
