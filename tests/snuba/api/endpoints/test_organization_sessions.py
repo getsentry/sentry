@@ -44,6 +44,8 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         )
         self.create_member(user=self.user, organization=self.organization3, role="admin", teams=[])
 
+        self.create_environment(self.project2, name="development")
+
         template = {
             "distinct_id": "00000000-0000-0000-0000-000000000000",
             "status": "exited",
@@ -72,7 +74,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         self.store_session(make_session(self.project1, started=self.session_started - 12 * 60 * 60))
         self.store_session(make_session(self.project2, status="crashed"))
         self.store_session(make_session(self.project2, environment="development"))
-        self.store_session(make_session(self.project3, errors=1))
+        self.store_session(make_session(self.project3, errors=1, release="foo@1.2.0"))
         self.store_session(
             make_session(
                 self.project3,
@@ -118,6 +120,21 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 400, response.content
         assert response.data == {"detail": 'Invalid groupBy: "envriomnent"'}
+
+    def test_invalid_query(self):
+        response = self.do_request({"field": ["sum(session)"], "query": ["foo:bar"]})
+
+        assert response.status_code == 400, response.content
+        assert response.data == {"detail": 'Invalid query field: "foo"'}
+
+        response = self.do_request(
+            {"field": ["sum(session)"], "query": ["release:foo-bar@1.2.3 (123)"]}
+        )
+
+        assert response.status_code == 400, response.content
+        # TODO: it would be good to provide a better error here,
+        # since its not obvious where `message` comes from.
+        assert response.data == {"detail": 'Invalid query field: "message"'}
 
     def test_too_many_points(self):
         # TODO: looks like this is well within the range of valid points
@@ -231,6 +248,21 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             {"by": {}, "series": {"sum(session)": [1]}, "totals": {"sum(session)": 1}}
         ]
 
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "environment": ["development"],
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == [
+            {"by": {}, "series": {"sum(session)": [1]}, "totals": {"sum(session)": 1}}
+        ]
+
     @freeze_time("2021-01-14T12:27:28.303Z")
     def test_filter_release(self):
         response = self.do_request(
@@ -246,6 +278,46 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert result_sorted(response.data)["groups"] == [
             {"by": {}, "series": {"sum(session)": [1]}, "totals": {"sum(session)": 1}}
+        ]
+
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "query": 'release:"foo@1.1.0" or release:"foo@1.2.0"',
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == [
+            {"by": {}, "series": {"sum(session)": [2]}, "totals": {"sum(session)": 2}}
+        ]
+
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "query": 'release:"foo@1.1.0" or release:"foo@1.2.0" or release:"foo@1.3.0"',
+                "groupBy": ["release"],
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert result_sorted(response.data)["groups"] == [
+            {
+                "by": {"release": "foo@1.1.0"},
+                "series": {"sum(session)": [1]},
+                "totals": {"sum(session)": 1},
+            },
+            {
+                "by": {"release": "foo@1.2.0"},
+                "series": {"sum(session)": [1]},
+                "totals": {"sum(session)": 1},
+            },
         ]
 
     @freeze_time("2021-01-14T12:27:28.303Z")
@@ -321,11 +393,16 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert result_sorted(response.data)["groups"] == [
             {
                 "by": {"release": "foo@1.0.0"},
-                "series": {"sum(session)": [8]},
-                "totals": {"sum(session)": 8},
+                "series": {"sum(session)": [7]},
+                "totals": {"sum(session)": 7},
             },
             {
                 "by": {"release": "foo@1.1.0"},
+                "series": {"sum(session)": [1]},
+                "totals": {"sum(session)": 1},
+            },
+            {
+                "by": {"release": "foo@1.2.0"},
                 "series": {"sum(session)": [1]},
                 "totals": {"sum(session)": 1},
             },
@@ -388,11 +465,16 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
             },
             {
                 "by": {"environment": "production", "release": "foo@1.0.0"},
-                "series": {"sum(session)": [7]},
-                "totals": {"sum(session)": 7},
+                "series": {"sum(session)": [6]},
+                "totals": {"sum(session)": 6},
             },
             {
                 "by": {"environment": "production", "release": "foo@1.1.0"},
+                "series": {"sum(session)": [1]},
+                "totals": {"sum(session)": 1},
+            },
+            {
+                "by": {"environment": "production", "release": "foo@1.2.0"},
                 "series": {"sum(session)": [1]},
                 "totals": {"sum(session)": 1},
             },
