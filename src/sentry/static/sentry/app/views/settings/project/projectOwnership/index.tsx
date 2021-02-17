@@ -60,7 +60,7 @@ class ProjectOwnership extends AsyncView<Props, State> {
         />
         <TextBlock>
           {tct(
-            `Automatically assign issues to members or teams in your organization. To learn more about Issue Owners, [link:view the docs].`,
+            `Set up rules to automatically assign issues to members or teams in your organization. To learn more about Issue Owners, [link:view the docs].`,
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
