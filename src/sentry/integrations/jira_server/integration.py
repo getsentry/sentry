@@ -235,7 +235,7 @@ class JiraServerIntegration(JiraIntegration):
         )
 
     def get_link_issue_config(self, group, **kwargs):
-        fields = super(JiraServerIntegration, self).get_link_issue_config(group, **kwargs)
+        fields = super().get_link_issue_config(group, **kwargs)
 
         org = group.organization
         autocomplete_url = reverse(
@@ -267,7 +267,7 @@ class JiraServerIntegration(JiraIntegration):
         return reverse("sentry-extensions-jiraserver-search", args=[org_slug, self.model.id])
 
     def after_link_issue(self, external_issue, data=None, **kwargs):
-        super(JiraServerIntegration, self).after_link_issue(external_issue, **kwargs)
+        super().after_link_issue(external_issue, **kwargs)
 
         if data:
             comment = data.get("comment")
