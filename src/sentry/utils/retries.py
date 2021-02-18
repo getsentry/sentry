@@ -22,7 +22,7 @@ class RetryException(Exception):
         return force_bytes(self.message, errors="replace")
 
     def __repr__(self):
-        return "<{}: {!r}>".format(type(self).__name__, self.message)
+        return f"<{type(self).__name__}: {self.message!r}>"
 
 
 class RetryPolicy:

@@ -137,7 +137,7 @@ class BitHandler:
     def __repr__(self):
         return "<{}: {}>".format(
             self.__class__.__name__,
-            ", ".join("{}={}".format(k, self.get_bit(n).is_set) for n, k in enumerate(self._keys)),
+            ", ".join(f"{k}={self.get_bit(n).is_set}" for n, k in enumerate(self._keys)),
         )
 
     def __str__(self):

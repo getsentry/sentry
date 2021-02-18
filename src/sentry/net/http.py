@@ -192,7 +192,7 @@ class UnixHTTPConnectionPool(HTTPConnectionPool):
     ConnectionCls = UnixHTTPConnection
 
     def __str__(self):
-        return "{}(host={!r})".format(type(self).__name__, self.host)
+        return f"{type(self).__name__}(host={self.host!r})"
 
 
 def connection_from_url(endpoint, **kw):

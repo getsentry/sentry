@@ -86,7 +86,7 @@ class EventUser(Model):
         """
         for key, value in self.iter_attributes():
             if value:
-                return "{}:{}".format(KEYWORD_MAP[key], value)
+                return f"{KEYWORD_MAP[key]}:{value}"
 
     def iter_attributes(self):
         """

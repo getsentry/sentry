@@ -144,9 +144,9 @@ class NotificationPlugin(Plugin):
             test_results = self.test_configuration(project)
         except Exception as exc:
             if isinstance(exc, HTTPError) and hasattr(exc.response, "text"):
-                test_results = "{}\n{}".format(exc, exc.response.text[:256])
+                test_results = f"{exc}\n{exc.response.text[:256]}"
             elif hasattr(exc, "read") and callable(exc.read):
-                test_results = "{}\n{}".format(exc, exc.read()[:256])
+                test_results = f"{exc}\n{exc.read()[:256]}"
             else:
                 logging.exception("Plugin(%s) raised an error during test, %s", self.slug, str(exc))
                 if str(exc).lower().startswith("error communicating with"):

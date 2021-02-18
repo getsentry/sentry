@@ -81,7 +81,7 @@ class MockService(StubService):
         counter = self._next_ids[project]
         self._next_ids[project] = counter + 1
 
-        return "{}-{}".format(project, base32_encode(counter))
+        return f"{project}-{base32_encode(counter)}"
 
     def _get_project_path(self, project):
         path = os.path.join(FIXTURE_DIRECTORY, self.service_name, "data", project)

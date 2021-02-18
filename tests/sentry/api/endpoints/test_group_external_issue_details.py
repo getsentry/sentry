@@ -23,7 +23,7 @@ class GroupExternalIssueDetailsEndpointTest(APITestCase):
         assert not PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
 
     def test_handles_non_existing_external_issue(self):
-        url = "/api/0/issues/{}/external-issues/{}/".format(self.group.id, 99999)
+        url = f"/api/0/issues/{self.group.id}/external-issues/99999/"
 
         response = self.client.delete(url, format="json")
 

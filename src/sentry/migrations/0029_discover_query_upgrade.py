@@ -120,9 +120,9 @@ def convert(
                 "{}:{}{}".format(column, operator if operator != "=" else "", value)
             )
         elif operator in ["LIKE", "="]:
-            updated_query["query"].append("{}:{}".format(column, prepare_value(value)))
+            updated_query["query"].append(f"{column}:{prepare_value(value)}")
         elif operator in ["NOT LIKE", "!="]:
-            updated_query["query"].append("!{}:{}".format(column, prepare_value(value)))
+            updated_query["query"].append(f"!{column}:{prepare_value(value)}")
     updated_query["query"] = " ".join(updated_query["query"])
 
     # Create the version 2 query

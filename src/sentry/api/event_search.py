@@ -1040,7 +1040,7 @@ def convert_condition_to_function(cond):
     function = OPERATOR_TO_FUNCTION.get(cond[1])
     if not function:
         # It's hard to make this error more specific without exposing internals to the end user
-        raise InvalidSearchQuery("Operator {} is not a valid condition operator.".format(cond[1]))
+        raise InvalidSearchQuery(f"Operator {cond[1]} is not a valid condition operator.")
 
     return [function, [cond[0], cond[2]]]
 
@@ -1904,7 +1904,7 @@ class Function:
     def validate_result_type(self, result_type):
         assert (
             result_type is None or result_type in RESULT_TYPES
-        ), "{}: result type {} not one of {}".format(self.name, result_type, list(RESULT_TYPES))
+        ), f"{self.name}: result type {result_type} not one of {list(RESULT_TYPES)}"
 
     def is_accessible(self, acl=None):
         if not self.private:
@@ -2730,7 +2730,7 @@ def resolve_field_list(
                             field=column,
                             function_msg=", ".join(conflicting_functions[:2])
                             + (
-                                " and {} more.".format(len(conflicting_functions) - 2)
+                                f" and {len(conflicting_functions) - 2} more."
                                 if len(conflicting_functions) > 2
                                 else ""
                             ),

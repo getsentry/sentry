@@ -174,7 +174,7 @@ class Release(Model):
 
     @classmethod
     def get_cache_key(cls, organization_id, version):
-        return "release:3:{}:{}".format(organization_id, md5_text(version).hexdigest())
+        return f"release:3:{organization_id}:{md5_text(version).hexdigest()}"
 
     @classmethod
     def get_lock_key(cls, organization_id, release_id):

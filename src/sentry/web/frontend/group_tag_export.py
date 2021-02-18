@@ -35,6 +35,6 @@ class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
         except ExportError:
             raise Http404
 
-        filename = "{}-{}".format(processor.group.qualified_short_id or processor.group.id, key)
+        filename = f"{processor.group.qualified_short_id or processor.group.id}-{key}"
 
         return self.to_csv_response(processor.get_raw_data(), filename, key=key)

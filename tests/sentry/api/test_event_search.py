@@ -574,7 +574,7 @@ class ParseSearchQueryTest(unittest.TestCase):
         for test in tests:
             with self.assertRaisesRegexp(
                 InvalidSearchQuery,
-                "Invalid quote at '{}': quotes must enclose text or be escaped.".format(test[0]),
+                f"Invalid quote at '{test[0]}': quotes must enclose text or be escaped.",
             ):
                 parse_search_query(test[1].format(test[0]))
 

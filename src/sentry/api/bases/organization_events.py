@@ -154,7 +154,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         # The base API function only uses the last query parameter, but this endpoint
         # needs all the parameters, particularly for the "field" query param.
         querystring = "&".join(
-            "{}={}".format(urlquote(query[0]), urlquote(value))
+            f"{urlquote(query[0])}={urlquote(value)}"
             for query in request.GET.lists()
             if query[0] != "cursor"
             for value in query[1]

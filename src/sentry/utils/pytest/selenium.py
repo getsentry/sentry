@@ -313,12 +313,14 @@ class Browser:
         if not os.path.exists(snapshot_dir):
             os.makedirs(snapshot_dir)
 
+        filename = slugify(name)
+
         # XXX: Unfortunately order matters here else snapshots in CI will be a tiny bit different.
         #      Otherwise we could do mobile_viewport first and early return if mobile_only.
         #      But to truly fix this, I think the driver needs to be refreshed.
         if not mobile_only:
             with self.full_viewport():
-                screenshot_path = "{}/{}.png".format(snapshot_dir, slugify(name))
+                screenshot_path = f"{snapshot_dir}/{filename}.png"
                 # This will make sure we resize viewport height to fit contents
                 self.driver.find_element_by_tag_name("body").screenshot(screenshot_path)
 
@@ -331,14 +333,14 @@ class Browser:
                     "return window.__openAllTooltips && window.__openAllTooltips()"
                 )
                 if has_tooltips:
-                    screenshot_path = "{}-tooltips/{}.png".format(snapshot_dir, slugify(name))
+                    screenshot_path = f"{snapshot_dir}-tooltips/{filename}.png"
                     self.driver.find_element_by_tag_name("body").screenshot(screenshot_path)
                     self.driver.execute_script(
                         "window.__closeAllTooltips && window.__closeAllTooltips()"
                     )
 
         with self.mobile_viewport():
-            screenshot_path = "{}-mobile/{}.png".format(snapshot_dir, slugify(name))
+            screenshot_path = f"{snapshot_dir}-mobile/{filename}.png"
             self.driver.find_element_by_tag_name("body").screenshot(screenshot_path)
 
             if os.environ.get("SENTRY_SCREENSHOT"):

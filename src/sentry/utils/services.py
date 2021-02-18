@@ -310,7 +310,7 @@ class ServiceDelegator(Service):
             # request is going to fail anyway.
             if selected_backend_names[0] not in self.__backends:
                 raise self.InvalidBackend(
-                    "{!r} is not a registered backend.".format(selected_backend_names[0])
+                    f"{selected_backend_names[0]!r} is not a registered backend."
                 )
 
             def call_backend_method(context, backend, is_primary):

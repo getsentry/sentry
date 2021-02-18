@@ -96,9 +96,7 @@ class Endpoint(APIView):
 
     def build_cursor_link(self, request, name, cursor):
         querystring = "&".join(
-            "{}={}".format(urlquote(k), urlquote(v))
-            for k, v in request.GET.items()
-            if k != "cursor"
+            f"{urlquote(k)}={urlquote(v)}" for k, v in request.GET.items() if k != "cursor"
         )
         base_url = absolute_uri(urlquote(request.path))
         if querystring:
@@ -229,7 +227,7 @@ class Endpoint(APIView):
 
             with sentry_sdk.start_span(
                 op="base.dispatch.execute",
-                description="{}.{}".format(type(self).__name__, handler.__name__),
+                description=f"{type(self).__name__}.{handler.__name__}",
             ):
                 response = handler(request, *args, **kwargs)
 

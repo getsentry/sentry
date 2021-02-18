@@ -15,7 +15,7 @@ class Creator(Mediator):
         return self.external_issue
 
     def _create_external_issue(self):
-        display_name = "{}#{}".format(escape(self.project), escape(self.identifier))
+        display_name = f"{escape(self.project)}#{escape(self.identifier)}"
         self.external_issue = PlatformExternalIssue.objects.create(
             group_id=self.group.id,
             project_id=self.group.project_id,

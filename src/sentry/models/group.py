@@ -361,7 +361,7 @@ class Group(Model):
     @property
     def qualified_short_id(self):
         if self.short_id is not None:
-            return "{}-{}".format(self.project.slug.upper(), base32_encode(self.short_id))
+            return f"{self.project.slug.upper()}-{base32_encode(self.short_id)}"
 
     def is_over_resolve_age(self):
         resolve_age = self.project.get_option("sentry:resolve_age", None)

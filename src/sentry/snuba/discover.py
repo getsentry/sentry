@@ -988,7 +988,7 @@ def normalize_histogram_results(fields, key_column, histogram_params, results):
     for row in results["data"]:
         # Fall back to the first field name if there is no `key_name`,
         # otherwise, this is a measurement name and format it as such.
-        key = fields[0] if key_name is None else "measurements.{}".format(row[key_name])
+        key = fields[0] if key_name is None else f"measurements.{row[key_name]}"
         # we expect the bin the be an integer, this is because all floating
         # point values are rounded during the calculation
         bucket = int(row[bin_name])

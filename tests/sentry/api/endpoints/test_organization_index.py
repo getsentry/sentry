@@ -88,7 +88,7 @@ class OrganizationsListTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(org.id)
 
-        response = self.client.get("{}?query=member_id:{}".format(self.path, om.id + 10))
+        response = self.client.get(f"{self.path}?query=member_id:{om.id + 10}")
         assert response.status_code == 200
         assert len(response.data) == 0
 

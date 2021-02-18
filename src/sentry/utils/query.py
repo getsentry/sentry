@@ -203,11 +203,11 @@ def bulk_delete_objects(
 
     if partition_key:
         for column, value in partition_key.items():
-            partition_query.append("{} = %s".format(quote_name(column)))
+            partition_query.append(f"{quote_name(column)} = %s")
             params.append(value)
 
     for column, value in filters.items():
-        query.append("{} = %s".format(quote_name(column)))
+        query.append(f"{quote_name(column)} = %s")
         params.append(value)
 
     query = """

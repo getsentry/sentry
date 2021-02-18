@@ -230,7 +230,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
     def test_release_condition(self):
         result = discover.query(
             selected_columns=["id", "message"],
-            query="release:{}".format(self.create_release(self.project).version),
+            query=f"release:{self.create_release(self.project).version}",
             params={"project_id": [self.project.id]},
         )
         assert len(result["data"]) == 0
@@ -261,7 +261,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
     def test_environment_condition(self):
         result = discover.query(
             selected_columns=["id", "message"],
-            query="environment:{}".format(self.create_environment(self.project).name),
+            query=f"environment:{self.create_environment(self.project).name}",
             params={"project_id": [self.project.id]},
         )
         assert len(result["data"]) == 0

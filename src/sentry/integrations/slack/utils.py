@@ -282,10 +282,10 @@ def build_group_attachment(
 
     if rules:
         rule_url = build_rule_url(rules[0], group, project)
-        footer += " via <{}|{}>".format(rule_url, rules[0].label)
+        footer += f" via <{rule_url}|{rules[0].label}>"
 
         if len(rules) > 1:
-            footer += " (+{} other)".format(len(rules) - 1)
+            footer += f" (+{len(rules) - 1} other)"
 
     obj = event if event is not None else group
     if event and link_to_event:

@@ -381,9 +381,9 @@ def build_group_footer(group, rules, project, event):
     text = f"{group.qualified_short_id}"
     if rules:
         rule_url = build_rule_url(rules[0], group, project)
-        text += " via [{}]({})".format(rules[0].label, rule_url)
+        text += f" via [{rules[0].label}]({rule_url})"
         if len(rules) > 1:
-            text += " (+{} other)".format(len(rules) - 1)
+            text += f" (+{len(rules) - 1} other)"
 
     text_column = {
         "type": "Column",

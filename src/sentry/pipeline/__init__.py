@@ -181,9 +181,7 @@ class Pipeline:
         # we serialize the pipeline to be ['fqn.PipelineView', ...] which
         # allows us to determine if the pipeline has changed during the auth
         # flow or if the user is somehow circumventing a chunk of it
-        pipe_ids = [
-            "{}.{}".format(type(v).__module__, type(v).__name__) for v in self.pipeline_views
-        ]
+        pipe_ids = [f"{type(v).__module__}.{type(v).__name__}" for v in self.pipeline_views]
         self.signature = md5_text(*pipe_ids).hexdigest()
 
     def get_pipeline_views(self):

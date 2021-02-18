@@ -91,7 +91,7 @@ class Command(BaseCommand):
             return
 
         sys.stdout.write(
-            "Found {} unique account(s) with duplicate identities.\n".format(len(unique_users))
+            f"Found {len(unique_users)} unique account(s) with duplicate identities.\n"
         )
 
         for user_list in unique_users:

@@ -32,4 +32,4 @@ class Encoder:
                 sorted(b"\x01".join(map(self.dumps, item)) for item in value.items())
             )
         else:
-            raise TypeError("Unsupported type: {}".format(type(value)))
+            raise TypeError(f"Unsupported type: {type(value)}")

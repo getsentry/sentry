@@ -58,7 +58,7 @@ def generate_slug(name, is_internal=False):
     slug = slugify(name)
     # for internal, add some uuid to make it unique
     if is_internal:
-        slug = "{}-{}".format(slug, default_uuid()[:UUID_CHARS_IN_SLUG])
+        slug = f"{slug}-{default_uuid()[:UUID_CHARS_IN_SLUG]}"
 
     return slug
 

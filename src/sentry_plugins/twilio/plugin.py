@@ -83,9 +83,7 @@ class TwilioConfigurationForm(forms.Form):
         data = self.cleaned_data["sms_to"]
         phones = split_sms_to(data)
         if len(phones) > 10:
-            raise forms.ValidationError(
-                "Max of 10 phone numbers, {} were given.".format(len(phones))
-            )
+            raise forms.ValidationError(f"Max of 10 phone numbers, {len(phones)} were given.")
         for phone in phones:
             if not validate_phone(phone):
                 raise forms.ValidationError(f"{phone} is not a valid phone number.")

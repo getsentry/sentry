@@ -683,9 +683,7 @@ class AuthHelper:
         auth_provider = self.auth_provider
         user_id = identity["id"]
 
-        lock = locks.get(
-            "sso:auth:{}:{}".format(auth_provider.id, md5_text(user_id).hexdigest()), duration=5
-        )
+        lock = locks.get(f"sso:auth:{auth_provider.id}:{md5_text(user_id).hexdigest()}", duration=5)
         with TimedRetryPolicy(5)(lock.acquire):
             try:
                 auth_identity = AuthIdentity.objects.select_related("user").get(
