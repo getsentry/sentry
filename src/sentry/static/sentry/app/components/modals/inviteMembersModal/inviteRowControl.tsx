@@ -103,6 +103,7 @@ class InviteRowControl extends React.Component<Props, State> {
           components={{
             MultiValue: (props: MultiValueProps<SelectOption>) =>
               ValueComponent(props, inviteStatus),
+            DropdownIndicator: () => null,
           }}
           options={mapToOptions(emails)}
           onBlur={(e: React.ChangeEvent<HTMLInputElement>) =>
