@@ -3,8 +3,6 @@ import ReactDOM from 'react-dom';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 
-import HighlightTopRight from 'sentry-images/pattern/highlight-top-right.svg';
-
 import {IconClose} from 'app/icons';
 import {slideInLeft} from 'app/styles/animations';
 import space from 'app/styles/space';
@@ -72,10 +70,7 @@ class SidebarPanel extends React.Component<Props> {
             <PanelClose onClick={hidePanel} />
           </SidebarPanelHeader>
         )}
-        <SidebarPanelBody hasHeader={!!title}>
-          <TopRight src={HighlightTopRight} />
-          {children}
-        </SidebarPanelBody>
+        <SidebarPanelBody hasHeader={!!title}>{children}</SidebarPanelBody>
       </PanelContainer>
     );
 
@@ -135,7 +130,6 @@ const SidebarPanelBody = styled('div')<{hasHeader: boolean}>`
   flex-direction: column;
   flex-grow: 1;
   overflow: auto;
-  padding: 100px 30px;
   position: relative;
 `;
 
@@ -157,10 +151,4 @@ PanelClose.defaultProps = {
 const Title = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin: 0;
-`;
-
-const TopRight = styled('img')`
-  position: absolute;
-  top: 0;
-  right: 0;
 `;
