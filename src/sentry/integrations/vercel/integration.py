@@ -286,7 +286,35 @@ class VercelIntegration(IntegrationInstallation):
         self.org_integration.update(config=config)
 
     def create_env_var(self, client, vercel_project_id, key, value):
-        return client.create_env_variable(vercel_project_id, key, value)
+        data = {
+            "key": key,
+            "value": value,
+            "target": ["production"],
+            "type": "secret",
+        }  # will have to get the type from a map
+        try:
+            return client.create_env_variable(vercel_project_id, key, value, data)
+        except ApiError as e:
+            if e.json and e.json.get("error", {}).get("code"):
+                if e.json["error"]["code"] == "ENV_ALREADY_EXISTS":
+                    return self.update_env_variable(client, vercel_project_id, key, value, data)
+            raise
+
+    def update_env_variable(self, client, vercel_project_id, key, value, data):
+        env_var_id = [
+            env_var["id"]
+            for env_var in client.get_env_vars(vercel_project_id)["envs"]
+            if env_var["key"] == key
+        ]
+        if env_var_id:
+            return client.update_env_variable(vercel_project_id, env_var_id[0], data)
+
+        logger.warn(
+            "vercel.update_env_var.failed",
+            extra={"env_var": key, "vercel_project_id": vercel_project_id},
+        )
+        message = "Could not update environment variable %s in Vercel." % key
+        raise IntegrationError(message)
 
 
 class VercelIntegrationProvider(IntegrationProvider):

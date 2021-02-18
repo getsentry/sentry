@@ -89,25 +89,8 @@ class VercelClient(ApiClient):
         response = self.post(self.SECRETS_URL, data=data)["uid"]
         return response
 
-    def create_env_variable(self, vercel_project_id, key, value):
-        data = {"key": key, "value": value, "target": ["production"], "type": "secret"}
-        try:
-            return self.post(self.ENV_VAR_URL % vercel_project_id, data=data)
-        except ApiError as e:
-            if e.json:
-                if e.json["error"]:
-                    if e.json["error"]["code"] == "ENV_ALREADY_EXISTS":
-                        return self.update_env_variable(vercel_project_id, key, value, data)
-            raise
+    def create_env_variable(self, vercel_project_id, key, value, data):
+        return self.post(self.ENV_VAR_URL % vercel_project_id, data=data)
 
-    def update_env_variable(self, vercel_project_id, key, value, data):
-
-        env_var_id = [
-            env_var["id"]
-            for env_var in self.get(self.GET_ENV_VAR_URL % vercel_project_id)["envs"]
-            if env_var["key"] == key
-        ]
-        if env_var_id:
-            return self.patch(
-                self.UPDATE_ENV_VAR_URL % (vercel_project_id, env_var_id[0]), data=data
-            )
+    def update_env_variable(self, vercel_project_id, env_var_id, data):
+        return self.patch(self.UPDATE_ENV_VAR_URL % (vercel_project_id, env_var_id), data=data)
