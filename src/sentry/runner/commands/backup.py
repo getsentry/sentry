@@ -21,8 +21,9 @@ def import_(src):
         management.call_command("sqlsequencereset", app, stdout=sequence_reset_sql)
 
     from django.db import connection
-        with connection.cursor() as cursor:
-            cursor.execute(sequence_reset_sql.getvalue())
+
+    with connection.cursor() as cursor:
+        cursor.execute(sequence_reset_sql.getvalue())
 
 
 def sort_dependencies():
