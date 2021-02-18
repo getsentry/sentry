@@ -1,5 +1,6 @@
 from datetime import datetime
 import itertools
+import math
 
 from sentry.api.event_search import get_filter
 from sentry.api.utils import get_date_range_rollup_from_params
@@ -122,6 +123,12 @@ class UsersField:
         return 0
 
 
+def finite_or_none(val):
+    if not math.isfinite(val):
+        return None
+    return val
+
+
 class DurationAverageField:
     def get_snuba_columns(self, raw_groupby):
         return ["duration_avg"]
@@ -131,7 +138,7 @@ class DurationAverageField:
             return None
         status = group.get("session.status")
         if status is None or status == "healthy":
-            return row["duration_avg"]
+            return finite_or_none(row["duration_avg"])
         return None
 
 
@@ -147,7 +154,7 @@ class DurationQuantileField:
             return None
         status = group.get("session.status")
         if status is None or status == "healthy":
-            return row["duration_quantiles"][self.quantile_index]
+            return finite_or_none(row["duration_quantiles"][self.quantile_index])
         return None
 
 
