@@ -18,7 +18,9 @@ def main():
 
     files_modified = [text_type(f) for f in get_modified_files(os.getcwd()) if os.path.exists(f)]
 
-    return run(files_modified, test=True)
+    # Only run tests when the developer has this env variable defined
+    if os.environ.get("SENTRY_POST_MERGE_AUTO_UPDATE"):
+        return run(files_modified, test=True)
 
 
 if __name__ == "__main__":
