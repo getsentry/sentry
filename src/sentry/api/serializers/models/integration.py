@@ -213,5 +213,5 @@ class ExternalTeamSerializer(Serializer):
             "id": str(obj.id),
             "teamId": str(obj.team_id),
             "provider": provider,
-            "externalId": obj.external_id,
+            "externalName": obj.external_name,
         }
