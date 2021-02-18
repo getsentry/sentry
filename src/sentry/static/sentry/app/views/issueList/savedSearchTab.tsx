@@ -148,8 +148,9 @@ const StyledQueryCount = styled(QueryCount)`
 
 const StyledExternalLink = styled(ExternalLink)`
   color: ${p => p.theme.purple200};
+  text-decoration: underline;
 
   :hover {
-    color: ${p => p.theme.purple100};
+    color: ${p => p.theme.purple200};
   }
 `;
