@@ -225,7 +225,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       ...provided,
       color: '#007eff',
       backgroundColor: '#ebf5ff',
-      borderRadius: '2px',
+      borderRadius: 2,
       border: '1px solid #c2e0ff',
       display: 'flex',
     }),
@@ -337,14 +337,14 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     }),
   };
   const labelOrDefaultStyles = inFieldLabel
-    ? mergeStyles(inFieldLabelStyles, defaultStyles)
+    ? mergeStyles(defaultStyles, inFieldLabelStyles)
     : defaultStyles;
 
   // Allow the provided `styles` prop to override default styles using the same
   // function interface provided by react-styled. This ensures the `provided`
   // styles include our overridden default styles
   const mappedStyles = styles
-    ? mergeStyles(styles, labelOrDefaultStyles)
+    ? mergeStyles(labelOrDefaultStyles, styles)
     : labelOrDefaultStyles;
 
   const replacedComponents = {
