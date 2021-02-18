@@ -30,7 +30,7 @@ export function fetchIncidentsForRule(
   orgId: string,
   alertRule: string,
   start: string,
-  end: string,
+  end: string
 ): Promise<Incident[]> {
   return uncancellableApi.requestPromise(`/organizations/${orgId}/incidents/`, {
     query: {alertRule, start, end, detailed: true},
