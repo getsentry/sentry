@@ -6,15 +6,9 @@ import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {WebVital} from 'app/utils/discover/fields';
 import {formatPercentage} from 'app/utils/formatters';
-import theme, {Color} from 'app/utils/theme';
+import theme from 'app/utils/theme';
 
-import {
-  VitalState,
-  vitalStateColors,
-  vitalStateIcons,
-  webVitalMeh,
-  webVitalPoor,
-} from './utils';
+import {VitalState, vitalStateIcons, webVitalMeh, webVitalPoor} from './utils';
 
 type Percent = {
   vitalState: VitalState;
@@ -50,11 +44,10 @@ export default function VitalPercents(props: Props) {
   return (
     <VitalSet>
       {props.percents.map(p => {
-        const VitalStateIcon = vitalStateIcons[p.vitalState];
         return (
           <Tooltip key={p.vitalState} title={vitalStateText(props.vital, p.vitalState)}>
             <VitalStatus>
-              <VitalStateIcon color={vitalStateColors[p.vitalState] as Color} />
+              ${vitalStateIcons[p.vitalState]}
               <span>
                 {props.showVitalPercentNames && t(`${p.vitalState}`)}{' '}
                 {formatPercentage(p.percent, 0)}

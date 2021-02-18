@@ -5,7 +5,7 @@ import {IconCheckmark, IconFire, IconWarning} from 'app/icons';
 import {Series} from 'app/types/echarts';
 import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
-import theme from 'app/utils/theme';
+import {Color} from 'app/utils/theme';
 
 export function generateVitalDetailRoute({orgSlug}: {orgSlug: string}): string {
   return `/organizations/${orgSlug}/performance/vitaldetail/`;
@@ -33,20 +33,18 @@ export enum VitalState {
   GOOD = 'Good',
 }
 
-export const vitalStateColors = {
-  [VitalState.POOR]: theme.red300,
-  [VitalState.MEH]: theme.yellow300,
-  [VitalState.GOOD]: theme.green300,
+export const vitalStateColors: Record<VitalState, Color> = {
+  [VitalState.POOR]: 'red300',
+  [VitalState.MEH]: 'yellow300',
+  [VitalState.GOOD]: 'green300',
 };
 
-function IconCircledCheckmark(props) {
-  return <IconCheckmark {...props} isCircled />;
-}
-
-export const vitalStateIcons = {
-  [VitalState.POOR]: IconFire,
-  [VitalState.MEH]: IconWarning,
-  [VitalState.GOOD]: IconCircledCheckmark,
+export const vitalStateIcons: Record<VitalState, React.ReactNode> = {
+  [VitalState.POOR]: <IconFire color={vitalStateColors[VitalState.GOOD]} />,
+  [VitalState.MEH]: <IconWarning color={vitalStateColors[VitalState.GOOD]} />,
+  [VitalState.GOOD]: (
+    <IconCheckmark color={vitalStateColors[VitalState.GOOD]} isCircled />
+  ),
 };
 
 export function vitalDetailRouteWithQuery({
