@@ -9,6 +9,7 @@ frontend_lintable: &frontend_lintable
   - *frontend_components_lintable
   - '**/tsconfig*.json'
   - '{package,now,vercel}.json'
+  - '.github/workflows/js-*.yml'
 
 frontend: &frontend
   - *frontend_lintable
@@ -18,7 +19,6 @@ frontend: &frontend
   - 'docs-ui/**'
   - 'src/sentry/static/sentry/**'
   - 'tests/js/**'
-  - '.github/workflows/js-*.yml'
 
 frontend_modified_lintable:
   - added|modified: *frontend_lintable
