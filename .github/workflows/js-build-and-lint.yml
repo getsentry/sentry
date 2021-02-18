@@ -71,7 +71,7 @@ jobs:
           yarn lint:css
 
       # Otherwise if it's not main branch, only lint modified files
-      # Note `eslint --fix` will not fail when it auto fixes file
+      # Note `eslint --fix` will not fail when it auto fixes files
       - name: eslint (changed files only)
         if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
         run: |
