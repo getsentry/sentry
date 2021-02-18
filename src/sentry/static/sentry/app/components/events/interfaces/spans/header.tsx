@@ -194,8 +194,27 @@ class TraceViewHeader extends React.Component<PropType, State> {
     );
   }
 
-  renderTicks(props: {numberOfParts: number; duration: number}) {
-    const {numberOfParts, duration} = props;
+  renderTicks() {
+    const {trace} = this.props;
+    const {minimapWidth} = this.state;
+
+    const duration = Math.abs(trace.traceEndTimestamp - trace.traceStartTimestamp);
+
+    let numberOfParts = 5;
+    if (minimapWidth) {
+      if (minimapWidth <= 350) {
+        numberOfParts = 4;
+      }
+      if (minimapWidth <= 280) {
+        numberOfParts = 3;
+      }
+      if (minimapWidth <= 160) {
+        numberOfParts = 2;
+      }
+      if (minimapWidth <= 130) {
+        numberOfParts = 1;
+      }
+    }
 
     if (numberOfParts === 1) {
       return (
@@ -266,30 +285,9 @@ class TraceViewHeader extends React.Component<PropType, State> {
     showCursorGuide: boolean;
     mouseLeft: number | undefined;
   }) {
-    const {trace} = this.props;
-    const {minimapWidth} = this.state;
-
-    const duration = Math.abs(trace.traceEndTimestamp - trace.traceStartTimestamp);
-
-    let numberOfParts = 5;
-    if (minimapWidth) {
-      if (minimapWidth <= 350) {
-        numberOfParts = 4;
-      }
-      if (minimapWidth <= 280) {
-        numberOfParts = 3;
-      }
-      if (minimapWidth <= 160) {
-        numberOfParts = 2;
-      }
-      if (minimapWidth <= 130) {
-        numberOfParts = 1;
-      }
-    }
-
     return (
       <TimeAxis>
-        {this.renderTicks({numberOfParts, duration})}
+        {this.renderTicks()}
         {this.renderCursorGuide({
           showCursorGuide,
           mouseLeft,
