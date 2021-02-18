@@ -844,7 +844,7 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
         # Handle "has" queries
         if search_filter.value.raw_value == "":
             if search_filter.operator == "=":
-                # The state os having no issues is represented differently on transactions vs
+                # The state of having no issues is represented differently on transactions vs
                 # other events. On the transactions table, it is represented by 0 whereas it is
                 # represented by NULL everywhere else. This means we have to check for both 0
                 # or NULL.
