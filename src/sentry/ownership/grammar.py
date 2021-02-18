@@ -104,10 +104,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
 
     def test_frames(self, data, keys):
         for frame in _iter_frames(data):
-            for key in keys:
-                value = frame.get(key)
-                if value:
-                    break
+            value = next((frame.get(key) for key in keys if frame.get(key)), None)
 
             if not value:
                 continue
