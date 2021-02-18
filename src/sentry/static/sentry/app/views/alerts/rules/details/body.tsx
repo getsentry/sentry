@@ -70,12 +70,14 @@ const TIME_WINDOWS = {
   [TimePeriod.SEVEN_DAYS]: TimeWindow.ONE_DAY * 7 * 60 * 1000,
 };
 
-export const getStartEndTimesFromPeriod = (period: string): {start: string, end: string} => {
+export const getStartEndTimesFromPeriod = (
+  period: string
+): {start: string; end: string} => {
   return {
     start: getUtcDateString(moment(moment.utc().diff(TIME_WINDOWS[period]))),
     end: getUtcDateString(moment.utc()),
-  }
-}
+  };
+};
 
 class DetailsBody extends React.Component<Props> {
   get metricPreset() {
