@@ -32,7 +32,7 @@ class Type:
             # and give us the type we were expecting
             if self.test(rv):
                 return rv
-        raise InvalidTypeError(f"{value!r} is not a valid {repr(self)}")
+        raise InvalidTypeError(f"{value!r} is not a valid {self!r}")
 
     def convert(self, value):
         return value
