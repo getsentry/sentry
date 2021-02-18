@@ -110,7 +110,7 @@ class UserFeedbackEmpty extends React.Component<Props> {
                 })
               }
               href={`https://docs.sentry.io/platforms/${
-                this.selectedProjects[0].platform || 'javascript'
+                this.selectedProjects[0]?.platform || 'javascript'
               }/enriching-events/user-feedback/`}
             >
               {t('Read the docs')}
