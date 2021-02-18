@@ -427,9 +427,8 @@ class Event:
         return get_grouping_variants_for_event(self, config)
 
     def get_primary_hash(self):
-        # TODO: This *might* need to be protected from an IndexError?
         flat_hashes, _ = self.get_hashes()
-        return flat_hashes[0]
+        return flat_hashes[0] if flat_hashes else None
 
     @property
     def organization(self):
