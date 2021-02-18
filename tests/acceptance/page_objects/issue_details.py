@@ -84,3 +84,7 @@ class IssueDetailsPage(BasePage):
         if self.browser.element_exists("#grouping-info"):
             self.browser.wait_until_test_id("loaded-grouping-info")
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
+
+    def mark_reviewed(self):
+        self.browser.click('[aria-label="Mark Reviewed"]')
+        self.browser.wait_until('.disabled[aria-label="Mark Reviewed"]')

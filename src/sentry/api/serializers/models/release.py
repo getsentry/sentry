@@ -230,13 +230,18 @@ class ReleaseSerializer(Serializer):
         if project is not None:
             project_ids = [project.id]
             specialized = True
+            organization_id = project.organization_id
         else:
             project_ids, specialized = self.__get_project_id_list(item_list)
+            organization_id = item_list[0].organization_id
 
         first_seen = {}
         last_seen = {}
         tag_values = tagstore.get_release_tags(
-            project_ids, environment_id=None, versions=[o.version for o in item_list]
+            organization_id,
+            project_ids,
+            environment_id=None,
+            versions=[o.version for o in item_list],
         )
         for tv in tag_values:
             first_val = first_seen.get(tv.value)
