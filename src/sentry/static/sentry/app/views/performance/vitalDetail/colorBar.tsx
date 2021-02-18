@@ -2,10 +2,11 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
+import {Color} from 'app/utils/theme';
 
 type ColorStop = {
   percent: number;
-  color: string;
+  color: Color;
 };
 
 type Props = {
@@ -39,11 +40,11 @@ const VitalBar = styled('div')<VitalBarProps>`
 `;
 
 type ColorProps = {
-  color: string;
+  color: Color;
 };
 
 const BarStatus = styled('div')<ColorProps>`
-  background-color: ${p => p.color};
+  background-color: ${p => p.theme[p.color]};
 `;
 
 export default ColorBar;
