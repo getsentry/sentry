@@ -204,8 +204,9 @@ def get_processor(data_export, environment_id):
             )
         return processor
     except ExportError as error:
-        metrics.incr("dataexport.error", tags={"error": str(error)}, sample_rate=1.0)
-        logger.info(f"dataexport.error: {str(error)}")
+        error_str = str(error)
+        metrics.incr("dataexport.error", tags={"error": error_str}, sample_rate=1.0)
+        logger.info(f"dataexport.error: {error_str}")
         capture_exception(error)
         raise
 
@@ -218,8 +219,9 @@ def process_rows(processor, data_export, batch_size, offset):
             rows = process_discover(processor, batch_size, offset)
         return rows
     except ExportError as error:
-        metrics.incr("dataexport.error", tags={"error": str(error)}, sample_rate=1.0)
-        logger.info(f"dataexport.error: {str(error)}")
+        error_str = str(error)
+        metrics.incr("dataexport.error", tags={"error": error_str}, sample_rate=1.0)
+        logger.info(f"dataexport.error: {error_str}")
         capture_exception(error)
         raise
 
