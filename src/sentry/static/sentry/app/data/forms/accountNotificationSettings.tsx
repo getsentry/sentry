@@ -1,4 +1,4 @@
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import {Field, JsonFormObject} from 'app/views/settings/components/forms/type';
 
 // Export route to make these forms searchable by label/help
@@ -10,11 +10,8 @@ export const fields: {[key: string]: Field} = {
     type: 'boolean',
     label: t('Send Me Alerts'),
     // TODO(billy): Make this a real link
-    help: tct(
-      'Alerts are defined in [locationPath]. Enable this to receive alerts sent to your teams. You will always receive alerts configured to be sent directly to you.',
-      {
-        locationPath: '[Project] » Project Settings » Alerts',
-      }
+    help: t(
+      'Enable this to receive notifications for Alerts sent to your teams. You will always receive alerts configured to be sent directly to you.'
     ),
   },
   workflowNotifications: {
