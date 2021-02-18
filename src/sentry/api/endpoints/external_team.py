@@ -15,12 +15,12 @@ logger = logging.getLogger(__name__)
 
 class ExternalTeamSerializer(CamelSnakeModelSerializer):
     team_id = serializers.IntegerField(required=True)
-    external_id = serializers.CharField(required=True)
+    external_name = serializers.CharField(required=True)
     provider = serializers.ChoiceField(choices=list(EXTERNAL_PROVIDERS.values()))
 
     class Meta:
         model = ExternalTeam
-        fields = ["team_id", "external_id", "provider"]
+        fields = ["team_id", "external_name", "provider"]
 
     def validate_provider(self, provider):
         if provider not in EXTERNAL_PROVIDERS.values():
@@ -42,7 +42,7 @@ class ExternalTeamSerializer(CamelSnakeModelSerializer):
             return self.instance
         except IntegrityError:
             raise serializers.ValidationError(
-                "There already exists an external team association with this external_id and provider."
+                "There already exists an external team association with this external_name and provider."
             )
 
 
@@ -56,7 +56,7 @@ class ExternalTeamEndpoint(TeamEndpoint):
                                           team belongs to.
         :pparam string team_slug: the slug of the team to get.
         :param required string provider: enum("github", "gitlab")
-        :param required string external_id: the associated Github/Gitlab team name.
+        :param required string external_name: the associated Github/Gitlab team name.
         :auth: required
         """
         serializer = ExternalTeamSerializer(data={**request.data, "team_id": team.id})
