@@ -225,7 +225,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       ...provided,
       color: '#007eff',
       backgroundColor: '#ebf5ff',
-      borderRadius: 2,
+      borderRadius: '2px',
       border: '1px solid #c2e0ff',
       display: 'flex',
     }),
