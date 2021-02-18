@@ -186,44 +186,36 @@ class VercelIntegrationTest(IntegrationTestCase):
             "sentry_project_%s" % uuid,
             "next_public_sentry_dsn_%s" % uuid,
             "sentry_auth_token_%s" % uuid,
+            "vercel_github_commit_sha_%s" % uuid,
         ]
+        # mock get_project API call
         responses.add(
             responses.GET,
             "https://api.vercel.com/v1/projects/%s"
             % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
             json={"link": {"type": "github"}, "framework": "nextjs"},
         )
-
+        # mock create the secrets
         for i, name in enumerate(secret_names):
             responses.add(
                 responses.POST,
                 "https://api.vercel.com/v2/now/secrets",
                 json={"uid": "sec_%s" % i},
             )
-        # mock get envs for all
-        responses.add(
-            responses.GET,
-            "https://api.vercel.com/v5/projects/%s/env"
-            % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
-            json={
-                "envs": [],
-                "pagination": {"count": 0},
-            },
-        )
 
+        # mock create env vars
         for i, name in enumerate(secret_names):
             responses.add(
                 responses.POST,
-                "https://api.vercel.com/v4/projects/%s/env"
+                "https://api.vercel.com/v6/projects/%s/env"
                 % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
-                json={"value": "sec_%s" % i, "target": "production", "key": name},
+                json={
+                    "value": "sec_%s" % i,
+                    "target": ["production"],
+                    "key": name,
+                    "type": "secret",
+                },
             )
-        responses.add(
-            responses.POST,
-            "https://api.vercel.com/v4/projects/%s/env"
-            % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
-            json={"value": "", "target": "production", "key": "VERCEL_GITHUB_COMMIT_SHA"},
-        )
 
         org = self.organization
         project_id = self.project.id
@@ -268,30 +260,34 @@ class VercelIntegrationTest(IntegrationTestCase):
         assert req_params["name"] == "SENTRY_AUTH_TOKEN_%s" % uuid
         assert req_params["value"] == sentry_auth_token
 
+        req_params = json.loads(responses.calls[11].request.body)
+        assert req_params["name"] == "VERCEL_GITHUB_COMMIT_SHA_%s" % uuid
+        assert req_params["value"] == "github"
+
         req_params = json.loads(responses.calls[12].request.body)
         assert req_params["key"] == "SENTRY_ORG"
         assert req_params["value"] == "sec_0"
-        assert req_params["target"] == "production"
+        assert req_params["target"] == ["production"]
 
-        req_params = json.loads(responses.calls[14].request.body)
+        req_params = json.loads(responses.calls[13].request.body)
         assert req_params["key"] == "SENTRY_PROJECT"
         assert req_params["value"] == "sec_1"
-        assert req_params["target"] == "production"
+        assert req_params["target"] == ["production"]
 
-        req_params = json.loads(responses.calls[16].request.body)
+        req_params = json.loads(responses.calls[14].request.body)
         assert req_params["key"] == "NEXT_PUBLIC_SENTRY_DSN"
         assert req_params["value"] == "sec_2"
-        assert req_params["target"] == "production"
+        assert req_params["target"] == ["production"]
 
-        req_params = json.loads(responses.calls[18].request.body)
+        req_params = json.loads(responses.calls[15].request.body)
         assert req_params["key"] == "SENTRY_AUTH_TOKEN"
         assert req_params["value"] == "sec_3"
-        assert req_params["target"] == "production"
+        assert req_params["target"] == ["production"]
 
-        req_params = json.loads(responses.calls[20].request.body)
+        req_params = json.loads(responses.calls[16].request.body)
         assert req_params["key"] == "VERCEL_GITHUB_COMMIT_SHA"
-        assert req_params["value"] == ""
-        assert req_params["target"] == "production"
+        assert req_params["value"] == "sec_4"
+        assert req_params["target"] == ["production"]
 
     @responses.activate
     def test_update_org_config_vars_exist(self):
@@ -306,60 +302,63 @@ class VercelIntegrationTest(IntegrationTestCase):
             "sentry_project_%s" % uuid,
             "sentry_dsn_%s" % uuid,
             "sentry_auth_token_%s" % uuid,
+            "vercel_github_commit_sha_%s" % uuid,
         ]
         env_var_names = [
             "SENTRY_ORG",
             "SENTRY_PROJECT",
             "SENTRY_DSN",
             "SENTRY_AUTH_TOKEN",
+            "VERCEL_GITHUB_COMMIT_SHA",
         ]
 
+        # mock get_project API call
         responses.add(
             responses.GET,
             "https://api.vercel.com/v1/projects/%s"
             % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
             json={"link": {"type": "github"}, "framework": "gatsby"},
         )
-
+        # mock create the secrets
         for i, name in enumerate(secret_names):
             responses.add(
                 responses.POST,
                 "https://api.vercel.com/v2/now/secrets",
                 json={"uid": "sec_%s" % i},
             )
+
+        # mock try to create
+        for i, name in enumerate(env_var_names):
+            responses.add(
+                responses.POST,
+                "https://api.vercel.com/v6/projects/%s/env"
+                % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
+                json={"error": {"code": "ENV_ALREADY_EXISTS"}},
+                status=403,
+            )
+
+        # mock get env vars
         for i, env_var_name in enumerate(env_var_names):
             responses.add(
                 responses.GET,
-                "https://api.vercel.com/v5/projects/%s/env"
+                "https://api.vercel.com/v6/projects/%s/env"
                 % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
-                json={
-                    "envs": [{"value": "sec_%s" % i, "target": "production", "key": env_var_name}],
-                    "pagination": {"count": 4},
-                },
+                json={"envs": [{"id": i, "key": env_var_name}]},
             )
+
+        # mock update env vars
         for i, env_var_name in enumerate(env_var_names):
             responses.add(
-                responses.DELETE,
-                "https://api.vercel.com/v4/projects/%s/env/%s?target=%s"
-                % ("Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H", env_var_name, "production"),
+                responses.PATCH,
+                "https://api.vercel.com/v6/projects/%s/env/%s"
+                % ("Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H", i),
+                json={
+                    "value": "sec_%s" % i,
+                    "target": ["production"],
+                    "key": name,
+                    "type": "secret",
+                },
             )
-            responses.add(
-                responses.POST,
-                "https://api.vercel.com/v4/projects/%s/env"
-                % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
-                json={"value": "sec_%s" % i, "target": "production", "key": env_var_name},
-            )
-        responses.add(
-            responses.DELETE,
-            "https://api.vercel.com/v4/projects/%s/env/%s?target=%s"
-            % ("Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H", "VERCEL_GITHUB_COMMIT_SHA", ""),
-        )
-        responses.add(
-            responses.POST,
-            "https://api.vercel.com/v4/projects/%s/env"
-            % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
-            json={"value": "", "target": "production", "key": "VERCEL_GITHUB_COMMIT_SHA"},
-        )
 
         org = self.organization
         project_id = self.project.id
@@ -381,30 +380,30 @@ class VercelIntegrationTest(IntegrationTestCase):
             "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"]]
         }
 
-        req_params = json.loads(responses.calls[13].request.body)
+        req_params = json.loads(responses.calls[14].request.body)
         assert req_params["key"] == "SENTRY_ORG"
         assert req_params["value"] == "sec_0"
-        assert req_params["target"] == "production"
+        assert req_params["target"] == ["production"]
 
-        req_params = json.loads(responses.calls[16].request.body)
+        req_params = json.loads(responses.calls[17].request.body)
         assert req_params["key"] == "SENTRY_PROJECT"
         assert req_params["value"] == "sec_1"
-        assert req_params["target"] == "production"
+        assert req_params["target"] == ["production"]
 
-        req_params = json.loads(responses.calls[19].request.body)
+        req_params = json.loads(responses.calls[20].request.body)
         assert req_params["key"] == "SENTRY_DSN"
         assert req_params["value"] == "sec_2"
-        assert req_params["target"] == "production"
+        assert req_params["target"] == ["production"]
 
-        req_params = json.loads(responses.calls[22].request.body)
+        req_params = json.loads(responses.calls[23].request.body)
         assert req_params["key"] == "SENTRY_AUTH_TOKEN"
         assert req_params["value"] == "sec_3"
-        assert req_params["target"] == "production"
+        assert req_params["target"] == ["production"]
 
-        req_params = json.loads(responses.calls[24].request.body)
+        req_params = json.loads(responses.calls[26].request.body)
         assert req_params["key"] == "VERCEL_GITHUB_COMMIT_SHA"
-        assert req_params["value"] == ""
-        assert req_params["target"] == "production"
+        assert req_params["value"] == "sec_4"
+        assert req_params["target"] == ["production"]
 
     @responses.activate
     def test_upgrade_org_config_no_dsn(self):

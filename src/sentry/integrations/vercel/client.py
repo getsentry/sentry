@@ -101,6 +101,7 @@ class VercelClient(ApiClient):
             raise
 
     def update_env_variable(self, vercel_project_id, key, value, data):
+
         env_var_id = [
             env_var["id"]
             for env_var in self.get(self.GET_ENV_VAR_URL % vercel_project_id)["envs"]
