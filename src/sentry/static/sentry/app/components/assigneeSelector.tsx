@@ -12,6 +12,7 @@ import UserAvatar from 'app/components/avatar/userAvatar';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownBubble from 'app/components/dropdownBubble';
 import Highlight from 'app/components/highlight';
+import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import TextOverflow from 'app/components/textOverflow';
@@ -33,8 +34,6 @@ import {
   User,
 } from 'app/types';
 import {buildTeamId, buildUserId, valueIsEqual} from 'app/utils';
-
-import ExternalLink from './links/externalLink';
 
 type Props = {
   id: string | null;
