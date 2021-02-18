@@ -365,12 +365,12 @@ class VitalCard extends React.Component<Props, State> {
   }
 
   getSeries() {
-    const {chartData, precision, vitalDetails, vital} = this.props;
+    const {theme, chartData, precision, vitalDetails, vital} = this.props;
 
     const additionalFieldsFn = bucket => {
       if (this.showVitalColours()) {
         return {
-          itemStyle: {color: this.getVitalsColor(vital, bucket)},
+          itemStyle: {color: theme[this.getVitalsColor(vital, bucket)]},
         };
       }
       return {};
