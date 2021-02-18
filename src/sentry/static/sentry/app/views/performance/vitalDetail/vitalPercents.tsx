@@ -49,7 +49,7 @@ export default function VitalPercents(props: Props) {
             title={getVitalStateText(props.vital, pct.vitalState)}
           >
             <VitalStatus>
-              ${vitalStateIcons[pct.vitalState]}
+              {vitalStateIcons[pct.vitalState]}
               <span>
                 {props.showVitalPercentNames && t(`${pct.vitalState}`)}{' '}
                 {formatPercentage(pct.percent, 0)}

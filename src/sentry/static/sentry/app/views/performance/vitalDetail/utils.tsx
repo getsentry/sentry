@@ -40,8 +40,8 @@ export const vitalStateColors: Record<VitalState, Color> = {
 };
 
 export const vitalStateIcons: Record<VitalState, React.ReactNode> = {
-  [VitalState.POOR]: <IconFire color={vitalStateColors[VitalState.GOOD]} />,
-  [VitalState.MEH]: <IconWarning color={vitalStateColors[VitalState.GOOD]} />,
+  [VitalState.POOR]: <IconFire color={vitalStateColors[VitalState.POOR]} />,
+  [VitalState.MEH]: <IconWarning color={vitalStateColors[VitalState.MEH]} />,
   [VitalState.GOOD]: (
     <IconCheckmark color={vitalStateColors[VitalState.GOOD]} isCircled />
   ),
