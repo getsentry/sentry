@@ -3,7 +3,7 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
-import {selectByValue} from 'sentry-test/select';
+import {selectByValue} from 'sentry-test/select-new';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import ProjectContext from 'app/views/projects/projectContext';
