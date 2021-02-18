@@ -159,7 +159,7 @@ class ActivityEmail:
             )
         avatar_type = user.get_avatar_type()
         if avatar_type == "upload":
-            return '<img class="avatar" src="{}" />'.format(escape(self._get_user_avatar_url(user)))
+            return f'<img class="avatar" src="{escape(self._get_user_avatar_url(user))}" />'
         elif avatar_type == "letter_avatar":
             return get_email_avatar(user.get_display_name(), user.get_label(), 20, False)
         else:
@@ -177,7 +177,7 @@ class ActivityEmail:
 
         url = reverse("sentry-user-avatar-url", args=[avatar.ident])
         if size:
-            url = "{}?s={}".format(url, int(size))
+            url = f"{url}?s={int(size)}"
         return absolute_uri(url)
 
     def description_as_text(self, description, params):
@@ -203,7 +203,7 @@ class ActivityEmail:
 
         author = mark_safe(fmt.format(self.avatar_as_html(), escape(name)))
 
-        an_issue = '<a href="{}">an issue</a>'.format(escape(self.get_group_link()))
+        an_issue = f'<a href="{escape(self.get_group_link())}">an issue</a>'
 
         context = {"author": author, "an issue": an_issue}
         context.update(params)

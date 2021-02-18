@@ -107,7 +107,7 @@ def test_consumer_start_from_partition_start(requires_kafka):
             key=f"{message.topic()}:{message.partition()}:{synchronize_commit_group}".encode(
                 "utf8"
             ),
-            value="{}".format(message.offset() + 1).encode("utf8"),
+            value=f"{message.offset() + 1}".encode("utf8"),
         )
 
         assert producer.flush(5) == 0, "producer did not successfully flush queue"
@@ -195,7 +195,7 @@ def test_consumer_start_from_committed_offset(requires_kafka):
             key=f"{message.topic()}:{message.partition()}:{synchronize_commit_group}".encode(
                 "utf8"
             ),
-            value="{}".format(message.offset() + 1).encode("utf8"),
+            value=f"{message.offset() + 1}".encode("utf8"),
         )
 
         # Make sure that there are no messages ready to consume.
@@ -208,7 +208,7 @@ def test_consumer_start_from_committed_offset(requires_kafka):
             key=f"{message.topic()}:{message.partition()}:{synchronize_commit_group}".encode(
                 "utf8"
             ),
-            value="{}".format(message.offset() + 1).encode("utf8"),
+            value=f"{message.offset() + 1}".encode("utf8"),
         )
 
         assert producer.flush(5) == 0, "producer did not successfully flush queue"
@@ -330,7 +330,7 @@ def test_consumer_rebalance_from_partition_start(requires_kafka):
                 key=f"{expected_message.topic()}:{expected_message.partition()}:{synchronize_commit_group}".encode(
                     "utf8"
                 ),
-                value="{}".format(expected_message.offset() + 1).encode("utf8"),
+                value=f"{expected_message.offset() + 1}".encode("utf8"),
             )
 
             assert producer.flush(5) == 0, "producer did not successfully flush queue"
@@ -462,7 +462,7 @@ def test_consumer_rebalance_from_committed_offset(requires_kafka):
                 key=f"{expected_message.topic()}:{expected_message.partition()}:{synchronize_commit_group}".encode(
                     "utf8"
                 ),
-                value="{}".format(expected_message.offset() + 1).encode("utf8"),
+                value=f"{expected_message.offset() + 1}".encode("utf8"),
             )
 
             assert producer.flush(5) == 0, "producer did not successfully flush queue"
@@ -553,7 +553,7 @@ def test_consumer_rebalance_from_uncommitted_offset(requires_kafka):
             producer.produce(
                 commit_log_topic,
                 key=f"{topic}:{partition}:{synchronize_commit_group}".encode("utf8"),
-                value="{}".format(offset + 1).encode("utf8"),
+                value=f"{offset + 1}".encode("utf8"),
             )
 
         assert producer.flush(5) == 0, "producer did not successfully flush queue"
