@@ -206,9 +206,10 @@ class GroupList extends React.Component<Props, State> {
       );
     }
 
-    const statsPeriod = typeof queryParams?.groupStatsPeriod === 'string'
-      ? queryParams?.groupStatsPeriod
-      : undefined;
+    const statsPeriod =
+      typeof queryParams?.groupStatsPeriod === 'string'
+        ? queryParams?.groupStatsPeriod
+        : undefined;
 
     return (
       <React.Fragment>
