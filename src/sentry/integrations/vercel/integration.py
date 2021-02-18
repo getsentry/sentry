@@ -255,12 +255,14 @@ class VercelIntegration(IntegrationInstallation):
                 "SENTRY_PROJECT_%s" % uuid,
                 dsn_secret_name % uuid,
                 "SENTRY_AUTH_TOKEN_%s" % uuid,
+                f"VERCEL_{source_code_provider.upper()}_COMMIT_SHA_{uuid}",
             ]
             values = [
                 sentry_project.organization.slug,
                 sentry_project.slug,
                 sentry_project_dsn,
                 sentry_auth_token,
+                source_code_provider,
             ]
 
             dsn_env_name = "NEXT_PUBLIC_SENTRY_DSN" if is_next_js else "SENTRY_DSN"
@@ -277,7 +279,6 @@ class VercelIntegration(IntegrationInstallation):
             for name, val in zip(secret_names, values):
                 secrets.append(vercel_client.create_secret(vercel_project_id, name, val))
 
-            secrets.append("")
             for secret, env_var in zip(secrets, env_var_names):
                 self.create_env_var(vercel_client, vercel_project_id, env_var, secret)
 
@@ -285,7 +286,7 @@ class VercelIntegration(IntegrationInstallation):
         self.org_integration.update(config=config)
 
     def create_env_var(self, client, vercel_project_id, key, value):
-        return client.update_env_variable(vercel_project_id, key, value, retry_update=0)
+        return client.create_env_variable(vercel_project_id, key, value)
 
 
 class VercelIntegrationProvider(IntegrationProvider):

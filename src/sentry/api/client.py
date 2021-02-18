@@ -105,6 +105,9 @@ class ApiClient:
     def get(self, *args, **kwargs):
         return self.request("GET", *args, **kwargs)
 
+    def patch(self, *args, **kwargs):
+        return self.request("PATCH", *args, **kwargs)
+
     def post(self, *args, **kwargs):
         return self.request("POST", *args, **kwargs)
 
