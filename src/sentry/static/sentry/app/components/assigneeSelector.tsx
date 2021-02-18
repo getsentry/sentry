@@ -464,6 +464,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
                 ) : (
                   <Tooltip
                     isHoverable
+                    skipWrapper
                     title={
                       <TooltipWrapper>
                         <div>{t('Unassigned')}</div>
