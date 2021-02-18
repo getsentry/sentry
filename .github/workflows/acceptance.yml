@@ -55,7 +55,7 @@ jobs:
           path: .artifacts/visual-snapshots/jest
 
       - name: Create Images from HTML
-        uses: getsentry/action-html-to-image@fix/puppeteer-image-libxss
+        uses: getsentry/action-html-to-image@main
         with:
           base-path: .artifacts/visual-snapshots/jest
           css-path: src/sentry/static/sentry/dist/sentry.css
