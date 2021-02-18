@@ -88,9 +88,9 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         if self.type == "url":
             return self.test_url(data)
         elif self.type == "path":
-            return self.test_path(data)
+            return self.test_frames(data, ["filename", "abs_path"])
         elif self.type == "module":
-            return self.test_module(data)
+            return self.test_frames(data, ["module"])
         elif self.type.startswith("tags."):
             return self.test_tag(data)
         return False
@@ -102,26 +102,17 @@ class Matcher(namedtuple("Matcher", "type pattern")):
             return False
         return url and glob_match(url, self.pattern, ignorecase=True)
 
-    def test_path(self, data):
+    def test_frames(self, data, keys):
         for frame in _iter_frames(data):
-            filename = frame.get("filename") or frame.get("abs_path")
+            for key in keys:
+                value = frame.get(key)
+                if value:
+                    break
 
-            if not filename:
+            if not value:
                 continue
 
-            if glob_match(filename, self.pattern, ignorecase=True, path_normalize=True):
-                return True
-
-        return False
-
-    def test_module(self, data):
-        for frame in _iter_frames(data):
-            filename = frame.get("module")
-
-            if not filename:
-                continue
-
-            if glob_match(filename, self.pattern, ignorecase=True, path_normalize=True):
+            if glob_match(value, self.pattern, ignorecase=True, path_normalize=True):
                 return True
 
         return False
