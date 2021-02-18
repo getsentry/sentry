@@ -80,7 +80,7 @@ class Actions extends React.Component<Props, State> {
     const discoverQuery = {
       id: undefined,
       name: title || type,
-      fields: ['title', 'release', 'environment', 'user', 'timestamp'],
+      fields: ['title', 'release', 'environment', 'user.display', 'timestamp'],
       orderby: '-timestamp',
       query: `issue.id:${id}`,
       projects: [Number(project.id)],
