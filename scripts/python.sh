@@ -18,7 +18,7 @@ upgrade-pip() {
 
 install-py-dev() {
     ensure-venv
-    ensure-pinned-pip
+    upgrade-pip
     # The Python version installed via pyenv does not come with wheel pre-installed
     # Installing wheel will speed up installation of Python dependencies
     require wheel || pip install wheel
