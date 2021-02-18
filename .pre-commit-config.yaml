@@ -11,7 +11,13 @@ exclude: >
         ^src/.*/locale/|
         ^src/sentry/data/
     )
+
 repos:
+# For some tools, we install them locally (in the virtualenv).
+# This makes it easier to use them directly (as opposed to pre-commit run),
+# and it's also faster as pre-commit doesn't have to manage them.
+# The thing we lose here is autoupdate, but we have git hooks that
+# let you know when requirements-pre-commit.txt changes.
 -   repo: local
     hooks:
     # Configuration for black exists in pyproject.toml,
@@ -19,36 +25,39 @@ repos:
     - id: black
       name: black
       entry: black
-      language: python
+      language: system
       types: [python]
     # Configuration for flake8 exists in setup.cfg,
     # but we let pre-commit take care of the file filtering.
     - id: flake8
       name: flake8
       entry: flake8
-      language: python
+      language: system
       types: [python]
       log_file: '.artifacts/flake8.pycodestyle.log'
--   repo: https://github.com/asottile/pyupgrade
-    rev: v2.10.0
-    hooks:
-    -   id: pyupgrade
-        types: [python]
-        # We can't change this mock to unittest.mock until Python 3.8,
-        # refer to the comment in this file.
-        exclude: 'src/sentry/utils/compat/mock.py'
-        args: ['--py36-plus']
+    - id: pyupgrade
+      name: pyupgrade
+      entry: pyupgrade
+      args: ['--py36-plus']
+      language: system
+      types: [python]
+      # We can't change this mock to unittest.mock until Python 3.8,
+      # refer to the comment in this file.
+      exclude: 'src/sentry/utils/compat/mock.py'
+
 -   repo: https://github.com/sirosen/check-jsonschema
     rev: 0.3.0
     hooks:
-    -   id: check-github-actions
-    -   id: check-github-workflows
+    - id: check-github-actions
+    - id: check-github-workflows
+
 -   repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.7.1.1
     hooks:
-      - id: shellcheck
-        exclude: 'src/sentry/templates/sentry/reprocessing-script.sh'
-        types: [shell]
+    - id: shellcheck
+      exclude: 'src/sentry/templates/sentry/reprocessing-script.sh'
+      types: [shell]
+
 -   repo: git://github.com/pre-commit/pre-commit-hooks
     rev: v3.4.0
     hooks:
@@ -61,10 +70,3 @@ repos:
     - id: trailing-whitespace
       exclude_types: [svg]
     - id: debug-statements
-# -   repo: git://github.com/getsentry/pre-commit-hooks
-#     rev: f3237d2d65af81d435c49dee3593dc8f03d23c2d
-#     hooks:
-#     - id: prettier
-#     - id: eslint
-#       args: ['--format=checkstyle']
-#       log_file: '.artifacts/eslint.checkstyle.xml'
