@@ -73,12 +73,12 @@ class ProjectOwnership extends AsyncView<Props, State> {
           <PanelHeader>{t('Ownership Rules')}</PanelHeader>
           <PanelBody withPadding>
             <Block>
-              {t('An owner for an issue can be a team like')} <code>#infrastructure</code>
-              {t('or a member’s email such as ')} <code>tom@sentry.io</code>
-              {'. '}
+              {t('An owner for an issue can be a team such as ')}{' '}
+              <code>#infrastructure</code>
+              {t('or a member’s email like ')} <code>tom@sentry.io</code>
+              {'. Here are some examples: '}
             </Block>
             <Block>
-              {t('Examples')}
               <CodeBlock>
                 path:src/example/pipeline/* person@sentry.io #infrastructure
                 {'\n'}
