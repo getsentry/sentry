@@ -401,13 +401,15 @@ class Results extends React.Component<Props, State> {
               {incompatibleAlertNotice && <Top fullWidth>{incompatibleAlertNotice}</Top>}
               <Top fullWidth>
                 {this.renderError(error)}
-                <StyledSearchBar
-                  organization={organization}
-                  projectIds={eventView.project}
-                  query={query}
-                  fields={fields}
-                  onSearch={this.handleSearch}
-                />
+                <ActionsBar>
+                  <SearchBar
+                    organization={organization}
+                    projectIds={eventView.project}
+                    query={query}
+                    fields={fields}
+                    onSearch={this.handleSearch}
+                  />
+                </ActionsBar>
                 <ResultsChart
                   router={router}
                   organization={organization}
@@ -468,7 +470,7 @@ export const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
 
-export const StyledSearchBar = styled(SearchBar)`
+export const ActionsBar = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
