@@ -11,8 +11,9 @@ ensure-venv() {
     ./scripts/ensure-venv.sh
 }
 
-ensure-pinned-pip() {
-    pip install --no-cache-dir --upgrade "pip>=20.0.2"
+upgrade-pip() {
+    # pip versions before 20.1 do not have `pip cache` as a command which is necessary for the CI
+    pip install --no-cache-dir --upgrade "pip>=20.1"
 }
 
 install-py-dev() {

@@ -58,8 +58,10 @@ setup-pyenv:
 ensure-venv:
 	@./scripts/ensure-venv.sh
 
-ensure-pinned-pip: ensure-venv
-	bash ./scripts/python.sh ensure-pinned-pip
+ensure-pinned-pip: ensure-venv upgrade-pip
+
+upgrade-pip:
+	bash ./scripts/python.sh upgrade-pip
 
 setup-git-config:
 	@git config --local branch.autosetuprebase always

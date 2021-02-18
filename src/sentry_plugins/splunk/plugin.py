@@ -252,7 +252,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
                 # Just log and return.
                 return False
 
-            if isinstance(exc, ApiError) and exc.status_code == 403:
+            if isinstance(exc, ApiError) and exc.code == 403:
                 # 403s are not errors or actionable for us do not re-raise
                 return False
 
