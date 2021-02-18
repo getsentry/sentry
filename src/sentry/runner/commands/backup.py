@@ -8,10 +8,21 @@ from sentry.runner.decorators import configuration
 def import_(src):
     "Imports data from a Sentry export."
 
-    from django.core import serializers
+    from django.conf import settings
+    from django.core import management, serializers
+    from io import StringIO
 
     for obj in serializers.deserialize("json", src, stream=True, use_natural_keys=True):
         obj.save()
+
+    sequence_reset_sql = StringIO()
+
+    for app in settings.INSTALLED_APPS:
+        management.call_command("sqlsequencereset", app, stdout=sequence_reset_sql)
+
+    from django.db import connection
+        with connection.cursor() as cursor:
+            cursor.execute(sequence_reset_sql.getvalue())
 
 
 def sort_dependencies():
