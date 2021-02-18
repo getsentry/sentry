@@ -60,7 +60,7 @@ class ProjectOwnership extends AsyncView<Props, State> {
         />
         <TextBlock>
           {tct(
-            `Set up rules to automatically assign issues to members or teams in your organization. To learn more about Issue Owners, [link:view the docs].`,
+            `Automatically assign issues and send alerts to the right people based on issue properties. To learn more about Issue Owners, [link:view the docs].`,
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
@@ -73,24 +73,10 @@ class ProjectOwnership extends AsyncView<Props, State> {
           <PanelHeader>{t('Ownership Rules')}</PanelHeader>
           <PanelBody withPadding>
             <Block>
-              {t('Rules follow the pattern: ')}
-              <code>type:glob owner owner</code>{' '}
-              {tct(
-                'Owners can be team identifiers starting with [pound], or user emails',
-                {
-                  pound: <code>#</code>,
-                }
-              )}
+              {t('An owner for an issue can be a team like')} <code>#infrastructure</code>
+              {t('or a member’s email such as ')} <code>tom@sentry.io</code>
+              {'. '}
             </Block>
-
-            <Block>
-              {t('Globbing Syntax')}
-              <CodeBlock>
-                {`* matches everything
-? matches any single character`}
-              </CodeBlock>
-            </Block>
-
             <Block>
               {t('Examples')}
               <CodeBlock>
@@ -99,6 +85,15 @@ class ProjectOwnership extends AsyncView<Props, State> {
                 url:http://example.com/settings/* #product
                 {'\n'}
                 tags.sku_class:enterprise #enterprise
+              </CodeBlock>
+            </Block>
+            <Block>
+              {t('These rules follow the pattern: ')}
+              <code>matcher:pattern owner1 owner2 ...</code>{' '}
+              {t('and the globbing syntax works like this:')}
+              <CodeBlock>
+                {`* matches everything
+? matches any single character`}
               </CodeBlock>
             </Block>
             <OwnerInput
