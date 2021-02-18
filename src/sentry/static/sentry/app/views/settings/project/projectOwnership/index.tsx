@@ -85,12 +85,16 @@ class ProjectOwnership extends AsyncView<Props, State> {
                 url:http://example.com/settings/* #product
                 {'\n'}
                 tags.sku_class:enterprise #enterprise
+                {'\n'}
+                module:myorg.api.base tom@sentry.io
               </CodeBlock>
             </Block>
             <Block>
               {t('These rules follow the pattern: ')}
               <code>matcher:pattern owner1 owner2 ...</code>{' '}
               {t('and the globbing syntax works like this:')}
+            </Block>
+            <Block>
               <CodeBlock>
                 {`* matches everything
 ? matches any single character`}
