@@ -10,7 +10,7 @@ from sentry.snuba.sessions_v2 import (
 
 
 def _make_query(qs):
-    return QueryDefinition(QueryDict(qs), [])
+    return QueryDefinition(QueryDict(qs), {})
 
 
 def result_sorted(result):

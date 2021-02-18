@@ -16,18 +16,17 @@ For more details on the payload: http://dev.splunk.com/view/event-collector/SP-C
 
 import logging
 
-from requests.exceptions import ConnectTimeout, ReadTimeout
-
-from sentry import http, tagstore
+from sentry import tagstore
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
-
+from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ApiError
 from sentry_plugins.base import CorePluginMixin
 from sentry.plugins.bases.data_forwarding import DataForwardingPlugin
 from sentry_plugins.utils import get_secret_field_config
 from sentry_plugins.anonymizeip import anonymize_ip
 from sentry.integrations import FeatureDescription, IntegrationFeatures
 
+from .client import SplunkApiClient
 
 logger = logging.getLogger(__name__)
 
@@ -36,60 +35,6 @@ SETUP_URL = "https://github.com/getsentry/sentry/blob/master/src/sentry_plugins/
 DESCRIPTION = """
 Send Sentry events to Splunk.
 """
-
-
-class SplunkError(Exception):
-    def __init__(self, status_code, code=0, text="unknown error"):
-        self.status_code = status_code
-        self.code = code
-        self.text = text
-        super().__init__(text)
-
-    @classmethod
-    def from_response(cls, response):
-        try:
-            body = response.json()
-        except Exception:
-            return cls(
-                status_code=response.status_code, code=0, text="Unable to parse response body"
-            )
-
-        code = body.get("code")
-        if code in SplunkInvalidToken.KNOWN_CODES:
-            cls = SplunkInvalidToken
-        elif code in SplunkServerBusy.KNOWN_CODES:
-            cls = SplunkInvalidToken
-        elif code in SplunkConfigError.KNOWN_CODES:
-            cls = SplunkConfigError
-        return cls(status_code=response.status_code, code=code, text=body.get("text"))
-
-    def __repr__(self):
-        return "<{}: status_code={}, code={}, text={}>".format(
-            type(self).__name__,
-            self.status_code,
-            self.code,
-            self.text,
-        )
-
-
-class SplunkInvalidToken(SplunkError):
-    # 1 - token disabled
-    # 2 - token required (should never happen)
-    # 3 - invalid authorization (should never happen)
-    # 4 - invalid token
-    KNOWN_CODES = frozenset([1, 2, 3, 4])
-
-
-class SplunkServerBusy(SplunkError):
-    # 9 - server is busy
-    KNOWN_CODES = frozenset([9])
-
-
-class SplunkConfigError(SplunkError):
-    # 7 - incorrect index
-    # 10 - data channel missing
-    # 11 - invalid data channel
-    KNOWN_CODES = frozenset([7, 10, 11])
 
 
 class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
@@ -116,6 +61,9 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
     def get_rate_limit(self):
         # number of requests, number of seconds (window)
         return (1000, 1)
+
+    def get_client(self):
+        return SplunkApiClient(self.project_instance, self.project_token)
 
     def get_config(self, project, **kwargs):
         return [
@@ -258,19 +206,11 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
         if self.host:
             payload["host"] = self.host
 
-        session = http.build_session()
+        client = self.get_client()
+
         try:
             # https://docs.splunk.com/Documentation/Splunk/7.2.3/Data/TroubleshootHTTPEventCollector
-            resp = session.post(
-                self.project_instance,
-                json=payload,
-                # Splunk cloud instances certifcates dont play nicely
-                verify=False,
-                headers={"Authorization": f"Splunk {self.project_token}"},
-                timeout=5,
-            )
-            if resp.status_code != 200:
-                raise SplunkError.from_response(resp)
+            client.request(payload)
 
             metrics.incr(
                 "integrations.splunk.forward-event.success",
@@ -289,7 +229,6 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
                     "project_id": event.project_id,
                     "organization_id": event.project.organization_id,
                     "event_type": event.get_event_type(),
-                    "error_code": getattr(exc, "code", None),
                 },
             )
             logger.info(
@@ -302,12 +241,18 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
                 },
             )
 
-            if isinstance(exc, (ConnectTimeout, ReadTimeout)):
-                # If we get a ConnectTimeout or ReadTimeout we don't need to raise an error here.
+            if isinstance(
+                exc,
+                (
+                    ApiHostError,
+                    ApiTimeoutError,
+                ),
+            ):
+                # The above errors are already handled by the API client.
                 # Just log and return.
                 return False
 
-            if isinstance(exc, SplunkError) and exc.status_code == 403:
+            if isinstance(exc, ApiError) and exc.code == 403:
                 # 403s are not errors or actionable for us do not re-raise
                 return False
 

@@ -1,11 +1,13 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {LocationDescriptor} from 'history';
 
 import {SectionHeading} from 'app/components/charts/styles';
+import MenuItem from 'app/components/menuItem';
 import QuestionTooltip from 'app/components/questionTooltip';
 import Tag, {Background} from 'app/components/tag';
+import {IconEllipsis} from 'app/icons';
 import space from 'app/styles/space';
-import {Theme} from 'app/utils/theme';
 
 type MetaDataProps = {
   headingText: string;
@@ -16,7 +18,7 @@ type MetaDataProps = {
 
 export function MetaData({headingText, tooltipText, bodyText, subtext}: MetaDataProps) {
   return (
-    <Container>
+    <HeaderInfo>
       <StyledSectionHeading>
         {headingText}
         <QuestionTooltip
@@ -28,53 +30,82 @@ export function MetaData({headingText, tooltipText, bodyText, subtext}: MetaData
       </StyledSectionHeading>
       <SectionBody>{bodyText}</SectionBody>
       <SectionSubtext>{subtext}</SectionSubtext>
-    </Container>
+    </HeaderInfo>
   );
 }
 
-const Container = styled('div')`
-  min-width: 150px;
+const HeaderInfo = styled('div')`
+  height: 78px;
+
+  &:last-child {
+    grid-column: 1/4;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    &:last-child {
+      justify-self: flex-end;
+      min-width: 325px;
+      grid-column: unset;
+    }
+  }
 `;
 
 const StyledSectionHeading = styled(SectionHeading)`
-  color: ${p => p.theme.textColor};
+  margin: 0;
 `;
 
-const SectionBody = styled('p')`
-  color: ${p => p.theme.textColor};
+const SectionBody = styled('div')`
   font-size: ${p => p.theme.headerFontSize};
-  margin-bottom: ${space(1)};
+  margin: ${space(0.5)} 0;
 `;
 
-const SectionSubtext = styled('div')`
+export const SectionSubtext = styled('div')`
   color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-export const NodesContainer = styled('div')`
-  position: absolute;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  height: 33px;
-  gap: ${space(1)};
-
-  &:before {
-    content: '';
-    border-bottom: 1px solid ${p => p.theme.gray500};
-    height: 33px;
-    position: absolute;
-    width: 100%;
-    transform: translateY(-50%);
-    z-index: ${p => p.theme.zIndex.initial};
-  }
-`;
-
-export const EventNode = styled(Tag)<{type: keyof Theme['tag']}>`
-  z-index: ${p => p.theme.zIndex.initial};
-
+export const EventNode = styled(Tag)<{pad?: 'left' | 'right'}>`
   & ${/* sc-selector */ Background} {
     border: 1px solid ${p => p.theme.gray500};
-    height: 24px;
-    border-radius: 24px;
   }
 `;
+
+export const TraceConnector = styled('div')`
+  width: ${space(1)};
+  border-top: 1px solid ${p => p.theme.gray500};
+`;
+
+export const QuickTraceContainer = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+export const StyledIconEllipsis = styled(IconEllipsis)`
+  vertical-align: middle;
+  margin-bottom: 2px;
+`;
+
+const StyledMenuItem = styled(MenuItem)<{first?: boolean}>`
+  border-top: ${p => (!p.first ? `1px solid ${p.theme.innerBorder}` : null)};
+  width: 220px;
+`;
+
+const MenuItemContent = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+`;
+
+type DropdownItemProps = {
+  children: React.ReactNode;
+  to?: string | LocationDescriptor;
+  first?: boolean;
+};
+
+export function DropdownItem({children, first, to}: DropdownItemProps) {
+  return (
+    <StyledMenuItem to={to} first={first}>
+      <MenuItemContent>{children}</MenuItemContent>
+    </StyledMenuItem>
+  );
+}
