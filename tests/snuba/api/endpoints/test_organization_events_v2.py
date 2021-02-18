@@ -2520,7 +2520,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
     def test_count_at_least_query(self):
         self.store_event(self.transaction_data, self.project.id)
 
-        response = self.do_request({"field": f"count_at_least(measurements.fcp, {0})"})
+        response = self.do_request({"field": "count_at_least(measurements.fcp, 0)"})
         assert response.status_code == 200
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["count_at_least_measurements_fcp_0"] == 1

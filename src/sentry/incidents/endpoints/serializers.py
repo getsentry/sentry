@@ -345,7 +345,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                     "Invalid Metric: We do not currently support this field."
                 )
         except InvalidSearchQuery as e:
-            raise serializers.ValidationError(f"Invalid Metric: {force_text(e)}")
+            raise serializers.ValidationError(f"Invalid Metric: {e}")
         return translate_aggregate_field(aggregate)
 
     def validate_dataset(self, dataset):
@@ -405,7 +405,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             if any(cond[0] == "project_id" for cond in snuba_filter.conditions):
                 raise serializers.ValidationError({"query": "Project is an invalid search term"})
         except (InvalidSearchQuery, ValueError) as e:
-            raise serializers.ValidationError(f"Invalid Query or Metric: {force_text(e)}")
+            raise serializers.ValidationError(f"Invalid Query or Metric: {e}")
         else:
             if not snuba_filter.aggregations:
                 raise serializers.ValidationError(
