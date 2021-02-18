@@ -1,5 +1,3 @@
-import $ from 'jquery';
-
 import * as ImportedClient from 'app/api';
 
 const RealClient: typeof ImportedClient = jest.requireActual('app/api');
@@ -150,9 +148,7 @@ class Client {
       if (response.statusCode !== 200) {
         response.callCount++;
 
-        const deferred = $.Deferred();
-
-        const errorResponse: JQueryXHR = Object.assign(
+        const errorResponse = Object.assign(
           {
             status: response.statusCode,
             responseText: JSON.stringify(body),
@@ -164,16 +160,16 @@ class Client {
             then: () => {},
             error: () => {},
           },
-          deferred,
           new XMLHttpRequest()
         );
+
         this.handleRequestError(
           {
             id: '1234',
             path: url,
             requestOptions: options,
           },
-          errorResponse,
+          errorResponse as any,
           'error',
           'error'
         );

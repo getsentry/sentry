@@ -17,7 +17,6 @@ import moment from 'moment';
 import PropTypes from 'prop-types';
 import Reflux from 'reflux';
 
-import {initApiClient} from 'app/api';
 import {DISABLE_RR_WEB, NODE_ENV, SPA_DSN} from 'app/constants';
 import Main from 'app/main';
 import plugins from 'app/plugins';
@@ -107,8 +106,6 @@ Sentry.setTag('rrweb.active', hasReplays ? 'yes' : 'no');
 // Used for operational metrics to determine that the application js
 // bundle was loaded by browser.
 metric.mark({name: 'sentry-app-init'});
-
-initApiClient();
 
 const ROOT_ELEMENT = 'blk_router';
 
