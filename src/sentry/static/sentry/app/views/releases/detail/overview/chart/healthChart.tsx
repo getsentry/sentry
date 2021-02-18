@@ -27,6 +27,7 @@ import {
 } from '../../../utils/sessionTerm';
 
 import {YAxis} from './releaseChartControls';
+import {isOtherSeries, sortSessionSeries} from './utils';
 
 type Props = {
   reloading: boolean;
@@ -196,16 +197,47 @@ class HealthChart extends React.Component<Props> {
     }
   }
 
+  getLegendSeries() {
+    const {timeseriesData} = this.props;
+    return timeseriesData
+      .filter(d => !isOtherSeries(d))
+      .sort(sortSessionSeries)
+      .map(d => d.seriesName);
+  }
+
+  getLegendSelectedSeries() {
+    const {location, yAxis} = this.props;
+
+    const selection = getSeriesSelection(location) ?? {};
+    // otherReleases toggles all "other" series (other healthy, other crashed, etc.) at once
+    const otherReleasesVisible = !(selection[sessionTerm.otherReleases] === false);
+
+    if (yAxis === YAxis.SESSIONS || yAxis === YAxis.USERS) {
+      selection[sessionTerm.otherErrored] = otherReleasesVisible;
+      selection[sessionTerm.otherCrashed] = otherReleasesVisible;
+      selection[sessionTerm.otherAbnormal] = otherReleasesVisible;
+      selection[sessionTerm.otherHealthy] =
+        !selection?.hasOwnProperty(sessionTerm.healthy) && otherReleasesVisible;
+    }
+
+    if (yAxis === YAxis.CRASH_FREE) {
+      selection[sessionTerm.otherCrashFreeSessions] = otherReleasesVisible;
+      selection[sessionTerm.otherCrashFreeUsers] = otherReleasesVisible;
+    }
+
+    return selection;
+  }
+
   render() {
-    const {timeseriesData, zoomRenderProps, location, title, help} = this.props;
+    const {timeseriesData, zoomRenderProps, title, help} = this.props;
 
     const Chart = this.getChart();
 
     const legend = {
       right: 10,
       top: 0,
-      data: timeseriesData.map(d => d.seriesName).reverse(),
-      selected: getSeriesSelection(location),
+      data: this.getLegendSeries(),
+      selected: this.getLegendSelectedSeries(),
       tooltip: {
         show: true,
         // TODO(ts) tooltip.formatter has incorrect types in echarts 4

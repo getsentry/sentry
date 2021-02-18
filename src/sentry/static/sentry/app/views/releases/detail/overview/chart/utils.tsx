@@ -1,3 +1,5 @@
+import color from 'color';
+
 import {DateTimeObject, getDiffInMinutes, TWO_WEEKS} from 'app/components/charts/utils';
 import CHART_PALETTE from 'app/constants/chartPalette';
 import {t} from 'app/locale';
@@ -115,25 +117,12 @@ export function getReleaseEventView(
 
 export function initSessionsBreakdownChartData(): ChartData {
   return {
-    crashed: {
-      seriesName: sessionTerm.crashed,
+    healthy: {
+      seriesName: sessionTerm.healthy,
       data: [],
-      color: CHART_PALETTE[3][2],
+      color: CHART_PALETTE[3][3],
       areaStyle: {
-        color: CHART_PALETTE[3][2],
-        opacity: 1,
-      },
-      lineStyle: {
-        opacity: 0,
-        width: 0.4,
-      },
-    },
-    abnormal: {
-      seriesName: sessionTerm.abnormal,
-      data: [],
-      color: CHART_PALETTE[3][1],
-      areaStyle: {
-        color: CHART_PALETTE[3][1],
+        color: CHART_PALETTE[3][3],
         opacity: 1,
       },
       lineStyle: {
@@ -154,12 +143,25 @@ export function initSessionsBreakdownChartData(): ChartData {
         width: 0.4,
       },
     },
-    healthy: {
-      seriesName: sessionTerm.healthy,
+    abnormal: {
+      seriesName: sessionTerm.abnormal,
       data: [],
-      color: CHART_PALETTE[3][3],
+      color: CHART_PALETTE[3][1],
       areaStyle: {
-        color: CHART_PALETTE[3][3],
+        color: CHART_PALETTE[3][1],
+        opacity: 1,
+      },
+      lineStyle: {
+        opacity: 0,
+        width: 0.4,
+      },
+    },
+    crashed: {
+      seriesName: sessionTerm.crashed,
+      data: [],
+      color: CHART_PALETTE[3][2],
+      areaStyle: {
+        color: CHART_PALETTE[3][2],
         opacity: 1,
       },
       lineStyle: {
@@ -172,29 +174,14 @@ export function initSessionsBreakdownChartData(): ChartData {
 
 export function initOtherSessionsBreakdownChartData(): ChartData {
   return {
-    crashed: {
-      seriesName: t('Other Crashed'),
+    healthy: {
+      seriesName: sessionTerm.otherHealthy,
       data: [],
       stack: 'otherArea',
       z: 0,
-      color: CHART_PALETTE[3][2],
+      color: CHART_PALETTE[3][3],
       areaStyle: {
-        color: CHART_PALETTE[3][2],
-        opacity: 0.3,
-      },
-      lineStyle: {
-        opacity: 0,
-        width: 0.4,
-      },
-    },
-    abnormal: {
-      seriesName: t('Other Abnormal'),
-      data: [],
-      stack: 'otherArea',
-      z: 0,
-      color: CHART_PALETTE[3][1],
-      areaStyle: {
-        color: CHART_PALETTE[3][1],
+        color: CHART_PALETTE[3][3],
         opacity: 0.3,
       },
       lineStyle: {
@@ -203,7 +190,7 @@ export function initOtherSessionsBreakdownChartData(): ChartData {
       },
     },
     errored: {
-      seriesName: t('Other Errored'),
+      seriesName: sessionTerm.otherErrored,
       data: [],
       stack: 'otherArea',
       z: 0,
@@ -217,14 +204,14 @@ export function initOtherSessionsBreakdownChartData(): ChartData {
         width: 0.4,
       },
     },
-    healthy: {
-      seriesName: t('Other Healthy'),
+    abnormal: {
+      seriesName: sessionTerm.otherAbnormal,
       data: [],
       stack: 'otherArea',
       z: 0,
-      color: CHART_PALETTE[3][3],
+      color: CHART_PALETTE[3][1],
       areaStyle: {
-        color: CHART_PALETTE[3][3],
+        color: CHART_PALETTE[3][1],
         opacity: 0.3,
       },
       lineStyle: {
@@ -232,6 +219,22 @@ export function initOtherSessionsBreakdownChartData(): ChartData {
         width: 0.4,
       },
     },
+    crashed: {
+      seriesName: sessionTerm.otherCrashed,
+      data: [],
+      stack: 'otherArea',
+      z: 0,
+      color: CHART_PALETTE[3][2],
+      areaStyle: {
+        color: CHART_PALETTE[3][2],
+        opacity: 0.3,
+      },
+      lineStyle: {
+        opacity: 0,
+        width: 0.4,
+      },
+    },
+    ...initOtherReleasesChartData(),
   };
 }
 
@@ -240,6 +243,7 @@ export function initCrashFreeChartData(): ChartData {
     users: {
       seriesName: sessionTerm['crash-free-users'],
       data: [],
+      color: CHART_PALETTE[1][0],
       lineStyle: {
         color: CHART_PALETTE[1][0],
       },
@@ -247,6 +251,7 @@ export function initCrashFreeChartData(): ChartData {
     sessions: {
       seriesName: sessionTerm['crash-free-sessions'],
       data: [],
+      color: CHART_PALETTE[1][1],
       lineStyle: {
         color: CHART_PALETTE[1][1],
       },
@@ -256,19 +261,22 @@ export function initCrashFreeChartData(): ChartData {
 
 export function initOtherCrashFreeChartData(): ChartData {
   return {
+    ...initOtherReleasesChartData(),
     users: {
-      seriesName: t('Other Crash Free Users'),
+      seriesName: sessionTerm.otherCrashFreeUsers,
       data: [],
       z: 0,
+      color: CHART_PALETTE[1][0],
       lineStyle: {
         color: CHART_PALETTE[1][0],
         opacity: 0.1,
       },
     },
     sessions: {
-      seriesName: t('Other Crash Free Sessions'),
+      seriesName: sessionTerm.otherCrashFreeSessions,
       data: [],
       z: 0,
+      color: CHART_PALETTE[1][1],
       lineStyle: {
         color: CHART_PALETTE[1][1],
         opacity: 0.3,
@@ -280,12 +288,9 @@ export function initOtherCrashFreeChartData(): ChartData {
 export function initSessionDurationChartData(): ChartData {
   return {
     duration: {
-      seriesName: t('Session Duration'),
+      seriesName: sessionTerm.duration,
       data: [],
-      areaStyle: {
-        color: CHART_PALETTE[0][0],
-        opacity: 1,
-      },
+      color: CHART_PALETTE[0][0],
       lineStyle: {
         opacity: 0,
         width: 0.4,
@@ -297,17 +302,58 @@ export function initSessionDurationChartData(): ChartData {
 export function initOtherSessionDurationChartData(): ChartData {
   return {
     duration: {
-      seriesName: t('Other Session Duration'),
+      seriesName: sessionTerm.otherReleases,
       data: [],
       z: 0,
-      areaStyle: {
-        color: CHART_PALETTE[0][0],
-        opacity: 0.3,
-      },
+      color: color(CHART_PALETTE[0][0]).alpha(0.4).string(),
       lineStyle: {
         opacity: 0,
         width: 0.4,
       },
     },
   };
+}
+
+// this series will never be filled with data - we use it to act as an alias in legend (we don't display other healthy, other crashes, etc. there)
+// if you click on it, we toggle all "other" series (other healthy, other crashed, ...)
+function initOtherReleasesChartData(): ChartData {
+  return {
+    otherReleases: {
+      seriesName: sessionTerm.otherReleases,
+      data: [],
+      color: color(CHART_PALETTE[0][0]).alpha(0.4).string(),
+    },
+  };
+}
+
+export function isOtherSeries(series: Series) {
+  return [
+    sessionTerm.otherCrashed,
+    sessionTerm.otherAbnormal,
+    sessionTerm.otherErrored,
+    sessionTerm.otherHealthy,
+    sessionTerm.otherCrashFreeUsers,
+    sessionTerm.otherCrashFreeSessions,
+  ].includes(series.seriesName);
+}
+
+const seriesOrder = [
+  sessionTerm.healthy,
+  sessionTerm.errored,
+  sessionTerm.crashed,
+  sessionTerm.abnormal,
+  sessionTerm.otherHealthy,
+  sessionTerm.otherErrored,
+  sessionTerm.otherCrashed,
+  sessionTerm.otherAbnormal,
+  sessionTerm.duration,
+  sessionTerm['crash-free-sessions'],
+  sessionTerm['crash-free-users'],
+  sessionTerm.otherCrashFreeSessions,
+  sessionTerm.otherCrashFreeUsers,
+  sessionTerm.otherReleases,
+];
+
+export function sortSessionSeries(a: Series, b: Series) {
+  return seriesOrder.indexOf(a.seriesName) - seriesOrder.indexOf(b.seriesName);
 }
