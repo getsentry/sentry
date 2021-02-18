@@ -45,14 +45,6 @@ export class Request {
 }
 
 /**
- * Setup the CSRF + other client early initialization.
- *
- * TODO(epurkhiser): This can be removed now that we are using fetch, there is
- * no initialization that needs to happen
- */
-export function initApiClient() {}
-
-/**
  * Check if the requested method does not require CSRF tokens
  */
 function csrfSafeMethod(method?: string) {
