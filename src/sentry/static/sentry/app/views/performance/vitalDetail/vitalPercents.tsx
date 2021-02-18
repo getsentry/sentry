@@ -6,7 +6,6 @@ import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {WebVital} from 'app/utils/discover/fields';
 import {formatPercentage} from 'app/utils/formatters';
-import theme from 'app/utils/theme';
 
 import {VitalState, vitalStateIcons, webVitalMeh, webVitalPoor} from './utils';
 
@@ -21,7 +20,7 @@ type Props = {
   showVitalPercentNames?: boolean;
 };
 
-function vitalStateText(vital, vitalState) {
+function getVitalStateText(vital, vitalState) {
   switch (vitalState) {
     case VitalState.POOR:
       return Array.isArray(vital)
@@ -43,14 +42,17 @@ function vitalStateText(vital, vitalState) {
 export default function VitalPercents(props: Props) {
   return (
     <VitalSet>
-      {props.percents.map(p => {
+      {props.percents.map(pct => {
         return (
-          <Tooltip key={p.vitalState} title={vitalStateText(props.vital, p.vitalState)}>
+          <Tooltip
+            key={pct.vitalState}
+            title={getVitalStateText(props.vital, pct.vitalState)}
+          >
             <VitalStatus>
-              ${vitalStateIcons[p.vitalState]}
+              ${vitalStateIcons[pct.vitalState]}
               <span>
-                {props.showVitalPercentNames && t(`${p.vitalState}`)}{' '}
-                {formatPercentage(p.percent, 0)}
+                {props.showVitalPercentNames && t(`${pct.vitalState}`)}{' '}
+                {formatPercentage(pct.percent, 0)}
               </span>
             </VitalStatus>
           </Tooltip>
@@ -70,5 +72,5 @@ const VitalStatus = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  font-size: ${theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
