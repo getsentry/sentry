@@ -53,7 +53,15 @@ class TraceViewHeader extends React.Component<PropType, State> {
     minimapWidth: undefined,
   };
 
+  componentDidMount() {
+    this.fetchMinimapWidth();
+  }
+
   componentDidUpdate() {
+    this.fetchMinimapWidth();
+  }
+
+  fetchMinimapWidth() {
     const {minimapInteractiveRef} = this.props;
     if (minimapInteractiveRef.current) {
       const minimapWidth = minimapInteractiveRef.current.getBoundingClientRect().width;
