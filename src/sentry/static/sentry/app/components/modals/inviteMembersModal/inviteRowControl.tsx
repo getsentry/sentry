@@ -94,62 +94,56 @@ class InviteRowControl extends React.Component<Props, State> {
 
     return (
       <div className={className}>
-        <div>
-          <SelectControl
-            data-test-id="select-emails"
-            disabled={disabled}
-            placeholder={t('Enter one or more emails')}
-            inputValue={this.state.inputValue}
-            value={emails}
-            components={{
-              MultiValue: (props: MultiValueProps<SelectOption>) =>
-                ValueComponent(props, inviteStatus),
-            }}
-            options={mapToOptions(emails)}
-            onBlur={(e: React.ChangeEvent<HTMLInputElement>) =>
-              e.target.value &&
-              onChangeEmails([
-                ...mapToOptions(emails),
-                {label: e.target.value, value: e.target.value},
-              ])
-            }
-            styles={getStyles(theme, inviteStatus)}
-            onInputChange={this.handleInputChange}
-            onKeyDown={this.handleKeyDown}
-            onBlurResetsInput={false}
-            onCloseResetsInput={false}
-            onChange={onChangeEmails}
-            multiple
-            creatable
-            clearable
-            menuIsOpen={false}
-          />
-        </div>
-        <div>
-          <RoleSelectControl
-            data-test-id="select-role"
-            disabled={disabled}
-            value={role}
-            roles={roleOptions}
-            disableUnallowed={roleDisabledUnallowed}
-            onChange={onChangeRole}
-          />
-        </div>
-        <div>
-          <SelectControl
-            data-test-id="select-teams"
-            disabled={disabled}
-            placeholder={t('Add to teams\u2026')}
-            value={teams}
-            options={teamOptions.map(({slug}) => ({
-              value: slug,
-              label: `#${slug}`,
-            }))}
-            onChange={onChangeTeams}
-            multiple
-            clearable
-          />
-        </div>
+        <SelectControl
+          data-test-id="select-emails"
+          disabled={disabled}
+          placeholder={t('Enter one or more emails')}
+          inputValue={this.state.inputValue}
+          value={emails}
+          components={{
+            MultiValue: (props: MultiValueProps<SelectOption>) =>
+              ValueComponent(props, inviteStatus),
+          }}
+          options={mapToOptions(emails)}
+          onBlur={(e: React.ChangeEvent<HTMLInputElement>) =>
+            e.target.value &&
+            onChangeEmails([
+              ...mapToOptions(emails),
+              {label: e.target.value, value: e.target.value},
+            ])
+          }
+          styles={getStyles(theme, inviteStatus)}
+          onInputChange={this.handleInputChange}
+          onKeyDown={this.handleKeyDown}
+          onBlurResetsInput={false}
+          onCloseResetsInput={false}
+          onChange={onChangeEmails}
+          multiple
+          creatable
+          clearable
+          menuIsOpen={false}
+        />
+        <RoleSelectControl
+          data-test-id="select-role"
+          disabled={disabled}
+          value={role}
+          roles={roleOptions}
+          disableUnallowed={roleDisabledUnallowed}
+          onChange={onChangeRole}
+        />
+        <SelectControl
+          data-test-id="select-teams"
+          disabled={disabled}
+          placeholder={t('Add to teams\u2026')}
+          value={teams}
+          options={teamOptions.map(({slug}) => ({
+            value: slug,
+            label: `#${slug}`,
+          }))}
+          onChange={onChangeTeams}
+          multiple
+          clearable
+        />
         <Button
           borderless
           icon={<IconClose />}
