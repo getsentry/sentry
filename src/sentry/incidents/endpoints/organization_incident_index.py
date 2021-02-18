@@ -64,7 +64,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
             if query_detailed:
                 return serialize(results, request.user, DetailedIncidentSerializer())
             else:
-                return (serialize(results, request.user),)
+                return serialize(results, request.user)
 
         return self.paginate(
             request,
