@@ -17,10 +17,15 @@ const FILE_EXTENSION_TO_PLATFORM = {
   m: 'apple',
   mm: 'apple',
   M: 'apple',
-  cs: 'csharp',
   ex: 'elixir',
   exs: 'elixir',
+  cs: 'csharp',
   fs: 'fsharp',
+  kt: 'kotlin',
+  dart: 'dart',
+  sc: 'scala',
+  scala: 'scala',
+  clj: 'clojure',
 };
 
 /**
