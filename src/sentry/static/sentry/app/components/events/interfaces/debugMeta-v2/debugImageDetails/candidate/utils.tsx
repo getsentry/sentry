@@ -44,7 +44,7 @@ export function getFeatureLabel(type: keyof CandidateFeatures) {
     default: {
       Sentry.withScope(scope => {
         scope.setLevel(Sentry.Severity.Warning);
-        Sentry.captureException(new Error("Unknown Image's candidate feature"));
+        Sentry.captureException(new Error('Unknown image candidate feature'));
       });
       return {}; // this shall not happen
     }
@@ -102,8 +102,8 @@ export function getStatusTooltipDescription(candidate: ImageCandidate) {
         ),
         description: (
           <React.Fragment>
-            <div>{location}</div>
-            {details && <div>{details}</div>}
+            <p>{location}</p>
+            {details && <p>{details}</p>}
           </React.Fragment>
         ),
         disabled: !location || source === INTERNAL_SOURCE,
@@ -132,7 +132,7 @@ export function getStatusTooltipDescription(candidate: ImageCandidate) {
     default: {
       Sentry.withScope(scope => {
         scope.setLevel(Sentry.Severity.Warning);
-        Sentry.captureException(new Error("Unknown Image's candidate download status"));
+        Sentry.captureException(new Error('Unknown image candidate download status'));
       });
       return {}; // This shall not happen
     }
