@@ -1,4 +1,11 @@
 import click
+
+from django.conf import settings
+from django.core import management, serializers
+from django.db import connection
+
+from io import StringIO
+
 from sentry.runner.decorators import configuration
 
 
@@ -8,10 +15,6 @@ from sentry.runner.decorators import configuration
 def import_(src):
     "Imports data from a Sentry export."
 
-    from django.conf import settings
-    from django.core import management, serializers
-    from io import StringIO
-
     for obj in serializers.deserialize("json", src, stream=True, use_natural_keys=True):
         obj.save()
 
@@ -19,8 +22,6 @@ def import_(src):
 
     for app in settings.INSTALLED_APPS:
         management.call_command("sqlsequencereset", app, stdout=sequence_reset_sql)
-
-    from django.db import connection
 
     with connection.cursor() as cursor:
         cursor.execute(sequence_reset_sql.getvalue())
@@ -122,8 +123,6 @@ def export(dest, silent, indent, exclude):
         exclude = ()
     else:
         exclude = exclude.lower().split(",")
-
-    from django.core import serializers
 
     def yield_objects():
         # Collate the objects to be serialized.
