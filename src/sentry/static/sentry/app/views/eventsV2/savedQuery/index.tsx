@@ -10,8 +10,10 @@ import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import DropdownControl from 'app/components/dropdownControl';
+import DropdownLink from 'app/components/dropdownLink';
 import Hovercard from 'app/components/hovercard';
-import {IconDelete} from 'app/icons';
+import MenuItem from 'app/components/menuItem';
+import {IconEllipsis} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project, SavedQuery} from 'app/types';
@@ -280,7 +282,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     return this.renderButtonSaveAs(disabled);
   }
 
-  renderButtonDelete(disabled: boolean) {
+  renderDeleteItem() {
     const {isNewQuery} = this.state;
 
     if (isNewQuery) {
@@ -288,12 +290,12 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     }
 
     return (
-      <Button
+      <MenuItem
         data-test-id="discover2-savedquery-button-delete"
         onClick={this.handleDeleteQuery}
-        disabled={disabled}
-        icon={<IconDelete />}
-      />
+      >
+        {t('Delete Query')}
+      </MenuItem>
     );
   }
 
@@ -350,7 +352,14 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
         <Feature organization={organization} features={['incidents']}>
           {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
         </Feature>
-        {renderQueryButton(disabled => this.renderButtonDelete(disabled))}
+        <DropdownLink
+          caret={false}
+          anchorRight={window.innerWidth > 992}
+          title={<Button icon={<IconEllipsis />} label={t('More')} />}
+        >
+          {renderQueryButton(() => this.renderDeleteItem())}
+          <MenuItem>{t('Test')}</MenuItem>
+        </DropdownLink>
       </ResponsiveButtonBar>
     );
   }
