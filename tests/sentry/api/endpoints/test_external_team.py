@@ -17,7 +17,7 @@ class ExternalTeamTest(APITestCase):
         )
 
     def test_basic_post(self):
-        data = {"externalId": "@getsentry/ecosystem", "provider": "github"}
+        data = {"externalName": "@getsentry/ecosystem", "provider": "github"}
         response = self.client.post(self.url, data)
         assert response.status_code == 201, response.content
         assert response.data == {
@@ -27,17 +27,17 @@ class ExternalTeamTest(APITestCase):
         }
 
     def test_missing_provider(self):
-        response = self.client.post(self.url, {"externalId": "@getsentry/ecosystem"})
+        response = self.client.post(self.url, {"externalName": "@getsentry/ecosystem"})
         assert response.status_code == 400
         assert response.data == {"provider": ["This field is required."]}
 
-    def test_missing_externalId(self):
+    def test_missing_externalName(self):
         response = self.client.post(self.url, {"provider": "gitlab"})
         assert response.status_code == 400
-        assert response.data == {"externalId": ["This field is required."]}
+        assert response.data == {"externalName": ["This field is required."]}
 
     def test_invalid_provider(self):
-        data = {"externalId": "@getsentry/ecosystem", "provider": "git"}
+        data = {"externalName": "@getsentry/ecosystem", "provider": "git"}
         response = self.client.post(self.url, data)
         assert response.status_code == 400
         assert response.data == {"provider": ['"git" is not a valid choice.']}
@@ -46,10 +46,10 @@ class ExternalTeamTest(APITestCase):
         self.external_team = ExternalTeam.objects.create(
             team_id=str(self.team.id),
             provider=ExternalTeam.get_provider_enum("github"),
-            external_id="@getsentry/ecosystem",
+            external_name="@getsentry/ecosystem",
         )
         data = {
-            "externalId": self.external_team.external_id,
+            "externalName": self.external_team.external_name,
             "provider": ExternalTeam.get_provider_string(self.external_team.provider),
         }
         response = self.client.post(self.url, data)
