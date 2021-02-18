@@ -59,11 +59,12 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
             incidents = incidents.filter(alert_rule__snuba_query__dataset=Dataset.Events.value)
 
         query_detailed = request.GET.get("detailed")
+
         def serialize_results(results):
             if query_detailed:
                 return serialize(results, request.user, DetailedIncidentSerializer())
             else:
-                return serialize(results, request.user),
+                return (serialize(results, request.user),)
 
         return self.paginate(
             request,
