@@ -2,6 +2,8 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import HighlightTopRight from 'sentry-images/pattern/highlight-top-right.svg';
+
 import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
 import {Client} from 'app/api';
 import SidebarPanel from 'app/components/sidebar/sidebarPanel';
@@ -142,6 +144,7 @@ class OnboardingWizardSidebar extends React.Component<Props> {
         hidePanel={onClose}
         orientation={orientation}
       >
+        <TopRight src={HighlightTopRight} />
         <ProgressHeader allTasks={all} completedTasks={complete} />
         <TaskList>
           <AnimatePresence initial={false}>{items}</AnimatePresence>
@@ -188,7 +191,7 @@ const TaskList = styled('div')`
   display: grid;
   grid-auto-flow: row;
   grid-gap: ${space(1)};
-  margin-bottom: ${space(2)};
+  margin: ${space(1)} ${space(4)} ${space(4)} ${space(4)};
 `;
 
 const CompleteList = styled('div')`
@@ -209,6 +212,12 @@ const CompleteList = styled('div')`
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
   }
+`;
+
+const TopRight = styled('img')`
+  position: absolute;
+  top: 0;
+  right: 0;
 `;
 
 export default withApi(withOrganization(OnboardingWizardSidebar));
