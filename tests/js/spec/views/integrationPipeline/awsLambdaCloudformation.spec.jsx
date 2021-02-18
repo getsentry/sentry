@@ -27,6 +27,8 @@ describe('AwsLambdaCloudformation', () => {
     );
   });
   it('submit arn', async () => {
+    wrapper.find('button[name="showInputs"]').simulate('click');
+
     wrapper
       .find('input[name="accountNumber"]')
       .simulate('change', {target: {value: '599817902985'}});
