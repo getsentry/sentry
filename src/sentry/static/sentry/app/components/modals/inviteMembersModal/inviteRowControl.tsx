@@ -113,50 +113,7 @@ class InviteRowControl extends React.Component<Props, State> {
                 {label: e.target.value, value: e.target.value},
               ])
             }
-            styles={{
-              multiValue: (
-                provided: React.CSSProperties,
-                {data}: MultiValueProps<SelectOption>
-              ) => {
-                const status = inviteStatus[data.value];
-                return {
-                  ...provided,
-                  ...(status && status.error
-                    ? {
-                        color: theme.red300,
-                        border: `1px solid ${theme.red300}`,
-                        backgroundColor: theme.red100,
-                      }
-                    : {}),
-                };
-              },
-              multiValueLabel: (
-                provided: React.CSSProperties,
-                {data}: MultiValueProps<SelectOption>
-              ) => {
-                const status = inviteStatus[data.value];
-                return {
-                  ...provided,
-                  pointerEvents: 'all',
-                  ...(status && status.error ? {color: theme.red300} : {}),
-                };
-              },
-              multiValueRemove: (
-                provided: React.CSSProperties,
-                {data}: MultiValueProps<SelectOption>
-              ) => {
-                const status = inviteStatus[data.value];
-                return {
-                  ...provided,
-                  ...(status && status.error
-                    ? {
-                        borderLeft: `1px solid ${theme.red300}`,
-                        ':hover': {backgroundColor: theme.red100, color: theme.red300},
-                      }
-                    : {}),
-                };
-              },
-            }}
+            styles={getStyles(theme, inviteStatus)}
             onInputChange={this.handleInputChange}
             onKeyDown={this.handleKeyDown}
             onBlurResetsInput={false}
@@ -203,6 +160,57 @@ class InviteRowControl extends React.Component<Props, State> {
       </div>
     );
   }
+}
+
+/**
+ * The email select control has custom selected item states as items
+ * show their delivery status after the form is submitted.
+ */
+function getStyles(theme: Theme, inviteStatus: Props['inviteStatus']) {
+  return {
+    multiValue: (
+      provided: React.CSSProperties,
+      {data}: MultiValueProps<SelectOption>
+    ) => {
+      const status = inviteStatus[data.value];
+      return {
+        ...provided,
+        ...(status && status.error
+          ? {
+              color: theme.red300,
+              border: `1px solid ${theme.red300}`,
+              backgroundColor: theme.red100,
+            }
+          : {}),
+      };
+    },
+    multiValueLabel: (
+      provided: React.CSSProperties,
+      {data}: MultiValueProps<SelectOption>
+    ) => {
+      const status = inviteStatus[data.value];
+      return {
+        ...provided,
+        pointerEvents: 'all',
+        ...(status && status.error ? {color: theme.red300} : {}),
+      };
+    },
+    multiValueRemove: (
+      provided: React.CSSProperties,
+      {data}: MultiValueProps<SelectOption>
+    ) => {
+      const status = inviteStatus[data.value];
+      return {
+        ...provided,
+        ...(status && status.error
+          ? {
+              borderLeft: `1px solid ${theme.red300}`,
+              ':hover': {backgroundColor: theme.red100, color: theme.red300},
+            }
+          : {}),
+      };
+    },
+  };
 }
 
 export default withTheme(InviteRowControl);
