@@ -80,14 +80,6 @@ class OrganizationMemberWithProjectsSerializer(OrganizationMemberSerializer):
 
     def get_attrs(self, item_list, user):
         attrs = super().get_attrs(item_list, user)
-
-        external_users = list(ExternalUser.objects.filter(organizationmember__in=item_list))
-
-        external_users_map = defaultdict(list)
-        for external_user in external_users:
-            serialized = serialize(external_user, user)
-            external_users_map[external_user.organizationmember_id].append(serialized)
-
         # Note: For this to be efficient, call
         # `.prefetch_related(
         #       'teams',
@@ -111,12 +103,33 @@ class OrganizationMemberWithProjectsSerializer(OrganizationMemberSerializer):
             projects = list(projects)
             projects.sort()
             attrs[org_member]["projects"] = projects
+        return attrs
+
+    def serialize(self, obj, attrs, user):
+        d = super().serialize(obj, attrs, user)
+        d["projects"] = attrs.get("projects", [])
+        return d
+
+
+class OrganizationMemberWithExternalUsersSerializer(OrganizationMemberSerializer):
+    def get_attrs(self, item_list, user):
+        attrs = super().get_attrs(item_list, user)
+
+        external_users = list(ExternalUser.objects.filter(organizationmember__in=item_list))
+
+        external_users_map = defaultdict(list)
+        for external_user in external_users:
+            serialized = serialize(external_user, user)
+            external_users_map[external_user.organizationmember_id].append(serialized)
+
+        for org_member in item_list:
             attrs[org_member]["externalUsers"] = external_users_map[org_member.id]
 
         return attrs
 
     def serialize(self, obj, attrs, user):
         d = super().serialize(obj, attrs, user)
-        d["projects"] = attrs.get("projects", [])
+
         d["externalUsers"] = attrs.get("externalUsers", [])
+
         return d

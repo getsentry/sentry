@@ -224,7 +224,7 @@ class ExternalUserSerializer(Serializer):
         provider = ExternalUser.get_provider_string(obj.provider)
         return {
             "id": str(obj.id),
-            "organizationMemberId": str(obj.organizationmember_id),
+            "memberId": str(obj.organizationmember_id),
             "provider": provider,
             "externalName": obj.external_name,
         }

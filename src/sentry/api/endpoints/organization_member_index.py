@@ -9,6 +9,7 @@ from sentry import roles, features
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models import OrganizationMemberWithExternalUsersSerializer
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.validators import AllowedEmailField
 from sentry.models import (
@@ -162,7 +163,9 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         return self.paginate(
             request=request,
             queryset=queryset,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(
+                x, request.user, serializer=OrganizationMemberWithExternalUsersSerializer()
+            ),
             paginator_cls=OffsetPaginator,
         )
 
