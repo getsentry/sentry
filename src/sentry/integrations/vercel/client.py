@@ -84,7 +84,7 @@ class VercelClient(ApiClient):
     def get_env_vars(self, vercel_project_id):
         return self.get(self.GET_ENV_VAR_URL % vercel_project_id)
 
-    def create_secret(self, vercel_project_id, name, value):
+    def create_secret(self, name, value):
         data = {"name": name, "value": value}
         response = self.post(self.SECRETS_URL, data=data)["uid"]
         return response
