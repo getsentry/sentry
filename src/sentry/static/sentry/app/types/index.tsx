@@ -1,6 +1,6 @@
 import u2f from 'u2f-api';
 
-import {Props as AlertProps} from 'app/components/alert';
+import Alert from 'app/components/alert';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
 import {API_ACCESS_SCOPES} from 'app/constants';
 import {PlatformKey} from 'app/data/platformCategories';
@@ -480,6 +480,7 @@ export type SavedSearch = {
   type: SavedSearchType;
   name: string;
   query: string;
+  sort: string;
   isGlobal: boolean;
   isPinned: boolean;
   isOrgCustom: boolean;
@@ -1111,7 +1112,7 @@ type IntegrationDialog = {
 };
 
 type IntegrationAspects = {
-  alerts?: Array<AlertProps & {text: string}>;
+  alerts?: Array<React.ComponentProps<typeof Alert> & {text: string}>;
   disable_dialog?: IntegrationDialog;
   removal_dialog?: IntegrationDialog;
   externalInstall?: {
@@ -1583,7 +1584,6 @@ export type OnboardingTaskDescriptor = {
   task: OnboardingTaskKey;
   title: string;
   description: string;
-  detailedDescription?: string;
   /**
    * Can this task be skipped?
    */

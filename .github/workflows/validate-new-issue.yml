@@ -12,7 +12,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          echo "Validating issue #${{ github.event.issue.number }}."
+          issue_number=${{ github.event.issue.number }}
+          echo "Validating issue #${issue_number}."
 
           # Trust users who belong to the getsentry org.
           if gh api "https://api.github.com/orgs/getsentry/members/${{ github.actor }}" >/dev/null 2>&1; then
@@ -55,6 +56,9 @@ jobs:
                   REASON="${REASON_EXACT_MATCH}"
                   break
                 else
+                  gh api "/repos/:owner/:repo/issues/${issue_number}/labels" \
+                    -X POST \
+                    --input <(echo '{"labels":["Status: Unrouted"]}')
                   exit 0
                 fi
               else
