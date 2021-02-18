@@ -68,7 +68,7 @@ class RelatedIssues extends React.Component<Props> {
             query={`start=${start}&end=${end}&groupStatsPeriod=auto`}
             canSelectGroups={false}
             renderEmptyMessage={this.renderEmptyMessage}
-            withChart={true}
+            withChart
             withPagination={false}
             useFilteredStats={false}
           />
