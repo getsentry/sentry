@@ -54,11 +54,11 @@ jobs:
           name: jest-html
           path: .artifacts/visual-snapshots/jest
 
-      # - name: Create Images from HTML
-      #   uses: getsentry/action-html-to-image@main
-      #   with:
-      #     base-path: .artifacts/visual-snapshots/jest
-      #     css-path: src/sentry/static/sentry/dist/sentry.css
+      - name: Create Images from HTML
+        uses: getsentry/action-html-to-image@main
+        with:
+          base-path: .artifacts/visual-snapshots/jest
+          css-path: src/sentry/static/sentry/dist/sentry.css
 
       - name: Save snapshots
         if: always()
