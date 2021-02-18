@@ -11,7 +11,7 @@ export const fields: {[key: string]: Field} = {
     label: t('Send Me Alerts'),
     // TODO(billy): Make this a real link
     help: t(
-      'Enable this to receive notifications from Alerts sent to your teams. You will always receive alerts configured to be sent directly to you.'
+      'Enable this to receive notifications for Alerts sent to your teams. You will always receive alerts configured to be sent directly to you.'
     ),
   },
   workflowNotifications: {
