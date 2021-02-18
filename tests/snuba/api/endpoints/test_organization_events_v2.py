@@ -402,16 +402,59 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.store_event(data, project_id=project.id)
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
+
+        # should only show 1 event of type default
         query = {"field": ["project", "issue"], "query": "has:issue", "statsPeriod": "14d"}
         response = self.do_request(query, features=features)
-
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["issue"] == event.group.qualified_short_id
 
+        # should only show 1 event of type transaction since they dont have issues
         query = {"field": ["project", "issue"], "query": "!has:issue", "statsPeriod": "14d"}
         response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["issue"] == "unknown"
 
+        # should only show 1 event of type default
+        query = {
+            "field": ["project", "issue"],
+            "query": "event.type:default has:issue",
+            "statsPeriod": "14d",
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["issue"] == event.group.qualified_short_id
+
+        # should show no results because no the default event has an issue
+        query = {
+            "field": ["project", "issue"],
+            "query": "event.type:default !has:issue",
+            "statsPeriod": "14d",
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 0
+
+        # should show no results because no transactions have issues
+        query = {
+            "field": ["project", "issue"],
+            "query": "event.type:transaction has:issue",
+            "statsPeriod": "14d",
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 0
+
+        # should only show 1 event of type transaction since they dont have issues
+        query = {
+            "field": ["project", "issue"],
+            "query": "event.type:transaction !has:issue",
+            "statsPeriod": "14d",
+        }
+        response = self.do_request(query, features=features)
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["issue"] == "unknown"
