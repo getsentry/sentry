@@ -86,7 +86,7 @@ class ProjectOwnership extends AsyncView<Props, State> {
                 {'\n'}
                 tags.sku_class:enterprise #enterprise
                 {'\n'}
-                module:myorg.api.base tom@sentry.io
+                module:example.api.base tom@sentry.io
               </CodeBlock>
             </Block>
             <Block>
