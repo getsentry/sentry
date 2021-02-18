@@ -58,8 +58,12 @@ setup-pyenv:
 ensure-venv:
 	@./scripts/ensure-venv.sh
 
-ensure-pinned-pip: ensure-venv
-	$(PIP) install --no-cache-dir --upgrade "pip>=20.0.2"
+ensure-pinned-pip: ensure-venv upgrade-pip
+
+upgrade-pip:
+	# pip versions before 20.1 do not have `pip cache` as a command which is necessary for the CI
+	# XXX: Temp change to force cache invalidation
+	$(PIP) install --no-cache-dir --upgrade "pip==20.3.3"
 
 setup-git-config:
 	@git config --local branch.autosetuprebase always
