@@ -69,7 +69,7 @@ class TimelineIncident extends React.Component<IncidentProps, IncidentState> {
     const {api, orgId, incident} = this.props;
 
     try {
-      const activities = await fetchIncidentActivities(api, orgId, incident.id);
+      const activities = await fetchIncidentActivities(api, orgId, incident.identifier);
       this.setState({activities, loading: false});
     } catch (err) {
       this.setState({loading: false, error: !!err});

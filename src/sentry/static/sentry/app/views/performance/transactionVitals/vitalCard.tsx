@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import throttle from 'lodash/throttle';
@@ -27,7 +28,7 @@ import {
   getDuration,
 } from 'app/utils/formatters';
 import getDynamicText from 'app/utils/getDynamicText';
-import theme from 'app/utils/theme';
+import {Theme} from 'app/utils/theme';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {VitalData} from 'app/views/performance/vitalDetail/vitalsCardsDiscoverQuery';
 
@@ -46,6 +47,7 @@ import {HistogramData, Rectangle, Vital} from './types';
 import {asPixelRect, findNearestBucketIndex, getRefRect, mapPoint} from './utils';
 
 type Props = {
+  theme: Theme;
   location: Location;
   organization: Organization;
   isLoading: boolean;
@@ -94,7 +96,7 @@ class VitalCard extends React.Component<Props, State> {
     refPixelRect: null,
   };
 
-  static getDerivedStateFromProps(nextProps: Props, prevState: State) {
+  static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State) {
     const {isLoading, error, chartData} = nextProps;
 
     if (isLoading || error === null) {
@@ -250,6 +252,7 @@ class VitalCard extends React.Component<Props, State> {
 
   renderHistogram() {
     const {
+      theme,
       location,
       isLoading,
       chartData,
@@ -399,7 +402,7 @@ class VitalCard extends React.Component<Props, State> {
   }
 
   getBaselineSeries() {
-    const {chartData} = this.props;
+    const {theme, chartData} = this.props;
     const summary = this.summary;
     if (summary === null || this.state.refPixelRect === null) {
       return null;
@@ -472,7 +475,7 @@ class VitalCard extends React.Component<Props, State> {
   }
 
   getFailureSeries() {
-    const {chartData, vitalDetails: vital} = this.props;
+    const {theme, chartData, vitalDetails: vital} = this.props;
     const failureRate = this.failureRate;
     const {failureThreshold, type} = vital;
     if (this.state.refDataRect === null || this.state.refPixelRect === null) {
@@ -648,4 +651,4 @@ const StyledTag = styled(Tag)`
   }
 `;
 
-export default VitalCard;
+export default withTheme(VitalCard);
