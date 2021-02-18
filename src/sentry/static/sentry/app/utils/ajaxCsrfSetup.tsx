@@ -6,6 +6,9 @@ function csrfSafeMethod(method?: string) {
   return /^(GET|HEAD|OPTIONS|TRACE)$/.test(method ?? '');
 }
 
+/**
+ * TODO(epurkhiser): This can be removed now that we are using fetch for API requests
+ */
 export default function ajaxCsrfSetup(
   this: JQueryAjaxSettings,
   xhr: JQueryXHR,
