@@ -12,17 +12,19 @@ class OrganizationMemberListTest(APITestCase):
 
         self.org = self.create_organization(owner=self.owner_user)
         self.org.member_set.create(user=self.user_2)
-        self.team = self.create_team(organization=self.org, members=[self.owner_user, self.user_2])
+        self.team_1 = self.create_team(
+            organization=self.org, members=[self.owner_user, self.user_2]
+        )
         self.team_2 = self.create_team(organization=self.org, members=[self.user_2])
         self.team_3 = self.create_team(organization=self.org, members=[self.user_3])
-        self.project = self.create_project(teams=[self.team])
+        self.project_1 = self.create_project(teams=[self.team_1])
         self.project_2 = self.create_project(teams=[self.team_2])
         self.project_3 = self.create_project(teams=[self.team_3])
-
+        self.external_user = self.create_external_user(self.user_2, self.org)
         self.login_as(user=self.user_2)
 
     def test_simple(self):
-        projects_ids = [self.project.id, self.project_2.id]
+        projects_ids = [self.project_1.id, self.project_2.id]
         response = self.get_valid_response(self.org.slug, project=projects_ids)
         expected = serialize(
             list(
@@ -43,3 +45,15 @@ class OrganizationMemberListTest(APITestCase):
             OrganizationMemberWithProjectsSerializer(project_ids=projects_ids),
         )
         assert response.data == expected
+
+    def test_user_has_external_user_association(self):
+        response = self.get_valid_response(self.org.slug, project=[self.project_2.id])
+        assert len(response.data) == 1
+        assert response.data[0]["externalUsers"] == [serialize(self.external_user, self.user_2)]
+
+    def test_user_has_external_user_associations_across_multiple_orgs(self):
+        self.org_2 = self.create_organization(owner=self.user_2)
+        self.external_user_2 = self.create_external_user(self.user_2, self.org_2)
+        response = self.get_valid_response(self.org.slug, project=[self.project_2.id])
+        assert len(response.data) == 1
+        assert response.data[0]["externalUsers"] == [serialize(self.external_user, self.user_2)]

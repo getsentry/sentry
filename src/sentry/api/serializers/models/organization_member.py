@@ -2,7 +2,7 @@ from collections import defaultdict
 
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
+from sentry.models import OrganizationMember, OrganizationMemberTeam, Team, TeamStatus, ExternalUser
 
 
 @register(OrganizationMember)
@@ -80,6 +80,14 @@ class OrganizationMemberWithProjectsSerializer(OrganizationMemberSerializer):
 
     def get_attrs(self, item_list, user):
         attrs = super().get_attrs(item_list, user)
+
+        external_users = list(ExternalUser.objects.filter(organizationmember__in=item_list))
+
+        external_users_map = defaultdict(list)
+        for external_user in external_users:
+            serialized = serialize(external_user, user)
+            external_users_map[external_user.organizationmember_id].append(serialized)
+
         # Note: For this to be efficient, call
         # `.prefetch_related(
         #       'teams',
@@ -103,10 +111,12 @@ class OrganizationMemberWithProjectsSerializer(OrganizationMemberSerializer):
             projects = list(projects)
             projects.sort()
             attrs[org_member]["projects"] = projects
+            attrs[org_member]["externalUsers"] = external_users_map[org_member.id]
 
         return attrs
 
     def serialize(self, obj, attrs, user):
         d = super().serialize(obj, attrs, user)
         d["projects"] = attrs.get("projects", [])
+        d["externalUsers"] = attrs.get("externalUsers", [])
         return d
