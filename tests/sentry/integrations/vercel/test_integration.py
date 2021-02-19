@@ -207,15 +207,15 @@ class VercelIntegrationTest(IntegrationTestCase):
             json={"link": {"type": "github"}, "framework": "nextjs"},
         )
 
-        # mock create the secret for the auth token
-        responses.add(
-            responses.POST,
-            "https://api.vercel.com/v2/now/secrets",
-            json={"uid": "sec_0"},
-        )
-
         # mock create the env vars
         for env_var, details in env_var_map.items():
+            if details["type"] == "secret":
+                # mock create the secret for the auth token
+                responses.add(
+                    responses.POST,
+                    "https://api.vercel.com/v2/now/secrets",
+                    json={"uid": "sec_0"},
+                )
             responses.add(
                 responses.POST,
                 "https://api.vercel.com/v6/projects/%s/env"
@@ -335,11 +335,6 @@ class VercelIntegrationTest(IntegrationTestCase):
                 "https://api.vercel.com/v6/projects/%s/env"
                 % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
                 json={"envs": [{"id": count, "key": env_var}]},
-            )
-            print("update url2")
-            print(
-                "https://api.vercel.com/v6/projects/%s/env/%s"
-                % ("Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H", count)
             )
             # mock update env var
             responses.add(

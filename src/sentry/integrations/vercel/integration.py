@@ -288,17 +288,18 @@ class VercelIntegration(IntegrationInstallation):
             raise
 
     def update_env_variable(self, client, vercel_project_id, data):
+        key = data["key"]
         try:
             envs = client.get_env_vars(vercel_project_id)["envs"]
-        except Exception:
-            raise
+        except ApiError:
+            message = f"Failed to get ID for environment variable {key} in Vercel project {vercel_project_id}."
+            raise IntegrationError(message)
 
         env_var_ids = [env_var["id"] for env_var in envs if env_var["key"] == data["key"]]
         if env_var_ids:
             try:
                 return client.update_env_variable(vercel_project_id, env_var_ids[0], data)
             except ApiError:
-                key = data["key"]
                 message = f"Could not update environment variable {key} in Vercel project {vercel_project_id}."
                 raise IntegrationError(message)
 
