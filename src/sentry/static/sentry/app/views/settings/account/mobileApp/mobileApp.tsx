@@ -24,7 +24,7 @@ import TextBlock from 'app/views/settings/components/text/textBlock';
 
 import TextCopyInput from '../../components/forms/textCopyInput';
 
-const MOBILE_APP_SCOPES = [
+export const MOBILE_APP_SCOPES = [
   'project:releases',
   'project:read',
   'project:write',
@@ -113,18 +113,18 @@ class MobileApp extends AsyncView<Props, State> {
             {t('Get our app in one of the app stores')}:
             {/* TODO(mobile-app): add production links */}
             <div>
-              <a href="https://apps.apple.com">
+              <ExternalLink href="https://apps.apple.com">
                 <img
                   alt={t('Download on the App Store')}
                   src={appStore}
                   height="40px"
                   width="120px"
                 />
-              </a>
+              </ExternalLink>
 
-              <a href="https://play.google.com/store/apps/">
+              <ExternalLink href="https://play.google.com/store/apps/">
                 <img alt={t('Get it on Google Play')} src={playStore} height="60px" />
-              </a>
+              </ExternalLink>
             </div>
           </ListItem>
           <ListItem>
