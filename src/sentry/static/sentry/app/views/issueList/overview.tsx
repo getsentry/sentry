@@ -314,7 +314,20 @@ class IssueListOverview extends React.Component<Props, State> {
       return savedSearch.sort;
     }
 
-    return (location.query.sort as string) || DEFAULT_SORT;
+    if (location.query.sort) {
+      return location.query.sort as string;
+    }
+
+    const {organization} = this.props;
+    if (
+      organization.features.includes('inbox') &&
+      organization.features.includes('inbox-tab-default') &&
+      isForReviewQuery(this.getQuery())
+    ) {
+      return IssueSortOptions.INBOX;
+    }
+
+    return DEFAULT_SORT;
   }
 
   getGroupStatsPeriod(): string {
