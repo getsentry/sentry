@@ -32,6 +32,8 @@ from .endpoints.event_grouping_info import EventGroupingInfoEndpoint
 from .endpoints.event_owners import EventOwnersEndpoint
 from .endpoints.external_team import ExternalTeamEndpoint
 from .endpoints.external_team_details import ExternalTeamDetailsEndpoint
+from .endpoints.external_user import ExternalUserEndpoint
+from .endpoints.external_user_details import ExternalUserDetailsEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
 from .endpoints.group_attachments import GroupAttachmentsEndpoint
 from .endpoints.group_current_release import GroupCurrentReleaseEndpoint
@@ -955,6 +957,16 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/members/$",
                     OrganizationMemberIndexEndpoint.as_view(),
                     name="sentry-api-0-organization-member-index",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/members/externaluser/$",
+                    ExternalUserEndpoint.as_view(),
+                    name="sentry-api-0-organization-external-user",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/members/externaluser/(?P<external_user_id>[^\/]+)/$",
+                    ExternalUserDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-external-user-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/integration-requests/$",
