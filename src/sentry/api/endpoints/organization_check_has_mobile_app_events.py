@@ -42,7 +42,7 @@ class OrganizationCheckHasMobileAppEvents(OrganizationEventsEndpointBase):
         with self.handle_query_errors():
             result = discover.query(
                 query=query,
-                selected_columns=["browser.name", "project", "id", "client_os_name"],
+                selected_columns=["browser.name", "project", "id", "client_os.name"],
                 limit=1,
                 params={
                     "start": timezone.now() - timedelta(days=1),
