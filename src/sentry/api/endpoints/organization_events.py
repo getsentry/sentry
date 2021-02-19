@@ -95,6 +95,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
             return Response([])
 
         def data_fn(offset, limit):
+            print("OrganizationEventsV2Endpoint", request.GET)
             return discover.query(
                 selected_columns=request.GET.getlist("field")[:],
                 query=request.GET.get("query"),

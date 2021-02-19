@@ -8,7 +8,7 @@ import ProjectsStore from 'app/stores/projectsStore';
 
 jest.mock('app/actionCreators/modal');
 
-function generateWrapper(inputProps) {
+function generateWrapperAndSetMocks(inputProps, mobileEventResp, promptResp) {
   const projects = inputProps?.projects ?? [TestStubs.Project({platform: 'javascript'})];
 
   jest.spyOn(ProjectsStore, 'getState').mockImplementation(() => ({
@@ -16,8 +16,19 @@ function generateWrapper(inputProps) {
     loading: false,
   }));
 
+  const organization = TestStubs.Organization();
+
+  MockApiClient.addMockResponse({
+    url: `/prompts-activity/`,
+    body: promptResp || {},
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/check-has-mobile-app-events/`,
+    body: mobileEventResp,
+  });
+
   const props = {
-    organization: TestStubs.Organization(),
+    organization,
     event: TestStubs.Event({
       entries: [{type: 'request', data: {headers: [['User-Agent', 'okhttp/123']]}}],
     }),
@@ -27,24 +38,31 @@ function generateWrapper(inputProps) {
 }
 
 describe('SuggestProjectCTA', function () {
-  it('shows prompt and open modal', async () => {
-    MockApiClient.addMockResponse({
-      url: `/prompts-activity/`,
-      body: {},
-    });
-    const wrapper = generateWrapper();
+  it('user agent match and and open modal', async () => {
+    const wrapper = generateWrapperAndSetMocks();
     await tick();
     wrapper.update();
     expect(wrapper.find('Alert')).toHaveLength(1);
     wrapper.find('a').simulate('click');
     expect(openModal).toHaveBeenCalled();
   });
+
+  it('mobile event match', async () => {
+    const wrapper = generateWrapperAndSetMocks(
+      {
+        event: TestStubs.Event({
+          entries: [{type: 'request', data: {headers: [['User-Agent', 'sentry/123']]}}],
+        }),
+      },
+      {browserName: 'okhttp'}
+    );
+    await tick();
+    wrapper.update();
+    expect(wrapper.find('Alert')).toHaveLength(1);
+  });
+
   it('user agent does not match', async () => {
-    MockApiClient.addMockResponse({
-      url: `/prompts-activity/`,
-      body: {},
-    });
-    const wrapper = generateWrapper({
+    const wrapper = generateWrapperAndSetMocks({
       event: TestStubs.Event({
         entries: [{type: 'request', data: {headers: [['User-Agent', 'sentry/123']]}}],
       }),
@@ -54,12 +72,8 @@ describe('SuggestProjectCTA', function () {
     expect(wrapper.find('Alert')).toHaveLength(0);
   });
   it('has mobile project', async () => {
-    MockApiClient.addMockResponse({
-      url: `/prompts-activity/`,
-      body: {},
-    });
     const projects = [TestStubs.Project({platform: 'android'})];
-    const wrapper = generateWrapper({
+    const wrapper = generateWrapperAndSetMocks({
       projects,
     });
     await tick();
@@ -67,11 +81,9 @@ describe('SuggestProjectCTA', function () {
     expect(wrapper.find('Alert')).toHaveLength(0);
   });
   it('prompt is dismissed', async () => {
-    MockApiClient.addMockResponse({
-      url: `/prompts-activity/`,
-      body: {data: {dismissed_ts: 1234}},
+    const wrapper = generateWrapperAndSetMocks(undefined, undefined, {
+      data: {dismissed_ts: 1234},
     });
-    const wrapper = generateWrapper();
     await tick();
     wrapper.update();
     expect(wrapper.find('Alert')).toHaveLength(0);
