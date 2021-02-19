@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import ExternalUser, OrganizationMember
+from sentry.models import ExternalUser
 
 from .external_user import ExternalUserSerializer
 
@@ -14,12 +14,9 @@ logger = logging.getLogger(__name__)
 
 
 class ExternalUserDetailsEndpoint(OrganizationEndpoint):
-    def convert_args(self, request, organization_slug, user_id, external_user_id, *args, **kwargs):
+    def convert_args(self, request, organization_slug, external_user_id, *args, **kwargs):
         args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
         try:
-            kwargs["organization_member"] = OrganizationMember.objects.get(
-                id=user_id, organization=kwargs["organization"]
-            )
             kwargs["external_user"] = ExternalUser.objects.get(
                 id=external_user_id,
             )
@@ -28,7 +25,7 @@ class ExternalUserDetailsEndpoint(OrganizationEndpoint):
 
         return (args, kwargs)
 
-    def put(self, request, organization, organization_member, external_user):
+    def put(self, request, organization, external_user):
         """
         Update an External User
         `````````````
@@ -44,7 +41,8 @@ class ExternalUserDetailsEndpoint(OrganizationEndpoint):
 
         serializer = ExternalUserSerializer(
             instance=external_user,
-            data={**request.data, "organizationmember_id": organization_member.id},
+            data={**request.data},
+            context={"organization": organization},
             partial=True,
         )
         if serializer.is_valid():
@@ -56,7 +54,7 @@ class ExternalUserDetailsEndpoint(OrganizationEndpoint):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request, organization, organization_member, external_user):
+    def delete(self, request, organization, external_user):
         """
         Delete an External Team
         """

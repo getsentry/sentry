@@ -959,6 +959,16 @@ urlpatterns = [
                     name="sentry-api-0-organization-member-index",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/members/externaluser/$",
+                    ExternalUserEndpoint.as_view(),
+                    name="sentry-api-0-organization-external-user",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/members/externaluser/(?P<external_user_id>[^\/]+)/$",
+                    ExternalUserDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-external-user-details",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/integration-requests/$",
                     OrganizationIntegrationRequestEndpoint.as_view(),
                     name="sentry-api-0-organization-integration-request",
@@ -1166,16 +1176,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/users/(?P<user_id>[^\/]+)/$",
                     OrganizationUserDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-user-details",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/users/(?P<user_id>[^\/]+)/externaluser/$",
-                    ExternalUserEndpoint.as_view(),
-                    name="sentry-api-0-external-user",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/users/(?P<user_id>[^\/]+)/externaluser/(?P<external_user_id>[^\/]+)/$",
-                    ExternalUserDetailsEndpoint.as_view(),
-                    name="sentry-api-0-external-user-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/sentry-app-installations/$",

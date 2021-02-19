@@ -1,60 +1,66 @@
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
-from sentry.models import OrganizationMember, ExternalUser
+from sentry.models import OrganizationMember
 
 
 class ExternalUserTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
-        self.org = self.create_organization(owner=self.user, name="baz")
-        self.organization_member = OrganizationMember.objects.get(user=self.user)
         self.url = reverse(
-            "sentry-api-0-external-user",
-            args=[self.org.slug, self.organization_member.id],
+            "sentry-api-0-organization-external-user",
+            args=[self.organization.slug],
         )
+        self.organization_member = OrganizationMember.objects.get(user=self.user)
+        self.data = {
+            "externalName": "@NisanthanNanthakumar",
+            "provider": "github",
+            "memberId": self.organization_member.id,
+        }
 
     def test_basic_post(self):
-        data = {"externalName": "@NisanthanNanthakumar", "provider": "github"}
-        response = self.client.post(self.url, data)
+        response = self.client.post(self.url, self.data)
         assert response.status_code == 201, response.content
         assert response.data == {
+            **self.data,
             "id": str(response.data["id"]),
-            "teamId": str(self.team.id),
-            **data,
+            "memberId": str(self.organization_member.id),
         }
 
     def test_missing_provider(self):
-        response = self.client.post(self.url, {"externalName": "@NisanthanNanthakumar"})
+        self.data.pop("provider")
+        response = self.client.post(self.url, self.data)
         assert response.status_code == 400
         assert response.data == {"provider": ["This field is required."]}
 
     def test_missing_externalName(self):
-        response = self.client.post(self.url, {"provider": "gitlab"})
+        self.data.pop("externalName")
+        response = self.client.post(self.url, self.data)
         assert response.status_code == 400
         assert response.data == {"externalName": ["This field is required."]}
 
-    def test_invalid_provider(self):
-        data = {"externalName": "@NisanthanNanthakumar", "provider": "git"}
-        response = self.client.post(self.url, data)
+    def test_missing_memberId(self):
+        self.data.pop("memberId")
+        response = self.client.post(self.url, self.data)
         assert response.status_code == 400
-        assert response.data == {"provider": ['"git" is not a valid choice.']}
+        assert response.data == {"memberId": ["This field is required."]}
+
+    def test_invalid_provider(self):
+        self.data.update(provider="unknown")
+        response = self.client.post(self.url, self.data)
+        assert response.status_code == 400
+        assert response.data == {"provider": ['"unknown" is not a valid choice.']}
 
     def test_create_existing_association(self):
-        self.external_user = ExternalUser.objects.create(
-            organizationmember_id=str(self.organization_member.id),
-            provider=ExternalUser.get_provider_enum("github"),
-            external_name="@NisanthanNanthakumar",
+        self.external_user = self.create_external_user(
+            self.user, self.organization, external_name=self.data["externalName"]
         )
-        data = {
-            "externalName": self.external_user.external_name,
-            "provider": ExternalUser.get_provider_string(self.external_user.provider),
-        }
-        response = self.client.post(self.url, data)
+
+        response = self.client.post(self.url, self.data)
         assert response.status_code == 200
         assert response.data == {
+            **self.data,
             "id": str(self.external_user.id),
-            "organizationMemberId": str(self.external_user.organizationmember_id),
-            **data,
+            "memberId": str(self.external_user.organizationmember_id),
         }

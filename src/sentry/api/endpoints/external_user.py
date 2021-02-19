@@ -1,7 +1,6 @@
 import logging
 
 from django.db import IntegrityError
-from django.http import Http404
 
 from rest_framework import serializers, status
 from rest_framework.response import Response
@@ -16,13 +15,13 @@ logger = logging.getLogger(__name__)
 
 
 class ExternalUserSerializer(CamelSnakeModelSerializer):
-    organizationmember_id = serializers.IntegerField(required=True)
+    member_id = serializers.IntegerField(required=True)
     external_name = serializers.CharField(required=True)
     provider = serializers.ChoiceField(choices=list(EXTERNAL_PROVIDERS.values()))
 
     class Meta:
         model = ExternalUser
-        fields = ["organizationmember_id", "external_name", "provider"]
+        fields = ["member_id", "external_name", "provider"]
 
     def validate_provider(self, provider):
         if provider not in EXTERNAL_PROVIDERS.values():
@@ -31,8 +30,19 @@ class ExternalUserSerializer(CamelSnakeModelSerializer):
             )
         return ExternalUser.get_provider_enum(provider)
 
+    def validate_member_id(self, member_id):
+        try:
+            return OrganizationMember.objects.get(
+                id=member_id, organization=self.context["organization"]
+            )
+        except OrganizationMember.DoesNotExists:
+            raise serializers.ValidationError("This member does not exist.")
+
     def create(self, validated_data):
-        return ExternalUser.objects.get_or_create(**validated_data)
+        organizationmember = validated_data.pop("member_id", None)
+        return ExternalUser.objects.get_or_create(
+            organizationmember=organizationmember, **validated_data
+        )
 
     def update(self, instance, validated_data):
         if "id" in validated_data:
@@ -49,31 +59,20 @@ class ExternalUserSerializer(CamelSnakeModelSerializer):
 
 
 class ExternalUserEndpoint(OrganizationEndpoint):
-    def convert_args(self, request, organization_slug, user_id, *args, **kwargs):
-        args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
-        try:
-            kwargs["organization_member"] = OrganizationMember.objects.get(
-                id=user_id, organization=kwargs["organization"]
-            )
-        except OrganizationMember.DoesNotExist:
-            raise Http404
-
-        return (args, kwargs)
-
-    def post(self, request, organization, organization_member):
+    def post(self, request, organization):
         """
         Create an External User
         `````````````
 
         :pparam string organization_slug: the slug of the organization the
                                           user belongs to.
-        :pparam string user_id: the organization_member id.
         :param required string provider: enum("github", "gitlab")
         :param required string external_name: the associated Github/Gitlab user name.
+        :param required int member_id: the organization_member id.
         :auth: required
         """
         serializer = ExternalUserSerializer(
-            data={**request.data, "organizationmember_id": organization_member.id}
+            context={"organization": organization}, data={**request.data}
         )
         if serializer.is_valid():
             external_user, created = serializer.save()
