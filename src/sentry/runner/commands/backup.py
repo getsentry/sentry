@@ -1,6 +1,6 @@
 import click
 
-from django.conf import settings
+from django.apps import apps
 from django.core import management, serializers
 from django.db import connection
 
@@ -20,8 +20,8 @@ def import_(src):
 
     sequence_reset_sql = StringIO()
 
-    for app in settings.INSTALLED_APPS:
-        management.call_command("sqlsequencereset", app, stdout=sequence_reset_sql)
+    for app in apps.get_app_configs():
+        management.call_command("sqlsequencereset", app.label, stdout=sequence_reset_sql)
 
     with connection.cursor() as cursor:
         cursor.execute(sequence_reset_sql.getvalue())
