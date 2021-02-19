@@ -70,7 +70,7 @@ describe('groupEventDetails', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/check-has-mobile-app-events/`,
+      url: `/organizations/${org.slug}/has-mobile-app-events/`,
       body: null,
     });
 

@@ -23,7 +23,7 @@ function generateWrapperAndSetMocks(inputProps, mobileEventResp, promptResp) {
     body: promptResp || {},
   });
   MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/check-has-mobile-app-events/`,
+    url: `/organizations/${organization.slug}/has-mobile-app-events/`,
     body: mobileEventResp,
   });
 

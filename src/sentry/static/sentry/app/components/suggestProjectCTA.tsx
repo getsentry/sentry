@@ -136,8 +136,8 @@ class SuggestProjectCTA extends React.Component<Props, State> {
 
   async checkOrgHasMobileEvent(): Promise<MobileEventResult> {
     const {api, organization} = this.props;
-    return await api.requestPromise(
-      `/organizations/${organization.slug}/check-has-mobile-app-events/`,
+    return api.requestPromise(
+      `/organizations/${organization.slug}/has-mobile-app-events/`,
       {
         query: {
           userAgents: MOBILE_USER_AGENTS,

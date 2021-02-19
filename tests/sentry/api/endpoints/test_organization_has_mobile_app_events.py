@@ -15,10 +15,12 @@ class OrganizationIntegrationRequestTest(APITestCase):
 
     def gen_event(self, browser_name):
         return create_sample_event(
-            project=self.project, platform="python", contexts={"browser": {"name": browser_name}}
+            project=self.project,
+            platform="python",
+            contexts={"browser": {"name": browser_name}, "client_os": {"name": ""}},
         )
 
-    @mock.patch("sentry.api.endpoints.organization_check_has_mobile_app_events.cache.set")
+    @mock.patch("sentry.api.endpoints.organization_has_mobile_app_events.cache.set")
     def test_basic(self, mock_cache_set):
         self.gen_event("okhttp")
         response = self.get_response(self.organization.slug, userAgents=["okhttp"])
@@ -27,9 +29,9 @@ class OrganizationIntegrationRequestTest(APITestCase):
         assert response.data == expected
         mock_cache_set.assert_called_with(mock.ANY, {"result": expected}, 24 * 60 * 60)
 
-    @mock.patch("sentry.api.endpoints.organization_check_has_mobile_app_events.discover.query")
+    @mock.patch("sentry.api.endpoints.organization_has_mobile_app_events.discover.query")
     def test_hit_cache_on_success(self, mock_query):
-        mock_query.return_value = {"data": [{"browser.name": "okhttp", "client_os_name": ""}]}
+        mock_query.return_value = {"data": [{"browser.name": "okhttp", "client_os.name": ""}]}
         response = self.get_response(self.organization.slug, userAgents=["okhttp"])
         assert response.status_code == 200
         assert response.data == {"browserName": "okhttp", "clientOsName": ""}
@@ -46,7 +48,7 @@ class OrganizationIntegrationRequestTest(APITestCase):
         assert response.status_code == 200
         assert response.data is None
 
-    @mock.patch("sentry.api.endpoints.organization_check_has_mobile_app_events.discover.query")
+    @mock.patch("sentry.api.endpoints.organization_has_mobile_app_events.discover.query")
     def test_hit_cache_on_no_match(self, mock_query):
         mock_query.return_value = {"data": []}
         response = self.get_response(self.organization.slug, userAgents=["okhttp"])
@@ -59,7 +61,7 @@ class OrganizationIntegrationRequestTest(APITestCase):
         assert response.data is None
         assert mock_query.call_count == 1
 
-    @mock.patch("sentry.api.endpoints.organization_check_has_mobile_app_events.discover.query")
+    @mock.patch("sentry.api.endpoints.organization_has_mobile_app_events.discover.query")
     def test_cache_miss_different_org(self, mock_query):
         mock_query.return_value = {"data": []}
         response = self.get_response(self.organization.slug, userAgents=["okhttp"])

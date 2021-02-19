@@ -15,7 +15,7 @@ CACHE_TTL = 24 * 60 * 60
 logger = logging.getLogger(__name__)
 
 
-class OrganizationCheckHasMobileAppEvents(OrganizationEventsEndpointBase):
+class OrganizationHasMobileAppEvents(OrganizationEventsEndpointBase):
     def get(self, request, organization):
         # cache is unique to an org
         cache_key = f"check_mobile_app_events:{organization.id}"
@@ -40,8 +40,10 @@ class OrganizationCheckHasMobileAppEvents(OrganizationEventsEndpointBase):
         query = " OR ".join(map(lambda x: f"browser.name:{x}", browser_name_list))
 
         with self.handle_query_errors():
+            # TODO: update discover query for null browser and client_os_name is android or ios
             result = discover.query(
                 query=query,
+                orderby="browser.name",
                 selected_columns=["browser.name", "project", "id", "client_os.name"],
                 limit=1,
                 params={
@@ -50,24 +52,24 @@ class OrganizationCheckHasMobileAppEvents(OrganizationEventsEndpointBase):
                     "organization_id": organization.id,
                     "project_id": [p.id for p in projects],
                 },
-                referrer="api.organization-check-has-mobile-app-events",
+                referrer="api.organization-has-mobile-app-events",
             )
             data = result["data"]
+            if not data:
+                return None
 
-            response = None
-            if data:
-                one_result = data[0]
-                # log the info so we can debug this later
-                logger.info("result_found", extra={
+            one_result = data[0]
+            # log the info so we can debug this later
+            logger.info(
+                "result_found",
+                extra={
                     "organization_id": organization.id,
                     "organization_slug": organization.slug,
-                    **one_result
-                })
-                # only send back browserName and clientOsName for now
-                response = {
-                    "browserName": one_result["browser.name"],
-                    "clientOsName": one_result["client_os_name"],
-                }
-            # TODO: add discover query for null browser and client_os_name is android or ios
-
-        return response
+                    **one_result,
+                },
+            )
+            # only send back browserName and clientOsName for now
+            return {
+                "browserName": one_result["browser.name"],
+                "clientOsName": one_result["client_os.name"],
+            }

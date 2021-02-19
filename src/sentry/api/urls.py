@@ -197,7 +197,7 @@ from .endpoints.organization_user_issues_search import OrganizationUserIssuesSea
 from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.organization_users import OrganizationUsersEndpoint
 from .endpoints.organization_sdk_updates import OrganizationSdkUpdatesEndpoint
-from .endpoints.organization_check_has_mobile_app_events import OrganizationCheckHasMobileAppEvents
+from .endpoints.organization_has_mobile_app_events import OrganizationHasMobileAppEvents
 from .endpoints.project_agnostic_rule_conditions import ProjectAgnosticRuleConditionsEndpoint
 from .endpoints.project_avatar import ProjectAvatarEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
@@ -847,8 +847,8 @@ urlpatterns = [
                     name="sentry-api-0-organization-sdk-updates",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/check-has-mobile-app-events/$",
-                    OrganizationCheckHasMobileAppEvents.as_view(),
+                    r"^(?P<organization_slug>[^\/]+)/has-mobile-app-events/$",
+                    OrganizationHasMobileAppEvents.as_view(),
                     name="sentry-api-0-organization-check-has-mobile-events",
                 ),
                 # This is temporary while we alpha test eventsv2
