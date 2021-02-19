@@ -12,7 +12,9 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody} from 'app/components/panels';
-import StreamGroup, {DEFAULT_STREAM_GROUP_STATS_PERIOD} from 'app/components/stream/group';
+import StreamGroup, {
+  DEFAULT_STREAM_GROUP_STATS_PERIOD,
+} from 'app/components/stream/group';
 import {t} from 'app/locale';
 import GroupStore from 'app/stores/groupStore';
 import {Group} from 'app/types';
