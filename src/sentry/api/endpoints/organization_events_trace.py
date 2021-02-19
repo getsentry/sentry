@@ -21,25 +21,24 @@ def is_root(item):
     return item["root"] == "1"
 
 
-def serialize_event(event, parent, is_root_event=False):
-    return {
-        "event_id": event["id"],
-        "span_id": event["trace.span"],
-        "transaction": event["transaction"],
-        "transaction.duration": event["transaction.duration"],
-        "project_id": event["project_id"],
-        "parent_event_id": parent,
-        # Avoid empty string for root events
-        "parent_span_id": event["trace.parent_span"] or None,
-        "is_root": is_root_event,
-    }
-
-
 class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
     def has_feature(self, organization, request):
         return features.has(
             "organizations:trace-view-quick", organization, actor=request.user
         ) or features.has("organizations:trace-view-summary", organization, actor=request.user)
+
+    def serialize_event(self, event, parent, is_root_event=False):
+        return {
+            "event_id": event["id"],
+            "span_id": event["trace.span"],
+            "transaction": event["transaction"],
+            "transaction.duration": event["transaction.duration"],
+            "project_id": event["project_id"],
+            "parent_event_id": parent,
+            # Avoid empty string for root events
+            "parent_span_id": event["trace.parent_span"] or None,
+            "is_root": is_root_event,
+        }
 
     def get(self, request, organization, trace_id):
         if not self.has_feature(organization, request):
@@ -64,7 +63,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
                 ],
                 # We want to guarantee at least getting the root, and hopefully events near it with timestamp
                 # id is just for consistent results
-                orderby=["-root", "-timestamp", "id"],
+                orderby=["-root", "-timestamp", "transaction.duration", "id"],
                 params=params,
                 query=f"event.type:transaction trace:{trace_id}",
                 limit=MAX_TRACE_SIZE,
@@ -108,13 +107,14 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
                 warning_extra,
             )
 
-        return Response(self.serialize(result["data"], root, warning_extra, snuba_event, event_id))
+        parent_map = {item["trace.parent_span"]: item for item in result["data"]}
+        return Response(self.serialize(parent_map, root, warning_extra, snuba_event, event_id))
 
 
 class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
-    def serialize(self, result, root, warning_extra, snuba_event, event_id=None):
-        parent_map = {item["trace.parent_span"]: item for item in result}
-        trace_results = [serialize_event(root, None, True)]
+    def serialize(self, parent_map, root, warning_extra, snuba_event, event_id=None):
+        """ Because the light endpoint could potentially have gaps between root and event we return a flattened list """
+        trace_results = [self.serialize_event(root, None, True)]
 
         if root["id"] != event_id:
             # Get the root event and see if the current event's span is in the root event
@@ -126,22 +126,28 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
 
             # For the light response, the parent will be unknown unless it is a direct descendent of the root
             trace_results.append(
-                serialize_event(snuba_event, root["id"] if root_span is not None else None)
+                self.serialize_event(snuba_event, root["id"] if root_span is not None else None)
             )
 
         event = eventstore.get_event_by_id(snuba_event["project_id"], event_id)
         for span in event.data.get("spans", []):
             if span["span_id"] in parent_map:
                 child_event = parent_map[span["span_id"]]
-                trace_results.append(serialize_event(child_event, event_id))
+                trace_results.append(self.serialize_event(child_event, event_id))
 
         return trace_results
 
 
 class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
-    def serialize(self, result, root, warning_extra, snuba_event=None, event_id=None):
-        parent_map = {item["trace.parent_span"]: item for item in result}
-        trace_results = [serialize_event(root, None, True)]
+    def serialize_event(self, *args, **kwargs):
+        event = super().serialize_event(*args, **kwargs)
+        event["children"] = []
+        return event
+
+    def serialize(self, parent_map, root, warning_extra, snuba_event=None, event_id=None):
+        """ For the full event trace, we return the results as a graph instead of a flattened list """
+        parent_events = {}
+        parent_events[root["id"]] = result = self.serialize_event(root, None, True)
 
         current_event = root
         to_check = deque([root])
@@ -154,7 +160,12 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             ]:
                 # Avoid potential span loops by popping, so we don't traverse the same nodes twice
                 child_event = parent_map.pop(child["span_id"])
-                trace_results.append(serialize_event(child_event, current_event["id"]))
+                parent_events[child_event["id"]] = self.serialize_event(
+                    child_event, current_event["id"]
+                )
+                parent_events[current_event["id"]]["children"].append(
+                    parent_events[child_event["id"]]
+                )
                 to_check.append(child_event)
             # Limit iterations just to be safe
             iteration += 1
@@ -165,4 +176,4 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 )
                 break
 
-        return trace_results
+        return result

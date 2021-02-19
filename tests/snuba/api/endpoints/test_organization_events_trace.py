@@ -339,8 +339,33 @@ class OrganizationEventsTrendsLightEndpointTest(OrganizationEventsTrendsEndpoint
         assert event["parent_span_id"] == self.gen2_span_ids[0]
 
 
-class OrganizationEventsTrendsLightEndpoint(OrganizationEventsTrendsEndpointBase):
+class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsEndpointBase):
     url_name = "sentry-api-0-organization-events-trace"
+
+    def assert_trace_data(self, root):
+        """ see the setUp docstring for an idea of what the response structure looks like """
+        assert root["event_id"] == self.root_event.event_id
+        assert root["parent_event_id"] is None
+        assert root["parent_span_id"] is None
+        assert len(root["children"]) == 3
+
+        for i, gen1 in enumerate(root["children"]):
+            assert gen1["event_id"] == self.gen1_events[i].event_id
+            assert gen1["parent_event_id"] == self.root_event.event_id
+            assert gen1["parent_span_id"] == self.root_span_ids[i]
+            assert len(gen1["children"]) == 1
+
+            gen2 = gen1["children"][0]
+            assert gen2["event_id"] == self.gen2_events[i].event_id
+            assert gen2["parent_event_id"] == self.gen1_events[i].event_id
+            assert gen2["parent_span_id"] == self.gen1_span_ids[i]
+
+            # Only the first gen2 descendent has a child
+            if i == 0:
+                gen3 = gen2["children"][0]
+                assert gen3["event_id"] == self.gen3_event.event_id
+                assert gen3["parent_event_id"] == self.gen2_events[i].event_id
+                assert gen3["parent_span_id"] == self.gen2_span_ids[i]
 
     def test_no_projects(self):
         user = self.create_user()
@@ -362,44 +387,14 @@ class OrganizationEventsTrendsLightEndpoint(OrganizationEventsTrendsEndpointBase
         assert len(response.data) == 0
 
     def test_simple(self):
-        root_event_id = self.root_event.event_id
-
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
                 data={"project": -1},
                 format="json",
             )
-
         assert response.status_code == 200, response.content
-
-        assert len(response.data) == 8
-        events = {item["event_id"]: item for item in response.data}
-
-        assert root_event_id in events
-        event = events[root_event_id]
-        assert event["is_root"]
-        assert event["parent_event_id"] is None
-
-        for child_event in self.gen1_events:
-            child_event_id = child_event.event_id
-            assert child_event_id in events
-            event = events[child_event_id]
-            assert not event["is_root"]
-            assert event["parent_event_id"] == root_event_id
-
-        for child_event, parent_event in zip(self.gen2_events, self.gen1_events):
-            child_event_id = child_event.event_id
-            assert child_event_id in events
-            event = events[child_event_id]
-            assert not event["is_root"]
-            assert event["parent_event_id"] == parent_event.event_id
-
-        final_event = self.gen3_event.event_id
-        assert final_event in events
-        event = events[final_event]
-        assert not event["is_root"]
-        assert event["parent_event_id"] == self.gen2_events[0].event_id
+        self.assert_trace_data(response.data)
 
     def test_bad_span_loop(self):
         """Maliciously create a loop in the span structure
@@ -412,7 +407,7 @@ class OrganizationEventsTrendsLightEndpoint(OrganizationEventsTrendsEndpointBase
                         gen_2-1
                             gen3-1...
         """
-        self.create_event(
+        gen3_loop_event = self.create_event(
             trace=self.trace_id,
             transaction="/transaction/gen3-1/loop",
             spans=[
@@ -436,4 +431,12 @@ class OrganizationEventsTrendsLightEndpoint(OrganizationEventsTrendsEndpointBase
             )
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 9
+        # Should be the same as the simple testcase
+        self.assert_trace_data(response.data)
+        # The difference is that gen3-1 should exist with no children
+        gen2_1 = response.data["children"][1]["children"][0]
+        assert len(gen2_1["children"]) == 1
+        gen3_1 = gen2_1["children"][0]
+        assert gen3_1["event_id"] == gen3_loop_event.event_id
+        # We didn't even try to start the loop of spans
+        assert len(gen3_1["children"]) == 0
