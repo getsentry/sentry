@@ -357,7 +357,6 @@ const CreateAlertButton = withRouter(
               position: 'top',
               popperStyle: {
                 maxWidth: '270px',
-                fontWeight: 'normal',
               },
             }}
             onClick={projectSlug ? undefined : handleClickWithoutProject}
