@@ -167,6 +167,8 @@ register("aws-lambda.cloudformation-url")
 register("aws-lambda.account-number", default="943013980633")
 register("aws-lambda.node.layer-name", default="SentryNodeServerlessSDK")
 register("aws-lambda.node.layer-version")
+register("aws-lambda.python.layer-name", default="SentryPythonServerlessSDK")
+register("aws-lambda.python.layer-version")
 # the region of the host account we use for assuming the role
 register("aws-lambda.host-region", default="us-east-2")
 

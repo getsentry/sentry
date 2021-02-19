@@ -74,7 +74,7 @@ class IntegrationServerlessFunctions extends AsyncComponent<Props, State> {
       <React.Fragment>
         <Alert type="info">
           {t(
-            'Manage your AWS Lambda functions below. Only Node runtimes are currently supported.'
+            'Manage your AWS Lambda functions below. Only Node and Python runtimes are currently supported.'
           )}
         </Alert>
         <Panel>

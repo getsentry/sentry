@@ -58,7 +58,7 @@ export default class AwsLambdaProjectSelect extends React.Component<Props> {
                 stacked
               />
               <Alert type="info">
-                {t('Currently only supports Node Lambda functions')}
+                {t('Currently only supports Node and Python Lambda functions')}
               </Alert>
             </Form>
           </ListItem>

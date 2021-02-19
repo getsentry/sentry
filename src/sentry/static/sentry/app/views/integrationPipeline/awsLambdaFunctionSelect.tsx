@@ -85,8 +85,8 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
     return (
       <h4>
         {tn(
-          'We found %s function with a Node runtime',
-          'We found %s functions with Node runtimes',
+          'We found %s function with a Node or Python runtime',
+          'We found %s functions with Node or Python runtimes',
           count
         )}
       </h4>

@@ -134,6 +134,8 @@ def pytest_configure(config):
             "aws-lambda.account-number": "1234",
             "aws-lambda.node.layer-name": "my-layer",
             "aws-lambda.node.layer-version": "3",
+            "aws-lambda.python.layer-name": "my-python-layer",
+            "aws-lambda.python.layer-version": "34",
         }
     )
 
