@@ -12,6 +12,8 @@ import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
 import {defined, OmitHtmlDivProps} from 'app/utils';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
+import * as QuickTraceContext from 'app/views/performance/transactionDetails/quickTraceContext';
+import {QuickTraceContextChildrenProps} from 'app/views/performance/transactionDetails/quickTraceContext';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
@@ -255,7 +257,13 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     }));
   };
 
-  renderDetail({isVisible}: {isVisible: boolean}) {
+  renderDetail({
+    isVisible,
+    quickTrace,
+  }: {
+    isVisible: boolean;
+    quickTrace?: QuickTraceContextChildrenProps;
+  }) {
     if (!this.state.showDetail || !isVisible) {
       return null;
     }
@@ -281,6 +289,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         trace={trace}
         totalNumberOfErrors={totalNumberOfErrors}
         spanErrors={spanErrors}
+        quickTrace={quickTrace}
       />
     );
   }
@@ -871,13 +880,17 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   }
 
   render() {
-    const {isCurrentSpanFilteredOut} = this.props;
+    const {isCurrentSpanFilteredOut, organization} = this.props;
     const bounds = this.getBounds();
 
     const isSpanVisibleInView = bounds.isSpanVisibleInView;
     const isSpanVisible = isSpanVisibleInView && !isCurrentSpanFilteredOut;
 
-    return (
+    const hasQuickTraceView =
+      organization.features.includes('trace-view-quick') &&
+      organization.features.includes('trace-view-summary');
+
+    const spanRow = (quickTrace?: QuickTraceContextChildrenProps) => (
       <SpanRow
         ref={this.spanRowDOMRef}
         visible={isSpanVisible}
@@ -893,9 +906,19 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             })
           }
         </DividerHandlerManager.Consumer>
-        {this.renderDetail({isVisible: isSpanVisible})}
+        {this.renderDetail({isVisible: isSpanVisible, quickTrace})}
       </SpanRow>
     );
+
+    if (hasQuickTraceView) {
+      return (
+        <QuickTraceContext.Consumer>
+          {quickTrace => spanRow(quickTrace)}
+        </QuickTraceContext.Consumer>
+      );
+    }
+
+    return spanRow();
   }
 }
 

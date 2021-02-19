@@ -30,6 +30,8 @@ import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 import {getTransactionDetailsUrl} from '../utils';
 
 import EventMetas from './eventMetas';
+import * as QuickTraceContext from './quickTraceContext';
+import QuickTraceQuery from './quickTraceQuery';
 
 type Props = {
   organization: Organization;
@@ -123,7 +125,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
 
     const eventJsonUrl = `/api/0/projects/${organization.slug}/${this.projectId}/events/${event.eventID}/json/`;
 
-    return (
+    const content = (
       <React.Fragment>
         <Layout.Header>
           <Layout.HeaderContent>
@@ -206,6 +208,20 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
         </Layout.Body>
       </React.Fragment>
     );
+
+    if (hasQuickTraceView) {
+      return (
+        <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
+          {results => (
+            <QuickTraceContext.Provider value={{isDefault: false, ...results}}>
+              {content}
+            </QuickTraceContext.Provider>
+          )}
+        </QuickTraceQuery>
+      );
+    }
+
+    return content;
   }
 
   renderError(error: Error) {
