@@ -2,10 +2,9 @@
 # This script correctly installs Python dependencies
 set -eu
 
-# XXX: Ideally, we should make this import relative rather than from where the Makefile
-# invokes this
-# shellcheck disable=SC1091
-source scripts/lib.sh
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")"; pwd -P)"
+# shellcheck disable=SC1090
+source "${HERE}/lib.sh"
 
 ensure-venv() {
     ./scripts/ensure-venv.sh
@@ -23,10 +22,9 @@ install-py-dev() {
     # Installing wheel will speed up installation of Python dependencies
     require wheel || pip install wheel
     echo "--> Installing Sentry (for development)"
-    pip_version=$(pip -V |  awk '{print $2}')
-    # Older versions of pip require SYSTEM_VERSION_COMPAT in Big Sur
-    # shellcheck disable=SC2072
-    if query_big_sur && [[ $pip_version < 20.3 ]]; then
+    # In Big Sur, versions of pip before 20.3 require SYSTEM_VERSION_COMPAT set
+    old_pip=$(python -c 'import sys; import pip; from pip._vendor.packaging.version import parse; print(1 if parse(pip.__version__) < parse("20.3") else 0)')
+    if query_big_sur && [[ $old_pip == 1 ]]; then
         SENTRY_LIGHT_BUILD=1 SYSTEM_VERSION_COMPAT=1 pip install -e '.[dev]'
     else
         # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.

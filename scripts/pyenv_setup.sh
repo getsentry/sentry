@@ -5,9 +5,9 @@
 # - This script assumes you're calling from the top directory of the repository
 set -eu
 
-# XXX: Ideally, we should make this import relative rather than from where the Makefile invokes this
-# shellcheck disable=SC1091
-source scripts/lib.sh
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")"; pwd -P)"
+# shellcheck disable=SC1090
+source "${HERE}/lib.sh"
 
 get_shell_startup_script() {
   local _startup_script=''
