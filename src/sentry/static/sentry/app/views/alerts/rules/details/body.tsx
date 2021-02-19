@@ -369,7 +369,17 @@ class DetailsBody extends React.Component<Props> {
       return this.renderLoading();
     }
 
-    const {query, environment, aggregate, projects: projectSlugs} = rule;
+    const {
+      query,
+      environment,
+      aggregate,
+      projects: projectSlugs,
+      timeWindow,
+      triggers,
+    } = rule;
+
+    const criticalTrigger = triggers.find(({label}) => label === 'critical');
+    const warningTrigger = triggers.find(({label}) => label === 'warning');
     const timePeriod = this.getTimePeriod();
     const queryWithTypeFilter = `${query} ${extractEventTypeFilterFromRule(rule)}`.trim();
 
@@ -404,8 +414,7 @@ class DetailsBody extends React.Component<Props> {
                       query={queryWithTypeFilter}
                       environment={environment ? [environment] : undefined}
                       project={(projects as Project[]).map(project => Number(project.id))}
-                      // TODO(davidenwang): allow interval to be changed for larger time periods
-                      interval="60s"
+                      interval={`${timeWindow}m`}
                       period={timePeriod.value}
                       yAxis={aggregate}
                       includePrevious={false}
@@ -413,7 +422,12 @@ class DetailsBody extends React.Component<Props> {
                     >
                       {({loading, timeseriesData}) =>
                         !loading && timeseriesData ? (
-                          <MetricChart data={timeseriesData} incidents={incidents} />
+                          <MetricChart
+                            data={timeseriesData}
+                            incidents={incidents}
+                            criticalTrigger={criticalTrigger}
+                            warningTrigger={warningTrigger}
+                          />
                         ) : (
                           <Placeholder height="200px" />
                         )
