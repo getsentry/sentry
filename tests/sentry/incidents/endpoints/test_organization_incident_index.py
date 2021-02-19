@@ -95,14 +95,28 @@ class IncidentListEndpointTest(APITestCase):
 
     def test_filter_start_end_times(self):
         self.create_team(organization=self.organization, members=[self.user])
-        new_incident = self.create_incident(date_started=timezone.now() - timedelta(hours=2), date_closed=timezone.now() - timedelta(hours=1))
-        old_incident = self.create_incident(date_started=timezone.now() - timedelta(hours=26), date_closed=timezone.now() - timedelta(hours=25))
+        new_incident = self.create_incident(
+            date_started=timezone.now() - timedelta(hours=2),
+            date_closed=timezone.now() - timedelta(hours=1),
+        )
+        old_incident = self.create_incident(
+            date_started=timezone.now() - timedelta(hours=26),
+            date_closed=timezone.now() - timedelta(hours=25),
+        )
 
         self.login_as(self.user)
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp_all = self.get_valid_response(self.organization.slug)
-            resp_new = self.get_valid_response(self.organization.slug, start=timezone.now() - timedelta(hours=12), end=timezone.now())
-            resp_old = self.get_valid_response(self.organization.slug, start=timezone.now() - timedelta(hours=36), end=timezone.now() - timedelta(hours=24))
+            resp_new = self.get_valid_response(
+                self.organization.slug,
+                start=timezone.now() - timedelta(hours=12),
+                end=timezone.now(),
+            )
+            resp_old = self.get_valid_response(
+                self.organization.slug,
+                start=timezone.now() - timedelta(hours=36),
+                end=timezone.now() - timedelta(hours=24),
+            )
 
         assert resp_old.data == serialize([old_incident])
         assert resp_new.data == serialize([new_incident])
