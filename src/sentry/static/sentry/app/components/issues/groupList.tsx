@@ -12,7 +12,9 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody} from 'app/components/panels';
-import StreamGroup from 'app/components/stream/group';
+import StreamGroup, {
+  DEFAULT_STREAM_GROUP_STATS_PERIOD,
+} from 'app/components/stream/group';
 import {t} from 'app/locale';
 import GroupStore from 'app/stores/groupStore';
 import {Group} from 'app/types';
@@ -207,14 +209,14 @@ class GroupList extends React.Component<Props, State> {
     }
 
     const statsPeriod =
-      typeof queryParams?.groupStatsPeriod === 'string'
+      queryParams?.groupStatsPeriod === 'auto'
         ? queryParams?.groupStatsPeriod
-        : undefined;
+        : DEFAULT_STREAM_GROUP_STATS_PERIOD;
 
     return (
       <React.Fragment>
         <Panel>
-          <GroupListHeader withChart={!!withChart} />
+          <GroupListHeader withChart={!!withChart} statsPeriod={statsPeriod} />
           <PanelBody>
             {groups.map(({id, project}) => {
               const members = memberList?.hasOwnProperty(project.slug)

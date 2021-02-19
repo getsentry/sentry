@@ -59,8 +59,10 @@ const DiscoveryExclusionFields: string[] = [
   '__text',
 ];
 
+export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
+
 const defaultProps = {
-  statsPeriod: '24h',
+  statsPeriod: DEFAULT_STREAM_GROUP_STATS_PERIOD,
   canSelect: true,
   withChart: true,
   useFilteredStats: false,

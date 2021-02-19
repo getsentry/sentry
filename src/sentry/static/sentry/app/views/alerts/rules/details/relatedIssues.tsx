@@ -42,7 +42,7 @@ class RelatedIssues extends React.Component<Props> {
       end,
       groupStatsPeriod: 'auto',
       limit: 5,
-      sort: 'new',
+      sort: rule.aggregate === 'count_unique(user)' ? 'user' : 'freq',
       query: `${rule.query} ${filter}`,
       project: projects.map(project => project.id),
     };
