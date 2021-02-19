@@ -159,18 +159,18 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 else:
                     queryset = queryset.none()
 
-        is_detailed = request.GET.get("detailed", "0") != "0"
-
-        serializer = (
-            organization_member_serializers.OrganizationMemberWithExternalUsersSerializer
-            if is_detailed
-            else organization_member_serializers.OrganizationMemberSerializer
-        )
+        expand = request.GET.getlist("expand", [])
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            on_results=lambda x: serialize(x, request.user, serializer=serializer()),
+            on_results=lambda x: serialize(
+                x,
+                request.user,
+                serializer=organization_member_serializers.OrganizationMemberSerializer(
+                    expand=expand
+                ),
+            ),
             paginator_cls=OffsetPaginator,
         )
 
