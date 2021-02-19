@@ -17,7 +17,6 @@ import {CandidateDownloadStatus, Image} from 'app/types/debugImage';
 import {defined} from 'app/utils';
 
 import Filter from '../filter';
-import {IMAGE_AND_CANDIDATE_LIST_MAX_HEIGHT} from '../utils';
 
 import Status from './candidate/status';
 import Candidate from './candidate';
@@ -405,8 +404,6 @@ const StyledSearchBar = styled(SearchBar)`
 `;
 
 const StyledPanelTable = styled(PanelTable)`
-  overflow: auto;
-  max-height: ${IMAGE_AND_CANDIDATE_LIST_MAX_HEIGHT}px;
   grid-template-columns: 0.5fr minmax(300px, 2fr) 1fr 1fr;
 
   > *:nth-child(5n) {
