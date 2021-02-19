@@ -36,7 +36,7 @@ const MetricChart = ({data, incidents, warningTrigger, criticalTrigger}: Props) 
   const series: LineChartSeries[] = [...data];
   const dataArr = data[0].data;
   const maxSeriesValue = dataArr.reduce(
-    (currMax, coord2) => Math.max(currMax, coord2.value),
+    (currMax, coord) => Math.max(currMax, coord.value),
     0
   );
   const firstPoint = Number(dataArr[0].name);
