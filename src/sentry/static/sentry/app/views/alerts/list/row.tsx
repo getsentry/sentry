@@ -16,6 +16,7 @@ import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {getUtcDateString} from 'app/utils/dates';
 import getDynamicText from 'app/utils/getDynamicText';
 import theme from 'app/utils/theme';
 
@@ -24,7 +25,6 @@ import {getIncidentMetricPreset, isIssueAlert} from '../utils';
 
 import SparkLine from './sparkLine';
 import {TableLayout, TitleAndSparkLine} from './styles';
-import {getUtcDateString} from 'app/utils/dates';
 
 type Props = {
   incident: Incident;
@@ -96,7 +96,14 @@ class AlertListRow extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {incident, orgId, projectsLoaded, projects, filteredStatus, organization} = this.props;
+    const {
+      incident,
+      orgId,
+      projectsLoaded,
+      projects,
+      filteredStatus,
+      organization,
+    } = this.props;
     const {error, stats} = this.state;
     const started = moment(incident.dateStarted);
     const duration = moment
@@ -109,15 +116,17 @@ class AlertListRow extends AsyncComponent<Props, State> {
       !isIssueAlert(incident?.alertRule) &&
       organization.features.includes('alert-details-redesign');
 
-    const alertLink = hasRedesign ? {
-        pathname: `/organizations/${orgId}/alerts/rules/details/${incident?.alertRule?.id}/`,
-        query: {
-          start: incident.dateStarted,
-          end: incident.dateClosed ?? getUtcDateString(moment.utc()),
+    const alertLink = hasRedesign
+      ? {
+          pathname: `/organizations/${orgId}/alerts/rules/details/${incident?.alertRule?.id}/`,
+          query: {
+            start: incident.dateStarted,
+            end: incident.dateClosed ?? getUtcDateString(moment.utc()),
+          },
         }
-      } : {
-        pathname: `/organizations/${orgId}/alerts/${incident.identifier}/`,
-      }
+      : {
+          pathname: `/organizations/${orgId}/alerts/${incident.identifier}/`,
+        };
 
     return (
       <ErrorBoundary>
@@ -126,9 +135,7 @@ class AlertListRow extends AsyncComponent<Props, State> {
             <TitleAndSparkLine status={filteredStatus}>
               <Title>
                 {this.renderStatusIndicator()}
-                <IncidentLink to={alertLink}>
-                  Alert #{incident.id}
-                </IncidentLink>
+                <IncidentLink to={alertLink}>Alert #{incident.id}</IncidentLink>
                 {incident.title}
               </Title>
 
