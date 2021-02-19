@@ -1,5 +1,5 @@
-import {SelectValue} from 'app/types';
 import {t} from 'app/locale';
+import {SelectValue} from 'app/types';
 import {TimePeriod, TimeWindow} from 'app/views/settings/incidentRules/types';
 
 export const TIME_OPTIONS: SelectValue<string>[] = [
@@ -17,4 +17,3 @@ export const TIME_WINDOWS = {
   [TimePeriod.THREE_DAYS]: TimeWindow.ONE_DAY * 3 * 60 * 1000,
   [TimePeriod.SEVEN_DAYS]: TimeWindow.ONE_DAY * 7 * 60 * 1000,
 };
-
