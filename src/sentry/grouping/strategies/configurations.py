@@ -52,6 +52,10 @@ BASE_STRATEGY = create_strategy_configuration(
         # newstyle: turns on falling back to exception values when there
         # is no stacktrace.
         "with_exception_value_fallback": False,
+        # Whether the strategy should produce special variants that are
+        # considered for hierarchical grouping (see HIERARCHICAL_VARIANTS
+        # constant)
+        "hierarchical_grouping": False,
     },
 )
 
@@ -130,6 +134,18 @@ register_strategy_config(
     initial_context={
         "php_detect_anonymous_classes": True,
         "with_context_line_file_origin_bug": False,
+    },
+)
+
+register_strategy_config(
+    id="mobile:2021-02-12",
+    base="newstyle:2019-10-29",
+    risk=RISK_LEVEL_HIGH,
+    changelog="""
+        * Experimentally producing multiple variants.
+    """,
+    initial_context={
+        "hierarchical_grouping": True,
     },
 )
 

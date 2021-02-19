@@ -1,0 +1,26 @@
+---
+created: '2021-02-15T18:20:09.565399Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-max:
+  hash: null
+  component:
+    app-depth-max (stacktrace of system takes precedence)
+      stacktrace
+        frame (non app frame)
+          filename (native code indicated by filename)
+            "[native code]"
+          function*
+            "forEach"
+--------------------------------------------------------------------------
+system:
+  hash: "30eb5001914d29dd8461898b5b8094fe"
+  component:
+    system*
+      stacktrace*
+        frame*
+          filename (native code indicated by filename)
+            "[native code]"
+          function*
+            "forEach"

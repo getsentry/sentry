@@ -1,0 +1,26 @@
+---
+created: '2021-02-15T18:20:08.930758Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-max:
+  hash: null
+  component:
+    app-depth-max (stacktrace of system takes precedence)
+      stacktrace
+        frame (non app frame)
+          module*
+            "<unknown module>"
+          filename (ignored because frame points to a URL)
+            ""
+--------------------------------------------------------------------------
+system:
+  hash: "cd2a9fd0cdaa8cd55ed22b101fc65882"
+  component:
+    system*
+      stacktrace*
+        frame*
+          module*
+            "<unknown module>"
+          filename (ignored because frame points to a URL)
+            ""

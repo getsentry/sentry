@@ -1,0 +1,22 @@
+---
+created: '2021-02-15T18:20:08.795957Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-max:
+  hash: null
+  component:
+    app-depth-max (stacktrace of system takes precedence)
+      stacktrace
+        frame (non app frame)
+          filename*
+            "foo.html.erb"
+--------------------------------------------------------------------------
+system:
+  hash: "2f908c015ad77a50595512fcf65d344c"
+  component:
+    system*
+      stacktrace*
+        frame*
+          filename*
+            "foo.html.erb"
