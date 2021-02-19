@@ -101,7 +101,8 @@ stack.function:mylibrary_* +app`}
   },
   groupingConfig: {
     name: 'groupingConfig',
-    type: 'array',
+    type: 'select',
+    deprecatedSelectControl: false,
     label: t('Grouping Config'),
     saveOnBlur: false,
     saveMessageAlertType: 'info',
@@ -136,7 +137,8 @@ stack.function:mylibrary_* +app`}
   },
   groupingEnhancementsBase: {
     name: 'groupingEnhancementsBase',
-    type: 'array',
+    type: 'select',
+    deprecatedSelectControl: false,
     label: t('Stack Trace Rules Base'),
     saveOnBlur: false,
     saveMessageAlertType: 'info',

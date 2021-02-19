@@ -344,7 +344,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
                     "projects": self.project_ids,
                     "fields": ["title", "count()"],
                     "range": "24h",
-                    "query": "project:{}".format(self.projects[0].slug),
+                    "query": f"project:{self.projects[0].slug}",
                     "version": 2,
                 },
             )

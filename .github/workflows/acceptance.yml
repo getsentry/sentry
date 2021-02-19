@@ -16,7 +16,7 @@ on:
 jobs:
   frontend:
     name: frontend tests
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-20.04
     timeout-minutes: 20
 
     env:
@@ -72,7 +72,7 @@ jobs:
 
   acceptance:
     name: acceptance
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-20.04
     timeout-minutes: 20
     strategy:
       matrix:
@@ -106,9 +106,9 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{ steps.pip.outputs.pip-cache-dir }}
-          key: ${{ runner.os }}-pip-py${{ steps.python-version.outputs.python-version }}-${{ hashFiles('**/requirements-*.txt') }}
+          key: ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ hashFiles('**/requirements-*.txt') }}
           restore-keys: |
-            ${{ runner.os }}-pip-
+            ${{ runner.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}
 
       - name: Setup sentry python env
         uses: ./.github/actions/setup-sentry

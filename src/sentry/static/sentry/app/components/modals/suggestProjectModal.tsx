@@ -62,12 +62,12 @@ class SuggestProjectModal extends React.Component<Props, State> {
     this.setState({askTeammate: false});
   };
 
-  handleSubmitSuccess = ({targetUserEmail}: {targetUserEmail: string}) => {
+  handleSubmitSuccess = () => {
     const {matchedUserAgentString, organization, closeModal} = this.props;
     addSuccessMessage('Notified teammate successfully');
     trackAdvancedAnalyticsEvent(
       'growth.submitted_mobile_prompt_ask_teammate',
-      {email: targetUserEmail, matchedUserAgentString},
+      {matchedUserAgentString},
       organization
     );
     closeModal();

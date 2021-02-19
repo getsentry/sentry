@@ -12,7 +12,6 @@ import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
 import {defined, OmitHtmlDivProps} from 'app/utils';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
-import globalTheme from 'app/utils/theme';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
@@ -734,12 +733,9 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       // Mock component to preserve layout spacing
       return (
         <DividerLine
+          showDetail
           style={{
             position: 'relative',
-            backgroundColor: getBackgroundColor({
-              theme: globalTheme,
-              showDetail: true,
-            }),
           }}
         />
       );
@@ -942,8 +938,8 @@ const CursorGuide = styled('div')`
   height: 100%;
 `;
 
-export const DividerLine = styled('div')`
-  background-color: ${p => p.theme.gray200};
+export const DividerLine = styled('div')<{showDetail?: boolean}>`
+  background-color: ${p => (p.showDetail ? p.theme.textColor : p.theme.border)};
   position: absolute;
   height: 100%;
   width: 1px;

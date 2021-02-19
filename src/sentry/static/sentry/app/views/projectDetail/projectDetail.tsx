@@ -172,6 +172,14 @@ class ProjectDetail extends AsyncView<Props, State> {
               <Layout.HeaderActions>
                 <ButtonBar gap={1}>
                   <Button
+                    title={t(
+                      'You’re seeing the new project details page because you’ve opted to be an early adopter of new features. Send us feedback via email.'
+                    )}
+                    href="mailto:project-feedback@sentry.io?subject=Project Details Feedback"
+                  >
+                    {t('Give Feedback')}
+                  </Button>
+                  <Button
                     to={
                       // if we are still fetching project, we can use project slug to build issue stream url and let the redirect handle it
                       project?.id

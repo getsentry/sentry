@@ -39,7 +39,7 @@ class OrganizationEventsTrendsEndpointBase(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
-        root_span_ids = [uuid4().hex[:16] for _ in range(3)]
+        self.root_span_ids = [uuid4().hex[:16] for _ in range(3)]
         self.trace_id = uuid4().hex
         self.root_event = self.create_event(
             trace=self.trace_id,
@@ -52,7 +52,7 @@ class OrganizationEventsTrendsEndpointBase(APITestCase, SnubaTestCase):
                     "span_id": root_span_id,
                     "trace_id": self.trace_id,
                 }
-                for i, root_span_id in enumerate(root_span_ids)
+                for i, root_span_id in enumerate(self.root_span_ids)
             ],
             parent_span_id=None,
             project_id=self.project.id,
@@ -76,7 +76,9 @@ class OrganizationEventsTrendsEndpointBase(APITestCase, SnubaTestCase):
                 parent_span_id=root_span_id,
                 project_id=self.create_project(organization=self.organization).id,
             )
-            for i, (root_span_id, gen1_span_id) in enumerate(zip(root_span_ids, self.gen1_span_ids))
+            for i, (root_span_id, gen1_span_id) in enumerate(
+                zip(self.root_span_ids, self.gen1_span_ids)
+            )
         ]
 
         # Second Generation
@@ -224,13 +226,15 @@ class OrganizationEventsTrendsLightEndpointTest(OrganizationEventsTrendsEndpoint
         event = events[root_event_id]
         assert event["is_root"]
         assert event["parent_event_id"] is None
+        assert event["parent_span_id"] is None
 
-        for child_event in self.gen1_events:
+        for i, child_event in enumerate(self.gen1_events):
             child_event_id = child_event.event_id
             assert child_event_id in events
             event = events[child_event_id]
             assert not event["is_root"]
             assert event["parent_event_id"] == root_event_id
+            assert event["parent_span_id"] == self.root_span_ids[i]
 
     def test_direct_parent_with_children(self):
         root_event_id = self.root_event.event_id
@@ -253,16 +257,19 @@ class OrganizationEventsTrendsLightEndpointTest(OrganizationEventsTrendsEndpoint
         event = events[root_event_id]
         assert event["is_root"]
         assert event["parent_event_id"] is None
+        assert event["parent_span_id"] is None
 
         assert current_event in events
         event = events[current_event]
         assert not event["is_root"]
         assert event["parent_event_id"] == root_event_id
+        assert event["parent_span_id"] == self.root_span_ids[0]
 
         assert child_event_id in events
         event = events[child_event_id]
         assert not event["is_root"]
         assert event["parent_event_id"] == current_event
+        assert event["parent_span_id"] == self.gen1_span_ids[0]
 
     def test_second_generation_with_children(self):
         root_event_id = self.root_event.event_id
@@ -285,17 +292,21 @@ class OrganizationEventsTrendsLightEndpointTest(OrganizationEventsTrendsEndpoint
         event = events[root_event_id]
         assert event["is_root"]
         assert event["parent_event_id"] is None
+        assert event["parent_span_id"] is None
 
         assert current_event in events
         event = events[current_event]
         assert not event["is_root"]
         # Parent is unknown in this case
         assert event["parent_event_id"] is None
+        # But we still know the parent_span
+        assert event["parent_span_id"] == self.gen1_span_ids[0]
 
         assert child_event_id in events
         event = events[child_event_id]
         assert not event["is_root"]
         assert event["parent_event_id"] == current_event
+        assert event["parent_span_id"] == self.gen2_span_ids[0]
 
     def test_third_generation_no_children(self):
         root_event_id = self.root_event.event_id
@@ -317,12 +328,15 @@ class OrganizationEventsTrendsLightEndpointTest(OrganizationEventsTrendsEndpoint
         event = events[root_event_id]
         assert event["is_root"]
         assert event["parent_event_id"] is None
+        assert event["parent_span_id"] is None
 
         assert current_event in events
         event = events[current_event]
         assert not event["is_root"]
         # Parent is unknown in this case
         assert event["parent_event_id"] is None
+        # But we still know the parent_span
+        assert event["parent_span_id"] == self.gen2_span_ids[0]
 
 
 class OrganizationEventsTrendsLightEndpoint(OrganizationEventsTrendsEndpointBase):

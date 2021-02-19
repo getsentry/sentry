@@ -35,6 +35,10 @@ type Props = {
    * Message to use for `<EmptyStateWarning>`
    */
   emptyMessage?: React.ReactNode;
+  /**
+   * Action to display when isEmpty is true
+   */
+  emptyAction?: React.ReactNode;
 
   /**
    * Renders without predefined padding on the header and body cells
@@ -71,6 +75,7 @@ const PanelTable = ({
   disablePadding,
   className,
   emptyMessage = t('There are no items to display'),
+  emptyAction,
   loader,
 }: Props) => {
   const shouldShowLoading = isLoading === true;
@@ -95,6 +100,7 @@ const PanelTable = ({
       {shouldShowEmptyMessage && (
         <TableEmptyStateWarning>
           <p>{emptyMessage}</p>
+          {emptyAction}
         </TableEmptyStateWarning>
       )}
 

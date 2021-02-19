@@ -402,16 +402,59 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.store_event(data, project_id=project.id)
 
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
+
+        # should only show 1 event of type default
         query = {"field": ["project", "issue"], "query": "has:issue", "statsPeriod": "14d"}
         response = self.do_request(query, features=features)
-
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["issue"] == event.group.qualified_short_id
 
+        # should only show 1 event of type transaction since they dont have issues
         query = {"field": ["project", "issue"], "query": "!has:issue", "statsPeriod": "14d"}
         response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["issue"] == "unknown"
 
+        # should only show 1 event of type default
+        query = {
+            "field": ["project", "issue"],
+            "query": "event.type:default has:issue",
+            "statsPeriod": "14d",
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["issue"] == event.group.qualified_short_id
+
+        # should show no results because no the default event has an issue
+        query = {
+            "field": ["project", "issue"],
+            "query": "event.type:default !has:issue",
+            "statsPeriod": "14d",
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 0
+
+        # should show no results because no transactions have issues
+        query = {
+            "field": ["project", "issue"],
+            "query": "event.type:transaction has:issue",
+            "statsPeriod": "14d",
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 0
+
+        # should only show 1 event of type transaction since they dont have issues
+        query = {
+            "field": ["project", "issue"],
+            "query": "event.type:transaction !has:issue",
+            "statsPeriod": "14d",
+        }
+        response = self.do_request(query, features=features)
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["issue"] == "unknown"
@@ -823,7 +866,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             )
             data["event_id"] = f"{idx}" * 32
             data["transaction"] = f"/user_misery/horribilis/{idx}"
-            data["user"] = {"email": "{}@example.com".format(event[0])}
+            data["user"] = {"email": f"{event[0]}@example.com"}
             self.store_event(data, project_id=project.id)
         query = {"field": ["user_misery(300)"], "query": "event.type:transaction"}
         response = self.do_request(query)
@@ -2195,7 +2238,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         query = {
             "field": ["id", "last_seen()"],
-            "query": "last_seen():>{}".format(iso_format(before_now(days=30))),
+            "query": f"last_seen():>{iso_format(before_now(days=30))}",
         }
         features = {"organizations:discover-basic": True, "organizations:global-views": True}
         response = self.do_request(query, features=features)
@@ -2520,7 +2563,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
     def test_count_at_least_query(self):
         self.store_event(self.transaction_data, self.project.id)
 
-        response = self.do_request({"field": "count_at_least(measurements.fcp, {})".format(0)})
+        response = self.do_request({"field": "count_at_least(measurements.fcp, 0)"})
         assert response.status_code == 200
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["count_at_least_measurements_fcp_0"] == 1
@@ -2637,17 +2680,15 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         # equality condition
         # We use json dumps here to ensure precision when converting from float to str
         # This is necessary because equality on floating point values need to be precise
-        self.assert_measurement_condition_with_results(
-            "measurements.fcp:{}".format(json.dumps(fcp))
-        )
+        self.assert_measurement_condition_with_results(f"measurements.fcp:{json.dumps(fcp)}")
 
         # greater than condition
-        self.assert_measurement_condition_with_results("measurements.fcp:>{}".format(fcp - 1))
-        self.assert_measurement_condition_without_results("measurements.fcp:>{}".format(fcp + 1))
+        self.assert_measurement_condition_with_results(f"measurements.fcp:>{fcp - 1}")
+        self.assert_measurement_condition_without_results(f"measurements.fcp:>{fcp + 1}")
 
         # less than condition
-        self.assert_measurement_condition_with_results("measurements.fcp:<{}".format(fcp + 1))
-        self.assert_measurement_condition_without_results("measurements.fcp:<{}".format(fcp - 1))
+        self.assert_measurement_condition_with_results(f"measurements.fcp:<{fcp + 1}")
+        self.assert_measurement_condition_without_results(f"measurements.fcp:<{fcp - 1}")
 
         # has condition
         self.assert_measurement_condition_with_results("has:measurements.fcp")
@@ -2667,16 +2708,16 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         for function in functions:
             self.assert_measurement_condition_with_results(
-                "{}:>{}".format(function, fcp - 1), field=[function]
+                f"{function}:>{fcp - 1}", field=[function]
             )
             self.assert_measurement_condition_without_results(
-                "{}:>{}".format(function, fcp + 1), field=[function]
+                f"{function}:>{fcp + 1}", field=[function]
             )
             self.assert_measurement_condition_with_results(
-                "{}:<{}".format(function, fcp + 1), field=[function]
+                f"{function}:<{fcp + 1}", field=[function]
             )
             self.assert_measurement_condition_without_results(
-                "{}:<{}".format(function, fcp - 1), field=[function]
+                f"{function}:<{fcp - 1}", field=[function]
             )
 
         count_unique = "count_unique(measurements.fcp)"

@@ -58,7 +58,7 @@ type Props = {
   onDataZoom?: EChartDataZoomHandler;
   onFinished?: EChartFinishedHandler;
   onRestore?: EChartRestoreHandler;
-  onZoom?: (period: Period) => void;
+  onZoom?: (Period) => void;
 };
 
 /**

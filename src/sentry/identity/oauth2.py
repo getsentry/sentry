@@ -239,7 +239,7 @@ class OAuth2LoginView(PipelineView):
         params = self.get_authorize_params(
             state=state, redirect_uri=absolute_uri(pipeline.redirect_url())
         )
-        redirect_uri = "{}?{}".format(self.get_authorize_url(), urlencode(params))
+        redirect_uri = f"{self.get_authorize_url()}?{urlencode(params)}"
 
         pipeline.bind_state("state", state)
 

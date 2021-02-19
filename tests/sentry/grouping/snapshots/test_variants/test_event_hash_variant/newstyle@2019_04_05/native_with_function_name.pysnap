@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T19:54:32.209283Z'
+created: '2021-02-12T22:47:17.654076Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -61,4 +61,3 @@ system:
               "(anonymous namespace)::something::nested::Foo"
         type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
-      threads (thread has no stacktrace)

@@ -2,18 +2,38 @@ from collections import defaultdict
 
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
+from sentry.models import OrganizationMember, OrganizationMemberTeam, Team, TeamStatus, ExternalUser
 
 
 @register(OrganizationMember)
 class OrganizationMemberSerializer(Serializer):
+    def __init__(
+        self,
+        expand=None,
+    ):
+        self.expand = expand or []
+
     def get_attrs(self, item_list, user):
         # TODO(dcramer): assert on relations
         users = {d["id"]: d for d in serialize({i.user for i in item_list if i.user_id}, user)}
+        external_users_map = defaultdict(list)
 
-        return {
-            item: {"user": users[str(item.user_id)] if item.user_id else None} for item in item_list
+        if "externalUsers" in self.expand:
+            external_users = list(ExternalUser.objects.filter(organizationmember__in=item_list))
+
+            for external_user in external_users:
+                serialized = serialize(external_user, user)
+                external_users_map[external_user.organizationmember_id].append(serialized)
+
+        attrs = {
+            item: {
+                "user": users[str(item.user_id)] if item.user_id else None,
+                "externalUsers": external_users_map[item.id],
+            }
+            for item in item_list
         }
+
+        return attrs
 
     def serialize(self, obj, attrs, user):
         d = {
@@ -33,6 +53,10 @@ class OrganizationMemberSerializer(Serializer):
             "inviteStatus": obj.get_invite_status_name(),
             "inviterName": obj.inviter.get_display_name() if obj.inviter else None,
         }
+
+        if "externalUsers" in self.expand:
+            d["externalUsers"] = attrs.get("externalUsers", [])
+
         return d
 
 
@@ -103,7 +127,6 @@ class OrganizationMemberWithProjectsSerializer(OrganizationMemberSerializer):
             projects = list(projects)
             projects.sort()
             attrs[org_member]["projects"] = projects
-
         return attrs
 
     def serialize(self, obj, attrs, user):
