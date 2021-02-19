@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class OrganizationCheckHasMobileAppEvents(OrganizationEventsEndpointBase):
     def get(self, request, organization):
         # cache is unique to an org
-        cache_key = f"check_mobile_app_events.{organization.id}"
+        cache_key = f"check_mobile_app_events:{organization.id}"
         cache_value = cache.get(cache_key)
         # cache miss, lookup and store value
         if cache_value is None:
