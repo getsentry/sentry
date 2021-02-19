@@ -10,6 +10,7 @@ import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import {SectionHeading} from 'app/components/charts/styles';
+import {getInterval} from 'app/components/charts/utils';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import Duration from 'app/components/duration';
 import * as Layout from 'app/components/layouts/thirds';
@@ -44,7 +45,6 @@ import {DATA_SOURCE_LABELS, getIncidentRuleMetricPreset} from '../../utils';
 import MetricChart from './metricChart';
 import RelatedIssues from './relatedIssues';
 import RelatedTransactions from './relatedTransactions';
-import {getInterval} from 'app/components/charts/utils';
 
 type Props = {
   api: Client;
@@ -108,8 +108,11 @@ class DetailsBody extends React.Component<Props> {
     const {location} = this.props;
 
     const timePeriod = location.query.period ?? ALERT_RULE_DETAILS_DEFAULT_PERIOD;
-    const timeOption = TIME_OPTIONS.find(item => item.value === timePeriod) ?? TIME_OPTIONS[1];
-    const {start: periodStart, end: periodEnd} = getStartEndTimesFromPeriod(timeOption.value);
+    const timeOption =
+      TIME_OPTIONS.find(item => item.value === timePeriod) ?? TIME_OPTIONS[1];
+    const {start: periodStart, end: periodEnd} = getStartEndTimesFromPeriod(
+      timeOption.value
+    );
 
     const useQueryTimes = location.query.start && location.query.end;
 
@@ -155,9 +158,7 @@ class DetailsBody extends React.Component<Props> {
       for (const incident of filteredIncidents) {
         // use the larger of the start of the incident or the start of the time period
         const incidentStart = moment.max(moment(incident.dateStarted), startDate);
-        const incidentClose = incident.dateClosed
-          ? moment(incident.dateClosed)
-          : endDate;
+        const incidentClose = incident.dateClosed ? moment(incident.dateClosed) : endDate;
         criticalDuration += incidentClose.diff(incidentStart);
       }
       criticalPercent = ((criticalDuration / totalTime) * 100).toFixed(2);
@@ -279,7 +280,7 @@ class DetailsBody extends React.Component<Props> {
     const percentages = this.calculateSummaryPercentages(
       incidents,
       timePeriod.start,
-      timePeriod.end,
+      timePeriod.end
     );
 
     return (
@@ -423,7 +424,10 @@ class DetailsBody extends React.Component<Props> {
                       query={queryWithTypeFilter}
                       environment={environment ? [environment] : undefined}
                       project={(projects as Project[]).map(project => Number(project.id))}
-                      interval={getInterval({start: timePeriod.start, end: timePeriod.end}, true)}
+                      interval={getInterval(
+                        {start: timePeriod.start, end: timePeriod.end},
+                        true
+                      )}
                       start={timePeriod.start}
                       end={timePeriod.end}
                       yAxis={aggregate}
