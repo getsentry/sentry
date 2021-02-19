@@ -360,7 +360,7 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
 
     # otherwise, try the web-scraping cache and then the web itself
 
-    cache_key = "source:cache:v4:{}".format(md5_text(url).hexdigest())
+    cache_key = f"source:cache:v4:{md5_text(url).hexdigest()}"
 
     if result is None:
         if not allow_scraping or not url.startswith(("http:", "https:")):

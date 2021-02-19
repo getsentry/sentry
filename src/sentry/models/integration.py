@@ -74,7 +74,16 @@ EXTERNAL_PROVIDERS = {
 }
 
 
-class ExternalTeam(DefaultFieldsModel):
+class ExternalProviderMixin:
+    def get_provider_string(provider_int):
+        return EXTERNAL_PROVIDERS.get(ExternalProviders(provider_int), "unknown")
+
+    def get_provider_enum(provider_str):
+        inv_providers_map = {v: k for k, v in EXTERNAL_PROVIDERS.items()}
+        return inv_providers_map[provider_str].value if inv_providers_map[provider_str] else None
+
+
+class ExternalTeam(DefaultFieldsModel, ExternalProviderMixin):
     __core__ = False
 
     team = FlexibleForeignKey("sentry.Team")
@@ -84,32 +93,32 @@ class ExternalTeam(DefaultFieldsModel):
             (ExternalProviders.GITLAB, "gitlab"),
         ),
     )
-    # external_id => the Github/Gitlab team name. Column name is vague to be reused for more external team identities.
-    external_id = models.TextField()
+    # external_name => the Github/Gitlab team name. Column name is vague to be reused for more external team identities.
+    external_name = models.TextField()
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_externalteam"
-        unique_together = (("team", "provider", "external_id"),)
+        unique_together = (("team", "provider", "external_name"),)
 
 
-class ExternalUser(DefaultFieldsModel):
+class ExternalUser(DefaultFieldsModel, ExternalProviderMixin):
     __core__ = False
 
-    user = FlexibleForeignKey("sentry.User")
+    organizationmember = FlexibleForeignKey("sentry.OrganizationMember")
     provider = BoundedPositiveIntegerField(
         choices=(
             (ExternalProviders.GITHUB, "github"),
             (ExternalProviders.GITLAB, "gitlab"),
         ),
     )
-    # external_id => the Github/Gitlab username. Column name is vague to be reused for more external user identities.
-    external_id = models.TextField()
+    # external_name => the Github/Gitlab username. Column name is vague to be reused for more external user identities.
+    external_name = models.TextField()
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_externaluser"
-        unique_together = (("user", "provider", "external_id"),)
+        unique_together = (("organizationmember", "provider", "external_name"),)
 
 
 class OrganizationIntegration(DefaultFieldsModel):

@@ -209,7 +209,6 @@ export default class ChoiceMapper extends React.Component<FieldProps> {
               <Column key={fieldKey}>
                 <Control>
                   <SelectControl
-                    deprecatedSelectControl
                     {...(perItemMapping
                       ? mappedSelectors[itemKey][fieldKey]
                       : mappedSelectors[fieldKey])}

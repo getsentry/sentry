@@ -33,7 +33,7 @@ class BitbucketIntegrationTest(APITestCase):
     def test_get_repositories_with_uuid(self):
         uuid = "{a21bd75c-0ce2-402d-b70b-e57de6fba4b3}"
         self.integration.metadata["uuid"] = uuid
-        url = "https://api.bitbucket.org/2.0/repositories/{}".format(quote(uuid))
+        url = f"https://api.bitbucket.org/2.0/repositories/{quote(uuid)}"
         responses.add(
             responses.GET,
             url,

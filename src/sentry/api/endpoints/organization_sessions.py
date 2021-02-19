@@ -31,13 +31,12 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
             return Response(result, status=200)
 
     def build_sessions_query(self, request, organization):
-        # validate and default all `project` params.
-        projects = self.get_projects(request, organization)
-        if projects is None or len(projects) == 0:
-            raise NoProjects("No projects available")
-        project_ids = [p.id for p in projects]
+        try:
+            params = self.get_filter_params(request, organization, date_filter_optional=True)
+        except NoProjects:
+            raise NoProjects("No projects available")  # give it a description
 
-        return QueryDefinition(request.GET, project_ids)
+        return QueryDefinition(request.GET, params)
 
     @contextmanager
     def handle_query_errors(self):

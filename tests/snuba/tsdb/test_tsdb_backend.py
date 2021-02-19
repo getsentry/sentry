@@ -88,11 +88,11 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
                         "baz": "quux",
                         # Switch every 2 hours
                         "environment": [env1, None][(r // 7200) % 3],
-                        "sentry:user": "id:user{}".format(r // 3300),
+                        "sentry:user": f"id:user{r // 3300}",
                     },
                     "user": {
                         # change every 55 min so some hours have 1 user, some have 2
-                        "id": "user{}".format(r // 3300),
+                        "id": f"user{r // 3300}",
                         "email": f"user{r}@sentry.io",
                     },
                     "release": str(r // 3600) * 10,  # 1 per hour,

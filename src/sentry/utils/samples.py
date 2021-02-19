@@ -106,7 +106,8 @@ def load_data(
     timestamp=None,
     start_timestamp=None,
     trace=None,
-    span=None,
+    span_id=None,
+    spans=None,
 ):
     # NOTE: Before editing this data, make sure you understand the context
     # in which its being used. It is NOT only used for local development and
@@ -173,22 +174,30 @@ def load_data(
 
         if trace is None:
             trace = uuid4().hex
-        if span is None:
-            span = uuid4().hex[:16]
+        if span_id is None:
+            span_id = uuid4().hex[:16]
 
         for tag in data["tags"]:
             if tag[0] == "trace":
                 tag[1] = trace
             elif tag[0] == "trace.span":
-                tag[1] = span
+                tag[1] = span_id
         data["contexts"]["trace"]["trace_id"] = trace
-        data["contexts"]["trace"]["span_id"] = span
+        data["contexts"]["trace"]["span_id"] = span_id
+        if spans:
+            data["spans"] = spans
 
         for span in data.get("spans", []):
             # Use data to generate span timestamps consistently and based
             # on event timestamp
             duration = span.get("data", {}).get("duration", 10.0)
             offset = span.get("data", {}).get("offset", 0)
+
+            # Span doesn't have a parent, make it the transaction
+            if span.get("parent_span_id") is None:
+                span["parent_span_id"] = span_id
+            if span.get("span_id") is None:
+                span["span_id"] = uuid4().hex[:16]
 
             span_start = data["start_timestamp"] + offset
             span["trace_id"] = trace
@@ -209,7 +218,7 @@ def load_data(
     data["platform"] = platform
     # XXX: Message is a legacy alias for logentry. Do not overwrite if set.
     if "message" not in data:
-        data["message"] = "This is an example {} exception".format(sample_name or platform)
+        data["message"] = f"This is an example {sample_name or platform} exception"
     data.setdefault(
         "user",
         generate_user(ip_address="127.0.0.1", username="sentry", id=1, email="sentry@example.com"),
@@ -256,15 +265,28 @@ def create_sample_event(
     timestamp=None,
     start_timestamp=None,
     trace=None,
+    span_id=None,
+    spans=None,
     **kwargs,
 ):
     if not platform and not default:
         return
 
-    data = load_data(platform, default, sample_name, timestamp, start_timestamp, trace)
+    data = load_data(
+        platform,
+        default,
+        sample_name,
+        timestamp,
+        start_timestamp,
+        trace,
+        span_id,
+        spans,
+    )
 
     if not data:
         return
+    if "parent_span_id" in kwargs:
+        data["contexts"]["trace"]["parent_span_id"] = kwargs.pop("parent_span_id")
 
     data.update(kwargs)
 

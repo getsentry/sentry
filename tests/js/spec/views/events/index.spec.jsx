@@ -327,8 +327,8 @@ describe('EventsContainer', function () {
 
       expect(wrapper.find('TimeRangeSelector').props()).toEqual(
         expect.objectContaining({
-          end: null,
-          start: null,
+          end: undefined,
+          start: undefined,
           relative: '7d',
         })
       );

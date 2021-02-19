@@ -1,11 +1,11 @@
 import React from 'react';
 
-import Alert, {Props as AlertProps} from 'app/components/alert';
+import Alert from 'app/components/alert';
 import {IconLab} from 'app/icons';
 import {t} from 'app/locale';
 
 type Props = {
-  type?: AlertProps['type'];
+  type?: React.ComponentProps<typeof Alert>['type'];
 };
 
 const PreviewFeature = ({type = 'info'}: Props) => (

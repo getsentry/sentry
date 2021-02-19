@@ -83,7 +83,7 @@ class OptionsManager:
         if coerce:
             value = opt.type(value)
         elif not opt.type.test(value):
-            raise TypeError("got {!r}, expected {!r}".format(_type(value), opt.type))
+            raise TypeError(f"got {_type(value)!r}, expected {opt.type!r}")
 
         return self.store.set(opt, value)
 
@@ -227,7 +227,7 @@ class OptionsManager:
 
         # Make sure the type is correct at registration time
         if default_value is not None and not type.test(default_value):
-            raise TypeError("got {!r}, expected {!r}".format(_type(default), type))
+            raise TypeError(f"got {_type(default)!r}, expected {type!r}")
 
         # If we don't have a default, but we have a type, pull the default
         # value from the type
@@ -264,7 +264,7 @@ class OptionsManager:
         opt = self.lookup_key(key)
         assert not (opt.flags & FLAG_STOREONLY), "%r is not allowed to be loaded from config" % key
         if not opt.type.test(value):
-            raise TypeError("{!r}: got {!r}, expected {!r}".format(key, _type(value), opt.type))
+            raise TypeError(f"{key!r}: got {_type(value)!r}, expected {opt.type!r}")
 
     def all(self):
         """
