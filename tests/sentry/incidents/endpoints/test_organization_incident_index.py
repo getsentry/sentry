@@ -100,7 +100,7 @@ class IncidentListEndpointTest(APITestCase):
         update_incident_status(
             incident=old_incident,
             status=IncidentStatus.CLOSED,
-            date_closed=timezone.now() - timedelta(hours=25)
+            date_closed=timezone.now() - timedelta(hours=25),
         )
         new_incident = self.create_incident(date_started=timezone.now() - timedelta(hours=2))
         update_incident_status(
