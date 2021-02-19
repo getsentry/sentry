@@ -278,7 +278,6 @@ def fetch_release_file(filename, release, dist=None):
         # If the release file is not in cache, check if we can retrieve at
         # least the size metadata from cache and prevent compression and
         # caching if payload exceeds the backend limit.
-        z_body = None
         z_body_size = None
 
         if CACHE_MAX_VALUE_SIZE:
@@ -293,7 +292,7 @@ def fetch_release_file(filename, release, dist=None):
             with metrics.timer("sourcemaps.release_file_read"):
                 with ReleaseFile.cache.getfile(releasefile) as fp:
                     if z_body_size and z_body_size > CACHE_MAX_VALUE_SIZE:
-                        body = fp.read()
+                        z_body, body = None, fp.read()
                     else:
                         z_body, body = compress_file(fp)
         except Exception:
