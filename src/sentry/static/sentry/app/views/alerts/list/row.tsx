@@ -64,7 +64,7 @@ class AlertListRow extends AsyncComponent<Props, State> {
     projects.find(project => project.slug === slug)
   );
 
-  getRuleDetailsQuery(): {start: string, end: string} {
+  getRuleDetailsQuery(): {start: string; end: string} {
     const {incident} = this.props;
     const now = moment.utc();
     const startDate = moment.utc(incident.dateStarted);
@@ -74,8 +74,8 @@ class AlertListRow extends AsyncComponent<Props, State> {
     return {
       start: getUtcDateString(startDate.subtract(halfDuration)),
       end: getUtcDateString(moment.min(endDate.add(halfDuration), now)),
-    }
-  };
+    };
+  }
 
   renderLoading() {
     return this.renderBody();
