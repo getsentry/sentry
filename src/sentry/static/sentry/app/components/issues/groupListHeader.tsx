@@ -3,27 +3,33 @@ import {Box, Flex} from 'reflexbox'; // eslint-disable-line no-restricted-import
 
 import {PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
+import styled from 'app/styled';
+import space from 'app/styles/space';
 
 type Props = {
   withChart: boolean;
+  statsPeriod: '24h' | 'auto';
 };
 
-const GroupListHeader = ({withChart = true}: Props) => (
+const GroupListHeader = ({withChart = true, statsPeriod = '24h'}: Props) => (
   <PanelHeader disablePadding>
-    <Box width={[8 / 12, 8 / 12, 6 / 12]} mx={2} flex="1" className="toolbar-header">
+    <Box width={[8 / 12, 8 / 12, 6 / 12]} mx={2} flex="1">
       {t('Issue')}
     </Box>
     {withChart && (
-      <Box width={160} mx={2} className="toolbar-header hidden-xs hidden-sm">
-        {t('Last 24 hours')}
-      </Box>
+      <Flex width={160} mx={2} justifyContent="space-between" className="hidden-xs hidden-sm">
+        {t('Graph: ')}
+        <StatsPeriodWrapper>
+          {statsPeriod === 'auto' ? t('Custom') : statsPeriod}
+        </StatsPeriodWrapper>
+      </Flex>
     )}
-    <Flex width={80} mx={2} justifyContent="flex-end" className="toolbar-header">
+    <EventUserWrapper>
       {t('events')}
-    </Flex>
-    <Flex width={80} mx={2} justifyContent="flex-end" className="toolbar-header">
+    </EventUserWrapper>
+    <EventUserWrapper>
       {t('users')}
-    </Flex>
+    </EventUserWrapper>
     <Flex
       width={80}
       mx={2}
@@ -36,3 +42,20 @@ const GroupListHeader = ({withChart = true}: Props) => (
 );
 
 export default GroupListHeader;
+
+const StatsPeriodWrapper = styled('div')`
+  text-transform: none;
+`;
+
+const EventUserWrapper = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  align-self: center;
+  width: 60px;
+  margin: 0 ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    width: 80px;
+  }
+`;
+
