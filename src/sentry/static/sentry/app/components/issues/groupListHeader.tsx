@@ -17,19 +17,20 @@ const GroupListHeader = ({withChart = true, statsPeriod = '24h'}: Props) => (
       {t('Issue')}
     </Box>
     {withChart && (
-      <Flex width={160} mx={2} justifyContent="space-between" className="hidden-xs hidden-sm">
+      <Flex
+        width={160}
+        mx={2}
+        justifyContent="space-between"
+        className="hidden-xs hidden-sm"
+      >
         {t('Graph: ')}
         <StatsPeriodWrapper>
           {statsPeriod === 'auto' ? t('Custom') : statsPeriod}
         </StatsPeriodWrapper>
       </Flex>
     )}
-    <EventUserWrapper>
-      {t('events')}
-    </EventUserWrapper>
-    <EventUserWrapper>
-      {t('users')}
-    </EventUserWrapper>
+    <EventUserWrapper>{t('events')}</EventUserWrapper>
+    <EventUserWrapper>{t('users')}</EventUserWrapper>
     <Flex
       width={80}
       mx={2}
@@ -58,4 +59,3 @@ const EventUserWrapper = styled('div')`
     width: 80px;
   }
 `;
-
