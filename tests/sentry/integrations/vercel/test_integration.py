@@ -311,38 +311,41 @@ class VercelIntegrationTest(IntegrationTestCase):
             json={"link": {"type": "github"}, "framework": "gatsby"},
         )
 
-        # mock create the secret for the auth token
-        responses.add(
-            responses.POST,
-            "https://api.vercel.com/v2/now/secrets",
-            json={"uid": "sec_0"},
-        )
-
-        # mock try to create env vars
-        for env_var in env_var_map:
+        # mock update env vars
+        count = 0
+        for env_var, details in env_var_map.items():
+            if details["type"] == "secret":
+                # mock create the secret for the auth token
+                responses.add(
+                    responses.POST,
+                    "https://api.vercel.com/v2/now/secrets",
+                    json={"uid": "sec_0"},
+                )
+            # mock try to create env var
             responses.add(
                 responses.POST,
                 "https://api.vercel.com/v6/projects/%s/env"
                 % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
                 json={"error": {"code": "ENV_ALREADY_EXISTS"}},
-                status=403,
+                status=400,
             )
-
-        # mock get env vars
-        for i, env_var in enumerate(env_var_map):
+            # mock get env var
             responses.add(
                 responses.GET,
                 "https://api.vercel.com/v6/projects/%s/env"
                 % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
-                json={"envs": [{"id": i, "key": env_var}]},
+                json={"envs": [{"id": count, "key": env_var}]},
             )
-
-        # mock update env vars
-        for env_var, details in env_var_map.items():
+            print("update url2")
+            print(
+                "https://api.vercel.com/v6/projects/%s/env/%s"
+                % ("Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H", count)
+            )
+            # mock update env var
             responses.add(
                 responses.PATCH,
                 "https://api.vercel.com/v6/projects/%s/env/%s"
-                % ("Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H", i),
+                % ("Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H", count),
                 json={
                     "key": env_var,
                     "value": details["value"],
@@ -350,6 +353,7 @@ class VercelIntegrationTest(IntegrationTestCase):
                     "type": details["type"],
                 },
             )
+            count += 1
 
         sentry_auth_token = SentryAppInstallationForProvider.objects.get(
             organization=org.id, provider="vercel"

@@ -261,10 +261,14 @@ class VercelIntegration(IntegrationInstallation):
             for env_var, details in env_var_map.items():
                 if details["type"] == "secret":
                     secret_name = env_var + "_%s" % uuid
-                    details["value"] = vercel_client.create_secret(secret_name, details["value"])
-                self.create_env_var(
-                    vercel_client, vercel_project_id, env_var, details["value"], details["type"]
-                )
+                    secret_value = vercel_client.create_secret(secret_name, details["value"])
+                    self.create_env_var(
+                        vercel_client, vercel_project_id, env_var, secret_value, details["type"]
+                    )
+                else:
+                    self.create_env_var(
+                        vercel_client, vercel_project_id, env_var, details["value"], details["type"]
+                    )
 
         config.update(data)
         self.org_integration.update(config=config)
@@ -277,27 +281,26 @@ class VercelIntegration(IntegrationInstallation):
             "type": type,
         }
         try:
-            return client.create_env_variable(vercel_project_id, key, value, data)
+            return client.create_env_variable(vercel_project_id, data)
         except ApiError as e:
-            if e.json and e.json.get("error", {}).get("code"):
-                if e.json["error"]["code"] == "ENV_ALREADY_EXISTS":
-                    return self.update_env_variable(client, vercel_project_id, key, value, data)
+            if e.json and e.json.get("error", {}).get("code") == "ENV_ALREADY_EXISTS":
+                return self.update_env_variable(client, vercel_project_id, data)
             raise
 
-    def update_env_variable(self, client, vercel_project_id, key, value, data):
-        env_var_id = [
-            env_var["id"]
-            for env_var in client.get_env_vars(vercel_project_id)["envs"]
-            if env_var["key"] == key
-        ]
-        if env_var_id:
-            return client.update_env_variable(vercel_project_id, env_var_id[0], data)
+    def update_env_variable(self, client, vercel_project_id, data):
+        try:
+            envs = client.get_env_vars(vercel_project_id)["envs"]
+        except Exception:
+            raise
 
-        message = "Could not update environment variable {} in Vercel project {}.".format(
-            key,
-            vercel_project_id,
-        )
-        raise IntegrationError(message)
+        env_var_ids = [env_var["id"] for env_var in envs if env_var["key"] == data["key"]]
+        if env_var_ids:
+            try:
+                return client.update_env_variable(vercel_project_id, env_var_ids[0], data)
+            except ApiError:
+                key = data["key"]
+                message = f"Could not update environment variable {key} in Vercel project {vercel_project_id}."
+                raise IntegrationError(message)
 
 
 class VercelIntegrationProvider(IntegrationProvider):

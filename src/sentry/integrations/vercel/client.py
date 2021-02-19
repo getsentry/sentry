@@ -89,7 +89,7 @@ class VercelClient(ApiClient):
         response = self.post(self.SECRETS_URL, data=data)["uid"]
         return response
 
-    def create_env_variable(self, vercel_project_id, key, value, data):
+    def create_env_variable(self, vercel_project_id, data):
         return self.post(self.ENV_VAR_URL % vercel_project_id, data=data)
 
     def update_env_variable(self, vercel_project_id, env_var_id, data):
