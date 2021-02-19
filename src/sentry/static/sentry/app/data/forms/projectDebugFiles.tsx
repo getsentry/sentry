@@ -46,6 +46,7 @@ export const fields: Record<string, Field> = {
   builtinSymbolSources: {
     name: 'builtinSymbolSources',
     type: 'select',
+    deprecatedSelectControl: false,
     multiple: true,
     label: t('Built-in Repositories'),
     help: t(

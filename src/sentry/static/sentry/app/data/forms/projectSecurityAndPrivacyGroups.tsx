@@ -26,7 +26,8 @@ export default [
     fields: [
       {
         name: 'storeCrashReports',
-        type: 'array',
+        type: 'select',
+        deprecatedSelectControl: false,
         label: t('Store Native Crash Reports'),
         help: ({organization}) =>
           tct(

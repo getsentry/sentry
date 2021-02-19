@@ -66,7 +66,8 @@ export default [
       },
       {
         name: 'storeCrashReports',
-        type: 'array',
+        type: 'select',
+        deprecatedSelectControl: false,
         label: t('Store Native Crash Reports'),
         help: t(
           'Store native crash reports such as Minidumps for improved processing and download in issue details'
