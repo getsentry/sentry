@@ -25,15 +25,15 @@ function getVitalStateText(vital, vitalState) {
     case VitalState.POOR:
       return Array.isArray(vital)
         ? t('Poor')
-        : tct('Poor: >[threshold]ms', webVitalPoor[vital]);
+        : tct('Poor: >[threshold]ms', {threshold: webVitalPoor[vital]});
     case VitalState.MEH:
       return Array.isArray(vital)
         ? t('Needs improvement')
-        : tct('Needs improvement: >[threshold]ms', webVitalMeh[vital]);
+        : tct('Needs improvement: >[threshold]ms', {threshold: webVitalMeh[vital]});
     case VitalState.GOOD:
       return Array.isArray(vital)
         ? t('Good')
-        : tct('Good: <[threshold]ms', webVitalMeh[vital]);
+        : tct('Good: <[threshold]ms', {threshold: webVitalMeh[vital]});
     default:
       return null;
   }
