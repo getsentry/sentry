@@ -39,7 +39,7 @@ import {extractEventTypeFilterFromRule} from 'app/views/settings/incidentRules/u
 import {Incident, IncidentStatus} from '../../types';
 import {DATA_SOURCE_LABELS, getIncidentRuleMetricPreset} from '../../utils';
 
-import {TIME_OPTIONS, API_INTERVAL_POINTS_LIMIT} from './constants';
+import {API_INTERVAL_POINTS_LIMIT, TIME_OPTIONS} from './constants';
 import MetricChart from './metricChart';
 import RelatedIssues from './relatedIssues';
 import RelatedTransactions from './relatedTransactions';
@@ -83,12 +83,18 @@ class DetailsBody extends React.Component<Props> {
   }
 
   getInterval() {
-    const {timePeriod: {start, end}, rule} = this.props
+    const {
+      timePeriod: {start, end},
+      rule,
+    } = this.props;
     const startDate = moment.utc(start);
     const endDate = moment.utc(end);
     const timeWindow = rule?.timeWindow;
 
-    if (timeWindow && endDate.diff(startDate) < (API_INTERVAL_POINTS_LIMIT * timeWindow * 60 * 1000)) {
+    if (
+      timeWindow &&
+      endDate.diff(startDate) < API_INTERVAL_POINTS_LIMIT * timeWindow * 60 * 1000
+    ) {
       return `${timeWindow}m`;
     }
 
@@ -346,13 +352,7 @@ class DetailsBody extends React.Component<Props> {
       return this.renderLoading();
     }
 
-    const {
-      query,
-      environment,
-      aggregate,
-      projects: projectSlugs,
-      triggers,
-    } = rule;
+    const {query, environment, aggregate, projects: projectSlugs, triggers} = rule;
 
     const criticalTrigger = triggers.find(({label}) => label === 'critical');
     const warningTrigger = triggers.find(({label}) => label === 'warning');
