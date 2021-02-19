@@ -1,6 +1,7 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router';
 import {Location} from 'history';
+import moment from 'moment';
 
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {Client} from 'app/api';
@@ -12,11 +13,10 @@ import {IncidentRule} from 'app/views/settings/incidentRules/types';
 import {Incident} from '../../types';
 import {fetchAlertRule, fetchIncidentsForRule} from '../../utils';
 
-import DetailsBody, {
-  ALERT_RULE_DETAILS_DEFAULT_PERIOD,
-  getStartEndTimesFromPeriod,
-} from './body';
+import DetailsBody from './body';
 import DetailsHeader from './header';
+import {getUtcDateString} from 'app/utils/dates';
+import {TIME_OPTIONS, TIME_WINDOWS, ALERT_RULE_DETAILS_DEFAULT_PERIOD} from './constants';
 
 type Props = {
   api: Client;
@@ -34,6 +34,29 @@ type State = {
 class AlertRuleDetails extends React.Component<Props, State> {
   state: State = {isLoading: false, hasError: false};
 
+  getTimePeriod() {
+    const {location} = this.props;
+
+    if (location.query.start && location.query.end) {
+      return {
+        start: location.query.start,
+        end: location.query.end,
+        label: 'Custom',
+      }
+    }
+
+    const timePeriod = location.query.period ?? ALERT_RULE_DETAILS_DEFAULT_PERIOD;
+    const timeOption = TIME_OPTIONS.find(item => item.value === timePeriod) ?? TIME_OPTIONS[1];
+    const start = getUtcDateString(moment(moment.utc().diff(TIME_WINDOWS[timeOption.value])));
+    const end = getUtcDateString(moment.utc());
+
+    return {
+      start,
+      end,
+      label: timeOption.label as string,
+    };
+  }
+
   componentDidMount() {
     const {api, params} = this.props;
 
@@ -42,16 +65,13 @@ class AlertRuleDetails extends React.Component<Props, State> {
   }
 
   fetchData = async () => {
-    const {location} = this.props;
-
     this.setState({isLoading: true, hasError: false});
     const {
       params: {orgId, ruleId},
     } = this.props;
 
-    const {start, end} = getStartEndTimesFromPeriod(
-      location.query.period ?? ALERT_RULE_DETAILS_DEFAULT_PERIOD
-    );
+    const timePeriod = this.getTimePeriod();
+    const {start, end} = timePeriod;
 
     try {
       const rulePromise = fetchAlertRule(orgId, ruleId).then(rule =>
@@ -73,6 +93,7 @@ class AlertRuleDetails extends React.Component<Props, State> {
   render() {
     const {rule, incidents, hasError} = this.state;
     const {params, organization} = this.props;
+    const timePeriod = this.getTimePeriod();
 
     return (
       <React.Fragment>
@@ -82,7 +103,7 @@ class AlertRuleDetails extends React.Component<Props, State> {
             params={params}
             rule={rule}
           />
-          <DetailsBody {...this.props} rule={rule} incidents={incidents} />
+          <DetailsBody {...this.props} rule={rule} incidents={incidents} timePeriod={timePeriod}/>
         </Feature>
       </React.Fragment>
     );

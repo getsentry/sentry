@@ -64,6 +64,19 @@ class AlertListRow extends AsyncComponent<Props, State> {
     projects.find(project => project.slug === slug)
   );
 
+  getRuleDetailsQuery(): {start: string, end: string} {
+    const {incident} = this.props;
+    const now = moment.utc();
+    const startDate = moment.utc(incident.dateStarted);
+    const endDate = incident.dateClosed ? moment.utc(incident.dateClosed) : now;
+    const halfDuration = moment.duration(endDate.diff(startDate) / 2);
+
+    return {
+      start: getUtcDateString(startDate.subtract(halfDuration)),
+      end: getUtcDateString(moment.min(endDate.add(halfDuration), now)),
+    }
+  };
+
   renderLoading() {
     return this.renderBody();
   }
@@ -112,17 +125,14 @@ class AlertListRow extends AsyncComponent<Props, State> {
     const slug = incident.projects[0];
 
     const hasRedesign =
-      incident?.alertRule &&
-      !isIssueAlert(incident?.alertRule) &&
+      incident.alertRule &&
+      !isIssueAlert(incident.alertRule) &&
       organization.features.includes('alert-details-redesign');
 
     const alertLink = hasRedesign
       ? {
-          pathname: `/organizations/${orgId}/alerts/rules/details/${incident?.alertRule?.id}/`,
-          query: {
-            start: incident.dateStarted,
-            end: incident.dateClosed ?? getUtcDateString(moment.utc()),
-          },
+          pathname: `/organizations/${orgId}/alerts/rules/details/${incident.alertRule?.id}/`,
+          query: this.getRuleDetailsQuery(),
         }
       : {
           pathname: `/organizations/${orgId}/alerts/${incident.identifier}/`,

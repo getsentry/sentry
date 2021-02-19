@@ -22,9 +22,8 @@ import {IconFire} from 'app/icons/iconFire';
 import {IconWarning} from 'app/icons/iconWarning';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project, SelectValue} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
-import {getUtcDateString} from 'app/utils/dates';
 import Projects from 'app/utils/projects';
 import {Theme} from 'app/utils/theme';
 import Timeline from 'app/views/alerts/rules/details/timeline';
@@ -34,8 +33,6 @@ import {
   AlertRuleThresholdType,
   Dataset,
   IncidentRule,
-  TimePeriod,
-  TimeWindow,
 } from 'app/views/settings/incidentRules/types';
 import {extractEventTypeFilterFromRule} from 'app/views/settings/incidentRules/utils/getEventTypeFilter';
 
@@ -45,40 +42,21 @@ import {DATA_SOURCE_LABELS, getIncidentRuleMetricPreset} from '../../utils';
 import MetricChart from './metricChart';
 import RelatedIssues from './relatedIssues';
 import RelatedTransactions from './relatedTransactions';
+import {TIME_OPTIONS} from './constants';
 
 type Props = {
   api: Client;
   rule?: IncidentRule;
   incidents?: Incident[];
+  timePeriod: {
+    start: string,
+    end: string,
+    label: string,
+  };
   organization: Organization;
   location: Location;
   theme: Theme;
 } & RouteComponentProps<{orgId: string}, {}>;
-
-const TIME_OPTIONS: SelectValue<string>[] = [
-  {label: t('6 hours'), value: TimePeriod.SIX_HOURS},
-  {label: t('24 hours'), value: TimePeriod.ONE_DAY},
-  {label: t('3 days'), value: TimePeriod.THREE_DAYS},
-  {label: t('7 days'), value: TimePeriod.SEVEN_DAYS},
-];
-
-export const ALERT_RULE_DETAILS_DEFAULT_PERIOD = TimePeriod.ONE_DAY;
-
-const TIME_WINDOWS = {
-  [TimePeriod.SIX_HOURS]: TimeWindow.ONE_HOUR * 6 * 60 * 1000,
-  [TimePeriod.ONE_DAY]: TimeWindow.ONE_DAY * 60 * 1000,
-  [TimePeriod.THREE_DAYS]: TimeWindow.ONE_DAY * 3 * 60 * 1000,
-  [TimePeriod.SEVEN_DAYS]: TimeWindow.ONE_DAY * 7 * 60 * 1000,
-};
-
-export const getStartEndTimesFromPeriod = (
-  period: string
-): {start: string; end: string} => {
-  return {
-    start: getUtcDateString(moment(moment.utc().diff(TIME_WINDOWS[period]))),
-    end: getUtcDateString(moment.utc()),
-  };
-};
 
 class DetailsBody extends React.Component<Props> {
   get metricPreset() {
@@ -102,29 +80,6 @@ class DetailsBody extends React.Component<Props> {
     const direction = isAbove === isAlert ? '>' : '<';
 
     return `${direction} ${value}`;
-  }
-
-  getTimePeriod() {
-    const {location} = this.props;
-
-    const timePeriod = location.query.period ?? ALERT_RULE_DETAILS_DEFAULT_PERIOD;
-    const timeOption =
-      TIME_OPTIONS.find(item => item.value === timePeriod) ?? TIME_OPTIONS[1];
-    const {start: periodStart, end: periodEnd} = getStartEndTimesFromPeriod(
-      timeOption.value
-    );
-
-    const useQueryTimes = location.query.start && location.query.end;
-
-    const start = useQueryTimes ? location.query.start : periodStart;
-    const end = useQueryTimes ? location.query.end : periodEnd;
-    const label = useQueryTimes ? 'Custom' : timeOption.label;
-
-    return {
-      label,
-      start,
-      end,
-    };
   }
 
   handleTimePeriodChange = (value: string) => {
@@ -262,8 +217,7 @@ class DetailsBody extends React.Component<Props> {
   }
 
   renderChartActions(projects: Project[]) {
-    const {rule, params, incidents} = this.props;
-    const timePeriod = this.getTimePeriod();
+    const {rule, params, incidents, timePeriod} = this.props;
     const preset = this.metricPreset;
     const ctaOpts = {
       orgSlug: params.orgId,
@@ -372,6 +326,7 @@ class DetailsBody extends React.Component<Props> {
       incidents,
       location,
       organization,
+      timePeriod,
       params: {orgId},
     } = this.props;
 
@@ -390,7 +345,6 @@ class DetailsBody extends React.Component<Props> {
 
     const criticalTrigger = triggers.find(({label}) => label === 'critical');
     const warningTrigger = triggers.find(({label}) => label === 'warning');
-    const timePeriod = this.getTimePeriod();
     const queryWithTypeFilter = `${query} ${extractEventTypeFilterFromRule(rule)}`.trim();
 
     return (
