@@ -352,7 +352,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
     const suggestedReasons: Record<SuggestedOwnerReason, React.ReactNode> = {
       suspectCommit: tct('Based on [commit:commit data]', {
         commit: (
-          <ExternalLink href="https://docs.sentry.io/product/sentry-basics/guides/integrate-frontend/configure-scms/" />
+          <TooltipSubExternalLink href="https://docs.sentry.io/product/sentry-basics/guides/integrate-frontend/configure-scms/" />
         ),
       }),
       ownershipRule: t('Matching Issue Owners Rule'),
@@ -442,6 +442,7 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
                   <SuggestedAvatarStack
                     size={24}
                     owners={suggestedActors}
+                    tooltipOptions={{isHoverable: true}}
                     tooltip={
                       <TooltipWrapper>
                         <div>
@@ -603,10 +604,6 @@ const TooltipWrapper = styled('div')`
 
 const TooltipSubtext = styled('div')`
   color: ${p => p.theme.subText};
-
-  & > a {
-    color: ${p => p.theme.subText};
-  }
 `;
 
 const TooltipSubExternalLink = styled(ExternalLink)`
