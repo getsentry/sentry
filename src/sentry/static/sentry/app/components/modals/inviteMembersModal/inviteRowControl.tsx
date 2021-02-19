@@ -197,7 +197,7 @@ function getStyles(theme: Theme, inviteStatus: Props['inviteStatus']) {
       const status = inviteStatus[data.value];
       return {
         ...provided,
-        ...( status?.error
+        ...(status?.error
           ? {
               borderLeft: `1px solid ${theme.red300}`,
               ':hover': {backgroundColor: theme.red100, color: theme.red300},
