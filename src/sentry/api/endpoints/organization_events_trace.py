@@ -27,7 +27,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
             "organizations:trace-view-quick", organization, actor=request.user
         ) or features.has("organizations:trace-view-summary", organization, actor=request.user)
 
-    def serialize_event(self, event, parent, is_root_event=False):
+    def serialize_event(self, event, parent, generation, is_root_event=False):
         return {
             "event_id": event["id"],
             "span_id": event["trace.span"],
@@ -37,7 +37,9 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
             "parent_event_id": parent,
             # Avoid empty string for root events
             "parent_span_id": event["trace.parent_span"] or None,
+            # TODO(wmak) remove once we switch over to generation
             "is_root": is_root_event,
+            "generation": generation,
         }
 
     def get(self, request, organization, trace_id):
@@ -114,7 +116,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
 class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
     def serialize(self, parent_map, root, warning_extra, snuba_event, event_id=None):
         """ Because the light endpoint could potentially have gaps between root and event we return a flattened list """
-        trace_results = [self.serialize_event(root, None, True)]
+        trace_results = [self.serialize_event(root, None, 0, True)]
 
         if root["id"] != event_id:
             # Get the root event and see if the current event's span is in the root event
@@ -126,14 +128,16 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
 
             # For the light response, the parent will be unknown unless it is a direct descendent of the root
             trace_results.append(
-                self.serialize_event(snuba_event, root["id"] if root_span is not None else None)
+                self.serialize_event(
+                    snuba_event, root["id"] if root_span is not None else None, None
+                )
             )
 
         event = eventstore.get_event_by_id(snuba_event["project_id"], event_id)
         for span in event.data.get("spans", []):
             if span["span_id"] in parent_map:
                 child_event = parent_map[span["span_id"]]
-                trace_results.append(self.serialize_event(child_event, event_id))
+                trace_results.append(self.serialize_event(child_event, event_id, None))
 
         return trace_results
 
@@ -147,7 +151,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
     def serialize(self, parent_map, root, warning_extra, snuba_event=None, event_id=None):
         """ For the full event trace, we return the results as a graph instead of a flattened list """
         parent_events = {}
-        parent_events[root["id"]] = result = self.serialize_event(root, None, True)
+        parent_events[root["id"]] = result = self.serialize_event(root, None, 0, True)
 
         current_event = root
         to_check = deque([root])
@@ -155,17 +159,19 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         while to_check:
             current_event = to_check.popleft()
             event = eventstore.get_event_by_id(current_event["project_id"], current_event["id"])
+            previous_event = parent_events[current_event["id"]]
             for child in [
                 item for item in event.data.get("spans", []) if item["span_id"] in parent_map
             ]:
                 # Avoid potential span loops by popping, so we don't traverse the same nodes twice
                 child_event = parent_map.pop(child["span_id"])
+
                 parent_events[child_event["id"]] = self.serialize_event(
-                    child_event, current_event["id"]
+                    child_event, current_event["id"], previous_event["generation"] + 1
                 )
-                parent_events[current_event["id"]]["children"].append(
-                    parent_events[child_event["id"]]
-                )
+                # Add this event to its parent's children
+                previous_event["children"].append(parent_events[child_event["id"]])
+
                 to_check.append(child_event)
             # Limit iterations just to be safe
             iteration += 1

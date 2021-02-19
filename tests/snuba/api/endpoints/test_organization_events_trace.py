@@ -224,7 +224,7 @@ class OrganizationEventsTrendsLightEndpointTest(OrganizationEventsTrendsEndpoint
 
         assert root_event_id in events
         event = events[root_event_id]
-        assert event["is_root"]
+        assert event["generation"] == 0
         assert event["parent_event_id"] is None
         assert event["parent_span_id"] is None
 
@@ -232,7 +232,7 @@ class OrganizationEventsTrendsLightEndpointTest(OrganizationEventsTrendsEndpoint
             child_event_id = child_event.event_id
             assert child_event_id in events
             event = events[child_event_id]
-            assert not event["is_root"]
+            assert event["generation"] is None
             assert event["parent_event_id"] == root_event_id
             assert event["parent_span_id"] == self.root_span_ids[i]
 
@@ -255,19 +255,19 @@ class OrganizationEventsTrendsLightEndpointTest(OrganizationEventsTrendsEndpoint
 
         assert root_event_id in events
         event = events[root_event_id]
-        assert event["is_root"]
+        assert event["generation"] == 0
         assert event["parent_event_id"] is None
         assert event["parent_span_id"] is None
 
         assert current_event in events
         event = events[current_event]
-        assert not event["is_root"]
+        assert event["generation"] is None
         assert event["parent_event_id"] == root_event_id
         assert event["parent_span_id"] == self.root_span_ids[0]
 
         assert child_event_id in events
         event = events[child_event_id]
-        assert not event["is_root"]
+        assert event["generation"] is None
         assert event["parent_event_id"] == current_event
         assert event["parent_span_id"] == self.gen1_span_ids[0]
 
@@ -290,21 +290,21 @@ class OrganizationEventsTrendsLightEndpointTest(OrganizationEventsTrendsEndpoint
 
         assert root_event_id in events
         event = events[root_event_id]
-        assert event["is_root"]
+        assert event["generation"] == 0
         assert event["parent_event_id"] is None
         assert event["parent_span_id"] is None
 
         assert current_event in events
         event = events[current_event]
-        assert not event["is_root"]
-        # Parent is unknown in this case
+        # Parent/generation is unknown in this case
+        assert event["generation"] is None
         assert event["parent_event_id"] is None
         # But we still know the parent_span
         assert event["parent_span_id"] == self.gen1_span_ids[0]
 
         assert child_event_id in events
         event = events[child_event_id]
-        assert not event["is_root"]
+        assert event["generation"] is None
         assert event["parent_event_id"] == current_event
         assert event["parent_span_id"] == self.gen2_span_ids[0]
 
@@ -326,13 +326,13 @@ class OrganizationEventsTrendsLightEndpointTest(OrganizationEventsTrendsEndpoint
 
         assert root_event_id in events
         event = events[root_event_id]
-        assert event["is_root"]
+        assert event["generation"] == 0
         assert event["parent_event_id"] is None
         assert event["parent_span_id"] is None
 
         assert current_event in events
         event = events[current_event]
-        assert not event["is_root"]
+        assert event["generation"] is None
         # Parent is unknown in this case
         assert event["parent_event_id"] is None
         # But we still know the parent_span
@@ -347,18 +347,21 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsEndpointBase)
         assert root["event_id"] == self.root_event.event_id
         assert root["parent_event_id"] is None
         assert root["parent_span_id"] is None
+        assert root["generation"] == 0
         assert len(root["children"]) == 3
 
         for i, gen1 in enumerate(root["children"]):
             assert gen1["event_id"] == self.gen1_events[i].event_id
             assert gen1["parent_event_id"] == self.root_event.event_id
             assert gen1["parent_span_id"] == self.root_span_ids[i]
+            assert gen1["generation"] == 1
             assert len(gen1["children"]) == 1
 
             gen2 = gen1["children"][0]
             assert gen2["event_id"] == self.gen2_events[i].event_id
             assert gen2["parent_event_id"] == self.gen1_events[i].event_id
             assert gen2["parent_span_id"] == self.gen1_span_ids[i]
+            assert gen2["generation"] == 2
 
             # Only the first gen2 descendent has a child
             if i == 0:
@@ -366,6 +369,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsEndpointBase)
                 assert gen3["event_id"] == self.gen3_event.event_id
                 assert gen3["parent_event_id"] == self.gen2_events[i].event_id
                 assert gen3["parent_span_id"] == self.gen2_span_ids[i]
+                assert gen3["generation"] == 3
 
     def test_no_projects(self):
         user = self.create_user()
