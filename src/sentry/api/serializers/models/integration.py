@@ -9,6 +9,7 @@ from sentry.models import (
     Integration,
     OrganizationIntegration,
     ExternalTeam,
+    ExternalUser,
 )
 
 
@@ -212,6 +213,18 @@ class ExternalTeamSerializer(Serializer):
         return {
             "id": str(obj.id),
             "teamId": str(obj.team_id),
+            "provider": provider,
+            "externalName": obj.external_name,
+        }
+
+
+@register(ExternalUser)
+class ExternalUserSerializer(Serializer):
+    def serialize(self, obj, attrs, user):
+        provider = ExternalUser.get_provider_string(obj.provider)
+        return {
+            "id": str(obj.id),
+            "memberId": str(obj.organizationmember_id),
             "provider": provider,
             "externalName": obj.external_name,
         }

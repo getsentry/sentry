@@ -74,7 +74,16 @@ EXTERNAL_PROVIDERS = {
 }
 
 
-class ExternalTeam(DefaultFieldsModel):
+class ExternalProviderMixin:
+    def get_provider_string(provider_int):
+        return EXTERNAL_PROVIDERS.get(ExternalProviders(provider_int), "unknown")
+
+    def get_provider_enum(provider_str):
+        inv_providers_map = {v: k for k, v in EXTERNAL_PROVIDERS.items()}
+        return inv_providers_map[provider_str].value if inv_providers_map[provider_str] else None
+
+
+class ExternalTeam(DefaultFieldsModel, ExternalProviderMixin):
     __core__ = False
 
     team = FlexibleForeignKey("sentry.Team")
@@ -92,15 +101,8 @@ class ExternalTeam(DefaultFieldsModel):
         db_table = "sentry_externalteam"
         unique_together = (("team", "provider", "external_name"),)
 
-    def get_provider_string(provider_int):
-        return EXTERNAL_PROVIDERS.get(ExternalProviders(provider_int), "unknown")
 
-    def get_provider_enum(provider_str):
-        inv_providers_map = {v: k for k, v in EXTERNAL_PROVIDERS.items()}
-        return inv_providers_map[provider_str].value if inv_providers_map[provider_str] else None
-
-
-class ExternalUser(DefaultFieldsModel):
+class ExternalUser(DefaultFieldsModel, ExternalProviderMixin):
     __core__ = False
 
     organizationmember = FlexibleForeignKey("sentry.OrganizationMember")

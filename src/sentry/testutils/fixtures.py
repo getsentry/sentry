@@ -293,6 +293,15 @@ class Fixtures:
             alert_rule_trigger, target_identifier=target_identifier, **kwargs
         )
 
+    def create_external_user(self, user=None, organization=None, **kwargs):
+        if not user:
+            user = self.user
+        if not organization:
+            organization = self.organization
+
+        organizationmember = OrganizationMember.objects.get(user=user, organization=organization)
+        return Factories.create_external_user(organizationmember=organizationmember, **kwargs)
+
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):
         self.insta_snapshot = insta_snapshot
