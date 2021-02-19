@@ -3,6 +3,8 @@ import itertools
 import logging
 import random
 import time
+from abc import ABC, abstractmethod
+from typing import Callable, Generic, TypeVar
 
 from django.utils.encoding import force_bytes
 
@@ -25,8 +27,12 @@ class RetryException(Exception):
         return f"<{type(self).__name__}: {self.message!r}>"
 
 
-class RetryPolicy:
-    def __call__(self, function):
+T = TypeVar("T")
+
+
+class RetryPolicy(Generic[T], ABC):
+    @abstractmethod
+    def __call__(self, function: Callable[[], T]) -> T:
         raise NotImplementedError
 
     @classmethod
