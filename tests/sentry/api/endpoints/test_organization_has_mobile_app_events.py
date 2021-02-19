@@ -27,7 +27,8 @@ class OrganizationIntegrationRequestTest(APITestCase):
         expected = {"browserName": "okhttp", "clientOsName": ""}
         assert response.status_code == 200
         assert response.data == expected
-        mock_cache_set.assert_called_with(mock.ANY, {"result": expected}, 24 * 60 * 60)
+        cache_key = f"check_mobile_app_events:{self.organization.id}"
+        mock_cache_set.assert_called_with(cache_key, {"result": expected}, 24 * 60 * 60)
 
     @mock.patch("sentry.api.endpoints.organization_has_mobile_app_events.discover.query")
     def test_hit_cache_on_success(self, mock_query):
@@ -69,7 +70,7 @@ class OrganizationIntegrationRequestTest(APITestCase):
         assert mock_query.call_count == 1
 
         org2 = self.create_organization(owner=self.user)
-        team = self.create_team(organization=org2)
+        team = self.create_team(organization=org2, members=[self.user])
         self.create_project(organization=org2, teams=[team])
         response = self.get_response(org2.slug, userAgents=["okhttp"])
         assert response.status_code == 200
