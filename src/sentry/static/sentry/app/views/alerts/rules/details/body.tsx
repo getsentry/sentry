@@ -360,7 +360,7 @@ class DetailsBody extends React.Component<Props> {
       return this.renderLoading();
     }
 
-    const {query, environment, aggregate, projects: projectSlugs} = rule;
+    const {query, environment, aggregate, projects: projectSlugs, timeWindow} = rule;
     const timePeriod = this.getTimePeriod();
     const queryWithTypeFilter = `${query} ${extractEventTypeFilterFromRule(rule)}`.trim();
 
@@ -395,8 +395,7 @@ class DetailsBody extends React.Component<Props> {
                       query={queryWithTypeFilter}
                       environment={environment ? [environment] : undefined}
                       project={(projects as Project[]).map(project => Number(project.id))}
-                      // TODO(davidenwang): allow interval to be changed for larger time periods
-                      interval="60s"
+                      interval={`${timeWindow}m`}
                       period={timePeriod.value}
                       yAxis={aggregate}
                       includePrevious={false}
