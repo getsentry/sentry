@@ -5,7 +5,7 @@ from django.db import migrations
 
 def add_my_issues_search(apps, schema_editor):
     SavedSearch = apps.get_model("sentry", "SavedSearch")
-    search = SavedSearch.objects.create(
+    SavedSearch.objects.create(
         name="My Issues",
         query="is:unresolved assigned_or_suggested:me",
         organization_id=None,
@@ -15,7 +15,6 @@ def add_my_issues_search(apps, schema_editor):
         type=0,
         sort="date",
     )
-    search.save()
 
 
 class Migration(migrations.Migration):
@@ -37,7 +36,7 @@ class Migration(migrations.Migration):
     # You'll also usually want to set this to `False` if you're writing a data
     # migration, since we don't want the entire migration to run in one long-running
     # transaction.
-    atomic = True
+    atomic = False
 
     dependencies = [
         ("sentry", "0163_add_organizationmember_and_external_name"),
