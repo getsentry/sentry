@@ -425,35 +425,33 @@ export class Client {
     // compatibility layer which mimics that of the jquery response objects.
     fetchRequest
       .then(async response => {
-        let responseJSON: any;
-        let responseText: any;
-
-        // Try to get JSON out of the response no matter the status
-        try {
-          responseJSON = await response.json();
-        } catch {
-          // No json came out.. too bad
-        }
-
-        // Try to get text out of the response no matter the status
-        try {
-          responseText = await response.text();
-        } catch {
-          // No text came out.. too bad
-        }
-
         const {ok, status, statusText} = response;
 
         const emulatedJQueryXHR: any = {
           status,
           statusText,
-          responseJSON,
-          responseText,
+          responseJSON: undefined,
+          responseText: undefined,
           getResponseHeader: (header: string) => response.headers.get(header),
         };
 
+        // Try to get text out of the response no matter the status
+        try {
+          emulatedJQueryXHR.responseText = await response.text();
+        } catch {
+          // No text came out.. too bad
+        }
+
+        // Try to get JSON out of the response no matter the status
+        try {
+          emulatedJQueryXHR.responseJSON = await response.json();
+        } catch {
+          errorHandler(emulatedJQueryXHR, statusText, 'Invalid JSON');
+          return;
+        }
+
         if (ok) {
-          successHandler(responseJSON, statusText, emulatedJQueryXHR);
+          successHandler(emulatedJQueryXHR.responseJSON, statusText, emulatedJQueryXHR);
         } else {
           globalErrorHandlers.forEach(handler => handler(emulatedJQueryXHR));
           errorHandler(emulatedJQueryXHR, statusText, 'Request not OK');
