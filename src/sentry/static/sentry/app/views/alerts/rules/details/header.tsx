@@ -39,7 +39,7 @@ export default class DetailsHeader extends React.Component<Props> {
           <AlertBreadcrumbs
             crumbs={[
               {label: t('Alerts'), to: `/organizations/${params.orgId}/alerts/`},
-              {label: rule && `Alert Rule Details #${rule.id}`},
+              {label: t('Alert Rule')},
             ]}
           />
           <Controls>
