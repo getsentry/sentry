@@ -58,12 +58,11 @@ class OrganizationCheckHasMobileAppEvents(OrganizationEventsEndpointBase):
             if data:
                 one_result = data[0]
                 # log the info so we can debug this later
-                logging_params = {
+                logger.info("result_found", extra={
                     "organization_id": organization.id,
                     "organization_slug": organization.slug,
-                }
-                logging_params.update(**one_result)
-                logger.info("result_found", extra=logging_params)
+                    **one_result
+                })
                 # only send back browserName and clientOsName for now
                 response = {
                     "browserName": one_result["browser.name"],
