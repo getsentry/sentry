@@ -65,7 +65,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
                 ],
                 # We want to guarantee at least getting the root, and hopefully events near it with timestamp
                 # id is just for consistent results
-                orderby=["-root", "-timestamp", "transaction.duration", "id"],
+                orderby=["-root", "-timestamp", "id"],
                 params=params,
                 query=f"event.type:transaction trace:{trace_id}",
                 limit=MAX_TRACE_SIZE,
@@ -106,7 +106,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
             warning_extra["extra_roots"] = extra_roots
             logger.warning(
                 "discover.trace-view.root.extra-found",
-                warning_extra,
+                {"extra_roots": extra_roots, **warning_extra},
             )
 
         parent_map = {item["trace.parent_span"]: item for item in result["data"]}
