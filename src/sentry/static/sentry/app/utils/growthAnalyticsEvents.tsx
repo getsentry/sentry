@@ -16,9 +16,7 @@ export type GrowthEventParameters = {
   'growth.opened_mobile_project_suggest_modal': MobilePromptBannerParams;
   'growth.clicked_mobile_prompt_setup_project': MobilePromptBannerParams;
   'growth.clicked_mobile_prompt_ask_teammate': MobilePromptBannerParams;
-  'growth.submitted_mobile_prompt_ask_teammate': MobilePromptBannerParams & {
-    email: string;
-  };
+  'growth.submitted_mobile_prompt_ask_teammate': MobilePromptBannerParams;
 };
 
 type GrowthAnalyticsKey = keyof GrowthEventParameters;
@@ -31,7 +29,7 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string> = {
   'growth.clicked_mobile_prompt_setup_project':
     'Growth: Clicked Mobile Prompt Setup Project',
   'growth.clicked_mobile_prompt_ask_teammate':
-    'Growth: Clicked Mobile Prompt Ask Temmate',
+    'Growth: Clicked Mobile Prompt Ask Teammate',
   'growth.submitted_mobile_prompt_ask_teammate':
-    'Growth: Submitted Mobile Prompt Ask Temmate',
+    'Growth: Submitted Mobile Prompt Ask Teammate',
 };

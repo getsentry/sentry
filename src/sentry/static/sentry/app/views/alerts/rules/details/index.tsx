@@ -1,5 +1,6 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router';
+import {Location} from 'history';
 
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {Client} from 'app/api';
@@ -11,12 +12,16 @@ import {IncidentRule} from 'app/views/settings/incidentRules/types';
 import {Incident} from '../../types';
 import {fetchAlertRule, fetchIncidentsForRule} from '../../utils';
 
-import DetailsBody from './body';
+import DetailsBody, {
+  ALERT_RULE_DETAILS_DEFAULT_PERIOD,
+  getStartEndTimesFromPeriod,
+} from './body';
 import DetailsHeader from './header';
 
 type Props = {
   api: Client;
   organization: Organization;
+  location: Location;
 } & RouteComponentProps<{ruleId: string; orgId: string}, {}>;
 
 type State = {
@@ -37,18 +42,27 @@ class AlertRuleDetails extends React.Component<Props, State> {
   }
 
   fetchData = async () => {
+    const {location} = this.props;
+
     this.setState({isLoading: true, hasError: false});
     const {
       params: {orgId, ruleId},
     } = this.props;
 
+    const {start, end} = getStartEndTimesFromPeriod(
+      location.query.period ?? ALERT_RULE_DETAILS_DEFAULT_PERIOD
+    );
+
     try {
       const rulePromise = fetchAlertRule(orgId, ruleId).then(rule =>
         this.setState({rule})
       );
-      const incidentsPromise = fetchIncidentsForRule(orgId, ruleId).then(incidents =>
-        this.setState({incidents})
-      );
+      const incidentsPromise = fetchIncidentsForRule(
+        orgId,
+        ruleId,
+        start,
+        end
+      ).then(incidents => this.setState({incidents}));
       await Promise.all([rulePromise, incidentsPromise]);
       this.setState({isLoading: false, hasError: false});
     } catch (_err) {
