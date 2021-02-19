@@ -14,13 +14,11 @@ from sentry.models import Activity, Environment, Release, ReleaseStatus
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.signals import release_created
 from sentry.utils.sdk import configure_scope, bind_organization_context
-from sentry.web.decorators import transaction_start
 
 
 class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
     permission_classes = (ProjectReleasePermission,)
 
-    @transaction_start("ProjectReleasesEndpoint.get")
     def get(self, request, project):
         """
         List a Project's Releases
@@ -71,7 +69,6 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
             ),
         )
 
-    @transaction_start("ProjectReleasesEndpoint.post")
     def post(self, request, project):
         """
         Create a New Release for a Project

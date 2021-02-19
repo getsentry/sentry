@@ -15,13 +15,11 @@ from sentry.snuba.sessions import STATS_PERIODS
 from sentry.api.endpoints.organization_releases import get_stats_period_detail
 
 from sentry.utils.sdk import configure_scope, bind_organization_context
-from sentry.web.decorators import transaction_start
 
 
 class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
     permission_classes = (ProjectReleasePermission,)
 
-    @transaction_start("ProjectReleaseDetailsEndpoint.get")
     def get(self, request, project, version):
         """
         Retrieve a Project's Release
@@ -65,7 +63,6 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
             )
         )
 
-    @transaction_start("ProjectReleaseDetailsEndpoint.put")
     def put(self, request, project, version):
         """
         Update a Project's Release
@@ -143,7 +140,6 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
 
             return Response(serialize(release, request.user))
 
-    @transaction_start("ProjectReleaseDetailsEndpoint.delete")
     def delete(self, request, project, version):
         """
         Delete a Project's Release
