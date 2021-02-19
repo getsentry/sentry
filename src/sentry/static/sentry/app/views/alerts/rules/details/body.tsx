@@ -39,19 +39,19 @@ import {extractEventTypeFilterFromRule} from 'app/views/settings/incidentRules/u
 import {Incident, IncidentStatus} from '../../types';
 import {DATA_SOURCE_LABELS, getIncidentRuleMetricPreset} from '../../utils';
 
+import {TIME_OPTIONS} from './constants';
 import MetricChart from './metricChart';
 import RelatedIssues from './relatedIssues';
 import RelatedTransactions from './relatedTransactions';
-import {TIME_OPTIONS} from './constants';
 
 type Props = {
   api: Client;
   rule?: IncidentRule;
   incidents?: Incident[];
   timePeriod: {
-    start: string,
-    end: string,
-    label: string,
+    start: string;
+    end: string;
+    label: string;
   };
   organization: Organization;
   location: Location;
