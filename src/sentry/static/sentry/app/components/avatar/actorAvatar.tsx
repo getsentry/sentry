@@ -20,6 +20,7 @@ type Props = DefaultProps & {
   className?: string;
   onClick?: () => void;
   suggested?: boolean;
+  tooltip?: React.ReactNode;
 };
 
 class ActorAvatar extends React.Component<Props> {

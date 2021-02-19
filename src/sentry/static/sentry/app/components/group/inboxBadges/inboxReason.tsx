@@ -179,7 +179,7 @@ const TooltipWrapper = styled('div')`
 `;
 
 const TooltipDescription = styled('div')`
-  color: ${p => p.theme.gray200};
+  color: ${p => p.theme.subText};
 `;
 
 const Separator = styled('span')<{type: keyof Theme['tag']}>`

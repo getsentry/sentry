@@ -955,7 +955,7 @@ export type BaseGroup = {
   latestEvent: Event;
   activity: GroupActivity[];
   annotations: string[];
-  assignedTo: User;
+  assignedTo: Actor;
   culprit: string;
   firstRelease: Release;
   firstSeen: string;
