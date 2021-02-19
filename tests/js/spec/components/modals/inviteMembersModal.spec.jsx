@@ -251,13 +251,7 @@ describe('InviteMembersModal', function () {
       TestStubs.routerContext()
     );
 
-    expect(
-      wrapper
-        .find('span[className="Select-value-label"]')
-        .first()
-        .text()
-        .includes(initialEmail)
-    ).toBe(true);
+    expect(wrapper.find('MultiValue').first().text().includes(initialEmail)).toBe(true);
 
     wrapper.find('FooterContent Button[priority="primary"]').simulate('click');
     await tick();
