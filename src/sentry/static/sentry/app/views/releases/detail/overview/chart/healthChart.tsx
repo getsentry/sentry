@@ -199,10 +199,13 @@ class HealthChart extends React.Component<Props> {
 
   getLegendSeries() {
     const {timeseriesData} = this.props;
-    return timeseriesData
-      .filter(d => !isOtherSeries(d))
-      .sort(sortSessionSeries)
-      .map(d => d.seriesName);
+    return (
+      timeseriesData
+        .filter(d => !isOtherSeries(d))
+        // we don't want Other Healthy, Other Crashed, etc. to show up in the legend
+        .sort(sortSessionSeries)
+        .map(d => d.seriesName)
+    );
   }
 
   getLegendSelectedSeries() {

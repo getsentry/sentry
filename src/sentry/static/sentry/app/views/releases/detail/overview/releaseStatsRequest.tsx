@@ -13,17 +13,20 @@ import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t, tct} from 'app/locale';
 import {GlobalSelection, Organization, SessionApiResponse} from 'app/types';
 import {Series} from 'app/types/echarts';
-import {defined, percent} from 'app/utils';
+import {defined} from 'app/utils';
 import {WebVital} from 'app/utils/discover/fields';
 import {getExactDuration} from 'app/utils/formatters';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 
-import {displayCrashFreePercent, getCrashFreePercent, roundDuration} from '../../utils';
+import {displayCrashFreePercent, roundDuration} from '../../utils';
 
 import {EventType, YAxis} from './chart/releaseChartControls';
 import {
+  fillChartDataFromSessionsResponse,
+  fillCrashFreeChartDataFromSessionsReponse,
   getInterval,
   getReleaseEventView,
+  getTotalsFromSessionsResponse,
   initCrashFreeChartData,
   initOtherCrashFreeChartData,
   initOtherSessionDurationChartData,
@@ -193,29 +196,23 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       }),
     ]);
 
-    const chartData = initSessionsBreakdownChartData();
-    const otherChartData = initOtherSessionsBreakdownChartData();
-
-    const totalSessions = releaseResponse.groups.reduce((acc, group) => {
-      return acc + group.totals['sum(session)'];
-    }, 0);
-
-    releaseResponse.intervals.forEach((interval, index) => {
-      releaseResponse.groups.forEach(group => {
-        chartData[group.by['session.status']].data.push({
-          name: interval,
-          value: group.series['sum(session)'][index],
-        });
-      });
+    const totalSessions = getTotalsFromSessionsResponse({
+      response: releaseResponse,
+      field: 'sum(session)',
     });
 
-    otherReleasesResponse.intervals.forEach((interval, index) => {
-      otherReleasesResponse.groups.forEach(group => {
-        otherChartData[group.by['session.status']].data.push({
-          name: interval,
-          value: group.series['sum(session)'][index],
-        });
-      });
+    const chartData = fillChartDataFromSessionsResponse({
+      response: releaseResponse,
+      field: 'sum(session)',
+      groupBy: 'session.status',
+      chartData: initSessionsBreakdownChartData(),
+    });
+
+    const otherChartData = fillChartDataFromSessionsResponse({
+      response: otherReleasesResponse,
+      field: 'sum(session)',
+      groupBy: 'session.status',
+      chartData: initOtherSessionsBreakdownChartData(),
     });
 
     return {
@@ -248,29 +245,23 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       }),
     ]);
 
-    const chartData = initSessionsBreakdownChartData();
-    const otherChartData = initOtherSessionsBreakdownChartData();
-
-    const totalUsers = releaseResponse.groups.reduce((acc, group) => {
-      return acc + group.totals['count_unique(user)'];
-    }, 0);
-
-    releaseResponse.intervals.forEach((interval, index) => {
-      releaseResponse.groups.forEach(group => {
-        chartData[group.by['session.status']].data.push({
-          name: interval,
-          value: group.series['count_unique(user)'][index],
-        });
-      });
+    const totalUsers = getTotalsFromSessionsResponse({
+      response: releaseResponse,
+      field: 'count_unique(user)',
     });
 
-    otherReleasesResponse.intervals.forEach((interval, index) => {
-      otherReleasesResponse.groups.forEach(group => {
-        otherChartData[group.by['session.status']].data.push({
-          name: interval,
-          value: group.series['count_unique(user)'][index],
-        });
-      });
+    const chartData = fillChartDataFromSessionsResponse({
+      response: releaseResponse,
+      field: 'count_unique(user)',
+      groupBy: 'session.status',
+      chartData: initSessionsBreakdownChartData(),
+    });
+
+    const otherChartData = fillChartDataFromSessionsResponse({
+      response: otherReleasesResponse,
+      field: 'count_unique(user)',
+      groupBy: 'session.status',
+      chartData: initOtherSessionsBreakdownChartData(),
     });
 
     return {
@@ -303,107 +294,33 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       }),
     ]);
 
-    const chartData = initCrashFreeChartData();
-    const otherChartData = initOtherCrashFreeChartData();
-
-    releaseResponse.intervals.forEach((interval, index) => {
-      const intervalTotalSessions = releaseResponse.groups.reduce(
-        (acc, group) => acc + group.series['sum(session)'][index],
-        0
-      );
-
-      const intervalCrashedSessions =
-        releaseResponse.groups.find(group => group.by['session.status'] === 'crashed')
-          ?.series['sum(session)'][index] ?? 0;
-
-      const crashedSessionsPercent = percent(
-        intervalCrashedSessions,
-        intervalTotalSessions
-      );
-
-      chartData.sessions.data.push({
-        name: interval,
-        // TODO: if total sessions = 0
-        value:
-          intervalTotalSessions === 0
-            ? (null as any)
-            : getCrashFreePercent(100 - crashedSessionsPercent),
-      });
+    let chartData = fillCrashFreeChartDataFromSessionsReponse({
+      response: releaseResponse,
+      field: 'sum(session)',
+      entity: 'sessions',
+      chartData: initCrashFreeChartData(),
+    });
+    chartData = fillCrashFreeChartDataFromSessionsReponse({
+      response: releaseResponse,
+      field: 'count_unique(user)',
+      entity: 'users',
+      chartData,
     });
 
-    releaseResponse.intervals.forEach((interval, index) => {
-      const intervalTotalUsers = releaseResponse.groups.reduce(
-        (acc, group) => acc + group.series['count_unique(user)'][index],
-        0
-      );
-
-      const intervalCrashedUsers =
-        releaseResponse.groups.find(group => group.by['session.status'] === 'crashed')
-          ?.series['count_unique(user)'][index] ?? 0;
-
-      const crashedUsersPercent = percent(intervalCrashedUsers, intervalTotalUsers);
-
-      chartData.users.data.push({
-        name: interval,
-        // TODO: if total sessions = 0
-        value:
-          intervalTotalUsers === 0
-            ? (null as any)
-            : getCrashFreePercent(100 - crashedUsersPercent),
-      });
+    let otherChartData = fillCrashFreeChartDataFromSessionsReponse({
+      response: otherReleasesResponse,
+      field: 'sum(session)',
+      entity: 'sessions',
+      chartData: initOtherCrashFreeChartData(),
+    });
+    otherChartData = fillCrashFreeChartDataFromSessionsReponse({
+      response: otherReleasesResponse,
+      field: 'count_unique(user)',
+      entity: 'users',
+      chartData: otherChartData,
     });
 
-    //
-    otherReleasesResponse.intervals.forEach((interval, index) => {
-      const intervalTotalSessions = otherReleasesResponse.groups.reduce(
-        (acc, group) => acc + group.series['sum(session)'][index],
-        0
-      );
-
-      const intervalCrashedSessions =
-        otherReleasesResponse.groups.find(
-          group => group.by['session.status'] === 'crashed'
-        )?.series['sum(session)'][index] ?? 0;
-
-      const crashedSessionsPercent = percent(
-        intervalCrashedSessions,
-        intervalTotalSessions
-      );
-
-      otherChartData.sessions.data.push({
-        name: interval,
-        // TODO: if total sessions = 0
-        value:
-          intervalTotalSessions === 0
-            ? (null as any)
-            : getCrashFreePercent(100 - crashedSessionsPercent),
-      });
-    });
-
-    otherReleasesResponse.intervals.forEach((interval, index) => {
-      const intervalTotalUsers = otherReleasesResponse.groups.reduce(
-        (acc, group) => acc + group.series['count_unique(user)'][index],
-        0
-      );
-
-      const intervalCrashedUsers =
-        otherReleasesResponse.groups.find(
-          group => group.by['session.status'] === 'crashed'
-        )?.series['count_unique(user)'][index] ?? 0;
-
-      const crashedUsersPercent = percent(intervalCrashedUsers, intervalTotalUsers);
-
-      otherChartData.users.data.push({
-        name: interval,
-        // TODO: if total sessions = 0
-        value:
-          intervalTotalUsers === 0
-            ? (null as any)
-            : getCrashFreePercent(100 - crashedUsersPercent),
-      });
-    });
-
-    // TODO(XXX): summary is averaging previously rounded values - this might lead to a slightly skewed percentage
+    // summary is averaging previously rounded values - this might lead to a slightly skewed percentage
     const summary = tct('[usersPercent] users, [sessionsPercent] sessions', {
       usersPercent: displayCrashFreePercent(
         meanBy(
@@ -447,26 +364,25 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       }),
     ]);
 
-    const chartData = initSessionDurationChartData();
-    const otherChartData = initOtherSessionDurationChartData();
-
-    const totalMedianDuration = releaseResponse.groups[0].totals['p50(session.duration)'];
-
-    releaseResponse.intervals.forEach((interval, index) => {
-      const duration = releaseResponse.groups[0].series['p50(session.duration)'][index];
-      chartData.duration.data.push({
-        name: interval,
-        value: roundDuration(duration ? duration / 1000 : 0),
-      });
+    const totalMedianDuration = getTotalsFromSessionsResponse({
+      response: releaseResponse,
+      field: 'p50(session.duration)',
     });
 
-    otherReleasesResponse.intervals.forEach((interval, index) => {
-      const duration =
-        otherReleasesResponse.groups[0].series['p50(session.duration)'][index];
-      otherChartData.duration.data.push({
-        name: interval,
-        value: roundDuration(duration ? duration / 1000 : 0),
-      });
+    const chartData = fillChartDataFromSessionsResponse({
+      response: releaseResponse,
+      field: 'p50(session.duration)',
+      groupBy: null,
+      chartData: initSessionDurationChartData(),
+      valueFormatter: duration => roundDuration(duration ? duration / 1000 : 0),
+    });
+
+    const otherChartData = fillChartDataFromSessionsResponse({
+      response: otherReleasesResponse,
+      field: 'p50(session.duration)',
+      groupBy: null,
+      chartData: initOtherSessionDurationChartData(),
+      valueFormatter: duration => roundDuration(duration ? duration / 1000 : 0),
     });
 
     return {

@@ -3,15 +3,16 @@ import color from 'color';
 import {DateTimeObject, getDiffInMinutes, TWO_WEEKS} from 'app/components/charts/utils';
 import CHART_PALETTE from 'app/constants/chartPalette';
 import {t} from 'app/locale';
-import {GlobalSelection, NewQuery, Organization} from 'app/types';
+import {GlobalSelection, NewQuery, Organization, SessionApiResponse} from 'app/types';
 import {Series} from 'app/types/echarts';
-import {escapeDoubleQuotes} from 'app/utils';
+import {escapeDoubleQuotes, percent} from 'app/utils';
 import {getUtcDateString} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {formatVersion} from 'app/utils/formatters';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
+import {getCrashFreePercent} from 'app/views/releases/utils';
 import {sessionTerm} from 'app/views/releases/utils/sessionTerm';
 
 import {EventType, YAxis} from './releaseChartControls';
@@ -287,10 +288,14 @@ export function initOtherCrashFreeChartData(): ChartData {
 
 export function initSessionDurationChartData(): ChartData {
   return {
-    duration: {
+    0: {
       seriesName: sessionTerm.duration,
       data: [],
       color: CHART_PALETTE[0][0],
+      areaStyle: {
+        color: CHART_PALETTE[0][0],
+        opacity: 1,
+      },
       lineStyle: {
         opacity: 0,
         width: 0.4,
@@ -301,11 +306,15 @@ export function initSessionDurationChartData(): ChartData {
 
 export function initOtherSessionDurationChartData(): ChartData {
   return {
-    duration: {
+    0: {
       seriesName: sessionTerm.otherReleases,
       data: [],
       z: 0,
       color: color(CHART_PALETTE[0][0]).alpha(0.4).string(),
+      areaStyle: {
+        color: CHART_PALETTE[0][0],
+        opacity: 0.3,
+      },
       lineStyle: {
         opacity: 0,
         width: 0.4,
@@ -356,4 +365,88 @@ const seriesOrder = [
 
 export function sortSessionSeries(a: Series, b: Series) {
   return seriesOrder.indexOf(a.seriesName) - seriesOrder.indexOf(b.seriesName);
+}
+
+type GetTotalsFromSessionsResponseProps = {
+  response: SessionApiResponse;
+  field: string;
+};
+
+export function getTotalsFromSessionsResponse({
+  response,
+  field,
+}: GetTotalsFromSessionsResponseProps) {
+  return response.groups.reduce((acc, group) => {
+    return acc + group.totals[field];
+  }, 0);
+}
+
+type FillChartDataFromSessionsResponseProps = {
+  response: SessionApiResponse;
+  field: string;
+  groupBy: string | null;
+  chartData: Record<string, Series>;
+  valueFormatter?: (value: number) => number;
+};
+
+export function fillChartDataFromSessionsResponse({
+  response,
+  field,
+  groupBy,
+  chartData,
+  valueFormatter,
+}: FillChartDataFromSessionsResponseProps) {
+  response.intervals.forEach((interval, index) => {
+    response.groups.forEach(group => {
+      const value = group.series[field][index];
+
+      chartData[groupBy === null ? 0 : group.by[groupBy]].data.push({
+        name: interval,
+        value: typeof valueFormatter === 'function' ? valueFormatter(value) : value,
+      });
+    });
+  });
+
+  return chartData;
+}
+
+type FillCrashFreeChartDataFromSessionsReponseProps = {
+  response: SessionApiResponse;
+  field: string;
+  entity: 'sessions' | 'users';
+  chartData: Record<string, Series>;
+};
+
+export function fillCrashFreeChartDataFromSessionsReponse({
+  response,
+  field,
+  entity,
+  chartData,
+}: FillCrashFreeChartDataFromSessionsReponseProps) {
+  response.intervals.forEach((interval, index) => {
+    const intervalTotalSessions = response.groups.reduce(
+      (acc, group) => acc + group.series[field][index],
+      0
+    );
+
+    const intervalCrashedSessions =
+      response.groups.find(group => group.by['session.status'] === 'crashed')?.series[
+        field
+      ][index] ?? 0;
+
+    const crashedSessionsPercent = percent(
+      intervalCrashedSessions,
+      intervalTotalSessions
+    );
+
+    chartData[entity].data.push({
+      name: interval,
+      value:
+        intervalTotalSessions === 0
+          ? (null as any)
+          : getCrashFreePercent(100 - crashedSessionsPercent),
+    });
+  });
+
+  return chartData;
 }
