@@ -228,7 +228,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
         mock_get_supported_functions.return_value = [
             {
                 "FunctionName": "lambdaA",
-                "Handler": "lambda_handler:test_handler",
+                "Handler": "lambda_handler.test_handler",
                 "Runtime": "python3.6",
                 "FunctionArn": "arn:aws:lambda:us-east-2:599817902985:function:lambdaA",
             }
@@ -260,7 +260,7 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
             Layers=["arn:aws:lambda:us-east-2:1234:layer:my-python-layer:34"],
             Environment={
                 "Variables": {
-                    "SENTRY_INITIAL_HANDLER": "lambda_handler:test_handler",
+                    "SENTRY_INITIAL_HANDLER": "lambda_handler.test_handler",
                     "SENTRY_DSN": sentry_project_dsn,
                     "SENTRY_TRACES_SAMPLE_RATE": "1.0",
                 }
