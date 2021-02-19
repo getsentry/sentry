@@ -275,6 +275,10 @@ def fetch_release_file(filename, release, dist=None):
                 rf for ident in filename_idents for rf in possible_files if rf.ident == ident
             )
 
+        logger.debug(
+            "Found release artifact %r (id=%s, release_id=%s)", filename, releasefile.id, release.id
+        )
+
         # If the release file is not in cache, check if we can retrieve at
         # least the size metadata from cache and prevent compression and
         # caching if payload exceeds the backend limit.
@@ -285,9 +289,6 @@ def fetch_release_file(filename, release, dist=None):
             if cache_meta:
                 z_body_size = int(cache_meta.get("compressed_size"))
 
-        logger.debug(
-            "Found release artifact %r (id=%s, release_id=%s)", filename, releasefile.id, release.id
-        )
         try:
             with metrics.timer("sourcemaps.release_file_read"):
                 with ReleaseFile.cache.getfile(releasefile) as fp:
