@@ -135,7 +135,7 @@ const SidebarDropdown = ({api, org, orientation, collapsed, config, user}: Props
                     </SidebarMenuItem>
                     {user.isSuperuser && (
                       <SidebarMenuItem to="/settings/account/api/mobile-app/">
-                        {t('Mobile App')}
+                        {t('Mobile app')}
                       </SidebarMenuItem>
                     )}
                     {user.isSuperuser && (
