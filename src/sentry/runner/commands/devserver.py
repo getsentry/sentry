@@ -223,6 +223,9 @@ def devserver(
         if eventstream.requires_post_process_forwarder():
             daemons += [_get_daemon("post-process-forwarder")]
 
+        if settings.SENTRY_EXTRA_WORKERS:
+            daemons.extend([_get_daemon(name) for name in settings.SENTRY_EXTRA_WORKERS])
+
         if settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS:
             if not settings.SENTRY_EVENTSTREAM == "sentry.eventstream.kafka.KafkaEventStream":
                 raise click.ClickException(
@@ -234,9 +237,6 @@ def devserver(
 
     if settings.SENTRY_USE_RELAY:
         daemons += [_get_daemon("ingest")]
-
-    if settings.SENTRY_EXTRA_WORKERS:
-        daemons.extend([_get_daemon(name) for name in settings.SENTRY_EXTRA_WORKERS])
 
     if needs_https and has_https:
         https_port = str(parsed_url.port)
