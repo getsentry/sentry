@@ -1,5 +1,7 @@
 from exam import fixture
+from datetime import timedelta
 
+from django.utils import timezone
 from sentry.api.serializers import serialize
 from sentry.incidents.models import IncidentStatus
 from sentry.testutils import APITestCase
@@ -90,3 +92,18 @@ class IncidentListEndpointTest(APITestCase):
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp = self.get_valid_response(self.organization.slug)
             assert resp.data == serialize([incident, perf_incident])
+
+    def test_filter_start_end_times(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        new_incident = self.create_incident(date_started=timezone.now() - timedelta(hours=2), date_closed=timezone.now() - timedelta(hours=1))
+        old_incident = self.create_incident(date_started=timezone.now() - timedelta(hours=26), date_closed=timezone.now() - timedelta(hours=25))
+
+        self.login_as(self.user)
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp_all = self.get_valid_response(self.organization.slug)
+            resp_new = self.get_valid_response(self.organization.slug, start=timezone.now() - timedelta(hours=12), end=timezone.now())
+            resp_old = self.get_valid_response(self.organization.slug, start=timezone.now() - timedelta(hours=36), end=timezone.now() - timedelta(hours=24))
+
+        assert resp_old.data == serialize([old_incident])
+        assert resp_new.data == serialize([new_incident])
+        assert resp_all.data == serialize([old_incident, new_incident])

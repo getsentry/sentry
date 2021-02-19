@@ -38,7 +38,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
         query_start = request.GET.get("start")
         query_end = request.GET.get("end")
         if query_start is not None and query_end is not None:
-            incidents = incidents.filter(start=query_start, end=query_end)
+            incidents = incidents.filter(date_started__lte=query_end, date_closed__gte=query_start)
 
         query_status = request.GET.get("status")
         if query_status is not None:
