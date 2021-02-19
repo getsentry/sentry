@@ -8,7 +8,7 @@ import space from 'app/styles/space';
 
 type Props = {
   withChart: boolean;
-  statsPeriod: '24h' | 'auto';
+  statsPeriod?: '24h' | 'auto';
 };
 
 const GroupListHeader = ({withChart = true, statsPeriod = '24h'}: Props) => (
