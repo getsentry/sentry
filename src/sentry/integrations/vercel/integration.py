@@ -258,12 +258,12 @@ class VercelIntegration(IntegrationInstallation):
                 "VERCEL_GIT_COMMIT_SHA": {"type": "system", "value": "VERCEL_GIT_COMMIT_SHA"},
             }
 
-            for env_var, data in env_var_map.items():
-                if data["type"] == "secret":
+            for env_var, details in env_var_map.items():
+                if details["type"] == "secret":
                     secret_name = env_var + "_%s" % uuid
-                    data["value"] = vercel_client.create_secret(secret_name, data["value"])
+                    details["value"] = vercel_client.create_secret(secret_name, details["value"])
                 self.create_env_var(
-                    vercel_client, vercel_project_id, env_var, data["value"], data["type"]
+                    vercel_client, vercel_project_id, env_var, details["value"], details["type"]
                 )
 
         config.update(data)
@@ -293,11 +293,10 @@ class VercelIntegration(IntegrationInstallation):
         if env_var_id:
             return client.update_env_variable(vercel_project_id, env_var_id[0], data)
 
-        logger.warn(
-            "vercel.update_env_var.failed",
-            extra={"env_var": key, "vercel_project_id": vercel_project_id},
+        message = "Could not update environment variable {} in Vercel project {}.".format(
+            key,
+            vercel_project_id,
         )
-        message = "Could not update environment variable %s in Vercel." % key
         raise IntegrationError(message)
 
 
