@@ -41,7 +41,7 @@ class ExternalUserDetailsEndpoint(OrganizationEndpoint):
 
         serializer = ExternalUserSerializer(
             instance=external_user,
-            data={**request.data},
+            data=request.data,
             context={"organization": organization},
             partial=True,
         )
