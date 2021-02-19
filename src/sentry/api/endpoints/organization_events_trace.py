@@ -27,6 +27,8 @@ def serialize_event(event, parent, is_root_event=False):
         "transaction.duration": event["transaction.duration"],
         "project_id": event["project_id"],
         "parent_event_id": parent,
+        # Avoid empty string for root events
+        "parent_span_id": event["trace.parent_span"] or None,
         "is_root": is_root_event,
     }
 
