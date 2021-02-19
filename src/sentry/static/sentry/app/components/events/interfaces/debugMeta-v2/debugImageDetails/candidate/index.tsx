@@ -12,7 +12,7 @@ import {INTERNAL_SOURCE} from '../utils';
 import Actions from './actions';
 import Features from './features';
 import Processings from './processings';
-import Status from './status';
+import StatusTooltip from './statusTooltip';
 import {getSourceTooltipDescription} from './utils';
 
 type Props = {
@@ -38,7 +38,7 @@ function Candidate({
   return (
     <React.Fragment>
       <Column>
-        <Status candidate={candidate} />
+        <StatusTooltip candidate={candidate} />
       </Column>
 
       <DebugFileColumn>

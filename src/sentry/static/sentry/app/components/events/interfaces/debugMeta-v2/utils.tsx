@@ -1,5 +1,7 @@
 import {ImageStatus} from 'app/types/debugImage';
 
+export const IMAGE_AND_CANDIDATE_LIST_MAX_HEIGHT = 400;
+
 export function getStatusWeight(status?: ImageStatus | null) {
   switch (status) {
     case null:

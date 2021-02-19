@@ -30,7 +30,7 @@ function Status({status}: Props) {
     default: {
       Sentry.withScope(scope => {
         scope.setLevel(Sentry.Severity.Warning);
-        Sentry.captureException(new Error("Unknown Image's status"));
+        Sentry.captureException(new Error('Unknown image status'));
       });
       return <StyledTag>{t('Unknown')}</StyledTag>; // This shall not happen
     }
