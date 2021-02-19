@@ -6,7 +6,7 @@ from sentry.utils.samples import create_sample_event
 
 
 class OrganizationIntegrationRequestTest(APITestCase):
-    endpoint = "sentry-api-0-organization-check-has-mobile-events"
+    endpoint = "sentry-api-0-organization-has-mobile-events"
 
     def setUp(self):
         super().setUp()

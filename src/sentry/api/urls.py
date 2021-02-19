@@ -849,7 +849,7 @@ urlpatterns = [
                 url(
                     r"^(?P<organization_slug>[^\/]+)/has-mobile-app-events/$",
                     OrganizationHasMobileAppEvents.as_view(),
-                    name="sentry-api-0-organization-check-has-mobile-events",
+                    name="sentry-api-0-organization-has-mobile-events",
                 ),
                 # This is temporary while we alpha test eventsv2
                 url(
