@@ -1119,7 +1119,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
                     "timestamp": iso_format(self.base_datetime - timedelta(days=21)),
                     "message": f"group {i} event",
                     "stacktrace": {"frames": [{"module": f"module {i}"}]},
-                    "tags": {"match": "{}".format(i % 2)},
+                    "tags": {"match": f"{i % 2}"},
                     "environment": "production",
                 },
                 project_id=self.project.id,

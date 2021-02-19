@@ -16,7 +16,7 @@ on:
 jobs:
   frontend:
     name: frontend tests
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-20.04
     timeout-minutes: 20
 
     env:
@@ -72,7 +72,7 @@ jobs:
 
   acceptance:
     name: acceptance
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-20.04
     timeout-minutes: 20
     strategy:
       matrix:

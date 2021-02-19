@@ -149,7 +149,7 @@ class Interface:
         body = self.to_string(event)
         if not body:
             return ""
-        return "<pre>{}</pre>".format(escape(body))
+        return f"<pre>{escape(body)}</pre>"
 
     # deprecated stuff.  These were deprecated in late 2018, once
     # determined they are unused we can kill them.

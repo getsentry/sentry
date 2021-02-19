@@ -62,8 +62,7 @@ ensure-pinned-pip: ensure-venv upgrade-pip
 
 upgrade-pip:
 	# pip versions before 20.1 do not have `pip cache` as a command which is necessary for the CI
-	# XXX: Temp change to force cache invalidation
-	$(PIP) install --no-cache-dir --upgrade "pip==20.3.3"
+	$(PIP) install --no-cache-dir --upgrade "pip>=20.1"
 
 setup-git-config:
 	@git config --local branch.autosetuprebase always

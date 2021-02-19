@@ -50,15 +50,16 @@ class UserFeedbackEmpty extends React.Component<Props> {
     window.sentryEmbedCallback = null;
   }
 
-  get hasAnyFeedback() {
+  get selectedProjects() {
     const {projects, projectIds} = this.props;
 
-    const selectedProjects =
-      projectIds && projectIds.length
-        ? projects.filter(({id}) => projectIds.includes(id))
-        : projects;
+    return projectIds && projectIds.length
+      ? projects.filter(({id}) => projectIds.includes(id))
+      : projects;
+  }
 
-    return selectedProjects.some(({hasUserReports}) => hasUserReports);
+  get hasAnyFeedback() {
+    return this.selectedProjects.some(({hasUserReports}) => hasUserReports);
   }
 
   trackAnalytics({eventKey, eventName}: {eventKey: string; eventName: string}) {
@@ -108,7 +109,9 @@ class UserFeedbackEmpty extends React.Component<Props> {
                   eventName: 'User Feedback Docs Clicked',
                 })
               }
-              href="https://docs.sentry.io/platform-redirect/?next=/enriching-error-data/user-feedback/"
+              href={`https://docs.sentry.io/platforms/${
+                this.selectedProjects[0]?.platform || 'javascript'
+              }/enriching-events/user-feedback/`}
             >
               {t('Read the docs')}
             </Button>

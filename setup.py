@@ -3,15 +3,15 @@
 import os
 import sys
 
-version = sys.version_info
+python_version = sys.version_info[:2]
 
-if version[:2] < (3, 6):
-    sys.exit("Error: Sentry requires at least Python 3.6 ({})".format(version[:2]))
-if version[:2] > (3, 6):
+if python_version < (3, 6):
+    sys.exit(f"Error: Sentry requires at least Python 3.6 ({python_version})")
+if python_version > (3, 6):
     import logging
 
     logger = logging.getLogger()
-    logger.warning("A Python version different than 3.6 is being used ({})".format(version[:2]))
+    logger.warning(f"A Python version different than 3.6 is being used ({python_version})")
 
 
 from distutils.command.build import build as BuildCommand
