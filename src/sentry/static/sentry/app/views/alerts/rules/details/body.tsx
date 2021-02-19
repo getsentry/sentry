@@ -39,7 +39,7 @@ import {extractEventTypeFilterFromRule} from 'app/views/settings/incidentRules/u
 import {Incident, IncidentStatus} from '../../types';
 import {DATA_SOURCE_LABELS, getIncidentRuleMetricPreset} from '../../utils';
 
-import {TIME_OPTIONS} from './constants';
+import {TIME_OPTIONS, API_INTERVAL_POINTS_LIMIT} from './constants';
 import MetricChart from './metricChart';
 import RelatedIssues from './relatedIssues';
 import RelatedTransactions from './relatedTransactions';
@@ -82,12 +82,24 @@ class DetailsBody extends React.Component<Props> {
     return `${direction} ${value}`;
   }
 
+  getInterval() {
+    const {timePeriod: {start, end}, rule} = this.props
+    const startDate = moment.utc(start);
+    const endDate = moment.utc(end);
+    const timeWindow = rule?.timeWindow;
+
+    if (timeWindow && endDate.diff(startDate) < (API_INTERVAL_POINTS_LIMIT * timeWindow * 60 * 1000)) {
+      return `${timeWindow}m`;
+    }
+
+    return getInterval({start, end}, true);
+  }
+
   handleTimePeriodChange = (value: string) => {
     const {location} = this.props;
     browserHistory.push({
       pathname: location.pathname,
       query: {
-        ...location.query,
         period: value,
       },
     });
@@ -339,7 +351,6 @@ class DetailsBody extends React.Component<Props> {
       environment,
       aggregate,
       projects: projectSlugs,
-      timeWindow,
       triggers,
     } = rule;
 
@@ -378,10 +389,7 @@ class DetailsBody extends React.Component<Props> {
                       query={queryWithTypeFilter}
                       environment={environment ? [environment] : undefined}
                       project={(projects as Project[]).map(project => Number(project.id))}
-                      interval={getInterval(
-                        {start: timePeriod.start, end: timePeriod.end},
-                        true
-                      )}
+                      interval={this.getInterval()}
                       start={timePeriod.start}
                       end={timePeriod.end}
                       yAxis={aggregate}

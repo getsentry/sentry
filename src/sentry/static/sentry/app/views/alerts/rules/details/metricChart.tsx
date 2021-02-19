@@ -83,9 +83,9 @@ const MetricChart = ({data, incidents, warningTrigger, criticalTrigger}: Props) 
     series.push(criticalArea);
 
     const incidentValueMap: Record<number, string> = {};
-    const incidentLines = filteredIncidents.map(({dateStarted, id}) => {
+    const incidentLines = filteredIncidents.map(({dateStarted, identifier}) => {
       const incidentStart = moment(dateStarted).valueOf();
-      incidentValueMap[incidentStart] = id;
+      incidentValueMap[incidentStart] = identifier;
       return {xAxis: incidentStart};
     });
     const incidentLinesSeries = {

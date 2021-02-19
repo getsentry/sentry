@@ -17,3 +17,5 @@ export const TIME_WINDOWS = {
   [TimePeriod.THREE_DAYS]: TimeWindow.ONE_DAY * 3 * 60 * 1000,
   [TimePeriod.SEVEN_DAYS]: TimeWindow.ONE_DAY * 7 * 60 * 1000,
 };
+
+export const API_INTERVAL_POINTS_LIMIT = 10000;
