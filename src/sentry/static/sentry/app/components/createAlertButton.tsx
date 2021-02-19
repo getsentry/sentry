@@ -335,22 +335,30 @@ const CreateAlertButton = withRouter(
       );
     }
 
+    const permissionTooltipText = tct(
+      'Ask your organization owner or manager to [settingsLink:enable alerts access] for you.',
+      {settingsLink: <Link to={`/settings/${organization.slug}`} />}
+    );
+
     return (
       <Access organization={organization} access={['alerts:write']}>
         {({hasAccess}) => (
           <Button
             disabled={!hasAccess}
-            title={
-              !hasAccess
-                ? t('Users with admin permission or higher can create alert rules.')
-                : undefined
-            }
+            title={!hasAccess ? permissionTooltipText : undefined}
             icon={!hideIcon && <IconSiren {...iconProps} />}
             to={
               projectSlug
                 ? `/organizations/${organization.slug}/alerts/${projectSlug}/new/`
                 : undefined
             }
+            tooltipProps={{
+              isHoverable: true,
+              position: 'top',
+              popperStyle: {
+                maxWidth: '270px',
+              },
+            }}
             onClick={projectSlug ? undefined : handleClickWithoutProject}
             {...buttonProps}
           >
