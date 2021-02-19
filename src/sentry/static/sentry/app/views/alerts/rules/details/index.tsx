@@ -7,6 +7,7 @@ import {fetchOrgMembers} from 'app/actionCreators/members';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import {Organization} from 'app/types';
+import {getUtcDateString} from 'app/utils/dates';
 import withApi from 'app/utils/withApi';
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
@@ -14,9 +15,8 @@ import {Incident} from '../../types';
 import {fetchAlertRule, fetchIncidentsForRule} from '../../utils';
 
 import DetailsBody from './body';
+import {ALERT_RULE_DETAILS_DEFAULT_PERIOD, TIME_OPTIONS, TIME_WINDOWS} from './constants';
 import DetailsHeader from './header';
-import {getUtcDateString} from 'app/utils/dates';
-import {TIME_OPTIONS, TIME_WINDOWS, ALERT_RULE_DETAILS_DEFAULT_PERIOD} from './constants';
 
 type Props = {
   api: Client;
@@ -42,12 +42,15 @@ class AlertRuleDetails extends React.Component<Props, State> {
         start: location.query.start,
         end: location.query.end,
         label: 'Custom',
-      }
+      };
     }
 
     const timePeriod = location.query.period ?? ALERT_RULE_DETAILS_DEFAULT_PERIOD;
-    const timeOption = TIME_OPTIONS.find(item => item.value === timePeriod) ?? TIME_OPTIONS[1];
-    const start = getUtcDateString(moment(moment.utc().diff(TIME_WINDOWS[timeOption.value])));
+    const timeOption =
+      TIME_OPTIONS.find(item => item.value === timePeriod) ?? TIME_OPTIONS[1];
+    const start = getUtcDateString(
+      moment(moment.utc().diff(TIME_WINDOWS[timeOption.value]))
+    );
     const end = getUtcDateString(moment.utc());
 
     return {
@@ -103,7 +106,12 @@ class AlertRuleDetails extends React.Component<Props, State> {
             params={params}
             rule={rule}
           />
-          <DetailsBody {...this.props} rule={rule} incidents={incidents} timePeriod={timePeriod}/>
+          <DetailsBody
+            {...this.props}
+            rule={rule}
+            incidents={incidents}
+            timePeriod={timePeriod}
+          />
         </Feature>
       </React.Fragment>
     );
