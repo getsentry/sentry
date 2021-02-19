@@ -4,6 +4,7 @@ from datetime import timedelta
 from django.utils import timezone
 from sentry.api.serializers import serialize
 from sentry.incidents.models import IncidentStatus
+from sentry.incidents.logic import update_incident_status
 from sentry.testutils import APITestCase
 from sentry.snuba.models import QueryDatasets
 
@@ -95,29 +96,32 @@ class IncidentListEndpointTest(APITestCase):
 
     def test_filter_start_end_times(self):
         self.create_team(organization=self.organization, members=[self.user])
-        new_incident = self.create_incident(
-            date_started=timezone.now() - timedelta(hours=2),
+        old_incident = self.create_incident(date_started=timezone.now() - timedelta(hours=26))
+        update_incident_status(
+            incident=old_incident,
+            status=IncidentStatus.CLOSED,
+            date_closed=timezone.now() - timedelta(hours=25)
+        )
+        new_incident = self.create_incident(date_started=timezone.now() - timedelta(hours=2))
+        update_incident_status(
+            incident=new_incident,
+            status=IncidentStatus.CLOSED,
             date_closed=timezone.now() - timedelta(hours=1),
         )
-        old_incident = self.create_incident(
-            date_started=timezone.now() - timedelta(hours=26),
-            date_closed=timezone.now() - timedelta(hours=25),
-        )
-
         self.login_as(self.user)
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             resp_all = self.get_valid_response(self.organization.slug)
             resp_new = self.get_valid_response(
                 self.organization.slug,
-                start=timezone.now() - timedelta(hours=12),
-                end=timezone.now(),
+                start=(timezone.now() - timedelta(hours=12)).isoformat(),
+                end=timezone.now().isoformat(),
             )
             resp_old = self.get_valid_response(
                 self.organization.slug,
-                start=timezone.now() - timedelta(hours=36),
-                end=timezone.now() - timedelta(hours=24),
+                start=(timezone.now() - timedelta(hours=36)).isoformat(),
+                end=(timezone.now() - timedelta(hours=24)).isoformat(),
             )
 
-        assert resp_old.data == serialize([old_incident])
+        assert resp_all.data == serialize([new_incident, old_incident])
         assert resp_new.data == serialize([new_incident])
-        assert resp_all.data == serialize([old_incident, new_incident])
+        assert resp_old.data == serialize([old_incident])
