@@ -1,9 +1,9 @@
 import React from 'react';
+import styled from '@emotion/styled';
 import {Box, Flex} from 'reflexbox'; // eslint-disable-line no-restricted-imports
 
 import {PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
-import styled from 'app/styled';
 import space from 'app/styles/space';
 
 type Props = {
