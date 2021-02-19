@@ -191,9 +191,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
 
   renderList() {
     const {loading, incidentList, incidentListPageLinks, hasAlertRule} = this.state;
-    const {
-      params: {orgId},
-    } = this.props;
+    const {params: {orgId}, organization} = this.props;
 
     const allProjectsFromIncidents = new Set(
       flatten(incidentList?.map(({projects}) => projects))
@@ -238,6 +236,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                           incident={incident}
                           orgId={orgId}
                           filteredStatus={status}
+                          organization={organization}
                         />
                       ))
                     }

@@ -44,6 +44,7 @@ import {DATA_SOURCE_LABELS, getIncidentRuleMetricPreset} from '../../utils';
 import MetricChart from './metricChart';
 import RelatedIssues from './relatedIssues';
 import RelatedTransactions from './relatedTransactions';
+import {getInterval} from 'app/components/charts/utils';
 
 type Props = {
   api: Client;
@@ -107,12 +108,19 @@ class DetailsBody extends React.Component<Props> {
     const {location} = this.props;
 
     const timePeriod = location.query.period ?? ALERT_RULE_DETAILS_DEFAULT_PERIOD;
-    const timeOption =
-      TIME_OPTIONS.find(item => item.value === timePeriod) ?? TIME_OPTIONS[1];
+    const timeOption = TIME_OPTIONS.find(item => item.value === timePeriod) ?? TIME_OPTIONS[1];
+    const {start: periodStart, end: periodEnd} = getStartEndTimesFromPeriod(timeOption.value);
+
+    const useQueryTimes = location.query.start && location.query.end;
+
+    const start = useQueryTimes ? location.query.start : periodStart;
+    const end = useQueryTimes ? location.query.end : periodEnd;
+    const label = useQueryTimes ? 'Custom' : timeOption.label;
 
     return {
-      ...timeOption,
-      ...getStartEndTimesFromPeriod(timeOption.value),
+      label,
+      start,
+      end,
     };
   }
 
@@ -130,13 +138,15 @@ class DetailsBody extends React.Component<Props> {
   calculateSummaryPercentages(
     incidents: Incident[] | undefined,
     startTime: string,
-    endTime: string,
-    totalTime: number
+    endTime: string
   ) {
+    const startDate = moment.utc(startTime);
+    const endDate = moment.utc(endTime);
+    const totalTime = endDate.diff(startDate);
+
     let criticalPercent = '0';
     let warningPercent = '0';
     if (incidents) {
-      const startDate = moment.utc(startTime);
       const filteredIncidents = incidents.filter(incident => {
         return !incident.dateClosed || moment(incident.dateClosed).isAfter(startDate);
       });
@@ -147,7 +157,7 @@ class DetailsBody extends React.Component<Props> {
         const incidentStart = moment.max(moment(incident.dateStarted), startDate);
         const incidentClose = incident.dateClosed
           ? moment(incident.dateClosed)
-          : moment.utc(endTime);
+          : endDate;
         criticalDuration += incidentClose.diff(incidentStart);
       }
       criticalPercent = ((criticalDuration / totalTime) * 100).toFixed(2);
@@ -270,7 +280,6 @@ class DetailsBody extends React.Component<Props> {
       incidents,
       timePeriod.start,
       timePeriod.end,
-      TIME_WINDOWS[timePeriod.value]
     );
 
     return (
@@ -414,8 +423,9 @@ class DetailsBody extends React.Component<Props> {
                       query={queryWithTypeFilter}
                       environment={environment ? [environment] : undefined}
                       project={(projects as Project[]).map(project => Number(project.id))}
-                      interval={`${timeWindow}m`}
-                      period={timePeriod.value}
+                      interval={getInterval({start: timePeriod.start, end: timePeriod.end}, true)}
+                      start={timePeriod.start}
+                      end={timePeriod.end}
                       yAxis={aggregate}
                       includePrevious={false}
                       currentSeriesName={aggregate}
