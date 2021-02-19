@@ -14,7 +14,7 @@ type Props = {
 // Constrain the number of visible suggestions
 const MAX_SUGGESTIONS = 5;
 
-const SuggestedAvatarStack = ({owners, tooltip, ...props}: Props) => {
+const SuggestedAvatarStack = ({owners, tooltip, tooltipOptions, ...props}: Props) => {
   const backgroundAvatarProps = {
     ...props,
     round: owners[0].type === 'user',
@@ -38,6 +38,7 @@ const SuggestedAvatarStack = ({owners, tooltip, ...props}: Props) => {
         actor={owners[0]}
         index={numAvatars - 1}
         tooltip={tooltip}
+        tooltipOptions={{...tooltipOptions, skipWrapper: true}}
       />
     </AvatarStack>
   );
