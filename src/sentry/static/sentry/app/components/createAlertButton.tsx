@@ -336,7 +336,7 @@ const CreateAlertButton = withRouter(
     }
 
     const permissionTooltipText = tct(
-      'Users with admin permission or higher can create alert rules. Owners and managers can [settingsLink:change this setting] for you.',
+      'Ask your organization owner or manager to [settingsLink:enable alerts access] for you.',
       {settingsLink: <Link to={`/settings/${organization.slug}`} />}
     );
 

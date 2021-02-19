@@ -218,11 +218,20 @@ const getColors = ({priority, disabled, borderless, theme}: StyledButtonProps) =
 
 const StyledButton = styled(
   React.forwardRef<any, ButtonProps>(
-    ({forwardRef, size: _size, external, to, href, ...props}: Props, forwardRefAlt) => {
+    (
+      {forwardRef, size: _size, external, to, href, ...otherProps}: Props,
+      forwardRefAlt
+    ) => {
       // XXX: There may be two forwarded refs here, one potentially passed from a
       // wrapped Tooltip, another from callers of Button.
 
       const ref = mergeRefs([forwardRef, forwardRefAlt]);
+
+      // only pass down title to child element if it is a string
+      const {title, ...props} = otherProps;
+      if (typeof title === 'string') {
+        props[title] = title;
+      }
 
       // Get component to use based on existence of `to` or `href` properties
       // Can be react-router `Link`, `a`, or `button`
