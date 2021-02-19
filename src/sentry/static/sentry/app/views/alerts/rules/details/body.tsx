@@ -360,7 +360,17 @@ class DetailsBody extends React.Component<Props> {
       return this.renderLoading();
     }
 
-    const {query, environment, aggregate, projects: projectSlugs, timeWindow} = rule;
+    const {
+      query,
+      environment,
+      aggregate,
+      projects: projectSlugs,
+      timeWindow,
+      triggers,
+    } = rule;
+
+    const criticalTrigger = triggers.find(({label}) => label === 'critical');
+    const warningTrigger = triggers.find(({label}) => label === 'warning');
     const timePeriod = this.getTimePeriod();
     const queryWithTypeFilter = `${query} ${extractEventTypeFilterFromRule(rule)}`.trim();
 
@@ -403,7 +413,12 @@ class DetailsBody extends React.Component<Props> {
                     >
                       {({loading, timeseriesData}) =>
                         !loading && timeseriesData ? (
-                          <MetricChart data={timeseriesData} incidents={incidents} />
+                          <MetricChart
+                            data={timeseriesData}
+                            incidents={incidents}
+                            criticalTrigger={criticalTrigger}
+                            warningTrigger={warningTrigger}
+                          />
                         ) : (
                           <Placeholder height="200px" />
                         )
