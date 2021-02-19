@@ -53,6 +53,19 @@ class RetryPolicy(Generic[T], ABC):
         return decorator
 
 
+class ConditionalRetryPolicy(RetryPolicy[T]):
+    def __init__(self, test_function: Callable[[Exception], bool]) -> None:
+        self.__test_function = test_function
+
+    def __call__(self, function: Callable[[], T]) -> T:
+        while True:
+            try:
+                return function()
+            except Exception as e:
+                if not self.__test_function(e):
+                    raise
+
+
 class TimedRetryPolicy(RetryPolicy):
     """
     A time-based policy that can be used to retry a callable in the case of
