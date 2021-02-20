@@ -288,17 +288,11 @@ class VercelIntegration(IntegrationInstallation):
             raise
 
     def update_env_variable(self, client, vercel_project_id, data):
-        try:
-            envs = client.get_env_vars(vercel_project_id)["envs"]
-        except ApiError:
-            raise
+        envs = client.get_env_vars(vercel_project_id)["envs"]
 
         env_var_ids = [env_var["id"] for env_var in envs if env_var["key"] == data["key"]]
         if env_var_ids:
-            try:
-                return client.update_env_variable(vercel_project_id, env_var_ids[0], data)
-            except ApiError:
-                raise
+            return client.update_env_variable(vercel_project_id, env_var_ids[0], data)
         raise
 
 
