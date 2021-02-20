@@ -1,3 +1,4 @@
+import errno
 import pytest
 import re
 import responses
@@ -11,6 +12,7 @@ from requests.exceptions import RequestException
 
 from sentry import http, options
 from sentry.lang.javascript.processor import (
+    build_fetch_retry_condition,
     cache,
     get_release_file_cache_key,
     get_release_file_cache_key_meta,
@@ -58,6 +60,18 @@ class JavaScriptStacktraceProcessorTest(TestCase):
         project.organization.update_option("sentry:scrape_javascript", False)
         r = JavaScriptStacktraceProcessor({}, None, project)
         assert not r.allow_scraping
+
+
+def test_build_fetch_retry_condition() -> None:
+    should_retry = build_fetch_retry_condition(max_retries=3)
+
+    e = OSError()
+    e.errno = errno.ESTALE
+
+    assert should_retry(e) is True
+    assert should_retry(e) is True
+    assert should_retry(e) is True
+    assert should_retry(e) is False
 
 
 class FetchReleaseFileTest(TestCase):

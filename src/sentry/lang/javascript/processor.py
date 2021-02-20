@@ -2,6 +2,8 @@ from django.utils.encoding import force_text, force_bytes
 
 __all__ = ["JavaScriptStacktraceProcessor"]
 
+import errno
+import itertools
 import logging
 import re
 import sys
@@ -13,6 +15,7 @@ from os.path import splitext
 from requests.utils import get_encoding_from_headers
 from urllib.parse import urlsplit
 from symbolic import SourceMapView
+from typing import Callable
 import sentry_sdk
 
 # In case SSL is unavailable (light builds) we can't import this here.
@@ -38,6 +41,7 @@ from sentry.utils.hashlib import md5_text
 from sentry.utils.http import is_valid_origin
 from sentry.utils.safe import get_path
 from sentry.utils import metrics
+from sentry.utils.retries import ConditionalRetryPolicy
 from sentry.utils.urls import non_standard_url_join
 from sentry.stacktraces.processing import StacktraceProcessor
 
@@ -219,6 +223,19 @@ def get_release_file_cache_key_meta(release_id, releasefile_ident):
     return "meta:%s" % get_release_file_cache_key(release_id, releasefile_ident)
 
 
+def build_fetch_retry_condition(max_retries: int) -> Callable[[Exception], bool]:
+    retry_counter = itertools.count(1)
+
+    def should_retry(e: Exception) -> bool:
+        return (
+            not next(retry_counter) > max_retries
+            and isinstance(e, OSError)
+            and e.errno == errno.ESTALE
+        )
+
+    return should_retry
+
+
 def fetch_release_file(filename, release, dist=None):
     """
     Attempt to retrieve a release artifact from the database.
@@ -298,7 +315,9 @@ def fetch_release_file(filename, release, dist=None):
 
         try:
             with metrics.timer("sourcemaps.release_file_read"):
-                z_body, body = try_fetch_release_body()
+                z_body, body = ConditionalRetryPolicy(build_fetch_retry_condition(max_retries=3))(
+                    try_fetch_release_body
+                )
         except Exception:
             logger.error("sourcemap.compress_read_failed", exc_info=sys.exc_info())
             result = None
