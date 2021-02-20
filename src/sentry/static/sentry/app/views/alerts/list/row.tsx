@@ -69,11 +69,15 @@ class AlertListRow extends AsyncComponent<Props, State> {
     const now = moment.utc();
     const startDate = moment.utc(incident.dateStarted);
     const endDate = incident.dateClosed ? moment.utc(incident.dateClosed) : now;
-    const halfDuration = moment.duration(endDate.diff(startDate) / 2);
+    const range = Math.max(
+      endDate.diff(startDate),
+      3 * incident.alertRule.timeWindow * 60 * 1000
+    );
+    const halfRange = moment.duration(range / 2);
 
     return {
-      start: getUtcDateString(startDate.subtract(halfDuration)),
-      end: getUtcDateString(moment.min(endDate.add(halfDuration), now)),
+      start: getUtcDateString(startDate.subtract(halfRange)),
+      end: getUtcDateString(moment.min(endDate.add(halfRange), now)),
     };
   }
 
