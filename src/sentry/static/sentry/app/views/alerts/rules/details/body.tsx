@@ -301,7 +301,7 @@ class DetailsBody extends React.Component<Props> {
       <GroupedHeaderItems>
         <ItemTitle>{t('Current Status')}</ItemTitle>
         <ItemTitle>
-          {activeIncident ? t('Alert Triggered') : t('Alert Resolved')}
+          {activeIncident ? t('Last Triggered') : t('Last Resolved')}
         </ItemTitle>
         <ItemValue>
           <AlertBadge color={color} icon={Icon}>
