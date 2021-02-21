@@ -3,20 +3,26 @@ import * as Sentry from '@sentry/react';
 
 import {MENU_CLOSE_DELAY} from 'app/constants';
 
-type GetActorArgs = {
+export type GetActorArgs = {
   onClick?: (e: React.MouseEvent<Element>) => void;
   onMouseEnter?: (e: React.MouseEvent<Element>) => void;
   onMouseLeave?: (e: React.MouseEvent<Element>) => void;
   onKeyDown?: (e: React.KeyboardEvent<Element>) => void;
+  onFocus?: (e: React.FocusEvent<Element>) => void;
+  onBlur?: (e: React.FocusEvent<Element>) => void;
+  onChange?: (e: React.ChangeEvent<Element>) => void;
   style?: React.CSSProperties;
   className?: string;
 };
 
-type GetMenuArgs = {
+export type GetMenuArgs = {
   onClick?: (e: React.MouseEvent<Element>) => void;
   onMouseEnter?: (e: React.MouseEvent<Element>) => void;
   onMouseLeave?: (e: React.MouseEvent<Element>) => void;
+  onMouseDown?: (e: React.MouseEvent<Element>) => void;
+  onKeyDown?: (event: React.KeyboardEvent<Element>) => void;
   className?: string;
+  itemCount?: number;
 };
 
 // Props for the "actor" element of `<DropdownMenu>`
