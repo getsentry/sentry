@@ -176,7 +176,7 @@ class DropdownMenu extends React.Component<Props, State> {
     // ensure any click handlers are run.
     await new Promise(resolve => setTimeout(resolve));
 
-    this.handleClose(null);
+    this.handleClose();
   };
 
   // Opens dropdown menu
@@ -233,7 +233,7 @@ class DropdownMenu extends React.Component<Props, State> {
   };
 
   // Closes dropdown menu
-  handleClose = (e?: React.KeyboardEvent<Element> | React.MouseEvent<Element> | null) => {
+  handleClose = (e?: React.KeyboardEvent<Element> | React.MouseEvent<Element>) => {
     const {onClose, isOpen, alwaysRenderMenu, isNestedDropdown} = this.props;
     const isControlled = typeof isOpen !== 'undefined';
 

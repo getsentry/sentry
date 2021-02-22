@@ -47,7 +47,7 @@ type GetInputOutput = GetInputArgs &
     value?: string;
   };
 
-type GetItemArgs<T> = {
+export type GetItemArgs<T> = {
   item: T;
   index: number;
   onClick?: (item: T) => (e: React.MouseEvent) => void;
