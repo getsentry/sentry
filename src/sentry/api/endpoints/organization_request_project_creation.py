@@ -27,7 +27,6 @@ class OrganizationRequestProjectCreation(OrganizationEndpoint):
         """
         Send an email requesting a project be created
         """
-        organization.lol.lol
 
         serializer = OrganizationRequestProjectCreationSerializer(data=request.data)
         if not serializer.is_valid():
