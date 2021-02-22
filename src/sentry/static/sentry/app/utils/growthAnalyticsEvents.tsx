@@ -9,6 +9,7 @@ type CheckShowParams = MobilePromptBannerParams & {
   snoozedOrDismissed: boolean;
   mobileEventBrowserName: string;
   mobileEventClientOsName: string;
+  showCTA: boolean;
 };
 
 //define the event key to payload mappings
