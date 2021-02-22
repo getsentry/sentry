@@ -880,45 +880,35 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   }
 
   render() {
-    const {isCurrentSpanFilteredOut, organization} = this.props;
+    const {isCurrentSpanFilteredOut} = this.props;
     const bounds = this.getBounds();
 
     const isSpanVisibleInView = bounds.isSpanVisibleInView;
     const isSpanVisible = isSpanVisibleInView && !isCurrentSpanFilteredOut;
 
-    const hasQuickTraceView =
-      organization.features.includes('trace-view-quick') &&
-      organization.features.includes('trace-view-summary');
-
-    const spanRow = (quickTrace?: QuickTraceContextChildrenProps) => (
-      <SpanRow
-        ref={this.spanRowDOMRef}
-        visible={isSpanVisible}
-        showBorder={this.state.showDetail}
-        data-test-id="span-row"
-      >
-        <DividerHandlerManager.Consumer>
-          {(
-            dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-          ) =>
-            this.renderHeader({
-              dividerHandlerChildrenProps,
-            })
-          }
-        </DividerHandlerManager.Consumer>
-        {this.renderDetail({isVisible: isSpanVisible, quickTrace})}
-      </SpanRow>
+    return (
+      <QuickTraceContext.Consumer>
+        {quickTrace => (
+          <SpanRow
+            ref={this.spanRowDOMRef}
+            visible={isSpanVisible}
+            showBorder={this.state.showDetail}
+            data-test-id="span-row"
+          >
+            <DividerHandlerManager.Consumer>
+              {(
+                dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
+              ) =>
+                this.renderHeader({
+                  dividerHandlerChildrenProps,
+                })
+              }
+            </DividerHandlerManager.Consumer>
+            {this.renderDetail({isVisible: isSpanVisible, quickTrace})}
+          </SpanRow>
+        )}
+      </QuickTraceContext.Consumer>
     );
-
-    if (hasQuickTraceView) {
-      return (
-        <QuickTraceContext.Consumer>
-          {quickTrace => spanRow(quickTrace)}
-        </QuickTraceContext.Consumer>
-      );
-    }
-
-    return spanRow();
   }
 }
 

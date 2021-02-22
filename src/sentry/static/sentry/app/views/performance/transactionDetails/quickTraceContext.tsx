@@ -2,20 +2,9 @@ import React from 'react';
 
 import {QuickTraceQueryChildrenProps} from './quickTraceQuery';
 
-export type QuickTraceContextChildrenProps = QuickTraceQueryChildrenProps & {
-  /**
-   * A flag to indicate if the value was from the defaults.
-   * Set this to false when providing the actual results to the Provider.
-   */
-  isDefault: boolean;
-};
+export type QuickTraceContextChildrenProps = QuickTraceQueryChildrenProps | undefined;
 
-const QuickTraceContext = React.createContext<QuickTraceContextChildrenProps>({
-  isDefault: true,
-  isLoading: true,
-  error: null,
-  trace: null,
-});
+const QuickTraceContext = React.createContext<QuickTraceContextChildrenProps>(undefined);
 
 export const Provider = QuickTraceContext.Provider;
 

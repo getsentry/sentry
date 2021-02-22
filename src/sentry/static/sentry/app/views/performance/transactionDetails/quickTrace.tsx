@@ -31,19 +31,18 @@ import {
   parseTraceLite,
 } from './utils';
 
-type Props = QuickTraceQueryChildrenProps & {
+type Props = {
   event: Event;
   location: Location;
   organization: OrganizationSummary;
+  quickTrace: QuickTraceQueryChildrenProps;
 };
 
 export default function QuickTrace({
-  isLoading,
-  error,
-  trace,
   event,
   location,
   organization,
+  quickTrace: {isLoading, error, trace},
 }: Props) {
   // non transaction events are currently unsupported
   if (!isTransaction(event)) {
@@ -80,12 +79,6 @@ export default function QuickTrace({
       }
     />
   );
-
-  // return (
-  //   <QuickTraceContext.Consumer>
-  //     {results => quickTrace(results)}
-  //   </QuickTraceContext.Consumer>
-  // );
 }
 
 type QuickTraceLiteProps = {
