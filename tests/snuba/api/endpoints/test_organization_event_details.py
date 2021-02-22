@@ -227,7 +227,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
             data={
                 "event_id": "d" * 32,
                 "message": "oh no",
-                "timestamp": iso_format(before_now(days=1)),
+                "timestamp": iso_format(before_now(days=2)),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
