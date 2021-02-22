@@ -180,7 +180,7 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
         return tct('[author] created an issue on [provider] titled [title]', {
           author,
           provider: data.provider,
-          title: <Link to={data.location}>{data.title}</Link>,
+          title: <a href={data.location}>{data.title}</a>,
         });
       }
       case GroupActivityType.UNMERGE_SOURCE: {
