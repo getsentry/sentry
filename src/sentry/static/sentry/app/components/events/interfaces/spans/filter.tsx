@@ -37,28 +37,25 @@ type Props = {
 };
 
 class Filter extends React.Component<Props> {
-  getOperationNames(): string[] {
+  getOperationNameCounts(): Map<string, number> {
     const {parsedTrace} = this.props;
 
-    const result = parsedTrace.spans.reduce(
-      (operationNames: string[], span) => {
-        const operationName = span.op;
+    const result = new Map<string, number>();
+    result.set(parsedTrace.op, 1);
+    for (const span of parsedTrace.spans) {
+      const operationName = span.op;
 
-        if (typeof operationName === 'string' && operationName.length > 0) {
-          if (!operationNames.includes(operationName)) {
-            operationNames.push(operationName);
-          }
-        }
-
-        return operationNames;
-      },
-      [parsedTrace.op]
-    );
+      if (typeof operationName === 'string' && operationName.length > 0) {
+        result.set(operationName, (result.get(operationName) ?? 0) + 1);
+      }
+    }
 
     // sort alphabetically using case insensitive comparison
-    result.sort((a, b) => a.localeCompare(b, undefined, {sensitivity: 'base'}));
-
-    return result;
+    return new Map(
+      [...result].sort((a, b) =>
+        String(a[0]).localeCompare(b[0], undefined, {sensitivity: 'base'})
+      )
+    );
   }
 
   isOperationNameActive(operationName: string) {
@@ -84,9 +81,9 @@ class Filter extends React.Component<Props> {
   }
 
   render() {
-    const operationNames = this.getOperationNames();
+    const operationNameCounts = this.getOperationNameCounts();
 
-    if (operationNames.length === 0) {
+    if (operationNameCounts.size === 0) {
       return null;
     }
 
@@ -142,22 +139,25 @@ class Filter extends React.Component<Props> {
               <CheckboxFancy
                 isChecked={checkedQuantity > 0}
                 isIndeterminate={
-                  checkedQuantity > 0 && checkedQuantity !== operationNames.length
+                  checkedQuantity > 0 && checkedQuantity !== operationNameCounts.size
                 }
                 onClick={event => {
                   event.stopPropagation();
-                  this.props.toggleAllOperationNameFilters(operationNames);
+                  this.props.toggleAllOperationNameFilters(
+                    Array.from(operationNameCounts.keys())
+                  );
                 }}
               />
             </Header>
             <List>
-              {operationNames.map((operationName: string) => {
+              {Array.from(operationNameCounts, ([operationName, operationCount]) => {
                 const isActive = this.isOperationNameActive(operationName);
 
                 return (
                   <ListItem key={operationName} isChecked={isActive}>
                     <OperationDot backgroundColor={pickSpanBarColour(operationName)} />
                     <OperationName>{operationName}</OperationName>
+                    <OperationCount>{operationCount}</OperationCount>
                     <CheckboxFancy
                       isChecked={isActive}
                       onClick={event => {
@@ -240,7 +240,7 @@ const List = styled('ul')`
 
 const ListItem = styled('li')<{isChecked?: boolean}>`
   display: grid;
-  grid-template-columns: max-content 1fr max-content;
+  grid-template-columns: max-content 1fr max-content max-content;
   grid-column-gap: ${space(1)};
   align-items: center;
   padding: ${space(1)} ${space(2)};
@@ -277,6 +277,10 @@ const OperationDot = styled('div')<{backgroundColor: string}>`
 const OperationName = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   ${overflowEllipsis};
+`;
+
+const OperationCount = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 export function toggleFilter(
