@@ -12,18 +12,27 @@ import UserAvatar from 'app/components/avatar/userAvatar';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import DropdownBubble from 'app/components/dropdownBubble';
 import Highlight from 'app/components/highlight';
+import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import TextOverflow from 'app/components/textOverflow';
+import Tooltip from 'app/components/tooltip';
 import {IconAdd, IconChevron, IconClose, IconUser} from 'app/icons';
-import {t} from 'app/locale';
+import {t, tct, tn} from 'app/locale';
 import SentryTypes from 'app/sentryTypes';
 import ConfigStore from 'app/stores/configStore';
 import GroupStore from 'app/stores/groupStore';
 import MemberListStore from 'app/stores/memberListStore';
 import ProjectsStore from 'app/stores/projectsStore';
 import space from 'app/styles/space';
-import {SuggestedAssignee, SuggestedOwner, Team, User} from 'app/types';
+import {
+  Actor,
+  SuggestedAssignee,
+  SuggestedOwner,
+  SuggestedOwnerReason,
+  Team,
+  User,
+} from 'app/types';
 import {buildTeamId, buildUserId, valueIsEqual} from 'app/utils';
 
 type Props = {
@@ -35,7 +44,7 @@ type Props = {
 
 type State = {
   loading: boolean;
-  assignedTo?: User;
+  assignedTo?: Actor;
   memberList?: User[];
   suggestedOwners?: SuggestedOwner[] | null;
 };
@@ -336,13 +345,24 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
   },
 
   render() {
-    const {className, disabled} = this.props;
-    const {loading, assignedTo} = this.state;
+    const {disabled} = this.props as Props;
+    const {loading, assignedTo} = this.state as State;
     const memberList = this.memberList();
-    const suggestedActors = this.getSuggestedAssignees();
+    const suggestedActors: SuggestedAssignee[] = this.getSuggestedAssignees();
+    const suggestedReasons: Record<SuggestedOwnerReason, React.ReactNode> = {
+      suspectCommit: tct('Based on [commit:commit data]', {
+        commit: (
+          <TooltipSubExternalLink href="https://docs.sentry.io/product/sentry-basics/guides/integrate-frontend/configure-scms/" />
+        ),
+      }),
+      ownershipRule: t('Matching Issue Owners Rule'),
+    };
+    const assignedToSuggestion = suggestedActors?.find(
+      actor => actor.id === assignedTo?.id
+    );
 
     return (
-      <div className={className}>
+      <AssigneeWrapper>
         {loading && (
           <LoadingIndicator mini style={{height: '24px', margin: 0, marginRight: 11}} />
         )}
@@ -398,18 +418,78 @@ const AssigneeSelectorComponent = createReactClass<Props, State>({
             {({getActorProps, isOpen}) => (
               <DropdownButton {...getActorProps({})}>
                 {assignedTo ? (
-                  <ActorAvatar actor={assignedTo} className="avatar" size={24} />
+                  <ActorAvatar
+                    actor={assignedTo}
+                    className="avatar"
+                    size={24}
+                    tooltip={
+                      <TooltipWrapper>
+                        {tct('Assigned to [name]', {
+                          name:
+                            assignedTo.type === 'team'
+                              ? `#${assignedTo.name}`
+                              : assignedTo.name,
+                        })}
+                        {assignedToSuggestion && (
+                          <TooltipSubtext>
+                            {suggestedReasons[assignedToSuggestion.suggestedReason]}
+                          </TooltipSubtext>
+                        )}
+                      </TooltipWrapper>
+                    }
+                  />
                 ) : suggestedActors && suggestedActors.length > 0 ? (
-                  <SuggestedAvatarStack size={24} owners={suggestedActors} />
+                  <SuggestedAvatarStack
+                    size={24}
+                    owners={suggestedActors}
+                    tooltipOptions={{isHoverable: true}}
+                    tooltip={
+                      <TooltipWrapper>
+                        <div>
+                          {tct('Suggestion: [name]', {
+                            name:
+                              suggestedActors[0].type === 'team'
+                                ? `#${suggestedActors[0].name}`
+                                : suggestedActors[0].name,
+                          })}
+                          {suggestedActors.length > 1 &&
+                            tn(' + %s other', ' + %s others', suggestedActors.length - 1)}
+                        </div>
+                        <TooltipSubtext>
+                          {suggestedReasons[suggestedActors[0].suggestedReason]}
+                        </TooltipSubtext>
+                      </TooltipWrapper>
+                    }
+                  />
                 ) : (
-                  <StyledIconUser size="20px" color="gray400" />
+                  <Tooltip
+                    isHoverable
+                    skipWrapper
+                    title={
+                      <TooltipWrapper>
+                        <div>{t('Unassigned')}</div>
+                        <TooltipSubtext>
+                          {tct(
+                            'You can auto-assign issues by adding [issueOwners:Issue Owner rules].',
+                            {
+                              issueOwners: (
+                                <TooltipSubExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
+                              ),
+                            }
+                          )}
+                        </TooltipSubtext>
+                      </TooltipWrapper>
+                    }
+                  >
+                    <StyledIconUser size="20px" color="gray400" />
+                  </Tooltip>
                 )}
                 <StyledChevron direction={isOpen ? 'up' : 'down'} size="xs" />
               </DropdownButton>
             )}
           </DropdownAutoComplete>
         )}
-      </div>
+      </AssigneeWrapper>
     );
   },
 });
@@ -436,7 +516,7 @@ export function putSessionUserFirst(members: User[] | undefined): User[] {
   return arrangedMembers;
 }
 
-const AssigneeSelector = styled(AssigneeSelectorComponent)`
+const AssigneeWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
 
@@ -446,8 +526,7 @@ const AssigneeSelector = styled(AssigneeSelectorComponent)`
   }
 `;
 
-export default AssigneeSelector;
-export {AssigneeSelectorComponent};
+export default AssigneeSelectorComponent;
 
 const StyledIconUser = styled(IconUser)`
   /* We need this to center with Avatar */
@@ -517,4 +596,21 @@ const GroupHeader = styled('div')`
 const SuggestedReason = styled('span')`
   margin-left: ${space(0.5)};
   color: ${p => p.theme.textColor};
+`;
+
+const TooltipWrapper = styled('div')`
+  text-align: left;
+`;
+
+const TooltipSubtext = styled('div')`
+  color: ${p => p.theme.subText};
+`;
+
+const TooltipSubExternalLink = styled(ExternalLink)`
+  color: ${p => p.theme.subText};
+  text-decoration: underline;
+
+  :hover {
+    color: ${p => p.theme.subText};
+  }
 `;

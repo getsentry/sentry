@@ -38,12 +38,12 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
         query_start = request.GET.get("start")
         if query_start is not None:
             # exclude incidents closed before the window
-            incidents = incidents.exclude(date_closed__lte=query_start)
+            incidents = incidents.exclude(date_closed__lt=query_start)
 
         query_end = request.GET.get("end")
         if query_end is not None:
             # exclude incidents started after the window
-            incidents = incidents.exclude(date_started__gte=query_end)
+            incidents = incidents.exclude(date_started__gt=query_end)
 
         query_status = request.GET.get("status")
         if query_status is not None:

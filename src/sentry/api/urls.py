@@ -396,7 +396,11 @@ GROUP_URLS = [
     ),
     url(r"^(?P<issue_id>[^\/]+)/attachments/$", GroupAttachmentsEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/similar/$", GroupSimilarIssuesEndpoint.as_view()),
-    url(r"^(?P<issue_id>[^\/]+)/external-issues/$", GroupExternalIssuesEndpoint.as_view()),
+    url(
+        r"^(?P<issue_id>[^\/]+)/external-issues/$",
+        GroupExternalIssuesEndpoint.as_view(),
+        name="external-issues",
+    ),
     url(
         r"^(?P<issue_id>[^\/]+)/external-issues/(?P<external_issue_id>\d+)/$",
         GroupExternalIssueDetailsEndpoint.as_view(),
@@ -405,6 +409,7 @@ GROUP_URLS = [
     url(
         r"^(?P<issue_id>[^\/]+)/integrations/(?P<integration_id>\d+)/$",
         GroupIntegrationDetailsEndpoint.as_view(),
+        name="integration-details",
     ),
     url(r"^(?P<issue_id>[^\/]+)/current-release/$", GroupCurrentReleaseEndpoint.as_view()),
     # Load plugin group urls
@@ -930,7 +935,10 @@ urlpatterns = [
                     OrganizationGroupIndexStatsEndpoint.as_view(),
                     name="sentry-api-0-organization-group-index-stats",
                 ),
-                url(r"^(?P<organization_slug>[^\/]+)/(?:issues|groups)/", include(GROUP_URLS)),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?:issues|groups)/",
+                    include(GROUP_URLS, namespace="sentry-api-0-organization-group"),
+                ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/integrations/$",
                     OrganizationIntegrationsEndpoint.as_view(),
@@ -1720,7 +1728,7 @@ urlpatterns = [
         ),
     ),
     # Groups
-    url(r"^(?:issues|groups)/", include(GROUP_URLS)),
+    url(r"^(?:issues|groups)/", include(GROUP_URLS, namespace="sentry-api-0-group")),
     url(
         r"^issues/(?P<issue_id>[^\/]+)/participants/$",
         GroupParticipantsEndpoint.as_view(),
