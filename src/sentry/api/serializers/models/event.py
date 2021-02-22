@@ -293,7 +293,7 @@ class EventSerializer(Serializer):
             "crashFile": attrs["crash_file"],
             "culprit": obj.culprit,
             "dateCreated": obj.datetime,
-            "fingerprints": obj.get_hashes(),
+            "fingerprints": obj.get_hashes()[0],
             "groupingConfig": obj.get_grouping_config(),
         }
 

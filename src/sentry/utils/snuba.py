@@ -648,10 +648,10 @@ def bulk_raw_query(snuba_param_list, referrer=None):
         try:
             with timer("snuba_query"):
                 referrer = headers.get("referer", "<unknown>")
-                if SNUBA_INFO:
-                    logger.info("{}.body: {}".format(referrer, json.dumps(query_params)))
-                    query_params["debug"] = True
                 body = json.dumps(query_params)
+                if SNUBA_INFO:
+                    logger.info(f"{referrer}.body: {body}")
+                    query_params["debug"] = True
                 with thread_hub.start_span(op="snuba", description=f"query {referrer}") as span:
                     span.set_tag("referrer", referrer)
                     for param_key, param_data in query_params.items():
@@ -666,7 +666,7 @@ def bulk_raw_query(snuba_param_list, referrer=None):
 
     with sentry_sdk.start_span(
         op="start_snuba_query",
-        description="running {} snuba queries".format(len(snuba_param_list)),
+        description=f"running {len(snuba_param_list)} snuba queries",
     ) as span:
         span.set_tag("referrer", headers.get("referer", "<unknown>"))
         if len(snuba_param_list) > 1:

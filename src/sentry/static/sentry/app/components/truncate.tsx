@@ -3,6 +3,7 @@ import React from 'react';
 type DefaultProps = {
   maxLength: number;
   leftTrim: boolean;
+  expandable: boolean;
 };
 
 type Props = DefaultProps & {
@@ -18,6 +19,7 @@ class Truncate extends React.Component<Props, State> {
   static defaultProps: DefaultProps = {
     maxLength: 50,
     leftTrim: false,
+    expandable: true,
   };
 
   state = {
@@ -39,7 +41,7 @@ class Truncate extends React.Component<Props, State> {
   };
 
   render() {
-    const {leftTrim, maxLength, value} = this.props;
+    const {leftTrim, maxLength, value, expandable} = this.props;
     const isTruncated = value.length > maxLength;
     let shortValue: React.ReactNode = '';
 
@@ -64,10 +66,10 @@ class Truncate extends React.Component<Props, State> {
     return (
       <span
         className={className}
-        onMouseOver={this.onFocus}
-        onMouseOut={this.onBlur}
-        onFocus={this.onFocus}
-        onBlur={this.onBlur}
+        onMouseOver={expandable ? this.onFocus : undefined}
+        onMouseOut={expandable ? this.onBlur : undefined}
+        onFocus={expandable ? this.onFocus : undefined}
+        onBlur={expandable ? this.onBlur : undefined}
       >
         <span className="short-value">{shortValue}</span>
         {isTruncated && <span className="full-value">{value}</span>}

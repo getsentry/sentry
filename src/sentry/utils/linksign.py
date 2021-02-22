@@ -29,7 +29,7 @@ def generate_signed_link(user, viewname, referrer=None, args=None, kwargs=None):
     path = reverse(viewname, args=args, kwargs=kwargs)
     item = "{}|{}|{}".format(options.get("system.url-prefix"), path, base36_encode(user_id))
     signature = ":".join(get_signer().sign(item).rsplit(":", 2)[1:])
-    signed_link = "{}?_={}:{}".format(absolute_uri(path), base36_encode(user_id), signature)
+    signed_link = f"{absolute_uri(path)}?_={base36_encode(user_id)}:{signature}"
     if referrer:
         signed_link = signed_link + "&" + urlencode({"referrer": referrer})
     return signed_link

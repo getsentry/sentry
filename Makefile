@@ -58,8 +58,10 @@ setup-pyenv:
 ensure-venv:
 	@./scripts/ensure-venv.sh
 
-ensure-pinned-pip: ensure-venv
-	$(PIP) install --no-cache-dir --upgrade "pip>=20.0.2"
+ensure-pinned-pip: ensure-venv upgrade-pip
+
+upgrade-pip:
+	bash ./scripts/python.sh upgrade-pip
 
 setup-git-config:
 	@git config --local branch.autosetuprebase always
@@ -89,22 +91,8 @@ install-js-dev: node-version-check
 	# Add an additional check against `node_modules`
 	yarn check --verify-tree || yarn install --check-files
 
-install-py-dev: ensure-pinned-pip
-ifeq ($(shell command -v wheel 2> /dev/null),)
-	# The Python version installed via pyenv does not come with wheel pre-installed
-	# Installing wheel will speed up installation of Python dependencies
-	@$(PIP) install wheel
-endif
-	@echo "--> Installing Sentry (for development)"
-ifdef BIG_SUR
-	# grpcio 1.35.0 is very painful to compile on Big Sur, and is not really surfaced in testing anyways.
-	# So we set SYSTEM_VERSION_COMPAT=1 to get pip to download grpcio wheels for older MacOS.
-	SYSTEM_VERSION_COMPAT=1 $(PIP) install 'grpcio==1.35.0'
-endif
-	# SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
-	# Webpacked assets are only necessary for devserver (which does it lazily anyways)
-	# and acceptance tests, which webpack automatically if run.
-	SENTRY_LIGHT_BUILD=1 $(PIP) install -e ".[dev]"
+install-py-dev:
+	bash ./scripts/python.sh install-py-dev
 
 build-js-po: node-version-check
 	mkdir -p build

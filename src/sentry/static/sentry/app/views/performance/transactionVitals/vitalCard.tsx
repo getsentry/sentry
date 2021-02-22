@@ -365,12 +365,12 @@ class VitalCard extends React.Component<Props, State> {
   }
 
   getSeries() {
-    const {chartData, precision, vitalDetails, vital} = this.props;
+    const {theme, chartData, precision, vitalDetails, vital} = this.props;
 
     const additionalFieldsFn = bucket => {
       if (this.showVitalColours()) {
         return {
-          itemStyle: {color: this.getVitalsColor(vital, bucket)},
+          itemStyle: {color: theme[this.getVitalsColor(vital, bucket)]},
         };
       }
       return {};
@@ -459,7 +459,7 @@ class VitalCard extends React.Component<Props, State> {
         return [
           '<div class="tooltip-series tooltip-series-solo">',
           '<span class="tooltip-label">',
-          `<strong>${t('Baseline')}</strong>`,
+          `<strong>${t('p75')}</strong>`,
           '</span>',
           '</div>',
           '<div class="tooltip-arrow"></div>',
@@ -468,7 +468,7 @@ class VitalCard extends React.Component<Props, State> {
     };
 
     return {
-      seriesName: t('Baseline'),
+      seriesName: t('p75'),
       data: [],
       markLine,
     };

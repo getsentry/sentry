@@ -25,7 +25,7 @@ def sane_repr(*attrs):
     def _repr(self):
         cls = type(self).__name__
 
-        pairs = ("{}={}".format(a, repr(getattr(self, a, None))) for a in attrs)
+        pairs = (f"{a}={getattr(self, a, None)!r}" for a in attrs)
 
         return "<{} at 0x{:x}: {}>".format(cls, id(self), ", ".join(pairs))
 

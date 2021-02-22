@@ -93,7 +93,7 @@ class Param:
             raise AttributeError(f"Missing required param: `{name}`")
 
         if self.is_required and not isinstance(value, self.type):
-            raise TypeError("`{}` must be a {}, received {}".format(name, self.type, type(value)))
+            raise TypeError(f"`{name}` must be a {self.type}, received {type(value)}")
 
         return True
 

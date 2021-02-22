@@ -333,6 +333,7 @@ export function VitalBar(props: VitalBarProps) {
           </div>
         )}
         <VitalPercents
+          vital={vital}
           percents={percents}
           showVitalPercentNames={showVitalPercentNames}
         />
