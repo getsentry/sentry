@@ -156,7 +156,7 @@ const ReleaseChartControls = ({
         <QuestionTooltip
           position="top"
           size="sm"
-          title={t('This includes only the current release.')}
+          title={t('This value includes only the current release.')}
         />
       </InlineContainer>
       <InlineContainer>
