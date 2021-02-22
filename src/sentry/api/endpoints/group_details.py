@@ -145,7 +145,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             for item, version in zip(serialized_releases, versions)
         ]
 
-    @rate_limit_endpoint(limit=1, window=1)
+    @rate_limit_endpoint(limit=5, window=1)
     def get(self, request, group):
         """
         Retrieve an Issue
@@ -273,7 +273,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             )
             raise
 
-    @rate_limit_endpoint(limit=1, window=1)
+    @rate_limit_endpoint(limit=5, window=1)
     def put(self, request, group):
         """
         Update an Issue
@@ -354,7 +354,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             )
             raise
 
-    @rate_limit_endpoint(limit=1, window=1)
+    @rate_limit_endpoint(limit=5, window=1)
     def delete(self, request, group):
         """
         Remove an Issue
