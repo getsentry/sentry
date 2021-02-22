@@ -99,7 +99,7 @@ class SuggestProjectCTA extends React.Component<Props, State> {
   get showCTA() {
     const {loaded, isDismissed} = this.state;
 
-    return this.hasMobileEvent && !this.hasMobileProject && !isDismissed && loaded;
+    return !!(this.hasMobileEvent && !this.hasMobileProject && !isDismissed && loaded);
   }
 
   async fetchData() {
@@ -110,27 +110,31 @@ class SuggestProjectCTA extends React.Component<Props, State> {
     ]);
 
     //set the new state
-    this.setState({
-      isDismissed,
-      mobileEventResult,
-      loaded: true,
-    });
-
-    const matchedUserAgentString = this.matchedUserAgentString;
-
-    //now record the results
-    trackAdvancedAnalyticsEvent(
-      'growth.check_show_mobile_prompt_banner',
+    this.setState(
       {
-        matchedUserAgentString,
-        userAgentMatches: !!matchedUserAgentString,
-        hasMobileProject: this.hasMobileProject,
-        snoozedOrDismissed: isDismissed,
-        mobileEventBrowserName: mobileEventResult?.browserName || '',
-        mobileEventClientOsName: mobileEventResult?.clientOsName || '',
+        isDismissed,
+        mobileEventResult,
+        loaded: true,
       },
-      this.props.organization,
-      {startSession: true}
+      () => {
+        const matchedUserAgentString = this.matchedUserAgentString;
+
+        //now record the results
+        trackAdvancedAnalyticsEvent(
+          'growth.check_show_mobile_prompt_banner',
+          {
+            matchedUserAgentString,
+            userAgentMatches: !!matchedUserAgentString,
+            hasMobileProject: this.hasMobileProject,
+            snoozedOrDismissed: isDismissed,
+            mobileEventBrowserName: mobileEventResult?.browserName || '',
+            mobileEventClientOsName: mobileEventResult?.clientOsName || '',
+            showCTA: this.showCTA,
+          },
+          this.props.organization,
+          {startSession: true}
+        );
+      }
     );
   }
 
