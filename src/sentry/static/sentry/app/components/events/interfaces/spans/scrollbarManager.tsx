@@ -71,29 +71,18 @@ export class Provider extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (this.props.dividerPosition !== prevProps.dividerPosition) {
-      // Find any span bar and adjust the virtual scroll bar's scroll position
-      // with respect to this span bar.
+    // Re-initialize the scroll state whenever:
+    // - the window was selected via the minimap or,
+    // - the divider was re-positioned.
 
-      if (this.contentSpanBar.size === 0) {
-        return;
-      }
-
-      const spanBarDOM = this.getReferenceSpanBar();
-      if (spanBarDOM) {
-        this.syncVirtualScrollbar(spanBarDOM);
-      }
-
-      return;
-    }
-
-    // If the window was selected via the minimap, then re-initialize the scroll state.
+    const dividerPositionChanged =
+      this.props.dividerPosition !== prevProps.dividerPosition;
 
     const viewWindowChanged =
       prevProps.dragProps.viewWindowStart !== this.props.dragProps.viewWindowStart ||
       prevProps.dragProps.viewWindowEnd !== this.props.dragProps.viewWindowEnd;
 
-    if (viewWindowChanged) {
+    if (dividerPositionChanged || viewWindowChanged) {
       this.initializeScrollState();
     }
   }
