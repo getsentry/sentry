@@ -1,12 +1,12 @@
 ---
-created: '2019-06-05T20:07:56.986283Z'
+created: '2021-02-15T10:54:23.648255Z'
 creator: sentry
 source: tests/sentry/event_manager/interfaces/test_exception.py
 ---
 errors: null
 get_api_context:
   excOmitted: null
-  hasSystemFrames: false
+  hasSystemFrames: true
   values:
   - mechanism: null
     module: foo.bar
@@ -19,7 +19,7 @@ get_api_context:
         errors: null
         filename: foo/baz.py
         function: null
-        inApp: false
+        inApp: true
         instructionAddr: null
         lineNo: 1
         module: null
@@ -31,7 +31,7 @@ get_api_context:
         trust: null
         vars: null
       framesOmitted: null
-      hasSystemFrames: false
+      hasSystemFrames: true
       registers: null
     threadId: null
     type: ValueError
@@ -47,7 +47,7 @@ get_api_context:
         errors: null
         filename: foo/baz.py
         function: null
-        inApp: false
+        inApp: true
         instructionAddr: null
         lineNo: 1
         module: null
@@ -59,7 +59,7 @@ get_api_context:
         trust: null
         vars: null
       framesOmitted: null
-      hasSystemFrames: false
+      hasSystemFrames: true
       registers: null
     threadId: null
     type: ValueError
@@ -70,10 +70,8 @@ to_json:
     stacktrace:
       frames:
       - abs_path: foo/baz.py
-        data:
-          orig_in_app: 1
         filename: foo/baz.py
-        in_app: false
+        in_app: true
         lineno: 1
     type: ValueError
     value: hello world
@@ -81,10 +79,8 @@ to_json:
     stacktrace:
       frames:
       - abs_path: foo/baz.py
-        data:
-          orig_in_app: 1
         filename: foo/baz.py
-        in_app: false
+        in_app: true
         lineno: 1
     type: ValueError
     value: hello world

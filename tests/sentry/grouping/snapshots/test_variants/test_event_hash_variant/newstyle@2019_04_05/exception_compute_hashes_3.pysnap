@@ -1,23 +1,23 @@
 ---
-created: '2020-02-26T19:54:30.068024Z'
+created: '2021-02-15T10:11:58.690991Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: "9c694b5c648e2e8a0822dcbd4c7f9c36"
+  hash: null
   component:
-    app*
-      chained-exception*
+    app (exception of system takes precedence)
+      chained-exception (ignored because hash matches system variant)
         exception*
-          stacktrace
-            frame (non app frame)
+          stacktrace*
+            frame*
               filename*
                 "baz.py"
           type*
             "ValueError"
         exception*
-          stacktrace
-            frame (non app frame)
+          stacktrace*
+            frame*
               filename*
                 "baz.py"
           type*
