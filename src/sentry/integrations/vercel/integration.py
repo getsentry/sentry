@@ -206,6 +206,7 @@ class VercelIntegration(IntegrationInstallation):
 
     def update_organization_config(self, data):
         # data = {"project_mappings": [[sentry_project_id, vercel_project_id]]}
+
         vercel_client = self.get_client()
         config = self.org_integration.config
         try:
@@ -262,13 +263,10 @@ class VercelIntegration(IntegrationInstallation):
                 if details["type"] == "secret":
                     secret_name = env_var + "_%s" % uuid
                     secret_value = vercel_client.create_secret(secret_name, details["value"])
-                    self.create_env_var(
-                        vercel_client, vercel_project_id, env_var, secret_value, details["type"]
-                    )
-                else:
-                    self.create_env_var(
-                        vercel_client, vercel_project_id, env_var, details["value"], details["type"]
-                    )
+                    details["value"] = secret_value
+                self.create_env_var(
+                    vercel_client, vercel_project_id, env_var, details["value"], details["type"]
+                )
 
         config.update(data)
         self.org_integration.update(config=config)
@@ -295,10 +293,9 @@ class VercelIntegration(IntegrationInstallation):
             return client.update_env_variable(vercel_project_id, env_var_ids[0], data)
 
         key = data["key"]
-        message = (
+        raise IntegrationError(
             f"Could not update environment variable {key} in Vercel project {vercel_project_id}."
         )
-        raise IntegrationError(message)
 
 
 class VercelIntegrationProvider(IntegrationProvider):
