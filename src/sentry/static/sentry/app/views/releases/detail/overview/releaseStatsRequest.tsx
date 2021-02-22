@@ -107,7 +107,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
     const {version, location, selection, defaultStatsPeriod} = this.props;
 
     return {
-      query: stringifyQueryObject(new QueryResults([`release:${version}`])),
+      query: stringifyQueryObject(new QueryResults([`release:"${version}"`])),
       interval: getInterval(selection.datetime),
       ...getParams(pick(location.query, Object.values(URL_PARAM)), {
         defaultStatsPeriod,
@@ -191,7 +191,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
           ...this.baseQueryParams,
           field: 'sum(session)',
           groupBy: 'session.status',
-          query: stringifyQueryObject(new QueryResults([`!release:${version}`])),
+          query: stringifyQueryObject(new QueryResults([`!release:"${version}"`])),
         },
       }),
     ]);
@@ -240,7 +240,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
           ...this.baseQueryParams,
           field: 'count_unique(user)',
           groupBy: 'session.status',
-          query: stringifyQueryObject(new QueryResults([`!release:${version}`])),
+          query: stringifyQueryObject(new QueryResults([`!release:"${version}"`])),
         },
       }),
     ]);
@@ -289,7 +289,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
           ...this.baseQueryParams,
           field: ['sum(session)', 'count_unique(user)'],
           groupBy: 'session.status',
-          query: stringifyQueryObject(new QueryResults([`!release:${version}`])),
+          query: stringifyQueryObject(new QueryResults([`!release:"${version}"`])),
         },
       }),
     ]);
@@ -359,7 +359,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
         query: {
           ...this.baseQueryParams,
           field: 'p50(session.duration)',
-          query: stringifyQueryObject(new QueryResults([`!release:${version}`])),
+          query: stringifyQueryObject(new QueryResults([`!release:"${version}"`])),
         },
       }),
     ]);
