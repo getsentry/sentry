@@ -1,3 +1,5 @@
+import numbers
+import math
 from contextlib import contextmanager
 import sentry_sdk
 from django.utils.http import urlquote
@@ -201,6 +203,11 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             for result in results:
                 if has_issues and "issue.id" in result:
                     result["issue"] = issues.get(result["issue.id"], "unknown")
+
+        for result in results:
+            for key in result:
+                if isinstance(result[key], numbers.Number) and not math.isfinite(result[key]):
+                    result[key] = None
 
         if not ("project.id" in first_row or "projectid" in first_row):
             return results

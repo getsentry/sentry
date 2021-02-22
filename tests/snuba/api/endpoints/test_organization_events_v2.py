@@ -2934,3 +2934,17 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert len(response.data["data"]) == 1
         assert "Link" not in response
+
+    def test_aggregates_in_empty_project(self):
+        self.create_project()
+        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        query = {"field": ["p50()", "p75()", "p95()", "percentile(transaction.duration, 0.99)"]}
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["p50"] is None
+        assert data[0]["p75"] is None
+        assert data[0]["p95"] is None
+        assert data[0]["percentile_transaction_duration_0_99"] is None
