@@ -19,6 +19,8 @@ import {EventType, YAxis} from './releaseChartControls';
 
 type ChartData = Record<string, Series>;
 
+const SESSIONS_CHART_PALETTE = CHART_PALETTE[3];
+
 export function getInterval(datetimeObj: DateTimeObject) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
 
@@ -121,9 +123,9 @@ export function initSessionsBreakdownChartData(): ChartData {
     healthy: {
       seriesName: sessionTerm.healthy,
       data: [],
-      color: CHART_PALETTE[3][3],
+      color: SESSIONS_CHART_PALETTE[3],
       areaStyle: {
-        color: CHART_PALETTE[3][3],
+        color: SESSIONS_CHART_PALETTE[3],
         opacity: 1,
       },
       lineStyle: {
@@ -134,9 +136,9 @@ export function initSessionsBreakdownChartData(): ChartData {
     errored: {
       seriesName: sessionTerm.errored,
       data: [],
-      color: CHART_PALETTE[3][0],
+      color: SESSIONS_CHART_PALETTE[0],
       areaStyle: {
-        color: CHART_PALETTE[3][0],
+        color: SESSIONS_CHART_PALETTE[0],
         opacity: 1,
       },
       lineStyle: {
@@ -147,9 +149,9 @@ export function initSessionsBreakdownChartData(): ChartData {
     abnormal: {
       seriesName: sessionTerm.abnormal,
       data: [],
-      color: CHART_PALETTE[3][1],
+      color: SESSIONS_CHART_PALETTE[1],
       areaStyle: {
-        color: CHART_PALETTE[3][1],
+        color: SESSIONS_CHART_PALETTE[1],
         opacity: 1,
       },
       lineStyle: {
@@ -160,9 +162,9 @@ export function initSessionsBreakdownChartData(): ChartData {
     crashed: {
       seriesName: sessionTerm.crashed,
       data: [],
-      color: CHART_PALETTE[3][2],
+      color: SESSIONS_CHART_PALETTE[2],
       areaStyle: {
-        color: CHART_PALETTE[3][2],
+        color: SESSIONS_CHART_PALETTE[2],
         opacity: 1,
       },
       lineStyle: {
@@ -180,9 +182,9 @@ export function initOtherSessionsBreakdownChartData(): ChartData {
       data: [],
       stack: 'otherArea',
       z: 0,
-      color: CHART_PALETTE[3][3],
+      color: SESSIONS_CHART_PALETTE[3],
       areaStyle: {
-        color: CHART_PALETTE[3][3],
+        color: SESSIONS_CHART_PALETTE[3],
         opacity: 0.3,
       },
       lineStyle: {
@@ -195,9 +197,9 @@ export function initOtherSessionsBreakdownChartData(): ChartData {
       data: [],
       stack: 'otherArea',
       z: 0,
-      color: CHART_PALETTE[3][0],
+      color: SESSIONS_CHART_PALETTE[0],
       areaStyle: {
-        color: CHART_PALETTE[3][0],
+        color: SESSIONS_CHART_PALETTE[0],
         opacity: 0.3,
       },
       lineStyle: {
@@ -210,9 +212,9 @@ export function initOtherSessionsBreakdownChartData(): ChartData {
       data: [],
       stack: 'otherArea',
       z: 0,
-      color: CHART_PALETTE[3][1],
+      color: SESSIONS_CHART_PALETTE[1],
       areaStyle: {
-        color: CHART_PALETTE[3][1],
+        color: SESSIONS_CHART_PALETTE[1],
         opacity: 0.3,
       },
       lineStyle: {
@@ -225,9 +227,9 @@ export function initOtherSessionsBreakdownChartData(): ChartData {
       data: [],
       stack: 'otherArea',
       z: 0,
-      color: CHART_PALETTE[3][2],
+      color: SESSIONS_CHART_PALETTE[2],
       areaStyle: {
-        color: CHART_PALETTE[3][2],
+        color: SESSIONS_CHART_PALETTE[2],
         opacity: 0.3,
       },
       lineStyle: {
