@@ -66,6 +66,7 @@ export default function XAxis({
     },
     axisLabel: {
       color: theme.chartLabel,
+      fontFamily: theme.text.family,
       margin: 12,
 
       // This was default with ChartZoom, we are making it default for all charts now

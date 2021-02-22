@@ -14,6 +14,7 @@ export default function YAxis({theme, ...props}: Props): EChartOption.YAxis {
     },
     axisLabel: {
       color: theme.chartLabel,
+      fontFamily: theme.text.family,
     },
     splitLine: {
       lineStyle: {
