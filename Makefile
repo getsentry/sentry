@@ -14,6 +14,7 @@ develop: ensure-pinned-pip setup-git install-js-dev install-py-dev
 
 clean:
 	@echo "--> Cleaning static cache"
+	echo "FOO"
 	rm -rf dist/* static/dist/*
 	@echo "--> Cleaning integration docs cache"
 	rm -rf src/sentry/integration-docs
