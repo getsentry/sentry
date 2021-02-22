@@ -309,7 +309,25 @@ class IssueListOverview extends React.Component<Props, State> {
   }
 
   getSort(): string {
-    return (this.props.location.query.sort as string) || DEFAULT_SORT;
+    const {location, savedSearch} = this.props;
+    if (!location.query.sort && savedSearch?.id) {
+      return savedSearch.sort;
+    }
+
+    if (location.query.sort) {
+      return location.query.sort as string;
+    }
+
+    const {organization} = this.props;
+    if (
+      organization.features.includes('inbox') &&
+      organization.features.includes('inbox-tab-default') &&
+      isForReviewQuery(this.getQuery())
+    ) {
+      return IssueSortOptions.INBOX;
+    }
+
+    return DEFAULT_SORT;
   }
 
   getGroupStatsPeriod(): string {
@@ -494,6 +512,7 @@ class IssueListOverview extends React.Component<Props, State> {
 
   fetchData = (selectionChanged?: boolean) => {
     GroupStore.loadInitialData([]);
+    this._streamManager.reset();
 
     this.setState({
       issuesLoading: true,
@@ -753,6 +772,9 @@ class IssueListOverview extends React.Component<Props, State> {
       // if available.
       if (!query.cursor && savedSearch.projectId) {
         query.project = [savedSearch.projectId];
+      }
+      if (!query.cursor && !newParams.sort && savedSearch.sort) {
+        query.sort = savedSearch.sort;
       }
     } else {
       path = `/organizations/${organization.slug}/issues/`;

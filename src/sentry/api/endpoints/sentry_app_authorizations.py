@@ -8,13 +8,11 @@ from sentry.api.bases import SentryAppAuthorizationsBaseEndpoint
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.token_exchange import GrantExchanger, Refresher, GrantTypes
 from sentry.api.serializers.models.apitoken import ApiTokenSerializer
-from sentry.web.decorators import transaction_start
 
 logger = logging.getLogger(__name__)
 
 
 class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
-    @transaction_start("SentryAppAuthorizationsEndpoint")
     def post(self, request, installation):
         with sentry_sdk.configure_scope() as scope:
             scope.set_tag("organization", installation.organization_id)

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
 import Access from 'app/components/acl/access';
-import Alert, {Props as AlertProps} from 'app/components/alert';
+import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import ExternalLink from 'app/components/links/externalLink';
 import {Panel} from 'app/components/panels';
@@ -20,7 +20,10 @@ import {
   IntegrationType,
   Organization,
 } from 'app/types';
-import {AnalyticsKey, EventParameters} from 'app/utils/integrationEvents';
+import {
+  IntegrationAnalyticsKey,
+  IntegrationEventParameters,
+} from 'app/utils/integrationEvents';
 import {
   getCategories,
   getIntegrationFeatureGate,
@@ -34,7 +37,7 @@ import IntegrationStatus from './integrationStatus';
 
 type Tab = 'overview' | 'configurations';
 
-type AlertType = AlertProps & {
+type AlertType = React.ComponentProps<typeof Alert> & {
   text: string;
 };
 
@@ -186,9 +189,9 @@ class AbstractIntegrationDetailedView<
   }
 
   //Wrapper around trackIntegrationEvent that automatically provides many fields and the org
-  trackIntegrationEvent = <T extends AnalyticsKey>(
-    eventKey: AnalyticsKey,
-    options?: Partial<EventParameters[T]>
+  trackIntegrationEvent = <T extends IntegrationAnalyticsKey>(
+    eventKey: IntegrationAnalyticsKey,
+    options?: Partial<IntegrationEventParameters[T]>
   ) => {
     options = options || {};
     //If we use this intermediate type we get type checking on the things we care about

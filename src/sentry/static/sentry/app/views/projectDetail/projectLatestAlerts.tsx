@@ -6,6 +6,7 @@ import pick from 'lodash/pick';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import {SectionHeading} from 'app/components/charts/styles';
+import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Link from 'app/components/links/link';
 import Placeholder from 'app/components/placeholder';
 import TimeSince from 'app/components/timeSince';
@@ -22,6 +23,8 @@ import {Incident, IncidentStatus} from '../alerts/types';
 import MissingAlertsButtons from './missingFeatureButtons/missingAlertsButtons';
 import {SectionHeadingLink, SectionHeadingWrapper, SidebarSection} from './styles';
 import {didProjectOrEnvironmentChange} from './utils';
+
+const PLACEHOLDER_AND_EMPTY_HEIGHT = '172px';
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
@@ -186,7 +189,7 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
     const showLoadingIndicator = loading || checkingForAlertRules || !isProjectStabilized;
 
     if (showLoadingIndicator) {
-      return <Placeholder height="172px" />;
+      return <Placeholder height={PLACEHOLDER_AND_EMPTY_HEIGHT} />;
     }
 
     if (!hasAlertRule) {
@@ -196,7 +199,9 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
     }
 
     if (alertsUnresolvedAndResolved.length === 0) {
-      return t('No alert triggered so far.');
+      return (
+        <StyledEmptyStateWarning small>{t('No alerts found')}</StyledEmptyStateWarning>
+      );
     }
 
     return alertsUnresolvedAndResolved.slice(0, 3).map(this.renderAlertRow);
@@ -274,6 +279,11 @@ const AlertTitle = styled('div')`
 
 const AlertDate = styled('span')<{color: string}>`
   color: ${p => p.color};
+`;
+
+const StyledEmptyStateWarning = styled(EmptyStateWarning)`
+  height: ${PLACEHOLDER_AND_EMPTY_HEIGHT};
+  justify-content: center;
 `;
 
 export default withTheme(ProjectLatestAlerts);

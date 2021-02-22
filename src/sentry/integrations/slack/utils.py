@@ -282,10 +282,10 @@ def build_group_attachment(
 
     if rules:
         rule_url = build_rule_url(rules[0], group, project)
-        footer += " via <{}|{}>".format(rule_url, rules[0].label)
+        footer += f" via <{rule_url}|{rules[0].label}>"
 
         if len(rules) > 1:
-            footer += " (+{} other)".format(len(rules) - 1)
+            footer += f" (+{len(rules) - 1} other)"
 
     obj = event if event is not None else group
     if event and link_to_event:
@@ -309,7 +309,7 @@ def build_group_attachment(
     }
 
 
-def build_incident_attachment(incident, metric_value=None):
+def build_incident_attachment(action, incident, metric_value=None, method=None):
     """
     Builds an incident attachment for slack unfurling
     :param incident: The `Incident` to build the attachment for
@@ -318,7 +318,7 @@ def build_incident_attachment(incident, metric_value=None):
     :return:
     """
 
-    data = incident_attachment_info(incident, metric_value)
+    data = incident_attachment_info(incident, metric_value, action=action, method=method)
 
     colors = {
         "Resolved": RESOLVED_COLOR,
@@ -449,8 +449,7 @@ def get_channel_id_with_timeout(integration, name, timeout):
     return (prefix, None, False)
 
 
-def send_incident_alert_notification(action, incident, metric_value):
-
+def send_incident_alert_notification(action, incident, metric_value, method):
     # Make sure organization integration is still active:
     try:
         integration = Integration.objects.get(
@@ -463,7 +462,7 @@ def send_incident_alert_notification(action, incident, metric_value):
         return
 
     channel = action.target_identifier
-    attachment = build_incident_attachment(incident, metric_value)
+    attachment = build_incident_attachment(action, incident, metric_value, method)
     payload = {
         "token": integration.metadata["access_token"],
         "channel": channel,

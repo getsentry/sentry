@@ -1,7 +1,7 @@
 import React from 'react';
 import LazyLoad from 'react-lazyload';
-import {DndContext} from '@dnd-kit/core';
-import {arrayMove, rectSwappingStrategy, SortableContext} from '@dnd-kit/sortable';
+import {closestCenter, DndContext} from '@dnd-kit/core';
+import {arrayMove, rectSortingStrategy, SortableContext} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
 import {openAddDashboardWidgetModal} from 'app/actionCreators/modal';
@@ -129,6 +129,7 @@ class Dashboard extends React.Component<Props> {
 
     return (
       <DndContext
+        collisionDetection={closestCenter}
         onDragEnd={({over, active}) => {
           const activeDragId = active.id;
           const getIndex = items.indexOf.bind(items);
@@ -144,7 +145,7 @@ class Dashboard extends React.Component<Props> {
         }}
       >
         <WidgetContainer>
-          <SortableContext items={items} strategy={rectSwappingStrategy}>
+          <SortableContext items={items} strategy={rectSortingStrategy}>
             {widgets.map((widget, index) => this.renderWidget(widget, index))}
             {isEditing && <AddWidget onClick={this.handleStartAdd} />}
           </SortableContext>

@@ -11,7 +11,10 @@ from datetime import datetime, timedelta
 
 import pytz
 from django.utils import dateformat, timezone
+from django.utils.http import urlencode
+from django.urls.base import reverse
 
+from sentry import features
 from sentry.app import tsdb
 from sentry.models import (
     Activity,
@@ -26,6 +29,7 @@ from sentry.models import (
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, redis
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
+from sentry.utils.http import absolute_uri
 from sentry.utils.email import MessageBuilder
 from sentry.utils.iterators import chunked
 from sentry.utils.math import mean
@@ -643,7 +647,20 @@ def series_map(function, series):
     return [(timestamp, function(value)) for timestamp, value in series]
 
 
-colors = ["#696dc3", "#6288ba", "#59aca4", "#99d59a", "#daeca9"]
+project_breakdown_colors = ["#422C6E", "#895289", "#D6567F", "#F38150", "#F2B713"]
+
+total_color = """
+linear-gradient(
+    -45deg,
+    #ccc 25%,
+    transparent 25%,
+    transparent 50%,
+    #ccc 50%,
+    #ccc 75%,
+    transparent 75%,
+    transparent
+);
+"""
 
 
 def build_project_breakdown_series(reports):
@@ -668,7 +685,7 @@ def build_project_breakdown_series(reports):
             ),
             reverse=True,
         ),
-    )[: len(colors)]
+    )[: len(project_breakdown_colors)]
 
     # Starting building the list of items to include in the report chart. This
     # is a list of [Key, Report] pairs, in *ascending* order of the total sum
@@ -685,7 +702,7 @@ def build_project_breakdown_series(reports):
             ),
             reports[instance__color[0]],
         ),
-        zip(instances, colors),
+        zip(instances, project_breakdown_colors),
     )[::-1]
 
     # Collect any reports that weren't in the selection set, merge them
@@ -715,7 +732,9 @@ def build_project_breakdown_series(reports):
         "maximum": max(sum(count for key, count in value) for timestamp, value in series),
         "legend": {
             "rows": legend,
-            "total": Key("Total", None, None, reduce(merge_mappings, [key.data for key in legend])),
+            "total": Key(
+                "Total", None, total_color, reduce(merge_mappings, [key.data for key in legend])
+            ),
         },
     }
 
@@ -734,9 +753,9 @@ def to_context(organization, interval, reports):
             "types": list(
                 zip(
                     (
-                        DistributionType("New", "#8477e0"),
-                        DistributionType("Reopened", "#6C5FC7"),
-                        DistributionType("Existing", "#534a92"),
+                        DistributionType("New", "#DF5120"),
+                        DistributionType("Reopened", "#FF7738"),
+                        DistributionType("Existing", "#F9C7B9"),
                     ),
                     report.issue_summaries,
                 )
@@ -756,7 +775,7 @@ def to_context(organization, interval, reports):
             ),
         ],
         "projects": {"series": build_project_breakdown_series(reports)},
-        "calendar": to_calendar(interval, report.calendar_series),
+        "calendar": to_calendar(organization, interval, report.calendar_series),
     }
 
 
@@ -789,7 +808,7 @@ def colorize(spectrum, values):
     return legend, results
 
 
-def to_calendar(interval, series):
+def to_calendar(organization, interval, series):
     start, stop = get_calendar_range(interval, 3)
 
     legend, values = colorize(
@@ -817,11 +836,29 @@ def to_calendar(interval, series):
 
     series_value_map = dict(series)
 
+    # If global views are enabled we can generate a link to the day
+    has_global_views = features.has("organizations:global-views", organization)
+
     def get_data_for_date(date):
         dt = datetime(date.year, date.month, date.day, tzinfo=pytz.utc)
         ts = to_timestamp(dt)
         value = series_value_map.get(ts, None)
-        return (dt, {"value": value, "color": value_color_map[value]})
+
+        data = {"value": value, "color": value_color_map[value], "url": None}
+        if has_global_views:
+            url = reverse(
+                "sentry-organization-issue-list", kwargs={"organization_slug": organization.slug}
+            )
+            params = {
+                "project": -1,
+                "utc": True,
+                "start": dt.isoformat(),
+                "end": (dt + timedelta(days=1)).isoformat(),
+            }
+            url = f"{url}?{urlencode(params)}"
+            data["url"] = absolute_uri(url)
+
+        return (dt, data)
 
     calendar = Calendar(6)
     sheets = []

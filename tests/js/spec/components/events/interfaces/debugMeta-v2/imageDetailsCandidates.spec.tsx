@@ -70,9 +70,9 @@ describe('Debug Meta - Image Details Candidates', function () {
     // The UI shall sort the candidates by status. However, this sorting is not alphabetical but in the following order:
     // Permissions -> Failed -> Ok -> Deleted (previous Ok) -> Unapplied -> Not Found
     const statusColumns = candidates
-      .find('Status')
+      .find('StatusTag')
       .map(statusColumn => statusColumn.text());
-    expect(statusColumns).toEqual(['Failed', 'Failed', 'Failed', 'Deleted', 'Not Found']);
+    expect(statusColumns).toEqual(['Failed', 'Failed', 'Failed', 'Deleted']);
 
     const debugFileColumn = candidates.find('DebugFileColumn');
 
@@ -81,7 +81,7 @@ describe('Debug Meta - Image Details Candidates', function () {
     const sourceNames = debugFileColumn
       .find('SourceName')
       .map(sourceName => sourceName.text());
-    expect(sourceNames).toEqual(['America', 'Austria', 'Belgium', 'Sentry', 'Microsoft']);
+    expect(sourceNames).toEqual(['America', 'Austria', 'Belgium', 'Sentry']);
 
     // Check location order.
     // The UI shall sort the candidates by source location (alphabetical)

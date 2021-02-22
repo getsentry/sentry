@@ -67,7 +67,9 @@ from sentry.models import (
     ExternalIssue,
     GroupLink,
     ReleaseFile,
+    RepositoryProjectPathConfig,
     Rule,
+    ExternalUser,
 )
 from sentry.models.integrationfeature import Feature, IntegrationFeature
 from sentry.signals import project_created
@@ -425,6 +427,18 @@ class Factories:
                         zipfile.write(fullpath, relpath)
 
         return bundle.getvalue()
+
+    @staticmethod
+    def create_code_mapping(project, repo=None, **kwargs):
+        kwargs.setdefault("stack_root", "")
+        kwargs.setdefault("source_root", "")
+
+        if not repo:
+            repo = Factories.create_repo(project=project)
+
+        return RepositoryProjectPathConfig.objects.create(
+            project=project, repository=repo, **kwargs
+        )
 
     @staticmethod
     def create_repo(project, name=None, provider=None, integration_id=None, url=None):
@@ -933,3 +947,10 @@ class Factories:
         return create_alert_rule_trigger_action(
             trigger, type, target_type, target_identifier, integration, sentry_app
         )
+
+    @staticmethod
+    def create_external_user(organizationmember, **kwargs):
+        kwargs.setdefault("provider", ExternalUser.get_provider_enum("github"))
+        kwargs.setdefault("external_name", "")
+
+        return ExternalUser.objects.create(organizationmember=organizationmember, **kwargs)

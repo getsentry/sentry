@@ -55,7 +55,15 @@ class ColumnEditModal extends React.Component<Props, State> {
   };
 
   render() {
-    const {Header, Body, Footer, tagKeys, measurementKeys, organization} = this.props;
+    const {
+      Header,
+      Body,
+      Footer,
+      tagKeys,
+      measurementKeys,
+      organization,
+      closeModal,
+    } = this.props;
     const fieldOptions = generateFieldOptions({
       organization,
       tagKeys,
@@ -63,7 +71,7 @@ class ColumnEditModal extends React.Component<Props, State> {
     });
     return (
       <React.Fragment>
-        <Header>
+        <Header closeButton onHide={closeModal}>
           <h4>{t('Edit Columns')}</h4>
         </Header>
         <Body>

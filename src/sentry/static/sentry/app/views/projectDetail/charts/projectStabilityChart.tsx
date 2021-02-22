@@ -8,6 +8,7 @@ import ChartZoom, {ZoomRenderProps} from 'app/components/charts/chartZoom';
 import ErrorPanel from 'app/components/charts/errorPanel';
 import LineChart from 'app/components/charts/lineChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
+import {HeaderTitleLegend} from 'app/components/charts/styles';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import QuestionTooltip from 'app/components/questionTooltip';
@@ -18,7 +19,6 @@ import {EChartEventHandler, Series} from 'app/types/echarts';
 import getDynamicText from 'app/utils/getDynamicText';
 import {Theme} from 'app/utils/theme';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
-import {HeaderTitleLegend} from 'app/views/performance/styles';
 import {displayCrashFreePercent} from 'app/views/releases/utils';
 import {
   getSessionTermDescription,
@@ -84,10 +84,6 @@ function ProjectStabilityChart({
                       }
 
                       onTotalValuesChange(totalSessions);
-
-                      if (totalSessions === 0) {
-                        return <ErrorPanel>{t('No session data')}</ErrorPanel>;
-                      }
 
                       return (
                         <TransitionChart loading={loading} reloading={reloading}>

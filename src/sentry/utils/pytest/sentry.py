@@ -116,7 +116,7 @@ def pytest_configure(config):
             "slack.client-id": "slack-client-id",
             "slack.client-secret": "slack-client-secret",
             "slack.verification-token": "slack-verification-token",
-            "slack.legacy-app": True,
+            "slack.signing-secret": "slack-signing-secret",
             "github-app.name": "sentry-test-app",
             "github-app.client-id": "github-client-id",
             "github-app.client-secret": "github-client-secret",
@@ -134,6 +134,8 @@ def pytest_configure(config):
             "aws-lambda.account-number": "1234",
             "aws-lambda.node.layer-name": "my-layer",
             "aws-lambda.node.layer-version": "3",
+            "aws-lambda.python.layer-name": "my-python-layer",
+            "aws-lambda.python.layer-version": "34",
         }
     )
 

@@ -97,7 +97,7 @@ def build_query_params_from_request(request, organization, projects, environment
                 parse_search_query(query), projects, request.user, environments
             )
         except InvalidSearchQuery as e:
-            raise ValidationError("Your search query could not be parsed: {}".format(str(e)))
+            raise ValidationError(f"Your search query could not be parsed: {e}")
 
         validate_search_filter_permissions(organization, search_filters, request.user)
         query_kwargs["search_filters"] = search_filters
@@ -473,7 +473,7 @@ def rate_limit_endpoint(limit=1, window=1):
         def wrapper(self, request, *args, **kwargs):
             ip = request.META["REMOTE_ADDR"]
             if ratelimiter.is_limited(
-                "rate_limit_endpoint:{}:{}".format(md5_text(function).hexdigest(), ip),
+                f"rate_limit_endpoint:{md5_text(function).hexdigest()}:{ip}",
                 limit=limit,
                 window=window,
             ):
@@ -1000,7 +1000,10 @@ def update_groups(request, projects, organization_id, search_fn, has_inbox=False
         elif not inbox:
             for group in group_list:
                 remove_group_from_inbox(
-                    group, action=GroupInboxRemoveAction.MARK_REVIEWED, user=acting_user
+                    group,
+                    action=GroupInboxRemoveAction.MARK_REVIEWED,
+                    user=acting_user,
+                    referrer=request.META.get("HTTP_REFERER"),
                 )
                 issue_mark_reviewed.send_robust(
                     project=project,

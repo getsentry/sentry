@@ -443,6 +443,9 @@ def handle_unknown_identity(request, organization, auth_provider, provider, stat
         op = None
 
     if not op:
+        # A blank character is needed to prevent the HTML span from collapsing
+        provider_name = auth_provider.get_provider().name if auth_provider else " "
+
         if request.user.is_authenticated():
             return respond(
                 "sentry/auth-confirm-link.html",
@@ -450,6 +453,7 @@ def handle_unknown_identity(request, organization, auth_provider, provider, stat
                 request,
                 {
                     "identity": identity,
+                    "provider": provider_name,
                     "existing_user": request.user,
                     "identity_display_name": get_display_name(identity),
                     "identity_identifier": get_identifier(identity),
@@ -463,6 +467,7 @@ def handle_unknown_identity(request, organization, auth_provider, provider, stat
             {
                 "existing_user": acting_user,
                 "identity": identity,
+                "provider": provider_name,
                 "login_form": login_form,
                 "identity_display_name": get_display_name(identity),
                 "identity_identifier": get_identifier(identity),
@@ -678,9 +683,7 @@ class AuthHelper:
         auth_provider = self.auth_provider
         user_id = identity["id"]
 
-        lock = locks.get(
-            "sso:auth:{}:{}".format(auth_provider.id, md5_text(user_id).hexdigest()), duration=5
-        )
+        lock = locks.get(f"sso:auth:{auth_provider.id}:{md5_text(user_id).hexdigest()}", duration=5)
         with TimedRetryPolicy(5)(lock.acquire):
             try:
                 auth_identity = AuthIdentity.objects.select_related("user").get(

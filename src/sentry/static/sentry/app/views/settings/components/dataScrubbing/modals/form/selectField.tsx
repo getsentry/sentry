@@ -1,14 +1,12 @@
 import React from 'react';
-import ReactSelect, {components, OptionProps} from 'react-select';
+import {components, OptionProps} from 'react-select';
 import styled from '@emotion/styled';
 
-import SelectControl from 'app/components/forms/selectControl';
+import SelectControl, {ControlProps} from 'app/components/forms/selectControl';
 import space from 'app/styles/space';
 
-type SelectControlProps = React.ComponentProps<typeof SelectControl>;
-
 type Props = Pick<
-  SelectControlProps,
+  ControlProps,
   'value' | 'placeholder' | 'name' | 'onChange' | 'options'
 >;
 
@@ -19,12 +17,12 @@ class SelectField extends React.Component<Props> {
     }
 
     if (this.selectRef.current?.select?.inputRef) {
-      // @ts-ignore The react-select types have inputRef as any.
       this.selectRef.current.select.inputRef.autocomplete = 'off';
     }
   }
 
-  selectRef = React.createRef<ReactSelect>();
+  // TODO(ts) The generics in react-select make getting a good type here hard.
+  selectRef = React.createRef<any>();
 
   render() {
     return (
@@ -50,7 +48,7 @@ class SelectField extends React.Component<Props> {
             description?: string;
           }>) => (
             <components.Option isSelected={isSelected} data={data} {...props}>
-              <Wrapper isSelected={isSelected}>
+              <Wrapper>
                 <div data-test-id="label">{label}</div>
                 {description && <Description>{`(${description})`}</Description>}
               </Wrapper>
@@ -69,17 +67,8 @@ const Description = styled('div')`
   color: ${p => p.theme.gray300};
 `;
 
-const Wrapper = styled('div')<{isSelected?: boolean}>`
+const Wrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
   grid-gap: ${space(1)};
-  ${p =>
-    p.isSelected &&
-    `
-      ${Description} {
-        :not(:hover) {
-          color: ${p.theme.white};
-        }
-      }
-    `}
 `;

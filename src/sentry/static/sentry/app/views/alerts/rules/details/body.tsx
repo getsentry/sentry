@@ -10,6 +10,7 @@ import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import {SectionHeading} from 'app/components/charts/styles';
+import {getInterval} from 'app/components/charts/utils';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import Duration from 'app/components/duration';
 import * as Layout from 'app/components/layouts/thirds';
@@ -21,25 +22,24 @@ import {IconFire} from 'app/icons/iconFire';
 import {IconWarning} from 'app/icons/iconWarning';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project, SelectValue} from 'app/types';
+import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
-import {getUtcDateString} from 'app/utils/dates';
 import Projects from 'app/utils/projects';
 import {Theme} from 'app/utils/theme';
+import Timeline from 'app/views/alerts/rules/details/timeline';
 import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/settings/incidentRules/constants';
 import {makeDefaultCta} from 'app/views/settings/incidentRules/incidentRulePresets';
 import {
   AlertRuleThresholdType,
   Dataset,
   IncidentRule,
-  TimePeriod,
-  TimeWindow,
 } from 'app/views/settings/incidentRules/types';
 import {extractEventTypeFilterFromRule} from 'app/views/settings/incidentRules/utils/getEventTypeFilter';
 
 import {Incident, IncidentStatus} from '../../types';
 import {DATA_SOURCE_LABELS, getIncidentRuleMetricPreset} from '../../utils';
 
+import {API_INTERVAL_POINTS_LIMIT, TIME_OPTIONS} from './constants';
 import MetricChart from './metricChart';
 import RelatedIssues from './relatedIssues';
 import RelatedTransactions from './relatedTransactions';
@@ -48,24 +48,15 @@ type Props = {
   api: Client;
   rule?: IncidentRule;
   incidents?: Incident[];
+  timePeriod: {
+    start: string;
+    end: string;
+    label: string;
+  };
   organization: Organization;
   location: Location;
   theme: Theme;
 } & RouteComponentProps<{orgId: string}, {}>;
-
-const TIME_OPTIONS: SelectValue<string>[] = [
-  {label: t('6 hours'), value: TimePeriod.SIX_HOURS},
-  {label: t('24 hours'), value: TimePeriod.ONE_DAY},
-  {label: t('3 days'), value: TimePeriod.THREE_DAYS},
-  {label: t('7 days'), value: TimePeriod.SEVEN_DAYS},
-];
-
-const TIME_WINDOWS = {
-  [TimePeriod.SIX_HOURS]: TimeWindow.ONE_HOUR * 6 * 60 * 1000,
-  [TimePeriod.ONE_DAY]: TimeWindow.ONE_DAY * 60 * 1000,
-  [TimePeriod.THREE_DAYS]: TimeWindow.ONE_DAY * 3 * 60 * 1000,
-  [TimePeriod.SEVEN_DAYS]: TimeWindow.ONE_DAY * 7 * 60 * 1000,
-};
 
 class DetailsBody extends React.Component<Props> {
   get metricPreset() {
@@ -91,19 +82,23 @@ class DetailsBody extends React.Component<Props> {
     return `${direction} ${value}`;
   }
 
-  getTimePeriod() {
-    const {location} = this.props;
-    const now = moment.utc();
+  getInterval() {
+    const {
+      timePeriod: {start, end},
+      rule,
+    } = this.props;
+    const startDate = moment.utc(start);
+    const endDate = moment.utc(end);
+    const timeWindow = rule?.timeWindow;
 
-    const timePeriod = location.query.period ?? TimePeriod.ONE_DAY;
-    const timeOption =
-      TIME_OPTIONS.find(item => item.value === timePeriod) ?? TIME_OPTIONS[1];
+    if (
+      timeWindow &&
+      endDate.diff(startDate) < API_INTERVAL_POINTS_LIMIT * timeWindow * 60 * 1000
+    ) {
+      return `${timeWindow}m`;
+    }
 
-    return {
-      ...timeOption,
-      start: getUtcDateString(moment(now.diff(TIME_WINDOWS[timeOption.value]))),
-      end: getUtcDateString(now),
-    };
+    return getInterval({start, end}, true);
   }
 
   handleTimePeriodChange = (value: string) => {
@@ -111,7 +106,6 @@ class DetailsBody extends React.Component<Props> {
     browserHistory.push({
       pathname: location.pathname,
       query: {
-        ...location.query,
         period: value,
       },
     });
@@ -120,13 +114,15 @@ class DetailsBody extends React.Component<Props> {
   calculateSummaryPercentages(
     incidents: Incident[] | undefined,
     startTime: string,
-    endTime: string,
-    totalTime: number
+    endTime: string
   ) {
+    const startDate = moment.utc(startTime);
+    const endDate = moment.utc(endTime);
+    const totalTime = endDate.diff(startDate);
+
     let criticalPercent = '0';
     let warningPercent = '0';
     if (incidents) {
-      const startDate = moment.utc(startTime);
       const filteredIncidents = incidents.filter(incident => {
         return !incident.dateClosed || moment(incident.dateClosed).isAfter(startDate);
       });
@@ -135,9 +131,7 @@ class DetailsBody extends React.Component<Props> {
       for (const incident of filteredIncidents) {
         // use the larger of the start of the incident or the start of the time period
         const incidentStart = moment.max(moment(incident.dateStarted), startDate);
-        const incidentClose = incident.dateClosed
-          ? moment(incident.dateClosed)
-          : moment.utc(endTime);
+        const incidentClose = incident.dateClosed ? moment(incident.dateClosed) : endDate;
         criticalDuration += incidentClose.diff(incidentStart);
       }
       criticalPercent = ((criticalDuration / totalTime) * 100).toFixed(2);
@@ -241,8 +235,7 @@ class DetailsBody extends React.Component<Props> {
   }
 
   renderChartActions(projects: Project[]) {
-    const {rule, params, incidents} = this.props;
-    const timePeriod = this.getTimePeriod();
+    const {rule, params, incidents, timePeriod} = this.props;
     const preset = this.metricPreset;
     const ctaOpts = {
       orgSlug: params.orgId,
@@ -259,8 +252,7 @@ class DetailsBody extends React.Component<Props> {
     const percentages = this.calculateSummaryPercentages(
       incidents,
       timePeriod.start,
-      timePeriod.end,
-      TIME_WINDOWS[timePeriod.value]
+      timePeriod.end
     );
 
     return (
@@ -308,9 +300,7 @@ class DetailsBody extends React.Component<Props> {
     return (
       <GroupedHeaderItems>
         <ItemTitle>{t('Current Status')}</ItemTitle>
-        <ItemTitle>
-          {activeIncident ? t('Alert Triggered') : t('Alert Resolved')}
-        </ItemTitle>
+        <ItemTitle>{activeIncident ? t('Last Triggered') : t('Last Resolved')}</ItemTitle>
         <ItemValue>
           <AlertBadge color={color} icon={Icon}>
             <AlertIconWrapper>
@@ -352,6 +342,7 @@ class DetailsBody extends React.Component<Props> {
       incidents,
       location,
       organization,
+      timePeriod,
       params: {orgId},
     } = this.props;
 
@@ -359,8 +350,10 @@ class DetailsBody extends React.Component<Props> {
       return this.renderLoading();
     }
 
-    const {query, environment, aggregate, projects: projectSlugs} = rule;
-    const timePeriod = this.getTimePeriod();
+    const {query, environment, aggregate, projects: projectSlugs, triggers} = rule;
+
+    const criticalTrigger = triggers.find(({label}) => label === 'critical');
+    const warningTrigger = triggers.find(({label}) => label === 'warning');
     const queryWithTypeFilter = `${query} ${extractEventTypeFilterFromRule(rule)}`.trim();
 
     return (
@@ -394,16 +387,21 @@ class DetailsBody extends React.Component<Props> {
                       query={queryWithTypeFilter}
                       environment={environment ? [environment] : undefined}
                       project={(projects as Project[]).map(project => Number(project.id))}
-                      // TODO(davidenwang): allow interval to be changed for larger time periods
-                      interval="60s"
-                      period={timePeriod.value}
+                      interval={this.getInterval()}
+                      start={timePeriod.start}
+                      end={timePeriod.end}
                       yAxis={aggregate}
                       includePrevious={false}
                       currentSeriesName={aggregate}
                     >
                       {({loading, timeseriesData}) =>
                         !loading && timeseriesData ? (
-                          <MetricChart data={timeseriesData} incidents={incidents} />
+                          <MetricChart
+                            data={timeseriesData}
+                            incidents={incidents}
+                            criticalTrigger={criticalTrigger}
+                            warningTrigger={warningTrigger}
+                          />
                         ) : (
                           <Placeholder height="200px" />
                         )
@@ -439,6 +437,7 @@ class DetailsBody extends React.Component<Props> {
                         filter={DATASET_EVENT_TYPE_FILTERS[rule.dataset]}
                       />
                     )}
+                    <Timeline api={api} orgId={orgId} rule={rule} incidents={incidents} />
                   </ActivityWrapper>
                 </DetailWrapper>
               </Layout.Main>

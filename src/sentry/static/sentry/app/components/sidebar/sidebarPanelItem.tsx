@@ -47,12 +47,11 @@ const SidebarPanelItem = ({
 export default SidebarPanelItem;
 
 const SidebarPanelItemRoot = styled('div')`
-  padding: 15px 20px;
   line-height: 1.5;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
   background: ${p => p.theme.background};
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
-  font-size: 14px;
+  font-size: ${p => p.theme.fontSizeMedium};
+  padding: ${space(4)};
 `;
 
 const ImageBox = styled('div')`

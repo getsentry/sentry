@@ -152,6 +152,11 @@ class Fixtures:
             release = self.release.version
         return Factories.create_artifact_bundle(org, release, *args, **kwargs)
 
+    def create_code_mapping(self, project=None, repo=None, **kwargs):
+        if project is None:
+            project = self.project
+        return Factories.create_code_mapping(project, repo, **kwargs)
+
     def create_repo(self, project=None, *args, **kwargs):
         if project is None:
             project = self.project
@@ -287,6 +292,15 @@ class Fixtures:
         return Factories.create_alert_rule_trigger_action(
             alert_rule_trigger, target_identifier=target_identifier, **kwargs
         )
+
+    def create_external_user(self, user=None, organization=None, **kwargs):
+        if not user:
+            user = self.user
+        if not organization:
+            organization = self.organization
+
+        organizationmember = OrganizationMember.objects.get(user=user, organization=organization)
+        return Factories.create_external_user(organizationmember=organizationmember, **kwargs)
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):

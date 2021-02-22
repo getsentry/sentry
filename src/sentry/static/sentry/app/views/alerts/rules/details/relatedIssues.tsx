@@ -16,7 +16,6 @@ type Props = {
   rule: IncidentRule;
   projects: Project[];
   filter: string;
-  statsPeriod?: string;
   start?: string;
   end?: string;
 };
@@ -35,15 +34,15 @@ class RelatedIssues extends React.Component<Props> {
   };
 
   render() {
-    const {rule, projects, filter, organization, start, end, statsPeriod} = this.props;
+    const {rule, projects, filter, organization, start, end} = this.props;
 
     const path = `/organizations/${organization.slug}/issues/`;
     const queryParams = {
       start,
       end,
-      statsPeriod,
+      groupStatsPeriod: 'auto',
       limit: 5,
-      sort: 'new',
+      sort: rule.aggregate === 'count_unique(user)' ? 'user' : 'freq',
       query: `${rule.query} ${filter}`,
       project: projects.map(project => project.id),
     };
@@ -66,10 +65,10 @@ class RelatedIssues extends React.Component<Props> {
             orgId={organization.slug}
             endpointPath={path}
             queryParams={queryParams}
-            query=""
+            query={`start=${start}&end=${end}&groupStatsPeriod=auto`}
             canSelectGroups={false}
             renderEmptyMessage={this.renderEmptyMessage}
-            withChart={false}
+            withChart
             withPagination={false}
             useFilteredStats={false}
           />

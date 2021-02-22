@@ -154,7 +154,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     if (this.project && this.integrations.length > 0 && filename) {
       return (
         <CodeMappingButtonContainer columnQuantity={2}>
-          {t('Enable source code stack trace linking by setting up a code mapping.')}
+          {t('Link your stack trace to your source code.')}
           <Button
             onClick={() => {
               trackIntegrationEvent(

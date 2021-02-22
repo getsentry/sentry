@@ -1,26 +1,29 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
-import {SectionHeading} from 'app/components/charts/styles';
-import DateTime from 'app/components/dateTime';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
-import QuestionTooltip from 'app/components/questionTooltip';
+import TimeSince from 'app/components/timeSince';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {OrganizationSummary} from 'app/types';
-import {Event, EventTransaction} from 'app/types/event';
+import {Event} from 'app/types/event';
 import {getShortEventId} from 'app/utils/events';
 import {getDuration} from 'app/utils/formatters';
-import getDynamicText from 'app/utils/getDynamicText';
 import Projects from 'app/utils/projects';
+
+import QuickTrace from './quickTrace';
+import {MetaData} from './styles';
+import {isTransaction} from './utils';
 
 type Props = {
   event: Event;
   organization: OrganizationSummary;
   projectId: string;
+  location: Location;
 };
 
-function EventMetas({event, organization, projectId}: Props) {
+function EventMetas({event, organization, projectId, location}: Props) {
   if (!isTransaction(event)) {
     return null;
   }
@@ -37,18 +40,13 @@ function EventMetas({event, organization, projectId}: Props) {
   );
 
   const timestamp = (
-    <DateTime
-      date={getDynamicText({
-        value: event.dateCreated || (event.endTimestamp || 0) * 1000,
-        fixed: 'Dummy timestamp',
-      })}
-    />
+    <TimeSince date={event.dateCreated || (event.endTimestamp || 0) * 1000} />
   );
 
   const httpStatus = <HttpStatus event={event} />;
 
   return (
-    <MetaDatasContainer>
+    <EventDetailHeader>
       <MetaData
         headingText={t('Event ID')}
         tooltipText={t('The unique ID assigned to this transaction.')}
@@ -71,9 +69,24 @@ function EventMetas({event, organization, projectId}: Props) {
         bodyText={event.contexts?.trace?.status ?? '\u2014'}
         subtext={httpStatus}
       />
-    </MetaDatasContainer>
+      <QuickTrace event={event} organization={organization} location={location} />
+    </EventDetailHeader>
   );
 }
+
+const EventDetailHeader = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, auto);
+  grid-gap: ${space(2)};
+  margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    grid-template-columns: minmax(150px, 2fr) minmax(150px, 2fr) minmax(150px, 2fr) 4fr;
+    grid-row-gap: 0;
+    margin-bottom: 0;
+  }
+`;
 
 function HttpStatus({event}: {event: Event}) {
   const {tags} = event;
@@ -92,55 +105,5 @@ function HttpStatus({event}: {event: Event}) {
 
   return <React.Fragment>HTTP {tag.value}</React.Fragment>;
 }
-
-function isTransaction(event: Event): event is EventTransaction {
-  return event.type === 'transaction';
-}
-
-const MetaDatasContainer = styled('div')`
-  display: grid;
-  grid-column-gap: ${space(2)};
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-`;
-
-type MetaDataProps = {
-  headingText: string;
-  tooltipText: string;
-  bodyText: string;
-  subtext: React.ReactNode;
-};
-
-function MetaData({headingText, tooltipText, bodyText, subtext}: MetaDataProps) {
-  return (
-    <div>
-      <StyledSectionHeading>
-        {headingText}
-        <QuestionTooltip
-          position="top"
-          size="sm"
-          containerDisplayMode="block"
-          title={tooltipText}
-        />
-      </StyledSectionHeading>
-      <SectionBody>{bodyText}</SectionBody>
-      <SectionSubtext>{subtext}</SectionSubtext>
-    </div>
-  );
-}
-
-const StyledSectionHeading = styled(SectionHeading)`
-  color: ${p => p.theme.textColor};
-`;
-
-const SectionBody = styled('p')`
-  color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.headerFontSize};
-  margin-bottom: ${space(1)};
-`;
-
-const SectionSubtext = styled('div')`
-  margin-bottom: ${space(3)};
-  color: ${p => p.theme.subText};
-`;
 
 export default EventMetas;

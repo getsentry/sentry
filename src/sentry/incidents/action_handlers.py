@@ -33,6 +33,18 @@ class ActionHandler(metaclass=abc.ABCMeta):
         pass
 
 
+class DefaultActionHandler(ActionHandler):
+    def fire(self, metric_value):
+        self.send_alert(metric_value, "fire")
+
+    def resolve(self, metric_value):
+        self.send_alert(metric_value, "resolve")
+
+    @abc.abstractmethod
+    def send_alert(self, metric_value):
+        pass
+
+
 @AlertRuleTriggerAction.register_type(
     "email",
     AlertRuleTriggerAction.Type.EMAIL,
@@ -94,18 +106,11 @@ class EmailActionHandler(ActionHandler):
     [AlertRuleTriggerAction.TargetType.SPECIFIC],
     integration_provider="slack",
 )
-class SlackActionHandler(ActionHandler):
-    def fire(self, metric_value):
-        self.send_alert(metric_value)
-
-    def resolve(self, metric_value):
-        self.send_alert(metric_value)
-
-    def send_alert(self, metric_value):
+class SlackActionHandler(DefaultActionHandler):
+    def send_alert(self, metric_value, method):
         from sentry.integrations.slack.utils import send_incident_alert_notification
 
-        # TODO: We should include more information about the trigger/severity etc.
-        send_incident_alert_notification(self.action, self.incident, metric_value)
+        send_incident_alert_notification(self.action, self.incident, metric_value, method)
 
 
 @AlertRuleTriggerAction.register_type(
@@ -114,17 +119,11 @@ class SlackActionHandler(ActionHandler):
     [AlertRuleTriggerAction.TargetType.SPECIFIC],
     integration_provider="msteams",
 )
-class MsTeamsActionHandler(ActionHandler):
-    def fire(self, metric_value):
-        self.send_alert(metric_value)
-
-    def resolve(self, metric_value):
-        self.send_alert(metric_value)
-
-    def send_alert(self, metric_value):
+class MsTeamsActionHandler(DefaultActionHandler):
+    def send_alert(self, metric_value, method):
         from sentry.integrations.msteams.utils import send_incident_alert_notification
 
-        send_incident_alert_notification(self.action, self.incident, metric_value)
+        send_incident_alert_notification(self.action, self.incident, metric_value, method)
 
 
 @AlertRuleTriggerAction.register_type(
@@ -133,17 +132,11 @@ class MsTeamsActionHandler(ActionHandler):
     [AlertRuleTriggerAction.TargetType.SPECIFIC],
     integration_provider="pagerduty",
 )
-class PagerDutyActionHandler(ActionHandler):
-    def fire(self, metric_value):
-        self.send_alert(metric_value)
-
-    def resolve(self, metric_value):
-        self.send_alert(metric_value)
-
-    def send_alert(self, metric_value):
+class PagerDutyActionHandler(DefaultActionHandler):
+    def send_alert(self, metric_value, method):
         from sentry.integrations.pagerduty.utils import send_incident_alert_notification
 
-        send_incident_alert_notification(self.action, self.incident, metric_value)
+        send_incident_alert_notification(self.action, self.incident, metric_value, method)
 
 
 @AlertRuleTriggerAction.register_type(
@@ -151,17 +144,11 @@ class PagerDutyActionHandler(ActionHandler):
     AlertRuleTriggerAction.Type.SENTRY_APP,
     [AlertRuleTriggerAction.TargetType.SENTRY_APP],
 )
-class SentryAppActionHandler(ActionHandler):
-    def fire(self, metric_value):
-        self.send_alert(metric_value)
-
-    def resolve(self, metric_value):
-        self.send_alert(metric_value)
-
-    def send_alert(self, metric_value):
+class SentryAppActionHandler(DefaultActionHandler):
+    def send_alert(self, metric_value, method):
         from sentry.rules.actions.notify_event_service import send_incident_alert_notification
 
-        send_incident_alert_notification(self.action, self.incident, metric_value)
+        send_incident_alert_notification(self.action, self.incident, metric_value, method)
 
 
 def format_duration(minutes):
@@ -171,18 +158,18 @@ def format_duration(minutes):
 
     if minutes >= 1440:
         days = int(minutes // 1440)
-        return "{:d} day{}".format(days, pluralize(days))
+        return f"{days:d} day{pluralize(days)}"
 
     if minutes >= 60:
         hours = int(minutes // 60)
-        return "{:d} hour{}".format(hours, pluralize(hours))
+        return f"{hours:d} hour{pluralize(hours)}"
 
     if minutes >= 1:
         minutes = int(minutes)
-        return "{:d} minute{}".format(minutes, pluralize(minutes))
+        return f"{minutes:d} minute{pluralize(minutes)}"
 
     seconds = int(minutes // 60)
-    return "{:d} second{}".format(seconds, pluralize(seconds))
+    return f"{seconds:d} second{pluralize(seconds)}"
 
 
 def generate_incident_trigger_email_context(project, incident, alert_rule_trigger, status):

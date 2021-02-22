@@ -331,7 +331,7 @@ class OrganizationSerializer(serializers.Serializer):
                 )
 
                 if self.initial_data[key] != default_value:
-                    changed_data[key] = "to {}".format(self.initial_data[key])
+                    changed_data[key] = f"to {self.initial_data[key]}"
             else:
                 option_inst.value = self.initial_data[key]
                 # check if ORG_OPTIONS changed
