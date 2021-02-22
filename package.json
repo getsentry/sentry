@@ -102,6 +102,7 @@
     "po-catalog-loader": "2.0.0",
     "prism-sentry": "^1.0.2",
     "prop-types": "^15.6.0",
+    "qrcode.react": "^1.0.1",
     "query-string": "6.6.0",
     "react": "16.14.0",
     "react-autosize-textarea": "7.1.0",
