@@ -54,17 +54,24 @@ export function getConfirm(
           numIssues
         );
 
-    const message =
-      action === ConfirmAction.DELETE
-        ? tct(
-            'Bulk deletion is only recommended for junk data. To clear your stream, consider resolving or ignoring. [link:When should I delete events?]',
-            {
-              link: (
-                <ExternalLink href="https://help.sentry.io/hc/en-us/articles/360003443113-When-should-I-delete-events" />
-              ),
-            }
-          )
-        : t('This action cannot be undone.');
+    let message;
+    switch (action) {
+      case ConfirmAction.DELETE:
+        message = tct(
+          'Bulk deletion is only recommended for junk data. To clear your stream, consider resolving or ignoring. [link:When should I delete events?]',
+          {
+            link: (
+              <ExternalLink href="https://help.sentry.io/hc/en-us/articles/360003443113-When-should-I-delete-events" />
+            ),
+          }
+        );
+        break;
+      case ConfirmAction.MERGE:
+        message = t('Note that unmerging is currently an experimental feature.');
+        break;
+      default:
+        message = t('This action cannot be undone.');
+    }
 
     return (
       <div>
