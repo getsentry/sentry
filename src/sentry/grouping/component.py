@@ -84,9 +84,14 @@ class GroupingComponent:
             return " ".join(items[-1])
         return self.name or "others"
 
-    def get_subcomponent(self, id, only_contributing=False):
+    def get_subcomponent(self, id, recursive=False, only_contributing=False):
         """Looks up a subcomponent by the id and returns the first or `None`."""
-        return next(self.iter_subcomponents(id=id, only_contributing=only_contributing), None)
+        return next(
+            self.iter_subcomponents(
+                id=id, recursive=recursive, only_contributing=only_contributing
+            ),
+            None,
+        )
 
     def iter_subcomponents(self, id, recursive=False, only_contributing=False):
         """Finds all subcomponents matching an id, optionally recursively."""

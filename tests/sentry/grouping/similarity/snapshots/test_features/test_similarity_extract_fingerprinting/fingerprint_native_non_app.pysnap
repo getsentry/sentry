@@ -1,5 +1,5 @@
 ---
-created: '2021-02-22T11:42:00.788720Z'
+created: '2021-02-22T12:59:42.154390Z'
 creator: sentry
 source: tests/sentry/grouping/similarity/test_features.py
 ---
@@ -38,6 +38,7 @@ similarity:2020-07-23:stacktrace:frames-pairs: [[["function","tokio_current_thre
 similarity:2020-07-23:stacktrace:frames-pairs: [[["function","tokio_current_thread::Entered<T>::tick"]],[["function","tokio_current_thread::scheduler::Scheduler<T>::tick"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["function","tokio_current_thread::scheduler::Scheduler<T>::tick"]],[["function","tokio_current_thread::CurrentRunner::set_spawn"]]]
 similarity:2020-07-23:stacktrace:frames-pairs: [[["function","unknown"]],[["function","_start"]]]
+similarity:2020-07-23:type:ident-shingle: "Custom"
 similarity:2020-07-23:type:ident-shingle: "SymCacheError"
 similarity:2020-07-23:value:character-5-shingle: " head"
 similarity:2020-07-23:value:character-5-shingle: " pars"
