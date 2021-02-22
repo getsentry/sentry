@@ -2,9 +2,10 @@ import React from 'react';
 
 import {GuidesContent} from 'app/components/assistant/types';
 import ExternalLink from 'app/components/links/externalLink';
+import Link from 'app/components/links/link';
 import {t, tct} from 'app/locale';
 
-export default function getGuidesContent(): GuidesContent {
+export default function getGuidesContent(orgSlug: string | null): GuidesContent {
   return [
     {
       guide: 'issue',
@@ -156,6 +157,38 @@ export default function getGuidesContent(): GuidesContent {
             issues from piling up and you from losing your damn mind.`
           ),
           nextText: t(`Make It Stop Already`),
+        },
+      ],
+    },
+    {
+      guide: 'alerts_write_member',
+      requiredTargets: ['alerts_write_member'],
+      steps: [
+        {
+          target: 'alerts_write_member',
+          description: tct(
+            `Members can now create and edit alert rules. Ask your organization owner or manager to [link:enable this setting].`,
+            {
+              link: <Link to={orgSlug ? `/settings/${orgSlug}` : `/settings`} />,
+            }
+          ),
+        },
+      ],
+    },
+    {
+      guide: 'alerts_write_owner',
+      requiredTargets: ['alerts_write_owner'],
+      steps: [
+        {
+          target: 'alerts_write_owner',
+          description: tct(
+            `Today only admins in your organization can create alert rules but we recommend [link:allowing members to create alerts], too.`,
+            {
+              link: <Link to={orgSlug ? `/settings/${orgSlug}` : `/settings`} />,
+            }
+          ),
+          nextText: t(`Allow`),
+          hasNextGuide: true,
         },
       ],
     },

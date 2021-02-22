@@ -30,6 +30,7 @@ type Props = {
     pathname: string;
     query: Query;
   };
+  onFinish?: () => void;
 };
 
 type State = {
@@ -100,6 +101,10 @@ const GuideAnchor = createReactClass<Props, State>({
    */
   handleFinish(e: React.MouseEvent) {
     e.stopPropagation();
+    const {onFinish} = this.props;
+    if (onFinish) {
+      onFinish();
+    }
     const {currentGuide, orgId} = this.state;
     recordFinish(currentGuide.guide, orgId);
     closeGuide();
@@ -126,6 +131,17 @@ const GuideAnchor = createReactClass<Props, State>({
     const lastStep = currentStepCount === totalStepCount;
     const hasManySteps = totalStepCount > 1;
 
+    const dismissButton = (
+      <DismissButton
+        size="small"
+        href="#" // to clear `#assistant` from the url
+        onClick={this.handleDismiss}
+        priority="link"
+      >
+        {currentStep.dismissText || t('Dismiss')}
+      </DismissButton>
+    );
+
     return (
       <GuideContainer>
         <GuideContent>
@@ -136,15 +152,6 @@ const GuideAnchor = createReactClass<Props, State>({
           <div>
             {lastStep ? (
               <React.Fragment>
-                {currentStep.hasNextGuide && (
-                  <DismissButton
-                    size="small"
-                    href="#" // to clear `#assistant` from the url
-                    onClick={this.handleFinish}
-                  >
-                    {currentStep.dismissText || t('Dismiss')}
-                  </DismissButton>
-                )}
                 <StyledButton
                   size="small"
                   href={currentGuide.carryAssistantForward ? '#assistant' : '#'} // to clear `#assistant` from the url
@@ -154,23 +161,14 @@ const GuideAnchor = createReactClass<Props, State>({
                   {currentStep.nextText ||
                     (hasManySteps ? t('Enough Already') : t('Got It'))}
                 </StyledButton>
+                {currentStep.hasNextGuide && dismissButton}
               </React.Fragment>
             ) : (
               <React.Fragment>
-                {!currentStep.cantDismiss && (
-                  <DismissButton
-                    priority="primary"
-                    size="small"
-                    href="#" // to clear `#assistant` from the url
-                    to={to}
-                    onClick={this.handleDismiss}
-                  >
-                    {currentStep.dismissText || t('Dismiss')}
-                  </DismissButton>
-                )}
                 <StyledButton size="small" onClick={this.handleNextStep} to={to}>
                   {currentStep.nextText || t('Next')}
                 </StyledButton>
+                {!currentStep.cantDismiss && dismissButton}
               </React.Fragment>
             )}
           </div>
@@ -248,18 +246,19 @@ const GuideAction = styled('div')`
 `;
 
 const StyledButton = styled(Button)`
-  border-color: ${p => p.theme.border};
+  font-size: ${p => p.theme.fontSizeMedium};
   min-width: 40%;
 `;
 
 const DismissButton = styled(StyledButton)`
-  margin-right: ${space(1)};
+  margin-left: ${space(1)};
 
   &:hover,
   &:focus,
   &:active {
-    border-color: ${p => p.theme.border};
+    color: ${p => p.theme.white};
   }
+  color: ${p => p.theme.white};
 `;
 
 const StepCount = styled('div')`
@@ -273,6 +272,7 @@ const StyledHovercard = styled(Hovercard)`
     background-color: ${theme.purple300};
     margin: -1px;
     border-radius: ${theme.borderRadius};
+    width: 300px;
   }
 `;
 

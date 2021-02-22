@@ -20,4 +20,6 @@ GUIDES = {
     "issue_stream": {"id": 3, "required_targets": ["issue_stream"]},
     "inbox_guide": {"id": 8, "required_targets": ["inbox_guide"]},
     "for_review_guide": {"id": 9, "required_targets": ["for_review_guide_tab"]},
+    "alerts_write_member": {"id": 10, "required_targets": ["alerts_write_member"]},
+    "alerts_write_owner": {"id": 11, "required_targets": ["alerts_write_owner"]},
 }

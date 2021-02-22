@@ -188,4 +188,35 @@ describe('CreateAlertFromViewButton', () => {
     const button = wrapper.find('button[aria-label="Create Alert"]');
     expect(button.props()['aria-disabled']).toBe(true);
   });
+
+  it('shows a guide for members', async () => {
+    const eventView = EventView.fromSavedQuery({
+      ...DEFAULT_EVENT_VIEW,
+    });
+    const noAccessOrg = {
+      ...organization,
+      access: [],
+    };
+
+    const wrapper = generateWrappedComponent(noAccessOrg, eventView);
+
+    const guide = wrapper.find('GuideAnchor');
+    expect(guide.props().target).toBe('alerts_write_member');
+  });
+
+  it('shows a guide for owners/admins', async () => {
+    const eventView = EventView.fromSavedQuery({
+      ...DEFAULT_EVENT_VIEW,
+    });
+    const adminAccessOrg = {
+      ...organization,
+      access: ['org:write'],
+    };
+
+    const wrapper = generateWrappedComponent(adminAccessOrg, eventView);
+
+    const guide = wrapper.find('GuideAnchor');
+    expect(guide.props().target).toBe('alerts_write_owner');
+    expect(guide.props().onFinish).toBeDefined();
+  });
 });
