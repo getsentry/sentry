@@ -49,8 +49,8 @@ type RenderProps = {
   getActorProps: GetActorPropsFn;
   getMenuProps: GetMenuPropsFn;
   actions: {
-    open: Function;
-    close: Function;
+    open: (event?: React.MouseEvent<Element>) => void;
+    close: (event?: React.MouseEvent<Element>) => void;
   };
 };
 
@@ -180,7 +180,7 @@ class DropdownMenu extends React.Component<Props, State> {
   };
 
   // Opens dropdown menu
-  handleOpen = (e: React.MouseEvent<Element>) => {
+  handleOpen = (e?: React.MouseEvent<Element>) => {
     const {onOpen, isOpen, alwaysRenderMenu, isNestedDropdown} = this.props;
     const isControlled = typeof isOpen !== 'undefined';
     if (!isControlled) {
@@ -233,7 +233,7 @@ class DropdownMenu extends React.Component<Props, State> {
   };
 
   // Closes dropdown menu
-  handleClose = (e: React.KeyboardEvent<Element> | React.MouseEvent<Element> | null) => {
+  handleClose = (e?: React.KeyboardEvent<Element> | React.MouseEvent<Element> | null) => {
     const {onClose, isOpen, alwaysRenderMenu, isNestedDropdown} = this.props;
     const isControlled = typeof isOpen !== 'undefined';
 
