@@ -13,7 +13,14 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.release_registry import LAYER_INDEX_CACHE_KEY
 from sentry.utils.compat import filter, map
 
-SUPPORTED_RUNTIMES = ["nodejs12.x", "nodejs10.x"]
+SUPPORTED_RUNTIMES = [
+    "nodejs12.x",
+    "nodejs10.x",
+    "python2.7",
+    "python3.6",
+    "python3.7",
+    "python3.8",
+]
 
 INVALID_LAYER_TEXT = "Invalid existing layer %s"
 
@@ -69,6 +76,8 @@ def get_option_value(function, option):
     # currently only supporting node runtimes
     if runtime.startswith("nodejs"):
         prefix = "node"
+    elif runtime.startswith("python"):
+        prefix = "python"
     else:
         raise Exception("Unsupported runtime")
 
@@ -188,16 +197,28 @@ def enable_single_lambda(lambda_client, function, sentry_project_dsn, retries_le
     layer_arn = get_latest_layer_for_function(function)
 
     name = function["FunctionName"]
+    runtime = function["Runtime"]
     # update the env variables
     env_variables = function.get("Environment", {}).get("Variables", {})
-    # note the env variables would be different for non-Node runtimes
-    env_variables.update(
-        {
-            "NODE_OPTIONS": "-r @sentry/serverless/dist/awslambda-auto",
-            "SENTRY_DSN": sentry_project_dsn,
-            "SENTRY_TRACES_SAMPLE_RATE": "1.0",
-        }
-    )
+
+    updated_handler = None
+
+    sentry_env_variables = {
+        "SENTRY_DSN": sentry_project_dsn,
+        "SENTRY_TRACES_SAMPLE_RATE": "1.0",
+    }
+
+    if runtime.startswith("nodejs"):
+        # note the env variables would be different for non-Node runtimes
+        env_variables.update(
+            {"NODE_OPTIONS": "-r @sentry/serverless/dist/awslambda-auto", **sentry_env_variables}
+        )
+    elif runtime.startswith("python"):
+        env_variables.update(
+            {"SENTRY_INITIAL_HANDLER": function["Handler"], **sentry_env_variables}
+        )
+        updated_handler = "sentry_sdk.integrations.init_serverless_sdk.sentry_lambda_handler"
+
     # find the sentry layer and update it or insert new layer to end
     layers = get_function_layer_arns(function)
     sentry_layer_index = get_index_of_sentry_layer(layers, layer_arn)
@@ -206,13 +227,20 @@ def enable_single_lambda(lambda_client, function, sentry_project_dsn, retries_le
     else:
         layers.append(layer_arn)
 
-    return update_lambda_with_retries(
-        lambda_client, FunctionName=name, Layers=layers, Environment={"Variables": env_variables}
-    )
+    lambda_kwargs = {
+        "FunctionName": name,
+        "Layers": layers,
+        "Environment": {"Variables": env_variables},
+    }
+    if updated_handler:
+        lambda_kwargs.update({"Handler": updated_handler})
+
+    return update_lambda_with_retries(lambda_client, **lambda_kwargs)
 
 
 def disable_single_lambda(lambda_client, function, layer_arn):
     name = function["FunctionName"]
+    runtime = function["Runtime"]
     layers = get_function_layer_arns(function)
     env_variables = function.get("Environment", {}).get("Variables", {})
 
@@ -221,17 +249,29 @@ def disable_single_lambda(lambda_client, function, layer_arn):
     if sentry_layer_index > -1:
         layers.pop(sentry_layer_index)
 
-    # remove our env variables
-    for env_name in ["NODE_OPTIONS", "SENTRY_DSN", "SENTRY_TRACES_SAMPLE_RATE"]:
+    updated_handler = None
+
+    if runtime.startswith("python"):
+        updated_handler = env_variables["SENTRY_INITIAL_HANDLER"]
+
+    for env_name in [
+        "SENTRY_INITIAL_HANDLER",
+        "NODE_OPTIONS",
+        "SENTRY_DSN",
+        "SENTRY_TRACES_SAMPLE_RATE",
+    ]:
         if env_name in env_variables:
             del env_variables[env_name]
 
-    return update_lambda_with_retries(
-        lambda_client,
-        FunctionName=name,
-        Layers=layers,
-        Environment={"Variables": env_variables},
-    )
+    lambda_kwargs = {
+        "FunctionName": name,
+        "Layers": layers,
+        "Environment": {"Variables": env_variables},
+    }
+    if updated_handler:
+        lambda_kwargs.update({"Handler": updated_handler})
+
+    return update_lambda_with_retries(lambda_client, **lambda_kwargs)
 
 
 def update_lambda_with_retries(lambda_client, **kwargs):

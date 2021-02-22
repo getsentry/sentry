@@ -60,7 +60,7 @@ type Props = {
   /**
    * Additional props for the tooltip
    */
-  tooltipOptions?: Tooltip['props'];
+  tooltipOptions?: Omit<Tooltip['props'], 'children' | 'title'>;
 
   className?: string;
 

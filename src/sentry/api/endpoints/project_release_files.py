@@ -125,6 +125,16 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
         if dist_name:
             dist = release.add_dist(dist_name)
 
+        # Quickly check for the presence of this file before continuing with
+        # the costly file upload process.
+        if ReleaseFile.objects.filter(
+            organization_id=release.organization_id,
+            release=release,
+            name=full_name,
+            dist=dist,
+        ).exists():
+            return Response({"detail": ERR_FILE_EXISTS}, status=409)
+
         headers = {"Content-Type": fileobj.content_type}
         for headerval in request.data.getlist("header") or ():
             try:
