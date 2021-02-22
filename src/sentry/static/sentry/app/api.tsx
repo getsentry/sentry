@@ -428,12 +428,8 @@ export class Client {
         let responseJSON: any;
         let responseText: any;
 
-        // Try to get JSON out of the response no matter the status
-        try {
-          responseJSON = await response.json();
-        } catch {
-          // No json came out.. too bad
-        }
+        const {status, statusText} = response;
+        let {ok} = response;
 
         // Try to get text out of the response no matter the status
         try {
@@ -442,7 +438,19 @@ export class Client {
           // No text came out.. too bad
         }
 
-        const {ok, status, statusText} = response;
+        if (status !== 204 && status !== 304) {
+          // Try to get JSON out of the response no matter the status
+          try {
+            responseJSON = JSON.parse(responseText);
+          } catch {
+            const contentType = response.headers.get('content-type');
+            // If the MIME type is `application/json` but decoding failed.
+            // this should be an error.
+            if (contentType?.includes('application/json')) {
+              ok = false;
+            }
+          }
+        }
 
         const emulatedJQueryXHR: any = {
           status,

@@ -1,4 +1,5 @@
 export default class RequestError extends Error {
+  responseText?: any;
   responseJSON?: any;
   status?: number;
   statusText?: string;
@@ -19,6 +20,10 @@ export default class RequestError extends Error {
       );
 
       // Some callback handlers expect these properties on the error object
+      if (resp.responseText) {
+        this.responseText = resp.responseText;
+      }
+
       if (resp.responseJSON) {
         this.responseJSON = resp.responseJSON;
       }
