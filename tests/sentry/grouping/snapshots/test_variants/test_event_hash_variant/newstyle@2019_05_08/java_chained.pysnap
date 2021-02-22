@@ -1,14 +1,14 @@
 ---
-created: '2020-08-25T09:17:19.930253Z'
+created: '2021-02-22T11:41:40.031799Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: "750486b8d8c51500fa0dfbb6f1577af0"
+  hash: "73b820e39fcb5ac396b0e288dfec33ac"
   component:
     app*
       chained-exception*
-        exception*
+        exception (ignored because one exception has a stacktrace)
           stacktrace
             frame (non app frame)
               module*
@@ -175,7 +175,7 @@ app:
             "BindException"
           value*
             "Address already in use"
-        exception*
+        exception (ignored because one exception has a stacktrace)
           stacktrace
             frame (non app frame)
               module*

@@ -1,23 +1,23 @@
 ---
-created: '2021-02-15T18:20:10.265699Z'
+created: '2021-02-22T11:41:47.838857Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-max:
-  hash: "b4c29e2a2a2681fbaf9fd8f5b09e4154"
+  hash: "9509e122c6175606d52862fa4f64853c"
   component:
     app-depth-max*
       chained-exception*
         exception*
-          stacktrace
-            frame (non app frame)
+          stacktrace*
+            frame*
               filename*
                 "baz.py"
           type*
             "ValueError"
-          value*
+          value (ignored because stacktrace takes precedence)
             "hello world"
-        exception*
+        exception (ignored because one exception has a stacktrace)
           stacktrace
             frame (non app frame)
               filename*
