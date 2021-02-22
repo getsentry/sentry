@@ -20,16 +20,6 @@ class OrganizationIntegrationRequestTest(APITestCase):
             contexts={"browser": {"name": browser_name}, "client_os": {"name": ""}},
         )
 
-    @mock.patch("sentry.api.endpoints.organization_has_mobile_app_events.cache.set")
-    def test_basic(self, mock_cache_set):
-        self.gen_event("okhttp")
-        response = self.get_response(self.organization.slug, userAgents=["okhttp"])
-        expected = {"browserName": "okhttp", "clientOsName": ""}
-        assert response.status_code == 200
-        assert response.data == expected
-        cache_key = f"check_mobile_app_events:{self.organization.id}"
-        mock_cache_set.assert_called_with(cache_key, {"result": expected}, 24 * 60 * 60)
-
     @mock.patch("sentry.api.endpoints.organization_has_mobile_app_events.discover.query")
     def test_hit_cache_on_success(self, mock_query):
         mock_query.return_value = {"data": [{"browser.name": "okhttp", "client_os.name": ""}]}
