@@ -99,9 +99,7 @@ class SuggestProjectCTA extends React.Component<Props, State> {
   get showCTA() {
     const {loaded, isDismissed} = this.state;
 
-    return (
-      (this.hasMobileEvent && !this.hasMobileProject && !isDismissed && loaded) || false
-    );
+    return !!(this.hasMobileEvent && !this.hasMobileProject && !isDismissed && loaded);
   }
 
   async fetchData() {
