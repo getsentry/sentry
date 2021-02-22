@@ -1,16 +1,16 @@
 ---
-created: '2021-02-15T10:11:59.552171Z'
+created: '2020-02-26T19:54:32.243964Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: "92816681b15788a8230e065fa299dc88"
+  hash: "9c694b5c648e2e8a0822dcbd4c7f9c36"
   component:
     app*
       chained-exception*
         exception*
-          stacktrace*
-            frame*
+          stacktrace
+            frame (non app frame)
               filename*
                 "baz.py"
           type*
