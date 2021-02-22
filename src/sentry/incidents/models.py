@@ -373,6 +373,10 @@ class AlertRule(Model):
     threshold_type = models.SmallIntegerField(null=True)
     resolve_threshold = models.FloatField(null=True)
     threshold_period = models.IntegerField()
+
+    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
+    team = FlexibleForeignKey("sentry.Team", null=True)
+
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -399,6 +403,21 @@ class AlertRule(Model):
             return created_activity.user
         except AlertRuleActivity.DoesNotExist:
             pass
+        return None
+
+    def owner(self):
+        if self.user:
+            return f"user:{self.user_id}"
+
+        if self.team:
+            return f"team:{self.team_id}"
+
+    def rule_owner(self):
+        if self.owner():
+            from sentry.api.fields.actor import Actor
+
+            return Actor.from_actor_identifier(self.owner_id())
+
         return None
 
 

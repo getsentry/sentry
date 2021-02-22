@@ -585,6 +585,7 @@ def create_alert_rule(
     organization,
     projects,
     name,
+    owner,
     query,
     aggregate,
     time_window,
@@ -639,6 +640,18 @@ def create_alert_rule(
             environment,
             event_types=event_types,
         )
+        from sentry.models import User, Team
+
+        if isinstance(owner, User):
+            team = None
+            user = owner
+        elif isinstance(owner, Team):
+            team = owner
+            user = None
+        else:
+            team = None
+            user = None
+
         alert_rule = AlertRule.objects.create(
             organization=organization,
             snuba_query=snuba_query,
@@ -647,6 +660,8 @@ def create_alert_rule(
             resolve_threshold=resolve_threshold,
             threshold_period=threshold_period,
             include_all_projects=include_all_projects,
+            team=team,
+            user=user,
         )
 
         if include_all_projects:
@@ -713,6 +728,7 @@ def update_alert_rule(
     dataset=None,
     projects=None,
     name=None,
+    owner=None,
     query=None,
     aggregate=None,
     time_window=None,
@@ -780,6 +796,15 @@ def update_alert_rule(
         updated_query_fields["dataset"] = dataset
     if event_types is not None:
         updated_query_fields["event_types"] = event_types
+    if owner is not None:
+        from sentry.models import User, Team
+
+        if isinstance(owner, User):
+            updated_query_fields["team"] = None
+            updated_query_fields["user"] = owner
+        elif isinstance(owner, Team):
+            updated_query_fields["team"] = owner
+            updated_query_fields["user"] = None
 
     with transaction.atomic():
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()

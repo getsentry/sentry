@@ -303,11 +303,13 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
     )
     threshold_period = serializers.IntegerField(default=1, min_value=1, max_value=20)
     aggregate = serializers.CharField(required=True, min_length=1)
+    owner = serializers.CharField(required=True)
 
     class Meta:
         model = AlertRule
         fields = [
             "name",
+            "owner",
             "dataset",
             "query",
             "time_window",
@@ -328,6 +330,12 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "threshold_type": {"required": True},
             "resolve_threshold": {"required": False},
         }
+
+    def validate_owner(self, owner_id):
+        # owner_id should be team:id or user:id
+        from sentry.api.fields.actor import Actor
+
+        return Actor.from_actor_identifier(owner_id)
 
     def validate_query(self, query):
         query_terms = query.split()
