@@ -29,7 +29,9 @@ const MOBILE_PLATFORMS = [
   'dotnet-xamarin',
 ];
 
-const MOBILE_USER_AGENTS = ['okhttp/', 'CFNetwork/', 'Alamofire/', 'Dalvik/'];
+const MOBILE_USER_AGENTS = ['okhttp', 'CFNetwork', 'Alamofire', 'Dalvik'];
+
+type MobileEventResult = {browserName: string; clientOsName: string} | null;
 
 type Props = {
   projects: Project[];
@@ -40,7 +42,8 @@ type Props = {
 
 type State = {
   isDismissed?: boolean;
-  promptIsLoaded?: boolean;
+  loaded?: boolean;
+  mobileEventResult?: MobileEventResult;
 };
 
 class SuggestProjectCTA extends React.Component<Props, State> {
@@ -79,39 +82,38 @@ class SuggestProjectCTA extends React.Component<Props, State> {
     );
   }
 
+  //returns true if the current event is mobile from the user agent
+  //or if we found a mobile event with the API
+  get hasMobileEvent() {
+    const {mobileEventResult} = this.state;
+    return !!this.matchedUserAgentString || !!mobileEventResult;
+  }
+
   /**
    * conditions to show prompt:
-   * 1. User agent matches mobile
+   * 1. Have a mobile event
    * 2. No mobile project
    * 3. CTA is not dimissed
    * 4. We've loaded the data from the backend for the prompt
    */
   get showCTA() {
-    const {promptIsLoaded, isDismissed} = this.state;
+    const {loaded, isDismissed} = this.state;
 
-    return (
-      !!this.matchedUserAgentString &&
-      !this.hasMobileProject &&
-      !isDismissed &&
-      promptIsLoaded
-    );
+    return this.hasMobileEvent && !this.hasMobileProject && !isDismissed && loaded;
   }
 
   async fetchData() {
-    const {api, organization} = this.props;
-
-    //check our prompt backend
     //no need to catch error since we have error boundary wrapping
-    const promptData = await promptsCheck(api, {
-      organizationId: organization.id,
-      feature: 'suggest_mobile_project',
-    });
-    const isDismissed = promptIsDismissed(promptData);
+    const [isDismissed, mobileEventResult] = await Promise.all([
+      this.checkMobilePrompt(),
+      this.checkOrgHasMobileEvent(),
+    ]);
 
     //set the new state
     this.setState({
       isDismissed,
-      promptIsLoaded: true,
+      mobileEventResult,
+      loaded: true,
     });
 
     const matchedUserAgentString = this.matchedUserAgentString;
@@ -124,10 +126,35 @@ class SuggestProjectCTA extends React.Component<Props, State> {
         userAgentMatches: !!matchedUserAgentString,
         hasMobileProject: this.hasMobileProject,
         snoozedOrDismissed: isDismissed,
+        mobileEventBrowserName: mobileEventResult?.browserName || '',
+        mobileEventClientOsName: mobileEventResult?.clientOsName || '',
       },
       this.props.organization,
       {startSession: true}
     );
+  }
+
+  async checkOrgHasMobileEvent(): Promise<MobileEventResult> {
+    const {api, organization} = this.props;
+    return api.requestPromise(
+      `/organizations/${organization.slug}/has-mobile-app-events/`,
+      {
+        query: {
+          userAgents: MOBILE_USER_AGENTS,
+        },
+      }
+    );
+  }
+
+  async checkMobilePrompt() {
+    const {api, organization} = this.props;
+
+    //check our prompt backend
+    const promptData = await promptsCheck(api, {
+      organizationId: organization.id,
+      feature: 'suggest_mobile_project',
+    });
+    return promptIsDismissed(promptData);
   }
 
   handleCTAClose = () => {
