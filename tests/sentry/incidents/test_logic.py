@@ -689,6 +689,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             self.organization,
             [self.project],
             name,
+            None,
             query,
             aggregate,
             time_window,
@@ -699,6 +700,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         )
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.name == name
+        assert alert_rule.owner() is None
         assert alert_rule.status == AlertRuleStatus.PENDING.value
         assert alert_rule.snuba_query.subscriptions.all().count() == 1
         assert alert_rule.snuba_query.dataset == QueryDatasets.EVENTS.value
@@ -731,6 +733,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
                 self.organization,
                 [self.project],
                 "hi",
+                None,
                 "has:",
                 "count()",
                 1,
@@ -744,6 +747,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             self.organization,
             [self.project],
             name,
+            None,
             "level:error",
             "count()",
             1,
@@ -755,6 +759,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
                 self.organization,
                 [self.project],
                 name,
+                None,
                 "level:error",
                 "count()",
                 1,
@@ -768,6 +773,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             self.organization,
             [self.project],
             name,
+            None,
             "level:error",
             "count()",
             1,
@@ -780,6 +786,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             self.organization,
             [self.project],
             name,
+            None,
             "level:error",
             "count()",
             1,
@@ -801,6 +808,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             self.organization,
             [self.project],
             name,
+            None,
             "level:error",
             "count()",
             1,
@@ -813,6 +821,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             self.organization,
             [self.project],
             name,
+            None,
             "level:error",
             "count()",
             1,
@@ -824,6 +833,34 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule_1.name == alert_rule_2.name
         assert alert_rule_1.status == AlertRuleStatus.SNAPSHOT.value
         assert alert_rule_2.status == AlertRuleStatus.SNAPSHOT.value
+
+    def test_alert_rule_owner(self):
+        alert_rule_1 = create_alert_rule(
+            self.organization,
+            [self.project],
+            "alert rule 1",
+            self.user,
+            "level:error",
+            "count()",
+            1,
+            AlertRuleThresholdType.ABOVE,
+            1,
+        )
+        assert alert_rule_1.owner_id() == f"user:{self.user.id}"
+        assert alert_rule_1.owner().get_actor_id() == f"user:{self.user.id}"
+        alert_rule_2 = create_alert_rule(
+            self.organization,
+            [self.project],
+            "alert rule 2",
+            self.team,
+            "level:error",
+            "count()",
+            1,
+            AlertRuleThresholdType.ABOVE,
+            1,
+        )
+        assert alert_rule_2.owner_id() == f"team:{self.team.id}"
+        assert alert_rule_2.owner().get_actor_id() == f"team:{self.team.id}"
 
 
 class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):

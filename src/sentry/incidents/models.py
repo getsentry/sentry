@@ -405,15 +405,15 @@ class AlertRule(Model):
             pass
         return None
 
-    def owner(self):
+    def owner_id(self):
         if self.user:
             return f"user:{self.user_id}"
 
         if self.team:
             return f"team:{self.team_id}"
 
-    def rule_owner(self):
-        if self.owner():
+    def owner(self):
+        if self.owner_id():
             from sentry.api.fields.actor import Actor
 
             return Actor.from_actor_identifier(self.owner_id())
