@@ -1,4 +1,5 @@
 import React from 'react';
+import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import meanBy from 'lodash/meanBy';
@@ -159,6 +160,14 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
       this.setState({
         errored: true,
         data: null,
+      });
+    }
+
+    if (!defined(data)) {
+      // this should not happen
+      Sentry.withScope(scope => {
+        scope.setLevel(Sentry.Severity.Warning);
+        Sentry.captureException(new Error('Release chart data is undefined'));
       });
     }
 
