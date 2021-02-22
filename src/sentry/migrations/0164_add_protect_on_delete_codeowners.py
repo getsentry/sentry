@@ -31,11 +31,16 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterField(
-            model_name="projectcodeowners",
-            name="repository_project_path_config",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                on_delete=django.db.models.deletion.PROTECT, to="sentry.RepositoryProjectPathConfig"
-            ),
-        ),
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.AlterField(
+                    model_name="projectcodeowners",
+                    name="repository_project_path_config",
+                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to="sentry.RepositoryProjectPathConfig",
+                    ),
+                ),
+            ]
+        )
     ]
