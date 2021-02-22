@@ -222,14 +222,19 @@ def _has_system_frames(frames):
     return bool(system_frames) and len(frames) != system_frames
 
 
-def _normalize_in_app(stacktrace):
+def _normalize_in_app(stacktrace, platform=None, sdk_info=None):
     """
     Ensures consistent values of in_app across a stacktrace.
     """
-    # Default to false in all cases where processors or grouping enhancers
-    # have not yet set in_app.
+    has_system_frames = _has_system_frames(stacktrace)
     for frame in stacktrace:
-        if frame.get("in_app") is None:
+        # If all frames are in_app, flip all of them. This is expected by the UI
+        if not has_system_frames:
+            set_in_app(frame, False)
+
+        # Default to false in all cases where processors or grouping enhancers
+        # have not yet set in_app.
+        elif frame.get("in_app") is None:
             set_in_app(frame, False)
 
 
@@ -281,7 +286,7 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None):
 
     # normalize in-app
     for stacktrace in stacktraces:
-        _normalize_in_app(stacktrace)
+        _normalize_in_app(stacktrace, platform=platform)
 
 
 def should_process_for_stacktraces(data):
