@@ -1,27 +1,22 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import {defined} from 'app/utils';
 
 import {StyledForm} from './form';
 import FormField from './formField';
-import SelectControl from './selectControl';
+import SelectControl, {ControlProps} from './selectControl';
 
-export default class SelectField extends FormField {
-  // TODO(ts) When this is remove also remove the propType assignments
-  // in components/forms/selectControl
-  static propTypes = {
-    // TODO(ts)
-    // ...FormField.propTypes,
-    options: SelectControl.propTypes.options,
-    choices: SelectControl.propTypes.choices,
-    clearable: SelectControl.propTypes.clearable,
-    onChange: PropTypes.func,
-    multiple: PropTypes.bool,
-    deprecatedSelectControl: PropTypes.bool,
-  };
+type SelectProps = Omit<ControlProps, 'onChange' | 'name'>;
+type FormProps = Omit<FormField['props'], 'onChange' | 'name'>;
 
+type Props = {
+  name: string;
+  onChange: FormField['props']['onChange'];
+} & FormProps &
+  SelectProps;
+
+export default class SelectField extends FormField<Props> {
   static defaultProps = {
     ...FormField.defaultProps,
     clearable: true,
@@ -89,7 +84,7 @@ export default class SelectField extends FormField {
     return value;
   }
 
-  isMultiple(props) {
+  isMultiple(props?) {
     props = props || this.props;
     // this is to maintain compatibility with the 'multi' prop
     return props.multi || props.multiple;
@@ -107,7 +102,6 @@ export default class SelectField extends FormField {
 
   getField() {
     const {
-      deprecatedSelectControl,
       options,
       clearable,
       creatable,
@@ -121,7 +115,6 @@ export default class SelectField extends FormField {
 
     return (
       <StyledSelectControl
-        deprecatedSelectControl={deprecatedSelectControl}
         creatable={creatable}
         id={this.getId()}
         choices={choices}
