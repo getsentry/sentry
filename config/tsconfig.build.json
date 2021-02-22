@@ -36,6 +36,7 @@
       "app/*": ["src/sentry/static/sentry/app/*"],
       "sentry-test/*": ["tests/js/sentry-test/*"],
       "sentry-images/*": ["src/sentry/static/sentry/images/*"],
+      "sentry-fonts/*": ["src/sentry/static/sentry/fonts/*"],
       "@emotion/styled": ["src/sentry/static/sentry/app/styled.tsx"],
       "@original-emotion/*": ["node_modules/@emotion/*"],
       // Use the stub file for typechecking. Webpack resolver will use the real files

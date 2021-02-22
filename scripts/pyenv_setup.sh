@@ -5,17 +5,9 @@
 # - This script assumes you're calling from the top directory of the repository
 set -eu
 
-# Check if a command is available
-require() {
-    command -v "$1" >/dev/null 2>&1
-}
-
-query_big_sur() {
-    if require sw_vers && sw_vers -productVersion | grep -E "11\." > /dev/null; then
-        return 0
-    fi
-    return 1
-}
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")"; pwd -P)"
+# shellcheck disable=SC1090
+source "${HERE}/lib.sh"
 
 get_shell_startup_script() {
   local _startup_script=''
@@ -75,7 +67,7 @@ append_to_config() {
 }
 
 install_pyenv() {
-  if command -v pyenv &>/dev/null; then
+  if require pyenv; then
     echo "Installing Python (if missing) via pyenv"
     local pyenv_version
     pyenv_version=$(pyenv -v | awk '{print $2}')
@@ -111,7 +103,8 @@ setup_pyenv() {
   echo "Activating pyenv and validating Python version"
   eval "$(pyenv init -)"
   python_version=$(python -V | sed s/Python\ //g)
-  [[ $python_version == $(cat .python-version) ]] || (echo "Wrong Python version: $python_version" && exit 1)
+  [[ $python_version == $(cat .python-version) ]] || \
+    (echo "Wrong Python version: $python_version. Please report in #discuss-dev-tooling" && exit 1)
 }
 
 setup_pyenv

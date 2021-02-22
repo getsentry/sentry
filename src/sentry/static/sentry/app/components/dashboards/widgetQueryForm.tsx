@@ -94,7 +94,6 @@ class WidgetQueryForm extends React.Component<Props> {
           flexibleControlStateSize
           stacked
           error={errors?.conditions}
-          required
         >
           <SearchBar
             organization={organization}

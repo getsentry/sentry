@@ -358,12 +358,14 @@ class EventManager:
             # event.  If that config has since been deleted (because it was an
             # experimental grouping config) we fall back to the default.
             try:
-                hashes = job["event"].get_hashes()
+                flat_hashes, hierarchical_hashes = job["event"].get_hashes()
             except GroupingConfigNotFound:
                 job["data"]["grouping_config"] = get_grouping_config_dict_for_project(project)
-                hashes = job["event"].get_hashes()
+                flat_hashes, hierarchical_hashes = job["event"].get_hashes()
 
-        job["data"]["hashes"] = hashes
+        job["data"]["hashes"] = flat_hashes
+        if hierarchical_hashes:
+            job["data"]["hierarchical_hashes"] = hierarchical_hashes
 
         _materialize_metadata_many(jobs)
 
@@ -396,7 +398,7 @@ class EventManager:
 
         try:
             job["group"], job["is_new"], job["is_regression"] = _save_aggregate(
-                event=job["event"], hashes=hashes, release=job["release"], **kwargs
+                event=job["event"], flat_hashes=flat_hashes, release=job["release"], **kwargs
             )
         except HashDiscarded:
             discard_event(job, attachments)
@@ -903,11 +905,11 @@ def get_culprit(data):
     )
 
 
-def _save_aggregate(event, hashes, release, **kwargs):
+def _save_aggregate(event, flat_hashes, release, **kwargs):
     project = event.project
 
     # attempt to find a matching hash
-    all_hashes = _find_hashes(project, hashes)
+    all_hashes = _find_hashes(project, flat_hashes)
 
     existing_group_id = None
     for h in all_hashes:

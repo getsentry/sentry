@@ -11,6 +11,7 @@ import CreateSavedSearchModal from './createSavedSearchModal';
 
 type Props = {
   query: string;
+  sort?: string;
   organization: LightWeightOrganization;
   buttonClassName?: string;
   tooltipClassName?: string;

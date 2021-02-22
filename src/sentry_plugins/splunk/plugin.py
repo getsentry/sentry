@@ -167,7 +167,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
         self.project_source = self.get_option("source", event.project) or "sentry"
 
     def get_rl_key(self, event):
-        return "{}:{}".format(self.conf_key, md5_text(self.project_token).hexdigest())
+        return f"{self.conf_key}:{md5_text(self.project_token).hexdigest()}"
 
     def is_ratelimited(self, event):
         if super().is_ratelimited(event):
@@ -252,7 +252,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
                 # Just log and return.
                 return False
 
-            if isinstance(exc, ApiError) and exc.status_code == 403:
+            if isinstance(exc, ApiError) and exc.code == 403:
                 # 403s are not errors or actionable for us do not re-raise
                 return False
 

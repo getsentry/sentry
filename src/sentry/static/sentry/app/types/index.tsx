@@ -480,6 +480,7 @@ export type SavedSearch = {
   type: SavedSearchType;
   name: string;
   query: string;
+  sort: string;
   isGlobal: boolean;
   isPinned: boolean;
   isOrgCustom: boolean;
@@ -954,7 +955,7 @@ export type BaseGroup = {
   latestEvent: Event;
   activity: GroupActivity[];
   annotations: string[];
-  assignedTo: User;
+  assignedTo: Actor;
   culprit: string;
   firstRelease: Release;
   firstSeen: string;
@@ -1583,7 +1584,6 @@ export type OnboardingTaskDescriptor = {
   task: OnboardingTaskKey;
   title: string;
   description: string;
-  detailedDescription?: string;
   /**
    * Can this task be skipped?
    */

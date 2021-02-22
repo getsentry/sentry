@@ -14,7 +14,7 @@ HEALTH_ID_KEY = "_health_id"
 def make_health_id(lookup, value):
     # Convert a lookup and value into
     # a string that can be used back in a request query.
-    return "{}:{}".format(lookup.name, lookup.encoder(value))
+    return f"{lookup.name}:{lookup.encoder(value)}"
 
 
 def serialize_releases(organization, item_list, user, lookup):

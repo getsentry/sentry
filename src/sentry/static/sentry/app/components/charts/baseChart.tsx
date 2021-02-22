@@ -44,6 +44,21 @@ const getDimensionValue = (dimension?: ReactEChartOpts['height']) => {
   return dimension;
 };
 
+// TODO(ts): What is the series type? EChartOption.Series's data cannot have
+// `onClick` since it's typically an array.
+//
+// Handle series item clicks (e.g. Releases mark line or a single series
+// item) This is different than when you hover over an "axis" line on a chart
+// (e.g.  if there are 2 series for an axis and you're not directly hovered
+// over an item)
+//
+// Calls "onClick" inside of series data
+const handleClick = (clickSeries: any, instance: ECharts) => {
+  if (clickSeries.data) {
+    clickSeries.data.onClick?.(clickSeries, instance);
+  }
+};
+
 type ReactEchartProps = React.ComponentProps<typeof ReactEchartsCore>;
 type ReactEChartOpts = NonNullable<ReactEchartProps['opts']>;
 
@@ -278,35 +293,6 @@ function BaseChartUnwrapped({
   transformSinglePointToBar = false,
   onChartReady = () => {},
 }: Props) {
-  // TODO(ts): What is the series type? EChartOption.Series's data cannot have
-  // `onClick` since it's typically an array.
-  //
-  // Handle series item clicks (e.g. Releases mark line or a single series
-  // item) This is different than when you hover over an "axis" line on a chart
-  // (e.g.  if there are 2 series for an axis and you're not directly hovered
-  // over an item)
-  //
-  // Calls "onClick" inside of series data
-  const handleClick = (clickSeries: any, instance: ECharts) => {
-    if (clickSeries.data) {
-      clickSeries.data.onClick?.(clickSeries, instance);
-    }
-  };
-
-  const getEventsMap: ReactEchartProps['onEvents'] = {
-    click: (props, instance) => {
-      handleClick(props, instance);
-      onClick?.(props, instance);
-    },
-    highlight: (props, instance) => onHighlight?.(props, instance),
-    mouseover: (props, instance) => onMouseOver?.(props, instance),
-    datazoom: (props, instance) => onDataZoom?.(props, instance),
-    restore: (props, instance) => onRestore?.(props, instance),
-    finished: (props, instance) => onFinished?.(props, instance),
-    rendered: (props, instance) => onRendered?.(props, instance),
-    legendselectchanged: (props, instance) => onLegendSelectChanged?.(props, instance),
-  };
-
   const hasSinglePoints = (series as EChartOption.SeriesLine[] | undefined)?.every(
     s => Array.isArray(s.data) && s.data.length === 1
   );
@@ -372,6 +358,66 @@ function BaseChartUnwrapped({
   const seriesData = seriesValid ? series[0].data : undefined;
   const bucketSize = seriesData ? seriesData[1][0] - seriesData[0][0] : undefined;
 
+  const tooltipOrNone =
+    tooltip !== null
+      ? Tooltip({
+          showTimeInTooltip,
+          isGroupedByDate,
+          utc,
+          bucketSize,
+          ...tooltip,
+        })
+      : undefined;
+
+  const chartOption = {
+    ...options,
+    animation: IS_ACCEPTANCE_TEST ? false : options.animation ?? true,
+    useUTC: utc,
+    color: colors || getColorPalette(theme, series?.length),
+    grid: Array.isArray(grid) ? grid.map(Grid) : Grid(grid),
+    tooltip: tooltipOrNone,
+    legend: legend ? Legend({theme, ...legend}) : undefined,
+    yAxis: yAxisOrCustom,
+    xAxis: xAxisOrCustom,
+    series: resolvedSeries,
+    toolbox: toolBox,
+    axisPointer,
+    dataZoom,
+    graphic,
+  };
+
+  const chartStyles = {
+    height: getDimensionValue(height),
+    width: getDimensionValue(width),
+    ...style,
+  };
+
+  // XXX(epurkhiser): Echarts can become unhappy if one of these event handlers
+  // causes the chart to re-render and be passed a whole different instance of
+  // event handlers.
+  //
+  // We use React.useMemo to keep the value across renders
+  //
+  // eslint-disable-next-line sentry/no-react-hooks
+  const eventsMap = React.useMemo(
+    () =>
+      ({
+        click: (props, instance) => {
+          handleClick(props, instance);
+          onClick?.(props, instance);
+        },
+        highlight: (props, instance) => onHighlight?.(props, instance),
+        mouseover: (props, instance) => onMouseOver?.(props, instance),
+        datazoom: (props, instance) => onDataZoom?.(props, instance),
+        restore: (props, instance) => onRestore?.(props, instance),
+        finished: (props, instance) => onFinished?.(props, instance),
+        rendered: (props, instance) => onRendered?.(props, instance),
+        legendselectchanged: (props, instance) =>
+          onLegendSelectChanged?.(props, instance),
+      } as ReactEchartProps['onEvents']),
+    [onclick, onHighlight, onMouseOver, onDataZoom, onRestore, onFinished, onRendered]
+  );
+
   return (
     <ChartContainer>
       <ReactEchartsCore
@@ -381,43 +427,10 @@ function BaseChartUnwrapped({
         lazyUpdate={lazyUpdate}
         theme={echartsTheme}
         onChartReady={onChartReady}
-        onEvents={getEventsMap}
-        opts={{
-          height,
-          width,
-          renderer,
-          devicePixelRatio,
-        }}
-        style={{
-          height: getDimensionValue(height),
-          width: getDimensionValue(width),
-          ...style,
-        }}
-        option={{
-          animation: IS_ACCEPTANCE_TEST ? false : true,
-          ...options,
-          useUTC: utc,
-          color: colors || getColorPalette(theme, series?.length),
-          grid: Array.isArray(grid) ? grid.map(Grid) : Grid(grid),
-          tooltip:
-            tooltip !== null
-              ? Tooltip({
-                  showTimeInTooltip,
-                  isGroupedByDate,
-                  utc,
-                  bucketSize,
-                  ...tooltip,
-                })
-              : undefined,
-          legend: legend ? Legend({theme, ...legend}) : undefined,
-          yAxis: yAxisOrCustom,
-          xAxis: xAxisOrCustom,
-          series: resolvedSeries,
-          axisPointer,
-          dataZoom,
-          toolbox: toolBox,
-          graphic,
-        }}
+        onEvents={eventsMap}
+        style={chartStyles}
+        opts={{height, width, renderer, devicePixelRatio}}
+        option={chartOption}
       />
     </ChartContainer>
   );

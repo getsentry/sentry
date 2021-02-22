@@ -148,7 +148,7 @@ def fetch_file(
     # lock down domains that are problematic
     if domain_lock_enabled:
         domain = urlparse(url).netloc
-        domain_key = "source:blacklist:v2:{}".format(md5_text(domain).hexdigest())
+        domain_key = f"source:blacklist:v2:{md5_text(domain).hexdigest()}"
         domain_result = cache.get(domain_key)
         if domain_result:
             domain_result["url"] = url
