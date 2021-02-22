@@ -237,6 +237,17 @@ function routes() {
             component={errorHandler(LazyLoad)}
           />
         </Route>
+
+        <Route path="mobile-app/" name="Mobile App">
+          <IndexRoute
+            componentPromise={() =>
+              import(
+                /* webpackChunkName: "MobileAppIndex" */ 'app/views/settings/account/mobileApp'
+              )
+            }
+            component={errorHandler(LazyLoad)}
+          />
+        </Route>
       </Route>
 
       <Route

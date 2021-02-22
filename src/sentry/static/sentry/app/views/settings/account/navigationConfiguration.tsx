@@ -1,4 +1,5 @@
 import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
 import {NavigationSection} from 'app/views/settings/types';
 
 const pathPrefix = '/settings/account';
@@ -73,6 +74,11 @@ const accountNavigation: NavigationSection[] = [
         description: t(
           "Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
         ),
+      },
+      {
+        path: `${pathPrefix}/api/mobile-app/`,
+        title: t('Mobile App'),
+        show: ConfigStore.get('user')?.isSuperuser,
       },
     ],
   },

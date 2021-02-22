@@ -134,6 +134,11 @@ const SidebarDropdown = ({api, org, orientation, collapsed, config, user}: Props
                       {t('API keys')}
                     </SidebarMenuItem>
                     {user.isSuperuser && (
+                      <SidebarMenuItem to="/settings/account/api/mobile-app/">
+                        {t('Mobile app')}
+                      </SidebarMenuItem>
+                    )}
+                    {user.isSuperuser && (
                       <SidebarMenuItem to="/manage/">{t('Admin')}</SidebarMenuItem>
                     )}
                     <SidebarMenuItem data-test-id="sidebarSignout" onClick={handleLogout}>
