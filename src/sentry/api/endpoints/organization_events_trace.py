@@ -27,7 +27,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
             "organizations:trace-view-quick", organization, actor=request.user
         ) or features.has("organizations:trace-view-summary", organization, actor=request.user)
 
-    def serialize_event(self, event, parent, generation, is_root_event=False):
+    def serialize_event(self, event, parent, generation=None, is_root_event=False):
         return {
             "event_id": event["id"],
             "span_id": event["trace.span"],
@@ -39,6 +39,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
             "parent_span_id": event["trace.parent_span"] or None,
             # TODO(wmak) remove once we switch over to generation
             "is_root": is_root_event,
+            # Can be None on the light trace when we don't know the parent
             "generation": generation,
         }
 
@@ -49,7 +50,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
         try:
             params = self.get_snuba_params(request, organization)
         except NoProjects:
-            return Response([])
+            return Response(status=404)
 
         with self.handle_query_errors():
             result = discover.query(
@@ -85,15 +86,14 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
         else:
             snuba_event = None
 
-        if is_root(result["data"][0]):
-            root = result["data"][0]
-        else:
-            root = None
+        if not is_root(result["data"][0]):
             logger.warning(
                 "discover.trace-view.root.not-found",
                 extra=warning_extra,
             )
             return Response(status=204)
+
+        root = result["data"][0]
 
         # Look for extra roots
         extra_roots = 0
@@ -127,9 +127,10 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
             )
 
             # For the light response, the parent will be unknown unless it is a direct descendent of the root
+            is_root_child = root_span is not None
             trace_results.append(
                 self.serialize_event(
-                    snuba_event, root["id"] if root_span is not None else None, None
+                    snuba_event, root["id"] if is_root_child else None, 1 if is_root_child else None
                 )
             )
 
@@ -137,7 +138,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         for span in event.data.get("spans", []):
             if span["span_id"] in parent_map:
                 child_event = parent_map[span["span_id"]]
-                trace_results.append(self.serialize_event(child_event, event_id, None))
+                trace_results.append(self.serialize_event(child_event, event_id))
 
         return trace_results
 
@@ -151,18 +152,17 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
     def serialize(self, parent_map, root, warning_extra, snuba_event=None, event_id=None):
         """ For the full event trace, we return the results as a graph instead of a flattened list """
         parent_events = {}
-        parent_events[root["id"]] = result = self.serialize_event(root, None, 0, True)
+        result = parent_events[root["id"]] = self.serialize_event(root, None, 0, True)
 
-        current_event = root
         to_check = deque([root])
         iteration = 0
         while to_check:
             current_event = to_check.popleft()
             event = eventstore.get_event_by_id(current_event["project_id"], current_event["id"])
             previous_event = parent_events[current_event["id"]]
-            for child in [
-                item for item in event.data.get("spans", []) if item["span_id"] in parent_map
-            ]:
+            for child in event.data.get("spans", []):
+                if child["span_id"] not in parent_map:
+                    continue
                 # Avoid potential span loops by popping, so we don't traverse the same nodes twice
                 child_event = parent_map.pop(child["span_id"])
 

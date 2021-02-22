@@ -128,7 +128,7 @@ class OrganizationEventsTrendsLightEndpointTest(OrganizationEventsTrendsEndpoint
         self.login_as(user=user)
 
         url = reverse(
-            "sentry-api-0-organization-events-trace-light",
+            self.url_name,
             kwargs={"organization_slug": org.slug, "trace_id": uuid4().hex},
         )
 
@@ -138,8 +138,7 @@ class OrganizationEventsTrendsLightEndpointTest(OrganizationEventsTrendsEndpoint
                 format="json",
             )
 
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 0
+        assert response.status_code == 404, response.content
 
     def test_bad_ids(self):
         # Fake event id
@@ -261,7 +260,7 @@ class OrganizationEventsTrendsLightEndpointTest(OrganizationEventsTrendsEndpoint
 
         assert current_event in events
         event = events[current_event]
-        assert event["generation"] is None
+        assert event["generation"] == 1
         assert event["parent_event_id"] == root_event_id
         assert event["parent_span_id"] == self.root_span_ids[0]
 
@@ -342,7 +341,7 @@ class OrganizationEventsTrendsLightEndpointTest(OrganizationEventsTrendsEndpoint
 class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsEndpointBase):
     url_name = "sentry-api-0-organization-events-trace"
 
-    def assert_trace_data(self, root):
+    def assert_trace_data(self, root, gen2_no_children=True):
         """ see the setUp docstring for an idea of what the response structure looks like """
         assert root["event_id"] == self.root_event.event_id
         assert root["parent_event_id"] is None
@@ -365,11 +364,15 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsEndpointBase)
 
             # Only the first gen2 descendent has a child
             if i == 0:
+                assert len(gen2["children"]) == 1
                 gen3 = gen2["children"][0]
                 assert gen3["event_id"] == self.gen3_event.event_id
                 assert gen3["parent_event_id"] == self.gen2_events[i].event_id
                 assert gen3["parent_span_id"] == self.gen2_span_ids[i]
                 assert gen3["generation"] == 3
+                assert len(gen3["children"]) == 0
+            elif gen2_no_children:
+                assert len(gen2["children"]) == 0
 
     def test_no_projects(self):
         user = self.create_user()
@@ -377,7 +380,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsEndpointBase)
         self.login_as(user=user)
 
         url = reverse(
-            "sentry-api-0-organization-events-trace-light",
+            self.url_name,
             kwargs={"organization_slug": org.slug, "trace_id": uuid4().hex},
         )
 
@@ -387,8 +390,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsEndpointBase)
                 format="json",
             )
 
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 0
+        assert response.status_code == 404, response.content
 
     def test_simple(self):
         with self.feature(self.FEATURES):
@@ -436,7 +438,7 @@ class OrganizationEventsTrendsEndpointTest(OrganizationEventsTrendsEndpointBase)
 
         assert response.status_code == 200, response.content
         # Should be the same as the simple testcase
-        self.assert_trace_data(response.data)
+        self.assert_trace_data(response.data, gen2_no_children=False)
         # The difference is that gen3-1 should exist with no children
         gen2_1 = response.data["children"][1]["children"][0]
         assert len(gen2_1["children"]) == 1
