@@ -54,6 +54,8 @@ class OrganizationMemberSerializerTest(TestCase):
 
 
 class OrganizationMemberListTest(APITestCase):
+    endpoint = "sentry-api-0-organization-member-index"
+
     def setUp(self):
         self.owner_user = self.create_user("foo@localhost", username="foo")
         self.user_2 = self.create_user("bar@localhost", username="bar")
@@ -62,6 +64,7 @@ class OrganizationMemberListTest(APITestCase):
         self.org = self.create_organization(owner=self.owner_user)
         self.org.member_set.create(user=self.user_2)
         self.team = self.create_team(organization=self.org)
+        self.external_user = self.create_external_user(self.user_2, self.org)
 
         self.login_as(user=self.owner_user)
 
@@ -471,6 +474,26 @@ class OrganizationMemberListTest(APITestCase):
         assert not OrganizationMember.objects.filter(id=join_request.id).exists()
         assert OrganizationMember.objects.filter(organization=self.org, email=email).exists()
         assert len(mail.outbox) == 1
+
+    def test_user_has_external_user_association(self):
+        response = self.get_valid_response(self.org.slug, qs_params={"expand": "externalUsers"})
+        assert len(response.data) == 2
+        member = next(filter(lambda x: x["user"]["id"] == str(self.user_2.id), response.data))
+        assert member
+        assert len(member["externalUsers"]) == 1
+        assert member["externalUsers"][0]["id"] == str(self.external_user.id)
+        assert member["externalUsers"][0]["memberId"] == member["id"]
+
+    def test_user_has_external_user_associations_across_multiple_orgs(self):
+        self.org_2 = self.create_organization(owner=self.user_2)
+        self.external_user_2 = self.create_external_user(self.user_2, self.org_2)
+        response = self.get_valid_response(self.org.slug, qs_params={"expand": "externalUsers"})
+        assert len(response.data) == 2
+        member = next(filter(lambda x: x["user"]["id"] == str(self.user_2.id), response.data))
+        assert member
+        assert len(member["externalUsers"]) == 1
+        assert member["externalUsers"][0]["id"] == str(self.external_user.id)
+        assert member["externalUsers"][0]["memberId"] == member["id"]
 
 
 class OrganizationMemberListPostTest(APITestCase):

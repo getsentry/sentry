@@ -360,6 +360,7 @@ class Enhancements:
         # down to max-frames.  min-frames is handled on the other hand for
         # the entire stacktrace later.
         max_frames = stacktrace_state.get("max-frames")
+
         if max_frames > 0:
             ignored = 0
             for component in reversed(components):
@@ -385,7 +386,11 @@ class Enhancements:
         """
         hint = None
         contributes = None
-        stacktrace_state = self.update_frame_components_contributions(components, frames, platform)
+        stacktrace_state = self.update_frame_components_contributions(
+            components,
+            frames,
+            platform,
+        )
 
         min_frames = stacktrace_state.get("min-frames")
         if min_frames > 0:

@@ -197,7 +197,16 @@ class TimelineIncident extends React.Component<IncidentProps, IncidentState> {
     let Icon = IconCheckmark;
     let color: string = theme.green300;
 
-    if (
+    if (!incident.dateClosed && incident.status === IncidentStatus.CRITICAL) {
+      // active incident is critical
+      Icon = IconFire;
+      color = theme.red300;
+    } else if (!incident.dateClosed && incident.status === IncidentStatus.WARNING) {
+      // active incident is warning
+      Icon = IconWarning;
+      color = theme.yellow300;
+    } else if (
+      // closed incident was at max critical
       activities?.find(
         ({type, value}) =>
           type === IncidentActivityType.DETECTED ||
@@ -208,6 +217,7 @@ class TimelineIncident extends React.Component<IncidentProps, IncidentState> {
       Icon = IconFire;
       color = theme.red300;
     } else if (
+      // closed incident was at max warning
       activities?.find(
         ({type, value}) =>
           type === IncidentActivityType.STARTED ||

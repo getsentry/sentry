@@ -179,7 +179,7 @@ class PushEventWebhook(Webhook):
 
             author_email = commit["author"]["email"]
             if "@" not in author_email:
-                author_email = "{}@localhost".format(author_email[:65])
+                author_email = f"{author_email[:65]}@localhost"
             # try to figure out who anonymous emails are
             elif self.is_anonymous_email(author_email):
                 gh_username = commit["author"].get("username")

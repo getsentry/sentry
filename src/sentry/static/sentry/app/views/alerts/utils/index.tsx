@@ -28,10 +28,12 @@ export function fetchAlertRule(orgId: string, ruleId: string): Promise<IncidentR
 
 export function fetchIncidentsForRule(
   orgId: string,
-  alertRule: string
+  alertRule: string,
+  start: string,
+  end: string
 ): Promise<Incident[]> {
   return uncancellableApi.requestPromise(`/organizations/${orgId}/incidents/`, {
-    query: {alertRule},
+    query: {alertRule, start, end, detailed: true},
   });
 }
 

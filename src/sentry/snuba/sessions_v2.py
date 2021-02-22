@@ -1,10 +1,11 @@
 from datetime import datetime
 import itertools
+import math
 
 from sentry.api.event_search import get_filter
 from sentry.api.utils import get_date_range_rollup_from_params
 from sentry.utils.dates import to_timestamp
-from sentry.utils.snuba import Dataset, raw_query
+from sentry.utils.snuba import Dataset, raw_query, resolve_condition
 
 """
 The new Sessions API defines a "metrics"-like interface which is can be used in
@@ -122,6 +123,12 @@ class UsersField:
         return 0
 
 
+def finite_or_none(val):
+    if not math.isfinite(val):
+        return None
+    return val
+
+
 class DurationAverageField:
     def get_snuba_columns(self, raw_groupby):
         return ["duration_avg"]
@@ -131,7 +138,7 @@ class DurationAverageField:
             return None
         status = group.get("session.status")
         if status is None or status == "healthy":
-            return row["duration_avg"]
+            return finite_or_none(row["duration_avg"])
         return None
 
 
@@ -147,7 +154,7 @@ class DurationQuantileField:
             return None
         status = group.get("session.status")
         if status is None or status == "healthy":
-            return row["duration_quantiles"][self.quantile_index]
+            return finite_or_none(row["duration_quantiles"][self.quantile_index])
         return None
 
 
@@ -190,12 +197,22 @@ class SessionStatusGroupBy:
         return [("session.status", key) for key in ["healthy", "abnormal", "crashed", "errored"]]
 
 
+# NOTE: in the future we might add new `user_agent` and `os` fields
+
 GROUPBY_MAP = {
     "project": SimpleGroupBy("project_id", "project"),
     "environment": SimpleGroupBy("environment"),
     "release": SimpleGroupBy("release"),
     "session.status": SessionStatusGroupBy(),
 }
+
+CONDITION_COLUMNS = ["project", "environment", "release"]
+
+
+def resolve_column(col):
+    if col in CONDITION_COLUMNS:
+        return col
+    raise InvalidField(f'Invalid query field: "{col}"')
 
 
 class InvalidField(Exception):
@@ -209,7 +226,7 @@ class QueryDefinition:
     `fields` and `groupby` definitions as [`ColumnDefinition`] objects.
     """
 
-    def __init__(self, query, project_ids=None):
+    def __init__(self, query, params):
         self.query = query.get("query", "")
         raw_fields = query.getlist("field", [])
         raw_groupby = query.getlist("groupBy", [])
@@ -246,11 +263,17 @@ class QueryDefinition:
             query_groupby.update(groupby.get_snuba_groupby())
         self.query_groupby = list(query_groupby)
 
-        params = {"project_id": project_ids or []}
+        # the `params` are:
+        # project_id, organization_id, environment;
+        # also: start, end; but we got those ourselves.
         snuba_filter = get_filter(self.query, params)
 
+        # this makes sure that literals in complex queries are properly quoted,
+        # and unknown fields are raised as errors
+        conditions = [resolve_condition(c, resolve_column) for c in snuba_filter.conditions]
+
         self.aggregations = snuba_filter.aggregations
-        self.conditions = snuba_filter.conditions
+        self.conditions = conditions
         self.filter_keys = snuba_filter.filter_keys
 
 
