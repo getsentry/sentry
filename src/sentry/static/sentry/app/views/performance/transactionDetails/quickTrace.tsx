@@ -164,7 +164,6 @@ const QuickTraceLite = withProjects(
         event,
         children,
         organization,
-        projects,
         location
       );
       nodes.push(<TraceConnector key="children-connector" />);
@@ -239,7 +238,6 @@ type NodeProps = {
 function EventNodeDropdown({
   location,
   organization,
-  projects,
   children,
   events = [],
   numEvents = 5,
@@ -258,12 +256,7 @@ function EventNodeDropdown({
       {events.length === 0
         ? null
         : events.slice(0, numEvents).map((event, i) => {
-            const target = generateSingleEventTarget(
-              event,
-              organization,
-              projects,
-              location
-            );
+            const target = generateSingleEventTarget(event, organization, location);
             return (
               <DropdownItem key={event.event_id} to={target} first={i === 0}>
                 <Truncate
