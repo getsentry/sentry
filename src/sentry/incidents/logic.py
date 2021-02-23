@@ -645,14 +645,15 @@ def create_alert_rule(
 
         # try:
         from sentry.models import User, Team
-        print("owner:",owner)
-        print("owner.type:",owner.type)
-        print("owner.type.lower name:",owner.type.__name__.lower())
-        print("team:",Team)
-        print("team type?:",type(Team))
-        print("team type?:",type(Team))
-        print("owner type?:",typeof(owner.type))
-        print("type is a team::",isinstance(owner.type, Team))
+
+        print("owner:", owner)
+        print("owner.type:", owner.type)
+        print("owner.type.lower name:", owner.type.__name__.lower())
+        print("team:", Team)
+        print("team type?:", type(Team))
+        print("team type?:", type(Team))
+        print("owner type?:", typeof(owner.type))
+        print("type is a team::", isinstance(owner.type, Team))
         if isinstance(owner.type, User):
             team_id = None
             user_id = owner.id
@@ -660,9 +661,9 @@ def create_alert_rule(
             team_id = owner.id
             user_id = None
         # except Exception e:
-            # print("exception!")
-            # team_id = None
-            # user_id = None
+        # print("exception!")
+        # team_id = None
+        # user_id = None
 
         alert_rule = AlertRule.objects.create(
             organization=organization,
