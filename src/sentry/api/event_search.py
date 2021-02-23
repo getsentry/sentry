@@ -1998,7 +1998,7 @@ FUNCTIONS = {
         ),
         Function(
             "epm",
-            optional_args=[IntervalDefault("interval", 60, None)],
+            optional_args=[IntervalDefault("interval", 1, None)],
             transform="divide(count(), divide({interval:g}, 60))",
             default_result_type="number",
         ),
