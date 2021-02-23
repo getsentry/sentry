@@ -23,6 +23,12 @@ SUPPORTED_RUNTIMES = [
 ]
 
 INVALID_LAYER_TEXT = "Invalid existing layer %s"
+MISSING_ROLE_TEXT = (
+    "An error occurred (InvalidParameterValueException) when "
+    "calling the UpdateFunctionConfiguration operation: "
+    "The role defined for the function cannot be "
+    "assumed by Lambda"
+)
 
 DEFAULT_NUM_RETRIES = 3
 
@@ -313,6 +319,15 @@ def get_invalid_layer_name(err_message):
     return None
 
 
+def get_missing_role_error(err_message):
+    """
+    Check to see if an error matches the missing role text
+    :param err_message: error string
+    :return boolean value if the error matches the missing role text
+    """
+    return err_message == MISSING_ROLE_TEXT
+
+
 def wrap_lambda_updater():
     """
     Wraps any function that updates a layer
@@ -330,6 +345,10 @@ def wrap_lambda_updater():
                 # only have one specific error to catch
                 if invalid_layer:
                     raise IntegrationError(_(INVALID_LAYER_TEXT) % invalid_layer)
+                # check if error raised is a missing role message
+                missing_role = get_missing_role_error(err_message)
+                if missing_role:
+                    raise IntegrationError(_(MISSING_ROLE_TEXT))
                 # otherwise, re-raise the original error
                 raise
 
