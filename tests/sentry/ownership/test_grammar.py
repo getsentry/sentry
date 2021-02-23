@@ -35,7 +35,7 @@ codeowners_fixture_data = """
 
   docs/*  @getsentry/docs @getsentry/ecosystem
 src/sentry/*       @AnotherUser
-
+api/*    nisanthan.nanthakumar@sentry.io
 """
 
 
@@ -189,6 +189,7 @@ def test_parse_code_owners():
     assert parse_code_owners(codeowners_fixture_data) == (
         ["@getsentry/frontend", "@getsentry/docs", "@getsentry/ecosystem"],
         ["@NisanthanNanthakumar", "@AnotherUser"],
+        ["nisanthan.nanthakumar@sentry.io"],
     )
 
 
@@ -205,8 +206,9 @@ def test_convert_codeowners_syntax():
                 "@getsentry/ecosystem": "ecosystem",
                 "@NisanthanNanthakumar": "nisanthan.nanthakumar@sentry.io",
                 "@AnotherUser": "anotheruser@sentry.io",
+                "nisanthan.nanthakumar@sentry.io": "nisanthan.nanthakumar@sentry.io",
             },
             code_mapping,
         )
-        == "\n# cool stuff comment\npath:*.js front-sentry nisanthan.nanthakumar@sentry.io\n# good comment\n\n\npath:webpack://docs/* docs-sentry ecosystem\npath:src/sentry/* anotheruser@sentry.io\n\n"
+        == "\n# cool stuff comment\npath:*.js front-sentry nisanthan.nanthakumar@sentry.io\n# good comment\n\n\npath:webpack://docs/* docs-sentry ecosystem\npath:src/sentry/* anotheruser@sentry.io\npath:api/* nisanthan.nanthakumar@sentry.io\n"
     )
