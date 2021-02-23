@@ -148,6 +148,17 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'area',
   },
+  any: {
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['string', 'integer', 'number', 'duration', 'date', 'boolean'],
+        required: true,
+      },
+    ],
+    outputType: null,
+    isSortable: true,
+  },
   last_seen: {
     parameters: [],
     outputType: 'date',

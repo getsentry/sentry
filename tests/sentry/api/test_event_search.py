@@ -3147,6 +3147,7 @@ class ResolveFieldListTest(unittest.TestCase):
             ["min(timestamp)", "timestamp"],
             ["max(timestamp)", "timestamp"],
             ["p95()", "transaction.duration"],
+            ["any(measurements.fcp)", "measurements.fcp"],
         ]
         for field in fields:
             with pytest.raises(InvalidSearchQuery) as error:
