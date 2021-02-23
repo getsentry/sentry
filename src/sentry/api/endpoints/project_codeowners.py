@@ -46,7 +46,7 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
 
         if not attrs.get("raw", "").strip():
             return attrs
-        external_association_err = ""
+        external_association_err = []
         # Get list of team/user names from CODEOWNERS file
         teamnames, usernames, emails = parse_code_owners(attrs["raw"])
 
@@ -56,7 +56,9 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
         user_emails_diff = [email for email in emails if email not in user_emails]
 
         if len(user_emails_diff):
-            external_association_err += f'The following emails do not have an user associated in Sentry: {", ".join(user_emails_diff)}.'
+            external_association_err.append(
+                f'The following emails do not have an user associated in Sentry: {", ".join(user_emails_diff)}.'
+            )
 
         # Check if the usernames have an association
         external_users = ExternalUser.objects.filter(external_name__in=usernames)
@@ -65,8 +67,9 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
         external_users_diff = [name for name in usernames if name not in external_users_names]
 
         if len(external_users_diff):
-            nl = "\n" if len(external_association_err) else ""
-            external_association_err += f'{nl}The following usernames do not have an association in Sentry: {", ".join(external_users_diff)}.'
+            external_association_err.append(
+                f'The following usernames do not have an association in Sentry: {", ".join(external_users_diff)}.'
+            )
 
         # Check if the team names have an association
         external_teams = ExternalTeam.objects.filter(external_name__in=teamnames)
@@ -75,11 +78,12 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
         external_teams_diff = [name for name in teamnames if name not in external_teams_names]
 
         if len(external_teams_diff):
-            nl = "\n" if len(external_association_err) else ""
-            external_association_err += f'{nl}The following team names do not have an association in Sentry: {", ".join(external_teams_diff)}.'
+            external_association_err.append(
+                f'The following team names do not have an association in Sentry: {", ".join(external_teams_diff)}.'
+            )
 
         if len(external_association_err):
-            raise serializers.ValidationError({"raw": external_association_err})
+            raise serializers.ValidationError({"raw": "\n".join(external_association_err)})
 
         # Convert CODEOWNERS into IssueOwner syntax
         users_dict = {
