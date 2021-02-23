@@ -118,6 +118,8 @@ default_manager.add("organizations:invite-members-rate-limits", OrganizationFeat
 default_manager.add("organizations:issue-list-trend-sort", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-landing-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-vitals-overview", OrganizationFeature)  # NOQA
+default_manager.add("organizations:performance-ops-breakdown", OrganizationFeature)  # NOQA
+default_manager.add("organizations:performance-tag-explorer", OrganizationFeature)  # NOQA
 
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.
