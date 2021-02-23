@@ -111,7 +111,10 @@ export default class ThresholdsChart extends React.PureComponent<Props, State> {
     const width = chartRef.getWidth();
     const height = chartRef.getHeight();
     if (width !== this.state.width || height !== this.state.height) {
-      this.setState({width, height});
+      this.setState({
+        width,
+        height,
+      });
     }
   };
 
