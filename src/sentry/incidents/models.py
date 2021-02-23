@@ -163,7 +163,6 @@ class Incident(Model):
     # When we actually detected the incident
     date_detected = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
-    date_closed = models.DateTimeField(null=True)
 
     class Meta:
         app_label = "sentry"
