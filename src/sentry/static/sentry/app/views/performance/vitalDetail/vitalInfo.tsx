@@ -4,7 +4,7 @@ import {Location} from 'history';
 import {Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {WebVital} from 'app/utils/discover/fields';
-import VitalsCardDiscoverQuery from 'app/views/performance/vitalDetail/vitalsCardsDiscoverQuery';
+import VitalsCardDiscoverQuery from 'app/utils/performance/vitals/vitalsCardsDiscoverQuery';
 
 import {VitalBar} from '../landing/vitalsCards';
 

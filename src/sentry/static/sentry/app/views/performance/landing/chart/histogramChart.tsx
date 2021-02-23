@@ -16,11 +16,11 @@ import {Organization} from 'app/types';
 import {Series} from 'app/types/echarts';
 import EventView from 'app/utils/discover/eventView';
 import getDynamicText from 'app/utils/getDynamicText';
+import HistogramQuery from 'app/utils/performance/histogram/histogramQuery';
+import {computeBuckets, formatHistogramData} from 'app/utils/performance/histogram/utils';
 import theme from 'app/utils/theme';
 
-import {computeBuckets, formatHistogramData} from '../../charts/utils';
 import {DoubleHeaderContainer} from '../../styles';
-import HistogramQuery from '../../transactionVitals/histogramQuery';
 
 const NUM_BUCKETS = 50;
 const PRECISION = 0;

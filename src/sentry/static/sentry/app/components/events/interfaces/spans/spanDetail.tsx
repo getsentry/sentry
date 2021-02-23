@@ -25,9 +25,9 @@ import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {eventDetailsRoute, generateEventSlug} from 'app/utils/discover/urls';
 import getDynamicText from 'app/utils/getDynamicText';
+import {QuickTraceContextChildrenProps} from 'app/utils/performance/quickTrace/quickTraceContext';
 import withApi from 'app/utils/withApi';
 import withProjects from 'app/utils/withProjects';
-import {QuickTraceContextChildrenProps} from 'app/views/performance/transactionDetails/quickTraceContext';
 
 import * as SpanEntryContext from './context';
 import InlineDocs from './inlineDocs';

@@ -14,12 +14,12 @@ import {Organization} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
+import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 import {decodeScalar} from 'app/utils/queryString';
 import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,
-  WEB_VITAL_DETAILS,
 } from 'app/views/performance/transactionVitals/constants';
 import {vitalsRouteWithQuery} from 'app/views/performance/transactionVitals/utils';
 
@@ -64,7 +64,7 @@ function UserStats({eventView, totals, location, organization, transactionName}:
           const alias = getAggregateAlias(`percentile(${vital}, ${VITAL_PERCENTILE})`);
           if (Number.isFinite(totals[alias])) {
             total += 1;
-            if (totals[alias] < WEB_VITAL_DETAILS[vital].failureThreshold) {
+            if (totals[alias] < WEB_VITAL_DETAILS[vital].poorThreshold) {
               passed += 1;
             }
           }
