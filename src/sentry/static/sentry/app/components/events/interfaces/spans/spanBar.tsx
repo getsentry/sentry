@@ -12,6 +12,8 @@ import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
 import {defined, OmitHtmlDivProps} from 'app/utils';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
+import * as QuickTraceContext from 'app/views/performance/transactionDetails/quickTraceContext';
+import {QuickTraceContextChildrenProps} from 'app/views/performance/transactionDetails/quickTraceContext';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
@@ -255,7 +257,13 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     }));
   };
 
-  renderDetail({isVisible}: {isVisible: boolean}) {
+  renderDetail({
+    isVisible,
+    quickTrace,
+  }: {
+    isVisible: boolean;
+    quickTrace?: QuickTraceContextChildrenProps;
+  }) {
     if (!this.state.showDetail || !isVisible) {
       return null;
     }
@@ -281,6 +289,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         trace={trace}
         totalNumberOfErrors={totalNumberOfErrors}
         spanErrors={spanErrors}
+        quickTrace={quickTrace}
       />
     );
   }
@@ -878,23 +887,27 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const isSpanVisible = isSpanVisibleInView && !isCurrentSpanFilteredOut;
 
     return (
-      <SpanRow
-        ref={this.spanRowDOMRef}
-        visible={isSpanVisible}
-        showBorder={this.state.showDetail}
-        data-test-id="span-row"
-      >
-        <DividerHandlerManager.Consumer>
-          {(
-            dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-          ) =>
-            this.renderHeader({
-              dividerHandlerChildrenProps,
-            })
-          }
-        </DividerHandlerManager.Consumer>
-        {this.renderDetail({isVisible: isSpanVisible})}
-      </SpanRow>
+      <QuickTraceContext.Consumer>
+        {quickTrace => (
+          <SpanRow
+            ref={this.spanRowDOMRef}
+            visible={isSpanVisible}
+            showBorder={this.state.showDetail}
+            data-test-id="span-row"
+          >
+            <DividerHandlerManager.Consumer>
+              {(
+                dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
+              ) =>
+                this.renderHeader({
+                  dividerHandlerChildrenProps,
+                })
+              }
+            </DividerHandlerManager.Consumer>
+            {this.renderDetail({isVisible: isSpanVisible, quickTrace})}
+          </SpanRow>
+        )}
+      </QuickTraceContext.Consumer>
     );
   }
 }
