@@ -41,14 +41,14 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
         path_config1 = self.create_code_mapping(
             organization_integration=self.org_integration,
             project=self.project1,
-            repository=self.repo1,
+            repo=self.repo1,
             stack_root="stack/root",
             source_root="source/root",
         )
         path_config2 = self.create_code_mapping(
             organization_integration=self.org_integration,
             project=self.project2,
-            repository=self.repo1,
+            repo=self.repo1,
             stack_root="another/path",
             source_root="hey/there",
         )
@@ -97,7 +97,7 @@ class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
             "integrationId": str(self.integration.id),
             "stackRoot": "another/path",
             "sourceRoot": "hey/there",
-            "defaultBranch": None,
+            "defaultBranch": "master",
         }
 
     def test_basic_get_with_projectId(self):

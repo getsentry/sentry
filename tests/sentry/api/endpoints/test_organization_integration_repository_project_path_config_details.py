@@ -5,7 +5,7 @@ from sentry.models import Integration, Repository, RepositoryProjectPathConfig
 from sentry.testutils import APITestCase
 
 
-class OrganizationIntegrationRepositoryProjectPathConfigTest(APITestCase):
+class OrganizationIntegrationRepositoryProjectPathConfigDetailsTest(APITestCase):
     def setUp(self):
         super().setUp()
 
