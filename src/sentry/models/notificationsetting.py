@@ -1,6 +1,5 @@
 from enum import Enum
 
-from django.db import models
 from django.conf import settings
 
 from sentry.db.models import (
@@ -14,14 +13,14 @@ from sentry.db.models import (
 class NotificationSettingTypes(Enum):
     DEFAULT = 0
     DEPLOY = 10
-    ISSUE_OWNERS_ALERTS = 20
+    ISSUE_ALERTS = 20
     WORKFLOW = 30
 
 
 NOTIFICATION_SETTING_TYPES = {
     NotificationSettingTypes.DEFAULT: "default",
     NotificationSettingTypes.DEPLOY: "deploy",
-    NotificationSettingTypes.ISSUE_OWNERS_ALERTS: "issue",
+    NotificationSettingTypes.ISSUE_ALERTS: "issue",
     NotificationSettingTypes.WORKFLOW: "workflow",
 }
 
@@ -31,7 +30,7 @@ class NotificationSettingOptionValues(Enum):
     NEVER = 10
     ALWAYS = 20
     SUBSCRIBE_ONLY = 30  # workflow
-    COMMITED_ONLY = 40  # deploy
+    COMMITTED_ONLY = 40  # deploy
 
 
 NOTIFICATION_SETTING_OPTION_VALUES = {
@@ -39,7 +38,18 @@ NOTIFICATION_SETTING_OPTION_VALUES = {
     NotificationSettingOptionValues.NEVER: "off",
     NotificationSettingOptionValues.ALWAYS: "on",
     NotificationSettingOptionValues.SUBSCRIBE_ONLY: "subscribe_only",
-    NotificationSettingOptionValues.COMMITED_ONLY: "commited_only",
+    NotificationSettingOptionValues.COMMITTED_ONLY: "committed_only",
+}
+
+
+class NotificationSettingProvider(Enum):
+    EMAIL = 0
+    SLACK = 1
+
+
+NOTIFICATION_SETTING_PROVIDER = {
+    NotificationSettingProvider.EMAIL: "email",
+    NotificationSettingProvider.SLACK: "slack",
 }
 
 
@@ -52,12 +62,18 @@ class NotificationSetting(Model):
     project = FlexibleForeignKey("sentry.Project", null=True)
     team = FlexibleForeignKey("sentry.Team", null=True)
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
-    provider = models.CharField(max_length=64, null=False)
+    provider = BoundedPositiveIntegerField(
+        choices=(
+            (NotificationSettingProvider.EMAIL, "email"),
+            (NotificationSettingProvider.SLACK, "slack"),
+        ),
+        null=False,
+    )
     type = BoundedPositiveIntegerField(
         choices=(
             (NotificationSettingTypes.DEFAULT, "default"),
             (NotificationSettingTypes.DEPLOY, "deploy"),
-            (NotificationSettingTypes.ISSUE_OWNERS_ALERTS, "issue"),
+            (NotificationSettingTypes.ISSUE_ALERTS, "issue"),
             (NotificationSettingTypes.WORKFLOW, "workflow"),
         ),
         null=False,
@@ -68,7 +84,7 @@ class NotificationSetting(Model):
             (NotificationSettingOptionValues.NEVER, "off"),
             (NotificationSettingOptionValues.ALWAYS, "on"),
             (NotificationSettingOptionValues.SUBSCRIBE_ONLY, "subscribe_only"),
-            (NotificationSettingOptionValues.COMMITED_ONLY, "commited_only"),
+            (NotificationSettingOptionValues.COMMITTED_ONLY, "committed_only"),
         ),
         null=False,
     )
