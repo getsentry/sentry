@@ -1,35 +1,33 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import AutoComplete from 'app/components/autoComplete';
 import space from 'app/styles/space';
 
-import {GetItemArgs} from './types';
+import {Item} from './types';
 
 type ItemSize = 'zero' | 'small';
+type AutoCompleteChildrenArgs<T> = Parameters<AutoComplete<T>['props']['children']>[0];
 
-type Props = {
-  // The highlight index according the search
-  highlightedIndex: number;
-  getItemProps: (args: GetItemArgs) => void;
-  /**
-   * Search field's input value
-   */
-  inputValue: string;
+type Props<T> = Pick<
+  AutoCompleteChildrenArgs<T>,
+  'highlightedIndex' | 'getItemProps' | 'inputValue'
+> &
+  Omit<Parameters<AutoCompleteChildrenArgs<T>['getItemProps']>[0], 'index'> & {
+    /**
+     * Size for dropdown items
+     */
+    itemSize?: ItemSize;
+  };
 
-  /**
-   * Size for dropdown items
-   */
-  itemSize?: ItemSize;
-} & Omit<GetItemArgs, 'index'>;
-
-const Row = ({
+function Row<T extends Item>({
   item,
   style,
   itemSize,
   highlightedIndex,
   inputValue,
   getItemProps,
-}: Props) => {
+}: Props<T>) {
   const {index} = item;
 
   if (item?.groupLabel) {
@@ -49,9 +47,21 @@ const Row = ({
       {typeof item.label === 'function' ? item.label({inputValue}) : item.label}
     </AutoCompleteItem>
   );
-};
+}
 
 export default Row;
+
+const getItemPaddingForSize = (itemSize?: ItemSize) => {
+  if (itemSize === 'small') {
+    return `${space(0.5)} ${space(1)}`;
+  }
+
+  if (itemSize === 'zero') {
+    return '0';
+  }
+
+  return space(1);
+};
 
 const LabelWithBorder = styled('div')`
   background-color: ${p => p.theme.backgroundSecondary};
@@ -71,18 +81,6 @@ const LabelWithBorder = styled('div')`
 const GroupLabel = styled('div')`
   padding: ${space(0.25)} ${space(1)};
 `;
-
-const getItemPaddingForSize = (itemSize?: ItemSize) => {
-  if (itemSize === 'small') {
-    return `${space(0.5)} ${space(1)}`;
-  }
-
-  if (itemSize === 'zero') {
-    return '0';
-  }
-
-  return space(1);
-};
 
 const AutoCompleteItem = styled('div')<{isHighlighted: boolean; itemSize?: ItemSize}>`
   /* needed for virtualized lists that do not fill parent height */

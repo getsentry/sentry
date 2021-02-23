@@ -12,49 +12,23 @@ import autoCompleteFilter from './autoCompleteFilter';
 import List from './list';
 import {Item, ItemsBeforeFilter} from './types';
 
+type AutoCompleteChildrenArgs = Parameters<AutoComplete<Item>['props']['children']>[0];
+type Actions = AutoCompleteChildrenArgs['actions'];
+
 export type MenuFooterChildProps = {
   actions: Actions;
 };
-
-type EventHandles = {
-  onClick?: (event: React.MouseEvent<Element>) => void;
-  onMouseEnter?: (event: React.MouseEvent<Element>) => void;
-  onMouseLeave?: (event: React.MouseEvent<Element>) => void;
-  onKeyDown?: (event: React.KeyboardEvent<Element>) => void;
-};
-
-type MenuProps = Omit<EventHandles, 'onKeyDown'> & {
-  className?: string;
-};
-
-// Props for the "actor" element of `<DropdownMenu>`
-// This is the element that handles visibility of the dropdown menu
-type ActorProps = Required<EventHandles>;
-
-type GetActorArgs = EventHandles & {
-  style?: React.CSSProperties;
-  className?: string;
-};
-
-type Actions = {
-  open: () => void;
-  close: () => void;
-};
-
-type ChildrenArgs = {
-  getInputProps: () => void;
-  getActorProps: (args?: GetActorArgs) => ActorProps;
-  actions: Actions;
-  isOpen: boolean;
-  selectedItem?: Item;
-  selectedItemIndex?: number;
-} & Record<string, any>; //Record is needed here because of the projectSelector component as it passes the selectedProjects prop
 
 type ListProps = React.ComponentProps<typeof List>;
 
 type Props = {
   items: ItemsBeforeFilter;
-  children: (args: ChildrenArgs) => React.ReactNode;
+  children: (
+    args: Pick<
+      AutoCompleteChildrenArgs,
+      'getInputProps' | 'getActorProps' | 'actions' | 'isOpen' | 'selectedItem'
+    >
+  ) => React.ReactNode;
 
   menuHeader?: React.ReactElement;
   menuFooter?:
@@ -109,7 +83,7 @@ type Props = {
   /**
    * Props to pass to menu component
    */
-  menuProps?: MenuProps;
+  menuProps?: Parameters<AutoCompleteChildrenArgs['getMenuProps']>[0];
 
   /**
    * Show loading indicator next to input but don't hide list items
@@ -154,7 +128,11 @@ type Props = {
   /**
    * When an item is selected (via clicking dropdown, or keyboard navigation)
    */
-  onSelect?: (item: Item) => void;
+  onSelect?: (
+    item: Item,
+    state?: AutoComplete<Item>['state'],
+    e?: React.MouseEvent | React.KeyboardEvent
+  ) => void;
 
   /**
    * AutoComplete prop
@@ -234,7 +212,6 @@ const Menu = ({
   ...props
 }: Props) => (
   <AutoComplete
-    itemToString={() => ''}
     onSelect={onSelect}
     inputIsActor={false}
     onOpen={onOpen}
@@ -285,8 +262,9 @@ const Menu = ({
 
       // When virtualization is turned on, we need to pass in the number of
       // selecteable items for arrow-key limits
-      const itemCount =
-        virtualizedHeight && autoCompleteResults.filter(i => !i.groupLabel).length;
+      const itemCount = virtualizedHeight
+        ? autoCompleteResults.filter(i => !i.groupLabel).length
+        : undefined;
 
       const renderedFooter =
         typeof menuFooter === 'function' ? menuFooter({actions}) : menuFooter;
@@ -309,13 +287,13 @@ const Menu = ({
               className={className}
               {...getMenuProps({
                 ...menuProps,
-                style,
-                css,
                 itemCount,
-                blendCorner,
-                alignMenu,
-                menuWithArrow,
               })}
+              style={style}
+              css={css}
+              blendCorner={blendCorner}
+              alignMenu={alignMenu}
+              menuWithArrow={menuWithArrow}
             >
               {itemsLoading && <LoadingIndicator mini />}
               {showInput && (
