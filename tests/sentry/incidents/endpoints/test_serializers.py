@@ -491,6 +491,39 @@ class TestAlertRuleSerializer(TestCase):
             {"query": ["Unsupported Query: We do not currently support the release:latest query"]},
         )
 
+    def test_owner_validation(self):
+        self.run_fail_validation_test(
+            {"owner": f"meow:{self.user.id}"},
+            {'owner': ['Unable to resolve actor identifier']},
+        )
+        # self.run_fail_validation_test(
+            # {"owner": f"user:-1"},
+            # {'owner': ['Unable to resolve actor identifier']},
+        # )
+        # self.run_fail_validation_test(
+            # {"owner": self.user.id},
+            # {'owner': ['Must be a string']},
+        # )
+        
+        base_params = self.valid_params.copy()
+        base_params.update({"owner": f"team:{self.team.id}"})
+        serializer = AlertRuleSerializer(context=self.context, data=base_params)
+        # error is raised during save
+        assert serializer.is_valid()
+        assert serializer.is_valid(), serializer.errors
+        print("Validated. Saving...")
+        alert_rule = serializer.save()
+        assert alert_rule.owner() == f"team:{self.team.id}"
+
+        base_params.update({"owner": "user:doesntexist"})
+        serializer = AlertRuleSerializer(context=self.context, data=base_params)
+        # error is raised during save
+        assert serializer.is_valid()
+        assert serializer.is_valid(), serializer.errors
+        print("Validated. Saving...")
+        alert_rule = serializer.save()
+        assert alert_rule.owner() == "user:doesntexist"
+
 
 class TestAlertRuleTriggerSerializer(TestCase):
     @fixture

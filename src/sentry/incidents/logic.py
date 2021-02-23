@@ -608,6 +608,7 @@ def create_alert_rule(
     if `include_all_projects` is True
     :param name: Name for the alert rule. This will be used as part of the
     incident name, and must be unique per project
+    :param owner: Actor (sentry.api.field.actor) namedtuple consisting of id and type or None
     :param query: An event search query to subscribe to and monitor for alerts
     :param aggregate: A string representing the aggregate used in this alert rule
     :param time_window: Time period to aggregate over, in minutes
@@ -626,6 +627,7 @@ def create_alert_rule(
 
     :return: The created `AlertRule`
     """
+    print("huh")
     resolution = DEFAULT_ALERT_RULE_RESOLUTION
     validate_alert_rule_query(query)
     if AlertRule.objects.filter(organization=organization, name=name).exists():
@@ -640,17 +642,27 @@ def create_alert_rule(
             environment,
             event_types=event_types,
         )
-        from sentry.models import User, Team
 
-        if isinstance(owner, User):
-            team = None
-            user = owner
-        elif isinstance(owner, Team):
-            team = owner
-            user = None
-        else:
-            team = None
-            user = None
+        # try:
+        from sentry.models import User, Team
+        print("owner:",owner)
+        print("owner.type:",owner.type)
+        print("owner.type.lower name:",owner.type.__name__.lower())
+        print("team:",Team)
+        print("team type?:",type(Team))
+        print("team type?:",type(Team))
+        print("owner type?:",typeof(owner.type))
+        print("type is a team::",isinstance(owner.type, Team))
+        if isinstance(owner.type, User):
+            team_id = None
+            user_id = owner.id
+        elif isinstance(owner.type, Team):
+            team_id = owner.id
+            user_id = None
+        # except Exception e:
+            # print("exception!")
+            # team_id = None
+            # user_id = None
 
         alert_rule = AlertRule.objects.create(
             organization=organization,
@@ -660,8 +672,8 @@ def create_alert_rule(
             resolve_threshold=resolve_threshold,
             threshold_period=threshold_period,
             include_all_projects=include_all_projects,
-            team=team,
-            user=user,
+            team_id=team_id,
+            user_id=user_id,
         )
 
         if include_all_projects:
