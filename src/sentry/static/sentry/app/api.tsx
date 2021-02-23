@@ -428,6 +428,11 @@ export class Client {
     // compatibility layer which mimics that of the jquery response objects.
     fetchRequest
       .then(async response => {
+        // The Response's body can only be resolved/used at most once.
+        // So we clone the response so we can resolve the body content as text content.
+        // Response objects need to be cloned before its body can be used.
+        const responseClone = response.clone();
+
         let responseJSON: any;
         let responseText: any;
 
@@ -440,7 +445,7 @@ export class Client {
 
         // Try to get text out of the response no matter the status
         try {
-          responseText = await response.text();
+          responseText = await responseClone.text();
         } catch {
           // No text came out.. too bad
         }
@@ -455,8 +460,15 @@ export class Client {
           getResponseHeader: (header: string) => response.headers.get(header),
         };
 
+        const responseContentType = response.headers.get('content-type');
+
+        // Respect the response content-type header
+        const responseData = responseContentType?.includes('json')
+          ? responseJSON
+          : responseText;
+
         if (ok) {
-          successHandler(responseJSON, statusText, emulatedJQueryXHR);
+          successHandler(responseData, statusText, emulatedJQueryXHR);
         } else {
           globalErrorHandlers.forEach(handler => handler(emulatedJQueryXHR));
           errorHandler(emulatedJQueryXHR, statusText, 'Request not OK');
