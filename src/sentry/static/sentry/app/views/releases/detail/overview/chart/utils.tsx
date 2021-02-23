@@ -387,7 +387,7 @@ type FillChartDataFromSessionsResponseProps = {
   response: SessionApiResponse;
   field: string;
   groupBy: string | null;
-  chartData: Record<string, Series>;
+  chartData: ChartData;
   valueFormatter?: (value: number) => number;
 };
 
