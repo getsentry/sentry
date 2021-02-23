@@ -88,26 +88,21 @@ function EventVital({event, name}: EventVitalProps) {
     return null;
   }
 
-  // Measurements are referred to by their full name `measurements.<name>`
-  // here but are stored using their abbreviated name `<name>`. Make sure
-  // to convert it appropriately.
-  name = `measurements.${name}`;
+  const record = WEB_VITAL_DETAILS[`measurements.${name}`];
 
-  const record = Object.values(WEB_VITAL_DETAILS).find(vital => vital.slug === name);
+  if (!record) {
+    return null;
+  }
 
-  const failedThreshold = record ? value >= record.poorThreshold : false;
+  const failedThreshold = value >= record.poorThreshold;
 
   const currentValue = formattedValue(record, value);
   const thresholdValue = formattedValue(record, record?.poorThreshold ?? 0);
 
-  if (!WEB_VITAL_DETAILS.hasOwnProperty(name)) {
-    return null;
-  }
-
   return (
     <EventVitalContainer>
       <StyledPanel failedThreshold={failedThreshold}>
-        <Name>{WEB_VITAL_DETAILS[name].name ?? name}</Name>
+        <Name>{name}</Name>
         <ValueRow>
           {failedThreshold ? (
             <FireIconContainer size="sm">

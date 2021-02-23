@@ -44,19 +44,19 @@ class MeasurementsPanel extends React.PureComponent<Props> {
           // Measurements are referred to by their full name `measurements.<name>`
           // here but are stored using their abbreviated name `<name>`. Make sure
           // to convert it appropriately.
-          const names = Object.keys(verticalMark.marks).map(
-            name => `measurements.${name}`
+          const vitals = Object.keys(verticalMark.marks).map(
+            name => WEB_VITAL_DETAILS[`measurements.${name}`]
           );
 
           // generate vertical marker label
-          const acronyms = names.map(name => WEB_VITAL_DETAILS[name].acronym);
+          const acronyms = vitals.map(vital => vital.acronym);
           const lastAcronym = acronyms.pop() as string;
           const label = acronyms.length
             ? `${acronyms.join(', ')} & ${lastAcronym}`
             : lastAcronym;
 
           // generate tooltip labe;l
-          const longNames = names.map(name => WEB_VITAL_DETAILS[name].name);
+          const longNames = vitals.map(vital => vital.name);
           const lastName = longNames.pop() as string;
           const tooltipLabel = longNames.length
             ? `${longNames.join(', ')} & ${lastName}`
