@@ -59,7 +59,7 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         assert response.status_code == 400
         assert response.data == {
             "raw": [
-                "The following usernames do not have an association in Sentry: @AnotherUser.The following team names do not have an association in Sentry: @getsentry/frontend, @getsentry/docs."
+                "The following usernames do not have an association in Sentry: @AnotherUser.\nThe following team names do not have an association in Sentry: @getsentry/frontend, @getsentry/docs."
             ]
         }
 
