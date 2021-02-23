@@ -7,8 +7,8 @@ import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import {stringify} from 'query-string';
 
+import ComingSoon from 'app/components/acl/comingSoon';
 import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
@@ -312,7 +312,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   renderNoAccess() {
     return (
       <PageContent>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        <ComingSoon />
       </PageContent>
     );
   }

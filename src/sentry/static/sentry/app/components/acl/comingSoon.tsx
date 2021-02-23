@@ -1,12 +1,16 @@
 import React from 'react';
 
 import Alert from 'app/components/alert';
-import {IconInfo} from 'app/icons';
+import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 
+export const comingSoonText = t(
+  'This feature has not been enabled for the current user, project, organization, or Sentry instance.'
+);
+
 const ComingSoon = () => (
-  <Alert type="info" icon={<IconInfo size="md" />}>
-    {t('This feature is coming soon!')}
+  <Alert type="warning" icon={<IconWarning size="md" />}>
+    {comingSoonText}
   </Alert>
 );
 

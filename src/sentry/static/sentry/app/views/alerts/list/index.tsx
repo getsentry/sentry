@@ -5,8 +5,8 @@ import flatten from 'lodash/flatten';
 import omit from 'lodash/omit';
 
 import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
+import ComingSoon from 'app/components/acl/comingSoon';
 import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -324,7 +324,7 @@ class IncidentsListContainer extends React.Component<Props> {
     return (
       <Layout.Body>
         <Layout.Main fullWidth>
-          <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+          <ComingSoon />
         </Layout.Main>
       </Layout.Body>
     );

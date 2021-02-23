@@ -3,6 +3,7 @@ import React from 'react';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
+import {comingSoonText} from 'app/components/acl/comingSoon';
 import ProjectQuickLinks from 'app/views/projectDetail/projectQuickLinks';
 
 describe('ProjectDetail > ProjectQuickLinks', function () {
@@ -64,7 +65,7 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
 
     expect(keyTransactions.prop('disabled')).toBeTruthy();
     expect(keyTransactions.find('a').exists()).toBeFalsy();
-    expect(tooltip.prop('title')).toBe("You don't have access to this feature");
+    expect(tooltip.prop('title')).toBe(comingSoonText);
     expect(tooltip.prop('disabled')).toBeFalsy();
   });
 });

@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
+import {comingSoonText} from 'app/components/acl/comingSoon';
 import DiscoverContainerWithStore, {DiscoverContainer} from 'app/views/discover';
 
 describe('DiscoverContainer', function () {
@@ -315,7 +316,7 @@ describe('DiscoverContainer', function () {
         />,
         TestStubs.routerContext()
       );
-      expect(wrapper.text()).toBe("You don't have access to this feature");
+      expect(wrapper.text()).toBe(comingSoonText);
     });
   });
 });

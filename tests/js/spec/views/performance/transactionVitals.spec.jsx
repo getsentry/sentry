@@ -4,6 +4,7 @@ import {browserHistory} from 'react-router';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
+import {comingSoonText} from 'app/components/acl/comingSoon';
 import ProjectsStore from 'app/stores/projectsStore';
 import TransactionVitals from 'app/views/performance/transactionVitals';
 import {VITAL_GROUPS, ZOOM_KEYS} from 'app/views/performance/transactionVitals/constants';
@@ -121,7 +122,7 @@ describe('Performance > Web Vitals', function () {
     await tick();
     wrapper.update();
 
-    expect(wrapper.text()).toEqual("You don't have access to this feature");
+    expect(wrapper.text()).toEqual(comingSoonText);
   });
 
   it('renders the basic UI components', async function () {

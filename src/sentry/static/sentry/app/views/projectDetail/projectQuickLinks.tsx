@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {comingSoonText} from 'app/components/acl/comingSoon';
 import {SectionHeading} from 'app/components/charts/styles';
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import Tooltip from 'app/components/tooltip';
@@ -73,10 +74,7 @@ function ProjectQuickLinks({organization, project, location}: Props) {
         .sort((link1, link2) => Number(!!link1.disabled) - Number(!!link2.disabled))
         .map(({title, to, disabled}) => (
           <div key={title}>
-            <Tooltip
-              title={t("You don't have access to this feature")}
-              disabled={!disabled}
-            >
+            <Tooltip title={comingSoonText} disabled={!disabled}>
               <QuickLink to={to} disabled={disabled}>
                 <IconLink />
                 <QuickLinkText>{title}</QuickLinkText>

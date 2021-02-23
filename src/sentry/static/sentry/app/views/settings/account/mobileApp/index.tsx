@@ -1,7 +1,6 @@
 import React from 'react';
 
-import Alert from 'app/components/alert';
-import {t} from 'app/locale';
+import ComingSoon from 'app/components/acl/comingSoon';
 import ConfigStore from 'app/stores/configStore';
 import {PageContent} from 'app/styles/organization';
 
@@ -11,7 +10,7 @@ class MobileAppContainer extends React.Component<MobileApp['props']> {
   renderNoAccess() {
     return (
       <PageContent>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        <ComingSoon />
       </PageContent>
     );
   }

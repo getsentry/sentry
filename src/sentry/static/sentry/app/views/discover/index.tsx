@@ -3,9 +3,8 @@ import DocumentTitle from 'react-document-title';
 import {browserHistory, WithRouterProps} from 'react-router';
 
 import {updateDateTime, updateProjects} from 'app/actionCreators/globalSelection';
+import ComingSoon from 'app/components/acl/comingSoon';
 import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
-import {t} from 'app/locale';
 import {GlobalSelection, Organization} from 'app/types';
 import {getUserTimezone, getUtcToLocalDateObject} from 'app/utils/dates';
 import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
@@ -213,7 +212,7 @@ class DiscoverContainer extends React.Component<Props, State> {
     ) {
       return <Redirect router={router} to={getDiscoverLandingUrl(organization)} />;
     } else {
-      return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
+      return <ComingSoon />;
     }
   };
 

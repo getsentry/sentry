@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Feature from 'app/components/acl/feature';
-import Alert from 'app/components/alert';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
@@ -65,10 +64,6 @@ class TransactionVitals extends React.Component<Props> {
     return [t('Summary'), t('Vitals')].join(' \u2014 ');
   }
 
-  renderNoAccess = () => {
-    return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
-  };
-
   render() {
     const {organization, projects, location} = this.props;
     const {eventView} = this.state;
@@ -98,7 +93,7 @@ class TransactionVitals extends React.Component<Props> {
         <Feature
           features={['performance-view']}
           organization={organization}
-          renderDisabled={this.renderNoAccess}
+          renderDisabled
         >
           <GlobalSelectionHeader
             lockedMessageSubject={t('transaction')}
