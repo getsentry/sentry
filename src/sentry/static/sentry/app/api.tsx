@@ -444,7 +444,7 @@ export class Client {
             responseJSON = JSON.parse(responseText);
           } catch {
             const contentType = response.headers.get('content-type');
-            // If the MIME type is `application/json` but decoding failed.
+            // If the MIME type is `application/json` but decoding failed,
             // this should be an error.
             if (contentType?.includes('application/json')) {
               ok = false;

@@ -1,5 +1,5 @@
 export default class RequestError extends Error {
-  responseText?: any;
+  responseText?: string;
   responseJSON?: any;
   status?: number;
   statusText?: string;
