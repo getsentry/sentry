@@ -105,7 +105,7 @@ function EventVital({event, name}: EventVitalProps) {
   return (
     <EventVitalContainer>
       <StyledPanel failedThreshold={failedThreshold}>
-        <Name>{name}</Name>
+        <Name>{record.name ?? name}</Name>
         <ValueRow>
           {failedThreshold ? (
             <FireIconContainer size="sm">
