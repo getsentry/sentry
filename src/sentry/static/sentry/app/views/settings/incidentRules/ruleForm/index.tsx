@@ -99,6 +99,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       ...super.getDefaultState(),
 
       dataset: rule.dataset,
+      eventTypes: rule.eventTypes,
       aggregate: rule.aggregate,
       query: rule.query || '',
       timeWindow: rule.timeWindow,
