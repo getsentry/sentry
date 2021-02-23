@@ -482,7 +482,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
       filteredImagesByFilter: images,
     } = this.state;
 
-    const displayFilter = Object.values(filterOptions).length > 1;
+    const displayFilter = (Object.values(filterOptions ?? {})[0] ?? []).length > 1;
 
     return (
       <StyledEventDataSection
