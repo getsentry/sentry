@@ -193,6 +193,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     const {loading, incidentList, incidentListPageLinks, hasAlertRule} = this.state;
     const {
       params: {orgId},
+      organization,
     } = this.props;
 
     const allProjectsFromIncidents = new Set(
@@ -238,6 +239,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                           incident={incident}
                           orgId={orgId}
                           filteredStatus={status}
+                          organization={organization}
                         />
                       ))
                     }

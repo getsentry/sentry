@@ -1,4 +1,5 @@
 import {EChartOption} from 'echarts';
+import merge from 'lodash/merge';
 
 import BaseChart from 'app/components/charts/baseChart';
 import {getFormattedDate, getTimeFormat} from 'app/utils/dates';
@@ -20,9 +21,6 @@ type Props = ChartProps['xAxis'] & Pick<ChartProps, HelperProps> & {theme: Theme
 export default function XAxis({
   isGroupedByDate,
   useShortDate,
-  axisLabel,
-  axisTick,
-  axisLine,
   theme,
 
   start,
@@ -46,46 +44,46 @@ export default function XAxis({
     }
   };
 
-  return {
-    type: isGroupedByDate ? 'time' : 'category',
-    boundaryGap: false,
-    axisLine: {
-      lineStyle: {
-        color: theme.chartLabel,
+  return merge(
+    {
+      type: isGroupedByDate ? 'time' : 'category',
+      boundaryGap: false,
+      axisLine: {
+        lineStyle: {
+          color: theme.chartLabel,
+        },
       },
-      ...(axisLine || {}),
-    },
-    axisTick: {
-      lineStyle: {
-        color: theme.chartLabel,
+      axisTick: {
+        lineStyle: {
+          color: theme.chartLabel,
+        },
       },
-      ...(axisTick || {}),
-    },
-    splitLine: {
-      show: false,
-    },
-    axisLabel: {
-      color: theme.chartLabel,
-      margin: 12,
-
-      // This was default with ChartZoom, we are making it default for all charts now
-      // Otherwise the xAxis can look congested when there is always a min/max label
-      showMaxLabel: false,
-      showMinLabel: false,
-
-      formatter: axisLabelFormatter,
-      ...(axisLabel || {}),
-    },
-    axisPointer: {
-      show: true,
-      type: 'line',
-      label: {
+      splitLine: {
         show: false,
       },
-      lineStyle: {
-        width: 0.5,
+      axisLabel: {
+        color: theme.chartLabel,
+        fontFamily: theme.text.family,
+        margin: 12,
+
+        // This was default with ChartZoom, we are making it default for all charts now
+        // Otherwise the xAxis can look congested when there is always a min/max label
+        showMaxLabel: false,
+        showMinLabel: false,
+
+        formatter: axisLabelFormatter,
+      },
+      axisPointer: {
+        show: true,
+        type: 'line',
+        label: {
+          show: false,
+        },
+        lineStyle: {
+          width: 0.5,
+        },
       },
     },
-    ...props,
-  };
+    props
+  );
 }

@@ -27,11 +27,12 @@ export class Request {
    */
   requestPromise: Promise<Response>;
   /**
-   * AbortController to cancel the in-flight request
+   * AbortController to cancel the in-flight request. This will not be set in
+   * unsupported browsers.
    */
-  aborter: AbortController;
+  aborter?: AbortController;
 
-  constructor(requestPromise: Promise<Response>, aborter: AbortController) {
+  constructor(requestPromise: Promise<Response>, aborter?: AbortController) {
     this.requestPromise = requestPromise;
     this.aborter = aborter;
     this.alive = true;
@@ -39,7 +40,7 @@ export class Request {
 
   cancel() {
     this.alive = false;
-    this.aborter.abort();
+    this.aborter?.abort();
     metric('app.api.request-abort', 1);
   }
 }
@@ -394,7 +395,9 @@ export class Client {
         true
       )(jqXHR, textStatus);
 
-    const aborter = new AbortController();
+    // AbortController is optional, though most browser should support it.
+    const aborter =
+      typeof AbortController !== 'undefined' ? new AbortController() : undefined;
 
     // GET requests may not have a body
     const body = method !== 'GET' ? data : undefined;
@@ -418,7 +421,7 @@ export class Client {
       body,
       headers,
       credentials: 'same-origin',
-      signal: aborter.signal,
+      signal: aborter?.signal,
     });
 
     // XXX(epurkhiser): We're migrating off of jquery, so for now we have a
