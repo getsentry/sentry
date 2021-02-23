@@ -42,7 +42,8 @@ type StacktraceResultItem = {
 
 type State = AsyncComponent['state'] & {
   match: StacktraceResultItem;
-  isDismissed: boolean | null;
+  isDismissed: boolean;
+  promptLoaded: boolean;
 };
 
 class StacktraceLink extends AsyncComponent<Props, State> {
@@ -94,6 +95,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
 
     this.setState({
       isDismissed: promptIsDismissed(prompt),
+      promptLoaded: true,
     });
   }
 
@@ -140,7 +142,8 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       showModal: false,
       sourceCodeInput: '',
       match: {integrations: []},
-      isDismissed: null,
+      isDismissed: false,
+      promptLoaded: false,
     };
   }
 
@@ -268,7 +271,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
   }
   renderBody() {
     const {config, sourceUrl} = this.match || {};
-    const {isDismissed} = this.state;
+    const {isDismissed, promptLoaded} = this.state;
 
     if (config && sourceUrl) {
       return this.renderMatchWithUrl(config, sourceUrl);
@@ -277,7 +280,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
       return this.renderMatchNoUrl();
     }
 
-    if (isDismissed || isDismissed === null) {
+    if (!promptLoaded || (promptLoaded && isDismissed)) {
       return null;
     }
 
