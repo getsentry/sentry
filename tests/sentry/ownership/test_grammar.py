@@ -1,6 +1,15 @@
 import pytest
 
-from sentry.ownership.grammar import Rule, Matcher, Owner, parse_rules, dump_schema, load_schema
+from sentry.ownership.grammar import (
+    Rule,
+    Matcher,
+    Owner,
+    parse_rules,
+    dump_schema,
+    load_schema,
+    parse_code_owners,
+    convert_codeowners_syntax,
+)
 
 fixture_data = """
 # cool stuff comment
@@ -16,6 +25,17 @@ tags.foo:"bar baz"       tagperson@sentry.io
 
 module:foo.bar  #workflow
 module:"foo bar"  meow@sentry.io
+"""
+
+codeowners_fixture_data = """
+# cool stuff comment
+*.js                    @getsentry/frontend @NisanthanNanthakumar
+# good comment
+
+
+  docs/*  @getsentry/docs @getsentry/ecosystem
+src/sentry/*       @AnotherUser
+
 """
 
 
@@ -163,3 +183,30 @@ def test_matcher_test_module():
 def test_matcher_test_tags_without_tag_data(data):
     assert not Matcher("tags.foo", "foo_value").test(data)
     assert not Matcher("tags.bar", "barval").test(data)
+
+
+def test_parse_code_owners():
+    assert parse_code_owners(codeowners_fixture_data) == (
+        ["@getsentry/frontend", "@getsentry/docs", "@getsentry/ecosystem"],
+        ["@NisanthanNanthakumar", "@AnotherUser"],
+    )
+
+
+def test_convert_codeowners_syntax():
+    code_mapping = type("", (), {})()
+    code_mapping.stack_root = "webpack://docs"
+    code_mapping.source_root = "docs"
+    assert (
+        convert_codeowners_syntax(
+            codeowners_fixture_data,
+            {
+                "@getsentry/frontend": "front-sentry",
+                "@getsentry/docs": "docs-sentry",
+                "@getsentry/ecosystem": "ecosystem",
+                "@NisanthanNanthakumar": "nisanthan.nanthakumar@sentry.io",
+                "@AnotherUser": "anotheruser@sentry.io",
+            },
+            code_mapping,
+        )
+        == "\n# cool stuff comment\npath:*.js front-sentry nisanthan.nanthakumar@sentry.io\n# good comment\n\n\npath:webpack://docs/* docs-sentry ecosystem\npath:src/sentry/* anotheruser@sentry.io\n\n"
+    )
