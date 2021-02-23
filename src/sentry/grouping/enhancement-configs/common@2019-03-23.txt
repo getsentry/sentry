@@ -52,13 +52,12 @@ family:native package:**/Frameworks/SentrySwift.framework/**         -app
 family:native package:**/Frameworks/Sentry.framework/**              -app
 
 # Sentry internal functions in Cocoa SDK
+# Needed for versions < sentry-cocoa 6.3.0 and static linking. Since sentry-cocoa 6.3.0 we
+# only mark the main executable as inApp and not as well dynamic libs inside the application bundle.
 family:native function:kscm_*                                     -app -group
 family:native function:sentrycrashcm_*                            -app -group
 family:native function:kscrash_*                                  -app -group
 family:native function:sentrycrash_*                              -app -group
-family:native function:"?[[]KSCrash *"                            -app -group
-family:native function:"?[[]SentryCrash *"                        -app -group
-family:native function:"?[[]SentryClient *"                       -app -group
-family:native function:"?[[]SentryHub *"                          -app -group
-family:native function:"?[[]RNSentry *"                           -app -group
-family:native function:"?[[]SentrySDK *"                          -app -group
+family:native function:"?[[]KSCrash*"                             -app -group
+family:native function:"?[[]RNSentry*"                            -app -group
+family:native function:"?[[]Sentry*"                              -app -group
