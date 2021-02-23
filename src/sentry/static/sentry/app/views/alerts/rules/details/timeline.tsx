@@ -131,9 +131,7 @@ class TimelineIncident extends React.Component<IncidentProps, IncidentState> {
       title = incident?.alertRule
         ? t('Alert was created')
         : tct('[authorName] created an alert', {authorName});
-      subtext = (
-        <DateTime timeOnly date={activity.dateCreated} />
-      );
+      subtext = <DateTime timeOnly date={activity.dateCreated} />;
     } else if (isStarted) {
       const dateEnded = moment(activity.dateCreated)
         .add(rule.timeWindow, 'minutes')
@@ -189,13 +187,21 @@ class TimelineIncident extends React.Component<IncidentProps, IncidentState> {
 
     if (
       // incident was at max critical
-      activities?.find(({type, value}) => type === IncidentActivityType.STATUS_CHANGE && value === `${IncidentStatus.CRITICAL}`)
+      activities?.find(
+        ({type, value}) =>
+          type === IncidentActivityType.STATUS_CHANGE &&
+          value === `${IncidentStatus.CRITICAL}`
+      )
     ) {
       Icon = IconFire;
       color = theme.red300;
     } else if (
       // incident was at max warning
-      activities?.find(({type, value}) => type === IncidentActivityType.STATUS_CHANGE && value === `${IncidentStatus.WARNING}`)
+      activities?.find(
+        ({type, value}) =>
+          type === IncidentActivityType.STATUS_CHANGE &&
+          value === `${IncidentStatus.WARNING}`
+      )
     ) {
       Icon = IconWarning;
       color = theme.yellow300;
