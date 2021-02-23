@@ -12,8 +12,8 @@ import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
 import {defined, OmitHtmlDivProps} from 'app/utils';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
-import * as QuickTraceContext from 'app/views/performance/transactionDetails/quickTraceContext';
-import {QuickTraceContextChildrenProps} from 'app/views/performance/transactionDetails/quickTraceContext';
+import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
+import {QuickTraceContextChildrenProps} from 'app/utils/performance/quickTrace/quickTraceContext';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';

@@ -4,7 +4,7 @@ import {mount} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import EventView from 'app/utils/discover/eventView';
-import HistogramQuery from 'app/views/performance/transactionVitals/histogramQuery';
+import HistogramQuery from 'app/utils/performance/histogram/histogramQuery';
 
 function renderHistogram({isLoading, error, histograms}) {
   if (isLoading) {

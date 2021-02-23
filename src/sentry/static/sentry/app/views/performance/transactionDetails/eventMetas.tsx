@@ -10,12 +10,12 @@ import {OrganizationSummary} from 'app/types';
 import {Event} from 'app/types/event';
 import {getShortEventId} from 'app/utils/events';
 import {getDuration} from 'app/utils/formatters';
+import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/quickTraceQuery';
+import {isTransaction} from 'app/utils/performance/quickTrace/utils';
 import Projects from 'app/utils/projects';
 
 import QuickTrace from './quickTrace';
-import {QuickTraceQueryChildrenProps} from './quickTraceQuery';
 import {MetaData} from './styles';
-import {isTransaction} from './utils';
 
 type Props = {
   event: Event;

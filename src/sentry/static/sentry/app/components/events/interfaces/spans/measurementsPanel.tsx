@@ -4,10 +4,7 @@ import styled from '@emotion/styled';
 import Tooltip from 'app/components/tooltip';
 import {EventTransaction} from 'app/types/event';
 import {defined} from 'app/utils';
-import {
-  LONG_WEB_VITAL_NAMES,
-  WEB_VITAL_ACRONYMS,
-} from 'app/views/performance/transactionVitals/constants';
+import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 
 import {
   getMeasurementBounds,
@@ -44,17 +41,22 @@ class MeasurementsPanel extends React.PureComponent<Props> {
             return null;
           }
 
-          const names = Object.keys(verticalMark.marks);
+          // Measurements are referred to by their full name `measurements.<name>`
+          // here but are stored using their abbreviated name `<name>`. Make sure
+          // to convert it appropriately.
+          const vitals = Object.keys(verticalMark.marks).map(
+            name => WEB_VITAL_DETAILS[`measurements.${name}`]
+          );
 
           // generate vertical marker label
-          const acronyms = names.map(name => WEB_VITAL_ACRONYMS[name]);
+          const acronyms = vitals.map(vital => vital.acronym);
           const lastAcronym = acronyms.pop() as string;
           const label = acronyms.length
             ? `${acronyms.join(', ')} & ${lastAcronym}`
             : lastAcronym;
 
           // generate tooltip labe;l
-          const longNames = names.map(name => LONG_WEB_VITAL_NAMES[name]);
+          const longNames = vitals.map(vital => vital.name);
           const lastName = longNames.pop() as string;
           const tooltipLabel = longNames.length
             ? `${longNames.join(', ')} & ${lastName}`
