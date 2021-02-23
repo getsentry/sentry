@@ -214,8 +214,19 @@ def enable_single_lambda(lambda_client, function, sentry_project_dsn, retries_le
             {"NODE_OPTIONS": "-r @sentry/serverless/dist/awslambda-auto", **sentry_env_variables}
         )
     elif runtime.startswith("python"):
+        # This tries to set the `SENTRY_INITIAL_HANDLER` to the already existing
+        # value in env variables and if it does not exist it sets to the
+        # function handler. This is important in the case where we try
+        # to re-enable and already enabled lambda function so that the
+        # env variable `SENTRY_INITIAL_HANDLER` does not get overridden
+        # with an incorrect value
+        sentry_initial_handler = (
+            env_variables["SENTRY_INITIAL_HANDLER"]
+            if "SENTRY_INITIAL_HANDLER" in env_variables
+            else function["Handler"]
+        )
         env_variables.update(
-            {"SENTRY_INITIAL_HANDLER": function["Handler"], **sentry_env_variables}
+            {"SENTRY_INITIAL_HANDLER": sentry_initial_handler, **sentry_env_variables}
         )
         updated_handler = "sentry_sdk.integrations.init_serverless_sdk.sentry_lambda_handler"
 
