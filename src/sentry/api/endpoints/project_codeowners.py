@@ -13,7 +13,7 @@ from sentry.models import (
     ExternalUser,
     ExternalTeam,
     RepositoryProjectPathConfig,
-    User,
+    UserEmail,
 )
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.ownership.grammar import (
@@ -51,12 +51,12 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
         teamnames, usernames, emails = parse_code_owners(attrs["raw"])
 
         # Check if there exists Sentry users with the emails listed in CODEOWNERS
-        users = User.objects.filter(email__in=emails)
-        users_emails = [user.email for user in users]
-        users_emails_diff = [email for email in emails if email not in users_emails]
+        user_emails = UserEmail.objects.filter(email__in=emails)
+        user_emails = [user.email for user in user_emails]
+        user_emails_diff = [email for email in emails if email not in user_emails]
 
-        if len(users_emails_diff):
-            external_association_err += f'The following emails do not have an user associated in Sentry: {", ".join(users_emails_diff)}.'
+        if len(user_emails_diff):
+            external_association_err += f'The following emails do not have an user associated in Sentry: {", ".join(user_emails_diff)}.'
 
         # Check if the usernames have an association
         external_users = ExternalUser.objects.filter(external_name__in=usernames)
