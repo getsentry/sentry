@@ -33,7 +33,8 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
             "span_id": event["trace.span"],
             "transaction": event["transaction"],
             "transaction.duration": event["transaction.duration"],
-            "project_id": event["project_id"],
+            "project_id": event["project.id"],
+            "project_slug": event["project"],
             "parent_event_id": parent,
             # Avoid empty string for root events
             "parent_span_id": event["trace.parent_span"] or None,
@@ -59,7 +60,8 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
                     "timestamp",
                     "transaction.duration",
                     "transaction",
-                    "project_id",
+                    # project gets the slug, and project.id gets added automatically
+                    "project",
                     "trace.span",
                     "trace.parent_span",
                     'to_other(trace.parent_span, "", 0, 1) AS root',
@@ -120,7 +122,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
 
         if root["id"] != event_id:
             # Get the root event and see if the current event's span is in the root event
-            root_event = eventstore.get_event_by_id(root["project_id"], root["id"])
+            root_event = eventstore.get_event_by_id(root["project.id"], root["id"])
             root_span = find_event(
                 root_event.data.get("spans", []),
                 lambda item: item["span_id"] == snuba_event["trace.parent_span"],
@@ -134,7 +136,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                 )
             )
 
-        event = eventstore.get_event_by_id(snuba_event["project_id"], event_id)
+        event = eventstore.get_event_by_id(snuba_event["project.id"], event_id)
         for span in event.data.get("spans", []):
             if span["span_id"] in parent_map:
                 child_event = parent_map[span["span_id"]]
@@ -158,7 +160,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         iteration = 0
         while to_check:
             current_event = to_check.popleft()
-            event = eventstore.get_event_by_id(current_event["project_id"], current_event["id"])
+            event = eventstore.get_event_by_id(current_event["project.id"], current_event["id"])
             previous_event = parent_events[current_event["id"]]
             for child in event.data.get("spans", []):
                 if child["span_id"] not in parent_map:
