@@ -97,6 +97,18 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             "provider": "unknown",
         }.items() <= response.data.items()
 
+    def test_empty_codeowners_text(self):
+        self.data["raw"] = ""
+        response = self.client.post(self.url, self.data)
+        assert response.status_code == 400
+        assert response.data == {"raw": ["This field may not be blank."]}
+
+    def test_invalid_codeowners_text(self):
+        self.data["raw"] = "docs/*"
+        response = self.client.post(self.url, self.data)
+        assert response.status_code == 400
+        assert response.data == {"raw": ["Parse error: 'ownership' (line 1, column 1)"]}
+
     def test_cannot_find_external_user_name_association(self):
         self.data["raw"] = "docs/*  @MeredithAnya "
         response = self.client.post(self.url, self.data)
