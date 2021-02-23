@@ -201,6 +201,10 @@ def enable_single_lambda(lambda_client, function, sentry_project_dsn, retries_le
     # update the env variables
     env_variables = function.get("Environment", {}).get("Variables", {})
 
+    # Check if the sentry sdk layer already exists
+    layers = get_function_layer_arns(function)
+    sentry_layer_index = get_index_of_sentry_layer(layers, layer_arn)
+
     updated_handler = None
 
     sentry_env_variables = {
@@ -214,25 +218,18 @@ def enable_single_lambda(lambda_client, function, sentry_project_dsn, retries_le
             {"NODE_OPTIONS": "-r @sentry/serverless/dist/awslambda-auto", **sentry_env_variables}
         )
     elif runtime.startswith("python"):
-        # This tries to set the `SENTRY_INITIAL_HANDLER` to the already existing
-        # value in env variables and if it does not exist it sets to the
-        # function handler. This is important in the case where we try
-        # to re-enable and already enabled lambda function so that the
-        # env variable `SENTRY_INITIAL_HANDLER` does not get overridden
-        # with an incorrect value
-        sentry_initial_handler = (
-            env_variables["SENTRY_INITIAL_HANDLER"]
-            if "SENTRY_INITIAL_HANDLER" in env_variables
-            else function["Handler"]
-        )
-        env_variables.update(
-            {"SENTRY_INITIAL_HANDLER": sentry_initial_handler, **sentry_env_variables}
-        )
+        # Check if we are trying to re-enable an already enabled python, and if
+        # are we should not override the env variable "SENTRY_INITIAL_HANDLER"
+        # because that would be problematic as we would lose the handler value.
+        if sentry_layer_index > -1:
+            env_variables.update(sentry_env_variables)
+        else:
+            env_variables.update(
+                {"SENTRY_INITIAL_HANDLER": function["Handler"], **sentry_env_variables}
+            )
         updated_handler = "sentry_sdk.integrations.init_serverless_sdk.sentry_lambda_handler"
 
-    # find the sentry layer and update it or insert new layer to end
-    layers = get_function_layer_arns(function)
-    sentry_layer_index = get_index_of_sentry_layer(layers, layer_arn)
+    # Check if the sentry layer exists and update it or insert new layer to end
     if sentry_layer_index > -1:
         layers[sentry_layer_index] = layer_arn
     else:
