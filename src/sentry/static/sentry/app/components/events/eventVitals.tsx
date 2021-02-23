@@ -88,6 +88,9 @@ function EventVital({event, name}: EventVitalProps) {
     return null;
   }
 
+  // Measurements are referred to by their full name `measurements.<name>`
+  // here but are stored using their abbreviated name `<name>`. Make sure
+  // to convert it appropriately.
   const record = WEB_VITAL_DETAILS[`measurements.${name}`];
 
   if (!record) {
