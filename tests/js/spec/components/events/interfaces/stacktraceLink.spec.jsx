@@ -19,13 +19,48 @@ describe('StacktraceLink', function () {
     MockApiClient.clearMockResponses();
   });
 
+  it('does not render setup CTA for members', async function () {
+    const memberOrg = TestStubs.Organization({
+      slug: 'hello-org',
+      access: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${memberOrg.slug}/${project.slug}/stacktrace-link/`,
+      query: {file: frame.filename, commitId: 'master', platform},
+      body: {config: null, sourceUrl: null, integrations: [integration]},
+    });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/prompts-activity/',
+      body: {},
+    });
+    const wrapper = mountWithTheme(
+      <StacktraceLink
+        frame={frame}
+        event={event}
+        projects={[project]}
+        organization={memberOrg}
+        lineNo={frame.lineNo}
+      />,
+      TestStubs.routerContext()
+    );
+    await tick();
+    wrapper.update();
+    expect(wrapper.find('CodeMappingButtonContainer').exists()).toBe(false);
+  });
+
   it('renders setup CTA with integration but no configs', async function () {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       query: {file: frame.filename, commitId: 'master', platform},
       body: {config: null, sourceUrl: null, integrations: [integration]},
     });
-    mountWithTheme(
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/prompts-activity/',
+      body: {},
+    });
+    const wrapper = mountWithTheme(
       <StacktraceLink
         frame={frame}
         event={event}
@@ -34,6 +69,11 @@ describe('StacktraceLink', function () {
         lineNo={frame.lineNo}
       />,
       TestStubs.routerContext()
+    );
+    await tick();
+    wrapper.update();
+    expect(wrapper.find('CodeMappingButtonContainer').text()).toContain(
+      'Link your stack trace to your source code.'
     );
   });
 
