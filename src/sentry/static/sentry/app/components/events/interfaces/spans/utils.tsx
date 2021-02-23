@@ -6,7 +6,7 @@ import moment from 'moment';
 import CHART_PALETTE from 'app/constants/chartPalette';
 import {EntryType, EventTransaction} from 'app/types/event';
 import {assert} from 'app/types/utils';
-import {WEB_VITAL_DETAILS} from 'app/views/performance/transactionVitals/constants';
+import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 
 import {
   GapSpanType,
@@ -604,7 +604,7 @@ function hasFailedThreshold(marks: Measurements): boolean {
   return records.some(record => {
     const value = marks[record.slug];
     if (typeof value === 'number') {
-      return value >= record.failureThreshold;
+      return value >= record.poorThreshold;
     }
     return false;
   });

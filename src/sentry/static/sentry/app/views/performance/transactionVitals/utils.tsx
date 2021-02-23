@@ -1,9 +1,10 @@
 import {ECharts} from 'echarts';
 import {Query} from 'history';
 
-import {getBucketWidth} from '../charts/utils';
+import {HistogramData} from 'app/utils/performance/histogram/types';
+import {getBucketWidth} from 'app/utils/performance/histogram/utils';
 
-import {HistogramData, Point, Rectangle} from './types';
+import {Point, Rectangle} from './types';
 
 export function generateVitalsRoute({orgSlug}: {orgSlug: String}): string {
   return `/organizations/${orgSlug}/performance/summary/vitals/`;
@@ -46,7 +47,7 @@ export function vitalsRouteWithQuery({
  * value will fall in.
  */
 export function findNearestBucketIndex(
-  chartData: HistogramData[],
+  chartData: HistogramData,
   xAxis: number
 ): number | null {
   const width = getBucketWidth(chartData);
@@ -67,7 +68,7 @@ export function findNearestBucketIndex(
  * If all bars have the same y value, pick the most naive reference rect. This
  * may result in floating point errors, but should be okay for our purposes.
  */
-export function getRefRect(chartData: HistogramData[]): Rectangle | null {
+export function getRefRect(chartData: HistogramData): Rectangle | null {
   // not enough points to construct 2 reference points
   if (chartData.length < 2) {
     return null;

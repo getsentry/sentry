@@ -4,3 +4,5 @@ type HistogramDataUnit = {
 };
 
 export type HistogramData = HistogramDataUnit[];
+
+export type DataFilter = 'all' | 'exclude_outliers';

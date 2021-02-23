@@ -6,15 +6,10 @@ import {OrganizationSummary, Project} from 'app/types';
 import {Event, EventTransaction} from 'app/types/event';
 import EventView from 'app/utils/discover/eventView';
 import {generateEventSlug} from 'app/utils/discover/urls';
+import {EventLite, TraceLite} from 'app/utils/performance/quickTrace/quickTraceQuery';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 
 import {getTransactionDetailsUrl} from '../utils';
-
-import {EventLite, TraceLite} from './quickTraceQuery';
-
-export function isTransaction(event: Event): event is EventTransaction {
-  return event.type === 'transaction';
-}
 
 export function parseTraceLite(trace: TraceLite, event: Event) {
   const root = trace.find(e => e.is_root && e.event_id !== event.id) ?? null;

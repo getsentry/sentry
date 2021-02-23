@@ -32,12 +32,12 @@ import EventView from 'app/utils/discover/eventView';
 import {FIELD_TAGS} from 'app/utils/discover/fields';
 import {eventDetailsRoute} from 'app/utils/discover/urls';
 import {getMessage} from 'app/utils/events';
-import Projects from 'app/utils/projects';
-import EventMetas from 'app/views/performance/transactionDetails/eventMetas';
-import * as QuickTraceContext from 'app/views/performance/transactionDetails/quickTraceContext';
+import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery, {
   QuickTraceQueryChildrenProps,
-} from 'app/views/performance/transactionDetails/quickTraceQuery';
+} from 'app/utils/performance/quickTrace/quickTraceQuery';
+import Projects from 'app/utils/projects';
+import EventMetas from 'app/views/performance/transactionDetails/eventMetas';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 
 import DiscoverBreadcrumb from '../breadcrumb';

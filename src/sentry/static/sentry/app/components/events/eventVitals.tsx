@@ -9,11 +9,8 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Event} from 'app/types/event';
 import {formattedValue} from 'app/utils/measurements/index';
+import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 import {IconSize} from 'app/utils/theme';
-import {
-  LONG_WEB_VITAL_NAMES,
-  WEB_VITAL_DETAILS,
-} from 'app/views/performance/transactionVitals/constants';
 
 type Props = {
   event: Event;
@@ -91,21 +88,24 @@ function EventVital({event, name}: EventVitalProps) {
     return null;
   }
 
-  const record = Object.values(WEB_VITAL_DETAILS).find(vital => vital.slug === name);
+  // Measurements are referred to by their full name `measurements.<name>`
+  // here but are stored using their abbreviated name `<name>`. Make sure
+  // to convert it appropriately.
+  const record = WEB_VITAL_DETAILS[`measurements.${name}`];
 
-  const failedThreshold = record ? value >= record.failureThreshold : false;
-
-  const currentValue = formattedValue(record, value);
-  const thresholdValue = formattedValue(record, record?.failureThreshold ?? 0);
-
-  if (!LONG_WEB_VITAL_NAMES.hasOwnProperty(name)) {
+  if (!record) {
     return null;
   }
+
+  const failedThreshold = value >= record.poorThreshold;
+
+  const currentValue = formattedValue(record, value);
+  const thresholdValue = formattedValue(record, record?.poorThreshold ?? 0);
 
   return (
     <EventVitalContainer>
       <StyledPanel failedThreshold={failedThreshold}>
-        <Name>{LONG_WEB_VITAL_NAMES[name] ?? name}</Name>
+        <Name>{record.name ?? name}</Name>
         <ValueRow>
           {failedThreshold ? (
             <FireIconContainer size="sm">

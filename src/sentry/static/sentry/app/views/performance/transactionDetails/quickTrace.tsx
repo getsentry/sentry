@@ -11,9 +11,14 @@ import {OrganizationSummary, Project} from 'app/types';
 import {Event} from 'app/types/event';
 import {getShortEventId} from 'app/utils/events';
 import {getDuration} from 'app/utils/formatters';
+import {
+  EventLite,
+  QuickTraceQueryChildrenProps,
+  TraceLite,
+} from 'app/utils/performance/quickTrace/quickTraceQuery';
+import {isTransaction} from 'app/utils/performance/quickTrace/utils';
 import withProjects from 'app/utils/withProjects';
 
-import {EventLite, QuickTraceQueryChildrenProps, TraceLite} from './quickTraceQuery';
 import {
   DropdownItem,
   EventNode,
@@ -27,7 +32,6 @@ import {
   generateChildrenEventTarget,
   generateSingleEventTarget,
   generateTraceTarget,
-  isTransaction,
   parseTraceLite,
 } from './utils';
 

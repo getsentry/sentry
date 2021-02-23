@@ -24,6 +24,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {AvatarProject, Organization, Project} from 'app/types';
 import {formatPercentage, getDuration} from 'app/utils/formatters';
+import TrendsDiscoverQuery from 'app/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
@@ -35,7 +36,6 @@ import {DisplayModes} from '../transactionSummary/charts';
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 
 import Chart from './chart';
-import TrendsDiscoverQuery from './trendsDiscoverQuery';
 import {
   NormalizedTrendsTransaction,
   TrendChangeType,
