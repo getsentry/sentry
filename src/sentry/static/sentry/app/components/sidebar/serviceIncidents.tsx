@@ -6,12 +6,15 @@ import {loadIncidents} from 'app/actionCreators/serviceIncidents';
 import Button from 'app/components/button';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 import {SentryServiceStatus} from 'app/types';
+
+import List from '../list';
+import ListItem from '../list/listItem';
 
 import SidebarItem from './sidebarItem';
 import SidebarPanel from './sidebarPanel';
 import SidebarPanelEmpty from './sidebarPanelEmpty';
+import SidebarPanelItem from './sidebarPanelItem';
 import {CommonSidebarProps} from './types';
 
 type Props = CommonSidebarProps;
@@ -71,7 +74,7 @@ class ServiceIncidents extends React.Component<Props, State> {
         {active && status && (
           <SidebarPanel
             orientation={orientation}
-            title={t('Recent status updates')}
+            title={t('Recent service updates')}
             hidePanel={hidePanel}
             collapsed={collapsed}
           >
@@ -82,24 +85,22 @@ class ServiceIncidents extends React.Component<Props, State> {
             )}
             <IncidentList className="incident-list">
               {status.incidents.map(incident => (
-                <IncidentItem key={incident.id}>
-                  <IncidentTitle>{incident.name}</IncidentTitle>
+                <SidebarPanelItem
+                  title={incident.name}
+                  message={t('Latest updates')}
+                  key={incident.id}
+                >
                   {incident.updates ? (
-                    <div>
-                      <StatusHeader>{t('Latest updates:')}</StatusHeader>
-                      <StatusList>
-                        {incident.updates.map((update, key) => (
-                          <StatusItem key={key}>{update}</StatusItem>
-                        ))}
-                      </StatusList>
-                    </div>
+                    <List>
+                      {incident.updates.map((update, key) => (
+                        <ListItem key={key}>{update}</ListItem>
+                      ))}
+                    </List>
                   ) : null}
-                  <div>
-                    <Button href={incident.url} size="small" external>
-                      {t('Learn more')}
-                    </Button>
-                  </div>
-                </IncidentItem>
+                  <Button href={incident.url} size="small" external>
+                    {t('Learn more')}
+                  </Button>
+                </SidebarPanelItem>
               ))}
             </IncidentList>
           </SidebarPanel>
@@ -111,36 +112,4 @@ class ServiceIncidents extends React.Component<Props, State> {
 
 export default ServiceIncidents;
 
-const IncidentList = styled('ul')`
-  font-size: 13px;
-  list-style: none;
-  padding: ${space(3)} ${space(3)} 0;
-`;
-
-const IncidentItem = styled('li')`
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
-  margin-bottom: ${space(3)};
-  padding-bottom: ${space(0.75)};
-`;
-
-const IncidentTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: 600;
-  line-height: 1.2;
-  margin-bottom: ${space(2)};
-`;
-const StatusHeader = styled('div')`
-  color: #7c6a8e;
-  margin-bottom: ${space(2)};
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: 600;
-  line-height: 1;
-`;
-const StatusList = styled('ul')`
-  list-style: none;
-  padding: 0;
-`;
-const StatusItem = styled('li')`
-  margin-bottom: ${space(2)};
-  line-height: 1.5;
-`;
+const IncidentList = styled('div')``;
