@@ -13,6 +13,7 @@ import {getDuration} from 'app/utils/formatters';
 import Projects from 'app/utils/projects';
 
 import QuickTrace from './quickTrace';
+import {QuickTraceQueryChildrenProps} from './quickTraceQuery';
 import {MetaData} from './styles';
 import {isTransaction} from './utils';
 
@@ -21,9 +22,10 @@ type Props = {
   organization: OrganizationSummary;
   projectId: string;
   location: Location;
+  quickTrace: QuickTraceQueryChildrenProps;
 };
 
-function EventMetas({event, organization, projectId, location}: Props) {
+function EventMetas({event, organization, projectId, location, quickTrace}: Props) {
   if (!isTransaction(event)) {
     return null;
   }
@@ -69,7 +71,12 @@ function EventMetas({event, organization, projectId, location}: Props) {
         bodyText={event.contexts?.trace?.status ?? '\u2014'}
         subtext={httpStatus}
       />
-      <QuickTrace event={event} organization={organization} location={location} />
+      <QuickTrace
+        event={event}
+        organization={organization}
+        location={location}
+        quickTrace={quickTrace}
+      />
     </EventDetailHeader>
   );
 }

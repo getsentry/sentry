@@ -21,6 +21,7 @@ export type EventLite = {
   'transaction.duration': number;
   project_id: number;
   parent_event_id: string | null;
+  parent_span_id: string | null;
   is_root: boolean;
 };
 
@@ -32,12 +33,15 @@ type QuickTraceProps = {
 
 type RequestProps = DiscoverQueryProps & QuickTraceProps;
 
-type ChildrenProps = Omit<GenericChildrenProps<QuickTraceProps>, 'tableData'> & {
+export type QuickTraceQueryChildrenProps = Omit<
+  GenericChildrenProps<QuickTraceProps>,
+  'tableData' | 'pageLinks'
+> & {
   trace: TraceLite | null;
 };
 
 type QueryProps = Omit<RequestProps, 'eventView'> & {
-  children: (props: ChildrenProps) => React.ReactNode;
+  children: (props: QuickTraceQueryChildrenProps) => React.ReactNode;
 };
 
 function getQuickTraceRequestPayload({eventView, event, location}: RequestProps) {
@@ -81,7 +85,6 @@ function EmptyTrace({children}: Pick<QueryProps, 'children'>) {
       {children({
         isLoading: true,
         error: null,
-        pageLinks: null,
         trace: null,
       })}
     </React.Fragment>

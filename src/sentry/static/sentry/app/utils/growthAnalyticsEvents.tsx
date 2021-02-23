@@ -7,6 +7,9 @@ type CheckShowParams = MobilePromptBannerParams & {
   matchedUserAgentString: string;
   hasMobileProject: boolean;
   snoozedOrDismissed: boolean;
+  mobileEventBrowserName: string;
+  mobileEventClientOsName: string;
+  showCTA: boolean;
 };
 
 //define the event key to payload mappings
