@@ -416,7 +416,7 @@ type FillCrashFreeChartDataFromSessionsReponseProps = {
   response: SessionApiResponse;
   field: string;
   entity: 'sessions' | 'users';
-  chartData: Record<string, Series>;
+  chartData: ChartData;
 };
 
 export function fillCrashFreeChartDataFromSessionsReponse({
