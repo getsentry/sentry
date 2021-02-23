@@ -17,6 +17,7 @@ import {
 } from 'app/types';
 import {Event} from 'app/types/event';
 import {getIntegrationIcon, trackIntegrationEvent} from 'app/utils/integrationUtil';
+import {promptIsDismissed} from 'app/utils/promptIsDismissed';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
@@ -92,7 +93,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     });
 
     this.setState({
-      isDismissed: !prompt?.dismissedTime ? false : true,
+      isDismissed: promptIsDismissed(prompt),
     });
   }
 
@@ -199,39 +200,36 @@ class StacktraceLink extends AsyncComponent<Props, State> {
           {({hasAccess}) =>
             hasAccess && (
               <CodeMappingButtonContainer columnQuantity={2}>
-                {tct(
-                  'Link your stack trace to your source code. [link:Set Up Stack Trace Linking Now].',
-                  {
-                    link: (
-                      <a
-                        onClick={() => {
-                          trackIntegrationEvent(
-                            'integrations.stacktrace_start_setup',
-                            {
-                              view: 'stacktrace_issue_details',
-                              platform,
-                            },
-                            this.props.organization,
-                            {startSession: true}
-                          );
-                          openModal(
-                            deps =>
-                              this.project && (
-                                <StacktraceLinkModal
-                                  onSubmit={this.handleSubmit}
-                                  filename={filename}
-                                  project={this.project}
-                                  organization={organization}
-                                  integrations={this.integrations}
-                                  {...deps}
-                                />
-                              )
-                          );
-                        }}
-                      />
-                    ),
-                  }
-                )}
+                {tct('[link:Link your stack trace to your source code.]', {
+                  link: (
+                    <a
+                      onClick={() => {
+                        trackIntegrationEvent(
+                          'integrations.stacktrace_start_setup',
+                          {
+                            view: 'stacktrace_issue_details',
+                            platform,
+                          },
+                          this.props.organization,
+                          {startSession: true}
+                        );
+                        openModal(
+                          deps =>
+                            this.project && (
+                              <StacktraceLinkModal
+                                onSubmit={this.handleSubmit}
+                                filename={filename}
+                                project={this.project}
+                                organization={organization}
+                                integrations={this.integrations}
+                                {...deps}
+                              />
+                            )
+                        );
+                      }}
+                    />
+                  ),
+                })}
                 <StyledIconClose size="xs" onClick={() => this.dismissPrompt()} />
               </CodeMappingButtonContainer>
             )
