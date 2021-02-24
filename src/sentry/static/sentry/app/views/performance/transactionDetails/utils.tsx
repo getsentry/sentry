@@ -2,19 +2,14 @@ import {Location, LocationDescriptor} from 'history';
 
 import {getTraceDateTimeRange} from 'app/components/events/interfaces/spans/utils';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {OrganizationSummary, Project} from 'app/types';
+import {OrganizationSummary} from 'app/types';
 import {Event, EventTransaction} from 'app/types/event';
 import EventView from 'app/utils/discover/eventView';
 import {generateEventSlug} from 'app/utils/discover/urls';
+import {EventLite, TraceLite} from 'app/utils/performance/quickTrace/quickTraceQuery';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 
 import {getTransactionDetailsUrl} from '../utils';
-
-import {EventLite, TraceLite} from './quickTraceQuery';
-
-export function isTransaction(event: Event): event is EventTransaction {
-  return event.type === 'transaction';
-}
 
 export function parseTraceLite(trace: TraceLite, event: Event) {
   const root = trace.find(e => e.is_root && e.event_id !== event.id) ?? null;
@@ -30,17 +25,11 @@ export function parseTraceLite(trace: TraceLite, event: Event) {
 export function generateSingleEventTarget(
   event: EventLite,
   organization: OrganizationSummary,
-  projects: Project[],
   location: Location
-): LocationDescriptor | undefined {
-  const project = projects.find(p => parseInt(p.id, 10) === event.project_id);
-  if (project === undefined) {
-    return undefined;
-  }
-
+): LocationDescriptor {
   const eventSlug = generateEventSlug({
     id: event.event_id,
-    project: project.slug,
+    project: event.project_slug,
   });
   return getTransactionDetailsUrl(
     organization,
@@ -54,11 +43,10 @@ export function generateChildrenEventTarget(
   event: EventTransaction,
   children: EventLite[],
   organization: OrganizationSummary,
-  projects: Project[],
   location: Location
-): LocationDescriptor | undefined {
+): LocationDescriptor {
   if (children.length === 1) {
-    return generateSingleEventTarget(children[0], organization, projects, location);
+    return generateSingleEventTarget(children[0], organization, location);
   }
 
   const queryResults = new QueryResults([]);

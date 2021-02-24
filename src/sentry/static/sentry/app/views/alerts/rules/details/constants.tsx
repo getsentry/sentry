@@ -19,3 +19,4 @@ export const TIME_WINDOWS = {
 };
 
 export const API_INTERVAL_POINTS_LIMIT = 10000;
+export const API_INTERVAL_POINTS_MIN = 150;

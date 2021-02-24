@@ -4,7 +4,7 @@ import NotAvailable from 'app/components/notAvailable';
 import PanelTable from 'app/components/panels/panelTable';
 
 export default {
-  title: 'Core/NotAvailable',
+  title: 'UI/NotAvailable',
   component: NotAvailable,
 };
 

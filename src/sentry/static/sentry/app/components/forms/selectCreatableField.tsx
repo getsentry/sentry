@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import {StyledForm} from 'app/components/forms/form';
 import SelectControl from 'app/components/forms/selectControl';
 import SelectField from 'app/components/forms/selectField';
+import {SelectValue} from 'app/types';
 import {defined} from 'app/utils';
 import convertFromSelect2Choices from 'app/utils/convertFromSelect2Choices';
 
@@ -14,18 +14,10 @@ import convertFromSelect2Choices from 'app/utils/convertFromSelect2Choices';
  * This is used in some integrations
  */
 export default class SelectCreatableField extends SelectField {
-  static propTypes = {
-    ...SelectField.propTypes,
-    options: SelectControl.propTypes.options,
-    clearable: SelectControl.propTypes.clearable,
-    choices: SelectControl.propTypes.choices,
-    onChange: PropTypes.func,
-    creatable: PropTypes.bool,
-    deprecatedSelectControl: PropTypes.bool,
-  };
+  options: SelectValue<any>[] | undefined;
 
-  constructor(props) {
-    super(props);
+  constructor(props, context) {
+    super(props, context);
 
     // We only want to parse options once because react-select relies
     // on `options` mutation when you create a new option

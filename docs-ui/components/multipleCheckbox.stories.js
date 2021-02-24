@@ -4,7 +4,7 @@ import {action} from '@storybook/addon-actions';
 import MultipleCheckbox from 'app/views/settings/components/forms/controls/multipleCheckbox';
 
 export default {
-  title: 'Core/Forms/Controls',
+  title: 'Forms/Controls',
   component: MultipleCheckbox,
   args: {
     choices: [
