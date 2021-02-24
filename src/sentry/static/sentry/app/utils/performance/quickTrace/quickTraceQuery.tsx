@@ -114,7 +114,16 @@ function QuickTraceQuery({event, children, ...props}: QueryProps) {
       eventView={eventView}
       {...props}
     >
-      {({tableData, ...rest}) => children({trace: tableData ?? null, ...rest})}
+      {({tableData, ...rest}) =>
+        children({
+          // Without casting this to include undefined as a possible value,
+          // the compiled js only coalesces null values to null.
+          // Changing the type in GenericDiscoverQuery to TraceLite | undefined
+          // does not work either.
+          trace: (tableData as TraceLite | null | undefined) ?? null,
+          ...rest,
+        })
+      }
     </GenericDiscoverQuery>
   );
 }
