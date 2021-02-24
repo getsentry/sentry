@@ -261,6 +261,7 @@ class Chart extends React.Component<ChartProps, ChartState> {
         }
         previousPeriod={previousTimeSeries}
         onLegendSelectChanged={this.handleLegendSelectChanged}
+        transformSinglePointToBar
       />
     );
   }
