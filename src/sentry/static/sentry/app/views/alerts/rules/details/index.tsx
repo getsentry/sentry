@@ -6,6 +6,7 @@ import moment from 'moment';
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
+import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {getUtcDateString} from 'app/utils/dates';
 import withApi from 'app/utils/withApi';
@@ -41,7 +42,8 @@ class AlertRuleDetails extends React.Component<Props, State> {
       return {
         start: location.query.start,
         end: location.query.end,
-        label: 'Custom',
+        label: t('Custom time'),
+        custom: true,
       };
     }
 
