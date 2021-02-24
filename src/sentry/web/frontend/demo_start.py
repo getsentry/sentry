@@ -31,8 +31,6 @@ class DemoStartView(BaseView):
     def dispatch(self, request):
         if not settings.DEMO_MODE:
             raise Http404
-        # TODO: add some sort of rate limiting based on the IP address
-
         # TODO: add way to ensure we generate unique petnames
         name = generate_random_name()
 
