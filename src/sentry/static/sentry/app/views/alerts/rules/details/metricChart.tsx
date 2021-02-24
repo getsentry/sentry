@@ -107,7 +107,6 @@ const MetricChart = ({data, incidents, warningTrigger, criticalTrigger}: Props) 
         } as any,
       }),
       data: [],
-      z: -100,
     };
     series.push(incidentLinesSeries);
   }
