@@ -326,8 +326,9 @@ describe('AssigneeSelector', function () {
 
   it('successfully shows suggested assignees', async function () {
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_2);
+    const onAssign = jest.fn();
     assigneeSelector = mountWithTheme(
-      <AssigneeSelectorComponent id={GROUP_2.id} />,
+      <AssigneeSelectorComponent id={GROUP_2.id} onAssign={onAssign} />,
       TestStubs.routerContext()
     );
     MemberListStore.loadInitialData([USER_1, USER_2, USER_3]);
@@ -359,6 +360,11 @@ describe('AssigneeSelector', function () {
     // Suggested assignees shouldn't show anymore because we assigned to the suggested actor
     assigneeSelector.update();
     expect(assigneeSelector.find('SuggestedAvatarStack').exists()).toBe(false);
+    expect(onAssign).toHaveBeenCalledWith(
+      'member',
+      expect.objectContaining({id: '1'}),
+      expect.objectContaining({id: '1'})
+    );
   });
 
   it('renders unassigned', async function () {
