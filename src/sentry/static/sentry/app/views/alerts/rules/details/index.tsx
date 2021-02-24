@@ -97,7 +97,7 @@ class AlertRuleDetails extends React.Component<Props, State> {
 
   handleTimePeriodChange = async (value: string) => {
     const {location} = this.props;
-    browserHistory.push({
+    await browserHistory.push({
       pathname: location.pathname,
       query: {
         period: value,
