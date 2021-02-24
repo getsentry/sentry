@@ -12,8 +12,6 @@ bootstrap: develop init-config run-dependent-services create-db apply-migrations
 
 develop: ensure-pinned-pip setup-git install-js-dev install-py-dev
 
-
-
 clean:
 	@echo "--> Cleaning static cache"
 	rm -rf dist/* static/dist/*
@@ -222,4 +220,4 @@ lint-js:
 	@echo ""
 
 
-.PHONY: develop build reset-db clean setup-git node-version-check install-js-dev install-py-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint-js
+.PHONY: develop bootstrap build reset-db clean setup-git node-version-check install-js-dev install-py-dev build-js-po locale compile-locale merge-locale-catalogs sync-transifex update-transifex build-platform-assets test-cli test-js test-js-build test-styleguide test-python test-snuba test-symbolicator test-acceptance lint-js
