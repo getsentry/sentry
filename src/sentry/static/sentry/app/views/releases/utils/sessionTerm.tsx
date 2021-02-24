@@ -22,6 +22,14 @@ export const sessionTerm = {
   [SessionTerm.HEALTHY]: t('Healthy'),
   [SessionTerm.ERRORED]: t('Errored'),
   [SessionTerm.UNHANDLED]: t('Unhandled'),
+  duration: t('Session Duration'),
+  otherCrashed: t('Other Crashed'),
+  otherAbnormal: t('Other Abnormal'),
+  otherErrored: t('Other Errored'),
+  otherHealthy: t('Other Healthy'),
+  otherCrashFreeUsers: t('Other Crash Free Users'),
+  otherCrashFreeSessions: t('Other Crash Free Sessions'),
+  otherReleases: t('Other Releases'),
 };
 
 // This should never be used directly (except in tests)
