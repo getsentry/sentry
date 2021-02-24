@@ -72,7 +72,10 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):
             )
 
         # Check if the team names have an association
-        external_teams = ExternalTeam.objects.filter(external_name__in=teamnames)
+        external_teams = ExternalTeam.objects.filter(
+            external_name__in=teamnames,
+            organizationmember__organization=self.context["project"].organization,
+        )
 
         external_teams_names = [team.external_name for team in external_teams]
         external_teams_diff = [name for name in teamnames if name not in external_teams_names]

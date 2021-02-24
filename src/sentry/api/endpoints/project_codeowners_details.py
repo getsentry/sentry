@@ -24,7 +24,7 @@ class ProjectCodeOwnersDetailsEndpoint(ProjectEndpoint, ProjectOwnershipMixin):
         )
         try:
             kwargs["codeowners"] = ProjectCodeOwners.objects.get(
-                id=codeowners_id,
+                id=codeowners_id, project=kwargs["project"]
             )
         except ProjectCodeOwners.DoesNotExist:
             raise Http404
