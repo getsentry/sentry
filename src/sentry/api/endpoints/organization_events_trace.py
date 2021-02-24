@@ -6,6 +6,7 @@ from collections import deque
 from rest_framework.response import Response
 
 from sentry import features, eventstore
+from sentry.eventstore.models import Event
 from sentry.api.bases import OrganizationEventsEndpointBase, NoProjects
 from sentry.snuba import discover
 
@@ -168,9 +169,14 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 event.event_id: event
                 for event in eventstore.get_events(
                     eventstore.Filter(
+                        start=params["start"],
+                        end=params["end"],
                         project_ids=params["project_id"],
-                        event_ids=[event["id"] for event in parent_map.values()],
-                    )
+                    ),
+                    event_list=[
+                        Event(project_id=event["project.id"], event_id=event["id"])
+                        for event in parent_map.values()
+                    ],
                 )
             }
 

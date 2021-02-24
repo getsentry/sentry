@@ -136,6 +136,7 @@ class EventStorage(Service):
         limit=100,
         offset=0,
         referrer="eventstore.get_events",  # NOQA
+        event_list=None,
     ):
         """
         Fetches a list of events given a set of criteria.
@@ -146,6 +147,7 @@ class EventStorage(Service):
         limit (int): Query limit - default 100
         offset (int): Query offset - default 0
         referrer (string): Referrer - default "eventstore.get_events"
+        event_list (Sequence[Event]): List of events to get
         """
         raise NotImplementedError
 

@@ -50,6 +50,7 @@ class SnubaEventStorage(EventStorage):
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
         referrer="eventstore.get_events",
+        event_list=None,
     ):
         """
         Get events from Snuba, with node data loaded.
@@ -62,6 +63,7 @@ class SnubaEventStorage(EventStorage):
                 offset=offset,
                 referrer=referrer,
                 should_bind_nodes=True,
+                event_list=event_list,
             )
 
     def get_unfetched_events(
@@ -92,10 +94,13 @@ class SnubaEventStorage(EventStorage):
         offset=DEFAULT_OFFSET,
         referrer=None,
         should_bind_nodes=False,
+        event_list=None,
     ):
         assert filter, "You must provide a filter"  # NOQA
         cols = self.__get_columns()
         orderby = orderby or DESC_ORDERING
+        if event_list is not None and not filter.event_ids:
+            filter.event_ids = [event.event_id for event in event_list]
 
         # This is an optimization for the Group.filter_by_event_id query where we
         # have a single event ID and want to check all accessible projects for a
@@ -103,15 +108,20 @@ class SnubaEventStorage(EventStorage):
         if (
             filter.event_ids
             and filter.project_ids
-            and len(filter.event_ids) * len(filter.project_ids) < min(limit, NODESTORE_LIMIT)
+            and (
+                len(filter.event_ids) * len(filter.project_ids) < min(limit, NODESTORE_LIMIT)
+                or event_list is not None
+                and len(event_list) < min(limit, NODESTORE_LIMIT)
+            )
             and offset == 0
             and should_bind_nodes
         ):
-            event_list = [
-                Event(project_id=project_id, event_id=event_id)
-                for event_id in filter.event_ids
-                for project_id in filter.project_ids
-            ]
+            if event_list is None:
+                event_list = [
+                    Event(project_id=project_id, event_id=event_id)
+                    for event_id in filter.event_ids
+                    for project_id in filter.project_ids
+                ]
             self.bind_nodes(event_list)
 
             nodestore_events = [event for event in event_list if len(event.data)]
