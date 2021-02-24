@@ -1,14 +1,14 @@
 ---
-created: '2021-02-22T12:59:28.955097Z'
+created: '2021-02-22T11:41:43.048526Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: "6492c5a2c66315cff20930ec07f587ad"
+  hash: "73b820e39fcb5ac396b0e288dfec33ac"
   component:
     app*
       chained-exception*
-        exception*
+        exception (ignored because one exception has a stacktrace)
           stacktrace
             frame (non app frame)
               module*
@@ -173,9 +173,9 @@ app:
                 "bind0"
           type*
             "BindException"
-          value (ignored because one exception has a stacktrace)
+          value*
             "Address already in use"
-        exception*
+        exception (ignored because one exception has a stacktrace)
           stacktrace
             frame (non app frame)
               module*
@@ -284,7 +284,7 @@ app:
                 "startInternal"
           type*
             "LifecycleException"
-          value (ignored because one exception has a stacktrace)
+          value*
             "service.getName(): \"Tomcat\";  Protocol handler start failed"
         exception*
           stacktrace*

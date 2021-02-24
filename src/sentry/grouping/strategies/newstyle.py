@@ -558,7 +558,7 @@ def chained_exception(chained_exception, context, **meta):
     # Case 2: produce a component for each chained exception
     by_name = {}
 
-    non_stacktrace_values = []
+    non_stacktrace_exceptions = []
     have_stacktrace_exception = False
 
     for exception in exceptions:
@@ -566,21 +566,19 @@ def chained_exception(chained_exception, context, **meta):
             by_name.setdefault(name, []).append(component)
             if not component.contributes:
                 continue
-            stacktrace_component = component.get_subcomponent(
+            stacktrace_iter = component.iter_subcomponents(
                 id="stacktrace", recursive=True, only_contributing=True
             )
-            if stacktrace_component is not None:
+            if next(stacktrace_iter, None) is not None:
                 have_stacktrace_exception = True
             else:
-                value_component = component.get_subcomponent(id="value", only_contributing=True)
-                if value_component is not None:
-                    non_stacktrace_values.append(value_component)
+                non_stacktrace_exceptions.append(component)
 
-    # if one of the exception has a stack trace we want to ignore the values of
-    # those that do not have one similar to how `remove_non_stacktrace_variants`
-    # discards entire variants on a similar condition.
+    # if one of the exception has a stack trace we want to ignore the ones that
+    # do not have one similar to how `remove_non_stacktrace_variants` discards
+    # entire variants on a similar condition.
     if have_stacktrace_exception:
-        for component in non_stacktrace_values:
+        for component in non_stacktrace_exceptions:
             component.update(
                 contributes=False, hint="ignored because one exception has a stacktrace"
             )
