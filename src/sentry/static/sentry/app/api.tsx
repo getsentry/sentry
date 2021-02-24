@@ -446,7 +446,7 @@ export class Client {
           // No text came out.. too bad
         }
 
-        if (status !== 204 && status !== 304) {
+        if (status !== 204 && status < 300 && status >= 400) {
           // Try to get JSON out of the response no matter the status
           try {
             responseJSON = JSON.parse(responseText);
