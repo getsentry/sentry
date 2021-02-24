@@ -42,7 +42,6 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         self.code_owner = ProjectCodeOwners.objects.create(
             project=self.project,
             raw="*.js @tiger-team",
-            organization_integration=self.oi,
             repository_project_path_config=self.code_mapping,
         )
 
