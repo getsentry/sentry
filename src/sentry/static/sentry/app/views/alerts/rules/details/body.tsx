@@ -1,5 +1,5 @@
 import React from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
@@ -58,6 +58,7 @@ type Props = {
   organization: Organization;
   location: Location;
   theme: Theme;
+  handleTimePeriodChange: (value: string) => void;
 } & RouteComponentProps<{orgId: string}, {}>;
 
 class DetailsBody extends React.Component<Props> {
@@ -102,16 +103,6 @@ class DetailsBody extends React.Component<Props> {
 
     return getInterval({start, end}, true);
   }
-
-  handleTimePeriodChange = (value: string) => {
-    const {location} = this.props;
-    browserHistory.push({
-      pathname: location.pathname,
-      query: {
-        period: value,
-      },
-    });
-  };
 
   calculateSummaryPercentages(
     incidents: Incident[] | undefined,
@@ -370,7 +361,7 @@ class DetailsBody extends React.Component<Props> {
                       <DropdownItem
                         key={value}
                         eventKey={value}
-                        onSelect={this.handleTimePeriodChange}
+                        onSelect={this.props.handleTimePeriodChange}
                       >
                         {label}
                       </DropdownItem>

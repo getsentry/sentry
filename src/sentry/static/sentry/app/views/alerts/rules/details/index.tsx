@@ -1,5 +1,5 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import {Location} from 'history';
 import moment from 'moment';
 
@@ -95,6 +95,18 @@ class AlertRuleDetails extends React.Component<Props, State> {
     }
   };
 
+  handleTimePeriodChange = async (value: string) => {
+    const {location} = this.props;
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        period: value,
+      },
+    });
+
+    await this.fetchData();
+  };
+
   render() {
     const {rule, incidents, hasError} = this.state;
     const {params, organization} = this.props;
@@ -113,6 +125,7 @@ class AlertRuleDetails extends React.Component<Props, State> {
             rule={rule}
             incidents={incidents}
             timePeriod={timePeriod}
+            handleTimePeriodChange={this.handleTimePeriodChange}
           />
         </Feature>
       </React.Fragment>
