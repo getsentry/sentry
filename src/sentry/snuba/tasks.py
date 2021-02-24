@@ -172,6 +172,8 @@ def build_snuba_filter(dataset, query, aggregate, environment, event_types, para
     snuba_filter = get_filter(query, params=params)
     snuba_filter.update_with(resolve_field_list([aggregate], snuba_filter, auto_fields=False))
     snuba_filter = resolve_snuba_aliases(snuba_filter, resolve_func)[0]
+    if snuba_filter.group_ids:
+        snuba_filter.conditions.append(["group_id", "IN", list(map(int, snuba_filter.group_ids))])
     if environment:
         snuba_filter.conditions.append(["environment", "=", environment.name])
     return snuba_filter

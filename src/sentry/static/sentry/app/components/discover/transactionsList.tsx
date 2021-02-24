@@ -21,16 +21,16 @@ import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias, Sort} from 'app/utils/discover/fields';
 import {generateEventSlug} from 'app/utils/discover/urls';
 import {getDuration} from 'app/utils/formatters';
+import BaselineQuery, {
+  BaselineQueryResults,
+} from 'app/utils/performance/baseline/baselineQuery';
+import {TrendsEventsDiscoverQuery} from 'app/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import CellAction, {Actions} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
 import {GridCell, GridCellNumber} from 'app/views/performance/styles';
-import BaselineQuery, {
-  BaselineQueryResults,
-} from 'app/views/performance/transactionSummary/baselineQuery';
-import {TrendsEventsDiscoverQuery} from 'app/views/performance/trends/trendsDiscoverQuery';
 import {
   TrendChangeType,
   TrendsDataEvents,
