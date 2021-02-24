@@ -6,11 +6,10 @@ import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'app/utils/discover/genericDiscoverQuery';
+import {DataFilter, HistogramData} from 'app/utils/performance/histogram/types';
 import withApi from 'app/utils/withApi';
 
-import {DataFilter, HistogramData} from './types';
-
-type Histograms = Record<string, HistogramData[]>;
+type Histograms = Record<string, HistogramData>;
 
 type HistogramProps = {
   fields: string[];

@@ -4,7 +4,7 @@ class EventTypeManager:
         self.__lookup = {}
 
     def __iter__(self):
-        return self.__values.values()
+        yield from self.__values
 
     def __contains__(self, key):
         return key in self.__lookup

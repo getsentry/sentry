@@ -21,10 +21,12 @@ import replaceRouterParams from 'app/utils/replaceRouterParams';
 
 import {Result} from './sources/types';
 
-type InputProps = {
-  // TODO(ts) Improve this type when AutoComplete has types.
-  getInputProps: (options: any) => Record<string, any>;
-};
+type Item = Result['item'];
+
+type InputProps = Pick<
+  Parameters<AutoComplete<Item>['props']['children']>[0],
+  'getInputProps'
+>;
 
 /**
  * Render prop for search results
@@ -37,7 +39,7 @@ type InputProps = {
  * }
  */
 type ItemProps = {
-  item: Result['item'];
+  item: Item;
   matches: Result['matches'];
   index: number;
   highlighted: boolean;
@@ -113,8 +115,7 @@ class Search extends React.Component<Props> {
     });
   }
 
-  // TODO(ts) Improve the state type when AutoComplete has types.
-  handleSelect = (item: Result['item'], state: any) => {
+  handleSelect = (item: Item, state?: AutoComplete<Item>['state']) => {
     if (!item) {
       return;
     }
@@ -215,7 +216,6 @@ class Search extends React.Component<Props> {
     return (
       <AutoComplete
         defaultHighlightedIndex={0}
-        itemToString={() => ''}
         onSelect={this.handleSelect}
         closeOnSelect={closeOnSelect}
       >
@@ -227,9 +227,7 @@ class Search extends React.Component<Props> {
 
           return (
             <SearchWrapper>
-              {renderInput({
-                getInputProps,
-              })}
+              {renderInput({getInputProps})}
 
               {isValidSearch && isOpen ? (
                 <SearchSources

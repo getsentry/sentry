@@ -1528,6 +1528,19 @@ class CountColumn(FunctionArg):
         return value
 
 
+class FieldColumn(CountColumn):
+    """ Allow any field column, of any type """
+
+    def get_type(self, value):
+        if is_duration_measurement(value):
+            return "duration"
+        elif value == "transaction.duration":
+            return "duration"
+        elif value == "timestamp":
+            return "date"
+        return "string"
+
+
 class StringArg(FunctionArg):
     def __init__(self, name, unquote=False, unescape_quotes=False):
         super().__init__(name)
@@ -1985,7 +1998,7 @@ FUNCTIONS = {
         ),
         Function(
             "epm",
-            optional_args=[IntervalDefault("interval", 60, None)],
+            optional_args=[IntervalDefault("interval", 1, None)],
             transform="divide(count(), divide({interval:g}, 60))",
             default_result_type="number",
         ),
@@ -2152,6 +2165,13 @@ FUNCTIONS = {
             aggregate=["sum", ArgValue("column"), None],
             result_type_fn=reflective_result_type(),
             default_result_type="duration",
+        ),
+        Function(
+            "any",
+            required_args=[FieldColumn("column")],
+            aggregate=["min", ArgValue("column"), None],
+            result_type_fn=reflective_result_type(),
+            redundant_grouping=True,
         ),
         # Currently only being used by the baseline PoC
         Function(

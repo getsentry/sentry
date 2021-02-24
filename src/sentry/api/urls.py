@@ -111,7 +111,10 @@ from .endpoints.organization_events_trends import (
     OrganizationEventsTrendsEndpoint,
     OrganizationEventsTrendsStatsEndpoint,
 )
-from .endpoints.organization_events_trace import OrganizationEventsTraceLightEndpoint
+from .endpoints.organization_events_trace import (
+    OrganizationEventsTraceLightEndpoint,
+    OrganizationEventsTraceEndpoint,
+)
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_group_index import OrganizationGroupIndexEndpoint
 from .endpoints.organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
@@ -197,6 +200,7 @@ from .endpoints.organization_user_issues_search import OrganizationUserIssuesSea
 from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.organization_users import OrganizationUsersEndpoint
 from .endpoints.organization_sdk_updates import OrganizationSdkUpdatesEndpoint
+from .endpoints.organization_has_mobile_app_events import OrganizationHasMobileAppEvents
 from .endpoints.project_agnostic_rule_conditions import ProjectAgnosticRuleConditionsEndpoint
 from .endpoints.project_avatar import ProjectAvatarEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
@@ -850,6 +854,11 @@ urlpatterns = [
                     OrganizationSdkUpdatesEndpoint.as_view(),
                     name="sentry-api-0-organization-sdk-updates",
                 ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/has-mobile-app-events/$",
+                    OrganizationHasMobileAppEvents.as_view(),
+                    name="sentry-api-0-organization-has-mobile-events",
+                ),
                 # This is temporary while we alpha test eventsv2
                 url(
                     r"^(?P<organization_slug>[^\/]+)/eventsv2/$",
@@ -910,6 +919,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-trace-light/(?P<trace_id>[^\/]+)/$",
                     OrganizationEventsTraceLightEndpoint.as_view(),
                     name="sentry-api-0-organization-events-trace-light",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/events-trace/(?P<trace_id>[^\/]+)/$",
+                    OrganizationEventsTraceEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-trace",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/issues/new/$",

@@ -78,7 +78,7 @@ const accountNavigation: NavigationSection[] = [
       {
         path: `${pathPrefix}/api/mobile-app/`,
         title: t('Mobile App'),
-        show: ConfigStore.get('user')?.isSuperuser,
+        show: ConfigStore.get('user')?.isStaff,
       },
     ],
   },

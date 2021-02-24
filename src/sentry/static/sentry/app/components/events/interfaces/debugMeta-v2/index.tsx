@@ -482,6 +482,8 @@ class DebugMeta extends React.PureComponent<Props, State> {
       filteredImagesByFilter: images,
     } = this.state;
 
+    const displayFilter = (Object.values(filterOptions ?? {})[0] ?? []).length > 1;
+
     return (
       <StyledEventDataSection
         type="images-loaded"
@@ -501,11 +503,14 @@ class DebugMeta extends React.PureComponent<Props, State> {
         }
         actions={
           <Search>
-            <Filter options={filterOptions} onFilter={this.handleChangeFilter} />
+            {displayFilter && (
+              <Filter options={filterOptions} onFilter={this.handleChangeFilter} />
+            )}
             <StyledSearchBar
               query={searchTerm}
               onChange={value => this.handleChangeSearchTerm(value)}
               placeholder={t('Search images')}
+              blendWithFilter={displayFilter}
             />
           </Search>
         }
@@ -594,6 +599,7 @@ const StyledList = styled(List)<{height: number}>`
 // Search
 const Search = styled('div')`
   display: flex;
+  justify-content: flex-end;
   width: 100%;
   margin-top: ${space(1)};
 
@@ -604,22 +610,29 @@ const Search = styled('div')`
 
 // TODO(matej): remove this once we refactor SearchBar to not use css classes
 // - it could accept size as a prop
-const StyledSearchBar = styled(SearchBar)`
+const StyledSearchBar = styled(SearchBar)<{blendWithFilter?: boolean}>`
   width: 100%;
   position: relative;
-  z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
   .search-input {
     height: 32px;
-  }
-  .search-input,
-  .search-input:focus {
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
   }
   .search-clear-form,
   .search-input-icon {
     height: 32px;
     display: flex;
     align-items: center;
+  }
+  ${p =>
+    p.blendWithFilter &&
+    `
+      .search-input,
+      .search-input:focus {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+      }
+    `}
+
+  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+    max-width: 600px;
   }
 `;
