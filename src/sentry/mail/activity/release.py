@@ -1,7 +1,6 @@
 from collections import defaultdict
 from itertools import chain
 
-import six
 
 from django.db.models import Count, Q
 
@@ -31,7 +30,7 @@ from sentry.utils.compat import zip
 
 class ReleaseActivityEmail(ActivityEmail):
     def __init__(self, activity):
-        super(ReleaseActivityEmail, self).__init__(activity)
+        super().__init__(activity)
         self.organization = self.project.organization
         self.user_id_team_lookup = None
         self.email_list = {}
@@ -66,7 +65,7 @@ class ReleaseActivityEmail(ActivityEmail):
                 ).values_list("id", "name")
             }
 
-            self.email_list = set([c.author.email for c in self.commit_list if c.author])
+            self.email_list = {c.author.email for c in self.commit_list if c.author}
             if self.email_list:
                 users = {
                     ue.email: ue.user
@@ -76,7 +75,7 @@ class ReleaseActivityEmail(ActivityEmail):
                         user__sentry_orgmember_set__organization=self.organization,
                     ).select_related("user")
                 }
-                self.user_ids = {u.id for u in six.itervalues(users)}
+                self.user_ids = {u.id for u in users.values()}
 
             else:
                 users = {}
@@ -165,7 +164,7 @@ class ReleaseActivityEmail(ActivityEmail):
         }
 
         # merge the two type of participants
-        return dict(chain(six.iteritems(participants_committed), six.iteritems(participants_opted)))
+        return dict(chain(participants_committed.items(), participants_opted.items()))
 
     def get_users_by_teams(self):
         if not self.user_id_team_lookup:
@@ -196,9 +195,7 @@ class ReleaseActivityEmail(ActivityEmail):
             "release": self.release,
             "deploy": self.deploy,
             "environment": self.environment,
-            "setup_repo_link": absolute_uri(
-                "/organizations/{}/repos/".format(self.organization.slug)
-            ),
+            "setup_repo_link": absolute_uri(f"/organizations/{self.organization.slug}/repos/"),
         }
 
     def get_user_context(self, user):
@@ -215,9 +212,7 @@ class ReleaseActivityEmail(ActivityEmail):
 
         release_links = [
             absolute_uri(
-                "/organizations/{}/releases/{}/?project={}".format(
-                    self.organization.slug, self.release.version, p.id
-                )
+                f"/organizations/{self.organization.slug}/releases/{self.release.version}/?project={p.id}"
             )
             for p in projects
         ]
@@ -229,7 +224,7 @@ class ReleaseActivityEmail(ActivityEmail):
         }
 
     def get_subject(self):
-        return "Deployed version {} to {}".format(self.release.version, self.environment)
+        return f"Deployed version {self.release.version} to {self.environment}"
 
     def get_template(self):
         return "sentry/emails/activity/release.txt"

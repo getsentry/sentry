@@ -7,7 +7,7 @@ from django.utils import timezone
 from sentry.utils.compat import zip
 
 
-class BulkDeleteQuery(object):
+class BulkDeleteQuery:
     def __init__(self, model, project_id=None, dtfield=None, days=None, order_by=None):
         self.model = model
         self.project_id = int(project_id) if project_id else None
@@ -28,7 +28,7 @@ class BulkDeleteQuery(object):
                 )
             )
         if self.project_id:
-            where.append("project_id = {}".format(self.project_id))
+            where.append(f"project_id = {self.project_id}")
 
         if where:
             where_clause = "where {}".format(" and ".join(where))
@@ -42,7 +42,7 @@ class BulkDeleteQuery(object):
             else:
                 direction = "asc"
                 order_field = self.order_by
-            order_clause = "order by {} {}".format(quote_name(order_field), direction)
+            order_clause = f"order by {quote_name(order_field)} {direction}"
         else:
             order_clause = ""
 
@@ -92,7 +92,7 @@ class BulkDeleteQuery(object):
                 # large quantity of rows from postgres incrementally, without
                 # having to pull all rows into memory at once.
                 with conn.cursor(uuid4().hex) as cursor:
-                    where = [("{} < %s".format(quote_name(self.dtfield)), [cutoff])]
+                    where = [(f"{quote_name(self.dtfield)} < %s", [cutoff])]
 
                     if self.project_id:
                         where.append(("project_id = %s", [self.project_id]))
@@ -101,12 +101,12 @@ class BulkDeleteQuery(object):
                         direction = "desc"
                         order_field = self.order_by[1:]
                         if position is not None:
-                            where.append(("{} <= %s".format(quote_name(order_field)), [position]))
+                            where.append((f"{quote_name(order_field)} <= %s", [position]))
                     else:
                         direction = "asc"
                         order_field = self.order_by
                         if position is not None:
-                            where.append(("{} >= %s".format(quote_name(order_field)), [position]))
+                            where.append((f"{quote_name(order_field)} >= %s", [position]))
 
                     conditions, parameters = zip(*where)
                     parameters = list(itertools.chain.from_iterable(parameters))

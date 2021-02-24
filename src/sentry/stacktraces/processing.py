@@ -1,4 +1,3 @@
-import six
 import logging
 from datetime import datetime
 from django.utils import timezone
@@ -24,7 +23,7 @@ StacktraceInfo.__eq__ = lambda a, b: a is b
 StacktraceInfo.__ne__ = lambda a, b: a is not b
 
 
-class ProcessableFrame(object):
+class ProcessableFrame:
     def __init__(self, frame, idx, processor, stacktrace_info, processable_frames):
         self.frame = frame
         self.idx = idx
@@ -36,7 +35,7 @@ class ProcessableFrame(object):
         self.processable_frames = processable_frames
 
     def __repr__(self):
-        return "<ProcessableFrame %r #%r at %r>" % (
+        return "<ProcessableFrame {!r} #{!r} at {!r}>".format(
             self.frame.get("function") or "unknown",
             self.idx,
             self.frame.get("instruction_addr"),
@@ -81,7 +80,7 @@ class ProcessableFrame(object):
         return rv
 
 
-class StacktraceProcessingTask(object):
+class StacktraceProcessingTask:
     def __init__(self, processable_stacktraces, processors):
         self.processable_stacktraces = processable_stacktraces
         self.processors = processors
@@ -94,7 +93,7 @@ class StacktraceProcessingTask(object):
         return iter(self.processors)
 
     def iter_processable_stacktraces(self):
-        return six.iteritems(self.processable_stacktraces)
+        return self.processable_stacktraces.items()
 
     def iter_processable_frames(self, processor=None):
         for _, frames in self.iter_processable_stacktraces():
@@ -103,7 +102,7 @@ class StacktraceProcessingTask(object):
                     yield frame
 
 
-class StacktraceProcessor(object):
+class StacktraceProcessor:
     def __init__(self, data, stacktrace_infos, project=None):
         self.data = data
         self.stacktrace_infos = stacktrace_infos
@@ -145,7 +144,6 @@ class StacktraceProcessor(object):
         to give the processor a chance to store additional data to the frame
         if wanted.  In particular a cache key can be set here.
         """
-        pass
 
     def process_exception(self, exception):
         """Processes an exception."""
@@ -183,10 +181,10 @@ def find_stacktraces_in_data(data, include_raw=False, with_exceptions=False):
         if not is_exception and (not stacktrace or not get_path(stacktrace, "frames", filter=True)):
             return
 
-        platforms = set(
+        platforms = {
             frame.get("platform") or data.get("platform")
             for frame in get_path(stacktrace, "frames", filter=True, default=())
-        )
+        }
         rv.append(
             StacktraceInfo(
                 stacktrace=stacktrace,
@@ -474,7 +472,7 @@ def get_stacktrace_processing_task(infos, processors):
                 to_lookup[processable_frame.cache_key] = processable_frame
 
     frame_cache = lookup_frame_cache(to_lookup)
-    for cache_key, processable_frame in six.iteritems(to_lookup):
+    for cache_key, processable_frame in to_lookup.items():
         processable_frame.cache_value = frame_cache.get(cache_key)
 
     return StacktraceProcessingTask(

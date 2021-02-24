@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 
 import Access from 'app/components/acl/access';
 import ExternalLink from 'app/components/links/externalLink';
-import Switch from 'app/components/switch';
+import Switch from 'app/components/switchButton';
 import {t} from 'app/locale';
 import PluginIcon from 'app/plugins/components/pluginIcon';
 import {Organization, Plugin, Project} from 'app/types';
@@ -30,15 +30,12 @@ class ProjectPluginRow extends React.PureComponent<Props> {
     const {onChange, id, enabled} = this.props;
     onChange(id, !enabled);
     const eventKey = !enabled ? 'integrations.enabled' : 'integrations.disabled';
-    const eventName = !enabled ? 'Integrations: Enabled' : 'Integrations: Disabled';
     trackIntegrationEvent(
+      eventKey,
       {
-        eventKey,
-        eventName,
         integration: id,
         integration_type: 'plugin',
         view: 'legacy_integrations',
-        project_id: this.props.project.id,
       },
       this.props.organization
     );

@@ -8,17 +8,21 @@ import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import NotFound from 'app/components/errors/notFound';
+import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import {BorderlessEventEntries} from 'app/components/events/eventEntries';
+import EventMessage from 'app/components/events/eventMessage';
 import EventMetadata from 'app/components/events/eventMetadata';
+import EventVitals from 'app/components/events/eventVitals';
 import * as SpanEntryContext from 'app/components/events/interfaces/spans/context';
 import OpsBreakdown from 'app/components/events/opsBreakdown';
-import RealUserMonitoring from 'app/components/events/realUserMonitoring';
 import RootSpanStatus from 'app/components/events/rootSpanStatus';
+import FileSize from 'app/components/fileSize';
 import * as Layout from 'app/components/layouts/thirds';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import TagsTable from 'app/components/tagsTable';
+import {IconOpen} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -27,8 +31,13 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {FIELD_TAGS} from 'app/utils/discover/fields';
 import {eventDetailsRoute} from 'app/utils/discover/urls';
-import {getMessage, getTitle} from 'app/utils/events';
+import {getMessage} from 'app/utils/events';
+import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
+import QuickTraceQuery, {
+  QuickTraceQueryChildrenProps,
+} from 'app/utils/performance/quickTrace/quickTraceQuery';
 import Projects from 'app/utils/projects';
+import EventMetas from 'app/views/performance/transactionDetails/eventMetas';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 
 import DiscoverBreadcrumb from '../breadcrumb';
@@ -144,7 +153,9 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
           })
         : null;
 
-    return (
+    const eventJsonUrl = `/api/0/projects/${organization.slug}/${this.projectId}/events/${event.eventID}/json/`;
+
+    const renderContent = (results?: QuickTraceQueryChildrenProps) => (
       <React.Fragment>
         <Layout.Header>
           <Layout.HeaderContent>
@@ -154,13 +165,18 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               organization={organization}
               location={location}
             />
-            <EventHeader event={event} organization={organization} />
+            <EventHeader event={event} />
           </Layout.HeaderContent>
-          <StyledHeaderActions>
+          <Layout.HeaderActions>
             <ButtonBar gap={1}>
               <Button onClick={this.toggleSidebar}>
                 {isSidebarVisible ? 'Hide Details' : 'Show Details'}
               </Button>
+              {results && (
+                <Button icon={<IconOpen />} href={eventJsonUrl} external>
+                  {t('JSON')} (<FileSize bytes={event.size} />)
+                </Button>
+              )}
               {transactionSummaryTarget && (
                 <Feature organization={organization} features={['performance-view']}>
                   {({hasFeature}) => (
@@ -175,9 +191,20 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                 </Feature>
               )}
             </ButtonBar>
-          </StyledHeaderActions>
+          </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>
+          {results && (
+            <Layout.Main fullWidth>
+              <EventMetas
+                quickTrace={results}
+                event={event}
+                organization={organization}
+                projectId={this.projectId}
+                location={location}
+              />
+            </Layout.Main>
+          )}
           <Layout.Main fullWidth={!isSidebarVisible}>
             <Projects orgId={organization.slug} slugs={[this.projectId]}>
               {({projects, initiallyLoaded}) =>
@@ -197,14 +224,16 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                       },
                     }}
                   >
-                    <BorderlessEventEntries
-                      organization={organization}
-                      event={event}
-                      project={projects[0] as Project}
-                      location={location}
-                      showExampleCommit={false}
-                      showTagSummary={false}
-                    />
+                    <QuickTraceContext.Provider value={results}>
+                      <BorderlessEventEntries
+                        organization={organization}
+                        event={event}
+                        project={projects[0] as Project}
+                        location={location}
+                        showExampleCommit={false}
+                        showTagSummary={false}
+                      />
+                    </QuickTraceContext.Provider>
                   </SpanEntryContext.Provider>
                 ) : (
                   <LoadingIndicator />
@@ -214,14 +243,18 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
           </Layout.Main>
           {isSidebarVisible && (
             <Layout.Side>
-              <EventMetadata
-                event={event}
-                organization={organization}
-                projectId={this.projectId}
-              />
-              <RootSpanStatus event={event} />
+              {results === undefined && (
+                <React.Fragment>
+                  <EventMetadata
+                    event={event}
+                    organization={organization}
+                    projectId={this.projectId}
+                  />
+                  <RootSpanStatus event={event} />
+                </React.Fragment>
+              )}
               <OpsBreakdown event={event} />
-              <RealUserMonitoring event={event} />
+              <EventVitals event={event} />
               {event.groupID && (
                 <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
               )}
@@ -235,6 +268,21 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
         </Layout.Body>
       </React.Fragment>
     );
+
+    const hasQuickTraceView =
+      event.type === 'transaction' &&
+      organization.features.includes('trace-view-quick') &&
+      organization.features.includes('trace-view-summary');
+
+    if (hasQuickTraceView) {
+      return (
+        <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
+          {results => renderContent(results)}
+        </QuickTraceQuery>
+      );
+    }
+
+    return renderContent();
   }
 
   renderError(error: Error) {
@@ -271,37 +319,33 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 }
 
-const EventHeader = ({
-  event,
-  organization,
-}: {
-  event: Event;
-  organization: Organization;
-}) => {
-  const {title} = getTitle(event, organization);
-
+const EventHeader = ({event}: {event: Event}) => {
   const message = getMessage(event);
-
   return (
-    <Layout.Title data-test-id="event-header">
-      <span>
-        {title}
-        {message && message.length > 0 ? ':' : null}
-      </span>
-      <EventSubheading>{getMessage(event)}</EventSubheading>
-    </Layout.Title>
+    <EventHeaderContainer data-test-id="event-header">
+      <TitleWrapper>
+        <EventOrGroupTitle data={event} />
+      </TitleWrapper>
+      {message && (
+        <MessageWrapper>
+          <EventMessage message={message} />
+        </MessageWrapper>
+      )}
+    </EventHeaderContainer>
   );
 };
 
-const StyledHeaderActions = styled(Layout.HeaderActions)`
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    display: none;
-  }
+const EventHeaderContainer = styled('div')`
+  max-width: ${p => p.theme.breakpoints[0]};
 `;
 
-const EventSubheading = styled('span')`
-  color: ${p => p.theme.gray300};
-  margin-left: ${space(1)};
+const TitleWrapper = styled('div')`
+  font-size: ${p => p.theme.headerFontSize};
+  margin-top: 20px;
+`;
+
+const MessageWrapper = styled('div')`
+  margin-top: ${space(1)};
 `;
 
 export default EventDetailsContent;

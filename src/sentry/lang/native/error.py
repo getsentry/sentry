@@ -1,7 +1,5 @@
 import logging
-import six
 
-from sentry.utils.compat import implements_to_string
 from sentry.lang.native.utils import image_name, is_minidump_event
 from sentry.models import EventError
 from sentry.reprocessing import report_processing_issue
@@ -27,18 +25,17 @@ USER_FIXABLE_ERRORS = (
 logger = logging.getLogger(__name__)
 
 
-@implements_to_string
 class SymbolicationFailed(Exception):
     message = None
 
     def __init__(self, message=None, type=None, obj=None):
         Exception.__init__(self)
-        self.message = six.text_type(message)
+        self.message = str(message)
         self.type = type
         self.image_name = None
         self.image_path = None
         if obj is not None:
-            self.image_uuid = six.text_type(obj.debug_id)
+            self.image_uuid = str(obj.debug_id)
             if obj.name:
                 self.image_path = obj.name
                 self.image_name = image_name(obj.name)

@@ -7,7 +7,7 @@ from sentry.models import Integration
 from sentry.testutils import APITestCase
 
 
-class AlertRuleDetailsBase(object):
+class AlertRuleDetailsBase:
     endpoint = "sentry-api-0-project-alert-rule-details"
 
     @fixture
@@ -198,7 +198,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
     def test_kicks_off_slack_async_job(
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
     ):
-        class uuid(object):
+        class uuid:
             hex = "abc123"
 
         mock_uuid4.return_value = uuid
@@ -240,6 +240,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
             "uuid": "abc123",
             "alert_rule_id": self.alert_rule.id,
             "data": test_params,
+            "user_id": self.user.id,
         }
         mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
 

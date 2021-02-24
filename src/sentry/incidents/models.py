@@ -109,9 +109,7 @@ class IncidentManager(BaseManager):
             else:
                 identifier += 1
 
-            return super(IncidentManager, self).create(
-                organization=organization, identifier=identifier, **kwargs
-            )
+            return super().create(organization=organization, identifier=identifier, **kwargs)
 
 
 class IncidentType(Enum):
@@ -300,11 +298,7 @@ class AlertRuleManager(BaseManager):
     CACHE_SUBSCRIPTION_KEY = "alert_rule:subscription:%s"
 
     def get_queryset(self):
-        return (
-            super(AlertRuleManager, self)
-            .get_queryset()
-            .exclude(status=AlertRuleStatus.SNAPSHOT.value)
-        )
+        return super().get_queryset().exclude(status=AlertRuleStatus.SNAPSHOT.value)
 
     def fetch_for_organization(self, organization, projects=None):
         queryset = self.filter(organization=organization)
@@ -589,20 +583,20 @@ class AlertRuleTriggerAction(Model):
             # ok to contact this email.
             return self.target_identifier
 
-    def build_handler(self, incident, project):
+    def build_handler(self, action, incident, project):
         type = AlertRuleTriggerAction.Type(self.type)
         if type in self._type_registrations:
-            return self._type_registrations[type].handler(self, incident, project)
+            return self._type_registrations[type].handler(action, incident, project)
         else:
-            metrics.incr("alert_rule_trigger.unhandled_type.{}".format(self.type))
+            metrics.incr(f"alert_rule_trigger.unhandled_type.{self.type}")
 
-    def fire(self, incident, project, metric_value):
-        handler = self.build_handler(incident, project)
+    def fire(self, action, incident, project, metric_value):
+        handler = self.build_handler(action, incident, project)
         if handler:
             return handler.fire(metric_value)
 
-    def resolve(self, incident, project, metric_value):
-        handler = self.build_handler(incident, project)
+    def resolve(self, action, incident, project, metric_value):
+        handler = self.build_handler(action, incident, project)
         if handler:
             return handler.resolve(metric_value)
 

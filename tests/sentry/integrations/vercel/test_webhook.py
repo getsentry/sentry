@@ -43,7 +43,7 @@ class SignatureVercelTest(APITestCase):
 
 class VercelReleasesTest(APITestCase):
     def setUp(self):
-        super(VercelReleasesTest, self).setUp()
+        super().setUp()
         self.project = self.create_project(organization=self.organization)
         self.integration = Integration.objects.create(
             provider="vercel",
@@ -109,7 +109,7 @@ class VercelReleasesTest(APITestCase):
                     }
                 ],
             }
-            assert release_request.headers["User-Agent"] == "sentry_vercel/{}".format(VERSION)
+            assert release_request.headers["User-Agent"] == f"sentry_vercel/{VERSION}"
 
     @responses.activate
     def test_no_match(self):
@@ -267,7 +267,7 @@ class VercelReleasesTest(APITestCase):
     @responses.activate
     def test_manual_vercel_deploy(self):
         local_signature = hmac.new(
-            key="vercel-client-secret".encode("utf-8"),
+            key=b"vercel-client-secret",
             msg=DEPLOYMENT_WEBHOOK_NO_COMMITS.encode("utf-8"),
             digestmod=hashlib.sha1,
         ).hexdigest()

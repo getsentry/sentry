@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 
 
 def md5(*bits):
-    return _md5(b":".join((force_bytes(bit, errors="replace") for bit in bits)))
+    return _md5(b":".join(force_bytes(bit, errors="replace") for bit in bits))
 
 
 class JiraClient(ApiClient):
@@ -36,7 +36,7 @@ class JiraClient(ApiClient):
         self.base_url = instance_uri.rstrip("/")
         self.username = username
         self.password = password
-        super(JiraClient, self).__init__(verify_ssl=False)
+        super().__init__(verify_ssl=False)
 
     def request(self, method, path, data=None, params=None):
         if self.username and self.password:
@@ -96,7 +96,7 @@ class JiraClient(ApiClient):
             jql = 'id="{}"'.format(query.replace('"', '\\"'))
         else:
             jql = 'text ~ "{}"'.format(query.replace('"', '\\"'))
-        jql = 'project="{project}" AND {jql}'.format(project=project, jql=jql)
+        jql = f'project="{project}" AND {jql}'
         return self.get(self.SEARCH_URL, params={"jql": jql})
 
     # Steve(XXX): Might consider moving this method to the base plugin API client

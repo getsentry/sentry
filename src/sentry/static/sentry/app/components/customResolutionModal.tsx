@@ -1,4 +1,5 @@
 import React from 'react';
+import {components as selectComponents} from 'react-select';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
@@ -19,6 +20,24 @@ type State = {
   version: string;
 };
 
+function VersionOption({
+  data,
+  ...props
+}: React.ComponentProps<typeof selectComponents.Option>) {
+  const release = data.release as Release;
+  return (
+    <selectComponents.Option data={data} {...props}>
+      <strong>
+        <Version version={release.version} anchor={false} />
+      </strong>
+      <br />
+      <small>
+        {t('Created')} <TimeSince date={release.dateCreated} />
+      </small>
+    </selectComponents.Option>
+  );
+}
+
 class CustomResolutionModal extends React.Component<Props, State> {
   state = {
     version: '',
@@ -31,17 +50,8 @@ class CustomResolutionModal extends React.Component<Props, State> {
   onAsyncFieldResults = (results: Release[]) =>
     results.map(release => ({
       value: release.version,
-      label: (
-        <div>
-          <strong>
-            <Version version={release.version} anchor={false} />
-          </strong>
-          <br />
-          <small>
-            {t('Created')} <TimeSince date={release.dateCreated} />
-          </small>
-        </div>
-      ),
+      label: release.version,
+      release,
     }));
 
   render() {
@@ -61,7 +71,6 @@ class CustomResolutionModal extends React.Component<Props, State> {
         <Header>{t('Resolved In')}</Header>
         <Body>
           <SelectAsyncField
-            deprecatedSelectControl
             label={t('Version')}
             id="version"
             name="version"
@@ -70,6 +79,9 @@ class CustomResolutionModal extends React.Component<Props, State> {
             url={url}
             onResults={this.onAsyncFieldResults}
             onQuery={query => ({query})}
+            components={{
+              Option: VersionOption,
+            }}
           />
         </Body>
         <Footer>

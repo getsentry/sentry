@@ -14,9 +14,7 @@ class GroupExternalIssueDetailsEndpointTest(APITestCase):
             web_url="https://example.com/app/issues/1",
         )
 
-        self.url = "/api/0/issues/{}/external-issues/{}/".format(
-            self.group.id, self.external_issue.id
-        )
+        self.url = f"/api/0/issues/{self.group.id}/external-issues/{self.external_issue.id}/"
 
     def test_deletes_external_issue(self):
         response = self.client.delete(self.url, format="json")
@@ -25,7 +23,7 @@ class GroupExternalIssueDetailsEndpointTest(APITestCase):
         assert not PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
 
     def test_handles_non_existing_external_issue(self):
-        url = "/api/0/issues/{}/external-issues/{}/".format(self.group.id, 99999)
+        url = f"/api/0/issues/{self.group.id}/external-issues/99999/"
 
         response = self.client.delete(url, format="json")
 
@@ -47,7 +45,7 @@ class GroupExternalIssueDetailsEndpointTest(APITestCase):
             web_url="https://example.com/app/issues/1",
         )
 
-        url = "/api/0/issues/{}/external-issues/{}/".format(group.id, external_issue.id)
+        url = f"/api/0/issues/{group.id}/external-issues/{external_issue.id}/"
 
         response = self.client.delete(url, format="json")
 

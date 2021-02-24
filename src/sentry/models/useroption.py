@@ -6,7 +6,7 @@ from sentry.db.models.fields import EncryptedPickledObjectField
 from sentry.db.models.manager import OptionManager
 
 
-class UserOptionValue(object):
+class UserOptionValue:
     # 'workflow:notifications'
     all_conversations = "0"
     participating_only = "1"
@@ -23,13 +23,13 @@ option_scope_error = "this is not a supported use case, scope to project OR orga
 class UserOptionManager(OptionManager):
     def _make_key(self, user, project=None, organization=None):
         if project:
-            metakey = "%s:%s:project" % (user.pk, project.id)
+            metakey = f"{user.pk}:{project.id}:project"
         elif organization:
-            metakey = "%s:%s:organization" % (user.pk, organization.id)
+            metakey = f"{user.pk}:{organization.id}:organization"
         else:
             metakey = "%s:user" % (user.pk)
 
-        return super(UserOptionManager, self)._make_key(metakey)
+        return super()._make_key(metakey)
 
     def get_value(self, user, key, default=None, **kwargs):
         project = kwargs.get("project")
@@ -86,10 +86,10 @@ class UserOptionManager(OptionManager):
         metakey = self._make_key(user, project=project, organization=organization)
 
         if metakey not in self._option_cache or force_reload:
-            result = dict(
-                (i.key, i.value)
+            result = {
+                i.key: i.value
                 for i in self.filter(user=user, project=project, organization=organization)
-            )
+            }
             self._option_cache[metakey] = result
         return self._option_cache.get(metakey, {})
 

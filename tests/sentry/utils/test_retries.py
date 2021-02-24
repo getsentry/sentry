@@ -31,7 +31,7 @@ class TimedRetryPolicyTestCase(TestCase):
         except RetryException as exception:
             assert exception.exception is bomb
         else:
-            self.fail("Expected {!r}!".format(RetryException))
+            self.fail(f"Expected {RetryException!r}!")
 
         assert callable.call_count == 2
 

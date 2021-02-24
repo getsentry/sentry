@@ -17,7 +17,7 @@ def summarize(sequence, max=3):
     if remainder == 1:
         items.append("and one other")
     elif remainder > 1:
-        items.append("and %s others" % (remainder,))
+        items.append(f"and {remainder} others")
     return items
 
 

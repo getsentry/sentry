@@ -3,6 +3,7 @@ import React from 'react';
 import StacktraceContent from 'app/components/events/interfaces/stacktraceContent';
 import {Panel} from 'app/components/panels';
 import {IconWarning} from 'app/icons';
+import {t} from 'app/locale';
 import {ExceptionValue, PlatformType} from 'app/types';
 import {Event} from 'app/types/event';
 import {STACK_VIEW} from 'app/types/stacktrace';
@@ -36,14 +37,14 @@ const ExceptionStacktraceContent = ({
 
   if (
     stackView === STACK_VIEW.APP &&
-    stacktrace.frames.filter(frame => frame.inApp).length === 0 &&
+    (stacktrace.frames ?? []).filter(frame => frame.inApp).length === 0 &&
     !chainedException
   ) {
     return (
       <Panel dashedBorder>
         <EmptyMessage
           icon={<IconWarning size="xs" />}
-          title="No app only stack trace has been found!"
+          title={t('No app only stack trace has been found!')}
         />
       </Panel>
     );
@@ -68,7 +69,7 @@ const ExceptionStacktraceContent = ({
       expandFirstFrame={expandFirstFrame}
       includeSystemFrames={
         stackView === STACK_VIEW.FULL ||
-        (chainedException && stacktrace.frames.every(frame => !frame.inApp))
+        (chainedException && (stacktrace.frames ?? []).every(frame => !frame.inApp))
       }
       platform={platform}
       newestFirst={newestFirst}

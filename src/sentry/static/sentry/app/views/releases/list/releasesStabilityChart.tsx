@@ -4,6 +4,7 @@ import {Location} from 'history';
 
 import {Client} from 'app/api';
 import {
+  ChartContainer,
   ChartControls,
   InlineContainer,
   SectionHeading,
@@ -13,7 +14,6 @@ import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import withApi from 'app/utils/withApi';
-import {ChartContainer} from 'app/views/performance/styles';
 import ProjectStabilityChart from 'app/views/projectDetail/charts/projectStabilityChart';
 
 type Props = {

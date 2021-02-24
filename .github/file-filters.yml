@@ -9,7 +9,6 @@ frontend_lintable: &frontend_lintable
   - *frontend_components_lintable
   - '**/tsconfig*.json'
   - '{package,now,vercel}.json'
-  - '.github/workflows/js-*.yml'
 
 frontend: &frontend
   - *frontend_lintable
@@ -19,6 +18,7 @@ frontend: &frontend
   - 'docs-ui/**'
   - 'src/sentry/static/sentry/**'
   - 'tests/js/**'
+  - '.github/workflows/js-*.yml'
 
 frontend_modified_lintable:
   - added|modified: *frontend_lintable
@@ -29,14 +29,24 @@ frontend_components_modified_lintable:
 backend_lintable: &backend_lintable
   - '**/*.py'
 
-backend: &backend
-  - *backend_lintable
-  - '**/*.pysnap'
-  - 'src/sentry/!(static)/**'
+# Currently used in `getsentry-dispatch.yml` to dispatch backend tests on getsentry
+backend_dependencies: &backend_dependencies
   - 'requirements-*.txt'
-  - 'migrations_lockfile.txt'
+
+backend_build_changes: &backend_build_changes
+  - 'Makefile'
+  - '.pre-commit-config.yaml'
   - '.python-version'
   - '.github/workflows/!(js-*)'
+
+backend: &backend
+  - *backend_build_changes
+  - *backend_dependencies
+  - *backend_lintable
+  - '**/*.sh'
+  - '**/*.pysnap'
+  - 'src/sentry/!(static)/**'
+  - 'migrations_lockfile.txt'
   - 'config/**/*'
 
 plugins:

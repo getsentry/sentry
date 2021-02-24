@@ -9,7 +9,7 @@ import {
 } from 'app/actionCreators/indicator';
 import Button from 'app/components/button';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'app/components/panels';
-import Switch from 'app/components/switch';
+import Switch from 'app/components/switchButton';
 import Truncate from 'app/components/truncate';
 import {IconAdd, IconFlag} from 'app/icons';
 import {t} from 'app/locale';

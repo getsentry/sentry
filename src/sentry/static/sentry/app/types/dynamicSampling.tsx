@@ -43,10 +43,10 @@ export enum DynamicSamplingInnerOperator {
 export enum DynamicSamplingInnerName {
   TRACE_RELEASE = 'trace.release',
   TRACE_ENVIRONMENT = 'trace.environment',
-  TRACE_USER_SEGMENT = 'trace.user_segment',
+  TRACE_USER = 'trace.user',
   EVENT_RELEASE = 'event.release',
   EVENT_ENVIRONMENT = 'event.environment',
-  EVENT_USER_SEGMENT = 'event.user_segment',
+  EVENT_USER = 'event.user',
   LEGACY_BROWSERS = 'legacy-browsers',
 }
 
@@ -83,6 +83,10 @@ export type DynamicSamplingCondition =
 
 export type DynamicSamplingRule = {
   /**
+   * Describes the type of rule
+   */
+  type: DynamicSamplingRuleType;
+  /**
    * It is a possibly empty list of conditions to which the rule applies.
    * The conditions are combined using the and operator (so all the conditions must be satisfied for the rule to apply).
    * If the conditions field is an empty list the rule applies for all events that satisfy the projectIds and the ty fields.
@@ -92,10 +96,6 @@ export type DynamicSamplingRule = {
    * It is the sampling rate that will be applied if the rule is selected
    */
   sampleRate: number;
-  /**
-   * Describes the type of rule
-   */
-  type: DynamicSamplingRuleType;
 };
 
 export type DynamicSamplingRules = Array<DynamicSamplingRule>;

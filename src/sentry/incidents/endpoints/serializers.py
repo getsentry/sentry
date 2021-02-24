@@ -60,10 +60,11 @@ action_target_type_to_string = {
 }
 string_to_action_target_type = {v: k for (k, v) in action_target_type_to_string.items()}
 dataset_valid_event_types = {
-    QueryDatasets.EVENTS: set(
-        [SnubaQueryEventType.EventType.ERROR, SnubaQueryEventType.EventType.DEFAULT]
-    ),
-    QueryDatasets.TRANSACTIONS: set([SnubaQueryEventType.EventType.TRANSACTION]),
+    QueryDatasets.EVENTS: {
+        SnubaQueryEventType.EventType.ERROR,
+        SnubaQueryEventType.EventType.DEFAULT,
+    },
+    QueryDatasets.TRANSACTIONS: {SnubaQueryEventType.EventType.TRANSACTION},
 }
 
 # TODO(davidenwang): eventually we should pass some form of these to the event_search parser to raise an error
@@ -333,7 +334,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         for query_term in query_terms:
             if query_term in unsupported_queries:
                 raise serializers.ValidationError(
-                    "Unsupported Query: We do not currently support the {} query".format(query_term)
+                    f"Unsupported Query: We do not currently support the {query_term} query"
                 )
         return query
 
@@ -344,7 +345,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                     "Invalid Metric: We do not currently support this field."
                 )
         except InvalidSearchQuery as e:
-            raise serializers.ValidationError("Invalid Metric: {}".format(force_text(e)))
+            raise serializers.ValidationError(f"Invalid Metric: {e}")
         return translate_aggregate_field(aggregate)
 
     def validate_dataset(self, dataset):
@@ -401,8 +402,10 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                     "end": timezone.now(),
                 },
             )
+            if any(cond[0] == "project_id" for cond in snuba_filter.conditions):
+                raise serializers.ValidationError({"query": "Project is an invalid search term"})
         except (InvalidSearchQuery, ValueError) as e:
-            raise serializers.ValidationError("Invalid Query or Metric: {}".format(force_text(e)))
+            raise serializers.ValidationError(f"Invalid Query or Metric: {e}")
         else:
             if not snuba_filter.aggregations:
                 raise serializers.ValidationError(
@@ -450,7 +453,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         ):
             if trigger.get("label", None) != expected_label:
                 raise serializers.ValidationError(
-                    'Trigger {} must be labeled "{}"'.format(i + 1, expected_label)
+                    f'Trigger {i + 1} must be labeled "{expected_label}"'
                 )
         critical = triggers[0]
         threshold_type = data["threshold_type"]
@@ -499,9 +502,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
         if alert_op(critical["alert_threshold"], warning["alert_threshold"]):
             raise serializers.ValidationError(
-                "Critical trigger must have an alert threshold {} warning trigger".format(
-                    threshold_type
-                )
+                f"Critical trigger must have an alert threshold {threshold_type} warning trigger"
             )
 
     def create(self, validated_data):

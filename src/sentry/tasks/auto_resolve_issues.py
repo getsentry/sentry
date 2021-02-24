@@ -1,5 +1,3 @@
-import six
-
 from collections import defaultdict
 from datetime import datetime, timedelta
 from django.utils import timezone
@@ -8,6 +6,7 @@ from time import time
 from sentry.models import (
     Activity,
     Group,
+    GroupInboxRemoveAction,
     GroupStatus,
     Project,
     ProjectOption,
@@ -29,7 +28,7 @@ def schedule_auto_resolution():
         opts_by_project[opt.project_id][opt.key] = opt.value
 
     cutoff = time() - ONE_HOUR
-    for project_id, options in six.iteritems(opts_by_project):
+    for project_id, options in opts_by_project.items():
         if not options.get("sentry:resolve_age"):
             # kill the option to avoid it coming up in the future
             ProjectOption.objects.filter(
@@ -72,7 +71,7 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
         happened = Group.objects.filter(id=group.id, status=GroupStatus.UNRESOLVED).update(
             status=GroupStatus.RESOLVED, resolved_at=timezone.now()
         )
-        remove_group_from_inbox(group, action="resolved")
+        remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
 
         if happened:
             Activity.objects.create(

@@ -115,13 +115,19 @@ class Filter extends React.Component<Props, State> {
             />
           )}
         >
-          {hasTypeOption && (
-            <OptionsGroup type="type" onClick={this.handleClick} options={options[0]} />
-          )}
+          <Content>
+            {hasTypeOption && (
+              <OptionsGroup type="type" onClick={this.handleClick} options={options[0]} />
+            )}
 
-          {hasLevelOption && (
-            <OptionsGroup type="level" onClick={this.handleClick} options={options[1]} />
-          )}
+            {hasLevelOption && (
+              <OptionsGroup
+                type="level"
+                onClick={this.handleClick}
+                options={options[1]}
+              />
+            )}
+          </Content>
         </DropdownControl>
       </Wrapper>
     );
@@ -133,4 +139,10 @@ export default Filter;
 const Wrapper = styled('div')`
   position: relative;
   display: flex;
+`;
+
+const Content = styled('div')`
+  > * :last-child {
+    margin-bottom: -1px;
+  }
 `;

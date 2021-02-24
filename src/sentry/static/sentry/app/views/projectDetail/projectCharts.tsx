@@ -7,6 +7,7 @@ import {Location} from 'history';
 import {Client} from 'app/api';
 import OptionSelector from 'app/components/charts/optionSelector';
 import {
+  ChartContainer,
   ChartControls,
   InlineContainer,
   SectionHeading,
@@ -14,6 +15,7 @@ import {
 } from 'app/components/charts/styles';
 import {Panel} from 'app/components/panels';
 import CHART_PALETTE from 'app/constants/chartPalette';
+import NOT_AVAILABLE_MESSAGES from 'app/constants/notAvailableMessages';
 import {t} from 'app/locale';
 import {Organization, SelectValue} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -22,7 +24,6 @@ import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 
 import {getTermHelp, PERFORMANCE_TERM} from '../performance/data';
-import {ChartContainer} from '../performance/styles';
 
 import ProjectBaseEventsChart from './charts/projectBaseEventsChart';
 import ProjectStabilityChart from './charts/projectStabilityChart';
@@ -33,7 +34,7 @@ enum DisplayModes {
   TPM = 'tpm',
   ERRORS = 'errors',
   TRANSACTIONS = 'transactions',
-  STABILITY = 'stability',
+  STABILITY = 'crash_free',
 }
 
 const DISPLAY_URL_KEY = ['display1', 'display2'];
@@ -85,12 +86,15 @@ class ProjectCharts extends React.Component<Props, State> {
     const {organization} = this.props;
     const hasPerformance = organization.features.includes('performance-view');
     const hasDiscover = organization.features.includes('discover-basic');
-    const noPerformanceTooltip = t(
-      'This view is only available with Performance Monitoring.'
-    );
-    const noDiscoverTooltip = t('This view is only available with Discover.');
+    const noPerformanceTooltip = NOT_AVAILABLE_MESSAGES.performance;
+    const noDiscoverTooltip = NOT_AVAILABLE_MESSAGES.discover;
 
     return [
+      {
+        value: DisplayModes.STABILITY,
+        label: t('Crash Free Sessions'),
+        disabled: this.otherActiveDisplayModes.includes(DisplayModes.STABILITY),
+      },
       {
         value: DisplayModes.APDEX,
         label: t('Apdex'),
@@ -133,11 +137,6 @@ class ProjectCharts extends React.Component<Props, State> {
           this.otherActiveDisplayModes.includes(DisplayModes.TRANSACTIONS) ||
           !hasPerformance,
         tooltip: hasPerformance ? undefined : noPerformanceTooltip,
-      },
-      {
-        value: DisplayModes.STABILITY,
-        label: t('Stability'),
-        disabled: this.otherActiveDisplayModes.includes(DisplayModes.STABILITY),
       },
     ];
   }
@@ -242,6 +241,7 @@ class ProjectCharts extends React.Component<Props, State> {
               onTotalValuesChange={this.handleTotalValuesChange}
               colors={[theme.purple300, theme.purple200]}
               showDaily
+              disableReleases
             />
           )}
           {displayMode === DisplayModes.TRANSACTIONS && (
@@ -256,6 +256,7 @@ class ProjectCharts extends React.Component<Props, State> {
               onTotalValuesChange={this.handleTotalValuesChange}
               colors={[theme.gray200, theme.purple200]}
               showDaily
+              disableReleases
             />
           )}
           {displayMode === DisplayModes.STABILITY && (

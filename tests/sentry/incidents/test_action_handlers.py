@@ -1,5 +1,4 @@
 import responses
-import six
 import time
 
 from django.core import mail
@@ -7,7 +6,7 @@ from django.core.urlresolvers import reverse
 from django.utils import timezone
 from exam import fixture
 from freezegun import freeze_time
-from six.moves.urllib.parse import parse_qs
+from urllib.parse import parse_qs
 
 from sentry.incidents.action_handlers import (
     EmailActionHandler,
@@ -27,7 +26,6 @@ from sentry.incidents.models import (
 )
 from sentry.models import Integration, PagerDutyService, UserOption
 from sentry.testutils import TestCase
-from sentry.testutils.helpers import with_feature
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
@@ -40,7 +38,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
     def test_user(self):
         action = self.create_alert_rule_trigger_action(
             target_type=AlertRuleTriggerAction.TargetType.USER,
-            target_identifier=six.text_type(self.user.id),
+            target_identifier=str(self.user.id),
         )
         handler = EmailActionHandler(action, self.incident, self.project)
         assert handler.get_targets() == [(self.user.id, self.user.email)]
@@ -51,7 +49,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         )
         action = self.create_alert_rule_trigger_action(
             target_type=AlertRuleTriggerAction.TargetType.USER,
-            target_identifier=six.text_type(self.user.id),
+            target_identifier=str(self.user.id),
         )
         handler = EmailActionHandler(action, self.incident, self.project)
         assert handler.get_targets() == [(self.user.id, self.user.email)]
@@ -61,12 +59,13 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         self.create_team_membership(team=self.team, user=new_user)
         action = self.create_alert_rule_trigger_action(
             target_type=AlertRuleTriggerAction.TargetType.TEAM,
-            target_identifier=six.text_type(self.team.id),
+            target_identifier=str(self.team.id),
         )
         handler = EmailActionHandler(action, self.incident, self.project)
-        assert set(handler.get_targets()) == set(
-            [(self.user.id, self.user.email), (new_user.id, new_user.email)]
-        )
+        assert set(handler.get_targets()) == {
+            (self.user.id, self.user.email),
+            (new_user.id, new_user.email),
+        }
 
     def test_team_alert_disabled(self):
         UserOption.objects.set_value(
@@ -79,10 +78,10 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         self.create_team_membership(team=self.team, user=new_user)
         action = self.create_alert_rule_trigger_action(
             target_type=AlertRuleTriggerAction.TargetType.TEAM,
-            target_identifier=six.text_type(self.team.id),
+            target_identifier=str(self.team.id),
         )
         handler = EmailActionHandler(action, self.incident, self.project)
-        assert set(handler.get_targets()) == set([(new_user.id, new_user.email)])
+        assert set(handler.get_targets()) == {(new_user.id, new_user.email)}
 
 
 @freeze_time()
@@ -148,7 +147,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         ).get("environment")
 
 
-class FireTest(object):
+class FireTest:
     def run_test(self, incident, method):
         raise NotImplementedError
 
@@ -167,7 +166,7 @@ class EmailActionHandlerTest(FireTest, TestCase):
     @responses.activate
     def run_test(self, incident, method):
         action = self.create_alert_rule_trigger_action(
-            target_identifier=six.text_type(self.user.id),
+            target_identifier=str(self.user.id),
             triggered_for_incident=incident,
         )
         handler = EmailActionHandler(action, incident, self.project)
@@ -232,7 +231,7 @@ class SlackActionHandlerTest(FireTest, TestCase):
         assert data["channel"] == [channel_id]
         assert data["token"] == [token]
         assert json.loads(data["attachments"][0])[0] == build_incident_attachment(
-            incident, metric_value
+            action, incident, metric_value, method
         )
 
     def test_fire_metric_alert(self):
@@ -248,18 +247,18 @@ class SlackWorkspaceActionHandlerTest(FireTest, TestCase):
     def run_test(self, incident, method):
         from sentry.integrations.slack.utils import build_incident_attachment
 
-        token = "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        token = "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         integration = Integration.objects.create(
             external_id="1",
             provider="slack",
-            metadata={"access_token": token},
+            metadata={"access_token": token, "installation_type": "born_as_bot"},
         )
         integration.add_organization(self.organization, self.user)
         channel_id = "some_id"
         channel_name = "#hello"
         responses.add(
             method=responses.GET,
-            url="https://slack.com/api/channels.list",
+            url="https://slack.com/api/conversations.list",
             status=200,
             content_type="application/json",
             body=json.dumps(
@@ -288,21 +287,22 @@ class SlackWorkspaceActionHandlerTest(FireTest, TestCase):
         assert data["channel"] == [channel_id]
         assert data["token"] == [token]
         assert json.loads(data["attachments"][0])[0] == build_incident_attachment(
-            incident, metric_value
+            action, incident, metric_value, method
         )
 
-    @with_feature("organizations:slack-allow-workspace")
     def test_fire_metric_alert(self):
         self.run_fire_test()
 
-    @with_feature("organizations:slack-allow-workspace")
     def test_fire_metric_alert_with_missing_integration(self):
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
         integration = Integration.objects.create(
             external_id="1",
             provider="slack",
-            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+            metadata={
+                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
         )
         action = AlertRuleTriggerAction.objects.create(
             alert_rule_trigger=self.create_alert_rule_trigger(),
@@ -319,7 +319,6 @@ class SlackWorkspaceActionHandlerTest(FireTest, TestCase):
         with self.tasks():
             handler.fire(metric_value)
 
-    @with_feature("organizations:slack-allow-workspace")
     def test_resolve_metric_alert(self):
         self.run_fire_test("resolve")
 
@@ -373,7 +372,7 @@ class MsTeamsActionHandlerTest(FireTest, TestCase):
         data = json.loads(responses.calls[1].request.body)
 
         assert data["attachments"][0]["content"] == build_incident_attachment(
-            incident, metric_value
+            action, incident, metric_value, method
         )
 
     def test_fire_metric_alert(self):
@@ -383,10 +382,11 @@ class MsTeamsActionHandlerTest(FireTest, TestCase):
 @freeze_time()
 class PagerDutyActionHandlerTest(FireTest, TestCase):
     def setUp(self):
+        self.integration_key = "pfc73e8cb4s44d519f3d63d45b5q77g9"
         service = [
             {
                 "type": "service",
-                "integration_key": "pfc73e8cb4s44d519f3d63d45b5q77g9",
+                "integration_key": self.integration_key,
                 "service_id": "123",
                 "service_name": "hellboi",
             }
@@ -413,22 +413,25 @@ class PagerDutyActionHandlerTest(FireTest, TestCase):
         update_incident_status(
             incident, IncidentStatus.CRITICAL, status_method=IncidentStatusMethod.RULE_TRIGGERED
         )
-        integration_key = "pfc73e8cb4s44d519f3d63d45b5q77g9"
-        metric_value = 1000
-        data = build_incident_attachment(incident, integration_key, metric_value)
-
-        assert data["routing_key"] == "pfc73e8cb4s44d519f3d63d45b5q77g9"
-        assert data["event_action"] == "trigger"
-        assert data["dedup_key"] == "incident_{}_{}".format(
-            incident.organization_id, incident.identifier
+        action = self.create_alert_rule_trigger_action(
+            target_identifier=self.service.id,
+            type=AlertRuleTriggerAction.Type.PAGERDUTY,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
+            integration=self.integration,
         )
+        metric_value = 1000
+        data = build_incident_attachment(action, incident, self.integration_key, metric_value)
+
+        assert data["routing_key"] == self.integration_key
+        assert data["event_action"] == "trigger"
+        assert data["dedup_key"] == f"incident_{incident.organization_id}_{incident.identifier}"
         assert data["payload"]["summary"] == alert_rule.name
         assert data["payload"]["severity"] == "critical"
-        assert data["payload"]["source"] == six.text_type(incident.identifier)
+        assert data["payload"]["source"] == str(incident.identifier)
         assert data["payload"]["custom_details"] == {
             "details": "1000 events in the last 10 minutes\nFilter: level:error"
         }
-        assert data["links"][0]["text"] == "Critical: {}".format(alert_rule.name)
+        assert data["links"][0]["text"] == f"Critical: {alert_rule.name}"
         assert data["links"][0]["href"] == "http://testserver/organizations/baz/alerts/1/"
 
     @responses.activate
@@ -456,7 +459,7 @@ class PagerDutyActionHandlerTest(FireTest, TestCase):
         data = responses.calls[0].request.body
 
         assert json.loads(data) == build_incident_attachment(
-            incident, self.service.integration_key, metric_value
+            action, incident, self.service.integration_key, metric_value, method
         )
 
     def test_fire_metric_alert(self):
@@ -519,8 +522,7 @@ class SentryAppActionHandlerTest(FireTest, TestCase):
         with self.tasks():
             getattr(handler, method)(metric_value)
         data = responses.calls[0].request.body
-
-        assert json.dumps(build_incident_attachment(incident, metric_value)) in data
+        assert json.dumps(build_incident_attachment(action, incident, metric_value, method)) in data
 
     def test_fire_metric_alert(self):
         self.run_fire_test()

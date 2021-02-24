@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from sentry import roles
 from sentry.testutils import CliTestCase
 from sentry.runner.commands.createuser import createuser

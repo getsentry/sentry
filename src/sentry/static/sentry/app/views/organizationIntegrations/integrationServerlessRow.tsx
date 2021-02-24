@@ -8,7 +8,7 @@ import {
 } from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
-import Switch from 'app/components/switch';
+import Switch from 'app/components/switchButton';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {IntegrationWithConfig, Organization, ServerlessFunction} from 'app/types';
@@ -41,9 +41,8 @@ class IntegrationServerlessRow extends React.Component<Props, State> {
 
   recordAction = (action: 'enable' | 'disable' | 'updateVersion') => {
     trackIntegrationEvent(
+      'integrations.serverless_function_action',
       {
-        eventKey: 'integrations.serverless_function_action',
-        eventName: 'Integrations: Serverless Function Action',
         integration: this.props.integration.provider.key,
         integration_type: 'first_party',
         action,

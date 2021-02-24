@@ -8,7 +8,6 @@ import traceback
 import resource
 from optparse import make_option
 
-import six
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.encoding import force_str
 
@@ -25,7 +24,7 @@ def catch_errors(f):
         try:
             return f(*args, **kwargs)
         except Exception as e:
-            error = force_str(six.text_type(e)) + " " + force_str(traceback.format_exc())
+            error = force_str(str(e)) + " " + force_str(traceback.format_exc())
 
         try:
             return encode({"result": None, "error": error, "metrics": None})
@@ -35,9 +34,7 @@ def catch_errors(f):
                 return encode(
                     {
                         "result": None,
-                        "error": force_str(six.text_type(e))
-                        + " "
-                        + force_str(traceback.format_exc()),
+                        "error": force_str(str(e)) + " " + force_str(traceback.format_exc()),
                         "metrics": None,
                         "encoding_error": True,
                     }
@@ -103,7 +100,7 @@ def handle_data(data):
     )
 
 
-class MetricCollector(object):
+class MetricCollector:
     def __init__(self):
         self.is_linux = sys.platform.startswith("linux")
         self.pid = os.getpid()
@@ -116,7 +113,7 @@ class MetricCollector(object):
         metrics.update(usage_dict)
 
         if self.is_linux:
-            with open("/proc/{}/status".format(self.pid)) as procfh:
+            with open(f"/proc/{self.pid}/status") as procfh:
                 metrics["proc"] = procfh.read()
 
         return metrics
@@ -209,12 +206,12 @@ class Command(BaseCommand):
             server_type = "forking"
         else:
             server_type = "single-threaded"
-        self.stdout.write("Server type: %s\n" % (server_type,))
+        self.stdout.write(f"Server type: {server_type}\n")
 
         if socket_file:
             self.socket_file = os.path.abspath(socket_file)
             self._check_socket_path(socket_file)
-            self.stdout.write("Binding to unix socket: %s\n" % (socket_file,))
+            self.stdout.write(f"Binding to unix socket: {socket_file}\n")
             if threading:
                 server = SocketServer.ThreadingUnixStreamServer(socket_file, EventNormalizeHandler)
                 server.daemon_threads = True
@@ -225,7 +222,7 @@ class Command(BaseCommand):
         elif network_socket:
             host, port = network_socket.split(":")
             port = int(port)
-            self.stdout.write("Binding to network socket: %s:%s\n" % (host, port))
+            self.stdout.write(f"Binding to network socket: {host}:{port}\n")
             if threading:
                 server = SocketServer.ThreadingTCPServer((host, port), EventNormalizeHandler)
                 server.daemon_threads = True

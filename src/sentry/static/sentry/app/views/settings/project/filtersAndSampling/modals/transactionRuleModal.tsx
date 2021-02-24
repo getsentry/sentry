@@ -1,5 +1,8 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
+import isEqual from 'lodash/isEqual';
+import partition from 'lodash/partition';
 
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
 import ExternalLink from 'app/components/links/externalLink';
@@ -16,6 +19,7 @@ import Field from 'app/views/settings/components/forms/field';
 import {DYNAMIC_SAMPLING_DOC_LINK} from '../utils';
 
 import Form from './form';
+import {Transaction} from './utils';
 
 type Props = Form['props'];
 
@@ -24,6 +28,23 @@ type State = Form['state'] & {
 };
 
 class TransactionRuleModal extends Form<Props, State> {
+  componentDidUpdate(prevProps: Props, prevState: State) {
+    if (prevState.tracing !== this.state.tracing && !!this.state.conditions.length) {
+      this.updateConditions();
+    }
+
+    super.componentDidUpdate(prevProps, prevState);
+  }
+
+  updateConditions() {
+    this.setState(state => ({
+      conditions: state.conditions.map(condition => ({
+        ...condition,
+        category: this.getNewConditionCategory(condition.category),
+      })),
+    }));
+  }
+
   getDefaultState() {
     const {rule} = this.props;
 
@@ -53,23 +74,66 @@ class TransactionRuleModal extends Form<Props, State> {
   geTransactionFieldDescription() {
     return {
       label: t('Transaction'),
-      help: t('This is a description'),
+      // help: t('This is a description'),  TODO(Priscila): Add correct descriptions
     };
+  }
+
+  getNewConditionCategory(category: DynamicSamplingInnerName) {
+    const {tracing} = this.state;
+
+    if (!tracing) {
+      switch (category) {
+        case DynamicSamplingInnerName.TRACE_RELEASE:
+          return DynamicSamplingInnerName.EVENT_RELEASE;
+        case DynamicSamplingInnerName.TRACE_USER:
+          return DynamicSamplingInnerName.EVENT_USER;
+        case DynamicSamplingInnerName.TRACE_ENVIRONMENT:
+          return DynamicSamplingInnerName.EVENT_ENVIRONMENT;
+        default: {
+          Sentry.withScope(scope => {
+            scope.setLevel(Sentry.Severity.Warning);
+            Sentry.captureException(
+              new Error('Unknown dynamic sampling rule condition category')
+            );
+          });
+          return category; //this shall not happen
+        }
+      }
+    }
+
+    switch (category) {
+      case DynamicSamplingInnerName.EVENT_RELEASE:
+        return DynamicSamplingInnerName.TRACE_RELEASE;
+      case DynamicSamplingInnerName.EVENT_ENVIRONMENT:
+        return DynamicSamplingInnerName.TRACE_ENVIRONMENT;
+      case DynamicSamplingInnerName.EVENT_USER:
+        return DynamicSamplingInnerName.TRACE_USER;
+      default: {
+        Sentry.withScope(scope => {
+          scope.setLevel(Sentry.Severity.Warning);
+          Sentry.captureException(
+            new Error('Unknown dynamic sampling rule condition category')
+          );
+        });
+        return category; //this shall not happen
+      }
+    }
   }
 
   getCategoryOptions(): Array<[DynamicSamplingInnerName, string]> {
     const {tracing} = this.state;
+
     if (tracing) {
       return [
         [DynamicSamplingInnerName.TRACE_RELEASE, t('Releases')],
         [DynamicSamplingInnerName.TRACE_ENVIRONMENT, t('Environments')],
-        [DynamicSamplingInnerName.TRACE_USER_SEGMENT, t('Users')],
+        [DynamicSamplingInnerName.TRACE_USER, t('Users')],
       ];
     }
     return [
       [DynamicSamplingInnerName.EVENT_RELEASE, t('Releases')],
       [DynamicSamplingInnerName.EVENT_ENVIRONMENT, t('Environments')],
-      [DynamicSamplingInnerName.EVENT_USER_SEGMENT, t('Users')],
+      [DynamicSamplingInnerName.EVENT_USER, t('Users')],
     ];
   }
 
@@ -78,7 +142,7 @@ class TransactionRuleModal extends Form<Props, State> {
     return (
       <Field
         label={t('Tracing')}
-        help={t('this is a description')}
+        // help={t('this is a description')} // TODO(Priscila): Add correct descriptions
         inline={false}
         flexibleControlStateSize
         stacked
@@ -112,25 +176,44 @@ class TransactionRuleModal extends Form<Props, State> {
     }));
   };
 
-  handleSubmit = async () => {
-    const {tracing, sampleRate, conditions} = this.state;
+  handleSubmit = () => {
+    const {tracing, sampleRate, conditions, transaction} = this.state;
 
     if (!sampleRate) {
       return;
     }
 
+    const {rule, errorRules, transactionRules} = this.props;
+
     const newRule: DynamicSamplingRule = {
       type: tracing ? DynamicSamplingRuleType.TRACE : DynamicSamplingRuleType.TRANSACTION,
       condition: {
         op: DynamicSamplingConditionOperator.AND,
-        inner: conditions.map(this.getNewCondition),
+        inner:
+          transaction === Transaction.ALL ? [] : conditions.map(this.getNewCondition),
       },
-      sampleRate,
+      sampleRate: sampleRate / 100,
     };
 
-    const {onSubmit, closeModal} = this.props;
-    onSubmit(newRule);
-    closeModal();
+    const newTransactionRules = rule
+      ? transactionRules.map(transactionRule =>
+          isEqual(transactionRule, rule) ? newRule : transactionRule
+        )
+      : [...transactionRules, newRule];
+
+    const [transactionTraceRules, individualTransactionRules] = partition(
+      newTransactionRules,
+      transactionRule => transactionRule.type === DynamicSamplingRuleType.TRACE
+    );
+
+    const newRules = [
+      ...errorRules,
+      ...transactionTraceRules,
+      ...individualTransactionRules,
+    ];
+
+    const currentRuleIndex = newRules.findIndex(newR => newR === newRule);
+    this.submitRules(newRules, currentRuleIndex);
   };
 }
 

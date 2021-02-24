@@ -9,6 +9,7 @@ import ErrorPanel from 'app/components/charts/errorPanel';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import LineChart from 'app/components/charts/lineChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
+import {HeaderTitleLegend} from 'app/components/charts/styles';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {getInterval, getSeriesSelection} from 'app/components/charts/utils';
@@ -25,7 +26,6 @@ import {decodeScalar} from 'app/utils/queryString';
 import theme from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 
-import {HeaderTitleLegend} from '../styles';
 import {transformEventStatsSmoothed} from '../trends/utils';
 
 const QUERY_KEYS = [
@@ -47,15 +47,6 @@ type Props = ReactRouter.WithRouterProps &
     queryExtra: Query;
     trendDisplay: string;
   };
-
-const YAXIS_VALUES = [
-  'p50()',
-  'p75()',
-  'p95()',
-  'p99()',
-  'p100()',
-  'avg(transaction.duration)',
-];
 
 class TrendChart extends React.Component<Props> {
   handleLegendSelectChanged = legendChange => {
@@ -151,9 +142,10 @@ class TrendChart extends React.Component<Props> {
               showLoading={false}
               query={query}
               includePrevious={false}
-              yAxis={YAXIS_VALUES}
+              yAxis={trendDisplay}
+              currentSeriesName={trendDisplay}
             >
-              {({results: _results, errored, loading, reloading}) => {
+              {({errored, loading, reloading, timeseriesData}) => {
                 if (errored) {
                   return (
                     <ErrorPanel>
@@ -162,10 +154,8 @@ class TrendChart extends React.Component<Props> {
                   );
                 }
 
-                const results = _results?.filter(r => r.seriesName === trendDisplay);
-
-                const series = results
-                  ? results
+                const series = timeseriesData
+                  ? timeseriesData
                       .map(values => {
                         return {
                           ...values,
@@ -180,7 +170,7 @@ class TrendChart extends React.Component<Props> {
                   : [];
 
                 const {smoothedResults} = transformEventStatsSmoothed(
-                  results,
+                  timeseriesData,
                   t('Smoothed')
                 );
 

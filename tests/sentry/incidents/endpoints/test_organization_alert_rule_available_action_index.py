@@ -24,7 +24,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
     pagerduty = AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.PAGERDUTY)
 
     def setUp(self):
-        super(OrganizationAlertRuleAvailableActionIndexEndpointTest, self).setUp()
+        super().setUp()
         self.login_as(self.user)
 
     def install_new_sentry_app(self, name, **kwargs):

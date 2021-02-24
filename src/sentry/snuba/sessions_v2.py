@@ -1,12 +1,11 @@
 from datetime import datetime
-
-import six
 import itertools
+import math
 
 from sentry.api.event_search import get_filter
 from sentry.api.utils import get_date_range_rollup_from_params
 from sentry.utils.dates import to_timestamp
-from sentry.utils.snuba import Dataset, raw_query
+from sentry.utils.snuba import Dataset, raw_query, resolve_condition
 
 """
 The new Sessions API defines a "metrics"-like interface which is can be used in
@@ -78,7 +77,7 @@ Is then "exploded" into something like:
 """
 
 
-class SessionsField(object):
+class SessionsField:
     def get_snuba_columns(self, raw_groupby):
         if "session.status" in raw_groupby:
             return ["sessions", "sessions_abnormal", "sessions_crashed", "sessions_errored"]
@@ -101,7 +100,7 @@ class SessionsField(object):
         return 0
 
 
-class UsersField(object):
+class UsersField:
     def get_snuba_columns(self, raw_groupby):
         if "session.status" in raw_groupby:
             return ["users", "users_abnormal", "users_crashed", "users_errored"]
@@ -124,7 +123,13 @@ class UsersField(object):
         return 0
 
 
-class DurationAverageField(object):
+def finite_or_none(val):
+    if not math.isfinite(val):
+        return None
+    return val
+
+
+class DurationAverageField:
     def get_snuba_columns(self, raw_groupby):
         return ["duration_avg"]
 
@@ -133,11 +138,11 @@ class DurationAverageField(object):
             return None
         status = group.get("session.status")
         if status is None or status == "healthy":
-            return row["duration_avg"]
+            return finite_or_none(row["duration_avg"])
         return None
 
 
-class DurationQuantileField(object):
+class DurationQuantileField:
     def __init__(self, quantile_index):
         self.quantile_index = quantile_index
 
@@ -149,7 +154,7 @@ class DurationQuantileField(object):
             return None
         status = group.get("session.status")
         if status is None or status == "healthy":
-            return row["duration_quantiles"][self.quantile_index]
+            return finite_or_none(row["duration_quantiles"][self.quantile_index])
         return None
 
 
@@ -166,7 +171,7 @@ COLUMN_MAP = {
 }
 
 
-class SimpleGroupBy(object):
+class SimpleGroupBy:
     def __init__(self, row_name, name=None):
         self.row_name = row_name
         self.name = name or row_name
@@ -181,7 +186,7 @@ class SimpleGroupBy(object):
         return [(self.name, row[self.row_name])]
 
 
-class SessionStatusGroupBy(object):
+class SessionStatusGroupBy:
     def get_snuba_columns(self):
         return []
 
@@ -192,6 +197,8 @@ class SessionStatusGroupBy(object):
         return [("session.status", key) for key in ["healthy", "abnormal", "crashed", "errored"]]
 
 
+# NOTE: in the future we might add new `user_agent` and `os` fields
+
 GROUPBY_MAP = {
     "project": SimpleGroupBy("project_id", "project"),
     "environment": SimpleGroupBy("environment"),
@@ -199,19 +206,27 @@ GROUPBY_MAP = {
     "session.status": SessionStatusGroupBy(),
 }
 
+CONDITION_COLUMNS = ["project", "environment", "release"]
+
+
+def resolve_column(col):
+    if col in CONDITION_COLUMNS:
+        return col
+    raise InvalidField(f'Invalid query field: "{col}"')
+
 
 class InvalidField(Exception):
     pass
 
 
-class QueryDefinition(object):
+class QueryDefinition:
     """
     This is the definition of the query the user wants to execute.
     This is constructed out of the request params, and also contains a list of
     `fields` and `groupby` definitions as [`ColumnDefinition`] objects.
     """
 
-    def __init__(self, query, project_ids=None):
+    def __init__(self, query, params):
         self.query = query.get("query", "")
         raw_fields = query.getlist("field", [])
         raw_groupby = query.getlist("groupBy", [])
@@ -222,13 +237,13 @@ class QueryDefinition(object):
         self.fields = {}
         for key in raw_fields:
             if key not in COLUMN_MAP:
-                raise InvalidField('Invalid field: "{}"'.format(key))
+                raise InvalidField(f'Invalid field: "{key}"')
             self.fields[key] = COLUMN_MAP[key]
 
         self.groupby = []
         for key in raw_groupby:
             if key not in GROUPBY_MAP:
-                raise InvalidField('Invalid groupBy: "{}"'.format(key))
+                raise InvalidField(f'Invalid groupBy: "{key}"')
             self.groupby.append(GROUPBY_MAP[key])
 
         start, end, rollup = get_date_range_rollup_from_params(query, "1h", round_range=True)
@@ -248,11 +263,17 @@ class QueryDefinition(object):
             query_groupby.update(groupby.get_snuba_groupby())
         self.query_groupby = list(query_groupby)
 
-        params = {"project_id": project_ids or []}
+        # the `params` are:
+        # project_id, organization_id, environment;
+        # also: start, end; but we got those ourselves.
         snuba_filter = get_filter(self.query, params)
 
+        # this makes sure that literals in complex queries are properly quoted,
+        # and unknown fields are raised as errors
+        conditions = [resolve_condition(c, resolve_column) for c in snuba_filter.conditions]
+
         self.aggregations = snuba_filter.aggregations
-        self.conditions = snuba_filter.conditions
+        self.conditions = conditions
         self.filter_keys = snuba_filter.filter_keys
 
 
@@ -390,10 +411,7 @@ def _get_timestamps(query):
     rollup = query.rollup
     start = int(to_timestamp(query.start))
     end = int(to_timestamp(query.end))
-    return [
-        datetime.utcfromtimestamp(ts).isoformat() + "Z"
-        for ts in six.moves.xrange(start, end, rollup)
-    ]
+    return [datetime.utcfromtimestamp(ts).isoformat() + "Z" for ts in range(start, end, rollup)]
 
 
 def _split_rows_groupby(rows, groupby):

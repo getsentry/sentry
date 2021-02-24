@@ -1,11 +1,14 @@
 import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
+import partition from 'lodash/partition';
+import sortBy from 'lodash/sortBy';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
+import NotAvailable from 'app/components/notAvailable';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -14,13 +17,12 @@ import {CandidateDownloadStatus, Image} from 'app/types/debugImage';
 import theme from 'app/utils/theme';
 
 import Address from '../address';
-import NotAvailable from '../notAvailable';
 import {getFileName} from '../utils';
 
 import Candidates from './candidates';
 import {INTERNAL_SOURCE, INTERNAL_SOURCE_LOCATION} from './utils';
 
-type Candidates = Image['candidates'];
+type ImageCandidates = Image['candidates'];
 
 type Props = AsyncComponent['props'] &
   ModalRenderProps & {
@@ -34,7 +36,7 @@ type State = AsyncComponent['state'] & {
   builtinSymbolSources: Array<BuiltinSymbolSource> | null;
 };
 
-class DebugFileDetails extends AsyncComponent<Props, State> {
+class DebugImageDetails extends AsyncComponent<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -43,7 +45,7 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
     };
   }
 
-  getUplodedDebugFiles(candidates: Candidates) {
+  getUplodedDebugFiles(candidates: ImageCandidates) {
     return candidates.find(candidate => candidate.source === INTERNAL_SOURCE);
   }
 
@@ -84,6 +86,46 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
     return endpoints;
   }
 
+  sortCandidates(
+    candidates: ImageCandidates,
+    unAppliedCandidates: ImageCandidates
+  ): ImageCandidates {
+    const [noPermissionCandidates, restNoPermissionCandidates] = partition(
+      candidates,
+      candidate => candidate.download.status === CandidateDownloadStatus.NO_PERMISSION
+    );
+
+    const [malFormedCandidates, restMalFormedCandidates] = partition(
+      restNoPermissionCandidates,
+      candidate => candidate.download.status === CandidateDownloadStatus.MALFORMED
+    );
+
+    const [errorCandidates, restErrorCandidates] = partition(
+      restMalFormedCandidates,
+      candidate => candidate.download.status === CandidateDownloadStatus.ERROR
+    );
+
+    const [okCandidates, restOKCandidates] = partition(
+      restErrorCandidates,
+      candidate => candidate.download.status === CandidateDownloadStatus.OK
+    );
+
+    const [deletedCandidates, notFoundCandidates] = partition(
+      restOKCandidates,
+      candidate => candidate.download.status === CandidateDownloadStatus.DELETED
+    );
+
+    return [
+      ...sortBy(noPermissionCandidates, ['source_name', 'location']),
+      ...sortBy(malFormedCandidates, ['source_name', 'location']),
+      ...sortBy(errorCandidates, ['source_name', 'location']),
+      ...sortBy(okCandidates, ['source_name', 'location']),
+      ...sortBy(deletedCandidates, ['source_name', 'location']),
+      ...sortBy(unAppliedCandidates, ['source_name', 'location']),
+      ...sortBy(notFoundCandidates, ['source_name', 'location']),
+    ];
+  }
+
   getCandidates() {
     const {debugFiles, loading} = this.state;
     const {image} = this.props;
@@ -93,17 +135,19 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
       return candidates;
     }
 
-    const imageCandidates = candidates.map(candidate => ({
+    const imageCandidates = candidates.map(({location, ...candidate}) => ({
       ...candidate,
-      location: candidate.location?.split(INTERNAL_SOURCE_LOCATION)[1],
+      location: location?.includes(INTERNAL_SOURCE_LOCATION)
+        ? location.split(INTERNAL_SOURCE_LOCATION)[1]
+        : location,
     }));
 
-    // Check for unapplied debug files
+    // Check for unapplied candidates (debug files)
     const candidateLocations = new Set(
       imageCandidates.map(({location}) => location).filter(location => !!location)
     );
 
-    const unAppliedDebugFiles = debugFiles
+    const unAppliedCandidates = debugFiles
       .filter(debugFile => !candidateLocations.has(debugFile.id))
       .map(debugFile => ({
         download: {
@@ -112,9 +156,9 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
         location: `${INTERNAL_SOURCE_LOCATION}${debugFile.id}`,
         source: INTERNAL_SOURCE,
         source_name: debugFile.objectName,
-      }));
+      })) as ImageCandidates;
 
-    // Check for deleted debug files
+    // Check for deleted candidates (debug files)
     const debugFileIds = new Set(debugFiles.map(debugFile => debugFile.id));
 
     const convertedCandidates = imageCandidates.map(candidate => {
@@ -133,9 +177,9 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
         };
       }
       return candidate;
-    });
+    }) as ImageCandidates;
 
-    return [...convertedCandidates, ...unAppliedDebugFiles] as Candidates;
+    return this.sortCandidates(convertedCandidates, unAppliedCandidates);
   }
 
   handleDelete = async (debugId: string) => {
@@ -173,7 +217,9 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
 
     return (
       <React.Fragment>
-        <Header closeButton>{title ?? t('Unknown')}</Header>
+        <Header closeButton>
+          <span data-test-id="modal-title">{title ?? t('Unknown')}</span>
+        </Header>
         <Body>
           <Content>
             <GeneralInfo>
@@ -219,7 +265,7 @@ class DebugFileDetails extends AsyncComponent<Props, State> {
   }
 }
 
-export default DebugFileDetails;
+export default DebugImageDetails;
 
 const Content = styled('div')`
   display: grid;

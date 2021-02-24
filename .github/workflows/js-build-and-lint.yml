@@ -11,7 +11,7 @@ on:
 jobs:
   typescript-and-lint:
     name: typescript and lint
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
 
@@ -45,7 +45,7 @@ jobs:
         if: steps.changes.outputs.frontend == 'true'
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-yarn-
 
@@ -110,7 +110,7 @@ jobs:
           yarn storybook-build
 
   webpack:
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
 
@@ -135,7 +135,7 @@ jobs:
         if: github.ref == 'refs/heads/master' || steps.changes.outputs.frontend == 'true'
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-yarn-
 

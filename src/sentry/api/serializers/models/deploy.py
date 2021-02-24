@@ -1,5 +1,3 @@
-import six
-
 from sentry.api.serializers import Serializer, register
 from sentry.models import Deploy, Environment
 
@@ -22,7 +20,7 @@ class DeploySerializer(Serializer):
 
     def serialize(self, obj, attrs, user, **kwargs):
         return {
-            "id": six.text_type(obj.id),
+            "id": str(obj.id),
             "environment": attrs.get("environment"),
             "dateStarted": obj.date_started,
             "dateFinished": obj.date_finished,

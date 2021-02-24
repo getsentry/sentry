@@ -2,7 +2,6 @@ import React from 'react';
 import {css} from '@emotion/core';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-import $ from 'jquery';
 // eslint-disable-next-line no-restricted-imports
 import {Box} from 'reflexbox';
 
@@ -43,7 +42,7 @@ import EventView from 'app/utils/discover/eventView';
 import {queryToObj} from 'app/utils/stream';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
-import {Query} from 'app/views/issueList/utils';
+import {isForReviewQuery} from 'app/views/issueList/utils';
 
 const DiscoveryExclusionFields: string[] = [
   'query',
@@ -60,8 +59,10 @@ const DiscoveryExclusionFields: string[] = [
   '__text',
 ];
 
+export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
+
 const defaultProps = {
-  statsPeriod: '24h',
+  statsPeriod: DEFAULT_STREAM_GROUP_STATS_PERIOD,
   canSelect: true,
   withChart: true,
   useFilteredStats: false,
@@ -76,6 +77,7 @@ type Props = {
   hasGuideAnchor?: boolean;
   memberList?: User[];
   onMarkReviewed?: (itemIds: string[]) => void;
+  showInboxTime?: boolean;
   // TODO(ts): higher order functions break defaultprops export types
 } & Partial<typeof defaultProps>;
 
@@ -146,7 +148,7 @@ class StreamGroup extends React.Component<Props, State> {
       // On the inbox tab and the inbox reason is removed
       const reviewed =
         state.reviewed ||
-        ((query === Query.FOR_REVIEW || query === Query.FOR_REVIEW_OWNER) &&
+        (isForReviewQuery(query) &&
           (state.data.inbox as InboxDetails)?.reason !== undefined &&
           data.inbox === false);
       return {data, reviewed};
@@ -154,14 +156,22 @@ class StreamGroup extends React.Component<Props, State> {
   }
 
   toggleSelect = (evt: React.MouseEvent<HTMLDivElement>) => {
-    if ((evt.target as HTMLElement)?.tagName === 'A') {
+    const targetElement = evt.target as Partial<HTMLElement>;
+
+    if (targetElement?.tagName?.toLowerCase() === 'a') {
       return;
     }
-    if ((evt.target as HTMLElement)?.tagName === 'INPUT') {
+
+    if (targetElement?.tagName?.toLowerCase() === 'input') {
       return;
     }
-    if ($(evt.target).parents('a').length !== 0) {
-      return;
+
+    let e = targetElement;
+    while (e.parentElement) {
+      if (e?.tagName?.toLowerCase() === 'a') {
+        return;
+      }
+      e = e.parentElement!;
     }
 
     SelectedGroupStore.toggleSelect(this.state.data.id);
@@ -277,6 +287,7 @@ class StreamGroup extends React.Component<Props, State> {
       selection,
       organization,
       displayReprocessingLayout,
+      showInboxTime,
       onMarkReviewed,
     } = this.props;
 
@@ -326,6 +337,7 @@ class StreamGroup extends React.Component<Props, State> {
             hasGuideAnchor={hasGuideAnchor}
             organization={organization}
             data={data}
+            showInboxTime={showInboxTime}
           />
         </GroupSummary>
         {hasGuideAnchor && <GuideAnchor target="issue_stream" />}

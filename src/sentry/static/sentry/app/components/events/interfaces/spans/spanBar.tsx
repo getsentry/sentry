@@ -12,7 +12,8 @@ import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
 import {defined, OmitHtmlDivProps} from 'app/utils';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
-import globalTheme from 'app/utils/theme';
+import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
+import {QuickTraceContextChildrenProps} from 'app/utils/performance/quickTrace/quickTraceContext';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
@@ -256,7 +257,13 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     }));
   };
 
-  renderDetail({isVisible}: {isVisible: boolean}) {
+  renderDetail({
+    isVisible,
+    quickTrace,
+  }: {
+    isVisible: boolean;
+    quickTrace?: QuickTraceContextChildrenProps;
+  }) {
     if (!this.state.showDetail || !isVisible) {
       return null;
     }
@@ -282,6 +289,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         trace={trace}
         totalNumberOfErrors={totalNumberOfErrors}
         spanErrors={spanErrors}
+        quickTrace={quickTrace}
       />
     );
   }
@@ -734,12 +742,9 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       // Mock component to preserve layout spacing
       return (
         <DividerLine
+          showDetail
           style={{
             position: 'relative',
-            backgroundColor: getBackgroundColor({
-              theme: globalTheme,
-              showDetail: true,
-            }),
           }}
         />
       );
@@ -882,23 +887,27 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const isSpanVisible = isSpanVisibleInView && !isCurrentSpanFilteredOut;
 
     return (
-      <SpanRow
-        ref={this.spanRowDOMRef}
-        visible={isSpanVisible}
-        showBorder={this.state.showDetail}
-        data-test-id="span-row"
-      >
-        <DividerHandlerManager.Consumer>
-          {(
-            dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-          ) =>
-            this.renderHeader({
-              dividerHandlerChildrenProps,
-            })
-          }
-        </DividerHandlerManager.Consumer>
-        {this.renderDetail({isVisible: isSpanVisible})}
-      </SpanRow>
+      <QuickTraceContext.Consumer>
+        {quickTrace => (
+          <SpanRow
+            ref={this.spanRowDOMRef}
+            visible={isSpanVisible}
+            showBorder={this.state.showDetail}
+            data-test-id="span-row"
+          >
+            <DividerHandlerManager.Consumer>
+              {(
+                dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
+              ) =>
+                this.renderHeader({
+                  dividerHandlerChildrenProps,
+                })
+              }
+            </DividerHandlerManager.Consumer>
+            {this.renderDetail({isVisible: isSpanVisible, quickTrace})}
+          </SpanRow>
+        )}
+      </QuickTraceContext.Consumer>
     );
   }
 }
@@ -942,8 +951,8 @@ const CursorGuide = styled('div')`
   height: 100%;
 `;
 
-export const DividerLine = styled('div')`
-  background-color: ${p => p.theme.gray200};
+export const DividerLine = styled('div')<{showDetail?: boolean}>`
+  background-color: ${p => (p.showDetail ? p.theme.textColor : p.theme.border)};
   position: absolute;
   height: 100%;
   width: 1px;

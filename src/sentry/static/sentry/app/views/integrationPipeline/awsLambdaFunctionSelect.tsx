@@ -1,11 +1,15 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import reduce from 'lodash/reduce';
+import {computed} from 'mobx';
 import {Observer} from 'mobx-react';
 
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import {PanelHeader} from 'app/components/panels';
+import Switch from 'app/components/switchButton';
+import Tooltip from 'app/components/tooltip';
 import {t, tn} from 'app/locale';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
@@ -57,9 +61,23 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
     return reduce(data, (acc: number, val: boolean) => (val ? acc + 1 : acc), 0);
   }
 
+  @computed
+  get toggleAllState() {
+    //check if any of the lambda functions have a falsy value
+    //no falsy values means everything is enabled
+    return Object.values(this.model.getData()).every(val => val);
+  }
+
   handleSubmit = () => {
     this.model.saveForm();
     this.setState({submitting: true});
+  };
+
+  handleToggle = () => {
+    const newState = !this.toggleAllState;
+    this.lambdaFunctions.forEach(lambda => {
+      this.model.setValue(lambda.FunctionName, newState, {quiet: true});
+    });
   };
 
   renderWhatWeFound = () => {
@@ -67,8 +85,8 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
     return (
       <h4>
         {tn(
-          'We found %s function with a Node runtime',
-          'We found %s functions with Node runtimes',
+          'We found %s function with a Node or Python runtime',
+          'We found %s functions with Node or Python runtimes',
           count
         )}
       </h4>
@@ -93,6 +111,30 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
   renderCore = () => {
     const {initialStepNumber} = this.props;
     const model = this.model;
+
+    const FormHeader = (
+      <StyledPanelHeader>
+        {t('Lambda Functions')}
+        <SwitchHolder>
+          <Observer>
+            {() => (
+              <Tooltip
+                title={this.toggleAllState ? t('Disable All') : t('Enable All')}
+                position="left"
+              >
+                <StyledSwitch
+                  size="lg"
+                  name="toggleAll"
+                  toggle={this.handleToggle}
+                  isActive={this.toggleAllState}
+                />
+              </Tooltip>
+            )}
+          </Observer>
+        </SwitchHolder>
+      </StyledPanelHeader>
+    );
+
     const formFields: JsonFormObject = {
       fields: this.lambdaFunctions.map(func => {
         return {
@@ -116,7 +158,7 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
             apiEndpoint="/extensions/aws_lambda/setup/"
             hideFooter
           >
-            <JsonForm forms={[formFields]} />
+            <JsonForm renderHeader={() => FormHeader} forms={[formFields]} />
           </StyledForm>
         </ListItem>
         <React.Fragment />
@@ -165,4 +207,17 @@ const LoadingWrapper = styled('div')`
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin: 0;
+`;
+
+const SwitchHolder = styled('div')`
+  display: flex;
+`;
+
+const StyledSwitch = styled(Switch)`
+  margin: auto;
+`;
+
+//padding is based on fom control width
+const StyledPanelHeader = styled(PanelHeader)`
+  padding-right: 36px;
 `;

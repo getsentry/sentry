@@ -41,7 +41,7 @@ class GitlabIssueBasic(IssueBasicMixin):
     def get_create_issue_config(self, group, user, **kwargs):
         default_project, project_choices = self.get_projects_and_default(group, **kwargs)
         kwargs["link_referrer"] = "gitlab_integration"
-        fields = super(GitlabIssueBasic, self).get_create_issue_config(group, user, **kwargs)
+        fields = super().get_create_issue_config(group, user, **kwargs)
 
         org = group.organization
         autocomplete_url = reverse(
@@ -77,7 +77,7 @@ class GitlabIssueBasic(IssueBasicMixin):
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
 
-        project_and_issue_iid = "%s#%s" % (project["path_with_namespace"], issue["iid"])
+        project_and_issue_iid = "{}#{}".format(project["path_with_namespace"], issue["iid"])
         return {
             "key": project_and_issue_iid,
             "title": issue["title"],
@@ -163,7 +163,7 @@ class GitlabIssueBasic(IssueBasicMixin):
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
 
-        project_and_issue_iid = "%s#%s" % (project["path_with_namespace"], issue["iid"])
+        project_and_issue_iid = "{}#{}".format(project["path_with_namespace"], issue["iid"])
         return {
             "key": project_and_issue_iid,
             "title": issue["title"],

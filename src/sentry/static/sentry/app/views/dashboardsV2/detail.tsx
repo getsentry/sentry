@@ -283,6 +283,7 @@ class DashboardDetail extends React.Component<Props, State> {
     const {modifiedDashboard, dashboardState} = this.state;
 
     const isEditing = ['edit', 'create', 'pending_delete'].includes(dashboardState);
+    const canEdit = organization.features.includes('dashboards-edit');
 
     return (
       <GlobalSelectionHeader
@@ -321,6 +322,7 @@ class DashboardDetail extends React.Component<Props, State> {
                     onCommit={this.onCommit({dashboard, reloadData})}
                     onDelete={this.onDelete(dashboard)}
                     dashboardState={dashboardState}
+                    canEdit={canEdit}
                   />
                 </StyledPageHeader>
                 {error ? (
@@ -351,7 +353,7 @@ const StyledPageHeader = styled('div')`
   font-size: ${p => p.theme.headerFontSize};
   color: ${p => p.theme.textColor};
   height: 40px;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
     flex-direction: column;

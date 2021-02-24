@@ -1,5 +1,4 @@
 import hmac
-import six
 
 from django.db import models
 from django.utils import timezone
@@ -80,12 +79,12 @@ class ServiceHook(Model):
             return
 
     def __init__(self, *args, **kwargs):
-        super(ServiceHook, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         if self.guid is None:
             self.guid = uuid4().hex
 
-    def __unicode__(self):
-        return six.text_type(self.guid)
+    def __str__(self):
+        return str(self.guid)
 
     def build_signature(self, body):
         return hmac.new(

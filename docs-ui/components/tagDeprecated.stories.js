@@ -1,16 +1,13 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
 
-import Tooltip from 'app/components/tooltip';
 import Tag from 'app/components/tagDeprecated';
+import Tooltip from 'app/components/tooltip';
 
 export default {
   title: 'Deprecated/TagDeprecated',
 };
 
-export const Overview = withInfo({
-  text: 'An overview of all the different tags and states',
-})(() => (
+export const Overview = () => (
   <React.Fragment>
     <div>
       <Tag>default</Tag>
@@ -43,35 +40,43 @@ export const Overview = withInfo({
       <Tag priority="alpha">alpha</Tag>
     </div>
   </React.Fragment>
-));
+);
 
-export const Default = withInfo(
-  'A basic tag-like thing. If you pass no type, it will be gray'
-)(() => <Tag>Development</Tag>);
+export const Default = () => <Tag>Development</Tag>;
 
-Default.story = {
-  name: 'default',
+Default.storyName = 'default';
+Default.parameters = {
+  docs: {
+    description: {
+      story: 'A basic tag-like thing. If you pass no type, it will be gray',
+    },
+  },
 };
 
-export const Warning = withInfo(
-  'A warning tag-like thing. Use this to signal that something is maybe not so great'
-)(() => <Tag priority="warning">Development</Tag>);
+export const Warning = () => <Tag priority="warning">Development</Tag>;
 
-Warning.story = {
-  name: 'warning',
+Warning.storyName = 'warning';
+Warning.parameters = {
+  docs: {
+    description: {
+      story:
+        'A warning tag-like thing. Use this to signal that something is maybe not so great',
+    },
+  },
 };
 
-export const Success = withInfo(
-  'A happy tag-like thing. Use this to signal something good'
-)(() => <Tag priority="success">Development</Tag>);
+export const Success = () => <Tag priority="success">Development</Tag>;
 
-Success.story = {
-  name: 'success',
+Success.storyName = 'success';
+Success.parameters = {
+  docs: {
+    description: {
+      story: 'A happy tag-like thing. Use this to signal something good',
+    },
+  },
 };
 
-export const Beta = withInfo(
-  'An attention grabbing thing. Use this to communicate shiny new functionality.'
-)(() => (
+export const Beta = () => (
   <Tooltip
     title="This feature is in beta and may change in the future."
     tooltipOptions={{
@@ -82,15 +87,19 @@ export const Beta = withInfo(
       <Tag priority="beta">beta</Tag>
     </span>
   </Tooltip>
-));
+);
 
-Beta.story = {
-  name: 'beta',
+Beta.storyName = 'beta';
+Beta.parameters = {
+  docs: {
+    description: {
+      story:
+        'An attention grabbing thing. Use this to communicate shiny new functionality.',
+    },
+  },
 };
 
-export const New = withInfo(
-  'An attention grabbing thing. Use this to communicate shiny new functionality.'
-)(() => (
+export const New = () => (
   <Tooltip
     title="This feature is new and may change in the future."
     tooltipOptions={{
@@ -101,28 +110,40 @@ export const New = withInfo(
       <Tag priority="new">new</Tag>
     </span>
   </Tooltip>
-));
+);
 
-New.story = {
-  name: 'new',
+New.storyName = 'new';
+New.parameters = {
+  docs: {
+    description: {
+      story:
+        'An attention grabbing thing. Use this to communicate shiny new functionality.',
+    },
+  },
 };
 
-export const Small = withInfo(
-  'A small tag-like thing. Use this when space is at a premium'
-)(() => (
+export const Small = () => (
   <Tag size="small" border>
     new
   </Tag>
-));
+);
 
-Small.story = {
-  name: 'small',
+Small.storyName = 'small';
+Small.parameters = {
+  docs: {
+    description: {
+      story: 'A small tag-like thing. Use this when space is at a premium',
+    },
+  },
 };
 
-export const WithIcon = withInfo(
-  'A tag-like thing with an icon. Use when you need to represent something'
-)(() => <Tag icon="icon-lock">Locked</Tag>);
+export const WithIcon = () => <Tag icon="icon-lock">Locked</Tag>;
 
-WithIcon.story = {
-  name: 'with icon',
+WithIcon.storyName = 'with icon';
+WithIcon.parameters = {
+  docs: {
+    description: {
+      story: 'A tag-like thing with an icon. Use when you need to represent something',
+    },
+  },
 };

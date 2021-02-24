@@ -1,4 +1,3 @@
-import six
 import logging
 import enum
 
@@ -21,7 +20,7 @@ logger = logging.getLogger("sentry.integrations.msteams")
 
 # MS Teams will convert integers into strings in value inputs sent in adaptive
 # cards, may as well just do that here first.
-class ACTION_TYPE(six.text_type, enum.Enum):
+class ACTION_TYPE(str, enum.Enum):
     RESOLVE = "1"
     IGNORE = "2"
     ASSIGN = "3"
@@ -78,17 +77,17 @@ def get_channel_id(organization, integration_id, name):
     return None
 
 
-def send_incident_alert_notification(action, incident, metric_value):
+def send_incident_alert_notification(action, incident, metric_value, method):
     from .card_builder import build_incident_attachment
 
     channel = action.target_identifier
     integration = action.integration
-    attachment = build_incident_attachment(incident, metric_value)
+    attachment = build_incident_attachment(action, incident, metric_value, method)
     client = MsTeamsClient(integration)
     try:
         client.send_card(channel, attachment)
     except ApiError as e:
-        logger.info("rule.fail.msteams_post", extra={"error": six.text_type(e)})
+        logger.info("rule.fail.msteams_post", extra={"error": str(e)})
 
 
 def get_identity(user, organization_id, integration_id):

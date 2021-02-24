@@ -1,5 +1,3 @@
-import six
-
 from django.db import models
 
 from sentry.db.models.utils import Creator
@@ -22,18 +20,18 @@ class ArrayField(models.Field):
         # corresponds to `NOT NULL`)
         kwargs["null"] = True
 
-        super(ArrayField, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def contribute_to_class(self, cls, name):
         """
         Add a descriptor for backwards compatibility
         with previous Django behavior.
         """
-        super(ArrayField, self).contribute_to_class(cls, name)
+        super().contribute_to_class(cls, name)
         setattr(cls, name, Creator(self))
 
     def db_type(self, connection):
-        return "{}[]".format(self.of.db_type(connection))
+        return f"{self.of.db_type(connection)}[]"
 
     def get_internal_type(self):
         return "TextField"
@@ -41,6 +39,6 @@ class ArrayField(models.Field):
     def to_python(self, value):
         if not value:
             value = []
-        if isinstance(value, six.text_type):
+        if isinstance(value, str):
             value = json.loads(value)
         return map(self.of.to_python, value)

@@ -7,7 +7,7 @@ from sentry.exceptions import HookValidationError
 from sentry.models import Activity, Release
 
 
-class ReleaseHook(object):
+class ReleaseHook:
     def __init__(self, project):
         self.project = project
 

@@ -3,7 +3,6 @@ from datetime import datetime
 from uuid import uuid4
 
 import pytz
-import six
 import urllib3
 
 from sentry import quotas
@@ -92,13 +91,11 @@ class SnubaProtocolEventStream(EventStream):
 
         event_data = event.get_raw_data(for_stream=True)
 
-        unexpected_tags = set(
-            [
-                k
-                for (k, v) in (get_path(event_data, "tags", filter=True) or [])
-                if k in self.UNEXPECTED_TAG_KEYS
-            ]
-        )
+        unexpected_tags = {
+            k
+            for (k, v) in (get_path(event_data, "tags", filter=True) or [])
+            if k in self.UNEXPECTED_TAG_KEYS
+        }
         if unexpected_tags:
             logger.error("%r received unexpected tags: %r", self, unexpected_tags)
 
@@ -127,7 +124,7 @@ class SnubaProtocolEventStream(EventStream):
                     "skip_consume": skip_consume,
                 },
             ),
-            headers={"Received-Timestamp": six.text_type(received_timestamp)},
+            headers={"Received-Timestamp": str(received_timestamp)},
         )
 
     def start_delete_groups(self, project_id, group_ids):
@@ -296,9 +293,9 @@ class SnubaEventStream(SnubaProtocolEventStream):
             for dataset in datasets:
                 resp = snuba._snuba_pool.urlopen(
                     "POST",
-                    "/tests/{}/eventstream".format(dataset),
+                    f"/tests/{dataset}/eventstream",
                     body=json.dumps(data),
-                    headers={"X-Sentry-{}".format(k): v for k, v in headers.items()},
+                    headers={f"X-Sentry-{k}": v for k, v in headers.items()},
                 )
                 if resp.status != 200:
                     raise snuba.SnubaError("HTTP %s response from Snuba!" % resp.status)
@@ -320,7 +317,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         received_timestamp,  # type: float
         skip_consume=False,
     ):
-        super(SnubaEventStream, self).insert(
+        super().insert(
             group,
             event,
             is_new,

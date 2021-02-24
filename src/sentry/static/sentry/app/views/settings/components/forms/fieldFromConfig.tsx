@@ -49,7 +49,9 @@ export default class FieldFromConfig extends React.Component<Props> {
       case 'secret':
         return <InputField {...props} type="password" />;
       case 'range':
-        return <RangeField {...props} />;
+        // TODO(ts) The switch on field.type is not resolving
+        // the Field union for this component. The union might be 'too big'.
+        return <RangeField {...(props as any)} />;
       case 'bool':
       case 'boolean':
         return <BooleanField {...props} />;
@@ -63,10 +65,6 @@ export default class FieldFromConfig extends React.Component<Props> {
         if (props.multiline) {
           return <TextareaField {...props} />;
         }
-
-        // TODO(billy): Handle `props.choices` with a "creatable" SelectField
-        // if (props.choices) return <Select2TextField {...props} />;
-
         return <TextField {...props} />;
       case 'number':
         return <NumberField {...props} />;
@@ -75,14 +73,11 @@ export default class FieldFromConfig extends React.Component<Props> {
       case 'choice':
       case 'select':
       case 'array':
-        // TODO(billy): Handle `props.has_autocomplete` with an "async" SelectField
-        // if (props.has_autocomplete) {
-        // return <SelectAsyncField {...props} />;
-        // }
-
-        return <SelectField deprecatedSelectControl {...props} />;
+        return <SelectField {...props} />;
       case 'choice_mapper':
-        return <ChoiceMapperField {...props} />;
+        // TODO(ts) The switch on field.type is not resolving
+        // the Field union for this component. The union might be 'too big'.
+        return <ChoiceMapperField {...(props as any)} />;
       case 'radio':
         const choices = props.choices;
         if (!Array.isArray(choices)) {
@@ -90,9 +85,13 @@ export default class FieldFromConfig extends React.Component<Props> {
         }
         return <RadioField {...props} choices={choices} />;
       case 'rich_list':
-        return <RichListField {...props} />;
+        // TODO(ts) The switch on field.type is not resolving
+        // the Field union for this component. The union might be 'too big'.
+        return <RichListField {...(props as any)} />;
       case 'table':
-        return <TableField {...props} />;
+        // TODO(ts) The switch on field.type is not resolving
+        // the Field union for this component. The union might be 'too big'.
+        return <TableField {...(props as any)} />;
       case 'project_mapper':
         return <ProjectMapperField {...props} />;
       case 'sentry_project_selector':

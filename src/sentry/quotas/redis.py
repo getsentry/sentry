@@ -1,5 +1,4 @@
 import functools
-import six
 
 from time import time
 
@@ -34,7 +33,7 @@ class RedisQuota(Quota):
         #  - true: `cluster` is a `RedisCluster`. It automatically dispatches to
         #    the correct node and can be used as a client directly.
 
-        super(RedisQuota, self).__init__(**options)
+        super().__init__(**options)
         self.namespace = "quota"
 
     def validate(self):
@@ -50,13 +49,13 @@ class RedisQuota(Quota):
         if self.is_redis_cluster:
             scope_id = quota.scope_id or "" if quota.scope != QuotaScope.ORGANIZATION else ""
             # new style redis cluster format which always has the organization id in
-            local_key = "%s{%s}%s" % (quota.id, organization_id, scope_id)
+            local_key = f"{quota.id}{{{organization_id}}}{scope_id}"
         else:
             # legacy key format
-            local_key = "%s:%s" % (quota.id, quota.scope_id or organization_id)
+            local_key = f"{quota.id}:{quota.scope_id or organization_id}"
 
         interval = quota.window
-        return "{}:{}:{}".format(self.namespace, local_key, int((timestamp - shift) // interval))
+        return f"{self.namespace}:{local_key}:{int((timestamp - shift) // interval)}"
 
     def get_quotas(self, project, key=None, keys=None):
         if key:
@@ -140,16 +139,14 @@ class RedisQuota(Quota):
         else:
             with self.cluster.fanout() as client:
                 results = map(
-                    functools.partial(
-                        get_usage_for_quota, client.target_key(six.text_type(organization_id))
-                    ),
+                    functools.partial(get_usage_for_quota, client.target_key(str(organization_id))),
                     quotas,
                 )
 
         return [get_value_for_result(*r) for r in results]
 
     def get_refunded_quota_key(self, key):
-        return "r:{}".format(key)
+        return f"r:{key}"
 
     def refund(self, project, key=None, timestamp=None, category=None, quantity=None):
         if timestamp is None:
@@ -173,7 +170,7 @@ class RedisQuota(Quota):
         if not quotas:
             return
 
-        client = self.__get_redis_client(six.text_type(project.organization_id))
+        client = self.__get_redis_client(str(project.organization_id))
         pipe = client.pipeline()
 
         for quota in quotas:
@@ -243,7 +240,7 @@ class RedisQuota(Quota):
         if not keys or not args:
             return NotRateLimited()
 
-        client = self.__get_redis_client(six.text_type(project.organization_id))
+        client = self.__get_redis_client(str(project.organization_id))
         rejections = is_rate_limited(client, keys, args)
 
         if not any(rejections):

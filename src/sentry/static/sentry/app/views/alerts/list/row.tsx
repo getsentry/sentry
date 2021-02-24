@@ -16,11 +16,16 @@ import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {getUtcDateString} from 'app/utils/dates';
 import getDynamicText from 'app/utils/getDynamicText';
 import theme from 'app/utils/theme';
 
+import {
+  API_INTERVAL_POINTS_LIMIT,
+  API_INTERVAL_POINTS_MIN,
+} from '../rules/details/constants';
 import {Incident, IncidentStats, IncidentStatus} from '../types';
-import {getIncidentMetricPreset} from '../utils';
+import {getIncidentMetricPreset, isIssueAlert} from '../utils';
 
 import SparkLine from './sparkLine';
 import {TableLayout, TitleAndSparkLine} from './styles';
@@ -63,6 +68,29 @@ class AlertListRow extends AsyncComponent<Props, State> {
     projects.find(project => project.slug === slug)
   );
 
+  /**
+   * Retrieve the start/end for showing the graph of the metric
+   * Will show at least 150 and no more than 10,000 data points
+   */
+  getRuleDetailsQuery(): {start: string; end: string} {
+    const {incident} = this.props;
+    const {timeWindow} = incident.alertRule;
+    const timeWindowMillis = timeWindow * 60 * 1000;
+    const minRange = timeWindowMillis * API_INTERVAL_POINTS_MIN;
+    const maxRange = timeWindowMillis * API_INTERVAL_POINTS_LIMIT;
+    const now = moment.utc();
+    const startDate = moment.utc(incident.dateStarted);
+    const endDate = incident.dateClosed ? moment.utc(incident.dateClosed) : now;
+    const incidentRange = Math.max(endDate.diff(startDate), 3 * timeWindowMillis);
+    const range = Math.min(maxRange, Math.max(minRange, incidentRange));
+    const halfRange = moment.duration(range / 2);
+
+    return {
+      start: getUtcDateString(startDate.subtract(halfRange)),
+      end: getUtcDateString(moment.min(endDate.add(halfRange), now)),
+    };
+  }
+
   renderLoading() {
     return this.renderBody();
   }
@@ -98,10 +126,10 @@ class AlertListRow extends AsyncComponent<Props, State> {
     const {
       incident,
       orgId,
-      organization,
       projectsLoaded,
       projects,
       filteredStatus,
+      organization,
     } = this.props;
     const {error, stats} = this.state;
     const started = moment(incident.dateStarted);
@@ -109,9 +137,20 @@ class AlertListRow extends AsyncComponent<Props, State> {
       .duration(moment(incident.dateClosed || new Date()).diff(started))
       .as('seconds');
     const slug = incident.projects[0];
-    const incidentLink = organization.features.includes('alert-details-redesign')
-      ? `/organizations/${orgId}/alerts/rules/details/${incident.alertRule.id}/`
-      : `/organizations/${orgId}/alerts/${incident.identifier}/`;
+
+    const hasRedesign =
+      incident.alertRule &&
+      !isIssueAlert(incident.alertRule) &&
+      organization.features.includes('alert-details-redesign');
+
+    const alertLink = hasRedesign
+      ? {
+          pathname: `/organizations/${orgId}/alerts/rules/details/${incident.alertRule?.id}/`,
+          query: this.getRuleDetailsQuery(),
+        }
+      : {
+          pathname: `/organizations/${orgId}/alerts/${incident.identifier}/`,
+        };
 
     return (
       <ErrorBoundary>
@@ -120,7 +159,7 @@ class AlertListRow extends AsyncComponent<Props, State> {
             <TitleAndSparkLine status={filteredStatus}>
               <Title>
                 {this.renderStatusIndicator()}
-                <IncidentLink to={incidentLink}>Alert #{incident.id}</IncidentLink>
+                <IncidentLink to={alertLink}>Alert #{incident.id}</IncidentLink>
                 {incident.title}
               </Title>
 

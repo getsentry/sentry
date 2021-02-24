@@ -8,7 +8,7 @@ from tests.acceptance.page_objects.issue_details import IssueDetailsPage
 
 class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
-        super(IssueDetailsWorkflowTest, self).setUp()
+        super().setUp()
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
         self.team = self.create_team(
@@ -77,3 +77,13 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         form.submit()
 
         assert self.page.has_comment("this looks bad")
+
+    def test_mark_reviewed(self):
+        with self.feature("organizations:inbox"):
+            event = self.create_sample_event(platform="python")
+            self.page.visit_issue(self.org.slug, event.group.id)
+            self.page.mark_reviewed()
+
+            res = self.page.api_issue_get(event.group.id)
+            assert res.status_code == 200, res
+            assert "inbox" not in res.data

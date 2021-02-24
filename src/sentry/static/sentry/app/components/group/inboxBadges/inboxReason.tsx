@@ -3,10 +3,12 @@ import styled from '@emotion/styled';
 
 import DateTime from 'app/components/dateTime';
 import Tag from 'app/components/tag';
-import {getRelativeDate} from 'app/components/timeSince';
+import TimeSince, {getRelativeDate} from 'app/components/timeSince';
 import {t, tct} from 'app/locale';
 import {InboxDetails} from 'app/types';
 import {getDuration} from 'app/utils/formatters';
+import getDynamicText from 'app/utils/getDynamicText';
+import {Theme} from 'app/utils/theme';
 
 const GroupInboxReason = {
   NEW: 0,
@@ -19,12 +21,18 @@ const GroupInboxReason = {
 type Props = {
   inbox: InboxDetails;
   fontSize?: 'sm' | 'md';
+  /** Displays the time an issue was added to inbox */
+  showDateAdded?: boolean;
 };
 
 const EVENT_ROUND_LIMIT = 1000;
 
-function InboxReason({inbox, fontSize = 'sm'}: Props) {
+function InboxReason({inbox, fontSize = 'sm', showDateAdded}: Props) {
   const {reason, reason_details, date_added: dateAdded} = inbox;
+  const relativeDateAdded = getDynamicText({
+    value: dateAdded && getRelativeDate(dateAdded, 'ago', true),
+    fixed: '3s ago',
+  });
 
   const getCountText = (count: number) =>
     count > EVENT_ROUND_LIMIT
@@ -89,7 +97,7 @@ function InboxReason({inbox, fontSize = 'sm'}: Props) {
           tooltipText:
             dateAdded &&
             t('Unignored %(relative)s', {
-              relative: getRelativeDate(dateAdded, 'ago', true),
+              relative: relativeDateAdded,
             }),
           tooltipDescription: getTooltipDescription(),
         };
@@ -100,7 +108,7 @@ function InboxReason({inbox, fontSize = 'sm'}: Props) {
           tooltipText:
             dateAdded &&
             t('Regressed %(relative)s', {
-              relative: getRelativeDate(dateAdded, 'ago', true),
+              relative: relativeDateAdded,
             }),
           // TODO: Add tooltip description for regression move when resolver is added to reason
           // Resolved by {full_name} {time} ago.
@@ -111,8 +119,7 @@ function InboxReason({inbox, fontSize = 'sm'}: Props) {
           tagType: 'highlight',
           reasonBadgeText: t('Manual'),
           tooltipText:
-            dateAdded &&
-            t('Moved %(relative)s', {relative: getRelativeDate(dateAdded, 'ago', true)}),
+            dateAdded && t('Moved %(relative)s', {relative: relativeDateAdded}),
           // TODO: IF manual moves stay then add tooltip description for manual move
           // Moved to inbox by {full_name}.
         };
@@ -123,9 +130,10 @@ function InboxReason({inbox, fontSize = 'sm'}: Props) {
           tooltipText:
             dateAdded &&
             t('Reprocessed %(relative)s', {
-              relative: getRelativeDate(dateAdded, 'ago', true),
+              relative: relativeDateAdded,
             }),
         };
+      case GroupInboxReason.NEW:
       default:
         return {
           tagType: 'warning',
@@ -133,7 +141,7 @@ function InboxReason({inbox, fontSize = 'sm'}: Props) {
           tooltipText:
             dateAdded &&
             t('Created %(relative)s', {
-              relative: getRelativeDate(dateAdded, 'ago', true),
+              relative: relativeDateAdded,
             }),
         };
     }
@@ -147,12 +155,19 @@ function InboxReason({inbox, fontSize = 'sm'}: Props) {
       {tooltipDescription && (
         <TooltipDescription>{tooltipDescription}</TooltipDescription>
       )}
+      <TooltipDescription>Mark Reviewed to remove this label</TooltipDescription>
     </TooltipWrapper>
   );
 
   return (
     <StyledTag type={tagType} tooltipText={tooltip} fontSize={fontSize}>
       {reasonBadgeText}
+      {showDateAdded && dateAdded && (
+        <React.Fragment>
+          <Separator type={tagType ?? 'default'}>{' | '}</Separator>
+          <TimeSince date={dateAdded} suffix="" shorten disabledAbsoluteTooltip />
+        </React.Fragment>
+      )}
     </StyledTag>
   );
 }
@@ -164,10 +179,17 @@ const TooltipWrapper = styled('div')`
 `;
 
 const TooltipDescription = styled('div')`
-  color: ${p => p.theme.gray200};
+  color: ${p => p.theme.subText};
 `;
 
-const StyledTag = styled(Tag)<{fontSize: 'sm' | 'md'}>`
+const Separator = styled('span')<{type: keyof Theme['tag']}>`
+  color: ${p => p.theme.tag[p.type].iconColor};
+  opacity: 80%;
+`;
+
+const StyledTag = styled(Tag, {
+  shouldForwardProp: p => p !== 'fontSize',
+})<{fontSize: 'sm' | 'md'}>`
   font-size: ${p =>
     p.fontSize === 'sm' ? p.theme.fontSizeSmall : p.theme.fontSizeMedium};
 `;

@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from sentry.api.serializers import AppPlatformEvent
 from sentry.testutils import TestCase
 from sentry.utils import json

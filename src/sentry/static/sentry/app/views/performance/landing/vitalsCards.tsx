@@ -5,6 +5,7 @@ import {Location} from 'history';
 import {Client} from 'app/api';
 import Card from 'app/components/card';
 import EventsRequest from 'app/components/charts/eventsRequest';
+import {HeaderTitle} from 'app/components/charts/styles';
 import {getInterval} from 'app/components/charts/utils';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import Link from 'app/components/links/link';
@@ -20,19 +21,18 @@ import {getUtcToLocalDateObject} from 'app/utils/dates';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
-import {decodeList} from 'app/utils/queryString';
-import theme from 'app/utils/theme';
-import withApi from 'app/utils/withApi';
+import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 import VitalsCardsDiscoverQuery, {
   VitalData,
   VitalsData,
-} from 'app/views/performance/vitalDetail/vitalsCardsDiscoverQuery';
+} from 'app/utils/performance/vitals/vitalsCardsDiscoverQuery';
+import {decodeList} from 'app/utils/queryString';
+import theme from 'app/utils/theme';
+import withApi from 'app/utils/withApi';
 
-import {HeaderTitle} from '../styles';
 import ColorBar from '../vitalDetail/colorBar';
 import {
   vitalAbbreviations,
-  vitalDescription,
   vitalDetailRouteWithQuery,
   vitalMap,
   VitalState,
@@ -104,7 +104,7 @@ export function FrontendCards(props: FrontendCardsProps) {
                 >
                   <VitalCard
                     title={vitalMap[vital] ?? ''}
-                    tooltip={vitalDescription[vital] ?? ''}
+                    tooltip={WEB_VITAL_DETAILS[vital].description ?? ''}
                     value={isLoading ? '\u2014' : value}
                     chart={chart}
                     minHeight={150}
@@ -333,6 +333,7 @@ export function VitalBar(props: VitalBarProps) {
           </div>
         )}
         <VitalPercents
+          vital={vital}
           percents={percents}
           showVitalPercentNames={showVitalPercentNames}
         />

@@ -1,7 +1,6 @@
 import responses
-import six
 from sentry.utils.compat.mock import patch
-from six.moves.urllib.parse import parse_qs, urlencode, urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
 
 from sentry.integrations.github_enterprise import GitHubEnterpriseIntegrationProvider
 from sentry.models import (
@@ -61,7 +60,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         assert params["client_id"] == ["client_id"]
         # once we've asserted on it, switch to a singular values to make life
         # easier
-        authorize_params = {k: v[0] for k, v in six.iteritems(params)}
+        authorize_params = {k: v[0] for k, v in params.items()}
 
         access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
 
@@ -73,7 +72,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.POST,
-            self.base_url + "/app/installations/{}/access_tokens".format(installation_id),
+            self.base_url + f"/app/installations/{installation_id}/access_tokens",
             json={"token": access_token, "expires_at": "3000-01-01T00:00:00Z"},
         )
 
@@ -81,7 +80,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            self.base_url + "/app/installations/{}".format(installation_id),
+            self.base_url + f"/app/installations/{installation_id}",
             json={
                 "id": installation_id,
                 "app_id": app_id,

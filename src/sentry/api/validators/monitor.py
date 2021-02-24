@@ -1,5 +1,3 @@
-import six
-
 from collections import OrderedDict
 from croniter import croniter
 from django.core.exceptions import ValidationError
@@ -70,7 +68,7 @@ class CronJobValidator(serializers.Serializer):
             if value[1] not in INTERVAL_NAMES:
                 raise ValidationError("Invalid value for schedule unit name (index 1)")
         elif schedule_type == ScheduleType.CRONTAB:
-            if not isinstance(value, six.string_types):
+            if not isinstance(value, str):
                 raise ValidationError("Invalid value for schedule_type")
             value = value.strip()
             if value.startswith("@"):
@@ -94,7 +92,7 @@ class MonitorValidator(serializers.Serializer):
     config = ObjectField()
 
     def validate(self, attrs):
-        attrs = super(MonitorValidator, self).validate(attrs)
+        attrs = super().validate(attrs)
         type = self.instance["type"] if self.instance else self.initial_data.get("type")
         if type in MONITOR_TYPES:
             type = MONITOR_TYPES[type]

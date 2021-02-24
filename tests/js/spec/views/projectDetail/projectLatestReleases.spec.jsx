@@ -35,6 +35,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
         projectSlug={project.slug}
         location={router.location}
         projectId={project.slug}
+        isProjectStabilized
       />
     );
 
@@ -66,6 +67,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
         projectSlug={project.slug}
         location={router.location}
         projectId={project.slug}
+        isProjectStabilized
       />
     );
 
@@ -74,7 +76,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
 
     expect(endpointOlderReleasesMock).toHaveBeenCalledTimes(1);
     expect(wrapper.find('Version').length).toBe(0);
-    expect(wrapper.text()).toContain('No releases match the filter.');
+    expect(wrapper.text()).toContain('No releases found');
   });
 
   it('shows configure releases buttons', async function () {
@@ -95,6 +97,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
           projectSlug={project.slug}
           location={router.location}
           projectId={project.slug}
+          isProjectStabilized
         />
       </React.Fragment>
     );
@@ -127,6 +130,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
           query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
         }}
         projectId={project.slug}
+        isProjectStabilized
       />
     );
 
@@ -137,5 +141,21 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
         query: {per_page: 5, statsPeriod: '7d', environment: 'staging'},
       })
     );
+  });
+
+  it('does not call API if project is not stabilized yet', function () {
+    mountWithTheme(
+      <ProjectLatestReleases
+        organization={organization}
+        projectSlug={project.slug}
+        location={{
+          query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
+        }}
+        projectId={project.slug}
+        isProjectStabilized={false}
+      />
+    );
+
+    expect(endpointMock).toHaveBeenCalledTimes(0);
   });
 });

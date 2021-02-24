@@ -65,7 +65,7 @@ DEFAULT_UNITS = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
 def format_bytes(number, units=DEFAULT_UNITS, decimal_places=2):
     block = 1024.0
     if number < block:
-        return "{} {}".format(number, units[0])
+        return f"{number} {units[0]}"
 
     u = 0
     max_unit = len(units) - 1

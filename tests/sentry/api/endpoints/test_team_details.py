@@ -1,5 +1,3 @@
-import six
-
 from django.core.urlresolvers import reverse
 from sentry.utils.compat.mock import patch
 
@@ -17,7 +15,7 @@ class TeamDetailsTest(APITestCase):
         )
         response = self.client.get(url)
         assert response.status_code == 200
-        assert response.data["id"] == six.text_type(team.id)
+        assert response.data["id"] == str(team.id)
 
 
 class TeamUpdateTest(APITestCase):
@@ -83,7 +81,7 @@ class TeamDeleteTest(APITestCase):
         """Admins can remove teams of which they're a part"""
 
         # mock the transaction_id when mock_delete_team is called
-        class uuid(object):
+        class uuid:
             hex = "abc123"
 
         mock_uuid4.return_value = uuid
@@ -115,7 +113,7 @@ class TeamDeleteTest(APITestCase):
         open membership is on."""
 
         # mock the transaction_id when mock_delete_team is called
-        class uuid(object):
+        class uuid:
             hex = "abc123"
 
         mock_uuid4.return_value = uuid

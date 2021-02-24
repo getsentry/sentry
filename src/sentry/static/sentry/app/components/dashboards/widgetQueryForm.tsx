@@ -2,24 +2,31 @@ import React from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {fetchSavedQueries} from 'app/actionCreators/discoverSavedQueries';
 import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
 import SelectControl from 'app/components/forms/selectControl';
 import {IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {GlobalSelection, Organization, SavedQuery, SelectValue} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {GlobalSelection, Organization, SelectValue} from 'app/types';
+import {getAggregateAlias} from 'app/utils/discover/fields';
 import {Widget, WidgetQuery} from 'app/views/dashboardsV2/types';
 import SearchBar from 'app/views/events/searchBar';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
 import Input from 'app/views/settings/components/forms/controls/input';
-import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
 import Field from 'app/views/settings/components/forms/field';
 
-import WidgetQueryFields, {QueryFieldWrapper} from './widgetQueryFields';
+import WidgetQueryFields from './widgetQueryFields';
+
+const generateOrderOptions = (fields: string[]): SelectValue<string>[] => {
+  const options: SelectValue<string>[] = [];
+  fields.forEach(field => {
+    const alias = getAggregateAlias(field);
+    options.push({label: t('%s asc', field), value: alias});
+    options.push({label: t('%s desc', field), value: `-${alias}`});
+  });
+  return options;
+};
 
 type Props = {
   api: Client;
@@ -34,23 +41,11 @@ type Props = {
   errors?: Record<string, any>;
 };
 
-type SavedQueryOption = SelectValue<string> & {query: SavedQuery};
-
-type State = {
-  selectedQuery: SavedQueryOption | null;
-  source: string;
-};
-
 /**
  * Contain widget query interactions and signal changes via the onChange
  * callback. This component's state should live in the parent.
  */
-class WidgetQueryForm extends React.Component<Props, State> {
-  state: State = {
-    selectedQuery: null,
-    source: 'new',
-  };
-
+class WidgetQueryForm extends React.Component<Props> {
   // Handle scalar field values changing.
   handleFieldChange = (field: string) => {
     const {widgetQuery, onChange} = this.props;
@@ -68,53 +63,6 @@ class WidgetQueryForm extends React.Component<Props, State> {
     onChange(newQuery);
   };
 
-  handleSavedQueryChange = (option: SavedQueryOption) => {
-    const {onChange, displayType, widgetQuery} = this.props;
-
-    const newQuery = cloneDeep(widgetQuery);
-    newQuery.fields =
-      displayType === 'table'
-        ? [...option.query.fields]
-        : [option.query.yAxis ?? 'count()'];
-    newQuery.conditions = option.query.query ?? '';
-    newQuery.name = option.query.name;
-    onChange(newQuery);
-
-    this.setState({selectedQuery: option});
-  };
-
-  handleLoadOptions = (inputValue: string) => {
-    const {api, organization} = this.props;
-    return new Promise((resolve, reject) => {
-      fetchSavedQueries(api, organization.slug, inputValue)
-        .then((queries: SavedQuery[]) => {
-          const results = queries.map(query => ({
-            label: query.name,
-            value: query.id,
-            query,
-          }));
-          resolve(results);
-        })
-        .catch(reject);
-    });
-  };
-
-  handleSourceChange = (value: string) => {
-    trackAnalyticsEvent({
-      eventKey: 'dashboards2.widget.change_source',
-      eventName: 'Dashboards2: Widget change source',
-      organization_id: parseInt(this.props.organization.id, 10),
-      source: value,
-    });
-    this.setState(prevState => {
-      return {
-        ...prevState,
-        source: value,
-        selectedQuery: value === 'new' ? null : prevState.selectedQuery,
-      };
-    });
-  };
-
   render() {
     const {
       canRemove,
@@ -125,95 +73,42 @@ class WidgetQueryForm extends React.Component<Props, State> {
       selection,
       widgetQuery,
     } = this.props;
-    const {selectedQuery, source} = this.state;
 
     return (
       <QueryWrapper>
-        <QueryFieldWrapper>
-          <Field
-            data-test-id="source"
-            label="Source"
-            inline={false}
-            flexibleControlStateSize
-            stacked
-            required
-          >
-            <RadioGroup
-              orientInline
-              value={this.state.source}
-              label=""
-              onChange={this.handleSourceChange}
-              choices={[
-                ['new', t('New Query')],
-                ['existing', t('Existing Discover Query')],
-              ]}
-            />
-          </Field>
-          {canRemove && (
+        {canRemove && (
+          <DeleteRow>
             <Button
               data-test-id="remove-query"
-              size="zero"
-              borderless
+              size="xsmall"
+              priority="danger"
               onClick={this.props.onRemove}
               icon={<IconDelete />}
-              title={t('Remove this query')}
             />
-          )}
-        </QueryFieldWrapper>
-        {source === 'new' && (
-          <Field
-            data-test-id="new-query"
-            label={t('Query')}
-            inline={false}
-            flexibleControlStateSize
-            stacked
-            error={errors?.conditions}
-            required
-          >
-            <SearchBar
-              organization={organization}
-              projectIds={selection.projects}
-              query={widgetQuery.conditions}
-              fields={[]}
-              onSearch={this.handleFieldChange('conditions')}
-              onBlur={this.handleFieldChange('conditions')}
-              useFormWrapper={false}
-            />
-          </Field>
+          </DeleteRow>
         )}
-        {source === 'existing' && (
-          <Feature organization={organization} features={['discover-query']}>
-            {({hasFeature}) => (
-              <Field
-                data-test-id="discover-query"
-                label={t('Query')}
-                inline={false}
-                flexibleControlStateSize
-                stacked
-                required
-              >
-                <SelectControl
-                  async
-                  defaultOptions
-                  value={selectedQuery}
-                  name="discoverQuery"
-                  loadOptions={this.handleLoadOptions}
-                  onChange={this.handleSavedQueryChange}
-                  options={[]}
-                  disabled={!hasFeature}
-                  cache
-                  onSelectResetsInput={false}
-                  onCloseResetsInput={false}
-                  onBlurResetsInput={false}
-                />
-              </Field>
-            )}
-          </Feature>
-        )}
+        <Field
+          data-test-id="new-query"
+          label={t('Query')}
+          inline={false}
+          flexibleControlStateSize
+          stacked
+          error={errors?.conditions}
+        >
+          <SearchBar
+            organization={organization}
+            projectIds={selection.projects}
+            query={widgetQuery.conditions}
+            fields={[]}
+            onSearch={this.handleFieldChange('conditions')}
+            onBlur={this.handleFieldChange('conditions')}
+            useFormWrapper={false}
+          />
+        </Field>
         {canRemove && (
           <Field
             data-test-id="Query Name"
-            label="Y-Axis"
+            label={t('Legend Alias')}
             inline={false}
             flexibleControlStateSize
             stacked
@@ -235,13 +130,39 @@ class WidgetQueryForm extends React.Component<Props, State> {
           fields={widgetQuery.fields}
           onChange={this.handleFieldsChange}
         />
+        {displayType === 'table' && (
+          <Field
+            label={t('Sort by')}
+            inline={false}
+            flexibleControlStateSize
+            stacked
+            error={errors?.orderby}
+          >
+            <SelectControl
+              value={widgetQuery.orderby}
+              name="orderby"
+              options={generateOrderOptions(widgetQuery.fields)}
+              onChange={(option: SelectValue<string>) =>
+                this.handleFieldChange('orderby')(option.value)
+              }
+              onSelectResetsInput={false}
+              onCloseResetsInput={false}
+              onBlurResetsInput={false}
+            />
+          </Field>
+        )}
       </QueryWrapper>
     );
   }
 }
 
 const QueryWrapper = styled('div')`
-  padding-bottom: ${space(2)};
+  padding-bottom: ${space(3)};
+  position: relative;
+`;
+
+const DeleteRow = styled('div')`
+  text-align: right;
 `;
 
 export default WidgetQueryForm;

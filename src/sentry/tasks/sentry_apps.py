@@ -26,6 +26,7 @@ from sentry.models.sentryapp import VALID_EVENTS, track_response_code
 from sentry.shared_integrations.exceptions import (
     ApiHostError,
     ApiTimeoutError,
+    ClientError,
     IgnorableSentryAppError,
 )
 from sentry.tasks.base import instrumented_task, retry
@@ -45,7 +46,7 @@ TASK_OPTIONS = {
 
 RETRY_OPTIONS = {
     "on": (RequestException, ApiHostError, ApiTimeoutError),
-    "ignore": (IgnorableSentryAppError,),
+    "ignore": (IgnorableSentryAppError, ClientError),
 }
 
 # We call some models by a different name, publicly, than their class name.
@@ -77,7 +78,7 @@ def _webhook_event_data(event, group_id, project_id):
     # The URL has a regex OR in it ("|") which means `reverse` cannot generate
     # a valid URL (it can't know which option to pick). We have to manually
     # create this URL for, that reason.
-    event_context["issue_url"] = absolute_uri("/api/0/issues/{}/".format(group_id))
+    event_context["issue_url"] = absolute_uri(f"/api/0/issues/{group_id}/")
 
     return event_context
 
@@ -167,7 +168,7 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
         # we hit the max number of retries.
         return retryer.retry(exc=e)
 
-    event = "{}.{}".format(name, action)
+    event = f"{name}.{action}"
 
     if event not in VALID_EVENTS:
         return
@@ -194,12 +195,6 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
             send_webhooks(installation, event, data=data)
 
         metrics.incr("resource_change.processed", sample_rate=1.0, tags={"change_event": event})
-
-
-@instrumented_task("sentry.tasks.process_resource_change", **TASK_OPTIONS)
-@retry(**RETRY_OPTIONS)
-def process_resource_change(action, sender, instance_id, *args, **kwargs):
-    _process_resource_change(action, sender, instance_id, *args, **kwargs)
 
 
 @instrumented_task("sentry.tasks.process_resource_change_bound", bind=True, **TASK_OPTIONS)
@@ -259,7 +254,7 @@ def workflow_notification(installation_id, issue_id, type, user_id, *args, **kwa
     data = kwargs.get("data", {})
     data.update({"issue": serialize(issue)})
 
-    send_webhooks(installation=install, event="issue.{}".format(type), data=data, actor=user)
+    send_webhooks(installation=install, event=f"issue.{type}", data=data, actor=user)
 
 
 def notify_sentry_app(event, futures):
@@ -344,7 +339,7 @@ def send_and_save_webhook_request(sentry_app, app_platform_event, url=None):
     buffer = SentryAppWebhookRequestsBuffer(sentry_app)
 
     org_id = app_platform_event.install.organization_id
-    event = "{}.{}".format(app_platform_event.resource, app_platform_event.action)
+    event = f"{app_platform_event.resource}.{app_platform_event.action}"
     slug = sentry_app.slug_for_metrics
     url = url or sentry_app.webhook_url
 
@@ -385,6 +380,9 @@ def send_and_save_webhook_request(sentry_app, app_platform_event, url=None):
 
         elif resp.status_code == 504:
             raise ApiTimeoutError.from_request(resp.request)
+
+        if 400 <= resp.status_code < 500:
+            raise ClientError(resp.status_code, url, response=resp)
 
         resp.raise_for_status()
 

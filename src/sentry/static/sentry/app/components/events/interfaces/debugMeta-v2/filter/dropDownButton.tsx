@@ -11,7 +11,7 @@ type Props = {
   checkedQuantity: number;
 };
 
-const DropDownButton = ({isOpen, getActorProps, checkedQuantity}: Props) => {
+function DropDownButton({isOpen, getActorProps, checkedQuantity}: Props) {
   if (checkedQuantity > 0) {
     return (
       <StyledDropdownButton
@@ -36,15 +36,19 @@ const DropDownButton = ({isOpen, getActorProps, checkedQuantity}: Props) => {
       {t('Filter By')}
     </StyledDropdownButton>
   );
-};
+}
 
 export default DropDownButton;
 
 const StyledDropdownButton = styled(DropdownButton)`
-  border-right: 0;
   z-index: ${p => p.theme.zIndex.dropdown};
+  border-radius: ${p => p.theme.borderRadius};
   max-width: 200px;
   white-space: nowrap;
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    border-right: 0;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
 `;

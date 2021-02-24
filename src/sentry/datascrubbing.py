@@ -1,5 +1,4 @@
 import copy
-import six
 
 import sentry_relay
 from rest_framework import serializers
@@ -87,7 +86,7 @@ def scrub_data(project, event):
             "datascrubbing.config.num_applications", len(config.get("applications") or ())
         )
         total_rules = 0
-        for selector, rules in six.iteritems(config.get("applications") or {}):
+        for selector, rules in (config.get("applications") or {}).items():
             metrics.timing("datascrubbing.config.selectors.size", len(selector))
             metrics.timing("datascrubbing.config.rules_per_selector.size", len(rules))
             total_rules += len(rules)
@@ -113,20 +112,20 @@ def _merge_pii_configs(prefixes_and_configs):
             continue
 
         rules = partial_config.get("rules") or {}
-        for rule_name, rule in six.iteritems(rules):
-            prefixed_rule_name = "{}{}".format(prefix, rule_name)
+        for rule_name, rule in rules.items():
+            prefixed_rule_name = f"{prefix}{rule_name}"
             merged_config.setdefault("rules", {})[
                 prefixed_rule_name
             ] = _prefix_rule_references_in_rule(rules, rule, prefix)
 
-        for selector, applications in six.iteritems(partial_config.get("applications") or {}):
+        for selector, applications in (partial_config.get("applications") or {}).items():
             merged_applications = merged_config.setdefault("applications", {}).setdefault(
                 selector, []
             )
 
             for application in applications:
                 if application in rules:
-                    prefixed_rule_name = "{}{}".format(prefix, application)
+                    prefixed_rule_name = f"{prefix}{application}"
                     merged_applications.append(prefixed_rule_name)
                 else:
                     merged_applications.append(application)
@@ -153,7 +152,7 @@ def _prefix_rule_references_in_rule(custom_rules, rule_def, prefix):
     if rule_def.get("type") == "multiple" and rule_def.get("rules"):
         rule_def = copy.deepcopy(rule_def)
         rule_def["rules"] = list(
-            "{}{}".format(prefix, x) if x in custom_rules else x for x in rule_def["rules"]
+            f"{prefix}{x}" if x in custom_rules else x for x in rule_def["rules"]
         )
     elif (
         rule_def.get("type") == "multiple"

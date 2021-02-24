@@ -119,14 +119,9 @@ register("cloudflare.secret-key", default="")
 # Slack Integration
 register("slack.client-id", flags=FLAG_PRIORITIZE_DISK)
 register("slack.client-secret", flags=FLAG_PRIORITIZE_DISK)
+# signing-secret is preferred, but need to keep verification-token for apps that use it
 register("slack.verification-token", flags=FLAG_PRIORITIZE_DISK)
 register("slack.signing-secret", flags=FLAG_PRIORITIZE_DISK)
-register("slack.legacy-app", flags=FLAG_PRIORITIZE_DISK, type=Bool, default=True)
-
-# Slack V2 Integration
-register("slack-v2.client-id", flags=FLAG_PRIORITIZE_DISK)
-register("slack-v2.client-secret", flags=FLAG_PRIORITIZE_DISK)
-register("slack-v2.signing-secret", flags=FLAG_PRIORITIZE_DISK)
 
 # GitHub Integration
 register("github-app.id", default=0)
@@ -169,9 +164,11 @@ register("msteams.app-id")
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK)
 register("aws-lambda.secret-access-key", flags=FLAG_PRIORITIZE_DISK)
 register("aws-lambda.cloudformation-url")
-register("aws-lambda.account-number")
-register("aws-lambda.node.layer-name")
+register("aws-lambda.account-number", default="943013980633")
+register("aws-lambda.node.layer-name", default="SentryNodeServerlessSDK")
 register("aws-lambda.node.layer-version")
+register("aws-lambda.python.layer-name", default="SentryPythonServerlessSDK")
+register("aws-lambda.python.layer-version")
 # the region of the host account we use for assuming the role
 register("aws-lambda.host-region", default="us-east-2")
 
@@ -253,9 +250,6 @@ register("eventstore.use-nodestore", default=False, flags=FLAG_PRIORITIZE_DISK)
 
 # Alerts / Workflow incremental rollout rate. Tied to feature handlers in getsentry
 register("workflow.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
-
-# Incremental rollout rate for Workflow Owners related features.
-register("workflow-owners.rollout-rate", default=0, flags=FLAG_PRIORITIZE_DISK)
 
 # Performance metric alerts incremental rollout rate. Tied to feature handlers
 # in getsentry

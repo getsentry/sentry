@@ -12,16 +12,17 @@ type Props = {
   ) => React.ReactNode;
   provider: IntegrationProvider;
   onInstall: (data: IntegrationWithConfig) => void;
-  integrationId?: string;
   account?: string;
   organization?: Organization; //for analytics
   analyticsParams?: {
     view:
       | 'integrations_directory_integration_detail'
       | 'integrations_directory'
-      | 'onboarding';
+      | 'onboarding'
+      | 'project_creation';
     already_installed: boolean;
   };
+  modalParams?: {[key: string]: string};
 };
 
 export default class AddIntegration extends React.Component<Props> {
@@ -62,16 +63,9 @@ export default class AddIntegration extends React.Component<Props> {
   }
 
   openDialog = (urlParams?: {[key: string]: string}) => {
-    const {integrationId} = this.props;
-    //if we have the integrationId, it's used for the re-auth flow
     trackIntegrationEvent(
+      'integrations.installation_start',
       {
-        eventKey: integrationId
-          ? 'integrations.reauth_start'
-          : 'integrations.installation_start',
-        eventName: integrationId
-          ? 'Integrations: Reauth Start'
-          : 'Integrations: Installation Start',
         integration: this.props.provider.key,
         integration_type: 'first_party',
         ...this.props.analyticsParams,
@@ -82,14 +76,14 @@ export default class AddIntegration extends React.Component<Props> {
     const {url, width, height} = this.props.provider.setupDialog;
     const {left, top} = this.computeCenteredWindow(width, height);
 
-    const query: {[key: string]: string} = {...urlParams};
-
-    if (integrationId) {
-      query.integration_id = integrationId;
-    }
+    let query: {[key: string]: string} = {...urlParams};
 
     if (this.props.account) {
       query.account = this.props.account;
+    }
+
+    if (this.props.modalParams) {
+      query = {...query, ...this.props.modalParams};
     }
 
     const installUrl = `${url}?${queryString.stringify(query)}`;
@@ -100,7 +94,6 @@ export default class AddIntegration extends React.Component<Props> {
   };
 
   didReceiveMessage = (message: MessageEvent) => {
-    const {integrationId} = this.props;
     if (message.origin !== document.location.origin) {
       return;
     }
@@ -121,13 +114,8 @@ export default class AddIntegration extends React.Component<Props> {
       return;
     }
     trackIntegrationEvent(
+      'integrations.installation_complete',
       {
-        eventKey: integrationId
-          ? 'integrations.reauth_complete'
-          : 'integrations.installation_complete',
-        eventName: integrationId
-          ? 'Integrations: Reauth Complete'
-          : 'Integrations: Installation Complete',
         integration: this.props.provider.key,
         integration_type: 'first_party',
         ...this.props.analyticsParams,

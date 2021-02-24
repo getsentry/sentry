@@ -11,7 +11,7 @@ def handle_project(project, stream):
     user_ids = mail_adapter.get_sendable_users(project)
     users = User.objects.in_bulk(user_ids)
     for user_id, email in get_email_addresses(user_ids, project).items():
-        stream.write("{}: {}\n".format(users[user_id].username, email))
+        stream.write(f"{users[user_id].username}: {email}\n")
 
 
 class Command(BaseCommand):

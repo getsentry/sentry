@@ -13,6 +13,7 @@ import SelectControl from 'app/components/forms/selectControl';
 import PageHeading from 'app/components/pageHeading';
 import PlatformPicker from 'app/components/platformPicker';
 import Tooltip from 'app/components/tooltip';
+import categoryList from 'app/data/platformCategories';
 import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
 import {inputStyles} from 'app/styles/input';
@@ -26,6 +27,9 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
 import IssueAlertOptions from 'app/views/projectInstall/issueAlertOptions';
+
+const getCategoryName = (category?: string) =>
+  categoryList.find(({id}) => id === category)?.id;
 
 type RuleEventData = {
   eventKey: string;
@@ -81,6 +85,11 @@ class CreateProject extends React.Component<Props, State> {
     };
   }
 
+  get defaultCategory() {
+    const {query} = this.context.location;
+    return getCategoryName(query.category);
+  }
+
   renderProjectForm() {
     const {organization} = this.props;
     const {projectName, platform, team} = this.state;
@@ -107,7 +116,6 @@ class CreateProject extends React.Component<Props, State> {
           <FormLabel>{t('Team')}</FormLabel>
           <TeamSelectInput>
             <SelectControl
-              deprecatedSelectControl
               name="select-team"
               clearable={false}
               value={team}
@@ -302,7 +310,12 @@ class CreateProject extends React.Component<Props, State> {
             )}
           </HelpText>
           <PageHeading withMargins>{t('Choose a platform')}</PageHeading>
-          <PlatformPicker platform={platform} setPlatform={this.setPlatform} showOther />
+          <PlatformPicker
+            platform={platform}
+            defaultCategory={this.defaultCategory}
+            setPlatform={this.setPlatform}
+            showOther
+          />
           <IssueAlertOptions
             onChange={updatedData => {
               this.setState({dataFragment: updatedData});

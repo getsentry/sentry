@@ -7,6 +7,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model, JSONField
+from sentry.models import Activity
 from sentry.signals import inbox_in, inbox_out
 
 INBOX_REASON_DETAILS = {
@@ -29,6 +30,12 @@ class GroupInboxReason(Enum):
     REGRESSION = 2
     MANUAL = 3
     REPROCESSED = 4
+
+
+class GroupInboxRemoveAction(Enum):
+    RESOLVED = "resolved"
+    IGNORED = "ignored"
+    MARK_REVIEWED = "mark_reviewed"
 
 
 class GroupInbox(Model):
@@ -59,7 +66,7 @@ def add_group_to_inbox(group, reason, reason_details=None):
     try:
         jsonschema.validate(reason_details, INBOX_REASON_DETAILS)
     except jsonschema.ValidationError:
-        logging.error("GroupInbox invalid jsonschema: {}".format(reason_details))
+        logging.error(f"GroupInbox invalid jsonschema: {reason_details}")
         reason_details = None
 
     group_inbox, created = GroupInbox.objects.get_or_create(
@@ -84,19 +91,29 @@ def add_group_to_inbox(group, reason, reason_details=None):
     return group_inbox
 
 
-def remove_group_from_inbox(group, action=None, user=None):
+def remove_group_from_inbox(group, action=None, user=None, referrer=None):
     try:
         group_inbox = GroupInbox.objects.get(group=group)
         group_inbox.delete()
 
-        inbox_out.send_robust(
-            group=group_inbox.group,
-            project=group_inbox.group.project,
-            user=user,
-            sender="remove_group_from_inbox",
-            action=action,
-            inbox_date_added=group_inbox.date_added,
-        )
+        if action is GroupInboxRemoveAction.MARK_REVIEWED and user is not None:
+            Activity.objects.create(
+                project_id=group_inbox.group.project_id,
+                group_id=group_inbox.group_id,
+                type=Activity.MARK_REVIEWED,
+                user=user,
+            )
+
+        if action:
+            inbox_out.send_robust(
+                group=group_inbox.group,
+                project=group_inbox.group.project,
+                user=user,
+                sender="remove_group_from_inbox",
+                action=action.value,
+                inbox_date_added=group_inbox.date_added,
+                referrer=referrer,
+            )
     except GroupInbox.DoesNotExist:
         pass
 

@@ -1,21 +1,26 @@
 import React from 'react';
-import {withInfo} from '@storybook/addon-info';
-import {text} from '@storybook/addon-knobs';
 
 import ClipboardTooltip from 'app/components/clipboardTooltip';
 
 export default {
   title: 'Core/Tooltips/ClipboardTooltip',
+  component: 'ClipboardTooltip',
+  args: {
+    title: 'Tooltip content',
+  },
 };
 
-export const _ClipboardTooltip = withInfo(
-  'Displays a hoverable tooltip with a copy icon.'
-)(() => (
-  <ClipboardTooltip title={text('tooltip', 'Tooltip content')}>
+export const _ClipboardTooltip = ({...args}) => (
+  <ClipboardTooltip {...args}>
     This text displays a tooltip when hovering
   </ClipboardTooltip>
-));
+);
 
-_ClipboardTooltip.story = {
-  name: 'ClipboardTooltip',
+_ClipboardTooltip.storyName = 'ClipboardTooltip';
+_ClipboardTooltip.parameters = {
+  docs: {
+    description: {
+      story: 'Displays a hoverable tooltip with a copy icon.',
+    },
+  },
 };
