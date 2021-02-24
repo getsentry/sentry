@@ -205,15 +205,15 @@ class IntegrationSetup extends React.Component<Props, State> {
   }
 
   renderPostInstallInstructions() {
-    const {organization, project} = this.props;
+    const {organization, project, platform} = this.props;
     const {provider} = this.state;
-    if (!project || !provider) {
+    if (!project || !provider || !platform) {
       return null;
     }
     return (
       <React.Fragment>
         {this.renderSetupInstructions()}
-        <PostInstallCodeSnippet provider={provider} isOnboarding />
+        <PostInstallCodeSnippet provider={provider} platform={platform} isOnboarding />
         <FirstEventFooter
           project={project}
           organization={organization}
