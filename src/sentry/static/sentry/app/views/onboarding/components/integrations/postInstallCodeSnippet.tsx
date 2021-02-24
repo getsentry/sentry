@@ -1,17 +1,23 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {PlatformKey} from 'app/data/platformCategories';
 import {t} from 'app/locale';
 import {IntegrationProvider} from 'app/types';
 
 type Props = {
   provider: IntegrationProvider;
   isOnboarding?: boolean;
+  platform?: PlatformKey;
 };
 
-export default function PostInstallCodeSnippet({provider, isOnboarding}: Props) {
-  //TODO: dyanically determine the snippet based on the language
-  //currently only supporting Node
+export default function PostInstallCodeSnippet({
+  provider,
+  platform,
+  isOnboarding,
+}: Props) {
+  //currently supporting both Python and Node
+  const token_punctuation: string = platform === 'python-awslambda' ? '()' : '();';
   return (
     <div>
       <p>
@@ -29,7 +35,7 @@ export default function PostInstallCodeSnippet({provider, isOnboarding}: Props) 
         <CodeWrapper>
           <code>
             <TokenFunction>myUndefinedFunction</TokenFunction>
-            <TokenPunctuation>();</TokenPunctuation>
+            <TokenPunctuation>{token_punctuation}</TokenPunctuation>)
           </code>
         </CodeWrapper>
       </div>

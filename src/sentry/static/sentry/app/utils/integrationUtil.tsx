@@ -201,4 +201,5 @@ export const getIntegrationIcon = (integrationType?: string, size?: string) => {
 //determines what integration maps to what project platform
 export const platfromToIntegrationMap = {
   'node-awslambda': 'aws_lambda',
+  'python-awslambda': 'aws_lambda',
 };
