@@ -116,11 +116,11 @@ function QuickTraceQuery({event, children, ...props}: QueryProps) {
     >
       {({tableData, ...rest}) =>
         children({
-          // Without casting this to include undefined as a possible value,
-          // the compiled js only coalesces null values to null.
-          // Changing the type in GenericDiscoverQuery to TraceLite | undefined
-          // does not work either.
-          trace: (tableData as TraceLite | null | undefined) ?? null,
+          // This is using '||` instead of '??` here because
+          // the client returns a empty string when the response
+          // is 204. And we want the empty string, undefined and
+          // null to be converted to null.
+          trace: tableData || null,
           ...rest,
         })
       }
