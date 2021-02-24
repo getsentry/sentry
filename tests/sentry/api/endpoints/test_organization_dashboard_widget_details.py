@@ -96,10 +96,10 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert response.status_code == 200, response.data
 
     def test_project_search_condition(self):
-        team = self.create_team(organization=self.org)
-        self.project = self.create_project(name="foo", organization=self.org, teams=[team])
+        team = self.create_team(organization=self.organization)
+        self.project = self.create_project(name="foo", organization=self.organization, teams=[team])
 
-        self.create_member(teams=[team], user=self.user, organization=self.org)
+        self.create_member(teams=[team], user=self.user, organization=self.organization)
         data = {
             "title": "EPM Big Number",
             "displayType": "big_number",
