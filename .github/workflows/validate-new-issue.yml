@@ -28,7 +28,10 @@ jobs:
           REASON_EXACT_MATCH="you created an issue from a template without filling in anything"
           REASON_EMPTY="you created an empty issue"
 
+          BASE_CASE_TITLE="validation bot is confused"
+
           # Definition of valid:
+          # - is a report about buggy validation 😅 or ...
           # - not empty (ignoring whitespace)
           # - matches a template
           #   - all the headings are also in this issue
@@ -36,6 +39,13 @@ jobs:
           #   - order doesn't matter
           #   - case-sensitive tho
           # - not an *exact* match for a template (ignoring whitespace)
+
+          jq -r .issue.title "$GITHUB_EVENT_PATH" > issue-title
+          if diff issue-title <(echo "$BASE_CASE_TITLE") > /dev/null; then
+            echo "Infinite recursion avoided."
+            exit 0
+          fi
+
           function extract-headings { { sed 's/\r$//' "$1" | grep '^#' || echo -n ''; } | sort; }
           jq -r .issue.body "$GITHUB_EVENT_PATH" > issue
           if ! grep -q '[^[:space:]]' issue; then
@@ -69,7 +79,7 @@ jobs:
 
           # Failed validation! Close the issue with a comment.
           cat << EOF > comment
-          Sorry, friend. As far as this ol' bot can tell, ${REASON}. Please [try again](https://github.com/${{ github.repository }}/issues/new/choose), if you like. (And if I'm confused, please [let us know](https://github.com/getsentry/.github/issues/new?title=template+enforcer+is+confused&body=${{ github.event.issue.html_url }}). 😬)
+          Sorry, friend. As far as this ol' bot can tell, ${REASON}. Please [try again](https://github.com/${{ github.repository }}/issues/new/choose), if you like. (And if I'm confused, please [let us know](https://github.com/getsentry/.github/issues/new?title=$(echo "$BASE_CASE_TITLE" | tr ' ' '+')&body=${{ github.event.issue.html_url }}). 😬)
 
           ----
 
