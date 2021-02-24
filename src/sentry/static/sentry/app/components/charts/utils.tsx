@@ -19,6 +19,11 @@ export const ONE_WEEK = 10080;
 export const TWENTY_FOUR_HOURS = 1440;
 export const ONE_HOUR = 60;
 
+/**
+ * If there are more releases than this number we hide "Releases" series by default
+ */
+export const RELEASE_LINES_THRESHOLD = 50;
+
 export type DateTimeObject = Partial<GlobalSelection['datetime']>;
 
 export function truncationFormatter(

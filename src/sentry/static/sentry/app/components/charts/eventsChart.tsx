@@ -13,7 +13,7 @@ import LineChart from 'app/components/charts/lineChart';
 import ReleaseSeries from 'app/components/charts/releaseSeries';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
-import {getInterval} from 'app/components/charts/utils';
+import {getInterval, RELEASE_LINES_THRESHOLD} from 'app/components/charts/utils';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import {DateString, OrganizationSummary} from 'app/types';
@@ -155,12 +155,11 @@ class Chart extends React.Component<ChartProps, State> {
     }
 
     // Temporary fix to improve performance on pages with a high number of releases.
-    // Picked 1000 as it is the size of the first page
     const releases = releaseSeries && releaseSeries[0];
     const hideReleasesByDefault =
       Array.isArray(releaseSeries) &&
       (releases as any)?.markLine?.data &&
-      (releases as any).markLine.data.length >= 1000;
+      (releases as any).markLine.data.length >= RELEASE_LINES_THRESHOLD;
 
     const selected = !Array.isArray(releaseSeries)
       ? seriesSelection
