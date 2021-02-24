@@ -35,6 +35,11 @@ class GetDateRangeFromParamsTest(TestCase):
         assert start == datetime.datetime(2018, 11, 1, tzinfo=timezone.utc)
         assert end == datetime.datetime(2018, 11, 7, tzinfo=timezone.utc)
 
+        with self.assertRaises(InvalidParams):
+            get_date_range_from_params(
+                {"start": "2018-11-01T00:00:00", "end": "2018-11-01T00:00:00"}
+            )
+
     @freeze_time("2018-12-11 03:21:34")
     def test_no_params(self):
         start, end = get_date_range_from_params({})
