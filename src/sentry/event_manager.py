@@ -404,7 +404,11 @@ class EventManager:
 
         try:
             job["group"], job["is_new"], job["is_regression"] = save_aggregate_fn(
-                event=job["event"], flat_hashes=flat_hashes, hierarchical_hashes=hierarchical_hashes, release=job["release"], **kwargs
+                event=job["event"],
+                flat_hashes=flat_hashes,
+                hierarchical_hashes=hierarchical_hashes,
+                release=job["release"],
+                **kwargs,
             )
         except HashDiscarded:
             discard_event(job, attachments)
@@ -922,9 +926,15 @@ def _find_group_id(all_hashes):
 
 
 def _save_aggregate2(event, flat_hashes, hierarchical_hashes, release, **kwargs):
+    """
+    A rewrite of _save_aggregate that is supposed to eliminate races using DB transactions.
+    """
+
     project = event.project
 
-    all_hashes = [GroupHash.objects.get_or_create(project=project, hash=hash)[0] for hash in flat_hashes]
+    all_hashes = [
+        GroupHash.objects.get_or_create(project=project, hash=hash)[0] for hash in flat_hashes
+    ]
     existing_group_id = _find_group_id(all_hashes)
 
     if existing_group_id is None:
@@ -971,12 +981,43 @@ def _save_aggregate2(event, flat_hashes, hierarchical_hashes, release, **kwargs)
                 return group, is_new, is_regression
 
     group = Group.objects.get(id=existing_group_id)
+
     is_new = False
+    new_hashes = [h for h in all_hashes if h.group_id is None]
+
+    if new_hashes:
+        # There may still be secondary hashes that we did not use to find an
+        # existing group. A classic example is when grouping makes changes to
+        # the app-hash (changes to in_app logic), but the system hash stays
+        # stable and is used to find an existing group. Associate any new
+        # hashes with the group such that event saving continues to be
+        # resilient against grouping algorithm changes.
+        #
+        # There is a race condition here where two processes could "steal"
+        # hashes from each other. In practice this should not be user-visible
+        # as group creation is synchronized. Meaning the only way hashes could
+        # jump between groups is if there were two processes that:
+        #
+        # 1) have BOTH found an existing group
+        #    (otherwise at least one of them would be in the group creation
+        #    codepath which has transaction isolation/acquires row locks)
+        # 2) AND are looking at the same set, or an overlapping set of hashes
+        #    (otherwise they would not operate on the same rows)
+        # 3) yet somehow also sort their event into two different groups each
+        #    (otherwise the update would not change anything)
+        #
+        # We think this is a very unlikely situation. A previous version of
+        # _save_aggregate had races around group creation which made this race
+        # more user visible. For more context, see 84c6f75a and d0e22787, as
+        # well as GH-5085.
+        GroupHash.objects.filter(id__in=[h.id for h in new_hashes]).exclude(
+            state=GroupHash.State.LOCKED_IN_MIGRATION
+        ).update(group=group)
+
     is_regression = _process_existing_aggregate(
         group=group, event=event, data=kwargs, release=release
     )
-    # new_hashes is not updated here like in the original _save_aggregate,
-    # not sure if it matters though
+
     return group, is_new, is_regression
 
 
