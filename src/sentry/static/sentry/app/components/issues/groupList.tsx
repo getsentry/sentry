@@ -216,7 +216,7 @@ class GroupList extends React.Component<Props, State> {
     return (
       <React.Fragment>
         <Panel>
-          <GroupListHeader withChart={!!withChart} statsPeriod={statsPeriod} />
+          <GroupListHeader withChart={!!withChart} />
           <PanelBody>
             {groups.map(({id, project}) => {
               const members = memberList?.hasOwnProperty(project.slug)

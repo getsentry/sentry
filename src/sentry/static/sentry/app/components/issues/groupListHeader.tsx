@@ -8,10 +8,9 @@ import space from 'app/styles/space';
 
 type Props = {
   withChart: boolean;
-  statsPeriod?: '24h' | 'auto';
 };
 
-const GroupListHeader = ({withChart = true, statsPeriod = '24h'}: Props) => (
+const GroupListHeader = ({withChart = true}: Props) => (
   <PanelHeader disablePadding>
     <Box width={[8 / 12, 8 / 12, 6 / 12]} mx={2} flex="1">
       {t('Issue')}
@@ -23,10 +22,7 @@ const GroupListHeader = ({withChart = true, statsPeriod = '24h'}: Props) => (
         justifyContent="space-between"
         className="hidden-xs hidden-sm"
       >
-        {t('Graph: ')}
-        <StatsPeriodWrapper>
-          {statsPeriod === 'auto' ? t('Custom') : statsPeriod}
-        </StatsPeriodWrapper>
+        {t('Graph')}
       </Flex>
     )}
     <EventUserWrapper>{t('events')}</EventUserWrapper>
@@ -43,10 +39,6 @@ const GroupListHeader = ({withChart = true, statsPeriod = '24h'}: Props) => (
 );
 
 export default GroupListHeader;
-
-const StatsPeriodWrapper = styled('div')`
-  text-transform: none;
-`;
 
 const EventUserWrapper = styled('div')`
   display: flex;

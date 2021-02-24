@@ -1,5 +1,5 @@
 import React from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
@@ -11,6 +11,7 @@ import Button from 'app/components/button';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import {SectionHeading} from 'app/components/charts/styles';
 import {getInterval} from 'app/components/charts/utils';
+import DateTime from 'app/components/dateTime';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import Duration from 'app/components/duration';
 import * as Layout from 'app/components/layouts/thirds';
@@ -52,10 +53,12 @@ type Props = {
     start: string;
     end: string;
     label: string;
+    custom?: boolean;
   };
   organization: Organization;
   location: Location;
   theme: Theme;
+  handleTimePeriodChange: (value: string) => void;
 } & RouteComponentProps<{orgId: string}, {}>;
 
 class DetailsBody extends React.Component<Props> {
@@ -100,16 +103,6 @@ class DetailsBody extends React.Component<Props> {
 
     return getInterval({start, end}, true);
   }
-
-  handleTimePeriodChange = (value: string) => {
-    const {location} = this.props;
-    browserHistory.push({
-      pathname: location.pathname,
-      query: {
-        period: value,
-      },
-    });
-  };
 
   calculateSummaryPercentages(
     incidents: Incident[] | undefined,
@@ -362,20 +355,26 @@ class DetailsBody extends React.Component<Props> {
           return initiallyLoaded ? (
             <Layout.Body>
               <Layout.Main>
-                <DropdownControl
-                  buttonProps={{prefix: t('Display')}}
-                  label={timePeriod.label}
-                >
-                  {TIME_OPTIONS.map(({label, value}) => (
-                    <DropdownItem
-                      key={value}
-                      eventKey={value}
-                      onSelect={this.handleTimePeriodChange}
-                    >
-                      {label}
-                    </DropdownItem>
-                  ))}
-                </DropdownControl>
+                <ChartControls>
+                  <DropdownControl label={timePeriod.label}>
+                    {TIME_OPTIONS.map(({label, value}) => (
+                      <DropdownItem
+                        key={value}
+                        eventKey={value}
+                        onSelect={this.props.handleTimePeriodChange}
+                      >
+                        {label}
+                      </DropdownItem>
+                    ))}
+                  </DropdownControl>
+                  {timePeriod.custom && (
+                    <StyledTimeRange>
+                      <DateTime date={timePeriod.start} timeAndDate />
+                      {' — '}
+                      <DateTime date={timePeriod.end} timeAndDate />
+                    </StyledTimeRange>
+                  )}
+                </ChartControls>
                 <ChartPanel>
                   <PanelBody withPadding>
                     <ChartHeader>
@@ -549,6 +548,16 @@ const AlertIconWrapper = styled('div')`
 const SidebarHeading = styled(SectionHeading)`
   display: flex;
   justify-content: space-between;
+`;
+
+const ChartControls = styled('div')`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+`;
+
+const StyledTimeRange = styled('div')`
+  margin-left: ${space(2)};
 `;
 
 const ChartPanel = styled(Panel)`

@@ -1,11 +1,12 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router';
+import {browserHistory, RouteComponentProps} from 'react-router';
 import {Location} from 'history';
 import moment from 'moment';
 
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
+import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {getUtcDateString} from 'app/utils/dates';
 import withApi from 'app/utils/withApi';
@@ -41,7 +42,8 @@ class AlertRuleDetails extends React.Component<Props, State> {
       return {
         start: location.query.start,
         end: location.query.end,
-        label: 'Custom',
+        label: t('Custom time'),
+        custom: true,
       };
     }
 
@@ -93,6 +95,18 @@ class AlertRuleDetails extends React.Component<Props, State> {
     }
   };
 
+  handleTimePeriodChange = async (value: string) => {
+    const {location} = this.props;
+    await browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        period: value,
+      },
+    });
+
+    await this.fetchData();
+  };
+
   render() {
     const {rule, incidents, hasError} = this.state;
     const {params, organization} = this.props;
@@ -111,6 +125,7 @@ class AlertRuleDetails extends React.Component<Props, State> {
             rule={rule}
             incidents={incidents}
             timePeriod={timePeriod}
+            handleTimePeriodChange={this.handleTimePeriodChange}
           />
         </Feature>
       </React.Fragment>
