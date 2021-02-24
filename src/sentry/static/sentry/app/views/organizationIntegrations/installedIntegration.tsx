@@ -106,23 +106,15 @@ export default class InstalledIntegration extends React.Component<Props> {
               <IntegrationItem integration={integration} />
             </IntegrationItemBox>
             <div>
-              <Tooltip
-                disabled={hasAccess}
-                position="left"
-                title={t(
-                  'You must be an organization owner, manager or admin to configure'
-                )}
+              <StyledButton
+                borderless
+                icon={<IconSettings />}
+                disabled={!hasAccess || integration.status !== 'active'}
+                to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
+                data-test-id="integration-configure-button"
               >
-                <StyledButton
-                  borderless
-                  icon={<IconSettings />}
-                  disabled={!hasAccess || integration.status !== 'active'}
-                  to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
-                  data-test-id="integration-configure-button"
-                >
-                  {t('Configure')}
-                </StyledButton>
-              </Tooltip>
+                {t('Configure')}
+              </StyledButton>
             </div>
             <div>
               <Tooltip
