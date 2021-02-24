@@ -43,8 +43,8 @@ class CustomResolutionModal extends React.Component<Props, State> {
     version: '',
   };
 
-  onChange = (value: string) => {
-    this.setState({version: value});
+  onChange = (value: string | number | boolean) => {
+    this.setState({version: value as string}); // TODO(ts): Add select value type as generic to select controls
   };
 
   onAsyncFieldResults = (results: Release[]) =>

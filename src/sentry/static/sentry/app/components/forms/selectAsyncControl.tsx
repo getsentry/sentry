@@ -1,40 +1,33 @@
 import React from 'react';
 import debounce from 'lodash/debounce';
-import PropTypes from 'prop-types';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
 import handleXhrErrorResponse from 'app/utils/handleXhrErrorResponse';
 
-import SelectControl from './selectControl';
+import SelectControl, {ControlProps} from './selectControl';
+
+type Result = {
+  value: string;
+  label: string;
+};
+
+type Props = {
+  url: string;
+  onResults: (data: any) => Result[]; //TODO(ts): Improve data type
+  onQuery: (query: string | undefined) => {};
+  deprecatedSelectControl?: boolean;
+} & Pick<ControlProps, 'value' | 'forwardedRef'>;
+
+type State = {
+  query?: string;
+};
 
 /**
  * Performs an API request to `url` when menu is initially opened
  */
-class SelectAsyncControl extends React.Component {
-  static propTypes = {
-    deprecatedSelectControl: PropTypes.bool,
-
-    forwardedRef: PropTypes.any,
-    /**
-     * API endpoint URL
-     */
-    url: PropTypes.string.isRequired,
-
-    /**
-     * Parses the results of API call for the select component
-     */
-    onResults: PropTypes.func,
-
-    /**
-     * Additional query parameters when sending API request
-     */
-    onQuery: PropTypes.func,
-
-    value: PropTypes.any,
-  };
-
+class SelectAsyncControl extends React.Component<Props> {
   static defaultProps = {
     placeholder: '--',
   };
@@ -48,6 +41,8 @@ class SelectAsyncControl extends React.Component {
     this.cache = {};
   }
 
+  state: State = {};
+
   componentWillUnmount() {
     if (!this.api) {
       return;
@@ -55,6 +50,9 @@ class SelectAsyncControl extends React.Component {
     this.api.clear();
     this.api = null;
   }
+
+  api: Client | null;
+  cache: Record<string, any>;
 
   doQuery = debounce(cb => {
     const {url, onQuery} = this.props;
@@ -113,19 +111,18 @@ class SelectAsyncControl extends React.Component {
   };
 
   render() {
-    const {value} = this.props;
+    const {value, forwardedRef, ...props} = this.props;
 
     return (
       <SelectControl
-        ref={this.props.forwardedRef}
+        ref={forwardedRef}
         value={value}
         defaultOptions
         loadOptions={this.handleLoadOptions}
         onInputChange={this.handleInputChange}
-        onClear={this.handleClear}
         async
         cache={this.cache}
-        {...this.props}
+        {...props}
       />
     );
   }
