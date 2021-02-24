@@ -32,8 +32,9 @@ function createThresholdSeries(color: string, threshold: number): LineChartSerie
 }
 
 const MetricChart = ({data, incidents, warningTrigger, criticalTrigger}: Props) => {
-  // Iterate through incidents to add markers to chart
   const series: LineChartSeries[] = [...data];
+  // Ensure series data appears above incident lines
+  series[0].z = 100;
   const dataArr = data[0].data;
   const maxSeriesValue = dataArr.reduce(
     (currMax, coord) => Math.max(currMax, coord.value),
@@ -106,22 +107,23 @@ const MetricChart = ({data, incidents, warningTrigger, criticalTrigger}: Props) 
         } as any,
       }),
       data: [],
+      z: -100,
     };
-    series.unshift(incidentLinesSeries);
+    series.push(incidentLinesSeries);
   }
 
   let maxThresholdValue = 0;
   if (warningTrigger?.alertThreshold) {
     const {alertThreshold} = warningTrigger;
     const warningThresholdLine = createThresholdSeries(theme.yellow300, alertThreshold);
-    series.unshift(warningThresholdLine);
+    series.push(warningThresholdLine);
     maxThresholdValue = Math.max(maxThresholdValue, alertThreshold);
   }
 
   if (criticalTrigger?.alertThreshold) {
     const {alertThreshold} = criticalTrigger;
     const criticalThresholdLine = createThresholdSeries(theme.red300, alertThreshold);
-    series.unshift(criticalThresholdLine);
+    series.push(criticalThresholdLine);
     maxThresholdValue = Math.max(maxThresholdValue, alertThreshold);
   }
 
