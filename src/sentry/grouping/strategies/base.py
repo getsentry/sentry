@@ -161,11 +161,59 @@ class Strategy:
 
         assert isinstance(variants, dict)
 
+        rv = {}
+        has_mandatory_hashes = False
+        mandatory_contributing_hashes = {}
+        optional_contributing_variants = []
+        prevent_contribution = None
+
+        for variant, component in variants.items():
+            is_mandatory = variant[:1] == "!"
+            variant = variant.lstrip("!")
+
+            if is_mandatory:
+                has_mandatory_hashes = True
+
+            if component.contributes:
+                if is_mandatory:
+                    mandatory_contributing_hashes[component.get_hash()] = variant
+                else:
+                    optional_contributing_variants.append(variant)
+
+            rv[variant] = component
+
+        prevent_contribution = has_mandatory_hashes and not mandatory_contributing_hashes
+
+        for variant in optional_contributing_variants:
+            component = rv[variant]
+
+            # In case this variant contributes we need to check two things
+            # here: if we did not have a system match we need to prevent
+            # it from contributing.  Additionally if it matches the system
+            # component we also do not want the variant to contribute but
+            # with a different message.
+            if prevent_contribution:
+                component.update(
+                    contributes=False,
+                    hint="ignored because %s variant is not used"
+                    % (
+                        list(mandatory_contributing_hashes.values())[0]
+                        if len(mandatory_contributing_hashes) == 1
+                        else "other mandatory"
+                    ),
+                )
+            else:
+                hash = component.get_hash()
+                duplicate_of = mandatory_contributing_hashes.get(hash)
+                if duplicate_of is not None:
+                    component.update(
+                        contributes=False,
+                        hint="ignored because hash matches %s variant" % duplicate_of,
+                    )
+
         if self.variant_processor_func is not None:
-            variants = self._invoke(
-                self.variant_processor_func, variants, event=event, context=context
-            )
-        return variants
+            rv = self._invoke(self.variant_processor_func, rv, event=event, context=context)
+        return rv
 
 
 class StrategyConfiguration:
@@ -284,14 +332,23 @@ def produces_variants(variants):
     In the latter case, use this decorator to produce variants and eliminate
     duplicate hashes.
 
-    Syntax:
+    Syntax::
+
         # call decorated function twice with different variant values
         # (returning a new variant dictionary)
+        #
+        # Return value is a dictionary of `{"system": ..., "app": ...}`.
         @produces_variants(["system", "app"])
 
         # discard app variant if system variant produces the same hash, or if
         # the function returned None when invoked with `context['variant'] ==
-        # 'system'`
+        # 'system'`. The actual logic for discarding is within
+        # `Component.get_grouping_component_variants`, so hashes are compared
+        # at the outermost level of the tree.
+        #
+        # Return value is a dictionary of `{"!system": ..., "app": ...}`,
+        # however function is still called with `"system"` as
+        # `context["variant"]`.
         @produces_variants(["!system", "app"])
     """
 
@@ -316,62 +373,17 @@ def call_with_variants(f, variants, *args, **kwargs):
         return f(*args, **kwargs)
 
     rv = {}
-    has_mandatory_hashes = False
-    mandatory_contributing_hashes = {}
-    optional_contributing_variants = []
-    prevent_contribution = None
 
     for variant in variants:
-        is_mandatory = variant[:1] == "!"
-        variant = variant.lstrip("!")
-
         with context:
-            context["variant"] = variant
+            context["variant"] = variant.lstrip("!")
             variants = f(*args, **kwargs)
             assert len(variants) == 1
-            component = variants[variant]
+            component = variants[variant.lstrip("!")]
 
         if component is None:
             continue
 
-        if is_mandatory:
-            has_mandatory_hashes = True
-
-        if component.contributes:
-            if is_mandatory:
-                mandatory_contributing_hashes[component.get_hash()] = variant
-            else:
-                optional_contributing_variants.append(variant)
-
         rv[variant] = component
-
-    prevent_contribution = has_mandatory_hashes and not mandatory_contributing_hashes
-
-    for variant in optional_contributing_variants:
-        component = rv[variant]
-
-        # In case this variant contributes we need to check two things
-        # here: if we did not have a system match we need to prevent
-        # it from contributing.  Additionally if it matches the system
-        # component we also do not want the variant to contribute but
-        # with a different message.
-        if prevent_contribution:
-            component.update(
-                contributes=False,
-                hint="ignored because %s variant is not used"
-                % (
-                    list(mandatory_contributing_hashes.values())[0]
-                    if len(mandatory_contributing_hashes) == 1
-                    else "other mandatory"
-                ),
-            )
-        else:
-            hash = component.get_hash()
-            duplicate_of = mandatory_contributing_hashes.get(hash)
-            if duplicate_of is not None:
-                component.update(
-                    contributes=False,
-                    hint="ignored because hash matches %s variant" % duplicate_of,
-                )
 
     return rv
