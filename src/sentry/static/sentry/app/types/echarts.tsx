@@ -19,6 +19,7 @@ export type Series = {
     opacity: number;
   };
   lineStyle?: EChartOption.LineStyle;
+  itemStyle?: EChartOption.SeriesLine['itemStyle'];
   stack?: string; // https://echarts.apache.org/en/option.html#series-line.stack
   z?: number; // https://echarts.apache.org/en/option.html#series-line.z
 };

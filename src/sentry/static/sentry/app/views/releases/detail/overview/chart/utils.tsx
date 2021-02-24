@@ -187,6 +187,10 @@ export function initOtherSessionsBreakdownChartData(): ChartData {
         color: SESSIONS_CHART_PALETTE[3],
         opacity: 0.3,
       },
+      itemStyle: {
+        color: SESSIONS_CHART_PALETTE[3],
+        opacity: 0.3,
+      },
       lineStyle: {
         opacity: 0,
         width: 0.4,
@@ -199,6 +203,10 @@ export function initOtherSessionsBreakdownChartData(): ChartData {
       z: 0,
       color: SESSIONS_CHART_PALETTE[0],
       areaStyle: {
+        color: SESSIONS_CHART_PALETTE[0],
+        opacity: 0.3,
+      },
+      itemStyle: {
         color: SESSIONS_CHART_PALETTE[0],
         opacity: 0.3,
       },
@@ -217,6 +225,10 @@ export function initOtherSessionsBreakdownChartData(): ChartData {
         color: SESSIONS_CHART_PALETTE[1],
         opacity: 0.3,
       },
+      itemStyle: {
+        color: SESSIONS_CHART_PALETTE[1],
+        opacity: 0.3,
+      },
       lineStyle: {
         opacity: 0,
         width: 0.4,
@@ -229,6 +241,10 @@ export function initOtherSessionsBreakdownChartData(): ChartData {
       z: 0,
       color: SESSIONS_CHART_PALETTE[2],
       areaStyle: {
+        color: SESSIONS_CHART_PALETTE[2],
+        opacity: 0.3,
+      },
+      itemStyle: {
         color: SESSIONS_CHART_PALETTE[2],
         opacity: 0.3,
       },

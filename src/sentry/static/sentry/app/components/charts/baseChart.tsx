@@ -294,7 +294,7 @@ function BaseChartUnwrapped({
   onChartReady = () => {},
 }: Props) {
   const hasSinglePoints = (series as EChartOption.SeriesLine[] | undefined)?.every(
-    s => Array.isArray(s.data) && s.data.length === 1
+    s => Array.isArray(s.data) && s.data.length <= 1
   );
 
   const transformedSeries =
