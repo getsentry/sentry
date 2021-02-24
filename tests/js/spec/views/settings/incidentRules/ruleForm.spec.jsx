@@ -75,6 +75,7 @@ describe('Incident Rules Form', function () {
         rule: {
           ...rule,
           id: undefined,
+          eventTypes: ['default'],
         },
       });
 
@@ -90,6 +91,7 @@ describe('Incident Rules Form', function () {
           data: expect.objectContaining({
             name: 'Incident Rule',
             projects: ['project-slug'],
+            eventTypes: ['default'],
           }),
         })
       );

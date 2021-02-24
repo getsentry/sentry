@@ -206,6 +206,7 @@ class VercelIntegration(IntegrationInstallation):
 
     def update_organization_config(self, data):
         # data = {"project_mappings": [[sentry_project_id, vercel_project_id]]}
+
         vercel_client = self.get_client()
         config = self.org_integration.config
         try:
@@ -248,55 +249,53 @@ class VercelIntegration(IntegrationInstallation):
             )
 
             is_next_js = vercel_project.get("framework") == "nextjs"
-            dsn_secret_name = "NEXT_PUBLIC_SENTRY_DSN_%s" if is_next_js else "SENTRY_DSN_%s"
-
-            secret_names = [
-                "SENTRY_ORG_%s" % uuid,
-                "SENTRY_PROJECT_%s" % uuid,
-                dsn_secret_name % uuid,
-                "SENTRY_AUTH_TOKEN_%s" % uuid,
-            ]
-            values = [
-                sentry_project.organization.slug,
-                sentry_project.slug,
-                sentry_project_dsn,
-                sentry_auth_token,
-            ]
-
             dsn_env_name = "NEXT_PUBLIC_SENTRY_DSN" if is_next_js else "SENTRY_DSN"
 
-            env_var_names = [
-                "SENTRY_ORG",
-                "SENTRY_PROJECT",
-                dsn_env_name,
-                "SENTRY_AUTH_TOKEN",
-                "VERCEL_%s_COMMIT_SHA" % source_code_provider.upper(),
-            ]
+            env_var_map = {
+                "SENTRY_ORG": {"type": "plain", "value": sentry_project.organization.slug},
+                "SENTRY_PROJECT": {"type": "plain", "value": sentry_project.slug},
+                dsn_env_name: {"type": "plain", "value": sentry_project_dsn},
+                "SENTRY_AUTH_TOKEN": {"type": "secret", "value": sentry_auth_token},
+                "VERCEL_GIT_COMMIT_SHA": {"type": "system", "value": "VERCEL_GIT_COMMIT_SHA"},
+            }
 
-            secrets = []
-            for name, val in zip(secret_names, values):
-                secrets.append(vercel_client.create_secret(vercel_project_id, name, val))
-
-            secrets.append("")
-            for secret, env_var in zip(secrets, env_var_names):
-                self.create_env_var(vercel_client, vercel_project_id, env_var, secret)
+            for env_var, details in env_var_map.items():
+                if details["type"] == "secret":
+                    secret_name = env_var + "_%s" % uuid
+                    secret_value = vercel_client.create_secret(secret_name, details["value"])
+                    details["value"] = secret_value
+                self.create_env_var(
+                    vercel_client, vercel_project_id, env_var, details["value"], details["type"]
+                )
 
         config.update(data)
         self.org_integration.update(config=config)
 
-    def env_var_already_exists(self, client, vercel_project_id, name):
-        return any(
-            [
-                env_var
-                for env_var in client.get_env_vars(vercel_project_id)
-                if env_var["key"] == name
-            ]
-        )
+    def create_env_var(self, client, vercel_project_id, key, value, type):
+        data = {
+            "key": key,
+            "value": value,
+            "target": ["production"],
+            "type": type,
+        }
+        try:
+            return client.create_env_variable(vercel_project_id, data)
+        except ApiError as e:
+            if e.json and e.json.get("error", {}).get("code") == "ENV_ALREADY_EXISTS":
+                return self.update_env_variable(client, vercel_project_id, data)
+            raise
 
-    def create_env_var(self, client, vercel_project_id, key, value):
-        if not self.env_var_already_exists(client, vercel_project_id, key):
-            return client.create_env_variable(vercel_project_id, key, value)
-        client.update_env_variable(vercel_project_id, key, value)
+    def update_env_variable(self, client, vercel_project_id, data):
+        envs = client.get_env_vars(vercel_project_id)["envs"]
+
+        env_var_ids = [env_var["id"] for env_var in envs if env_var["key"] == data["key"]]
+        if env_var_ids:
+            return client.update_env_variable(vercel_project_id, env_var_ids[0], data)
+
+        key = data["key"]
+        raise IntegrationError(
+            f"Could not update environment variable {key} in Vercel project {vercel_project_id}."
+        )
 
 
 class VercelIntegrationProvider(IntegrationProvider):
