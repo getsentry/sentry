@@ -346,9 +346,9 @@ class NormalizeInApptest(TestCase):
         self.ios_function_name_in_app_detection(function="-[RNSentry]", isInApp=False)
         self.ios_function_name_in_app_detection(function="-[MyRNSentry ]", isInApp=True)
 
-        self.ios_function_name_in_app_detection(function="+[Sentry ]", isInApp=False)
-        self.ios_function_name_in_app_detection(function="-[Sentry]", isInApp=False)
-        self.ios_function_name_in_app_detection(function="-[Sentry]", isInApp=False)
+        self.ios_function_name_in_app_detection(function="+[Sentry ]", isInApp=True)
+        self.ios_function_name_in_app_detection(function="-[Sentry]", isInApp=True)
+        self.ios_function_name_in_app_detection(function="-[Sentry]", isInApp=True)
         self.ios_function_name_in_app_detection(function="-[MySentry capture]", isInApp=True)
 
         self.ios_function_name_in_app_detection(
@@ -377,6 +377,18 @@ class NormalizeInApptest(TestCase):
         )
         self.ios_function_name_in_app_detection(
             function="-[SentryDebugMetaBuilder buildDebugMeta:withScope:]", isInApp=False
+        )
+        self.ios_function_name_in_app_detection(
+            function="-[SentryCrashAdapter crashedLastLaunch]", isInApp=False
+        )
+        self.ios_function_name_in_app_detection(
+            function="-[SentryCrashAdapter isRateLimitActive:]", isInApp=False
+        )
+        self.ios_function_name_in_app_detection(
+            function="-[SentryTransport sendEvent:attachments:]", isInApp=False
+        )
+        self.ios_function_name_in_app_detection(
+            function="-[SentryHttpTransport sendEvent:attachments:]", isInApp=False
         )
 
 

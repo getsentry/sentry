@@ -28,10 +28,36 @@ family:native package:**/Frameworks/Sentry.framework/**              -app
 # Since 6.3.0, the Cocoa SKD only marks the main executable as inApp. This change doesn't impact
 # applications using static libraries, as when using static libraries, all of them end up in the
 # main executable.
-family:native function:kscm_*                                     -app -group
-family:native function:sentrycrashcm_*                            -app -group
-family:native function:kscrash_*                                  -app -group
-family:native function:sentrycrash_*                              -app -group
-family:native function:"?[[]KSCrash*"                             -app -group
-family:native function:"?[[]RNSentry*"                            -app -group
-family:native function:"?[[]Sentry*"                              -app -group
+family:native function:kscm_*                                        -app -group
+family:native function:sentrycrashcm_*                               -app -group
+family:native function:kscrash_*                                     -app -group
+family:native function:sentrycrash_*                                 -app -group
+family:native function:"?[[]KSCrash*"                                -app -group
+family:native function:"?[[]RNSentry*"                               -app -group
+family:native function:"?[[]SentryCrash*"                            -app -group
+family:native function:"?[[]SentrySDK*"                              -app -group
+family:native function:"?[[]SentryHub*"                              -app -group
+family:native function:"?[[]SentryClient*"                            -app -group
+family:native function:"?[[]SentryStacktraceBuilder*"                -app -group
+family:native function:"?[[]SentryThreadInspector*"                  -app -group
+family:native function:"?[[]SentryFrameInAppLogic*"                  -app -group
+family:native function:"?[[]SentryFrameRemover*"                     -app -group
+family:native function:"?[[]SentryDebugMeta*"                        -app -group
+family:native function:"?[[]SentryRateLimit*"                        -app -group
+family:native function:"?[[]SentryTransport*"                        -app -group
+family:native function:"?[[]SentryHttpTransport*"                    -app -group
+family:native function:"?[[]SentryAutoSessionTrackingIntegration*"   -app -group
+family:native function:"?[[]SentryBreadcrumbTracker*"                -app -group
+family:native function:"?[[]SentryDefaultCurrentDateProvider*"       -app -group
+family:native function:"?[[]SentryDefaultRateLimits*"                -app -group
+family:native function:"?[[]SentryDispatchQueueWrapper*"             -app -group
+family:native function:"?[[]SentryEnvelopeRateLimit*"                -app -group
+family:native function:"?[[]SentryFileManager*"                      -app -group
+family:native function:"?[[]SentryHttpDateParser*"                   -app -group
+family:native function:"?[[]SentryInstallation*"                     -app -group
+family:native function:"?[[]SentryLevelMapper*"                      -app -group
+family:native function:"?[[]SentryMigrateSessionInit*"               -app -group
+family:native function:"?[[]SentryRetryAfterHeaderParser*"           -app -group
+family:native function:"?[[]SentrySdkInfo*"                          -app -group
+family:native function:"?[[]SentrySessionTracker*"                   -app -group
+family:native function:"?[[]SentrySystemEventsBreadcrumbs*"          -app -group
