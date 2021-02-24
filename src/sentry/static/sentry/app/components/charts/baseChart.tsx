@@ -304,6 +304,7 @@ function BaseChartUnwrapped({
           type: 'bar',
           barWidth: 40,
           barGap: 0,
+          itemStyle: {...(s.areaStyle ?? {})},
         }))
       : series) ?? [];
 
