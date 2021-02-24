@@ -26,14 +26,14 @@ class AuthLoginTest(TestCase):
 
     def test_404_disabled(self):
         with self.settings(DEMO_MODE=False, DEMO_ORG_OWNER_EMAIL=org_owner_email):
-            resp = self.client.post(self.path)
+            resp = self.client.get(self.path)
             assert resp.status_code == 404
 
     @mock.patch("sentry.web.frontend.demo_start.generate_random_name", return_value=org_name)
     def test_basic(self, mock_generate_name):
         owner = User.objects.create(email=org_owner_email)
         with self.settings(DEMO_MODE=True, DEMO_ORG_OWNER_EMAIL=org_owner_email):
-            resp = self.client.post(self.path)
+            resp = self.client.get(self.path)
             assert resp.status_code == 302
 
         org = Organization.objects.get(name=org_name)
@@ -55,7 +55,7 @@ class AuthLoginTest(TestCase):
     def test_no_owner(self, mock_generate_name):
         with self.settings(DEMO_MODE=True, DEMO_ORG_OWNER_EMAIL=org_owner_email):
             with pytest.raises(Exception):
-                self.client.post(self.path)
+                self.client.get(self.path)
 
         # verify we are using atomic transactions
         assert not Organization.objects.filter(name=org_name).exists()
