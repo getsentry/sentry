@@ -59,7 +59,7 @@ class NotificationSetting(Model):
     __core__ = False
 
     organization = FlexibleForeignKey("sentry.Organization", null=True)
-    project = FlexibleForeignKey("sentry.Project", null=True)
+    project = FlexibleForeignKey("sentry.Project", null=True, db_constraint=True)
     team = FlexibleForeignKey("sentry.Team", null=True)
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
     provider = BoundedPositiveIntegerField(
