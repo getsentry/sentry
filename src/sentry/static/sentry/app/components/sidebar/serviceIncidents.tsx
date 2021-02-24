@@ -6,6 +6,7 @@ import {loadIncidents} from 'app/actionCreators/serviceIncidents';
 import Button from 'app/components/button';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {SentryServiceStatus} from 'app/types';
 
 import List from '../list';
@@ -97,9 +98,11 @@ class ServiceIncidents extends React.Component<Props, State> {
                       ))}
                     </List>
                   ) : null}
-                  <Button href={incident.url} size="small" external>
-                    {t('Learn more')}
-                  </Button>
+                  <ActionBar>
+                    <Button href={incident.url} size="small" external>
+                      {t('Learn more')}
+                    </Button>
+                  </ActionBar>
                 </SidebarPanelItem>
               ))}
             </IncidentList>
@@ -113,3 +116,7 @@ class ServiceIncidents extends React.Component<Props, State> {
 export default ServiceIncidents;
 
 const IncidentList = styled('div')``;
+
+const ActionBar = styled('div')`
+  margin-top: ${space(2)};
+`;
