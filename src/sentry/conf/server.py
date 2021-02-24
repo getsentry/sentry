@@ -2108,3 +2108,7 @@ SENTRY_REPROCESSING_SYNC_REDIS_CLUSTER = "default"
 
 # Implemented in getsentry to run additional devserver workers.
 SENTRY_EXTRA_WORKERS = None
+
+DEMO_MODE = False
+
+DEMO_ORG_OWNER_EMAIL = None

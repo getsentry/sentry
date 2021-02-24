@@ -11,6 +11,7 @@ from sentry.web.frontend.auth_logout import AuthLogoutView
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
 from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
 from sentry.web.frontend.auth_close import AuthCloseView
+from sentry.web.frontend.demo_start import DemoStartView
 from sentry.web.frontend.error_page_embed import ErrorPageEmbedView
 from sentry.web.frontend.group_event_json import GroupEventJsonView
 from sentry.web.frontend.group_plugin_action import GroupPluginActionView
@@ -547,6 +548,7 @@ urlpatterns += [
         TeamAvatarPhotoView.as_view(),
         name="sentry-team-avatar-url",
     ),
+    url(r"^demo/start/", DemoStartView.as_view(), name="sentry-demo-start"),
     # Generic
     url(r"^$", HomeView.as_view(), name="sentry"),
     url(r"^robots\.txt$", api.robots_txt, name="sentry-api-robots-txt"),
