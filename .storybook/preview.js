@@ -91,7 +91,19 @@ addParameters({
      * be the order they display
      * @type {Function}
      */
-    storySort: undefined,
+    storySort: {
+      order: [
+        'Core',
+        'Forms',
+        'UI',
+        'Layouts',
+        'Charts',
+        'DataVisualization',
+        'Features',
+        'Utilities',
+        'Deprecated',
+      ],
+    },
   },
 });
 

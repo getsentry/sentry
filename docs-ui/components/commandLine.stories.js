@@ -3,7 +3,7 @@ import React from 'react';
 import CommandLine from 'app/components/commandLine';
 
 export default {
-  title: 'Core/CommandLine',
+  title: 'Utilities/CommandLine',
   args: {
     children: 'sentry devserver --workers',
   },

@@ -15,7 +15,7 @@ const items = [
 ];
 
 export default {
-  title: 'Core/Forms/AutoComplete',
+  title: 'Forms/AutoComplete',
   parameters: {
     controls: {hideNoControlsWarning: true},
   },

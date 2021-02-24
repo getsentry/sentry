@@ -3,7 +3,7 @@ import React from 'react';
 import Badge from 'app/components/badge';
 
 export default {
-  title: 'Core/Badges+Tags/Badge',
+  title: 'Core/Tags/Badge',
   component: Badge,
   parameters: {
     controls: {hideNoControlsWarning: true},

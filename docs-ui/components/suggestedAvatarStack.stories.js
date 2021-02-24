@@ -33,7 +33,7 @@ const options = {
 };
 
 export default {
-  title: 'Core/Avatar',
+  title: 'Core/Style/Avatar/SuggestedAvatar',
   component: SuggestedAvatarStack,
 };
 

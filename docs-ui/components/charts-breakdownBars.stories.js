@@ -3,7 +3,7 @@ import React from 'react';
 import BreakdownBars from 'app/components/charts/breakdownBars';
 
 export default {
-  title: 'Charts/BreakdownBars',
+  title: 'DataVisualization/Charts/BreakdownBars',
   component: BreakdownBars,
   parameters: {
     controls: {hideNoControlsWarning: true},

@@ -9,7 +9,7 @@ const USER = {
 };
 
 export default {
-  title: 'Core/Avatar',
+  title: 'Core/Style/Avatar',
   component: Avatar,
   args: {
     hasTooltip: false,

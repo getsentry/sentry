@@ -17,7 +17,7 @@ import TextCopyInput from 'app/views/settings/components/forms/textCopyInput';
 import TextField from 'app/views/settings/components/forms/textField';
 
 export default {
-  title: 'Core/Forms/Fields',
+  title: 'Forms/Fields',
 };
 
 export const _TextField = () => (
