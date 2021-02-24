@@ -15,7 +15,7 @@ import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {InternalAppApiToken, Organization, Project} from 'app/types';
 import AsyncView from 'app/views/asyncView';
@@ -23,6 +23,10 @@ import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader
 import TextBlock from 'app/views/settings/components/text/textBlock';
 
 import TextCopyInput from '../../components/forms/textCopyInput';
+
+const APP_STORE_LINK = 'https://apps.apple.com/us/app/sentry-io/id1546709967';
+const GOOGLE_PLAY_LINK =
+  'https://play.google.com/store/apps/details?id=io.sentry.mobile.app';
 
 export const MOBILE_APP_SCOPES = [
   'project:releases',
@@ -99,21 +103,16 @@ class MobileApp extends AsyncView<Props, State> {
         <SettingsPageHeader title={t('Mobile App')} />
 
         <TextBlock>
-          {/* TODO(mobile-app): replace copy and docs/blog link */}
-          {tct(
-            `Sentry mobile application is lorem, ipsum dolor sit amet consectetur adipisicing elit. Iste nostrum incidunt possimus suscipit magnam. To learn more about the app, [link: read the docs].`,
-            {
-              link: <ExternalLink href="https://docs.sentry.io" />,
-            }
+          {t(
+            `Sentry mobile is early access software, focused on Release Health. To use the rest of Sentry's features, please use sentry.io instead. Follow these steps to get started:`
           )}
         </TextBlock>
 
         <List symbol="colored-numeric">
           <ListItem>
             {t('Get our app in one of the app stores')}:
-            {/* TODO(mobile-app): add production links */}
             <div>
-              <ExternalLink href="https://apps.apple.com">
+              <ExternalLink href={APP_STORE_LINK}>
                 <img
                   alt={t('Download on the App Store')}
                   src={appStore}
@@ -122,7 +121,7 @@ class MobileApp extends AsyncView<Props, State> {
                 />
               </ExternalLink>
 
-              <ExternalLink href="https://play.google.com/store/apps/">
+              <ExternalLink href={GOOGLE_PLAY_LINK}>
                 <img alt={t('Get it on Google Play')} src={playStore} height="60px" />
               </ExternalLink>
             </div>
