@@ -329,6 +329,22 @@ def get_missing_role_error(err_message):
     return err_message == missing_role_err
 
 
+def get_sentry_err_message(err_message):
+    """
+    Check to see if an error matches a custom error and customizes the error
+    message if it is a custom error
+    :param err_message: error string
+    :return tuple of boolean (True if message was customized) and err message
+    """
+    invalid_layer = get_invalid_layer_name(err_message)
+    if invalid_layer:
+        return True, (INVALID_LAYER_TEXT % invalid_layer)
+    missing_role = get_missing_role_error(err_message)
+    if missing_role:
+        return True, MISSING_ROLE_TEXT
+    return False, err_message
+
+
 def wrap_lambda_updater():
     """
     Wraps any function that updates a layer
@@ -342,14 +358,9 @@ def wrap_lambda_updater():
                 return func(*args, **kwargs)
             except Exception as e:
                 err_message = str(e)
-                invalid_layer = get_invalid_layer_name(err_message)
-                # only have one specific error to catch
-                if invalid_layer:
-                    raise IntegrationError(_(INVALID_LAYER_TEXT) % invalid_layer)
-                # check if error raised is a missing role message
-                missing_role = get_missing_role_error(err_message)
-                if missing_role:
-                    raise IntegrationError(_(MISSING_ROLE_TEXT))
+                is_custom_err, err_message = get_sentry_err_message(err_message)
+                if is_custom_err:
+                    raise IntegrationError(_(err_message))
                 # otherwise, re-raise the original error
                 raise
 
