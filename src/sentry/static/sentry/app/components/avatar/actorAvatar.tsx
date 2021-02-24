@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 
 import TeamAvatar from 'app/components/avatar/teamAvatar';
 import UserAvatar from 'app/components/avatar/userAvatar';
+import Tooltip from 'app/components/tooltip';
 import MemberListStore from 'app/stores/memberListStore';
 import TeamStore from 'app/stores/teamStore';
 import {Actor} from 'app/types';
@@ -20,6 +21,8 @@ type Props = DefaultProps & {
   className?: string;
   onClick?: () => void;
   suggested?: boolean;
+  tooltip?: React.ReactNode;
+  tooltipOptions?: Omit<Tooltip['props'], 'children' | 'title'>;
 };
 
 class ActorAvatar extends React.Component<Props> {

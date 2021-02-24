@@ -133,6 +133,11 @@ const SidebarDropdown = ({api, org, orientation, collapsed, config, user}: Props
                     <SidebarMenuItem to="/settings/account/api/">
                       {t('API keys')}
                     </SidebarMenuItem>
+                    {user.isStaff && (
+                      <SidebarMenuItem to="/settings/account/api/mobile-app/">
+                        {t('Mobile app')}
+                      </SidebarMenuItem>
+                    )}
                     {user.isSuperuser && (
                       <SidebarMenuItem to="/manage/">{t('Admin')}</SidebarMenuItem>
                     )}

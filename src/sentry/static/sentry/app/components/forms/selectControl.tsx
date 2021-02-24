@@ -108,7 +108,7 @@ type LegacyProps = React.ComponentProps<typeof SelectControlLegacy>;
 // This means we cannot fill the SelectValue generic
 // at the call site. We use `any` here to avoid type errors with select
 // controls that have custom option structures
-type GeneralSelectValue = SelectValue<any>;
+export type GeneralSelectValue = SelectValue<any>;
 
 function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValue>(
   props: WrappedControlProps<OptionType>
@@ -139,7 +139,8 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   const defaultStyles: StylesConfig = {
     control: (_, state: any) => ({
       height: '100%',
-      fontSize: '15px',
+      fontSize: theme.fontSizeLarge,
+      lineHeight: theme.text.lineHeightBody,
       display: 'flex',
       // @ts-ignore Ignore merge errors as only defining the property once
       // makes code harder to understand.
@@ -337,14 +338,14 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     }),
   };
   const labelOrDefaultStyles = inFieldLabel
-    ? mergeStyles(inFieldLabelStyles, defaultStyles)
+    ? mergeStyles(defaultStyles, inFieldLabelStyles)
     : defaultStyles;
 
   // Allow the provided `styles` prop to override default styles using the same
   // function interface provided by react-styled. This ensures the `provided`
   // styles include our overridden default styles
   const mappedStyles = styles
-    ? mergeStyles(styles, labelOrDefaultStyles)
+    ? mergeStyles(labelOrDefaultStyles, styles)
     : labelOrDefaultStyles;
 
   const replacedComponents = {

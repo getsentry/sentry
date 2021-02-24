@@ -172,7 +172,7 @@ describe('IssueListHeader', () => {
     });
     expect(wrapper.find('Link').at(1).prop('to')).toEqual({
       pathname,
-      query: {query: 'is:unresolved is:for_review'},
+      query: {query: 'is:unresolved is:for_review', sort: 'inbox'},
     });
   });
 
@@ -199,6 +199,28 @@ describe('IssueListHeader', () => {
     });
     expect(wrapper.find('Link').at(1).prop('to')).toEqual({
       pathname,
+      query: {query: 'is:unresolved is:for_review', sort: 'inbox'},
+    });
+  });
+
+  it('changes sort for inbox tab', () => {
+    const wrapper = mountWithTheme(
+      <IssueListHeader
+        organization={organization}
+        queryCounts={queryCounts}
+        projectIds={[]}
+        savedSearchList={[]}
+        router={TestStubs.router({
+          location: {
+            pathname: '/test/',
+            query: {sort: 'date'},
+          },
+        })}
+      />,
+      TestStubs.routerContext()
+    );
+    expect(wrapper.find('Link').at(1).prop('to')).toEqual({
+      pathname: '/organizations/org-slug/issues/',
       query: {query: 'is:unresolved is:for_review', sort: 'inbox'},
     });
   });

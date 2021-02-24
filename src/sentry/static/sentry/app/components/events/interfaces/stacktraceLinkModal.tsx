@@ -73,10 +73,14 @@ class StacktraceLinkModal extends React.Component<Props, State> {
         },
       });
 
-      const configEndpoint = `/organizations/${organization.slug}/integrations/${configData.integrationId}/repo-project-path-configs/`;
+      const configEndpoint = `/organizations/${organization.slug}/repo-project-path-configs/`;
       await api.requestPromise(configEndpoint, {
         method: 'POST',
-        data: {...configData, projectId: project.id},
+        data: {
+          ...configData,
+          projectId: project.id,
+          integrationId: configData.integrationId,
+        },
       });
 
       addSuccessMessage(t('Stack trace configuration saved.'));

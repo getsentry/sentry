@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import Pagination from 'app/components/pagination';
 
 export default {
-  title: 'Core/Pagination',
+  title: 'Core/Buttons/Pagination',
   component: Pagination,
 };
 
