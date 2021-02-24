@@ -137,6 +137,13 @@ function IssueListHeader({
                           {queryCounts[tabQuery] && (
                             <StyledQueryCount
                               isTag
+                              tagProps={{
+                                type:
+                                  isForReviewQuery(tabQuery) &&
+                                  queryCounts[tabQuery].count > 0
+                                    ? 'warning'
+                                    : 'default',
+                              }}
                               count={queryCounts[tabQuery].count}
                               max={queryCounts[tabQuery].hasMore ? TAB_MAX_COUNT : 1000}
                             />
