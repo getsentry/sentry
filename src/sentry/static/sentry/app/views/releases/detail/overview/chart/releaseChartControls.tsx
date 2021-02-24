@@ -153,13 +153,11 @@ const ReleaseChartControls = ({
       <InlineContainer>
         <SectionHeading key="total-label">{getSummaryHeading()}</SectionHeading>
         <SectionValue key="total-value">{summary}</SectionValue>
-        {(yAxis === YAxis.EVENTS || PERFORMANCE_AXIS.includes(yAxis)) && (
-          <QuestionTooltip
-            position="top"
-            size="sm"
-            title="This count includes only the current release."
-          />
-        )}
+        <QuestionTooltip
+          position="top"
+          size="sm"
+          title={t('This value includes only the current release.')}
+        />
       </InlineContainer>
       <InlineContainer>
         <SecondarySelector

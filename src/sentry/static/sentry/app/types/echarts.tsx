@@ -19,6 +19,8 @@ export type Series = {
     opacity: number;
   };
   lineStyle?: EChartOption.LineStyle;
+  stack?: string; // https://echarts.apache.org/en/option.html#series-line.stack
+  z?: number; // https://echarts.apache.org/en/option.html#series-line.z
 };
 
 export type ReactEchartsRef = ReactEchartsCore & {
